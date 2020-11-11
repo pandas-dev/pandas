@@ -128,24 +128,12 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         }
         testdata = DataFrame(data)
 
-        ax_numeric = testdata.plot(y="numeric")
-        assert (
-            ax_numeric.get_lines()[0].get_data()[1] == testdata["numeric"].values
-        ).all()
-        ax_timedelta = testdata.plot(y="timedelta")
-        assert (
-            ax_timedelta.get_lines()[0].get_data()[1] == testdata["timedelta"].values
-        ).all()
-        ax_datetime_no_tz = testdata.plot(y="datetime_no_tz")
-        assert (
-            ax_datetime_no_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_no_tz"].values
-        ).all()
-        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
-        assert (
-            ax_datetime_all_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_all_tz"].values
-        ).all()
+        y_cols = ["numeric", "timedelta", "datetime_no_tz", "datetime_all_tz"]
+        for col in y_cols:
+            ax = testdata.plot(y=col)
+            result = ax.get_lines()[0].get_data()[1]
+            expected = testdata[col].values
+            assert (result == expected).all()
 
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
@@ -203,7 +191,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ).all()
 
     @pytest.mark.slow
-    def test_subplots_layout(self):
+    def test_subplots_layout_multi_column(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -236,15 +224,27 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(-1, -1))
 
-        # single column
-        df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
-        axes = df.plot(subplots=True)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
-        assert axes.shape == (1,)
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "kwargs, expected_axes_num, expected_layout, expected_shape",
+        [
+            ({}, 1, (1, 1), (1,)),
+            ({"layout": (3, 3)}, 1, (3, 3), (3, 3)),
+        ],
+    )
+    def test_subplots_layout_single_column(
+            self, kwargs, expected_axes_num, expected_layout, expected_shape
+    ):
 
-        axes = df.plot(subplots=True, layout=(3, 3))
-        self._check_axes_shape(axes, axes_num=1, layout=(3, 3))
-        assert axes.shape == (3, 3)
+        # GH 6667
+        df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
+        axes = df.plot(subplots=True, **kwargs)
+        self._check_axes_shape(
+            axes,
+            axes_num=expected_axes_num,
+            layout=expected_layout,
+        )
+        assert axes.shape == expected_shape
 
     @pytest.mark.slow
     def test_subplots_warnings(self):
@@ -381,14 +381,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert len(ax.right_ax.lines) == 5
 
     @pytest.mark.slow
-    def test_bar_subplots_center(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", subplots=True)
-        self._check_bar_alignment(df, kind="bar", subplots=True, width=0.9)
-        self._check_bar_alignment(df, kind="barh", subplots=True)
-        self._check_bar_alignment(df, kind="barh", subplots=True, width=0.9)
-
-    @pytest.mark.slow
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
@@ -522,80 +514,75 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
     @pytest.mark.slow
-    def test_bar_stacked_center(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            # stacked center
+            dict(kind="bar", stacked=True),
+            dict(kind="bar", stacked=True, width=0.9),
+            dict(kind="barh", stacked=True),
+            dict(kind="barh", stacked=True, width=0.9),
+            # center
+            dict(kind="bar", stacked=False),
+            dict(kind="bar", stacked=False, width=0.9),
+            dict(kind="barh", stacked=False),
+            dict(kind="barh", stacked=False, width=0.9),
+            # subplots center
+            dict(kind="bar", subplots=True),
+            dict(kind="bar", subplots=True, width=0.9),
+            dict(kind="barh", subplots=True),
+            dict(kind="barh", subplots=True, width=0.9),
+            # align edge
+            dict(kind="bar", stacked=True, align="edge"),
+            dict(kind="bar", stacked=True, width=0.9, align="edge"),
+            dict(kind="barh", stacked=True, align="edge"),
+            dict(kind="barh", stacked=True, width=0.9, align="edge"),
+            dict(kind="bar", stacked=False, align="edge"),
+            dict(kind="bar", stacked=False, width=0.9, align="edge"),
+            dict(kind="barh", stacked=False, align="edge"),
+            dict(kind="barh", stacked=False, width=0.9, align="edge"),
+            dict(kind="bar", subplots=True, align="edge"),
+            dict(kind="bar", subplots=True, width=0.9, align="edge"),
+            dict(kind="barh", subplots=True, align="edge"),
+            dict(kind="barh", subplots=True, width=0.9, align="edge"),
+        ],
+    )
+    def test_bar_align_multiple_columns(self, kwargs):
         # GH2157
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=True, width=0.9)
+        self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.slow
-    def test_bar_center(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=False, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=False, width=0.9)
-
-    @pytest.mark.slow
-    def test_bar_align_single_column(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            dict(kind="bar", stacked=False),
+            dict(kind="bar", stacked=True),
+            dict(kind="barh", stacked=False),
+            dict(kind="barh", stacked=True),
+            dict(kind="bar", subplots=True),
+            dict(kind="barh", subplots=True),
+        ],
+    )
+    def test_bar_align_single_column(self, kwargs):
         df = DataFrame(np.random.randn(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="bar", subplots=True)
-        self._check_bar_alignment(df, kind="barh", subplots=True)
+        self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.slow
-    def test_bar_edge(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-
-        self._check_bar_alignment(df, kind="bar", stacked=True, align="edge")
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, align="edge")
-        self._check_bar_alignment(df, kind="barh", stacked=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, align="edge"
-        )
-
-    @pytest.mark.slow
-    def test_bar_barwidth_position(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": True},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": True},
+            {"kind": "bar", "subplots": True},
+            {"kind": "barh", "subplots": True},
+        ],
+    )
+    def test_bar_barwidth_position(self, kwargs):
         df = DataFrame(np.random.randn(5, 5))
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, position=0.2)
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, position=0.2
-        )
+        self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.slow
     def test_bar_barwidth_position_int(self):
