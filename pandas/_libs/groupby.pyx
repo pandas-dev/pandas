@@ -997,9 +997,6 @@ def group_nth(rank_t[:, :] out,
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
-        Py_ssize_t min_count = -1
-
-    assert min_count == -1, "'min_count' only used in add and prod"
 
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
