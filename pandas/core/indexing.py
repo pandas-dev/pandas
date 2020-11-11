@@ -1,5 +1,5 @@
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 import warnings
 
 import numpy as np
@@ -769,7 +769,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return tuple(keyidx)
 
-    def _validate_key_length(self, key: Sequence[Any]) -> None:
+    def _validate_key_length(self, key: Tuple) -> Tuple:
         if len(key) > self.ndim:
             if key[0] is Ellipsis:
                 # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
