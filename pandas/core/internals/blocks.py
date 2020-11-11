@@ -2592,6 +2592,26 @@ class CategoricalBlock(ExtensionBlock):
         result.values.replace(to_replace, value, inplace=True)
         return [result]
 
+    def _can_hold_element(self, element: Any) -> bool:
+        try:
+            self.values._validate_setitem_value(element)
+            return True
+        except (TypeError, ValueError):
+            return False
+
+    def putmask(
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
+    ) -> List["Block"]:
+        if self._can_hold_element(new):
+            return super().putmask(mask, new, inplace, axis, transpose)
+
+        # TODO: should this be inplace?
+        # TODO: use coerce_to_target_dtype?
+        cat = self.values.add_categories(new)
+        nb = self.make_block(cat)
+        assert nb._can_hold_element(new)
+        return nb.putmask(mask, new, inplace, axis, transpose)
+
 
 # -----------------------------------------------------------------
 # Constructor Helpers
