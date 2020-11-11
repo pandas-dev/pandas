@@ -367,7 +367,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
     return result
 
 
-def _datetimelike_compat(func):
+def _datetimelike_compat(func: F) -> F:
     """
     If we have datetime64 or timedelta64 values, ensure we have a correct
     mask before calling the wrapped function, then cast back afterwards.
@@ -397,7 +397,7 @@ def _datetimelike_compat(func):
 
         return result
 
-    return new_func
+    return cast(F, new_func)
 
 
 def _na_for_min_count(
