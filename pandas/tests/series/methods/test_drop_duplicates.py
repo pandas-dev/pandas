@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
+
 from pandas import Categorical, Series
 import pandas._testing as tm
 
@@ -94,7 +96,7 @@ class TestSeriesDropDuplicates:
                     [1, 2, 3, 5, 3, 2, 4], dtype=np.dtype("datetime64[D]")
                 )
 
-            if not (np.array(tc) == input_arr).all():
+            if not (np.array(tc) == input_arr).all() and is_platform_windows():
                 mark = pytest.mark.xfail(
                     reason="GH#7996 tc1/tc2 values are seemingly-random",
                     raises=AssertionError,
