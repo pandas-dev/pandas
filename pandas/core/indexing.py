@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_sequence,
+    is_sequence, is_bool_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
@@ -602,7 +602,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Convert a potentially-label-based key into a positional indexer.
         """
-        if self.name == "loc":
+        if self.name == "loc" or is_bool_dtype(np.array(key)):
             self._ensure_listlike_indexer(key)
 
         if self.axis is not None:
