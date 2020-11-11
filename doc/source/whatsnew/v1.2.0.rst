@@ -470,6 +470,7 @@ Indexing
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
+- Bug in :meth:`Series.loc` raised an Error when input was filtered with a boolean list and values to set were a list with lower dimension (:issue:`20438`)
 
 Missing
 ^^^^^^^

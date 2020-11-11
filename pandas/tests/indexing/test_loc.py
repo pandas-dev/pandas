@@ -1955,6 +1955,13 @@ class TestLocSeries:
         result = s2["a"]
         assert result == expected
 
+    def test_loc_setitem_boolean_list(self):
+        # GH: 20438
+        ser = Series([0, 1, 2])
+        ser.loc[[True, False, True]] = [5, 10]
+        expected = Series([5, 1, 10])
+        tm.assert_series_equal(ser, expected)
+
 
 @pytest.mark.parametrize("value", [1, 1.5])
 def test_loc_int_in_object_index(frame_or_series, value):
