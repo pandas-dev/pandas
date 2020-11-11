@@ -1,5 +1,5 @@
 from collections import abc
-from datetime import datetime
+from datetime import date, datetime
 from functools import partial
 from itertools import islice
 from typing import (
@@ -70,7 +70,7 @@ if TYPE_CHECKING:
 
 ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
 Scalar = Union[int, float, str]
-DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
+DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime, date)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
 
@@ -219,7 +219,7 @@ def _convert_and_box_cache(
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    arg : integer, float, string, datetime, date, list, tuple, 1-d array, Series
     cache_array : Series
         Cache of converted, unique dates
     name : string, default None
@@ -367,7 +367,7 @@ def _convert_listlike_datetimes(
         return result
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
-            "arg must be a string, datetime, list, tuple, 1-d array, or Series"
+            "arg must be a string, datetime, date, list, tuple, 1-d array, or Series"
         )
 
     # warn if passing timedelta64, raise for PeriodDtype
@@ -624,7 +624,8 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
+    arg : int, float, str, datetime, date, list, tuple, 1-d array, Series,
+        DataFrame/dict-like
         The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
