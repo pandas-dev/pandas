@@ -89,6 +89,7 @@ This test likely belongs in one of:
     If many cases such a test may test multiple similar methods, e.g.
 
     .. code-block:: python
+
         import pandas as pd
         import pandas._testing as tm
 
