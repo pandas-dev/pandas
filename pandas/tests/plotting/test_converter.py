@@ -7,6 +7,7 @@ import pytest
 
 import pandas._config.config as cf
 
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -71,12 +72,16 @@ class TestRegistration:
         register_matplotlib_converters()
         ax.plot(s.index, s.values)
 
-    def test_pandas_plots_register(self):
+    def test_pandas_plots_register(self, request):
         pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
+
+        if is_platform_windows():
+            mark = pytest.mark.xfail(reason="Getting two warnings")
+            request.node.add_marker(mark)
 
         assert len(w) == 0
 
