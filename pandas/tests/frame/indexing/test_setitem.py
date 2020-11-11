@@ -306,6 +306,13 @@ class TestDataFrameSetItem:
         expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4]}, dtype="int64")
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_single_column_as_series_different_dtype(self):
+        # GH: 20635
+        df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"]})
+        df.loc[:, "C"] = df.loc[:, "C"].astype("int64")
+        expected = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": [3, 4]})
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_conversion_to_datetime(self):
         # GH: 20511
         df = DataFrame(

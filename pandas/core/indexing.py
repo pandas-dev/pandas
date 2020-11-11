@@ -1551,7 +1551,9 @@ class _iLocIndexer(_LocationIndexer):
                 val = list(value.values()) if isinstance(value, dict) else value
                 blk = self.obj._mgr.blocks[0]
                 take_split_path = not blk._can_hold_element(val)
-                if isinstance(value, ABCDataFrame):
+                if isinstance(value, ABCSeries):
+                    take_split_path = not (is_dtype_equal(value.dtype, blk.dtype))
+                elif isinstance(value, ABCDataFrame):
                     dtypes = list(value.dtypes.unique())
                     take_split_path = not (
                         len(dtypes) == 1 and is_dtype_equal(dtypes[0], blk.dtype)
