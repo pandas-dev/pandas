@@ -48,6 +48,9 @@ def recode_for_groupby(
     """
     # we only care about observed values
     if observed:
+        # In cases with c.ordered, this is equivalent to
+        #  return c.remove_unused_categories(), c
+
         unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
