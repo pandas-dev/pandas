@@ -161,7 +161,7 @@ class TestDateRanges:
     def test_begin_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
             freq=freq,
         )
@@ -171,7 +171,7 @@ class TestDateRanges:
     def test_end_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq=freq
         )
         tm.assert_index_equal(rng, exp)
@@ -180,7 +180,7 @@ class TestDateRanges:
     def test_business_end_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq=freq
         )
         tm.assert_index_equal(rng, exp)
@@ -188,12 +188,12 @@ class TestDateRanges:
     def test_date_range_negative_freq(self):
         # GH 11018
         rng = date_range("2011-12-31", freq="-2A", periods=3)
-        exp = pd.DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2A")
+        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2A")
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2A"
 
         rng = date_range("2011-01-31", freq="-2M", periods=3)
-        exp = pd.DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
+        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2M"
 
@@ -778,10 +778,10 @@ class TestGenRangeGeneration:
     @pytest.mark.parametrize(
         "start,end",
         [
-            (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
-            (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
-            (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
-            (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1)),
+            (Timestamp(dt1, tz=tz1), Timestamp(dt2)),
+            (Timestamp(dt1), Timestamp(dt2, tz=tz2)),
+            (Timestamp(dt1, tz=tz1), Timestamp(dt2, tz=tz2)),
+            (Timestamp(dt1, tz=tz2), Timestamp(dt2, tz=tz1)),
         ],
     )
     def test_mismatching_tz_raises_err(self, start, end):
@@ -859,15 +859,15 @@ class TestBusinessDateRange:
 
     def test_bday_near_overflow(self):
         # GH#24252 avoid doing unnecessary addition that _would_ overflow
-        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        start = Timestamp.max.floor("D").to_pydatetime()
         rng = pd.date_range(start, end=None, periods=1, freq="B")
-        expected = pd.DatetimeIndex([start], freq="B")
+        expected = DatetimeIndex([start], freq="B")
         tm.assert_index_equal(rng, expected)
 
     def test_bday_overflow_error(self):
         # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
         msg = "Out of bounds nanosecond timestamp"
-        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        start = Timestamp.max.floor("D").to_pydatetime()
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.date_range(start, periods=2, freq="B")
 
@@ -1004,7 +1004,7 @@ def test_date_range_with_custom_holidays():
     # GH 30593
     freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
     result = pd.date_range(start="2020-11-25 15:00", periods=4, freq=freq)
-    expected = pd.DatetimeIndex(
+    expected = DatetimeIndex(
         [
             "2020-11-25 15:00:00",
             "2020-11-25 16:00:00",

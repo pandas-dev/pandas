@@ -697,8 +697,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -708,8 +708,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -717,8 +717,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -726,8 +726,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -737,8 +737,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
         assert df.IntDateOnlyCol.tolist() == [
-            pd.Timestamp("2010-10-10"),
-            pd.Timestamp("2010-12-12"),
+            Timestamp("2010-10-10"),
+            Timestamp("2010-12-12"),
         ]
 
     def test_date_and_index(self):
@@ -1490,10 +1490,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_out_of_bounds_datetime(self):
         # GH 26761
-        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
         data.to_sql("test_datetime_obb", self.conn, index=False)
         result = sql.read_sql_table("test_datetime_obb", self.conn)
-        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
 
     def test_naive_datetimeindex_roundtrip(self):
@@ -1820,7 +1820,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
 
-        df = pd.DataFrame(input)
+        df = DataFrame(input)
 
         if self.flavor == "mysql":
             msg = "inf cannot be used with MySQL"

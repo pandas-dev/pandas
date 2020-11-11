@@ -18,7 +18,7 @@ def test_transform_ufunc(string_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", sorted(transformation_kernels))
 def test_transform_groupby_kernel(string_series, op):
     # GH 35964
     if op == "cumcount":
@@ -144,7 +144,7 @@ def test_transform_reducer_raises(all_reductions):
 
 # mypy doesn't allow adding lists of different types
 # https://github.com/python/mypy/issues/5492
-@pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
+@pytest.mark.parametrize("op", [*sorted(transformation_kernels), lambda x: x + 1])
 def test_transform_bad_dtype(op):
     # GH 35964
     s = Series(3 * [object])  # Series that will fail on most transforms

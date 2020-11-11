@@ -2,7 +2,6 @@ import itertools
 import string
 
 import numpy as np
-from numpy import random
 import pytest
 
 import pandas.util._test_decorators as td
@@ -186,7 +185,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd(self, colors_kwd, expected):
         # GH: 26214
-        df = DataFrame(random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         result = df.boxplot(color=colors_kwd, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
@@ -197,7 +196,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
-        df = DataFrame(random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
@@ -293,7 +292,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_box_return_type(result, "dict", expected_keys=["Male", "Female"])
 
         columns2 = "X B C D A G Y N Q O".split()
-        df2 = DataFrame(random.randn(50, 10), columns=columns2)
+        df2 = DataFrame(np.random.randn(50, 10), columns=columns2)
         categories2 = "A B C D E F G H I J".split()
         df2["category"] = categories2 * 5
 
@@ -455,3 +454,76 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_ticks_props(
             df.boxplot("a", by="b", fontsize=16), xlabelsize=16, ylabelsize=16
         )
+
+    @pytest.mark.parametrize(
+        "col, expected_xticklabel",
+        [
+            ("v", ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
+            (["v"], ["(a, v)", "(b, v)", "(c, v)", "(d, v)", "(e, v)"]),
+            ("v1", ["(a, v1)", "(b, v1)", "(c, v1)", "(d, v1)", "(e, v1)"]),
+            (
+                ["v", "v1"],
+                [
+                    "(a, v)",
+                    "(a, v1)",
+                    "(b, v)",
+                    "(b, v1)",
+                    "(c, v)",
+                    "(c, v1)",
+                    "(d, v)",
+                    "(d, v1)",
+                    "(e, v)",
+                    "(e, v1)",
+                ],
+            ),
+            (
+                None,
+                [
+                    "(a, v)",
+                    "(a, v1)",
+                    "(b, v)",
+                    "(b, v1)",
+                    "(c, v)",
+                    "(c, v1)",
+                    "(d, v)",
+                    "(d, v1)",
+                    "(e, v)",
+                    "(e, v1)",
+                ],
+            ),
+        ],
+    )
+    def test_groupby_boxplot_subplots_false(self, col, expected_xticklabel):
+        # GH 16748
+        df = DataFrame(
+            {
+                "cat": np.random.choice(list("abcde"), 100),
+                "v": np.random.rand(100),
+                "v1": np.random.rand(100),
+            }
+        )
+        grouped = df.groupby("cat")
+
+        axes = _check_plot_works(
+            grouped.boxplot, subplots=False, column=col, return_type="axes"
+        )
+
+        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
+        assert expected_xticklabel == result_xticklabel
+
+    def test_boxplot_multiindex_column(self):
+        # GH 16748
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+        ]
+        tuples = list(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
+        df = DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
+
+        col = [("bar", "one"), ("bar", "two")]
+        axes = _check_plot_works(df.boxplot, column=col, return_type="axes")
+
+        expected_xticklabel = ["(bar, one)", "(bar, two)"]
+        result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
+        assert expected_xticklabel == result_xticklabel

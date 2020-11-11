@@ -28,7 +28,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -63,6 +62,7 @@ from pandas import (
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -268,6 +268,7 @@ def to_hdf(
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
+            dropna=dropna,
         )
 
     path_or_buf = stringify_path(path_or_buf)
@@ -565,6 +566,7 @@ class HDFStore:
     def root(self):
         """ return the root node """
         self._check_if_open()
+        assert self._handle is not None  # for mypy
         return self._handle.root
 
     @property
@@ -1050,6 +1052,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
+        dropna: bool = False,
     ):
         """
         Store object in HDFStore.
@@ -1099,6 +1102,7 @@ class HDFStore:
             encoding=encoding,
             errors=errors,
             track_times=track_times,
+            dropna=dropna,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1393,6 +1397,8 @@ class HDFStore:
         """
         _tables()
         self._check_if_open()
+        assert self._handle is not None  # for mypy
+        assert _table_mod is not None  # for mypy
         return [
             g
             for g in self._handle.walk_groups()
@@ -1437,6 +1443,9 @@ class HDFStore:
         """
         _tables()
         self._check_if_open()
+        assert self._handle is not None  # for mypy
+        assert _table_mod is not None  # for mypy
+
         for g in self._handle.walk_groups(where):
             if getattr(g._v_attrs, "pandas_type", None) is not None:
                 continue
@@ -1862,6 +1871,8 @@ class TableIterator:
     def __iter__(self):
         # iterate
         current = self.start
+        if self.coordinates is None:
+            raise ValueError("Cannot iterate until get_result is called.")
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
             value = self.func(None, None, self.coordinates[current:stop])
@@ -2960,11 +2971,12 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, value: ArrayLike, items: Optional[Index] = None):
-        # TODO: we only have one test that gets here, the only EA
+    def write_array(self, key: str, obj: FrameOrSeries, items: Optional[Index] = None):
+        # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-        assert isinstance(value, (np.ndarray, ABCExtensionArray)), type(value)
+
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3019,8 +3031,6 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif empty_array:
-            self.write_array_empty(key, value)
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
@@ -3035,6 +3045,8 @@ class GenericFixed(Fixed):
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif empty_array:
+            self.write_array_empty(key, value)
         else:
             self._handle.create_array(self.group, key, value)
 
@@ -3069,7 +3081,7 @@ class SeriesFixed(GenericFixed):
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
-        self.write_array("values", obj.values)
+        self.write_array("values", obj)
         self.attrs.name = obj.name
 
 
@@ -3079,7 +3091,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self):
+    def shape(self) -> Optional[Shape]:
         try:
             ndim = self.ndim
 
@@ -3196,7 +3208,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels = 1
+    levels: Union[int, List[Label]] = 1
     is_table = True
 
     index_axes: List[IndexCol]
@@ -3292,7 +3304,9 @@ class Table(Fixed):
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
 
-    def validate_multiindex(self, obj):
+    def validate_multiindex(
+        self, obj: FrameOrSeriesUnion
+    ) -> Tuple[DataFrame, List[Label]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3301,11 +3315,13 @@ class Table(Fixed):
             l if l is not None else f"level_{i}" for i, l in enumerate(obj.index.names)
         ]
         try:
-            return obj.reset_index(), levels
+            reset_obj = obj.reset_index()
         except ValueError as err:
             raise ValueError(
                 "duplicate names/columns in the multi-index when storing as a table"
             ) from err
+        assert isinstance(reset_obj, DataFrame)  # for mypy
+        return reset_obj, levels
 
     @property
     def nrows_expected(self) -> int:
@@ -3433,7 +3449,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels = getattr(self.attrs, "levels", None) or []
+        self.levels: List[Label] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4562,11 +4578,12 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     def write(self, obj, **kwargs):
         """ we are going to write this as a frame table """
         name = obj.name or "values"
-        obj, self.levels = self.validate_multiindex(obj)
+        newobj, self.levels = self.validate_multiindex(obj)
+        assert isinstance(self.levels, list)  # for mypy
         cols = list(self.levels)
         cols.append(name)
-        obj.columns = cols
-        return super().write(obj=obj, **kwargs)
+        newobj.columns = Index(cols)
+        return super().write(obj=newobj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4576,6 +4593,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
+    levels: List[Label]
 
     @property
     def pandas_type(self) -> str:
@@ -4609,7 +4627,7 @@ class GenericTable(AppendableFrameTable):
             name="index", axis=0, table=self.table, meta=meta, metadata=md
         )
 
-        _indexables = [index_col]
+        _indexables: List[Union[GenericIndexCol, GenericDataIndexableCol]] = [index_col]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
@@ -4652,6 +4670,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         elif data_columns is True:
             data_columns = obj.columns.tolist()
         obj, self.levels = self.validate_multiindex(obj)
+        assert isinstance(self.levels, list)  # for mypy
         for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
@@ -5173,7 +5192,7 @@ class Selection:
             start = 0
         elif start < 0:
             start += nrows
-        if self.stop is None:
+        if stop is None:
             stop = nrows
         elif stop < 0:
             stop += nrows
