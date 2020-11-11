@@ -69,10 +69,10 @@ class TestGetitem:
 
     def test_getitem_indexer_empty_series(self):
         # GH: 19290
-        df = DataFrame(columns=['a', 'b', 'c'])
-        ind = df.a.apply(lambda x: x == '0')
+        df = DataFrame(columns=["a", "b", "c"])
+        ind = df.a.apply(lambda x: x == "0")
         result = df[ind]
-        expected = DataFrame(columns=['a', 'b', 'c'])
+        expected = DataFrame(columns=["a", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
 
