@@ -60,7 +60,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.replace import compare_or_regex_search
+from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -813,17 +813,50 @@ class Block(PandasObject):
         )
         return blocks
 
-    def _replace_single(
+    def _replace_regex(
         self,
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
         convert: bool = True,
         mask=None,
     ) -> List["Block"]:
-        """ no-op on a non-ObjectBlock """
-        return [self] if inplace else [self.copy()]
+        """
+        Replace elements by the given value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        convert : bool, default True
+            If true, try to coerce any object types to better types.
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        List[Block]
+        """
+        if not self._can_hold_element(to_replace):
+            # i.e. only ObjectBlock, but could in principle include a
+            #  String ExtensionBlock
+            return [self] if inplace else [self.copy()]
+
+        rx = re.compile(to_replace)
+
+        new_values = self.values if inplace else self.values.copy()
+        replace_regex(new_values, rx, value, mask)
+
+        block = self.make_block(new_values)
+        if convert:
+            nbs = block.convert(numeric=False)
+        else:
+            nbs = [block]
+        return nbs
 
     def _replace_list(
         self,
@@ -1598,14 +1631,16 @@ class Block(PandasObject):
                 self = self.coerce_to_target_dtype(value)
                 return self.putmask(mask, value, inplace=inplace)
             else:
-                return self._replace_single(
-                    to_replace,
-                    value,
-                    inplace=inplace,
-                    regex=regex,
-                    convert=False,
-                    mask=mask,
-                )
+                regex = _should_use_regex(regex, to_replace)
+                if regex:
+                    return self._replace_regex(
+                        to_replace,
+                        value,
+                        inplace=inplace,
+                        convert=False,
+                        mask=mask,
+                    )
+                return self.replace(to_replace, value, inplace=inplace, regex=False)
         return [self]
 
 
@@ -2506,97 +2541,26 @@ class ObjectBlock(Block):
         #  here with listlike to_replace or value, as those cases
         #  go through _replace_list
 
-        if is_re(to_replace) or regex:
-            return self._replace_single(to_replace, value, inplace=inplace, regex=True)
+        regex = _should_use_regex(regex, to_replace)
+
+        if regex:
+            return self._replace_regex(to_replace, value, inplace=inplace)
         else:
-            return super().replace(to_replace, value, inplace=inplace, regex=regex)
+            return super().replace(to_replace, value, inplace=inplace, regex=False)
 
-    def _replace_single(
-        self,
-        to_replace,
-        value,
-        inplace: bool = False,
-        regex: bool = False,
-        convert: bool = True,
-        mask=None,
-    ) -> List["Block"]:
-        """
-        Replace elements by the given value.
 
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        inplace : bool, default False
-            Perform inplace modification.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
-        mask : array-like of bool, optional
-            True indicate corresponding element is ignored.
+def _should_use_regex(regex: bool, to_replace: Any) -> bool:
+    """
+    Decide whether to treat `to_replace` as a regular expression.
+    """
+    if is_re(to_replace):
+        regex = True
 
-        Returns
-        -------
-        List[Block]
-        """
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    regex = regex and is_re_compilable(to_replace)
 
-        # to_replace is regex compilable
-        regex = regex and is_re_compilable(to_replace)
-
-        # try to get the pattern attribute (compiled re) or it's a string
-        if is_re(to_replace):
-            pattern = to_replace.pattern
-        else:
-            pattern = to_replace
-
-        # if the pattern is not empty and to_replace is either a string or a
-        # regex
-        if regex and pattern:
-            rx = re.compile(to_replace)
-        else:
-            # if the thing to replace is not a string or compiled regex call
-            # the superclass method -> to_replace is some kind of object
-            return super().replace(to_replace, value, inplace=inplace, regex=regex)
-
-        new_values = self.values if inplace else self.values.copy()
-
-        # deal with replacing values with objects (strings) that match but
-        # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, str):
-
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return value if rx.search(s) is not None else s
-                else:
-                    return s
-
-        else:
-            # value is guaranteed to be a string here, s can be either a string
-            # or null if it's null it gets returned
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return rx.sub(value, s)
-                else:
-                    return s
-
-        f = np.vectorize(re_replacer, otypes=[self.dtype])
-
-        if mask is None:
-            new_values[:] = f(new_values)
-        else:
-            new_values[mask] = f(new_values[mask])
-
-        # convert
-        block = self.make_block(new_values)
-        if convert:
-            nbs = block.convert(numeric=False)
-        else:
-            nbs = [block]
-        return nbs
+    # Don't use regex if the pattern is empty.
+    regex = regex and re.compile(to_replace).pattern != ""
+    return regex
 
 
 class CategoricalBlock(ExtensionBlock):

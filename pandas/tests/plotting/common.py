@@ -550,39 +550,83 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
 
-def _check_plot_works(f, filterwarnings="always", **kwargs):
+def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
+    """
+    Create plot and ensure that plot return object is valid.
+
+    Parameters
+    ----------
+    f : func
+        Plotting function.
+    filterwarnings : str
+        Warnings filter.
+        See https://docs.python.org/3/library/warnings.html#warning-filter
+    default_axes : bool, optional
+        If False (default):
+            - If `ax` not in `kwargs`, then create subplot(211) and plot there
+            - Create new subplot(212) and plot there as well
+            - Mind special corner case for bootstrap_plot (see `_gen_two_subplots`)
+        If True:
+            - Simply run plotting function with kwargs provided
+            - All required axes instances will be created automatically
+            - It is recommended to use it when the plotting function
+            creates multiple axes itself. It helps avoid warnings like
+            'UserWarning: To output multiple subplots,
+            the figure containing the passed axes is being cleared'
+    **kwargs
+        Keyword arguments passed to the plotting function.
+
+    Returns
+    -------
+    Plot object returned by the last plotting.
+    """
     import matplotlib.pyplot as plt
+
+    if default_axes:
+        gen_plots = _gen_default_plot
+    else:
+        gen_plots = _gen_two_subplots
 
     ret = None
     with warnings.catch_warnings():
         warnings.simplefilter(filterwarnings)
         try:
-            try:
-                fig = kwargs["figure"]
-            except KeyError:
-                fig = plt.gcf()
-
+            fig = kwargs.get("figure", plt.gcf())
             plt.clf()
 
-            kwargs.get("ax", fig.add_subplot(211))
-            ret = f(**kwargs)
-
-            tm.assert_is_valid_plot_return_object(ret)
-
-            if f is pd.plotting.bootstrap_plot:
-                assert "ax" not in kwargs
-            else:
-                kwargs["ax"] = fig.add_subplot(212)
-
-            ret = f(**kwargs)
-            tm.assert_is_valid_plot_return_object(ret)
+            for ret in gen_plots(f, fig, **kwargs):
+                tm.assert_is_valid_plot_return_object(ret)
 
             with tm.ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
+
+        except Exception as err:
+            raise err
         finally:
             tm.close(fig)
 
         return ret
+
+
+def _gen_default_plot(f, fig, **kwargs):
+    """
+    Create plot in a default way.
+    """
+    yield f(**kwargs)
+
+
+def _gen_two_subplots(f, fig, **kwargs):
+    """
+    Create plot on two subplots forcefully created.
+    """
+    kwargs.get("ax", fig.add_subplot(211))
+    yield f(**kwargs)
+
+    if f is pd.plotting.bootstrap_plot:
+        assert "ax" not in kwargs
+    else:
+        kwargs["ax"] = fig.add_subplot(212)
+    yield f(**kwargs)
 
 
 def curpath():

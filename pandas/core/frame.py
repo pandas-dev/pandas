@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -2131,6 +2130,11 @@ class DataFrame(NDFrame, OpsMixin):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
+
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
@@ -3859,7 +3863,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
@@ -6032,7 +6041,8 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -6062,11 +6072,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
@@ -6134,9 +6144,9 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: DataFrame,
@@ -6364,29 +6374,11 @@ Keep all original rows and columns and also all original values
         """
         import pandas.core.computation.expressions as expressions
 
-        def extract_values(arr):
-            # Does two things:
-            # 1. maybe gets the values from the Series / Index
-            # 2. convert datelike to i8
-            # TODO: extract_array?
-            if isinstance(arr, (Index, Series)):
-                arr = arr._values
-
-            if needs_i8_conversion(arr.dtype):
-                if is_extension_array_dtype(arr.dtype):
-                    arr = arr.asi8
-                else:
-                    arr = arr.view("i8")
-            return arr
-
         def combiner(x, y):
-            mask = isna(x)
-            # TODO: extract_array?
-            if isinstance(mask, (Index, Series)):
-                mask = mask._values
+            mask = extract_array(isna(x))
 
-            x_values = extract_values(x)
-            y_values = extract_values(y)
+            x_values = extract_array(x, extract_numpy=True)
+            y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
