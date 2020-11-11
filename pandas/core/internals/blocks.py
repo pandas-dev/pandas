@@ -1165,6 +1165,13 @@ class Block(PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self
 
+        if self._can_hold_element(other):
+            return self
+        elif self.is_categorical:
+            # Note: this will be wrong if we ever have a tuple category
+            cat = self.values.add_categories(other)
+            return self.make_block(cat)
+
         if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
             # we don't upcast to bool
             return self.astype(object)
