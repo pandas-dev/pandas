@@ -104,7 +104,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
-from pandas.core.shared_docs import _shared_doc_kwargs, _shared_docs
+from pandas.core.shared_docs import _shared_docs, shared_doc_kwargs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
@@ -127,7 +127,7 @@ if TYPE_CHECKING:
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
-_shared_doc_kwargs.update(
+shared_doc_kwargs.update(
     dict(
         axes="keywords for axes",
         klass="Series/DataFrame",
@@ -4542,8 +4542,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result.__finalize__(self, method="sort_index")
 
     @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
+        klass=shared_doc_kwargs["klass"],
+        axes=shared_doc_kwargs["axes"],
         optional_labels="",
         optional_axis="",
     )
@@ -5331,7 +5331,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.take(locs, axis=axis)
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(klass=shared_doc_kwargs["klass"])
     def pipe(self, func, *args, **kwargs):
         r"""
         Apply func(self, \*args, \*\*kwargs).
@@ -6219,7 +6219,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
-    @doc(**_shared_doc_kwargs)
+    @doc(**shared_doc_kwargs)
     def fillna(
         self: FrameOrSeries,
         value=None,
@@ -6451,9 +6451,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @doc(
         _shared_docs["to_replace"],
-        klass=_shared_doc_kwargs["klass"],
-        inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=_shared_doc_kwargs["replace_iloc"],
+        klass=shared_doc_kwargs["klass"],
+        inplace=shared_doc_kwargs["inplace"],
+        replace_iloc=shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,
@@ -7102,7 +7102,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Action Methods
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(klass=shared_doc_kwargs["klass"])
     def isna(self: FrameOrSeries) -> FrameOrSeries:
         """
         Detect missing values.
@@ -7165,11 +7165,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return isna(self).__finalize__(self, method="isna")
 
-    @doc(isna, klass=_shared_doc_kwargs["klass"])
+    @doc(isna, klass=shared_doc_kwargs["klass"])
     def isnull(self: FrameOrSeries) -> FrameOrSeries:
         return isna(self).__finalize__(self, method="isnull")
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(klass=shared_doc_kwargs["klass"])
     def notna(self: FrameOrSeries) -> FrameOrSeries:
         """
         Detect existing (non-missing) values.
@@ -7232,7 +7232,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return notna(self).__finalize__(self, method="notna")
 
-    @doc(notna, klass=_shared_doc_kwargs["klass"])
+    @doc(notna, klass=shared_doc_kwargs["klass"])
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
         return notna(self).__finalize__(self, method="notnull")
 
@@ -8328,7 +8328,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])
+    @doc(_shared_docs["compare"], klass=shared_doc_kwargs["klass"])
     def compare(
         self,
         other,
@@ -8397,7 +8397,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return diff
 
-    @doc(**_shared_doc_kwargs)
+    @doc(**shared_doc_kwargs)
     def align(
         self,
         other,
@@ -8837,7 +8837,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @doc(
-        klass=_shared_doc_kwargs["klass"],
+        klass=shared_doc_kwargs["klass"],
         cond="True",
         cond_rev="False",
         name="where",
@@ -8981,7 +8981,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     @doc(
         where,
-        klass=_shared_doc_kwargs["klass"],
+        klass=shared_doc_kwargs["klass"],
         cond="False",
         cond_rev="True",
         name="mask",
@@ -9015,7 +9015,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
         )
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(klass=shared_doc_kwargs["klass"])
     def shift(
         self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
     ) -> FrameOrSeries:
@@ -11075,7 +11075,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.index[idxpos]
 
     @final
-    @doc(position="first", klass=_shared_doc_kwargs["klass"])
+    @doc(position="first", klass=shared_doc_kwargs["klass"])
     def first_valid_index(self):
         """
         Return index for {position} non-NA/null value.
@@ -11092,7 +11092,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._find_valid_index("first")
 
     @final
-    @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
+    @doc(first_valid_index, position="last", klass=shared_doc_kwargs["klass"])
     def last_valid_index(self):
         return self._find_valid_index("last")
 

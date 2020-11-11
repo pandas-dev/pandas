@@ -91,7 +91,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.shared_docs import _shared_doc_kwargs, _shared_docs
+from pandas.core.shared_docs import _shared_docs, shared_doc_kwargs
 from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -105,7 +105,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Series"]
 
-_shared_doc_kwargs.update(
+shared_doc_kwargs.update(
     dict(
         axes="index",
         klass="Series",
@@ -1427,7 +1427,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     f.write(result)
 
     @doc(
-        klass=_shared_doc_kwargs["klass"],
+        klass=shared_doc_kwargs["klass"],
         examples=dedent(
             """
             Examples
@@ -1731,7 +1731,7 @@ NaN   20.0
 Name: Max Speed, dtype: float64
 """
     )
-    @Appender(generic._shared_docs["groupby"] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs["groupby"] % shared_doc_kwargs)
     def groupby(
         self,
         by=None,
@@ -2875,7 +2875,7 @@ Keep all original rows and also all original values
 3    d     b
 4    e     e
 """,
-        klass=_shared_doc_kwargs["klass"],
+        klass=shared_doc_kwargs["klass"],
     )
     def compare(
         self,
@@ -4002,8 +4002,8 @@ Keep all original rows and also all original values
 
     @doc(
         generic._shared_docs["aggregate"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
+        klass=shared_doc_kwargs["klass"],
+        axis=shared_doc_kwargs["axis"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
     )
@@ -4042,8 +4042,8 @@ Keep all original rows and also all original values
 
     @doc(
         _shared_docs["transform"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
+        klass=shared_doc_kwargs["klass"],
+        axis=shared_doc_kwargs["axis"],
     )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
@@ -4245,8 +4245,8 @@ Keep all original rows and also all original values
 
     @doc(
         NDFrame.align,
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+        klass=shared_doc_kwargs["klass"],
+        axes_single_arg=shared_doc_kwargs["axes_single_arg"],
     )
     def align(
         self,
@@ -4369,7 +4369,7 @@ Keep all original rows and also all original values
     """
     )
     @Substitution(
-        **_shared_doc_kwargs,
+        **shared_doc_kwargs,
         extended_summary_sub="",
         axis_description_sub="",
         see_also_sub="",
@@ -4380,10 +4380,10 @@ Keep all original rows and also all original values
 
     @doc(
         NDFrame.reindex,
-        klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels=_shared_doc_kwargs["optional_labels"],
-        optional_axis=_shared_doc_kwargs["optional_axis"],
+        klass=shared_doc_kwargs["klass"],
+        axes=shared_doc_kwargs["axes"],
+        optional_labels=shared_doc_kwargs["optional_labels"],
+        optional_axis=shared_doc_kwargs["optional_axis"],
     )
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
@@ -4494,7 +4494,7 @@ Keep all original rows and also all original values
             errors=errors,
         )
 
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
+    @doc(NDFrame.fillna, **shared_doc_kwargs)
     def fillna(
         self,
         value=None,
@@ -4542,9 +4542,9 @@ Keep all original rows and also all original values
 
     @doc(
         NDFrame.replace,
-        klass=_shared_doc_kwargs["klass"],
-        inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=_shared_doc_kwargs["replace_iloc"],
+        klass=shared_doc_kwargs["klass"],
+        inplace=shared_doc_kwargs["inplace"],
+        replace_iloc=shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,
@@ -4589,7 +4589,7 @@ Keep all original rows and also all original values
 
         return result
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.shift, klass=shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -4810,19 +4810,19 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.isna, klass=shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
         return generic.NDFrame.isna(self)
 
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.isna, klass=shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
         return super().isnull()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.notna, klass=shared_doc_kwargs["klass"])
     def notna(self) -> "Series":
         return super().notna()
 
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    @doc(NDFrame.notna, klass=shared_doc_kwargs["klass"])
     def notnull(self) -> "Series":
         return super().notnull()
 
