@@ -447,13 +447,12 @@ def pivot(
 
     if values is None:
         if index is not None:
-            cols = com.convert_to_list_like(index)
+            index = com.convert_to_list_like(index)
         else:
-            cols = []
-        cols.extend(columns)
+            index = []
 
         append = index is None
-        indexed = data.set_index(cols, append=append)
+        indexed = data.set_index(index + columns, append=append)
     else:
         if index is None:
             index = [Series(data.index, name=data.index.name)]
