@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
@@ -259,7 +260,7 @@ class TestSeriesReplace:
     def test_replace_with_dictlike_and_string_dtype(self):
         # GH 32621
         s = pd.Series(["one", "two", np.nan], dtype="string")
-        expected = pd.Series(["1", "2", np.nan])
+        expected = pd.Series(["1", "2", np.nan], dtype="string")
         result = s.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
 
@@ -460,3 +461,39 @@ class TestSeriesReplace:
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
             s.str.replace(pattern, "")
             assert re.match(msg, str(w[0].message))
+
+    @pytest.mark.parametrize(
+        "dtype, input_data, to_replace, expected_data",
+        [
+            ("bool", [True, False], {True: False}, [False, False]),
+            ("int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("Int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("Float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("string", ["one", "two"], {"one": "1", "two": "2"}, ["1", "2"]),
+            (
+                pd.IntervalDtype("int64"),
+                IntervalArray([pd.Interval(1, 2), pd.Interval(2, 3)]),
+                {pd.Interval(1, 2): pd.Interval(10, 20)},
+                IntervalArray([pd.Interval(10, 20), pd.Interval(2, 3)]),
+            ),
+            (
+                pd.IntervalDtype("float64"),
+                IntervalArray([pd.Interval(1.0, 2.7), pd.Interval(2.8, 3.1)]),
+                {pd.Interval(1.0, 2.7): pd.Interval(10.6, 20.8)},
+                IntervalArray([pd.Interval(10.6, 20.8), pd.Interval(2.8, 3.1)]),
+            ),
+            (
+                pd.PeriodDtype("M"),
+                [pd.Period("2020-05", freq="M")],
+                {pd.Period("2020-05", freq="M"): pd.Period("2020-06", freq="M")},
+                [pd.Period("2020-06", freq="M")],
+            ),
+        ],
+    )
+    def test_replace_dtype(self, dtype, input_data, to_replace, expected_data):
+        # GH 33484
+        s = pd.Series(input_data, dtype=dtype)
+        result = s.replace(to_replace)
+        expected = pd.Series(expected_data, dtype=dtype)
+        tm.assert_series_equal(result, expected)
