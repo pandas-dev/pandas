@@ -1568,6 +1568,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # Frequency Methods
 
+    def _maybe_clear_freq(self):
+        # inplace operations like __setitem__ may invalidate the freq of
+        # DatetimeArray and TimedeltaArray
+        self._freq = None
+
     def _with_freq(self, freq):
         """
         Helper to get a view on the same data, with a new freq.
