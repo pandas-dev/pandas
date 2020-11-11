@@ -234,6 +234,7 @@ Other enhancements
 - Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
+- :class:`Index` and :class:`MultiIndex` now has a `replace()` method (:issue:`19495`).
 
 .. _whatsnew_120.api_breaking.python:
 
