@@ -2118,15 +2118,14 @@ def test_groupby_repr_truncated_group(n_groups, n_rows, check_n_rows):
 
 
 @td.skip_if_no("lxml")
-def test_groupby_repr_not_all_groups():
+@pytest.mark.parametrize("n_groups,n_rows,check_n_groups", [(30, 150, 5)])
+def test_groupby_repr_not_all_groups(n_groups, n_rows, check_n_groups):
     # GH 34926 - Not all groups are shown in html output.
-    n_groups = 30
-    length = n_groups * 5
     df = DataFrame(
         {
-            "A": range(length),
-            "B": range(0, length * 2, 2),
-            "C": list(range(n_groups)) * (length // n_groups),
+            "A": range(n_rows),
+            "B": range(0, n_rows * 2, 2),
+            "C": list(range(n_groups)) * (n_rows // n_groups),
         }
     )
 
@@ -2135,18 +2134,14 @@ def test_groupby_repr_not_all_groups():
 
     dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
 
-    # Test first and last group
-    # Those groups will always be shown. No logic is needed to calculate how
-    # many groups are tested (which would mirror the implementation).
-    # Setting a fixed number would make the test very specific for the given
-    # number of groups and DataFrame length.
-    # Correctness of output is tested in test_groupby_repr
-    tm.assert_frame_equal(
-        dfs_from_html[0], df_groupby.get_group(tuple(df_groupby.groups.keys())[0])
-    )
-    tm.assert_frame_equal(
-        dfs_from_html[-1], df_groupby.get_group(tuple(df_groupby.groups.keys())[-1])
-    )
+    for k in range(check_n_groups):
+        tm.assert_frame_equal(
+            dfs_from_html[k], df_groupby.get_group(tuple(df_groupby.groups.keys())[k])
+        )
+        tm.assert_frame_equal(
+            dfs_from_html[-k - 1],
+            df_groupby.get_group(tuple(df_groupby.groups.keys())[-k - 1]),
+        )
 
 
 def test_group_on_two_row_multiindex_returns_one_tuple_key():
