@@ -29,9 +29,12 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
 import pandas.core.missing as missing
+from pandas.core.shared_docs import _shared_docs
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
+_index_doc_kwargs.update(
+    dict(target_klass="CategoricalIndex", klass="CategoricalIndex")
+)
 
 
 @inherit_names(
@@ -697,3 +700,21 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
+
+    @doc(
+        _shared_docs["to_replace"],
+        klass=_index_doc_kwargs["klass"],
+        inplace=_index_doc_kwargs["inplace"],
+        replace_iloc="",
+    )
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        limit=None,
+        regex=False,
+        method="pad",
+    ):
+        return super().replace(
+            to_replace=to_replace, value=value, limit=limit, regex=regex, method=method
+        )
