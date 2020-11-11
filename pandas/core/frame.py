@@ -6041,7 +6041,8 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -6071,11 +6072,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
@@ -6143,9 +6144,9 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: DataFrame,
