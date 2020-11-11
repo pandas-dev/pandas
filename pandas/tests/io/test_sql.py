@@ -549,7 +549,7 @@ class PandasSQLTest:
         # Nuke table
         self.drop_table("test_frame1")
 
-    def _to_sql_upsert_keep(self, method):
+    def _to_sql_on_conflict_update(self, method):
         """
         Original table: 3 rows
         pkey_table_frame: 4 rows (2 duplicate  keys)
@@ -569,7 +569,8 @@ class PandasSQLTest:
         self.pandasSQL.to_sql(
             self.pkey_table_frame,
             "pkey_table",
-            if_exists="upsert_keep",
+            if_exists="append",
+            on_conflict="do_nothing",
             index=False,
             method=method,
         )
@@ -587,7 +588,7 @@ class PandasSQLTest:
         # Clean up
         self.drop_table("pkey_table")
 
-    def _to_sql_upsert_overwrite(self, method):
+    def _to_sql_on_conflict_nothing(self, method):
         """
         Original table: 3 rows
         pkey_table_frame: 4 rows (2 duplicate keys)
@@ -606,7 +607,8 @@ class PandasSQLTest:
         self.pandasSQL.to_sql(
             self.pkey_table_frame,
             "pkey_table",
-            if_exists="upsert_overwrite",
+            if_exists="append",
+            on_conflict="do_update",
             index=False,
             method=method,
         )
