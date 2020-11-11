@@ -67,6 +67,14 @@ class TestGetitem:
         result = df.loc[:, "A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_indexer_empty_series(self):
+        # GH: 19290
+        df = DataFrame(columns=['a', 'b', 'c'])
+        ind = df.a.apply(lambda x: x == '0')
+        result = df[ind]
+        expected = DataFrame(columns=['a', 'b', 'c'])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemCallable:
     def test_getitem_callable(self, float_frame):

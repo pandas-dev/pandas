@@ -2954,7 +2954,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
-        if com.is_bool_indexer(key):
+        if com.is_bool_indexer(key) or isinstance(key, Series):
             return self._getitem_bool_array(key)
 
         # We are left with two options: a single key, and a collection of keys,
