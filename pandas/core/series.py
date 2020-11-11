@@ -2813,7 +2813,8 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    @Appender(
+    @doc(
+        generic._shared_docs["compare"],
         """
 Returns
 -------
@@ -2873,9 +2874,9 @@ Keep all original rows and also all original values
 2    c     c
 3    d     b
 4    e     e
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: "Series",
