@@ -618,7 +618,7 @@ _shared_docs[
     dtype: object
 """
 
-shared_doc_kwargs: Dict[str, str] = dict(
+_shared_doc_kwargs: Dict[str, str] = dict(
     inplace="""
     inplace : boolean, default False
         If True, performs operation inplace and returns None.""",

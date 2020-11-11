@@ -23,6 +23,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
+    "_shared_doc_kwargs",
     "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",

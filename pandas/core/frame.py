@@ -155,7 +155,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.shared_docs import shared_doc_kwargs as coreshared_doc_kwargs
+from pandas.core.shared_docs import _shared_doc_kwargs as core_shared_doc_kwargs
 from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_filepath_or_buffer
@@ -173,7 +173,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # Docstring templates
 
-shared_doc_kwargs = dict(
+_shared_doc_kwargs = dict(
     axes="index, columns",
     klass="DataFrame",
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
@@ -2255,7 +2255,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(
         Series.to_markdown,
-        klass=shared_doc_kwargs["klass"],
+        klass=_shared_doc_kwargs["klass"],
         examples="""Examples
         --------
         >>> df = pd.DataFrame(
@@ -4035,7 +4035,7 @@ class DataFrame(NDFrame, OpsMixin):
                 fill_value=fill_value,
             )
 
-    @doc(NDFrame.align, **shared_doc_kwargs)
+    @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
         other,
@@ -4095,7 +4095,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
     )
     @Substitution(
-        **shared_doc_kwargs,
+        **_shared_doc_kwargs,
         extended_summary_sub=" column or",
         axis_description_sub=", and 1 identifies the columns",
         see_also_sub=" or columns",
@@ -4104,7 +4104,7 @@ class DataFrame(NDFrame, OpsMixin):
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
-    @Substitution(**shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.reindex.__doc__)
     @rewrite_axis_style_signature(
         "labels",
@@ -4399,7 +4399,7 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
-    @doc(NDFrame.fillna, **shared_doc_kwargs)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
@@ -4463,9 +4463,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(
         NDFrame.replace,
-        inplace=coreshared_doc_kwargs["inplace"],
-        replace_iloc=coreshared_doc_kwargs["replace_iloc"],
-        **shared_doc_kwargs,
+        inplace=core_shared_doc_kwargs["inplace"],
+        replace_iloc=core_shared_doc_kwargs["replace_iloc"],
+        **_shared_doc_kwargs,
     )
     def replace(
         self,
@@ -4520,7 +4520,7 @@ class DataFrame(NDFrame, OpsMixin):
             return
         return res.__finalize__(self)
 
-    @doc(NDFrame.shift, klass=shared_doc_kwargs["klass"])
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self, periods=1, freq=None, axis=0, fill_value=lib.no_default
     ) -> DataFrame:
@@ -4976,20 +4976,20 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @doc(NDFrame.isna, klass=shared_doc_kwargs["klass"])
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
         result = self._constructor(self._mgr.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
-    @doc(NDFrame.isna, klass=shared_doc_kwargs["klass"])
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> DataFrame:
         return self.isna()
 
-    @doc(NDFrame.notna, klass=shared_doc_kwargs["klass"])
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> DataFrame:
         return ~self.isna()
 
-    @doc(NDFrame.notna, klass=shared_doc_kwargs["klass"])
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> DataFrame:
         return ~self.isna()
 
@@ -5365,7 +5365,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Sorting
     # TODO: Just move the sort_values doc here.
-    @Substitution(**shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
     # error: Signature of "sort_values" incompatible with supertype "NDFrame"
     def sort_values(  # type: ignore[override]
@@ -6151,7 +6151,7 @@ Keep all original rows and columns and also all original values
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
 """,
-        klass=shared_doc_kwargs["klass"],
+        klass=_shared_doc_kwargs["klass"],
     )
     def compare(
         self,
@@ -6631,7 +6631,7 @@ b   12.3  123.0
 NaN 12.3   33.0
 """
     )
-    @Appender(_shared_docs["groupby"] % shared_doc_kwargs)
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
         self,
         by=None,
@@ -7511,8 +7511,8 @@ NaN 12.3   33.0
 
     @doc(
         _shared_docs["aggregate"],
-        klass=shared_doc_kwargs["klass"],
-        axis=shared_doc_kwargs["axis"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
     )
@@ -7560,8 +7560,8 @@ NaN 12.3   33.0
 
     @doc(
         _shared_docs["transform"],
-        klass=shared_doc_kwargs["klass"],
-        axis=shared_doc_kwargs["axis"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
     )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
