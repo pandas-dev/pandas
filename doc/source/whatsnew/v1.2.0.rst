@@ -557,6 +557,7 @@ Reshaping
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 - Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
+- Bug in :meth:`Series.isin` cast ``float`` unnecessarily to ``int`` when :class:`Series` to look in was from dtype ``int`` (:issue:`19356`)
 
 Sparse
 ^^^^^^

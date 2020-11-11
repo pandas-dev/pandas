@@ -19,6 +19,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
     maybe_promote,
+    maybe_upcast,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -431,6 +432,13 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
+    if is_numeric_dtype(comps):
+        try:
+            # Try finding a dtype which would not change our values
+            values, _ = maybe_upcast(values, dtype=dtype)
+            dtype = values.dtype
+        except (ValueError, TypeError):
+            pass
     values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d
@@ -445,7 +453,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps) and is_integer_dtype(values):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -454,7 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_numeric_dtype(comps) or is_numeric_dtype(values):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)

@@ -90,6 +90,14 @@ class TestSeriesIsIn:
         expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("values", [[-9., 0.], [-9, 0]])
+    def test_isin_float_in_int_series(self, values):
+        # GH: 19356
+        ser = Series(values)
+        result = ser.isin([-9, -0.5])
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.slow
 def test_isin_large_series_mixed_dtypes_and_nan():
