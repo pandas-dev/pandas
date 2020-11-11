@@ -95,7 +95,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     ----------
     day
     dayofweek
+    day_of_week
     dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time
@@ -148,7 +150,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _supports_partial_string_indexing = True
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in PeriodIndex
+    # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
@@ -160,6 +162,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.hour.fget)
+    def hour(self) -> Int64Index:
+        return Int64Index(self._data.hour, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.minute.fget)
+    def minute(self) -> Int64Index:
+        return Int64Index(self._data.minute, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.second.fget)
+    def second(self) -> Int64Index:
+        return Int64Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -214,7 +234,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             if data is None and ordinal is not None:
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
-                data = PeriodArray(ordinal, freq)
+                data = PeriodArray(ordinal, freq=freq)
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)
@@ -384,28 +404,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
 
-    def asof_locs(self, where, mask: np.ndarray) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
         """
-        where_idx = where
-        if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
-        elif not isinstance(where_idx, PeriodIndex):
+        if isinstance(where, DatetimeIndex):
+            where = PeriodIndex(where._values, freq=self.freq)
+        elif not isinstance(where, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
-        elif where_idx.freq != self.freq:
-            raise raise_on_incompatible(self, where_idx)
 
-        locs = self.asi8[mask].searchsorted(where_idx.asi8, side="right")
-
-        locs = np.where(locs > 0, locs - 1, 0)
-        result = np.arange(len(self))[mask].take(locs)
-
-        first = mask.argmax()
-        result[(locs == 0) & (where_idx.asi8 < self.asi8[first])] = -1
-
-        return result
+        return super().asof_locs(where, mask)
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True, how="start"):

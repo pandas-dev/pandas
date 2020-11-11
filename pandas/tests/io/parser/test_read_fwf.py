@@ -509,7 +509,7 @@ def test_dtype(dtype):
     colspecs = [(0, 5), (5, 10), (10, None)]
     result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
     )
 
@@ -625,7 +625,7 @@ def test_binary_mode():
     """
     data = """aas aas aas
 bba bab b a"""
-    df_reference = pd.DataFrame(
+    df_reference = DataFrame(
         [["bba", "bab", "b a"]], columns=["aas", "aas.1", "aas.2"], index=[0]
     )
     with tm.ensure_clean() as path:
@@ -653,5 +653,5 @@ def test_encoding_mmap(memory_map):
         memory_map=memory_map,
     )
     data.seek(0)
-    df_reference = pd.DataFrame([[1, "A", "Ä", 2]])
+    df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)

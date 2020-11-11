@@ -1,8 +1,6 @@
 from datetime import datetime
-import inspect
 
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -11,13 +9,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import (
-    Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
     IntervalIndex,
-    MultiIndex,
     Series,
     Timestamp,
     cut,
@@ -28,15 +23,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:
-    def test_set_index_directly(self, float_string_frame):
-        df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
-
-        df.index = idx
-        tm.assert_index_equal(df.index, idx)
-        with pytest.raises(ValueError, match="Length mismatch"):
-            df.index = idx[::2]
-
     def test_convert_dti_to_series(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
@@ -105,12 +91,6 @@ class TestDataFrameAlterAxes:
         df.pop("ts")
         tm.assert_frame_equal(df, expected)
 
-    def test_set_columns(self, float_string_frame):
-        cols = Index(np.arange(len(float_string_frame.columns)))
-        float_string_frame.columns = cols
-        with pytest.raises(ValueError, match="Length mismatch"):
-            float_string_frame.columns = cols[::2]
-
     def test_dti_set_index_reindex(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
@@ -137,34 +117,6 @@ class TestDataFrameAlterAxes:
 
     # Renaming
 
-    def test_reindex_api_equivalence(self):
-        # equivalence of the labels/axis and index/columns API's
-        df = DataFrame(
-            [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
-            index=["a", "b", "c"],
-            columns=["d", "e", "f"],
-        )
-
-        res1 = df.reindex(["b", "a"])
-        res2 = df.reindex(index=["b", "a"])
-        res3 = df.reindex(labels=["b", "a"])
-        res4 = df.reindex(labels=["b", "a"], axis=0)
-        res5 = df.reindex(["b", "a"], axis=0)
-        for res in [res2, res3, res4, res5]:
-            tm.assert_frame_equal(res1, res)
-
-        res1 = df.reindex(columns=["e", "d"])
-        res2 = df.reindex(["e", "d"], axis=1)
-        res3 = df.reindex(labels=["e", "d"], axis=1)
-        for res in [res2, res3]:
-            tm.assert_frame_equal(res1, res)
-
-        res1 = df.reindex(index=["b", "a"], columns=["e", "d"])
-        res2 = df.reindex(columns=["e", "d"], index=["b", "a"])
-        res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
-        for res in [res2, res3]:
-            tm.assert_frame_equal(res1, res)
-
     def test_assign_columns(self, float_frame):
         float_frame["hi"] = "there"
 
@@ -172,38 +124,6 @@ class TestDataFrameAlterAxes:
         df.columns = ["foo", "bar", "baz", "quux", "foo2"]
         tm.assert_series_equal(float_frame["C"], df["baz"], check_names=False)
         tm.assert_series_equal(float_frame["hi"], df["foo2"], check_names=False)
-
-    def test_rename_signature(self):
-        sig = inspect.signature(DataFrame.rename)
-        parameters = set(sig.parameters)
-        assert parameters == {
-            "self",
-            "mapper",
-            "index",
-            "columns",
-            "axis",
-            "inplace",
-            "copy",
-            "level",
-            "errors",
-        }
-
-    def test_reindex_signature(self):
-        sig = inspect.signature(DataFrame.reindex)
-        parameters = set(sig.parameters)
-        assert parameters == {
-            "self",
-            "labels",
-            "index",
-            "columns",
-            "axis",
-            "limit",
-            "copy",
-            "level",
-            "method",
-            "fill_value",
-            "tolerance",
-        }
 
 
 class TestIntervalIndex:
@@ -253,47 +173,3 @@ class TestIntervalIndex:
         df = df.set_index("B")
 
         df = df.reset_index()
-
-
-class TestCategoricalIndex:
-    def test_set_index_preserve_categorical_dtype(self):
-        # GH13743, GH13854
-        df = DataFrame(
-            {
-                "A": [1, 2, 1, 1, 2],
-                "B": [10, 16, 22, 28, 34],
-                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
-                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
-            }
-        )
-        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
-            result = df.set_index(cols).reset_index()
-            result = result.reindex(columns=df.columns)
-            tm.assert_frame_equal(result, df)
-
-    @pytest.mark.parametrize(
-        "codes", ([[0, 0, 1, 1], [0, 1, 0, 1]], [[0, 0, -1, 1], [0, 1, 0, 1]])
-    )
-    def test_reindexing_with_missing_values(self, codes):
-        # GH 24206
-
-        index = MultiIndex(
-            [CategoricalIndex(["A", "B"]), CategoricalIndex(["a", "b"])], codes
-        )
-        data = {"col": range(len(index))}
-        df = DataFrame(data=data, index=index)
-
-        expected = DataFrame(
-            {
-                "level_0": Categorical.from_codes(codes[0], categories=["A", "B"]),
-                "level_1": Categorical.from_codes(codes[1], categories=["a", "b"]),
-                "col": range(4),
-            }
-        )
-
-        res = df.reset_index()
-        tm.assert_frame_equal(res, expected)
-
-        # roundtrip
-        res = expected.set_index(["level_0", "level_1"]).reset_index()
-        tm.assert_frame_equal(res, expected)

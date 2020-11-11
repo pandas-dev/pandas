@@ -356,12 +356,17 @@ class TestDataFrameApply:
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_apply_reduce_rows_to_dict(self):
-        # GH 25196
-        data = pd.DataFrame([[1, 2], [3, 4]])
-        expected = Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
-        result = data.apply(dict)
-        tm.assert_series_equal(result, expected)
+    def test_apply_reduce_to_dict(self):
+        # GH 25196 37544
+        data = DataFrame([[1, 2], [3, 4]], columns=["c0", "c1"], index=["i0", "i1"])
+
+        result0 = data.apply(dict, axis=0)
+        expected0 = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
+        tm.assert_series_equal(result0, expected0)
+
+        result1 = data.apply(dict, axis=1)
+        expected1 = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
+        tm.assert_series_equal(result1, expected1)
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))
@@ -445,7 +450,7 @@ class TestDataFrameApply:
     def test_apply_bug(self):
 
         # GH 6125
-        positions = pd.DataFrame(
+        positions = DataFrame(
             [
                 [1, "ABC0", 50],
                 [1, "YUM0", 20],
@@ -619,10 +624,10 @@ class TestDataFrameApply:
 
         # GH 8222
         empty_frames = [
-            pd.DataFrame(),
-            pd.DataFrame(columns=list("ABC")),
-            pd.DataFrame(index=list("ABC")),
-            pd.DataFrame({"A": [], "B": [], "C": []}),
+            DataFrame(),
+            DataFrame(columns=list("ABC")),
+            DataFrame(index=list("ABC")),
+            DataFrame({"A": [], "B": [], "C": []}),
         ]
         for frame in empty_frames:
             for func in [round, lambda x: x]:
@@ -653,16 +658,16 @@ class TestDataFrameApply:
             return (x.hour, x.day, x.month)
 
         # it works!
-        pd.DataFrame(ser).applymap(func)
+        DataFrame(ser).applymap(func)
 
     def test_applymap_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
-        df = pd.DataFrame(
+        df = DataFrame(
             {
-                "a": [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")],
+                "a": [Timestamp("2011-01-01"), Timestamp("2011-01-02")],
                 "b": [
-                    pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-01", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
                 ],
                 "c": [pd.Timedelta("1 days"), pd.Timedelta("2 days")],
                 "d": [
@@ -673,7 +678,7 @@ class TestDataFrameApply:
         )
 
         result = df.applymap(lambda x: type(x).__name__)
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "a": ["Timestamp", "Timestamp"],
                 "b": ["Timestamp", "Timestamp"],
@@ -713,8 +718,8 @@ class TestDataFrameApply:
 
     def test_apply_dup_names_multi_agg(self):
         # GH 21063
-        df = pd.DataFrame([[0, 1], [2, 3]], columns=["a", "a"])
-        expected = pd.DataFrame([[0, 1]], columns=["a", "a"], index=["min"])
+        df = DataFrame([[0, 1], [2, 3]], columns=["a", "a"])
+        expected = DataFrame([[0, 1]], columns=["a", "a"], index=["min"])
         result = df.agg(["min"])
 
         tm.assert_frame_equal(result, expected)
@@ -724,7 +729,7 @@ class TestDataFrameApply:
         def apply_list(row):
             return [2 * row["A"], 2 * row["C"], 2 * row["B"]]
 
-        df = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
+        df = DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
         result = df.apply(apply_list, axis=1)
         expected = Series(
             [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -733,8 +738,8 @@ class TestDataFrameApply:
 
     def test_apply_noreduction_tzaware_object(self):
         # https://github.com/pandas-dev/pandas/issues/31505
-        df = pd.DataFrame(
-            {"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+        df = DataFrame(
+            {"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
         )
         result = df.apply(lambda x: x)
         tm.assert_frame_equal(result, df)
@@ -744,7 +749,7 @@ class TestDataFrameApply:
     def test_apply_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/30815
 
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         names = []  # Save row names function is applied to
 
         def reducing_function(row):
@@ -763,7 +768,7 @@ class TestDataFrameApply:
     def test_apply_raw_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/34506
 
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         values = []  # Save row values function is applied to
 
         def reducing_function(row):
@@ -781,7 +786,7 @@ class TestDataFrameApply:
 
     def test_applymap_function_runs_once(self):
 
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         values = []  # Save values function is applied to
 
         def reducing_function(val):
@@ -799,8 +804,8 @@ class TestDataFrameApply:
 
     def test_apply_with_byte_string(self):
         # GH 34529
-        df = pd.DataFrame(np.array([b"abcd", b"efgh"]), columns=["col"])
-        expected = pd.DataFrame(
+        df = DataFrame(np.array([b"abcd", b"efgh"]), columns=["col"])
+        expected = DataFrame(
             np.array([b"abcd", b"efgh"]), columns=["col"], dtype=object
         )
         # After we make the aply we exect a dataframe just
@@ -812,7 +817,7 @@ class TestDataFrameApply:
     def test_apply_category_equalness(self, val):
         # Check if categorical comparisons on apply, GH 21239
         df_values = ["asd", None, 12, "asd", "cde", np.NaN]
-        df = pd.DataFrame({"a": df_values}, dtype="category")
+        df = DataFrame({"a": df_values}, dtype="category")
 
         result = df.a.apply(lambda x: x == val)
         expected = Series(
@@ -829,7 +834,7 @@ class TestInferOutputShape:
     def test_infer_row_shape(self):
         # GH 17437
         # if row shape is changing, infer it
-        df = pd.DataFrame(np.random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         result = df.apply(np.fft.fft, axis=0)
         assert result.shape == (10, 2)
 
@@ -844,8 +849,8 @@ class TestInferOutputShape:
         tm.assert_series_equal(result, expected)
 
         df["tm"] = [
-            pd.Timestamp("2017-05-01 00:00:00"),
-            pd.Timestamp("2017-05-02 00:00:00"),
+            Timestamp("2017-05-01 00:00:00"),
+            Timestamp("2017-05-02 00:00:00"),
         ]
         result = df.apply(lambda x: {"s": x["a"] + x["b"]}, axis=1)
         tm.assert_series_equal(result, expected)
@@ -876,8 +881,8 @@ class TestInferOutputShape:
         tm.assert_frame_equal(result, expected)
 
         df["tm"] = [
-            pd.Timestamp("2017-05-01 00:00:00"),
-            pd.Timestamp("2017-05-02 00:00:00"),
+            Timestamp("2017-05-01 00:00:00"),
+            Timestamp("2017-05-02 00:00:00"),
         ]
         result = df.apply(
             lambda x: {"s": x["a"] + x["b"]}, axis=1, result_type="expand"
@@ -920,8 +925,8 @@ class TestInferOutputShape:
                 "number": [1.0, 2.0],
                 "string": ["foo", "bar"],
                 "datetime": [
-                    pd.Timestamp("2017-11-29 03:30:00"),
-                    pd.Timestamp("2017-11-29 03:45:00"),
+                    Timestamp("2017-11-29 03:30:00"),
+                    Timestamp("2017-11-29 03:45:00"),
                 ],
             }
         )
@@ -954,13 +959,13 @@ class TestInferOutputShape:
         tm.assert_series_equal(result, expected)
 
         # GH 17892
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": [
-                    pd.Timestamp("2010-02-01"),
-                    pd.Timestamp("2010-02-04"),
-                    pd.Timestamp("2010-02-05"),
-                    pd.Timestamp("2010-02-06"),
+                    Timestamp("2010-02-01"),
+                    Timestamp("2010-02-04"),
+                    Timestamp("2010-02-05"),
+                    Timestamp("2010-02-06"),
                 ],
                 "b": [9, 5, 4, 3],
                 "c": [5, 3, 4, 2],
@@ -1122,7 +1127,7 @@ class TestDataFrameAggregate:
             with np.errstate(all="ignore"):
                 float_frame.agg(["max", "sqrt"], axis=axis)
 
-        df = pd.DataFrame({"A": range(5), "B": 5})
+        df = DataFrame({"A": range(5), "B": 5})
 
         def f():
             with np.errstate(all="ignore"):
@@ -1130,7 +1135,7 @@ class TestDataFrameAggregate:
 
     def test_demo(self):
         # demonstration tests
-        df = pd.DataFrame({"A": range(5), "B": 5})
+        df = DataFrame({"A": range(5), "B": 5})
 
         result = df.agg(["min", "max"])
         expected = DataFrame(
@@ -1149,7 +1154,7 @@ class TestDataFrameAggregate:
     def test_agg_with_name_as_column_name(self):
         # GH 36212 - Column name is "name"
         data = {"name": ["foo", "bar"]}
-        df = pd.DataFrame(data)
+        df = DataFrame(data)
 
         # result's name should be None
         result = df.agg({"name": "count"})
@@ -1163,7 +1168,7 @@ class TestDataFrameAggregate:
 
     def test_agg_multiple_mixed_no_warning(self):
         # GH 20909
-        mdf = pd.DataFrame(
+        mdf = DataFrame(
             {
                 "A": [1, 2, 3],
                 "B": [1.0, 2.0, 3.0],
@@ -1171,12 +1176,12 @@ class TestDataFrameAggregate:
                 "D": pd.date_range("20130101", periods=3),
             }
         )
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": [1, 6],
                 "B": [1.0, 6.0],
                 "C": ["bar", "foobarbaz"],
-                "D": [pd.Timestamp("2013-01-01"), pd.NaT],
+                "D": [Timestamp("2013-01-01"), pd.NaT],
             },
             index=["min", "sum"],
         )
@@ -1197,7 +1202,7 @@ class TestDataFrameAggregate:
 
     def test_agg_dict_nested_renaming_depr(self):
 
-        df = pd.DataFrame({"A": range(5), "B": 5})
+        df = DataFrame({"A": range(5), "B": 5})
 
         # nested renaming
         msg = r"nested renamer is not supported"
@@ -1254,7 +1259,7 @@ class TestDataFrameAggregate:
         # dict input with lists with multiple
         func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
         result = float_frame.agg(func, axis=axis)
-        expected = DataFrame(
+        expected = pd.concat(
             dict(
                 [
                     (
@@ -1278,7 +1283,8 @@ class TestDataFrameAggregate:
                         ),
                     ),
                 ]
-            )
+            ),
+            axis=1,
         )
         expected = expected.T if axis in {1, "columns"} else expected
         tm.assert_frame_equal(result, expected)
@@ -1296,12 +1302,12 @@ class TestDataFrameAggregate:
         )
 
         result = df.agg("min")
-        expected = Series([1, 1.0, "bar", pd.Timestamp("20130101")], index=df.columns)
+        expected = Series([1, 1.0, "bar", Timestamp("20130101")], index=df.columns)
         tm.assert_series_equal(result, expected)
 
         result = df.agg(["min"])
         expected = DataFrame(
-            [[1, 1.0, "bar", pd.Timestamp("20130101")]],
+            [[1, 1.0, "bar", Timestamp("20130101")]],
             index=["min"],
             columns=df.columns,
         )
@@ -1343,7 +1349,7 @@ class TestDataFrameAggregate:
         result2 = df.agg(
             {"A": ["count", "size"], "B": ["count", "size"], "C": ["count", "size"]}
         )
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": {"count": 2, "size": 3},
                 "B": {"count": 2, "size": 3},
@@ -1480,7 +1486,7 @@ class TestDataFrameAggregate:
         def f(x, a, b, c=3):
             return x.sum() + (a + b) / c
 
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        df = DataFrame([[1, 2], [3, 4]])
 
         if axis == 0:
             expected = Series([5.0, 7.0])
@@ -1504,9 +1510,9 @@ class TestDataFrameAggregate:
         # GH 29052
 
         timestamps = [
-            pd.Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
         ]
         df = DataFrame(data=[0, 1, 2], index=timestamps)
         result = df.apply(lambda x: x.name, axis=1)
@@ -1514,7 +1520,7 @@ class TestDataFrameAggregate:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("df", [pd.DataFrame({"A": ["a", None], "B": ["c", "d"]})])
+    @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
     @pytest.mark.parametrize("method", ["min", "max", "sum"])
     def test_consistency_of_aggregates_of_columns_with_missing_values(self, df, method):
         # GH 16832
@@ -1528,7 +1534,7 @@ class TestDataFrameAggregate:
     @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
     def test_apply_dtype(self, col):
         # GH 31466
-        df = pd.DataFrame([[1.0, col]], columns=["a", "b"])
+        df = DataFrame([[1.0, col]], columns=["a", "b"])
         result = df.apply(lambda x: x.dtype)
         expected = df.dtypes
 
@@ -1537,7 +1543,7 @@ class TestDataFrameAggregate:
 
 def test_apply_mutating():
     # GH#35462 case where applied func pins a new BlockManager to a row
-    df = pd.DataFrame({"a": range(100), "b": range(100, 200)})
+    df = DataFrame({"a": range(100), "b": range(100, 200)})
 
     def func(row):
         mgr = row._mgr
@@ -1556,7 +1562,7 @@ def test_apply_mutating():
 
 def test_apply_empty_list_reduce():
     # GH#35683 get columns correct
-    df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
+    df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
 
     result = df.apply(lambda x: [], result_type="reduce")
     expected = Series({"a": [], "b": []}, dtype=object)
@@ -1565,9 +1571,9 @@ def test_apply_empty_list_reduce():
 
 def test_apply_no_suffix_index():
     # GH36189
-    pdf = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
     result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
     )
 
@@ -1576,7 +1582,7 @@ def test_apply_no_suffix_index():
 
 def test_apply_raw_returns_string():
     # https://github.com/pandas-dev/pandas/issues/35940
-    df = pd.DataFrame({"A": ["aa", "bbb"]})
+    df = DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
     expected = Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)

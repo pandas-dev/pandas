@@ -168,7 +168,7 @@ class TestDataFrameRound:
     def test_round_with_duplicate_columns(self):
         # GH#11611
 
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.random([3, 3]),
             columns=["A", "B", "C"],
             index=["first", "second", "third"],
@@ -195,7 +195,7 @@ class TestDataFrameRound:
     def test_round_nonunique_categorical(self):
         # See GH#21809
         idx = pd.CategoricalIndex(["low"] * 3 + ["hi"] * 3)
-        df = pd.DataFrame(np.random.rand(6, 3), columns=list("abc"))
+        df = DataFrame(np.random.rand(6, 3), columns=list("abc"))
 
         expected = df.round(3)
         expected.index = idx

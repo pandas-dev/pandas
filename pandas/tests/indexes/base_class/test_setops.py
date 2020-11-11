@@ -12,14 +12,14 @@ class TestIndexSetOps:
         "method", ["union", "intersection", "difference", "symmetric_difference"]
     )
     def test_setops_disallow_true(self, method):
-        idx1 = pd.Index(["a", "b"])
-        idx2 = pd.Index(["b", "c"])
+        idx1 = Index(["a", "b"])
+        idx2 = Index(["b", "c"])
 
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
             getattr(idx1, method)(idx2, sort=True)
 
     def test_setops_preserve_object_dtype(self):
-        idx = pd.Index([1, 2, 3], dtype=object)
+        idx = Index([1, 2, 3], dtype=object)
         result = idx.intersection(idx[1:])
         expected = idx[1:]
         tm.assert_index_equal(result, expected)
@@ -67,7 +67,7 @@ class TestIndexSetOps:
 
     def test_union_sort_other_incomparable(self):
         # https://github.com/pandas-dev/pandas/issues/24959
-        idx = pd.Index([1, pd.Timestamp("2000")])
+        idx = Index([1, pd.Timestamp("2000")])
         # default (sort=None)
         with tm.assert_produces_warning(RuntimeWarning):
             result = idx.union(idx[:1])
@@ -87,7 +87,7 @@ class TestIndexSetOps:
     def test_union_sort_other_incomparable_true(self):
         # TODO decide on True behaviour
         # sort=True
-        idx = pd.Index([1, pd.Timestamp("2000")])
+        idx = Index([1, pd.Timestamp("2000")])
         with pytest.raises(TypeError, match=".*"):
             idx.union(idx[:1], sort=True)
 
@@ -112,12 +112,12 @@ class TestIndexSetOps:
         assert tm.equalContents(result, second)
 
     def test_intersect_nosort(self):
-        result = pd.Index(["c", "b", "a"]).intersection(["b", "a"])
-        expected = pd.Index(["b", "a"])
+        result = Index(["c", "b", "a"]).intersection(["b", "a"])
+        expected = Index(["b", "a"])
         tm.assert_index_equal(result, expected)
 
     def test_intersection_equal_sort(self):
-        idx = pd.Index(["c", "a", "b"])
+        idx = Index(["c", "a", "b"])
         tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
         tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
 

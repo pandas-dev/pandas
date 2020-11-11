@@ -5686,7 +5686,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-Given the next test set:
+The following test functions will be used below to compare the performance of several IO methods:
 
 .. code-block:: python
 
@@ -5791,7 +5791,7 @@ Given the next test set:
    def test_parquet_read():
        pd.read_parquet("test.parquet")
 
-When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
+When writing, the top three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
@@ -5825,7 +5825,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    In [13]: %timeit test_parquet_write(df)
    67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
+When reading, the top three functions in terms of speed are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
 
@@ -5862,8 +5862,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 
-For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
-Space on disk (in bytes)
+The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk (in bytes).
 
 .. code-block:: none
 

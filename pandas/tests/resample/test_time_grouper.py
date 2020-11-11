@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
@@ -293,7 +293,7 @@ def test_groupby_resample_interpolate():
     # GH 35325
     d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
 
-    df = pd.DataFrame(d)
+    df = DataFrame(d)
 
     df["week_starting"] = pd.date_range("01/01/2018", periods=3, freq="W")
 
@@ -306,25 +306,25 @@ def test_groupby_resample_interpolate():
     expected_ind = pd.MultiIndex.from_tuples(
         [
             (50, "2018-01-07"),
-            (50, pd.Timestamp("2018-01-08")),
-            (50, pd.Timestamp("2018-01-09")),
-            (50, pd.Timestamp("2018-01-10")),
-            (50, pd.Timestamp("2018-01-11")),
-            (50, pd.Timestamp("2018-01-12")),
-            (50, pd.Timestamp("2018-01-13")),
-            (50, pd.Timestamp("2018-01-14")),
-            (50, pd.Timestamp("2018-01-15")),
-            (50, pd.Timestamp("2018-01-16")),
-            (50, pd.Timestamp("2018-01-17")),
-            (50, pd.Timestamp("2018-01-18")),
-            (50, pd.Timestamp("2018-01-19")),
-            (50, pd.Timestamp("2018-01-20")),
-            (50, pd.Timestamp("2018-01-21")),
-            (60, pd.Timestamp("2018-01-14")),
+            (50, Timestamp("2018-01-08")),
+            (50, Timestamp("2018-01-09")),
+            (50, Timestamp("2018-01-10")),
+            (50, Timestamp("2018-01-11")),
+            (50, Timestamp("2018-01-12")),
+            (50, Timestamp("2018-01-13")),
+            (50, Timestamp("2018-01-14")),
+            (50, Timestamp("2018-01-15")),
+            (50, Timestamp("2018-01-16")),
+            (50, Timestamp("2018-01-17")),
+            (50, Timestamp("2018-01-18")),
+            (50, Timestamp("2018-01-19")),
+            (50, Timestamp("2018-01-20")),
+            (50, Timestamp("2018-01-21")),
+            (60, Timestamp("2018-01-14")),
         ],
         names=["volume", "week_starting"],
     )
-    expected = pd.DataFrame(
+    expected = DataFrame(
         data={
             "price": [
                 10.0,

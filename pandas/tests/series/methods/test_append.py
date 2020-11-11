@@ -7,6 +7,10 @@ import pandas._testing as tm
 
 
 class TestSeriesAppend:
+    def test_append_preserve_name(self, datetime_series):
+        result = datetime_series[:5].append(datetime_series[5:])
+        assert result.name == datetime_series.name
+
     def test_append(self, datetime_series, string_series, object_series):
         appended_series = string_series.append(object_series)
         for idx, value in appended_series.items():
@@ -63,7 +67,7 @@ class TestSeriesAppend:
 
     def test_append_dataframe_raises(self):
         # GH 31413
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
 
         msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
         with pytest.raises(TypeError, match=msg):
