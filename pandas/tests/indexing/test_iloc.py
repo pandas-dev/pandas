@@ -801,6 +801,36 @@ class TestiLoc2:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
+    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x.iloc])
+    def test_iloc_getitem_read_only_values(self, indexer):
+        # GH#10043 this is fundamentally a test for iloc, but test loc while
+        #  we're here
+        rw_array = np.eye(10)
+        rw_df = DataFrame(rw_array)
+
+        ro_array = np.eye(10)
+        ro_array.setflags(write=False)
+        ro_df = DataFrame(ro_array)
+
+        tm.assert_frame_equal(indexer(rw_df)[[1, 2, 3]], indexer(ro_df)[[1, 2, 3]])
+        tm.assert_frame_equal(indexer(rw_df)[[1]], indexer(ro_df)[[1]])
+        tm.assert_series_equal(indexer(rw_df)[1], indexer(ro_df)[1])
+        tm.assert_frame_equal(indexer(rw_df)[1:3], indexer(ro_df)[1:3])
+
+    def test_iloc_getitem_readonly_key(self):
+        # GH#17192 iloc with read-only array raising TypeError
+        df = DataFrame({"data": np.ones(100, dtype="float64")})
+        indices = np.array([1, 3, 6])
+        indices.flags.writeable = False
+
+        result = df.iloc[indices]
+        expected = df.loc[[1, 3, 6]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df["data"].iloc[indices]
+        expected = df["data"].loc[[1, 3, 6]]
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as

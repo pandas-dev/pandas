@@ -988,43 +988,6 @@ def test_extension_array_cross_section_converts():
     tm.assert_series_equal(result, expected)
 
 
-def test_readonly_indices():
-    # GH#17192 iloc with read-only array raising TypeError
-    df = DataFrame({"data": np.ones(100, dtype="float64")})
-    indices = np.array([1, 3, 6])
-    indices.flags.writeable = False
-
-    result = df.iloc[indices]
-    expected = df.loc[[1, 3, 6]]
-    tm.assert_frame_equal(result, expected)
-
-    result = df["data"].iloc[indices]
-    expected = df["data"].loc[[1, 3, 6]]
-    tm.assert_series_equal(result, expected)
-
-
-def test_1tuple_without_multiindex():
-    ser = Series(range(5))
-    key = (slice(3),)
-
-    result = ser[key]
-    expected = ser[key[0]]
-    tm.assert_series_equal(result, expected)
-
-
-def test_duplicate_index_mistyped_key_raises_keyerror():
-    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
-    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
-    with pytest.raises(KeyError, match="None"):
-        ser[None]
-
-    with pytest.raises(KeyError, match="None"):
-        ser.index.get_loc(None)
-
-    with pytest.raises(KeyError, match="None"):
-        ser.index._engine.get_loc(None)
-
-
 def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     # GH 30567
     ser = Series([None] * 10)
