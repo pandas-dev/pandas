@@ -233,7 +233,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ],
     )
     def test_subplots_layout_single_column(
-            self, kwargs, expected_axes_num, expected_layout, expected_shape
+        self, kwargs, expected_axes_num, expected_layout, expected_shape
     ):
 
         # GH 6667
