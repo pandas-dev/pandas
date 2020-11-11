@@ -160,10 +160,8 @@ def is_json(url: FilePathOrBuffer) -> bool:
     json
     """
     json_pattern = re.compile(r"^\s*[\[{]")
-    if json_pattern.match(url):
-        return True
-    else:
-        return False
+    return json_pattern.match(url) is not None
+
 
 
 def is_fsspec_url(url: FilePathOrBuffer) -> bool:
