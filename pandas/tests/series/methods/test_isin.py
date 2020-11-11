@@ -90,7 +90,7 @@ class TestSeriesIsIn:
         expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("values", [[-9., 0.], [-9, 0]])
+    @pytest.mark.parametrize("values", [[-9.0, 0.0], [-9, 0]])
     def test_isin_float_in_int_series(self, values):
         # GH: 19356
         ser = Series(values)
