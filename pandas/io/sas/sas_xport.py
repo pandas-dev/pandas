@@ -9,8 +9,8 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 from collections import abc
 from datetime import datetime
-from io import BytesIO
 import struct
+from typing import IO, cast
 import warnings
 
 import numpy as np
@@ -20,6 +20,7 @@ from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
+from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -240,7 +241,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(abc.Iterator):
+class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
@@ -252,29 +253,22 @@ class XportReader(abc.Iterator):
         self._index = index
         self._chunksize = chunksize
 
-        if isinstance(filepath_or_buffer, str):
-            (
-                filepath_or_buffer,
-                encoding,
-                compression,
-                should_close,
-            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
+        self.ioargs = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
 
-        if isinstance(filepath_or_buffer, (str, bytes)):
-            self.filepath_or_buffer = open(filepath_or_buffer, "rb")
-        else:
-            # Copy to BytesIO, and ensure no encoding
-            contents = filepath_or_buffer.read()
-            try:
-                contents = contents.encode(self._encoding)
-            except UnicodeEncodeError:
-                pass
-            self.filepath_or_buffer = BytesIO(contents)
+        if isinstance(self.ioargs.filepath_or_buffer, str):
+            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
+            self.ioargs.should_close = True
 
-        self._read_header()
+        self.filepath_or_buffer = cast(IO[bytes], self.ioargs.filepath_or_buffer)
+
+        try:
+            self._read_header()
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
-        self.filepath_or_buffer.close()
+        self.ioargs.close()
 
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()
@@ -340,16 +334,16 @@ class XportReader(abc.Iterator):
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (
+            fieldbytes, fielddata = (
                 fielddata[:fieldnamelength],
                 fielddata[fieldnamelength:],
             )
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
-            field = field.ljust(140)
+            fieldbytes = fieldbytes.ljust(140)
 
-            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
+            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
             field = dict(zip(_fieldkeys, fieldstruct))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
@@ -411,8 +405,8 @@ class XportReader(abc.Iterator):
             return total_records_length // self.record_length
 
         self.filepath_or_buffer.seek(-80, 2)
-        last_card = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card, dtype=np.uint64)
+        last_card_bytes = self.filepath_or_buffer.read(80)
+        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
         # 8 byte blank
         ix = np.flatnonzero(last_card == 2314885530818453536)
@@ -486,7 +480,7 @@ class XportReader(abc.Iterator):
             df[x] = v
 
         if self._index is None:
-            df.index = range(self._lines_read, self._lines_read + read_lines)
+            df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
         else:
             df = df.set_index(self._index)
 

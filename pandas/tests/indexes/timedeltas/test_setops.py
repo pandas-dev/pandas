@@ -35,7 +35,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, tdi)
 
         result = left.union(right, sort=False)
-        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
@@ -97,15 +97,18 @@ class TestTimedeltaIndex:
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(5)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         assert len(result) == 0
 
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(1)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         expected = timedelta_range("1 day 01:00:00", periods=3, freq="h")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
     def test_intersection_equal(self, sort):
         # GH 24471 Test intersection outcome given the sort keyword
@@ -155,7 +158,7 @@ class TestTimedeltaIndex:
             # if no overlap exists return empty index
             (
                 timedelta_range("1 day", periods=10, freq="h", name="idx")[5:],
-                TimedeltaIndex([], name="idx"),
+                TimedeltaIndex([], freq="h", name="idx"),
             ),
         ],
     )
@@ -182,7 +185,7 @@ class TestTimedeltaIndex:
                 TimedeltaIndex(["2 hour", "5 hour", "5 hour", "1 hour"], name="other"),
                 TimedeltaIndex(["1 hour", "2 hour"], name=None),
             ),
-            # reveresed index
+            # reversed index
             (
                 TimedeltaIndex(["1 hour", "2 hour", "4 hour", "3 hour"], name="idx")[
                     ::-1
@@ -200,7 +203,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        # if reveresed order, frequency is still the same
+        # if reversed order, frequency is still the same
         if all(base == rng[::-1]) and sort is None:
             assert isinstance(result.freq, Hour)
         else:
@@ -227,7 +230,7 @@ class TestTimedeltaIndexDifference:
 
     def test_difference_sort(self, sort):
 
-        index = pd.TimedeltaIndex(
+        index = TimedeltaIndex(
             ["5 days", "3 days", "2 days", "4 days", "1 days", "0 days"]
         )
 

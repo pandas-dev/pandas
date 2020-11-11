@@ -3,8 +3,8 @@ from itertools import chain, product
 import numpy as np
 import pytest
 
+from pandas._libs import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
-from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range

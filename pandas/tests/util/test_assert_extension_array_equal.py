@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas import array
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -32,16 +33,13 @@ ExtensionArray values are different \\(50\\.0 %\\)
         tm.assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
-@pytest.mark.parametrize(
-    "check_less_precise", [True, False, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-)
-def test_assert_extension_array_equal_less_precise(check_less_precise):
+@pytest.mark.parametrize("decimals", range(10))
+def test_assert_extension_array_equal_less_precise(decimals):
+    rtol = 0.5 * 10 ** -decimals
     arr1 = SparseArray([0.5, 0.123456])
     arr2 = SparseArray([0.5, 0.123457])
 
-    kwargs = dict(check_less_precise=check_less_precise)
-
-    if check_less_precise is False or check_less_precise >= 5:
+    if decimals >= 5:
         msg = """\
 ExtensionArray are different
 
@@ -50,9 +48,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
 \\[right\\]: \\[0\\.5, 0\\.123457\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_extension_array_equal(arr1, arr2, **kwargs)
+            tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
     else:
-        tm.assert_extension_array_equal(arr1, arr2, **kwargs)
+        tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
 
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):
@@ -105,3 +103,11 @@ def test_assert_extension_array_equal_non_extension_array(side):
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_extension_array_equal(*args)
+
+
+@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
+def test_assert_extension_array_equal_ignore_dtype_mismatch(right_dtype):
+    # https://github.com/pandas-dev/pandas/issues/35715
+    left = array([1, 2, 3], dtype="Int64")
+    right = array([1, 2, 3], dtype=right_dtype)
+    tm.assert_extension_array_equal(left, right, check_dtype=False)

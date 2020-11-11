@@ -1,3 +1,6 @@
+import numpy as np
+
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -35,3 +38,24 @@ class TestSeriesSubclassing:
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             sub_series = tm.SubclassedSeries()
         assert "SubclassedSeries" in repr(sub_series)
+
+    def test_asof(self):
+        N = 3
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+        s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
+
+        result = s.asof(rng[-2:])
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_explode(self):
+        s = tm.SubclassedSeries([[1, 2, 3], "foo", [], [3, 4]])
+        result = s.explode()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_equals(self):
+        # https://github.com/pandas-dev/pandas/pull/34402
+        # allow subclass in both directions
+        s1 = pd.Series([1, 2, 3])
+        s2 = tm.SubclassedSeries([1, 2, 3])
+        assert s1.equals(s2)
+        assert s2.equals(s1)

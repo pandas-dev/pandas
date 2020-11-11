@@ -1,7 +1,7 @@
 .. _whatsnew_0181:
 
-v0.18.1 (May 3, 2016)
----------------------
+Version 0.18.1 (May 3, 2016)
+----------------------------
 
 {{ header }}
 
@@ -42,6 +42,7 @@ see :ref:`Custom Business Hour <timeseries.custombusinesshour>` (:issue:`11514`)
 
     from pandas.tseries.offsets import CustomBusinessHour
     from pandas.tseries.holiday import USFederalHolidayCalendar
+
     bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
 
 Friday before MLK Day
@@ -49,6 +50,7 @@ Friday before MLK Day
 .. ipython:: python
 
     import datetime
+
     dt = datetime.datetime(2014, 1, 17, 15)
 
     dt + bhour_us
@@ -61,8 +63,8 @@ Tuesday after MLK Day (Monday is skipped because it's a holiday)
 
 .. _whatsnew_0181.deferred_ops:
 
-``.groupby(..)`` syntax with window and resample operations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.groupby(..)`` syntax with window and resample operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.groupby(...)`` has been enhanced to provide convenient syntax when working with ``.rolling(..)``, ``.expanding(..)`` and ``.resample(..)`` per group, see (:issue:`12486`, :issue:`12738`).
 
@@ -72,46 +74,47 @@ Previously you would have to do this to get a rolling window mean per-group:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
-                      'B': np.arange(40)})
+   df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
    df
 
 .. ipython:: python
 
-   df.groupby('A').apply(lambda x: x.rolling(4).B.mean())
+   df.groupby("A").apply(lambda x: x.rolling(4).B.mean())
 
 Now you can do:
 
 .. ipython:: python
 
-   df.groupby('A').rolling(4).B.mean()
+   df.groupby("A").rolling(4).B.mean()
 
 For ``.resample(..)`` type of operations, previously you would have to:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'date': pd.date_range(start='2016-01-01',
-                                            periods=4,
-                                            freq='W'),
-                      'group': [1, 1, 2, 2],
-                      'val': [5, 6, 7, 8]}).set_index('date')
+   df = pd.DataFrame(
+       {
+           "date": pd.date_range(start="2016-01-01", periods=4, freq="W"),
+           "group": [1, 1, 2, 2],
+           "val": [5, 6, 7, 8],
+       }
+   ).set_index("date")
 
    df
 
 .. ipython:: python
 
-   df.groupby('group').apply(lambda x: x.resample('1D').ffill())
+   df.groupby("group").apply(lambda x: x.resample("1D").ffill())
 
 Now you can do:
 
 .. ipython:: python
 
-   df.groupby('group').resample('1D').ffill()
+   df.groupby("group").resample("1D").ffill()
 
 .. _whatsnew_0181.enhancements.method_chain:
 
 Method chaining improvements
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following methods / indexers now accept a ``callable``. It is intended to make
 these more useful in method chains, see the :ref:`documentation <indexing.callable>`.
@@ -121,21 +124,19 @@ these more useful in method chains, see the :ref:`documentation <indexing.callab
 - ``.loc[]``, ``iloc[]`` and ``.ix[]``
 - ``[]`` indexing
 
-``.where()`` and ``.mask()``
-""""""""""""""""""""""""""""
+Methods ``.where()`` and ``.mask()``
+""""""""""""""""""""""""""""""""""""
 
 These can accept a callable for the condition and ``other``
 arguments.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1, 2, 3],
-                      'B': [4, 5, 6],
-                      'C': [7, 8, 9]})
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    df.where(lambda x: x > 4, lambda x: x + 10)
 
-``.loc[]``, ``.iloc[]``, ``.ix[]``
-""""""""""""""""""""""""""""""""""
+Methods ``.loc[]``, ``.iloc[]``, ``.ix[]``
+""""""""""""""""""""""""""""""""""""""""""
 
 These can accept a callable, and a tuple of callable as a slicer. The callable
 can return a valid boolean indexer or anything which is valid for these indexer's input.
@@ -146,10 +147,10 @@ can return a valid boolean indexer or anything which is valid for these indexer'
    df.loc[lambda x: x.A >= 2, lambda x: x.sum() > 10]
 
    # callable returns list of labels
-   df.loc[lambda x: [1, 2], lambda x: ['A', 'B']]
+   df.loc[lambda x: [1, 2], lambda x: ["A", "B"]]
 
-``[]`` indexing
-"""""""""""""""
+Indexing with``[]``
+"""""""""""""""""""
 
 Finally, you can use a callable in ``[]`` indexing of Series, DataFrame and Panel.
 The callable must return a valid input for ``[]`` indexing depending on its
@@ -157,21 +158,19 @@ class and index type.
 
 .. ipython:: python
 
-   df[lambda x: 'A']
+   df[lambda x: "A"]
 
 Using these methods / indexers, you can chain data selection operations
 without using temporary variable.
 
 .. ipython:: python
 
-   bb = pd.read_csv('data/baseball.csv', index_col='id')
-   (bb.groupby(['year', 'team'])
-      .sum()
-      .loc[lambda df: df.r > 100])
+   bb = pd.read_csv("data/baseball.csv", index_col="id")
+   (bb.groupby(["year", "team"]).sum().loc[lambda df: df.r > 100])
 
 .. _whatsnew_0181.partial_string_indexing:
 
-Partial string indexing on ``DateTimeIndex`` when part of a ``MultiIndex``
+Partial string indexing on ``DatetimeIndex`` when part of a ``MultiIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiIndex`` (:issue:`10331`)
@@ -180,13 +179,13 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 
    dft2 = pd.DataFrame(
        np.random.randn(20, 1),
-       columns=['A'],
-       index=pd.MultiIndex.from_product([pd.date_range('20130101',
-                                                       periods=10,
-                                                       freq='12H'),
-                                         ['a', 'b']]))
+       columns=["A"],
+       index=pd.MultiIndex.from_product(
+           [pd.date_range("20130101", periods=10, freq="12H"), ["a", "b"]]
+       ),
+   )
    dft2
-   dft2.loc['2013-01-05']
+   dft2.loc["2013-01-05"]
 
 On other levels
 
@@ -195,7 +194,7 @@ On other levels
    idx = pd.IndexSlice
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2
-   dft2.loc[idx[:, '2013-01-05'], :]
+   dft2.loc[idx[:, "2013-01-05"], :]
 
 .. _whatsnew_0181.enhancements.assembling:
 
@@ -206,10 +205,9 @@ Assembling datetimes
 
 .. ipython:: python
 
-   df = pd.DataFrame({'year': [2015, 2016],
-                      'month': [2, 3],
-                      'day': [4, 5],
-                      'hour': [2, 3]})
+   df = pd.DataFrame(
+       {"year": [2015, 2016], "month": [2, 3], "day": [4, 5], "hour": [2, 3]}
+   )
    df
 
 Assembling using the passed frame.
@@ -222,7 +220,7 @@ You can pass only the columns that you need to assemble.
 
 .. ipython:: python
 
-   pd.to_datetime(df[['year', 'month', 'day']])
+   pd.to_datetime(df[["year", "month", "day"]])
 
 .. _whatsnew_0181.other:
 
@@ -243,7 +241,7 @@ Other enhancements
 
   .. ipython:: python
 
-     idx = pd.Index([1., 2., 3., 4.], dtype='float')
+     idx = pd.Index([1.0, 2.0, 3.0, 4.0], dtype="float")
 
      # default, allow_fill=True, fill_value=None
      idx.take([2, -1])
@@ -253,8 +251,8 @@ Other enhancements
 
   .. ipython:: python
 
-     idx = pd.Index(['a|b', 'a|c', 'b|c'])
-     idx.str.get_dummies('|')
+     idx = pd.Index(["a|b", "a|c", "b|c"])
+     idx.str.get_dummies("|")
 
 
 - ``pd.crosstab()`` has gained a ``normalize`` argument for normalizing frequency tables (:issue:`12569`). Examples in the updated docs :ref:`here <reshaping.crosstabulations>`.
@@ -306,15 +304,14 @@ API changes
 
 .. _whatsnew_0181.api.groubynth:
 
-``.groupby(..).nth()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.groupby(..).nth()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The index in ``.groupby(..).nth()`` output is now more consistent when the ``as_index`` argument is passed (:issue:`11039`):
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': ['a', 'b', 'a'],
-                      'B': [1, 2, 3]})
+   df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3]})
    df
 
 Previous behavior:
@@ -337,16 +334,16 @@ New behavior:
 
 .. ipython:: python
 
-    df.groupby('A', as_index=True)['B'].nth(0)
-    df.groupby('A', as_index=False)['B'].nth(0)
+    df.groupby("A", as_index=True)["B"].nth(0)
+    df.groupby("A", as_index=False)["B"].nth(0)
 
 Furthermore, previously, a ``.groupby`` would always sort, regardless if ``sort=False`` was passed with ``.nth()``.
 
 .. ipython:: python
 
    np.random.seed(1234)
-   df = pd.DataFrame(np.random.randn(100, 2), columns=['a', 'b'])
-   df['c'] = np.random.randint(0, 4, 100)
+   df = pd.DataFrame(np.random.randn(100, 2), columns=["a", "b"])
+   df["c"] = np.random.randint(0, 4, 100)
 
 Previous behavior:
 
@@ -374,13 +371,13 @@ New behavior:
 
 .. ipython:: python
 
-   df.groupby('c', sort=True).nth(1)
-   df.groupby('c', sort=False).nth(1)
+   df.groupby("c", sort=True).nth(1)
+   df.groupby("c", sort=False).nth(1)
 
 
 .. _whatsnew_0181.numpy_compatibility:
 
-numpy function compatibility
+NumPy function compatibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Compatibility between pandas array-like methods (e.g. ``sum`` and ``take``) and their ``numpy``
@@ -414,15 +411,16 @@ New behaviour:
 
 .. _whatsnew_0181.apply_resample:
 
-Using ``.apply`` on groupby resampling
+Using ``.apply`` on GroupBy resampling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using ``apply`` on resampling groupby operations (using a ``pd.TimeGrouper``) now has the same output types as similar ``apply`` calls on other groupby operations. (:issue:`11742`).
 
 .. ipython:: python
 
-    df = pd.DataFrame({'date': pd.to_datetime(['10/10/2000', '11/10/2000']),
-                      'value': [10, 13]})
+    df = pd.DataFrame(
+        {"date": pd.to_datetime(["10/10/2000", "11/10/2000"]), "value": [10, 13]}
+    )
     df
 
 Previous behavior:
@@ -513,8 +511,8 @@ In addition to this error change, several others have been made as well:
 
 .. _whatsnew_0181.api.to_datetime:
 
-``to_datetime`` error changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``to_datetime`` error changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Bugs in ``pd.to_datetime()`` when passing a ``unit`` with convertible entries and ``errors='coerce'`` or non-convertible with ``errors='ignore'``. Furthermore, an ``OutOfBoundsDateime`` exception will be raised when an out-of-range value is encountered for that unit when ``errors='raise'``. (:issue:`11758`, :issue:`13052`, :issue:`13059`)
 

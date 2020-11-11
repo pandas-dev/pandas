@@ -1,20 +1,25 @@
-import cython
 from collections import defaultdict
+
+import cython
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
+
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport NPY_INT64, int64_t
+
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
 
+@cython.final
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
@@ -48,7 +53,7 @@ cdef class BlockPlacement:
         else:
             # Cython memoryview interface requires ndarray to be writeable.
             arr = np.require(val, dtype=np.int64, requirements='W')
-            assert arr.ndim == 1
+            assert arr.ndim == 1, arr.shape
             self._as_array = arr
             self._has_array = True
 
@@ -106,13 +111,8 @@ cdef class BlockPlacement:
         else:
             return self._as_array
 
-    def isin(self, arr):
-        from pandas.core.indexes.api import Int64Index
-
-        return Int64Index(self.as_array, copy=False).isin(arr)
-
     @property
-    def as_array(self):
+    def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, end, _
 
@@ -146,10 +146,10 @@ cdef class BlockPlacement:
 
         return BlockPlacement(val)
 
-    def delete(self, loc):
+    def delete(self, loc) -> BlockPlacement:
         return BlockPlacement(np.delete(self.as_array, loc, axis=0))
 
-    def append(self, others):
+    def append(self, others) -> BlockPlacement:
         if not len(others):
             return self
 
@@ -190,11 +190,9 @@ cdef class BlockPlacement:
             val = newarr
             return BlockPlacement(val)
 
-    def add(self, other):
+    def add(self, other) -> BlockPlacement:
+        # We can get here with int or ndarray
         return self.iadd(other)
-
-    def sub(self, other):
-        return self.add(-other)
 
     cdef slice _ensure_has_slice(self):
         if not self._has_slice:
@@ -209,7 +207,7 @@ cdef slice slice_canonize(slice s):
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
+        Py_ssize_t start = 0, stop = 0, step = 1
 
     if s.step is None:
         step = 1
@@ -241,7 +239,7 @@ cdef slice slice_canonize(slice s):
             if stop > start:
                 stop = start
 
-    if start < 0 or (stop < 0 and s.stop is not None):
+    if start < 0 or (stop < 0 and s.stop is not None and step > 0):
         raise ValueError("unbounded slice")
 
     if stop < 0:

@@ -1,10 +1,12 @@
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+import hashlib
 from io import BytesIO
 import os
 from pathlib import Path
 import re
+import time
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -34,11 +36,9 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    create_tempfile,
     ensure_clean_path,
     ensure_clean_store,
     safe_close,
-    safe_remove,
     tables,
 )
 
@@ -47,11 +47,12 @@ from pandas.io.pytables import (
     HDFStore,
     PossibleDataLossError,
     Term,
+    _maybe_adjust_name,
     read_hdf,
 )
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+from pandas.io import pytables as pytables  # isort:skip
+from pandas.io.pytables import TableIterator  # isort:skip
 
 
 _default_compressor = "blosc"
@@ -63,7 +64,7 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
 @pytest.mark.single
 class TestHDFStore:
     def test_format_type(self, setup_path):
-        df = pd.DataFrame({"A": [1, 2]})
+        df = DataFrame({"A": [1, 2]})
         with ensure_clean_path(setup_path) as path:
             with HDFStore(path) as store:
                 store.put("a", df, format="fixed")
@@ -77,33 +78,25 @@ class TestHDFStore:
 
         msg = "format is not a defined argument for HDFStore"
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
-            with HDFStore(path) as tbl:
-                raise ValueError("blah")
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
+        with tm.ensure_clean(setup_path) as path:
+            try:
+                with HDFStore(path) as tbl:
+                    raise ValueError("blah")
+            except ValueError:
+                pass
+        with tm.ensure_clean(setup_path) as path:
             with HDFStore(path) as tbl:
                 tbl["a"] = tm.makeDataFrame()
-
-            with HDFStore(path) as tbl:
                 assert len(tbl) == 1
                 assert type(tbl["a"]) == DataFrame
-        finally:
-            safe_remove(path)
 
     def test_conv_read_write(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
+        with tm.ensure_clean() as path:
 
             def roundtrip(key, obj, **kwargs):
                 obj.to_hdf(path, key, **kwargs)
@@ -123,9 +116,6 @@ class TestHDFStore:
             df.to_hdf(path, "table", append=True)
             result = read_hdf(path, "table", where=["index>2"])
             tm.assert_frame_equal(df[df.index > 2], result)
-
-        finally:
-            safe_remove(path)
 
     def test_long_strings(self, setup_path):
 
@@ -296,6 +286,83 @@ class TestHDFStore:
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    def test_no_track_times(self, setup_path):
+
+        # GH 32682
+        # enables to set track_times (see `pytables` `create_table` documentation)
+
+        def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
+            h = hash_factory()
+            with open(filename, "rb") as f:
+                for chunk in iter(lambda: f.read(chunk_num_blocks * h.block_size), b""):
+                    h.update(chunk)
+            return h.digest()
+
+        def create_h5_and_return_checksum(track_times):
+            with ensure_clean_path(setup_path) as path:
+                df = DataFrame({"a": [1]})
+
+                with pd.HDFStore(path, mode="w") as hdf:
+                    hdf.put(
+                        "table",
+                        df,
+                        format="table",
+                        data_columns=True,
+                        index=None,
+                        track_times=track_times,
+                    )
+
+                return checksum(path)
+
+        checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
+
+        # sleep is necessary to create h5 with different creation time
+        time.sleep(1)
+
+        checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
+
+        # checksums are the same if track_time = False
+        assert checksum_0_tt_false == checksum_1_tt_false
+
+        # checksums are NOT same if track_time = True
+        assert checksum_0_tt_true != checksum_1_tt_true
+
+    def test_non_pandas_keys(self, setup_path):
+        class Table1(tables.IsDescription):
+            value1 = tables.Float32Col()
+
+        class Table2(tables.IsDescription):
+            value2 = tables.Float32Col()
+
+        class Table3(tables.IsDescription):
+            value3 = tables.Float32Col()
+
+        with ensure_clean_path(setup_path) as path:
+            with tables.open_file(path, mode="w") as h5file:
+                group = h5file.create_group("/", "group")
+                h5file.create_table(group, "table1", Table1, "Table 1")
+                h5file.create_table(group, "table2", Table2, "Table 2")
+                h5file.create_table(group, "table3", Table3, "Table 3")
+            with HDFStore(path) as store:
+                assert len(store.keys(include="native")) == 3
+                expected = {"/group/table1", "/group/table2", "/group/table3"}
+                assert set(store.keys(include="native")) == expected
+                assert set(store.keys(include="pandas")) == set()
+                for name in expected:
+                    df = store.get(name)
+                    assert len(df.columns) == 1
+
+    def test_keys_illegal_include_keyword_value(self, setup_path):
+        with ensure_clean_store(setup_path) as store:
+            with pytest.raises(
+                ValueError,
+                match="`include` should be either 'pandas' or 'native' "
+                "but is 'illegal'",
+            ):
+                store.keys(include="illegal")
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523
@@ -433,7 +500,7 @@ class TestHDFStore:
                 # context
                 if mode in ["r", "r+"]:
                     with pytest.raises(IOError):
-                        with HDFStore(path, mode=mode) as store:  # noqa
+                        with HDFStore(path, mode=mode) as store:
                             pass
                 else:
                     with HDFStore(path, mode=mode) as store:
@@ -525,7 +592,7 @@ class TestHDFStore:
 
     def test_open_args(self, setup_path):
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
 
             df = tm.makeDataFrame()
 
@@ -541,8 +608,8 @@ class TestHDFStore:
 
             store.close()
 
-            # the file should not have actually been written
-            assert not os.path.exists(path)
+        # the file should not have actually been written
+        assert not os.path.exists(path)
 
     def test_flush(self, setup_path):
 
@@ -590,11 +657,11 @@ class TestHDFStore:
     def test_walk(self, where, expected, setup_path):
         # GH10143
         objs = {
-            "df1": pd.DataFrame([1, 2, 3]),
-            "df2": pd.DataFrame([4, 5, 6]),
-            "df3": pd.DataFrame([6, 7, 8]),
-            "df4": pd.DataFrame([9, 10, 11]),
-            "s1": pd.Series([10, 9, 8]),
+            "df1": DataFrame([1, 2, 3]),
+            "df2": DataFrame([4, 5, 6]),
+            "df3": DataFrame([6, 7, 8]),
+            "df4": DataFrame([9, 10, 11]),
+            "s1": Series([10, 9, 8]),
             # Next 3 items aren't pandas objects and should be ignored
             "a1": np.array([[1, 2, 3], [4, 5, 6]]),
             "tb1": np.array([(1, 2, 3), (4, 5, 6)], dtype="i,i,i"),
@@ -830,7 +897,6 @@ class TestHDFStore:
         df = DataFrame(np.random.randn(50, 100))
         self._check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
-    @td.xfail_non_writeable
     def test_put_mixed_type(self, setup_path):
         df = tm.makeTimeDataFrame()
         df["obj1"] = "foo"
@@ -1047,7 +1113,7 @@ class TestHDFStore:
         key = "data"
 
         val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
-        ser = pd.Series(val, dtype=dtype)
+        ser = Series(val, dtype=dtype)
 
         with ensure_clean_path(setup_path) as store:
             ser.to_hdf(store, key, format="table", encoding=enc, nan_rep=nan_rep)
@@ -1187,21 +1253,36 @@ class TestHDFStore:
             store.append("df2", df[10:], dropna=False)
             tm.assert_frame_equal(store["df2"], df)
 
-        # Test to make sure defaults are to not drop.
-        # Corresponding to Issue 9382
+    def test_store_dropna(self, setup_path):
         df_with_missing = DataFrame(
-            {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+            {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
+            index=list("abc"),
+        )
+        df_without_missing = DataFrame(
+            {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
         )
 
+        # # Test to make sure defaults are to not drop.
+        # # Corresponding to Issue 9382
         with ensure_clean_path(setup_path) as path:
-            df_with_missing.to_hdf(path, "df_with_missing", format="table")
-            reloaded = read_hdf(path, "df_with_missing")
+            df_with_missing.to_hdf(path, "df", format="table")
+            reloaded = read_hdf(path, "df")
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_without_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
         with ensure_clean_path(setup_path) as path:
-            df = pd.DataFrame({"a": range(2), "b": range(2)})
+            df = DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
             with pytest.raises(KeyError, match="'No object named k2 in the file'"):
@@ -1214,7 +1295,7 @@ class TestHDFStore:
     def test_read_missing_key_opened_store(self, setup_path):
         # GH 28699
         with ensure_clean_path(setup_path) as path:
-            df = pd.DataFrame({"a": range(2), "b": range(2)})
+            df = DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
             with pd.HDFStore(path, "r") as store:
@@ -1231,6 +1312,8 @@ class TestHDFStore:
 
             # column oriented
             df = tm.makeTimeDataFrame()
+            df.index = df.index._with_freq(None)  # freq doesnt round-trip
+
             _maybe_remove(store, "df1")
             store.append("df1", df.iloc[:, :2], axes=["columns"])
             store.append("df1", df.iloc[:, 2:])
@@ -1437,13 +1520,11 @@ class TestHDFStore:
                 pd.read_hdf(path, "ss4"), pd.concat([df["B"], df2["B"]])
             )
 
-    @pytest.mark.parametrize(
-        "format", [pytest.param("fixed", marks=td.xfail_non_writeable), "table"]
-    )
+    @pytest.mark.parametrize("format", ["fixed", "table"])
     def test_to_hdf_errors(self, format, setup_path):
 
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = Series(data, index=Index(data))
         with ensure_clean_path(setup_path) as path:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
@@ -1550,12 +1631,16 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
         with ensure_clean_store(setup_path) as store:
             # doc example
@@ -1575,11 +1660,16 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(
+                result, expected, check_index_type=False, check_freq=False
+            )
+            # FIXME: 2020-05-07 freq check randomly fails in the CI
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -1636,6 +1726,37 @@ class TestHDFStore:
                 store.put("f2", df)
                 with pytest.raises(TypeError):
                     store.create_table_index("f2")
+
+    def test_create_table_index_data_columns_argument(self, setup_path):
+        # GH 28156
+
+        with ensure_clean_store(setup_path) as store:
+
+            with catch_warnings(record=True):
+
+                def col(t, column):
+                    return getattr(store.get_storer(t).table.cols, column)
+
+                # data columns
+                df = tm.makeTimeDataFrame()
+                df["string"] = "foo"
+                df["string2"] = "bar"
+                store.append("f", df, data_columns=["string"])
+                assert col("f", "index").is_indexed is True
+                assert col("f", "string").is_indexed is True
+
+                msg = "'Cols' object has no attribute 'string2'"
+                with pytest.raises(AttributeError, match=msg):
+                    col("f", "string2").is_indexed
+
+                # try to index a col which isn't a data_column
+                msg = (
+                    "column string2 is not a data_column.\n"
+                    "In order to read column string2 you must reload the dataframe \n"
+                    "into HDFStore and include string2 with the data_columns argument."
+                )
+                with pytest.raises(AttributeError, match=msg):
+                    store.create_table_index("f", columns=["string2"])
 
     def test_append_hierarchical(self, setup_path):
         index = MultiIndex(
@@ -1812,10 +1933,10 @@ class TestHDFStore:
 
     def test_mi_data_columns(self, setup_path):
         # GH 14435
-        idx = pd.MultiIndex.from_arrays(
+        idx = MultiIndex.from_arrays(
             [date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
         )
-        df = pd.DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
+        df = DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
 
         with ensure_clean_store(setup_path) as store:
             store.append("df", df, data_columns=True)
@@ -1835,7 +1956,6 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.select("df", where=[("columns=A")])
 
-    @td.xfail_non_writeable
     def test_append_misc(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
@@ -2043,14 +2163,6 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.append("df_unimplemented", df)
 
-    @td.xfail_non_writeable
-    @pytest.mark.skipif(
-        LooseVersion(np.__version__) == LooseVersion("1.15.0"),
-        reason=(
-            "Skipping  pytables test when numpy version is "
-            "exactly equal to 1.15.0: gh-22098"
-        ),
-    )
     def test_calendar_roundtrip_issue(self, setup_path):
 
         # 8591
@@ -2078,17 +2190,6 @@ class TestHDFStore:
             store.append("table", s)
             result = store.select("table")
             tm.assert_series_equal(result, s)
-
-    def test_roundtrip_tz_aware_index(self, setup_path):
-        # GH 17618
-        time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-        df = pd.DataFrame(data=[0], index=[time])
-
-        with ensure_clean_store(setup_path) as store:
-            store.put("frame", df, format="fixed")
-            recons = store["frame"]
-            tm.assert_frame_equal(recons, df)
-            assert recons.index[0].value == 946706400000000000
 
     def test_append_with_timedelta(self, setup_path):
         # GH 3577
@@ -2239,9 +2340,9 @@ class TestHDFStore:
                 np.random.randn(20, 2), index=pd.date_range("20130101", periods=20)
             )
             store.put("df", df, format="table")
-            expected = df[df.index > pd.Timestamp("20130105")]
+            expected = df[df.index > Timestamp("20130105")]
 
-            import datetime  # noqa
+            import datetime
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
             tm.assert_frame_equal(result, expected)
@@ -2263,10 +2364,16 @@ class TestHDFStore:
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
-        ts2 = Series(ts.index, Index(ts.index, dtype=object))
+        with tm.assert_produces_warning(FutureWarning):
+            # auto-casting object->DatetimeIndex deprecated
+            ts2 = Series(ts.index, Index(ts.index, dtype=object))
         self._check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
-        ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
+        with tm.assert_produces_warning(FutureWarning):
+            # auto-casting object->DatetimeIndex deprecated
+            ts3 = Series(
+                ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
+            )
         self._check_roundtrip(
             ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
         )
@@ -2278,7 +2385,6 @@ class TestHDFStore:
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     def test_tuple_index(self, setup_path):
 
         # GH #492
@@ -2291,7 +2397,6 @@ class TestHDFStore:
             simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self, setup_path):
 
@@ -2353,7 +2458,6 @@ class TestHDFStore:
         except OverflowError:
             pytest.skip("known failer on some windows platforms")
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -2387,7 +2491,6 @@ class TestHDFStore:
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     def test_empty_series_frame(self, setup_path):
         s0 = Series(dtype=object)
         s1 = Series(name="myseries", dtype=object)
@@ -2401,9 +2504,8 @@ class TestHDFStore:
         self._check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
         self._check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
-        "dtype", [np.int64, np.float64, np.object, "m8[ns]", "M8[ns]"]
+        "dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"]
     )
     def test_empty_series(self, dtype, setup_path):
         s = Series(dtype=dtype)
@@ -2443,30 +2545,18 @@ class TestHDFStore:
             recons = store["frame"]
             tm.assert_frame_equal(recons, df)
 
-    def test_store_index_name_with_tz(self, setup_path):
-        # GH 13884
-        df = pd.DataFrame({"A": [1, 2]})
-        df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
-        df.index = df.index.tz_localize("UTC")
-        df.index.name = "foo"
-
-        with ensure_clean_store(setup_path) as store:
-            store.put("frame", df, format="table")
-            recons = store["frame"]
-            tm.assert_frame_equal(recons, df)
-
     @pytest.mark.parametrize("table_format", ["table", "fixed"])
     def test_store_index_name_numpy_str(self, table_format, setup_path):
         # GH #13492
-        idx = pd.Index(
+        idx = Index(
             pd.to_datetime([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]),
             name="cols\u05d2",
         )
-        idx1 = pd.Index(
+        idx1 = Index(
             pd.to_datetime([datetime.date(2010, 1, 1), datetime.date(2010, 1, 2)]),
             name="rows\u05d0",
         )
-        df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
+        df = DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
         # This used to fail, returning numpy strings instead of python strings.
         with ensure_clean_path(setup_path) as path:
@@ -2487,7 +2577,6 @@ class TestHDFStore:
             recons = store["series"]
             tm.assert_series_equal(recons, series)
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -3607,6 +3696,33 @@ class TestHDFStore:
 
             assert not store.select("df1a").index.equals(store.select("df2a").index)
 
+    def test_append_to_multiple_min_itemsize(self, setup_path):
+        # GH 11238
+        df = DataFrame(
+            {
+                "IX": np.arange(1, 21),
+                "Num": np.arange(1, 21),
+                "BigNum": np.arange(1, 21) * 88,
+                "Str": ["a" for _ in range(20)],
+                "LongStr": ["abcde" for _ in range(20)],
+            }
+        )
+        expected = df.iloc[[0]]
+
+        with ensure_clean_store(setup_path) as store:
+            store.append_to_multiple(
+                {
+                    "index": ["IX"],
+                    "nums": ["Num", "BigNum"],
+                    "strs": ["Str", "LongStr"],
+                },
+                df.iloc[[0]],
+                "index",
+                min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
+            )
+            result = store.select_as_multiple(["index", "nums", "strs"])
+            tm.assert_frame_equal(result, expected)
+
     def test_select_as_multiple(self, setup_path):
 
         df1 = tm.makeTimeDataFrame()
@@ -4028,7 +4144,6 @@ class TestHDFStore:
             d1 = store["detector"]
             assert isinstance(d1, DataFrame)
 
-    @td.xfail_non_writeable
     def test_legacy_table_fixed_format_read_py2(self, datapath, setup_path):
         # GH 24510
         # legacy table with fixed format written in Python 2
@@ -4036,10 +4151,10 @@ class TestHDFStore:
             datapath("io", "data", "legacy_hdf", "legacy_table_fixed_py2.h5"), mode="r"
         ) as store:
             result = store.select("df")
-            expected = pd.DataFrame(
+            expected = DataFrame(
                 [[1, 2, 3, "D"]],
                 columns=["A", "B", "C", "D"],
-                index=pd.Index(["ABC"], name="INDEX_NAME"),
+                index=Index(["ABC"], name="INDEX_NAME"),
             )
             tm.assert_frame_equal(expected, result)
 
@@ -4051,10 +4166,10 @@ class TestHDFStore:
             mode="r",
         ) as store:
             result = store.select("df")
-            expected = pd.DataFrame(
-                [[pd.Timestamp("2020-02-06T18:00")]],
+            expected = DataFrame(
+                [[Timestamp("2020-02-06T18:00")]],
                 columns=["A"],
-                index=pd.Index(["date"]),
+                index=Index(["date"]),
             )
             tm.assert_frame_equal(expected, result)
 
@@ -4066,7 +4181,7 @@ class TestHDFStore:
         ) as store:
             result = store.select("table")
 
-        expected = pd.DataFrame({"a": ["a", "b"], "b": [2, 3]})
+        expected = DataFrame({"a": ["a", "b"], "b": [2, 3]})
         tm.assert_frame_equal(expected, result)
 
     def test_copy(self, setup_path):
@@ -4081,7 +4196,6 @@ class TestHDFStore:
                         import tempfile
 
                         fd, new_f = tempfile.mkstemp()
-
                     tstore = store.copy(
                         new_f, keys=keys, propindexes=propindexes, **kwargs
                     )
@@ -4112,20 +4226,17 @@ class TestHDFStore:
                         os.close(fd)
                     except (OSError, ValueError):
                         pass
-                    safe_remove(new_f)
+                    os.remove(new_f)
 
             # new table
             df = tm.makeDataFrame()
 
-            try:
-                path = create_tempfile(setup_path)
+            with tm.ensure_clean() as path:
                 st = HDFStore(path)
                 st.append("df", df, data_columns=["A"])
                 st.close()
                 do_copy(f=path)
                 do_copy(f=path, propindexes=False)
-            finally:
-                safe_remove(path)
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
@@ -4190,19 +4301,18 @@ class TestHDFStore:
     def test_unicode_longer_encoded(self, setup_path):
         # GH 11234
         char = "\u0394"
-        df = pd.DataFrame({"A": [char]})
+        df = DataFrame({"A": [char]})
         with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table", encoding="utf-8")
             result = store.get("df")
             tm.assert_frame_equal(result, df)
 
-        df = pd.DataFrame({"A": ["a", char], "B": ["b", "b"]})
+        df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
         with ensure_clean_store(setup_path) as store:
             store.put("df", df, format="table", encoding="utf-8")
             result = store.get("df")
             tm.assert_frame_equal(result, df)
 
-    @td.xfail_non_writeable
     def test_store_datetime_mixed(self, setup_path):
 
         df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
@@ -4402,12 +4512,12 @@ class TestHDFStore:
         # GH18413
         # Check that read_hdf with categorical columns with NaN-only values can
         # be read back.
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": ["a", "b", "c", np.nan],
                 "b": [np.nan, np.nan, np.nan, np.nan],
                 "c": [1, 2, 3, 4],
-                "d": pd.Series([None] * 4, dtype=object),
+                "d": Series([None] * 4, dtype=object),
             }
         )
         df["a"] = df.a.astype("category")
@@ -4565,7 +4675,7 @@ class TestHDFStore:
 
     def test_invalid_complib(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError):
                 df.to_hdf(path, "df", complib="foolib")
 
@@ -4639,7 +4749,7 @@ class TestHDFStore:
 
     def test_query_long_float_literal(self, setup_path):
         # GH 14241
-        df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
+        df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
 
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
@@ -4660,7 +4770,7 @@ class TestHDFStore:
 
     def test_query_compare_column_type(self, setup_path):
         # GH 15492
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "date": ["2014-01-01", "2014-01-02"],
                 "real_date": date_range("2014-01-01", periods=2),
@@ -4673,14 +4783,14 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
-            ts = pd.Timestamp("2014-01-01")  # noqa
+            ts = Timestamp("2014-01-01")  # noqa
             result = store.select("test", where="real_date > ts")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
             for op in ["<", ">", "=="]:
                 # non strings to string column always fail
-                for v in [2.1, True, pd.Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
+                for v in [2.1, True, Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
                     query = f"date {op} v"
                     with pytest.raises(TypeError):
                         store.select("test", where=query)
@@ -4729,11 +4839,11 @@ class TestHDFStore:
 
         # the file was generated in Python 2.7 like so:
         #
-        # df = pd.DataFrame([1.,2,3], index=pd.PeriodIndex(
+        # df = DataFrame([1.,2,3], index=pd.PeriodIndex(
         #              ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
         # df.to_hdf('periodindex_0.20.1_x86_64_darwin_2.7.13.h5', 'p')
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [1.0, 2, 3],
             index=pd.PeriodIndex(["2015-01-01", "2015-01-02", "2015-01-05"], freq="B"),
         )
@@ -4755,7 +4865,7 @@ class TestHDFStore:
         # while reading from HDF store raises
         # "SyntaxError: only a single expression is allowed"
 
-        df = pd.DataFrame([1, 2, 3])
+        df = DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:
             with pd.HDFStore(path) as store:
                 store.put("df", df, "t")
@@ -4772,7 +4882,25 @@ class TestHDFStore:
     def test_to_hdf_multiindex_extension_dtype(self, idx, setup_path):
         # GH 7775
         mi = MultiIndex.from_arrays([idx, idx])
-        df = pd.DataFrame(0, index=mi, columns=["a"])
+        df = DataFrame(0, index=mi, columns=["a"])
         with ensure_clean_path(setup_path) as path:
             with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
                 df.to_hdf(path, "df")
+
+    def test_unsuppored_hdf_file_error(self, datapath):
+        # GH 9539
+        data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
+        message = (
+            r"Dataset\(s\) incompatible with Pandas data types, "
+            "not table, or no datasets found in HDF5 file."
+        )
+
+        with pytest.raises(ValueError, match=message):
+            pd.read_hdf(data_path)
+
+
+@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
+def test_maybe_adjust_name_bad_version_raises(bad_version):
+    msg = "Version is incorrect, expected sequence of 3 integers"
+    with pytest.raises(ValueError, match=msg):
+        _maybe_adjust_name("values_block_0", version=bad_version)

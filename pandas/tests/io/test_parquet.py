@@ -1,13 +1,15 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
-import locale
+from io import BytesIO
 import os
+import pathlib
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,18 +24,19 @@ from pandas.io.parquet import (
 )
 
 try:
-    import pyarrow  # noqa
+    import pyarrow
 
     _HAVE_PYARROW = True
 except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    import fastparquet  # noqa
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
+
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
@@ -122,6 +125,21 @@ def df_full():
     )
 
 
+@pytest.fixture(
+    params=[
+        datetime.datetime.now(datetime.timezone.utc),
+        datetime.datetime.now(datetime.timezone.min),
+        datetime.datetime.now(datetime.timezone.max),
+        datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24-0215", "%Y-%m-%dT%H:%M:%S%z"),
+    ]
+)
+def timezone_aware_date_list(request):
+    return request.param
+
+
 def check_round_trip(
     df,
     engine=None,
@@ -130,6 +148,8 @@ def check_round_trip(
     read_kwargs=None,
     expected=None,
     check_names=True,
+    check_like=False,
+    check_dtype=True,
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -149,6 +169,8 @@ def check_round_trip(
         Expected deserialization result, otherwise will be equal to `df`
     check_names: list of str, optional
         Closed set of column names to be compared
+    check_like: bool, optional
+        If True, ignore the order of index & columns.
     repeat: int, optional
         How many times to repeat the test
     """
@@ -168,7 +190,13 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(
+                expected,
+                actual,
+                check_names=check_names,
+                check_like=check_like,
+                check_dtype=check_dtype,
+            )
 
     if path is None:
         with tm.ensure_clean() as path:
@@ -221,6 +249,49 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
         assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+
+
+def test_get_engine_auto_error_message():
+    # Expect different error messages from get_engine(engine="auto")
+    # if engines aren't installed vs. are installed but bad version
+    from pandas.compat._optional import VERSIONS
+
+    # Do we have engines installed, but a bad version of them?
+    pa_min_ver = VERSIONS.get("pyarrow")
+    fp_min_ver = VERSIONS.get("fastparquet")
+    have_pa_bad_version = (
+        False
+        if not _HAVE_PYARROW
+        else LooseVersion(pyarrow.__version__) < LooseVersion(pa_min_ver)
+    )
+    have_fp_bad_version = (
+        False
+        if not _HAVE_FASTPARQUET
+        else LooseVersion(fastparquet.__version__) < LooseVersion(fp_min_ver)
+    )
+    # Do we have usable engines installed?
+    have_usable_pa = _HAVE_PYARROW and not have_pa_bad_version
+    have_usable_fp = _HAVE_FASTPARQUET and not have_fp_bad_version
+
+    if not have_usable_pa and not have_usable_fp:
+        # No usable engines found.
+        if have_pa_bad_version:
+            match = f"Pandas requires version .{pa_min_ver}. or newer of .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .pyarrow."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+
+        if have_fp_bad_version:
+            match = f"Pandas requires version .{fp_min_ver}. or newer of .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
+        else:
+            match = "Missing optional dependency .fastparquet."
+            with pytest.raises(ImportError, match=match):
+                get_engine("auto")
 
 
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
@@ -341,6 +412,8 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
+            if isinstance(index, pd.DatetimeIndex):
+                df.index = df.index._with_freq(None)  # freq doesnt round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -418,7 +491,9 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
         check_round_trip(df, pa)
@@ -436,6 +511,17 @@ class TestParquetPyArrow(Base):
             expected=df[["string", "int"]],
             read_kwargs={"columns": ["string", "int"]},
         )
+
+    def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
+        # GH 37105
+
+        buf_bytes = df_full.to_parquet(engine=pa)
+        assert isinstance(buf_bytes, bytes)
+
+        buf_stream = BytesIO(buf_bytes)
+        res = pd.read_parquet(buf_stream)
+
+        tm.assert_frame_equal(df_full, res)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
@@ -484,14 +570,114 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    # GH#33077 2020-03-27
     @pytest.mark.xfail(
-        locale.getlocale()[0] == "zh_CN",
-        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
+        is_platform_windows() and PY38,
+        reason="localhost connection rejected",
+        strict=False,
     )
-    def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+        s3fs = pytest.importorskip("s3fs")
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
+        s3 = s3fs.S3FileSystem(**s3so)
+        kw = dict(filesystem=s3)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="pandas-test/pyarrow.parquet",
+            read_kwargs=kw,
+            write_kwargs=kw,
+        )
+
+    def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
         # GH #19134
-        check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
+        s3so = dict(storage_options=s3so)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="s3://pandas-test/pyarrow.parquet",
+            read_kwargs=s3so,
+            write_kwargs=s3so,
+        )
+
+    @td.skip_if_no("s3fs")  # also requires flask
+    @pytest.mark.parametrize(
+        "partition_col",
+        [
+            pytest.param(
+                ["A"],
+                marks=pytest.mark.xfail(
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
+                ),
+            ),
+            [],
+        ],
+    )
+    def test_s3_roundtrip_for_dir(
+        self, df_compat, s3_resource, pa, partition_col, s3so
+    ):
+        # GH #26388
+        expected_df = df_compat.copy()
+
+        # GH #35791
+        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
+        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
+        # These are added to back of dataframe on read. In new API category dtype is
+        # only used if partition field is string, but this changed again to use
+        # category dtype for all types (not only strings) in pyarrow 2.0.0
+        pa10 = (LooseVersion(pyarrow.__version__) >= LooseVersion("1.0.0")) and (
+            LooseVersion(pyarrow.__version__) < LooseVersion("2.0.0")
+        )
+        if partition_col:
+            if pa10:
+                partition_col_type = "int32"
+            else:
+                partition_col_type = "category"
+
+            expected_df[partition_col] = expected_df[partition_col].astype(
+                partition_col_type
+            )
+
+        check_round_trip(
+            df_compat,
+            pa,
+            expected=expected_df,
+            path="s3://pandas-test/parquet_dir",
+            read_kwargs=dict(storage_options=s3so),
+            write_kwargs=dict(
+                partition_cols=partition_col, compression=None, storage_options=s3so
+            ),
+            check_like=True,
+            repeat=1,
+        )
+
+    @tm.network
+    @td.skip_if_no("pyarrow")
+    def test_parquet_read_from_url(self, df_compat):
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
+        )
+        df = pd.read_parquet(url)
+        tm.assert_frame_equal(df, df_compat)
+
+    @td.skip_if_no("pyarrow")
+    def test_read_file_like_obj_support(self, df_compat):
+        buffer = BytesIO()
+        df_compat.to_parquet(buffer)
+        df_from_buf = pd.read_parquet(buffer)
+        tm.assert_frame_equal(df_compat, df_from_buf)
+
+    @td.skip_if_no("pyarrow")
+    def test_expand_user(self, df_compat, monkeypatch):
+        monkeypatch.setenv("HOME", "TestingUser")
+        monkeypatch.setenv("USERPROFILE", "TestingUser")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            pd.read_parquet("~/file.parquet")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            df_compat.to_parquet("~/file.parquet")
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
@@ -517,6 +703,20 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
+
+    @pytest.mark.parametrize(
+        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
+    )
+    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
+        # GH 35902
+
+        partition_cols = "B"
+        partition_cols_list = [partition_cols]
+        df = df_compat
+
+        with tm.ensure_clean_dir() as path_str:
+            path = path_type(path_str)
+            df.to_parquet(path, partition_cols=partition_cols_list)
 
     def test_empty_dataframe(self, pa):
         # GH #27339
@@ -579,13 +779,45 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
+    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("2.0.0"):
+            # temporary skip this test until it is properly resolved
+            # https://github.com/pandas-dev/pandas/issues/37286
+            pytest.skip()
+        idx = 5 * [timezone_aware_date_list]
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
+        # see gh-36004
+        # compare time(zone) values only, skip their class:
+        # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
+        # even if it was datetime.timezone() originally
+        #
+        # technically they are the same:
+        # they both implement datetime.tzinfo
+        # they both wrap datetime.timedelta()
+        # this use-case sets the resolution to 1 minute
+        check_round_trip(df, pa, check_dtype=False)
+
+    @td.skip_if_no("pyarrow", min_version="0.17")
+    def test_filter_row_groups(self, pa):
+        # https://github.com/pandas-dev/pandas/issues/26551
+        df = pd.DataFrame({"a": list(range(0, 3))})
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(
+                path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
+            )
+        assert len(result) == 1
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 
@@ -623,9 +855,15 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    def test_s3_roundtrip(self, df_compat, s3_resource, fp):
+    def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
-        check_round_trip(df_compat, fp, path="s3://pandas-test/fastparquet.parquet")
+        check_round_trip(
+            df_compat,
+            fp,
+            path="s3://pandas-test/fastparquet.parquet",
+            read_kwargs=dict(storage_options=s3so),
+            write_kwargs=dict(compression=None, storage_options=s3so),
+        )
 
     def test_partition_cols_supported(self, fp, df_full):
         # GH #23283
@@ -639,7 +877,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
@@ -656,7 +894,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
@@ -673,7 +911,7 @@ class TestParquetFastParquet(Base):
                 partition_on=partition_cols,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
@@ -695,6 +933,15 @@ class TestParquetFastParquet(Base):
     def test_empty_dataframe(self, fp):
         # GH #27339
         df = pd.DataFrame()
+        expected = df.copy()
+        expected.index.name = "index"
+        check_round_trip(df, fp, expected=expected)
+
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+        idx = 5 * [timezone_aware_date_list]
+
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)

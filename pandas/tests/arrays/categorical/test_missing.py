@@ -5,11 +5,19 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, Index, Series, isna
+import pandas as pd
+from pandas import Categorical, DataFrame, Index, Series, isna
 import pandas._testing as tm
 
 
 class TestCategoricalMissing:
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        cat = Categorical(["a", "b", np.nan])
+        res = cat.isna()
+
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_na_flags_int_categories(self):
         # #1457
 
@@ -59,7 +67,10 @@ class TestCategoricalMissing:
             ),
             (dict(), "Must specify a fill 'value' or 'method'."),
             (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
-            (dict(value=Series([1, 2, 3, 4, "a"])), "fill value must be in categories"),
+            (
+                dict(value=Series([1, 2, 3, 4, "a"])),
+                "Cannot setitem on a Categorical with a new category",
+            ),
         ],
     )
     def test_fillna_raises(self, fillna_kwargs, msg):
@@ -97,3 +108,74 @@ class TestCategoricalMissing:
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
         assert isna(cat[-1])  # didnt modify original inplace
+
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([1, 2, 3], np.array([False, False, False])),
+            ([1, 2, np.nan], np.array([False, False, True])),
+            ([1, 2, np.inf], np.array([False, False, True])),
+            ([1, 2, pd.NA], np.array([False, False, True])),
+        ],
+    )
+    def test_use_inf_as_na(self, values, expected):
+        # https://github.com/pandas-dev/pandas/issues/33594
+        with pd.option_context("mode.use_inf_as_na", True):
+            cat = Categorical(values)
+            result = cat.isna()
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = Series(cat).isna()
+            expected = Series(expected)
+            tm.assert_series_equal(result, expected)
+
+            result = DataFrame(cat).isna()
+            expected = DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([1, 2, 3], np.array([False, False, False])),
+            ([1, 2, np.nan], np.array([False, False, True])),
+            ([1, 2, np.inf], np.array([False, False, True])),
+            ([1, 2, pd.NA], np.array([False, False, True])),
+        ],
+    )
+    def test_use_inf_as_na_outside_context(self, values, expected):
+        # https://github.com/pandas-dev/pandas/issues/33594
+        # Using isna directly for Categorical will fail in general here
+        cat = Categorical(values)
+
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = pd.isna(cat)
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = pd.isna(Series(cat))
+            expected = Series(expected)
+            tm.assert_series_equal(result, expected)
+
+            result = pd.isna(DataFrame(cat))
+            expected = DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a1, a2, categories",
+        [
+            (["a", "b", "c"], [np.nan, "a", "b"], ["a", "b", "c"]),
+            ([1, 2, 3], [np.nan, 1, 2], [1, 2, 3]),
+        ],
+    )
+    def test_compare_categorical_with_missing(self, a1, a2, categories):
+        # GH 28384
+        cat_type = CategoricalDtype(categories)
+
+        # !=
+        result = Series(a1, dtype=cat_type) != Series(a2, dtype=cat_type)
+        expected = Series(a1) != Series(a2)
+        tm.assert_series_equal(result, expected)
+
+        # ==
+        result = Series(a1, dtype=cat_type) == Series(a2, dtype=cat_type)
+        expected = Series(a1) == Series(a2)
+        tm.assert_series_equal(result, expected)

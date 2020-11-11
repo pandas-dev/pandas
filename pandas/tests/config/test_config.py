@@ -410,6 +410,13 @@ class TestConfig:
         self.cf.set_option("a", 17)
         eq(17)
 
+        # Test that option_context can be used as a decorator too (#34253).
+        @self.cf.option_context("a", 123)
+        def f():
+            eq(123)
+
+        f()
+
     def test_attribute_access(self):
         holder = []
 

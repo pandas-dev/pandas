@@ -5,7 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Dict, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -14,9 +14,9 @@ from pandas._typing import Label
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import Index
+from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
 from pandas.io.common import stringify_path
@@ -58,243 +58,6 @@ class CSSToExcelConverter:
         CSS processed by :meth:`__call__`.
     """
 
-    # NB: Most of the methods here could be classmethods, as only __init__
-    #     and __call__ make use of instance attributes.  We leave them as
-    #     instancemethods so that users can easily experiment with extensions
-    #     without monkey-patching.
-
-    def __init__(self, inherited: Optional[str] = None):
-        if inherited is not None:
-            inherited = self.compute_css(inherited)
-
-        self.inherited = inherited
-
-    compute_css = CSSResolver()
-
-    def __call__(self, declarations_str: str) -> Dict[str, Dict[str, str]]:
-        """
-        Convert CSS declarations to ExcelWriter style.
-
-        Parameters
-        ----------
-        declarations_str : str
-            List of CSS declarations.
-            e.g. "font-weight: bold; background: blue"
-
-        Returns
-        -------
-        xlstyle : dict
-            A style as interpreted by ExcelWriter when found in
-            ExcelCell.style.
-        """
-        # TODO: memoize?
-        properties = self.compute_css(declarations_str, self.inherited)
-        return self.build_xlstyle(properties)
-
-    def build_xlstyle(self, props: Dict[str, str]) -> Dict[str, Dict[str, str]]:
-        out = {
-            "alignment": self.build_alignment(props),
-            "border": self.build_border(props),
-            "fill": self.build_fill(props),
-            "font": self.build_font(props),
-            "number_format": self.build_number_format(props),
-        }
-
-        # TODO: handle cell width and height: needs support in pandas.io.excel
-
-        def remove_none(d: Dict[str, str]) -> None:
-            """Remove key where value is None, through nested dicts"""
-            for k, v in list(d.items()):
-                if v is None:
-                    del d[k]
-                elif isinstance(v, dict):
-                    remove_none(v)
-                    if not v:
-                        del d[k]
-
-        remove_none(out)
-        return out
-
-    VERTICAL_MAP = {
-        "top": "top",
-        "text-top": "top",
-        "middle": "center",
-        "baseline": "bottom",
-        "bottom": "bottom",
-        "text-bottom": "bottom",
-        # OpenXML also has 'justify', 'distributed'
-    }
-
-    def build_alignment(self, props) -> Dict[str, Optional[Union[bool, str]]]:
-        # TODO: text-indent, padding-left -> alignment.indent
-        return {
-            "horizontal": props.get("text-align"),
-            "vertical": self.VERTICAL_MAP.get(props.get("vertical-align")),
-            "wrap_text": (
-                None
-                if props.get("white-space") is None
-                else props["white-space"] not in ("nowrap", "pre", "pre-line")
-            ),
-        }
-
-    def build_border(self, props: Dict) -> Dict[str, Dict[str, str]]:
-        return {
-            side: {
-                "style": self._border_style(
-                    props.get(f"border-{side}-style"),
-                    props.get(f"border-{side}-width"),
-                ),
-                "color": self.color_to_excel(props.get(f"border-{side}-color")),
-            }
-            for side in ["top", "right", "bottom", "left"]
-        }
-
-    def _border_style(self, style: Optional[str], width):
-        # convert styles and widths to openxml, one of:
-        #       'dashDot'
-        #       'dashDotDot'
-        #       'dashed'
-        #       'dotted'
-        #       'double'
-        #       'hair'
-        #       'medium'
-        #       'mediumDashDot'
-        #       'mediumDashDotDot'
-        #       'mediumDashed'
-        #       'slantDashDot'
-        #       'thick'
-        #       'thin'
-        if width is None and style is None:
-            return None
-        if style == "none" or style == "hidden":
-            return None
-
-        if width is None:
-            width = "2pt"
-        width = float(width[:-2])
-        if width < 1e-5:
-            return None
-        elif width < 1.3:
-            width_name = "thin"
-        elif width < 2.8:
-            width_name = "medium"
-        else:
-            width_name = "thick"
-
-        if style in (None, "groove", "ridge", "inset", "outset"):
-            # not handled
-            style = "solid"
-
-        if style == "double":
-            return "double"
-        if style == "solid":
-            return width_name
-        if style == "dotted":
-            if width_name in ("hair", "thin"):
-                return "dotted"
-            return "mediumDashDotDot"
-        if style == "dashed":
-            if width_name in ("hair", "thin"):
-                return "dashed"
-            return "mediumDashed"
-
-    def build_fill(self, props: Dict[str, str]):
-        # TODO: perhaps allow for special properties
-        #       -excel-pattern-bgcolor and -excel-pattern-type
-        fill_color = props.get("background-color")
-        if fill_color not in (None, "transparent", "none"):
-            return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
-
-    BOLD_MAP = {
-        "bold": True,
-        "bolder": True,
-        "600": True,
-        "700": True,
-        "800": True,
-        "900": True,
-        "normal": False,
-        "lighter": False,
-        "100": False,
-        "200": False,
-        "300": False,
-        "400": False,
-        "500": False,
-    }
-    ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
-
-    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, str]]]:
-        size = props.get("font-size")
-        if size is not None:
-            assert size.endswith("pt")
-            size = float(size[:-2])
-
-        font_names_tmp = re.findall(
-            r"""(?x)
-            (
-            "(?:[^"]|\\")+"
-            |
-            '(?:[^']|\\')+'
-            |
-            [^'",]+
-            )(?=,|\s*$)
-        """,
-            props.get("font-family", ""),
-        )
-        font_names = []
-        for name in font_names_tmp:
-            if name[:1] == '"':
-                name = name[1:-1].replace('\\"', '"')
-            elif name[:1] == "'":
-                name = name[1:-1].replace("\\'", "'")
-            else:
-                name = name.strip()
-            if name:
-                font_names.append(name)
-
-        family = None
-        for name in font_names:
-            if name == "serif":
-                family = 1  # roman
-                break
-            elif name == "sans-serif":
-                family = 2  # swiss
-                break
-            elif name == "cursive":
-                family = 4  # script
-                break
-            elif name == "fantasy":
-                family = 5  # decorative
-                break
-
-        decoration = props.get("text-decoration")
-        if decoration is not None:
-            decoration = decoration.split()
-        else:
-            decoration = ()
-
-        return {
-            "name": font_names[0] if font_names else None,
-            "family": family,
-            "size": size,
-            "bold": self.BOLD_MAP.get(props.get("font-weight")),
-            "italic": self.ITALIC_MAP.get(props.get("font-style")),
-            "underline": ("single" if "underline" in decoration else None),
-            "strike": ("line-through" in decoration) or None,
-            "color": self.color_to_excel(props.get("color")),
-            # shadow if nonzero digit before shadow color
-            "shadow": (
-                bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
-                if "text-shadow" in props
-                else None
-            ),
-            # FIXME: dont leave commented-out
-            # 'vertAlign':,
-            # 'charset': ,
-            # 'scheme': ,
-            # 'outline': ,
-            # 'condense': ,
-        }
-
     NAMED_COLORS = {
         "maroon": "800000",
         "brown": "A52A2A",
@@ -318,20 +81,335 @@ class CSSToExcelConverter:
         "white": "FFFFFF",
     }
 
-    def color_to_excel(self, val: Optional[str]):
+    VERTICAL_MAP = {
+        "top": "top",
+        "text-top": "top",
+        "middle": "center",
+        "baseline": "bottom",
+        "bottom": "bottom",
+        "text-bottom": "bottom",
+        # OpenXML also has 'justify', 'distributed'
+    }
+
+    BOLD_MAP = {
+        "bold": True,
+        "bolder": True,
+        "600": True,
+        "700": True,
+        "800": True,
+        "900": True,
+        "normal": False,
+        "lighter": False,
+        "100": False,
+        "200": False,
+        "300": False,
+        "400": False,
+        "500": False,
+    }
+
+    ITALIC_MAP = {
+        "normal": False,
+        "italic": True,
+        "oblique": True,
+    }
+
+    FAMILY_MAP = {
+        "serif": 1,  # roman
+        "sans-serif": 2,  # swiss
+        "cursive": 4,  # script
+        "fantasy": 5,  # decorative
+    }
+
+    # NB: Most of the methods here could be classmethods, as only __init__
+    #     and __call__ make use of instance attributes.  We leave them as
+    #     instancemethods so that users can easily experiment with extensions
+    #     without monkey-patching.
+    inherited: Optional[Dict[str, str]]
+
+    def __init__(self, inherited: Optional[str] = None):
+        if inherited is not None:
+            self.inherited = self.compute_css(inherited)
+        else:
+            self.inherited = None
+
+    compute_css = CSSResolver()
+
+    def __call__(self, declarations_str: str) -> Dict[str, Dict[str, str]]:
+        """
+        Convert CSS declarations to ExcelWriter style.
+
+        Parameters
+        ----------
+        declarations_str : str
+            List of CSS declarations.
+            e.g. "font-weight: bold; background: blue"
+
+        Returns
+        -------
+        xlstyle : dict
+            A style as interpreted by ExcelWriter when found in
+            ExcelCell.style.
+        """
+        # TODO: memoize?
+        properties = self.compute_css(declarations_str, self.inherited)
+        return self.build_xlstyle(properties)
+
+    def build_xlstyle(self, props: Mapping[str, str]) -> Dict[str, Dict[str, str]]:
+        out = {
+            "alignment": self.build_alignment(props),
+            "border": self.build_border(props),
+            "fill": self.build_fill(props),
+            "font": self.build_font(props),
+            "number_format": self.build_number_format(props),
+        }
+
+        # TODO: handle cell width and height: needs support in pandas.io.excel
+
+        def remove_none(d: Dict[str, str]) -> None:
+            """Remove key where value is None, through nested dicts"""
+            for k, v in list(d.items()):
+                if v is None:
+                    del d[k]
+                elif isinstance(v, dict):
+                    remove_none(v)
+                    if not v:
+                        del d[k]
+
+        remove_none(out)
+        return out
+
+    def build_alignment(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Optional[Union[bool, str]]]:
+        # TODO: text-indent, padding-left -> alignment.indent
+        return {
+            "horizontal": props.get("text-align"),
+            "vertical": self._get_vertical_alignment(props),
+            "wrap_text": self._get_is_wrap_text(props),
+        }
+
+    def _get_vertical_alignment(self, props: Mapping[str, str]) -> Optional[str]:
+        vertical_align = props.get("vertical-align")
+        if vertical_align:
+            return self.VERTICAL_MAP.get(vertical_align)
+        return None
+
+    def _get_is_wrap_text(self, props: Mapping[str, str]) -> Optional[bool]:
+        if props.get("white-space") is None:
+            return None
+        return bool(props["white-space"] not in ("nowrap", "pre", "pre-line"))
+
+    def build_border(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Dict[str, Optional[str]]]:
+        return {
+            side: {
+                "style": self._border_style(
+                    props.get(f"border-{side}-style"),
+                    props.get(f"border-{side}-width"),
+                ),
+                "color": self.color_to_excel(props.get(f"border-{side}-color")),
+            }
+            for side in ["top", "right", "bottom", "left"]
+        }
+
+    def _border_style(self, style: Optional[str], width: Optional[str]):
+        # convert styles and widths to openxml, one of:
+        #       'dashDot'
+        #       'dashDotDot'
+        #       'dashed'
+        #       'dotted'
+        #       'double'
+        #       'hair'
+        #       'medium'
+        #       'mediumDashDot'
+        #       'mediumDashDotDot'
+        #       'mediumDashed'
+        #       'slantDashDot'
+        #       'thick'
+        #       'thin'
+        if width is None and style is None:
+            return None
+        if style == "none" or style == "hidden":
+            return None
+
+        width_name = self._get_width_name(width)
+        if width_name is None:
+            return None
+
+        if style in (None, "groove", "ridge", "inset", "outset", "solid"):
+            # not handled
+            return width_name
+
+        if style == "double":
+            return "double"
+        if style == "dotted":
+            if width_name in ("hair", "thin"):
+                return "dotted"
+            return "mediumDashDotDot"
+        if style == "dashed":
+            if width_name in ("hair", "thin"):
+                return "dashed"
+            return "mediumDashed"
+
+    def _get_width_name(self, width_input: Optional[str]) -> Optional[str]:
+        width = self._width_to_float(width_input)
+        if width < 1e-5:
+            return None
+        elif width < 1.3:
+            return "thin"
+        elif width < 2.8:
+            return "medium"
+        return "thick"
+
+    def _width_to_float(self, width: Optional[str]) -> float:
+        if width is None:
+            width = "2pt"
+        return self._pt_to_float(width)
+
+    def _pt_to_float(self, pt_string: str) -> float:
+        assert pt_string.endswith("pt")
+        return float(pt_string.rstrip("pt"))
+
+    def build_fill(self, props: Mapping[str, str]):
+        # TODO: perhaps allow for special properties
+        #       -excel-pattern-bgcolor and -excel-pattern-type
+        fill_color = props.get("background-color")
+        if fill_color not in (None, "transparent", "none"):
+            return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
+
+    def build_number_format(self, props: Mapping[str, str]) -> Dict[str, Optional[str]]:
+        return {"format_code": props.get("number-format")}
+
+    def build_font(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Optional[Union[bool, int, float, str]]]:
+        font_names = self._get_font_names(props)
+        decoration = self._get_decoration(props)
+        return {
+            "name": font_names[0] if font_names else None,
+            "family": self._select_font_family(font_names),
+            "size": self._get_font_size(props),
+            "bold": self._get_is_bold(props),
+            "italic": self._get_is_italic(props),
+            "underline": ("single" if "underline" in decoration else None),
+            "strike": ("line-through" in decoration) or None,
+            "color": self.color_to_excel(props.get("color")),
+            # shadow if nonzero digit before shadow color
+            "shadow": self._get_shadow(props),
+            # FIXME: dont leave commented-out
+            # 'vertAlign':,
+            # 'charset': ,
+            # 'scheme': ,
+            # 'outline': ,
+            # 'condense': ,
+        }
+
+    def _get_is_bold(self, props: Mapping[str, str]) -> Optional[bool]:
+        weight = props.get("font-weight")
+        if weight:
+            return self.BOLD_MAP.get(weight)
+        return None
+
+    def _get_is_italic(self, props: Mapping[str, str]) -> Optional[bool]:
+        font_style = props.get("font-style")
+        if font_style:
+            return self.ITALIC_MAP.get(font_style)
+        return None
+
+    def _get_decoration(self, props: Mapping[str, str]) -> Sequence[str]:
+        decoration = props.get("text-decoration")
+        if decoration is not None:
+            return decoration.split()
+        else:
+            return ()
+
+    def _get_underline(self, decoration: Sequence[str]) -> Optional[str]:
+        if "underline" in decoration:
+            return "single"
+        return None
+
+    def _get_shadow(self, props: Mapping[str, str]) -> Optional[bool]:
+        if "text-shadow" in props:
+            return bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
+        return None
+
+    def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
+        font_names_tmp = re.findall(
+            r"""(?x)
+            (
+            "(?:[^"]|\\")+"
+            |
+            '(?:[^']|\\')+'
+            |
+            [^'",]+
+            )(?=,|\s*$)
+        """,
+            props.get("font-family", ""),
+        )
+
+        font_names = []
+        for name in font_names_tmp:
+            if name[:1] == '"':
+                name = name[1:-1].replace('\\"', '"')
+            elif name[:1] == "'":
+                name = name[1:-1].replace("\\'", "'")
+            else:
+                name = name.strip()
+            if name:
+                font_names.append(name)
+        return font_names
+
+    def _get_font_size(self, props: Mapping[str, str]) -> Optional[float]:
+        size = props.get("font-size")
+        if size is None:
+            return size
+        return self._pt_to_float(size)
+
+    def _select_font_family(self, font_names) -> Optional[int]:
+        family = None
+        for name in font_names:
+            family = self.FAMILY_MAP.get(name)
+            if family:
+                break
+
+        return family
+
+    def color_to_excel(self, val: Optional[str]) -> Optional[str]:
         if val is None:
             return None
-        if val.startswith("#") and len(val) == 7:
-            return val[1:].upper()
-        if val.startswith("#") and len(val) == 4:
-            return (val[1] * 2 + val[2] * 2 + val[3] * 2).upper()
+
+        if self._is_hex_color(val):
+            return self._convert_hex_to_excel(val)
+
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
+        return None
 
-    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
-        return {"format_code": props.get("number-format")}
+    def _is_hex_color(self, color_string: str) -> bool:
+        return bool(color_string.startswith("#"))
+
+    def _convert_hex_to_excel(self, color_string: str) -> str:
+        code = color_string.lstrip("#")
+        if self._is_shorthand_color(color_string):
+            return (code[0] * 2 + code[1] * 2 + code[2] * 2).upper()
+        else:
+            return code.upper()
+
+    def _is_shorthand_color(self, color_string: str) -> bool:
+        """Check if color code is shorthand.
+
+        #FFF is a shorthand as opposed to full #FFFFFF.
+        """
+        code = color_string.lstrip("#")
+        if len(code) == 3:
+            return True
+        elif len(code) == 6:
+            return False
+        else:
+            raise ValueError(f"Unexpected color {color_string}")
 
 
 class ExcelFormatter:
@@ -385,7 +463,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render"):
+        if not isinstance(df, DataFrame):
             self.styler = df
             df = df.data
             if style_converter is None:
@@ -397,10 +475,10 @@ class ExcelFormatter:
         if cols is not None:
 
             # all missing, raise
-            if not len(Index(cols) & df.columns):
+            if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            if len(Index(cols) & df.columns) != len(cols):
+            if len(Index(cols).intersection(df.columns)) != len(cols):
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
@@ -465,7 +543,7 @@ class ExcelFormatter:
         coloffset = 0
         lnum = 0
 
-        if self.index and isinstance(self.df.index, ABCMultiIndex):
+        if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = len(self.df.index[0]) - 1
 
         if self.merge_cells:
@@ -507,15 +585,22 @@ class ExcelFormatter:
 
             if self.index:
                 coloffset = 1
-                if isinstance(self.df.index, ABCMultiIndex):
+                if isinstance(self.df.index, MultiIndex):
                     coloffset = len(self.df.index[0])
 
             colnames = self.columns
             if has_aliases:
-                if len(self.header) != len(self.columns):
+                # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
+                # has incompatible type "Union[Sequence[Optional[Hashable]],
+                # bool]"; expected "Sized"  [arg-type]
+                if len(self.header) != len(self.columns):  # type: ignore[arg-type]
+                    # pandas\io\formats\excel.py:602: error: Argument 1 to
+                    # "len" has incompatible type
+                    # "Union[Sequence[Optional[Hashable]], bool]"; expected
+                    # "Sized"  [arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols but got {len(self.header)} "
-                        "aliases"
+                        f"Writing {len(self.columns)} cols "  # type: ignore[arg-type]
+                        f"but got {len(self.header)} aliases"
                     )
                 else:
                     colnames = self.header
@@ -526,7 +611,7 @@ class ExcelFormatter:
                 )
 
     def _format_header(self):
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
@@ -537,7 +622,10 @@ class ExcelFormatter:
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                gen2 = (
+                # pandas\io\formats\excel.py:618: error: Incompatible types in
+                # assignment (expression has type "Generator[ExcelCell, None,
+                # None]", variable has type "Tuple[]")  [assignment]
+                gen2 = (  # type: ignore[assignment]
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
@@ -545,7 +633,7 @@ class ExcelFormatter:
         return itertools.chain(gen, gen2)
 
     def _format_body(self):
-        if isinstance(self.df.index, ABCMultiIndex):
+        if isinstance(self.df.index, MultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
@@ -569,7 +657,7 @@ class ExcelFormatter:
             else:
                 index_label = self.df.index.names[0]
 
-            if isinstance(self.columns, ABCMultiIndex):
+            if isinstance(self.columns, MultiIndex):
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
@@ -577,7 +665,7 @@ class ExcelFormatter:
 
             # write index_values
             index_values = self.df.index
-            if isinstance(self.df.index, ABCPeriodIndex):
+            if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
             for idx, idxval in enumerate(index_values):
@@ -587,8 +675,7 @@ class ExcelFormatter:
         else:
             coloffset = 0
 
-        for cell in self._generate_body(coloffset):
-            yield cell
+        yield from self._generate_body(coloffset)
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
@@ -609,7 +696,7 @@ class ExcelFormatter:
             # with index names (blank if None) for
             # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
+            if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
@@ -630,7 +717,9 @@ class ExcelFormatter:
                 ):
 
                     values = levels.take(
-                        level_codes, allow_fill=levels._can_hold_na, fill_value=True
+                        level_codes,
+                        allow_fill=levels._can_hold_na,
+                        fill_value=levels._na_value,
                     )
 
                     for i in spans:
@@ -664,8 +753,7 @@ class ExcelFormatter:
                         )
                     gcolidx += 1
 
-        for cell in self._generate_body(gcolidx):
-            yield cell
+        yield from self._generate_body(gcolidx)
 
     def _generate_body(self, coloffset: int):
         if self.styler is None:
@@ -727,7 +815,12 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            writer = ExcelWriter(stringify_path(writer), engine=engine)
+            # pandas\io\formats\excel.py:808: error: Cannot instantiate
+            # abstract class 'ExcelWriter' with abstract attributes 'engine',
+            # 'save', 'supported_extensions' and 'write_cells'  [abstract]
+            writer = ExcelWriter(  # type: ignore[abstract]
+                stringify_path(writer), engine=engine
+            )
             need_save = True
 
         formatted_cells = self.get_formatted_cells()

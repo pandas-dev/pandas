@@ -109,6 +109,7 @@ with open(os.path.join(source_path, "index.rst"), "w") as f:
         )
     )
 autosummary_generate = True if pattern is None else ["index"]
+autodoc_typehints = "none"
 
 # numpydoc
 numpydoc_attributes_as_param_list = False
@@ -145,7 +146,7 @@ copyright = f"2008-{datetime.now().year}, the pandas development team"
 # built documents.
 #
 # The short X.Y version.
-import pandas  # noqa: E402 isort:skip
+import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
@@ -307,7 +308,7 @@ for old, new in moved_classes:
 
     for method in methods:
         # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}",))
+        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
 
 if pattern is None:
     html_additional_pages = {
@@ -409,12 +410,13 @@ if pattern is None:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/", None),
-        "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+        "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
         "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
@@ -439,14 +441,14 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx  # noqa: E402 isort:skip
-from sphinx.util import rpartition  # noqa: E402 isort:skip
-from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+import sphinx  # isort:skip
+from sphinx.util import rpartition  # isort:skip
+from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
     MethodDocumenter,
 )
-from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
+from sphinx.ext.autosummary import Autosummary  # isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):

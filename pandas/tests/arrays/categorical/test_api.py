@@ -464,7 +464,7 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        with pytest.raises(ValueError, match="cannot set Categorical codes directly"):
+        with pytest.raises(AttributeError, match="can't set attribute"):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
         # changes in the codes array should raise

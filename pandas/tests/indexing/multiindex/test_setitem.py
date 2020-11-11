@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -236,6 +235,7 @@ class TestMultiIndexSetItem:
                 f_index
             )
 
+        # FIXME: dont leave commented-out
         # TODO(wesm): unused?
         # new_df = pd.concat([f(name, df2) for name, df2 in grp], axis=1).T
 
@@ -255,7 +255,11 @@ class TestMultiIndexSetItem:
         assert notna(s.values[65:]).all()
 
         s[2000, 3, 10] = np.nan
-        assert isna(s[49])
+        assert isna(s.iloc[49])
+
+        with pytest.raises(KeyError, match="49"):
+            # GH#33355 dont fall-back to positional when leading level is int
+            s[49]
 
     def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -306,7 +310,9 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, result)
 
     def test_frame_setitem_multi_column(self):
-        df = DataFrame(randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]])
+        df = DataFrame(
+            np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]
+        )
 
         cp = df.copy()
         cp["a"] = cp["b"]
@@ -421,12 +427,12 @@ class TestMultiIndexSetItem:
 
     def test_setitem_nonmonotonic(self):
         # https://github.com/pandas-dev/pandas/issues/31449
-        index = pd.MultiIndex.from_tuples(
+        index = MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
-        df = pd.DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
-        expected = pd.DataFrame({"e": [99, 1, 100]}, index=index)
+        expected = DataFrame({"e": [99, 1, 100]}, index=index)
         tm.assert_frame_equal(df, expected)
 
 

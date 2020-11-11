@@ -7,14 +7,29 @@ import pandas._testing as tm
 
 
 class TestDataFrameQuantile:
-    def test_quantile_sparse(self):
+    @pytest.mark.parametrize(
+        "df,expected",
+        [
+            [
+                DataFrame(
+                    {
+                        0: Series(pd.arrays.SparseArray([1, 2])),
+                        1: Series(pd.arrays.SparseArray([3, 4])),
+                    }
+                ),
+                Series([1.5, 3.5], name=0.5),
+            ],
+            [
+                DataFrame(Series([0.0, None, 1.0, 2.0], dtype="Sparse[float]")),
+                Series([1.0], name=0.5),
+            ],
+        ],
+    )
+    def test_quantile_sparse(self, df, expected):
         # GH#17198
-        s = pd.Series(pd.arrays.SparseArray([1, 2]))
-        s1 = pd.Series(pd.arrays.SparseArray([3, 4]))
-        df = pd.DataFrame({0: s, 1: s1})
+        # GH#24600
         result = df.quantile()
 
-        expected = pd.Series([1.5, 3.5], name=0.5)
         tm.assert_series_equal(result, expected)
 
     def test_quantile(self, datetime_frame):
@@ -57,6 +72,20 @@ class TestDataFrameQuantile:
         df = DataFrame([[1, 2, 3], ["a", "b", 4]])
         result = df.quantile(0.5, axis=1)
         expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
+        tm.assert_series_equal(result, expected)
+
+    def test_quantile_date_range(self):
+        # GH 2460
+
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        ser = Series(dti)
+        df = DataFrame(ser)
+
+        result = df.quantile(numeric_only=False)
+        expected = Series(
+            ["2016-01-02 00:00:00"], name=0.5, dtype="datetime64[ns, US/Pacific]"
+        )
+
         tm.assert_series_equal(result, expected)
 
     def test_quantile_axis_mixed(self):
@@ -259,14 +288,14 @@ class TestDataFrameQuantile:
         df = DataFrame(
             {
                 "A": [
-                    pd.Timestamp("2011-01-01"),
-                    pd.Timestamp("2011-01-02"),
-                    pd.Timestamp("2011-01-03"),
+                    Timestamp("2011-01-01"),
+                    Timestamp("2011-01-02"),
+                    Timestamp("2011-01-03"),
                 ],
                 "B": [
-                    pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                    Timestamp("2011-01-01", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-03", tz="US/Eastern"),
                 ],
                 "C": [
                     pd.Timedelta("1 days"),
@@ -278,10 +307,10 @@ class TestDataFrameQuantile:
 
         res = df.quantile(0.5, numeric_only=False)
 
-        exp = pd.Series(
+        exp = Series(
             [
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                Timestamp("2011-01-02"),
+                Timestamp("2011-01-02", tz="US/Eastern"),
                 pd.Timedelta("2 days"),
             ],
             name=0.5,
@@ -290,11 +319,11 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], numeric_only=False)
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [
-                    pd.Timestamp("2011-01-02"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-02"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
                     pd.Timedelta("2 days"),
                 ]
             ],
@@ -307,28 +336,28 @@ class TestDataFrameQuantile:
         df = DataFrame(
             {
                 "A": [
-                    pd.Timestamp("2011-01-01"),
+                    Timestamp("2011-01-01"),
                     pd.NaT,
-                    pd.Timestamp("2011-01-02"),
-                    pd.Timestamp("2011-01-03"),
+                    Timestamp("2011-01-02"),
+                    Timestamp("2011-01-03"),
                 ],
                 "a": [
-                    pd.Timestamp("2011-01-01"),
-                    pd.Timestamp("2011-01-02"),
+                    Timestamp("2011-01-01"),
+                    Timestamp("2011-01-02"),
                     pd.NaT,
-                    pd.Timestamp("2011-01-03"),
+                    Timestamp("2011-01-03"),
                 ],
                 "B": [
-                    pd.Timestamp("2011-01-01", tz="US/Eastern"),
+                    Timestamp("2011-01-01", tz="US/Eastern"),
                     pd.NaT,
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-03", tz="US/Eastern"),
                 ],
                 "b": [
-                    pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-01", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
                     pd.NaT,
-                    pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                    Timestamp("2011-01-03", tz="US/Eastern"),
                 ],
                 "C": [
                     pd.Timedelta("1 days"),
@@ -347,12 +376,12 @@ class TestDataFrameQuantile:
         )
 
         res = df.quantile(0.5, numeric_only=False)
-        exp = pd.Series(
+        exp = Series(
             [
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                Timestamp("2011-01-02"),
+                Timestamp("2011-01-02"),
+                Timestamp("2011-01-02", tz="US/Eastern"),
+                Timestamp("2011-01-02", tz="US/Eastern"),
                 pd.Timedelta("2 days"),
                 pd.Timedelta("2 days"),
             ],
@@ -362,13 +391,13 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], numeric_only=False)
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [
-                    pd.Timestamp("2011-01-02"),
-                    pd.Timestamp("2011-01-02"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-02"),
+                    Timestamp("2011-01-02"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
                     pd.Timedelta("2 days"),
                     pd.Timedelta("2 days"),
                 ]
@@ -428,21 +457,21 @@ class TestDataFrameQuantile:
         df = DataFrame(
             {
                 "a": [
-                    pd.Timestamp("2012-01-01"),
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-03"),
+                    Timestamp("2012-01-01"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-03"),
                 ],
                 "b": [pd.NaT, pd.NaT, pd.NaT],
             }
         )
 
         res = df.quantile(0.5, numeric_only=False)
-        exp = Series([pd.Timestamp("2012-01-02"), pd.NaT], index=["a", "b"], name=0.5)
+        exp = Series([Timestamp("2012-01-02"), pd.NaT], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
         res = df.quantile([0.5], numeric_only=False)
         exp = DataFrame(
-            [[pd.Timestamp("2012-01-02"), pd.NaT]], index=[0.5], columns=["a", "b"]
+            [[Timestamp("2012-01-02"), pd.NaT]], index=[0.5], columns=["a", "b"]
         )
         tm.assert_frame_equal(res, exp)
 
@@ -477,14 +506,14 @@ class TestDataFrameQuantile:
 
     def test_quantile_empty_no_columns(self):
         # GH#23925 _get_numeric_data may drop all columns
-        df = pd.DataFrame(pd.date_range("1/1/18", periods=5))
+        df = DataFrame(pd.date_range("1/1/18", periods=5))
         df.columns.name = "captain tightpants"
         result = df.quantile(0.5)
-        expected = pd.Series([], index=[], name=0.5, dtype=np.float64)
+        expected = Series([], index=[], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 
         result = df.quantile([0.5])
-        expected = pd.DataFrame([], index=[0.5], columns=[])
+        expected = DataFrame([], index=[0.5], columns=[])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)

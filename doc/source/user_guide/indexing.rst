@@ -46,7 +46,7 @@ Different choices for indexing
 ------------------------------
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. Pandas now supports three types
+support more explicit location based indexing. pandas now supports three types
 of multi-axis indexing.
 
 * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
@@ -313,8 +313,10 @@ Selection by label
 
 .. warning::
 
-   Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
-   this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
+   .. versionchanged:: 1.0.0
+
+   pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
+   missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 Every label asked for must be in the index, or a ``KeyError`` will be raised.
@@ -420,6 +422,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
+
 .. _indexing.integer:
 
 Selection by position
@@ -431,7 +444,7 @@ Selection by position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -578,8 +591,9 @@ IX indexer is deprecated
 
 .. warning::
 
-   Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
-   and ``.loc`` indexers.
+   .. versionchanged:: 1.0.0
+
+   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
 
 ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
 to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
@@ -636,11 +650,13 @@ Indexing with list with missing labels is deprecated
 
 .. warning::
 
-   Starting in 0.21.0, using ``.loc`` or ``[]`` with a list with one or more missing labels, is deprecated, in favor of ``.reindex``.
+   .. versionchanged:: 1.0.0
+
+   Using ``.loc`` or ``[]`` with a list with one or more missing labels will no longer reindex, in favor of ``.reindex``.
 
 In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
-would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
-recommended alternative is to use ``.reindex()``.
+would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.
+The recommended alternative is to use ``.reindex()``.
 
 For example.
 
@@ -881,7 +897,7 @@ The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
-``(df['A > 2) & (df['B'] < 3)``.
+``(df['A'] > 2) & (df['B'] < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
@@ -927,6 +943,24 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 .. ipython:: python
 
    df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
+
+.. warning::
+
+   ``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``,
+   an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok.
+   The boolean indexer is an array. But ``df.iloc[s, 1]`` would raise ``ValueError``.
+
+   .. ipython:: python
+
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                        index=list('abc'),
+                        columns=['A', 'B'])
+      s = (df['A'] > 2)
+      s
+
+      df.loc[s, 'B']
+
+      df.iloc[s.values, 1]
 
 .. _indexing.basics.indexing_isin:
 
@@ -1475,17 +1509,27 @@ default value.
    s.get('a')  # equivalent to s['a']
    s.get('x', default=-1)
 
-The :meth:`~pandas.DataFrame.lookup` method
--------------------------------------------
+.. _indexing.lookup:
+
+Looking up values by index/column labels
+----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, and the ``lookup`` method allows for this and returns a
-NumPy array.  For instance:
+and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
+rows with ``DataFrame.loc``.  For instance:
 
 .. ipython:: python
 
-  dflookup = pd.DataFrame(np.random.rand(20, 4), columns = ['A', 'B', 'C', 'D'])
-  dflookup.lookup(list(range(0, 10, 2)), ['B', 'C', 'A', 'B', 'D'])
+    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
+                       'A': [80, 23, np.nan, 22],
+                       'B': [80, 55, 76, 67]})
+    df
+    melt = df.melt('col')
+    melt = melt.loc[melt['col'] == melt['variable'], 'value']
+    melt.reset_index(drop=True)
+
+Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
+which was deprecated in version 1.2.0.
 
 .. _indexing.class:
 
@@ -1532,12 +1576,8 @@ Setting metadata
 ~~~~~~~~~~~~~~~~
 
 Indexes are "mostly immutable", but it is possible to set and change their
-metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
-``codes``).
-
-You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_codes``
-to set these attributes directly. They default to returning a copy; however,
-you can specify ``inplace=True`` to have the data change in place.
+``name`` attribute. You can use the ``rename``, ``set_names`` to set these attributes
+directly, and they default to returning a copy.
 
 See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 
@@ -1565,19 +1605,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1587,7 +1624,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1602,7 +1638,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 
@@ -1801,7 +1837,7 @@ about!
 
 Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
 obvious chained indexing going on. **These** are the bugs that
-``SettingWithCopy`` is designed to catch! Pandas is probably trying to warn you
+``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you
 that you've done this:
 
 .. code-block:: python
@@ -1824,7 +1860,7 @@ When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or
 a copy of the slice.
 
-Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
 slice is frequently not intentional, but a mistake caused by chained indexing
 returning a copy where a slice was expected.
 
@@ -1866,29 +1902,39 @@ A chained assignment can also crop up in setting in a mixed dtype frame.
 
    These setting rules apply to all of ``.loc/.iloc``.
 
-This is the correct access method:
+The following is the recommended access method using ``.loc`` for multiple items (using ``mask``) and a single item using a fixed index:
 
 .. ipython:: python
 
-   dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-   dfc.loc[0, 'A'] = 11
-   dfc
+   dfc = pd.DataFrame({'a': ['one', 'one', 'two',
+                             'three', 'two', 'one', 'six'],
+                       'c': np.arange(7)})
+   dfd = dfc.copy()
+   # Setting multiple items using a mask
+   mask = dfd['a'].str.startswith('o')
+   dfd.loc[mask, 'c'] = 42
+   dfd
 
-This *can* work at times, but it is not guaranteed to, and therefore should be avoided:
+   # Setting a single item
+   dfd = dfc.copy()
+   dfd.loc[2, 'a'] = 11
+   dfd
+
+The following *can* work at times, but it is not guaranteed to, and therefore should be avoided:
 
 .. ipython:: python
    :okwarning:
 
-   dfc = dfc.copy()
-   dfc['A'][0] = 111
-   dfc
+   dfd = dfc.copy()
+   dfd['a'][2] = 111
+   dfd
 
-This will **not** work at all, and so should be avoided:
+Last, the subsequent example will **not** work at all, and so should be avoided:
 
 ::
 
    >>> pd.set_option('mode.chained_assignment','raise')
-   >>> dfc.loc[0]['A'] = 1111
+   >>> dfd.loc[0]['a'] = 1111
    Traceback (most recent call last)
         ...
    SettingWithCopyException:

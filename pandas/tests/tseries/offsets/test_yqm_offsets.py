@@ -64,8 +64,7 @@ def test_apply_index(cls, n):
     ser = pd.Series(rng)
 
     res = rng + offset
-    res_v2 = offset.apply_index(rng)
-    assert (res == res_v2).all()
+    assert res.freq is None  # not retained
     assert res[0] == rng[0] + offset
     assert res[-1] == rng[-1] + offset
     res2 = ser + offset

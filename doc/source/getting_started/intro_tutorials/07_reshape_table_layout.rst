@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -101,8 +101,9 @@ measurement.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_long.csv",
-                              index_col="date.utc", parse_dates=True)
+    air_quality = pd.read_csv(
+        "data/air_quality_long.csv", index_col="date.utc", parse_dates=True
+    )
     air_quality.head()
 
 .. raw:: html
@@ -122,7 +123,7 @@ Sort table rows
     <ul class="task-bullet">
         <li>
 
-I want to sort the titanic data according to the age of the passengers.
+I want to sort the Titanic data according to the age of the passengers.
 
 .. ipython:: python
 
@@ -138,7 +139,7 @@ I want to sort the titanic data according to the age of the passengers.
     <ul class="task-bullet">
         <li>
 
-I want to sort the titanic data according to the cabin class and age in descending order.
+I want to sort the Titanic data according to the cabin class and age in descending order.
 
 .. ipython:: python
 
@@ -196,7 +197,7 @@ I want the values for the three stations as separate columns next to each other
 
     no2_subset.pivot(columns="location", values="value")
 
-The :meth:`~pandas.pivot_table` function is purely reshaping of the data: a single value
+The :meth:`~pandas.pivot` function is purely reshaping of the data: a single value
 for each index/column combination is required.
 
 .. raw:: html
@@ -247,8 +248,9 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
 
 .. ipython:: python
 
-    air_quality.pivot_table(values="value", index="location",
-                            columns="parameter", aggfunc="mean")
+    air_quality.pivot_table(
+        values="value", index="location", columns="parameter", aggfunc="mean"
+    )
 
 In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple
 values need to be aggregated (in this specific case, the values on
@@ -266,9 +268,13 @@ the ``margin`` parameter to ``True``:
 
 .. ipython:: python
 
-    air_quality.pivot_table(values="value", index="location",
-                            columns="parameter", aggfunc="mean",
-                            margins=True)
+    air_quality.pivot_table(
+        values="value",
+        index="location",
+        columns="parameter",
+        aggfunc="mean",
+        margins=True,
+    )
 
 .. raw:: html
 
@@ -282,7 +288,7 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
    </div>
 
 .. note::
-    If case you are wondering, :meth:`~DataFrame.pivot_table` is indeed directly linked
+    In case you are wondering, :meth:`~DataFrame.pivot_table` is indeed directly linked
     to :meth:`~DataFrame.groupby`. The same result can be derived by grouping on both
     ``parameter`` and ``location``:
 
@@ -338,27 +344,27 @@ newly created column.
 
 The solution is the short version on how to apply :func:`pandas.melt`. The method
 will *melt* all columns NOT mentioned in ``id_vars`` together into two
-columns: A columns with the column header names and a column with the
+columns: A column with the column header names and a column with the
 values itself. The latter column gets by default the name ``value``.
 
 The :func:`pandas.melt` method can be defined in more detail:
 
 .. ipython:: python
 
-    no_2 = no2_pivoted.melt(id_vars="date.utc",
-                            value_vars=["BETR801",
-                                        "FR04014",
-                                        "London Westminster"],
-                            value_name="NO_2",
-                            var_name="id_location")
+    no_2 = no2_pivoted.melt(
+        id_vars="date.utc",
+        value_vars=["BETR801", "FR04014", "London Westminster"],
+        value_name="NO_2",
+        var_name="id_location",
+    )
     no_2.head()
 
 The result in the same, but in more detail defined:
 
 -  ``value_vars`` defines explicitly which columns to *melt* together
 -  ``value_name`` provides a custom column name for the values column
-   instead of the default columns name ``value``
--  ``var_name`` provides a custom column name for the columns collecting
+   instead of the default column name ``value``
+-  ``var_name`` provides a custom column name for the column collecting
    the column header names. Otherwise it takes the index name or a
    default ``variable``
 
@@ -383,7 +389,7 @@ Conversion from wide to long format with :func:`pandas.melt` is explained in the
         <h4>REMEMBER</h4>
 
 -  Sorting by one or more columns is supported by ``sort_values``
--  The ``pivot`` function is purely restructering of the data,
+-  The ``pivot`` function is purely restructuring of the data,
    ``pivot_table`` supports aggregations
 -  The reverse of ``pivot`` (long to wide format) is ``melt`` (wide to
    long format)
