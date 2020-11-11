@@ -566,6 +566,17 @@ class TestParquetPyArrow(Base):
             read_kwargs={"columns": ["string", "int"]},
         )
 
+    def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
+        # GH 37105
+
+        buf_bytes = df_full.to_parquet(engine=pa)
+        assert isinstance(buf_bytes, bytes)
+
+        buf_stream = BytesIO(buf_bytes)
+        res = pd.read_parquet(buf_stream)
+
+        tm.assert_frame_equal(df_full, res)
+
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
@@ -668,16 +679,20 @@ class TestParquetPyArrow(Base):
         # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
         # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
         # These are added to back of dataframe on read. In new API category dtype is
-        # only used if partition field is string.
-        legacy_read_table = LooseVersion(pyarrow.__version__) < LooseVersion("1.0.0")
-        if partition_col and legacy_read_table:
-            partition_col_type = "category"
-        else:
-            partition_col_type = "int32"
-
-        expected_df[partition_col] = expected_df[partition_col].astype(
-            partition_col_type
+        # only used if partition field is string, but this changed again to use
+        # category dtype for all types (not only strings) in pyarrow 2.0.0
+        pa10 = (LooseVersion(pyarrow.__version__) >= LooseVersion("1.0.0")) and (
+            LooseVersion(pyarrow.__version__) < LooseVersion("2.0.0")
         )
+        if partition_col:
+            if pa10:
+                partition_col_type = "int32"
+            else:
+                partition_col_type = "category"
+
+            expected_df[partition_col] = expected_df[partition_col].astype(
+                partition_col_type
+            )
 
         check_round_trip(
             df_compat,
@@ -819,6 +834,10 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("2.0.0"):
+            # temporary skip this test until it is properly resolved
+            # https://github.com/pandas-dev/pandas/issues/37286
+            pytest.skip()
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 

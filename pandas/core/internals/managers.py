@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -204,7 +204,7 @@ class BlockManager(PandasObject):
     __bool__ = __nonzero__
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
 
     @property
@@ -225,7 +225,7 @@ class BlockManager(PandasObject):
         self.axes[axis] = new_labels
 
     @property
-    def _is_single_block(self) -> bool:
+    def is_single_block(self) -> bool:
         # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
@@ -233,8 +233,8 @@ class BlockManager(PandasObject):
         """
         Update mgr._blknos / mgr._blklocs.
         """
-        new_blknos = np.empty(self.shape[0], dtype=np.int64)
-        new_blklocs = np.empty(self.shape[0], dtype=np.int64)
+        new_blknos = np.empty(self.shape[0], dtype=np.intp)
+        new_blklocs = np.empty(self.shape[0], dtype=np.intp)
         new_blknos.fill(-1)
         new_blklocs.fill(-1)
 
@@ -278,14 +278,17 @@ class BlockManager(PandasObject):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs):
-            return make_block(values, placement=mgr_locs)
+        def unpickle_block(values, mgr_locs, ndim: int):
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
             self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
             )
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
@@ -638,9 +641,11 @@ class BlockManager(PandasObject):
             coerce=coerce,
         )
 
-    def replace(self, value, **kwargs) -> "BlockManager":
+    def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":
         assert np.ndim(value) == 0, value
-        return self.apply("replace", value=value, **kwargs)
+        return self.apply(
+            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+        )
 
     def replace_list(
         self: T,
@@ -833,7 +838,7 @@ class BlockManager(PandasObject):
         # mutating the original object
         copy = copy or na_value is not lib.no_default
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
@@ -1083,7 +1088,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs))
+                blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1313,7 +1318,7 @@ class BlockManager(PandasObject):
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
         )
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
@@ -1503,7 +1508,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
-    _is_single_block = True
+    is_single_block = True
 
     def __init__(
         self,
@@ -1825,7 +1830,7 @@ def _stack_arrays(tuples, dtype):
         else:
             return np.asarray(x)
 
-    def _shape_compat(x):
+    def _shape_compat(x) -> Shape:
         if isinstance(x, ABCSeries):
             return (len(x),)
         else:
@@ -1875,7 +1880,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = extend_blocks(merged_blocks, new_blocks)
+        new_blocks.extend(merged_blocks)
     return new_blocks
 
 
