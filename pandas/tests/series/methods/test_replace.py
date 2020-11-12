@@ -437,10 +437,12 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
-    def test_replace_extension_other(self):
+    def test_replace_extension_other(self, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/34530
-        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
-        ser.replace("", "")  # no exception
+        obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
+        result = obj.replace("", "")  # no exception
+        # should not have changed dtype
+        tm.assert_equal(obj, result)
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
