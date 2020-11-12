@@ -1,8 +1,6 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
-import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
@@ -20,7 +18,7 @@ def test_ewma_frame(frame, name):
 
 
 def test_ewma_adjust():
-    vals = pd.Series(np.zeros(1000))
+    vals = Series(np.zeros(1000))
     vals[5] = 1
     result = vals.ewm(span=100, adjust=False).mean().sum()
     assert np.abs(result - 1) < 1e-2
@@ -295,7 +293,7 @@ def test_ewm_domain_checks(arr):
 
 @pytest.mark.parametrize("method", ["mean", "vol", "var"])
 def test_ew_empty_series(method):
-    vals = pd.Series([], dtype=np.float64)
+    vals = Series([], dtype=np.float64)
 
     ewm = vals.ewm(3)
     result = getattr(ewm, method)()
@@ -306,7 +304,7 @@ def test_ew_empty_series(method):
 @pytest.mark.parametrize("name", ["mean", "var", "vol"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
-    arr = randn(50)
+    arr = np.random.randn(50)
     arr[:10] = np.NaN
     arr[-10:] = np.NaN
     s = Series(arr)

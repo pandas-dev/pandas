@@ -17,9 +17,9 @@ from pandas.core.dtypes.common import (
     ensure_python_int,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
@@ -369,7 +369,7 @@ class RangeIndex(Int64Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
-        if not (is_integer_dtype(target_array) and target_array.ndim == 1):
+        if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
             return super().get_indexer(target, method=method, tolerance=tolerance)
 
@@ -811,16 +811,19 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
-    def _arith_method(self, other, op, step=False):
+    def _cmp_method(self, other, op):
+        if isinstance(other, RangeIndex) and self._range == other._range:
+            # Both are immutable so if ._range attr. are equal, shortcut is possible
+            return super()._cmp_method(self, op)
+        return super()._cmp_method(other, op)
+
+    def _arith_method(self, other, op):
         """
         Parameters
         ----------
         other : Any
         op : callable that accepts 2 params
             perform the binary op
-        step : callable, optional, default to False
-            op to apply to the step parm if not None
-            if False, use the existing step
         """
 
         if isinstance(other, ABCTimedeltaIndex):
@@ -833,6 +836,21 @@ class RangeIndex(Int64Index):
         elif is_timedelta64_dtype(other):
             # Must be an np.ndarray; GH#22390
             return op(self._int64index, other)
+
+        if op in [
+            operator.pow,
+            ops.rpow,
+            operator.mod,
+            ops.rmod,
+            ops.rfloordiv,
+            divmod,
+            ops.rdivmod,
+        ]:
+            return op(self._int64index, other)
+
+        step = False
+        if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
+            step = op
 
         other = extract_array(other, extract_numpy=True)
         attrs = self._get_attributes_dict()
@@ -871,35 +889,3 @@ class RangeIndex(Int64Index):
             # Defer to Int64Index implementation
             return op(self._int64index, other)
             # TODO: Do attrs get handled reliably?
-
-    @unpack_zerodim_and_defer("__add__")
-    def __add__(self, other):
-        return self._arith_method(other, operator.add)
-
-    @unpack_zerodim_and_defer("__radd__")
-    def __radd__(self, other):
-        return self._arith_method(other, ops.radd)
-
-    @unpack_zerodim_and_defer("__sub__")
-    def __sub__(self, other):
-        return self._arith_method(other, operator.sub)
-
-    @unpack_zerodim_and_defer("__rsub__")
-    def __rsub__(self, other):
-        return self._arith_method(other, ops.rsub)
-
-    @unpack_zerodim_and_defer("__mul__")
-    def __mul__(self, other):
-        return self._arith_method(other, operator.mul, step=operator.mul)
-
-    @unpack_zerodim_and_defer("__rmul__")
-    def __rmul__(self, other):
-        return self._arith_method(other, ops.rmul, step=ops.rmul)
-
-    @unpack_zerodim_and_defer("__truediv__")
-    def __truediv__(self, other):
-        return self._arith_method(other, operator.truediv, step=operator.truediv)
-
-    @unpack_zerodim_and_defer("__rtruediv__")
-    def __rtruediv__(self, other):
-        return self._arith_method(other, ops.rtruediv, step=ops.rtruediv)

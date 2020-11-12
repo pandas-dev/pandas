@@ -20,6 +20,7 @@ from typing import (
     Generic,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -59,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -78,8 +80,9 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 _common_see_also = """
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Apply a function %(name)s to a Series.
+        DataFrame.%(name)s : Apply a function %(name)s
+            to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
@@ -317,9 +320,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.aggregate
-%(klass)s.transform
+%(klass)s.groupby.apply : Apply function func group-wise
+    and combine the results together.
+%(klass)s.groupby.aggregate : Aggregate using one or more
+    operations over the specified axis.
+%(klass)s.transform : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -426,9 +432,12 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply
-{klass}.groupby.transform
-{klass}.aggregate
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Aggregate using one or more
+    operations over the specified axis.
+{klass}.aggregate : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -465,7 +474,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy"):
+def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
     """
     Set / reset the group_selection_context.
     """
@@ -486,8 +495,23 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
-    _group_selection = None
+    _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "as_index",
+        "axis",
+        "dropna",
+        "exclusions",
+        "grouper",
+        "group_keys",
+        "keys",
+        "level",
+        "mutated",
+        "obj",
+        "observed",
+        "sort",
+        "squeeze",
+    }
 
     def __init__(
         self,
@@ -570,7 +594,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return self.grouper.groups
 
     @property
-    def ngroups(self):
+    def ngroups(self) -> int:
         self._assure_grouper()
         return self.grouper.ngroups
 
@@ -649,7 +673,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         else:
             return self.obj[self._selection]
 
-    def _reset_group_selection(self):
+    def _reset_group_selection(self) -> None:
         """
         Clear group based selection.
 
@@ -661,7 +685,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = None
             self._reset_cache("_selected_obj")
 
-    def _set_group_selection(self):
+    def _set_group_selection(self) -> None:
         """
         Create group based selection.
 
@@ -686,7 +710,9 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
-    def _set_result_index_ordered(self, result):
+    def _set_result_index_ordered(
+        self, result: "OutputFrameOrSeries"
+    ) -> "OutputFrameOrSeries":
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -700,7 +726,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
     def __getattr__(self, attr: str):
@@ -818,7 +844,7 @@ b  2""",
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[Label, FrameOrSeries]]:
         """
         Groupby iterator.
 
@@ -975,7 +1001,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output)
@@ -1001,8 +1027,9 @@ b  2""",
     ):
         with group_selection_context(self):
             # try a cython aggregation if we can
+            result = None
             try:
-                return self._cython_agg_general(
+                result = self._cython_agg_general(
                     how=alias,
                     alt=npfunc,
                     numeric_only=numeric_only,
@@ -1021,8 +1048,9 @@ b  2""",
                     raise
 
             # apply a non-cython aggregation
-            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            return result
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1056,7 +1084,7 @@ b  2""",
                 output[key] = maybe_cast_result(result, obj, how=how)
                 idx += 1
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
@@ -1154,7 +1182,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
-        if len(output) == 0:
+        if not output:
             return self._python_apply_general(f, self._selected_obj)
 
         if self.grouper._filter_empty_groups:
@@ -1191,12 +1219,12 @@ b  2""",
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            if ax.has_duplicates:
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 indexer, _ = result.index.get_indexer_non_unique(ax.values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
-                result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis, copy=False)
 
         elif self.group_keys:
 
@@ -1851,8 +1879,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        pad
-        backfill
+        pad : Returns Series with minimum number of char in object.
+        backfill : Backward fill the missing values in the dataset.
         """
         # Need int value for Cython
         if limit is None:
@@ -1866,6 +1894,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
+            dropna=self.dropna,
         )
 
     @Substitution(name="groupby")
@@ -1885,10 +1914,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.pad
-        DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.pad: Returns Series with minimum number of char in object.
+        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
@@ -1911,10 +1940,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill :  Backward fill the missing values in the dataset.
+        DataFrame.backfill:  Backward fill the missing values in the dataset.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 
@@ -2144,6 +2173,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 vals = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
+                vals = np.asarray(vals).astype(float)
+            elif is_timedelta64_dtype(vals.dtype):
+                inference = "timedelta64[ns]"
                 vals = np.asarray(vals).astype(float)
 
             return vals, inference
@@ -2518,9 +2550,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
-        if post_processing:
-            if not callable(post_processing):
-                raise ValueError("'post_processing' must be a callable!")
+        if post_processing and not callable(post_processing):
+            raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
                 raise ValueError("'pre_processing' must be a callable!")
@@ -2567,9 +2598,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     except TypeError as e:
                         error_msg = str(e)
                         continue
+                vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
-                vals = vals.astype(cython_dtype, copy=False)
                 func = partial(func, vals)
 
             func = partial(func, labels)
@@ -2599,7 +2630,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
-        if len(output) == 0 and error_msg != "":
+        if not output and error_msg != "":
             raise TypeError(error_msg)
 
         if aggregate:

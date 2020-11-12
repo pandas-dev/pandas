@@ -7,7 +7,6 @@ import numpy as np
 
 from pandas._libs import Timedelta, iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -26,9 +25,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arraylike import OpsMixin
 from pandas.core.ops import invalid_comparison
-from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
@@ -266,7 +263,7 @@ def coerce_to_array(
     return values, mask
 
 
-class IntegerArray(OpsMixin, BaseMaskedArray):
+class IntegerArray(BaseMaskedArray):
     """
     Array of integer (optional missing) values.
 
@@ -361,15 +358,17 @@ class IntegerArray(OpsMixin, BaseMaskedArray):
         return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
@@ -487,7 +486,7 @@ class IntegerArray(OpsMixin, BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         if self._mask.any():
@@ -539,19 +538,86 @@ class IntegerArray(OpsMixin, BaseMaskedArray):
 
         return BooleanArray(result, mask)
 
-    def sum(self, skipna=True, min_count=0, **kwargs):
+    def _arith_method(self, other, op):
+        op_name = op.__name__
+        omask = None
+
+        if getattr(other, "ndim", 0) > 1:
+            raise NotImplementedError("can only perform ops with 1-d structures")
+
+        if isinstance(other, IntegerArray):
+            other, omask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match")
+            if not (is_float_dtype(other) or is_integer_dtype(other)):
+                raise TypeError("can only perform ops with numeric values")
+
+        elif isinstance(other, (timedelta, np.timedelta64)):
+            other = Timedelta(other)
+
+        else:
+            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
+                raise TypeError("can only perform ops with numeric values")
+
+        if omask is None:
+            mask = self._mask.copy()
+            if other is libmissing.NA:
+                mask |= True
+        else:
+            mask = self._mask | omask
+
+        if op_name == "pow":
+            # 1 ** x is 1.
+            mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            # x ** 0 is 1.
+            if omask is not None:
+                mask = np.where((other == 0) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 0, False, mask)
+
+        elif op_name == "rpow":
+            # 1 ** x is 1.
+            if omask is not None:
+                mask = np.where((other == 1) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 1, False, mask)
+            # x ** 0 is 1.
+            mask = np.where((self._data == 0) & ~self._mask, False, mask)
+
+        if other is libmissing.NA:
+            result = np.ones_like(self._data)
+        else:
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
+
+        # divmod returns a tuple
+        if op_name == "divmod":
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
+
+        return self._maybe_mask_result(result, mask, other, op_name)
+
+    def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
 
-    def prod(self, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_prod((), kwargs)
         return super()._reduce("prod", skipna=skipna, min_count=min_count)
 
-    def min(self, skipna=True, **kwargs):
+    def min(self, *, skipna=True, **kwargs):
         nv.validate_min((), kwargs)
         return super()._reduce("min", skipna=skipna)
 
-    def max(self, skipna=True, **kwargs):
+    def max(self, *, skipna=True, **kwargs):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna)
 
@@ -580,86 +646,6 @@ class IntegerArray(OpsMixin, BaseMaskedArray):
             return TimedeltaArray._simple_new(result)
 
         return type(self)(result, mask, copy=False)
-
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        op_name = op.__name__
-
-        @unpack_zerodim_and_defer(op.__name__)
-        def integer_arithmetic_method(self, other):
-
-            omask = None
-
-            if getattr(other, "ndim", 0) > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-
-            if isinstance(other, IntegerArray):
-                other, omask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match")
-                if not (is_float_dtype(other) or is_integer_dtype(other)):
-                    raise TypeError("can only perform ops with numeric values")
-
-            elif isinstance(other, (timedelta, np.timedelta64)):
-                other = Timedelta(other)
-
-            else:
-                if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                    raise TypeError("can only perform ops with numeric values")
-
-            if omask is None:
-                mask = self._mask.copy()
-                if other is libmissing.NA:
-                    mask |= True
-            else:
-                mask = self._mask | omask
-
-            if op_name == "pow":
-                # 1 ** x is 1.
-                mask = np.where((self._data == 1) & ~self._mask, False, mask)
-                # x ** 0 is 1.
-                if omask is not None:
-                    mask = np.where((other == 0) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 0, False, mask)
-
-            elif op_name == "rpow":
-                # 1 ** x is 1.
-                if omask is not None:
-                    mask = np.where((other == 1) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 1, False, mask)
-                # x ** 0 is 1.
-                mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-            if other is libmissing.NA:
-                result = np.ones_like(self._data)
-            else:
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # divmod returns a tuple
-            if op_name == "divmod":
-                div, mod = result
-                return (
-                    self._maybe_mask_result(div, mask, other, "floordiv"),
-                    self._maybe_mask_result(mod, mask, other, "mod"),
-                )
-
-            return self._maybe_mask_result(result, mask, other, op_name)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(integer_arithmetic_method, name, cls)
-
-
-IntegerArray._add_arithmetic_ops()
 
 
 _dtype_docstring = """

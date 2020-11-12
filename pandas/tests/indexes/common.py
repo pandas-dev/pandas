@@ -93,15 +93,15 @@ class Base:
         expected = self.create_index()
         if not isinstance(expected, MultiIndex):
             expected.name = "foo"
-            result = pd.Index(expected)
+            result = Index(expected)
             tm.assert_index_equal(result, expected)
 
-            result = pd.Index(expected, name="bar")
+            result = Index(expected, name="bar")
             expected.name = "bar"
             tm.assert_index_equal(result, expected)
         else:
             expected.names = ["foo", "bar"]
-            result = pd.Index(expected)
+            result = Index(expected)
             tm.assert_index_equal(
                 result,
                 Index(
@@ -120,7 +120,7 @@ class Base:
                 ),
             )
 
-            result = pd.Index(expected, names=["A", "B"])
+            result = Index(expected, names=["A", "B"])
             tm.assert_index_equal(
                 result,
                 Index(
@@ -407,15 +407,26 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             idx.take(indices, mode="clip")
 
+    def test_take_minus1_without_fill(self, index):
+        # -1 does not get treated as NA unless allow_fill=True is passed
+        if len(index) == 0:
+            # Test is not applicable
+            return
+
+        result = index.take([0, 0, -1])
+
+        expected = index.take([0, 0, len(index) - 1])
+        tm.assert_index_equal(result, expected)
+
     def test_repeat(self):
         rep = 2
         i = self.create_index()
-        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = Index(i.values.repeat(rep), name=i.name)
         tm.assert_index_equal(i.repeat(rep), expected)
 
         i = self.create_index()
         rep = np.arange(len(i))
-        expected = pd.Index(i.values.repeat(rep), name=i.name)
+        expected = Index(i.values.repeat(rep), name=i.name)
         tm.assert_index_equal(i.repeat(rep), expected)
 
     def test_numpy_repeat(self):
@@ -441,7 +452,7 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
+        expected = Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -613,8 +624,6 @@ class Base:
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
-        if isinstance(index_a, PeriodIndex):
-            pytest.skip("Skip check for PeriodIndex")
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -805,7 +814,7 @@ class Base:
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike(self, mapper):
@@ -826,7 +835,7 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        expected = pd.Index([np.nan] * len(index))
+        expected = Index([np.nan] * len(index))
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
