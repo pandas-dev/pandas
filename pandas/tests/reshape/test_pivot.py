@@ -2167,7 +2167,7 @@ class TestPivot:
         )
         index = ["lev1", "lev2"]
         columns = ["lev3"]
-        pivoted = df.pivot(index=index, columns=columns, values=None)
+        result = df.pivot(index=index, columns=columns, values=None)
 
         expected = DataFrame(
             np.array(
@@ -2187,6 +2187,6 @@ class TestPivot:
             ),
         )
 
-        tm.assert_frame_equal(pivoted, expected)
+        tm.assert_frame_equal(result, expected)
 
         assert index == ["lev1", "lev2"]
