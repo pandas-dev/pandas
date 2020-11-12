@@ -1,8 +1,9 @@
-from typing import Any, Sequence, Tuple, TypeVar
+from typing import Any, Optional, Sequence, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -44,19 +45,29 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
+    def _validate_scalar(self, value):
+        # used by NDArrayBackedExtensionIndex.insert
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
 
     def take(
         self: _T,
         indices: Sequence[int],
+        *,
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: int = 0,
     ) -> _T:
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
         new_data = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
         )
         return self._from_backing_data(new_data)
 
@@ -84,7 +95,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # TODO: make this a cache_readonly; for that to work we need to remove
     #  the _index_data kludge in libreduction
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return self._ndarray.shape
 
     def __len__(self) -> int:
@@ -233,10 +244,39 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    # ------------------------------------------------------------------------
+    # Reductions
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+    def _wrap_reduction_result(self, axis: Optional[int], result):
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
+
+    # ------------------------------------------------------------------------
+
+    def __repr__(self) -> str:
+        if self.ndim == 1:
+            return super().__repr__()
+
+        from pandas.io.formats.printing import format_object_summary
+
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        lines = [
+            format_object_summary(x, self._formatter(), indent_for_name=False).rstrip(
+                ", \n"
+            )
+            for x in self
+        ]
+        data = ",\n".join(lines)
+        class_name = f"<{type(self).__name__}>"
+        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"

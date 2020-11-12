@@ -9,7 +9,7 @@ import pytest
 from pandas.compat.numpy import np_version_under1p17
 
 import pandas as pd
-from pandas import Series, Timestamp
+from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
@@ -107,15 +107,6 @@ def test_random_state():
 )
 def test_maybe_match_name(left, right, expected):
     assert ops.common._maybe_match_name(left, right) == expected
-
-
-def test_dict_compat():
-    data_datetime64 = {np.datetime64("1990-03-15"): 1, np.datetime64("2015-03-15"): 2}
-    data_unchanged = {1: 2, 3: 4, 5: 6}
-    expected = {Timestamp("1990-3-15"): 1, Timestamp("2015-03-15"): 2}
-    assert com.dict_compat(data_datetime64) == expected
-    assert com.dict_compat(expected) == expected
-    assert com.dict_compat(data_unchanged) == data_unchanged
 
 
 def test_standardize_mapping():

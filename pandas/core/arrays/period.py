@@ -67,7 +67,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
-    Users should use :func:`period_array` to create new instances.
+    Users should use :func:`period_range` to create new instances.
+    Alternatively, :func:`array` can be used to create new instances
+    from a sequence of Period scalars.
 
     Parameters
     ----------
@@ -97,8 +99,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     See Also
     --------
-    period_array : Create a new PeriodArray.
+    Period: Represents a period of time.
     PeriodIndex : Immutable Index for period data.
+    period_range: Create a fixed-frequency PeriodArray.
+    array: Construct a pandas array.
 
     Notes
     -----
@@ -136,7 +140,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         "weekday",
         "week",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",
@@ -186,6 +192,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _from_sequence(
         cls: Type["PeriodArray"],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
+        *,
         dtype: Optional[PeriodDtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
@@ -201,8 +208,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
-        if copy:
-            periods = periods.copy()
 
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
@@ -210,9 +215,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy=False
+        cls, strings, *, dtype=None, copy=False
     ) -> "PeriodArray":
-        return cls._from_sequence(strings, dtype, copy)
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":
@@ -256,18 +261,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.int64:
-        return np.int64(value)
-
     def _unbox_scalar(
         self, value: Union[Period, NaTType], setitem: bool = False
     ) -> int:
         if value is NaT:
-            return value.value
+            return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=setitem)
-            return value.ordinal
+            return np.int64(value.ordinal)
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 
@@ -377,12 +378,13 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """,
     )
     week = weekofyear
-    dayofweek = _field_accessor(
-        "weekday",
+    day_of_week = _field_accessor(
+        "day_of_week",
         """
         The day of the week with Monday=0, Sunday=6.
         """,
     )
+    dayofweek = day_of_week
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
         "day_of_year",
@@ -588,7 +590,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
@@ -1079,11 +1081,9 @@ def _make_field_arrays(*fields):
             elif length is None:
                 length = len(x)
 
-    arrays = [
+    return [
         np.asarray(x)
         if isinstance(x, (np.ndarray, list, ABCSeries))
         else np.repeat(x, length)
         for x in fields
     ]
-
-    return arrays

@@ -11,6 +11,13 @@ import pandas._testing as tm
 
 
 class TestCategoricalMissing:
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        cat = Categorical(["a", "b", np.nan])
+        res = cat.isna()
+
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_na_flags_int_categories(self):
         # #1457
 
@@ -60,7 +67,10 @@ class TestCategoricalMissing:
             ),
             (dict(), "Must specify a fill 'value' or 'method'."),
             (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
-            (dict(value=Series([1, 2, 3, 4, "a"])), "fill value must be in categories"),
+            (
+                dict(value=Series([1, 2, 3, 4, "a"])),
+                "Cannot setitem on a Categorical with a new category",
+            ),
         ],
     )
     def test_fillna_raises(self, fillna_kwargs, msg):

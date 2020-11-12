@@ -447,7 +447,7 @@ def test_loc_period_string_indexing():
     # GH 9892
     a = pd.period_range("2013Q1", "2013Q4", freq="Q")
     i = (1111, 2222, 3333)
-    idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    idx = MultiIndex.from_product((a, i), names=("Periode", "CVR"))
     df = DataFrame(
         index=idx,
         columns=(
@@ -467,7 +467,7 @@ def test_loc_period_string_indexing():
         [np.nan],
         dtype=object,
         name="OMS",
-        index=pd.MultiIndex.from_tuples(
+        index=MultiIndex.from_tuples(
             [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
         ),
     )
@@ -477,7 +477,7 @@ def test_loc_period_string_indexing():
 def test_loc_datetime_mask_slicing():
     # GH 16699
     dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
-    m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
+    m_idx = MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
     df = DataFrame(
         data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
     )
@@ -498,7 +498,7 @@ def test_loc_datetime_series_tuple_slicing():
     date = pd.Timestamp("2000")
     ser = Series(
         1,
-        index=pd.MultiIndex.from_tuples([("a", date)], names=["a", "b"]),
+        index=MultiIndex.from_tuples([("a", date)], names=["a", "b"]),
         name="c",
     )
     result = ser.loc[:, [date]]
@@ -524,6 +524,30 @@ def test_loc_with_mi_indexer():
     tm.assert_frame_equal(result, expected)
 
 
+def test_loc_mi_with_level1_named_0():
+    # GH#37194
+    dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+    ser = Series(range(3), index=dti)
+    df = ser.to_frame()
+    df[1] = dti
+
+    df2 = df.set_index(0, append=True)
+    assert df2.index.names == (None, 0)
+    df2.index.get_loc(dti[0])  # smoke test
+
+    result = df2.loc[dti[0]]
+    expected = df2.iloc[[0]].droplevel(None)
+    tm.assert_frame_equal(result, expected)
+
+    ser2 = df2[1]
+    assert ser2.index.names == (None, 0)
+
+    result = ser2.loc[dti[0]]
+    expected = ser2.iloc[[0]].droplevel(None)
+    tm.assert_series_equal(result, expected)
+
+
 def test_getitem_str_slice(datapath):
     # GH#15928
     path = datapath("reshape", "merge", "data", "quotes2.csv")
@@ -544,7 +568,7 @@ def test_3levels_leading_period_index():
     )
     lev2 = ["A", "A", "Z", "W"]
     lev3 = ["B", "C", "Q", "F"]
-    mi = pd.MultiIndex.from_arrays([pi, lev2, lev3])
+    mi = MultiIndex.from_arrays([pi, lev2, lev3])
 
     ser = Series(range(4), index=mi, dtype=np.float64)
     result = ser.loc[(pi[0], "A", "B")]
@@ -562,7 +586,40 @@ class TestKeyErrorsWithMultiIndex:
 
     def test_missing_key_raises_keyerror2(self):
         # GH#21168 KeyError, not "IndexingError: Too many indexers"
-        ser = Series(-1, index=pd.MultiIndex.from_product([[0, 1]] * 2))
+        ser = Series(-1, index=MultiIndex.from_product([[0, 1]] * 2))
 
         with pytest.raises(KeyError, match=r"\(0, 3\)"):
             ser.loc[0, 3]
+
+
+def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
+    df = multiindex_year_month_day_dataframe_random_data
+    ser = df["A"]
+    result = ser[2000, 5]
+    expected = df.loc[2000, 5]["A"]
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_with_nan():
+    # GH: 27104
+    df = DataFrame(
+        {"col": [1, 2, 5], "ind1": ["a", "d", np.nan], "ind2": [1, 4, 5]}
+    ).set_index(["ind1", "ind2"])
+    result = df.loc[["a"]]
+    expected = DataFrame(
+        {"col": [1]}, index=MultiIndex.from_tuples([("a", 1)], names=["ind1", "ind2"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc["a"]
+    expected = DataFrame({"col": [1]}, index=Index([1], name="ind2"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_getitem_non_found_tuple():
+    # GH: 25236
+    df = DataFrame([[1, 2, 3, 4]], columns=["a", "b", "c", "d"]).set_index(
+        ["a", "b", "c"]
+    )
+    with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
+        df.loc[(2.0, 2.0, 3.0)]

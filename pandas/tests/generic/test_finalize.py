@@ -154,10 +154,7 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
     pytest.param(
         (
             pd.DataFrame,
@@ -171,10 +168,7 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
             pd.DataFrame,
@@ -184,20 +178,14 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("diff")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x)),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (
@@ -205,7 +193,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -430,8 +417,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    (pd.Series, ([1, 2],), operator.methodcaller("slice_shift")),
-    (pd.DataFrame, frame_data, operator.methodcaller("slice_shift")),
     pytest.param(
         (
             pd.Series,
@@ -684,7 +669,9 @@ def test_datetime_method(method):
         "microsecond",
         "nanosecond",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "is_month_start",
         "is_month_end",
