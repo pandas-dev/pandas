@@ -15,6 +15,7 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
+import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -83,6 +84,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
+    maybe_box_datetimelike,
     maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
@@ -112,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -359,7 +360,7 @@ class DataFrame(NDFrame, OpsMixin):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects. If
+        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order.
 
         .. versionchanged:: 0.25.0
@@ -419,6 +420,16 @@ class DataFrame(NDFrame, OpsMixin):
     0  1  2  3
     1  4  5  6
     2  7  8  9
+
+    Constructing DataFrame from dataclass:
+
+    >>> from dataclasses import make_dataclass
+    >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
+    >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+        x  y
+    0  0  0
+    1  0  3
+    2  2  3
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
@@ -1527,7 +1538,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_datetimelike, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1535,7 +1546,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1544,7 +1555,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
 
@@ -2119,6 +2130,11 @@ class DataFrame(NDFrame, OpsMixin):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
+
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
@@ -2286,10 +2302,9 @@ class DataFrame(NDFrame, OpsMixin):
         if buf is None:
             return result
         ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, str)
+        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
         ioargs.filepath_or_buffer.writelines(result)
-        if ioargs.should_close:
-            ioargs.filepath_or_buffer.close()
+        ioargs.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -3848,7 +3863,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
@@ -6021,7 +6041,8 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -6051,11 +6072,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
@@ -6123,9 +6144,9 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: DataFrame,
@@ -6353,29 +6374,11 @@ Keep all original rows and columns and also all original values
         """
         import pandas.core.computation.expressions as expressions
 
-        def extract_values(arr):
-            # Does two things:
-            # 1. maybe gets the values from the Series / Index
-            # 2. convert datelike to i8
-            # TODO: extract_array?
-            if isinstance(arr, (Index, Series)):
-                arr = arr._values
-
-            if needs_i8_conversion(arr.dtype):
-                if is_extension_array_dtype(arr.dtype):
-                    arr = arr.asi8
-                else:
-                    arr = arr.view("i8")
-            return arr
-
         def combiner(x, y):
-            mask = isna(x)
-            # TODO: extract_array?
-            if isinstance(mask, (Index, Series)):
-                mask = mask._values
+            mask = extract_array(isna(x))
 
-            x_values = extract_values(x)
-            y_values = extract_values(y)
+            x_values = extract_array(x, extract_numpy=True)
+            y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
@@ -6438,7 +6441,7 @@ Keep all original rows and columns and also all original values
         See Also
         --------
         dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Examples
         --------
@@ -7401,7 +7404,7 @@ NaN 12.3   33.0
             return self - self.shift(periods, axis=axis)
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -7780,7 +7783,7 @@ NaN 12.3   33.0
                 return lib.map_infer(x, func, ignore_na=ignore_na)
             return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
 
-        return self.apply(infer)
+        return self.apply(infer).__finalize__(self, "applymap")
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
@@ -7917,12 +7920,14 @@ NaN 12.3   33.0
             to_concat = [self, *other]
         else:
             to_concat = [self, other]
-        return concat(
-            to_concat,
-            ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
-        )
+        return (
+            concat(
+                to_concat,
+                ignore_index=ignore_index,
+                verify_integrity=verify_integrity,
+                sort=sort,
+            )
+        ).__finalize__(self, method="append")
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
@@ -7972,7 +7977,7 @@ NaN 12.3   33.0
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
         -----
@@ -8706,6 +8711,7 @@ NaN 12.3   33.0
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,
@@ -8733,11 +8739,6 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = np.array(
-            [is_object_dtype(dtype) for dtype in own_dtypes],
-            dtype=bool,
-        ).any()
-
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
@@ -8764,12 +8765,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or (
-            numeric_only is None
-            and axis == 0
-            and not any_object
-            and not self._mgr.any_extension_types
-        ):
+        if numeric_only is not None:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object

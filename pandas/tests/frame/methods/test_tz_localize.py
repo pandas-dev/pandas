@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, date_range
 import pandas._testing as tm
 
 
@@ -23,16 +23,15 @@ class TestTZLocalize:
         assert result.columns.tz.zone == "UTC"
         tm.assert_frame_equal(result, expected.T)
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
     @pytest.mark.parametrize("copy", [True, False])
-    def test_tz_localize_copy_inplace_mutate(self, copy, klass):
+    def test_tz_localize_copy_inplace_mutate(self, copy, frame_or_series):
         # GH#6326
-        obj = klass(
+        obj = frame_or_series(
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1H", tz=None)
         )
         orig = obj.copy()
         result = obj.tz_localize("UTC", copy=copy)
-        expected = klass(
+        expected = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1H", tz="UTC"),
         )
