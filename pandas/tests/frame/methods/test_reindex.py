@@ -865,8 +865,9 @@ class TestDataFrameSelectReindex:
             "tolerance",
         }
 
-    def test_reindex_fill_added_rows(self):
-        # GH: 23693
+    def test_reindex_multiindex_ffill_added_rows(self):
+        # GH#23693
+        # reindex added rows with nan values even when fill method was specified
         mi = MultiIndex.from_tuples([("a", "b"), ("d", "e")])
         df = DataFrame([[0, 7], [3, 4]], index=mi, columns=["x", "y"])
         mi2 = MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
