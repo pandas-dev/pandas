@@ -217,11 +217,12 @@ class TestTimedeltas:
             ("8:53:08.71800000001", "8:53:08.718"),
             ("8:53:08.718001", "8:53:08.718001"),
             ("8:53:08.7180000001", "8:53:08.7180000001"),
+            ("-8:53:08.71800000001", "-8:53:08.718"),
         ],
     )
-    @pytest.mark.parametrize("func", ["Timedelta", "to_timedelta"])
+    @pytest.mark.parametrize("func", [pd.Timedelta, pd.to_timedelta])
     def test_to_timedelta_precision_over_nanos(self, input, expected, func):
         # GH: 36738
         expected = pd.Timedelta(expected)
-        result = getattr(pd, func)(input)
+        result = func(input)
         assert result == expected
