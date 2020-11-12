@@ -779,7 +779,7 @@ class Block(PandasObject):
 
         mask = missing.mask_missing(values, to_replace)
         if not mask.any():
-            # Note: we get here with test_replace_extension_other incorreclty
+            # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
             return [self] if inplace else [self.copy()]
 
