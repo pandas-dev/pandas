@@ -2170,18 +2170,21 @@ class TestPivot:
         pivoted = df.pivot(index=index, columns=columns, values=None)
 
         expected = DataFrame(
-            {
-                "a": [1.0, 3.0, 5.0, float("nan")],
-                "b": [2.0, float("nan"), 4.0, 6.0],
-                "c": [0.0, 2.0, 4.0, float("nan")],
-                "d": [1.0, float("nan"), 3.0, 5.0],
-            }
-        )
-        expected.index = MultiIndex.from_arrays(
-            [(1, 1, 2, 2), (1, 2, 1, 2)], names=["lev1", "lev2"]
-        )
-        expected.columns = MultiIndex.from_arrays(
-            [("lev4", "lev4", "values", "values"), (1, 2, 1, 2)], names=[None, "lev3"]
+            np.array(
+                [
+                    [1.0, 2.0, 0.0, 1.0],
+                    [3.0, np.nan, 2.0, np.nan],
+                    [5.0, 4.0, 4.0, 3.0],
+                    [np.nan, 6.0, np.nan, 5.0],
+                ]
+            ),
+            index=MultiIndex.from_arrays(
+                [(1, 1, 2, 2), (1, 2, 1, 2)], names=["lev1", "lev2"]
+            ),
+            columns=MultiIndex.from_arrays(
+                [("lev4", "lev4", "values", "values"), (1, 2, 1, 2)],
+                names=[None, "lev3"],
+            ),
         )
 
         tm.assert_frame_equal(pivoted, expected)
