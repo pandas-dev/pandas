@@ -509,6 +509,7 @@ I/O
 - :func:`read_csv` was closing user-provided binary file handles when ``engine="c"`` and an ``encoding`` was requested (:issue:`36980`)
 - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
+- Bug in :meth:`read_fw` was not skipping blank lines (even with ``skip_blank_lines=True``) (:issue:`37758`)
 
 Plotting
 ^^^^^^^^
