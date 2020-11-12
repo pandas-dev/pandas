@@ -417,6 +417,7 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         mask = isna(self.values)
+        mask = _extract_bool_array(mask)
         if limit is not None:
             limit = libalgos.validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
@@ -428,9 +429,10 @@ class Block(PandasObject):
                 return [self.copy()]
 
         if self._can_hold_element(value):
-            # equivalent: _try_coerce_args(value) would not raise
-            blocks = self.putmask(mask, value, inplace=inplace)
-            return self._maybe_downcast(blocks, downcast)
+            nb = self if inplace else self.copy()
+            nb._putmask_simple(mask, value)
+            # TODO: should be nb._maybe_downcast?
+            return self._maybe_downcast([nb], downcast)
 
         # we can't process the value, but nothing to do
         if not mask.any():
@@ -886,6 +888,7 @@ class Block(PandasObject):
         mask = ~isna(self.values)
 
         masks = [comp(s, mask, regex) for s in src_list]
+        masks = [_extract_bool_array(x) for x in masks]
 
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(zip(src_list, dest_list)):
@@ -1023,6 +1026,30 @@ class Block(PandasObject):
             values = values.T
         block = self.make_block(values)
         return block
+
+    def _putmask_simple(self, mask: np.ndarray, value: Any):
+        """
+        Like putmask but
+
+        a) we do not cast on failure
+        b) we do not handle repeating or truncating like numpy.
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+            We assume _extract_bool_array has already been called.
+        value : Any
+            We assume self._can_hold_element(value)
+        """
+        values = self.values
+
+        if lib.is_scalar(value) and isinstance(values, np.ndarray):
+            value = convert_scalar_for_putitemlike(value, values.dtype)
+
+        if is_list_like(value) and len(value) == len(values):
+            values[mask] = value[mask]
+        else:
+            values[mask] = value
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
@@ -1628,8 +1655,11 @@ class Block(PandasObject):
         """
         if mask.any():
             if not regex:
-                self = self.coerce_to_target_dtype(value)
-                return self.putmask(mask, value, inplace=inplace)
+                nb = self.coerce_to_target_dtype(value)
+                if nb is self and not inplace:
+                    nb = nb.copy()
+                nb._putmask_simple(mask, value)
+                return [nb]
             else:
                 regex = _should_use_regex(regex, to_replace)
                 if regex:
