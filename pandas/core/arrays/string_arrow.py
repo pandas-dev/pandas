@@ -198,7 +198,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         cls._chk_pyarrow_available()
         # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
         scalars = lib.ensure_string_array(
-            scalars, na_value=cls._dtype.na_value, copy=copy
+            scalars, na_value=cls._dtype.na_value, copy=False
         )
         return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
 
@@ -625,4 +625,4 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if dropna and self.data.null_count > 0:
             raise NotImplementedError("yo")
 
-        return Series(counts, index=index)
+        return Series(counts, index=index).astype("Int64")
