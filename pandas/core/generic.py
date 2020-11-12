@@ -54,7 +54,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
-from pandas.util._decorators import Appender, doc, rewrite_axis_style_signature
+from pandas.util._decorators import doc, rewrite_axis_style_signature
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
