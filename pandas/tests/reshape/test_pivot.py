@@ -2156,13 +2156,15 @@ class TestPivot:
 
     def test_pivot_index_list_values_none(self):
         # Tests when index is a list and values None. See GH#37635
-        frame = pd.DataFrame({
-            "lev1": [1, 1, 1, 2, 2, 2],
-            "lev2": [1, 1, 2, 1, 1, 2],
-            "lev3": [1, 2, 1, 2, 1, 2],
-            "lev4": [1, 2, 3, 4, 5, 6],
-            "values": [0, 1, 2, 3, 4, 5]
-        })
+        frame = pd.DataFrame(
+            {
+                "lev1": [1, 1, 1, 2, 2, 2],
+                "lev2": [1, 1, 2, 1, 1, 2],
+                "lev3": [1, 2, 1, 2, 1, 2],
+                "lev4": [1, 2, 3, 4, 5, 6],
+                "values": [0, 1, 2, 3, 4, 5],
+            }
+        )
         index = ["lev1", "lev2"]
         columns = ["lev3"]
         frame.pivot(index=index, columns=columns, values=None)
