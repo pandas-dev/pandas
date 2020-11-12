@@ -1,6 +1,7 @@
 from datetime import date, datetime, time as dt_time, timedelta
 from typing import Dict, List, Optional, Tuple, Type
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -14,6 +15,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
@@ -129,6 +131,8 @@ class Base:
         tz = tz_naive_fixture
         if self._offset is None:
             return
+        if isinstance(tz, tzlocal) and not IS64:
+            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -678,6 +682,11 @@ class TestCommon(Base):
         expected = off.is_anchored()
         assert result == expected
 
+    def test_offsets_hashable(self, offset_types):
+        # GH: 37267
+        off = self._get_offset(offset_types)
+        assert hash(off) is not None
+
 
 class TestDateOffset(Base):
     def setup_method(self, method):
@@ -744,6 +753,13 @@ class TestBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
@@ -2636,6 +2652,13 @@ class TestCustomBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
