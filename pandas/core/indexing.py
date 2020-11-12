@@ -1726,7 +1726,8 @@ class _iLocIndexer(_LocationIndexer):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         # GH#7551 Note that this coerces the dtype if we are mixed
-        value = np.array(value, dtype=object)
+        if not isinstance(value, np.ndarray):
+            value = np.array(value, dtype=object)
         if len(ilocs) != value.shape[1]:
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
@@ -1734,7 +1735,10 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), plane_indexer)
+            values = value[:, i]
+            if value.dtype == "object":
+                values = values.tolist()
+            self._setitem_single_column(loc, values, plane_indexer)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame"):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])

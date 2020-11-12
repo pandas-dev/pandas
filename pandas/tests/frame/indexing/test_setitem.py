@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Index,
     Interval,
+    MultiIndex,
     NaT,
     Period,
     PeriodIndex,
@@ -296,6 +297,14 @@ class TestDataFrameSetItem:
         indexer = klass([True, False, False])
         df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_complete_column_float32(self):
+        # GH#18415
+        mi = MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)])
+        df = DataFrame([[0, 0, 0], [0, 0, 0]], dtype=np.float32, columns=mi)
+        df.loc[:, (1, slice(2, 3))] = np.ones((2, 2), dtype=np.float32)
+        expected = DataFrame([[1, 1, 0], [1, 1, 0]], dtype=np.float32, columns=mi)
         tm.assert_frame_equal(df, expected)
 
 
