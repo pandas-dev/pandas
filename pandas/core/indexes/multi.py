@@ -2156,6 +2156,8 @@ class MultiIndex(Index):
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
+        nan_codes = isna(codes)
+        values[(nan_codes == False) & (values == -1)] = -2
 
         mask = ~algos.isin(self.codes[i], values)
         if mask.all() and errors != "ignore":
