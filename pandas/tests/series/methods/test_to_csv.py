@@ -143,11 +143,11 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            f, _handles = get_handle(
+            handles = get_handle(
                 filename, "w", compression=compression, encoding=encoding
             )
-            with f:
-                s.to_csv(f, encoding=encoding, header=True)
+            s.to_csv(handles.handle, encoding=encoding, header=True)
+            handles.close()
             result = pd.read_csv(
                 filename,
                 compression=compression,

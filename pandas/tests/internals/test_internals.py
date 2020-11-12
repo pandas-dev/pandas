@@ -8,7 +8,7 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
@@ -922,6 +922,13 @@ class TestBlockPlacement:
         with pytest.raises(ValueError, match=msg):
             BlockPlacement(slc)
 
+    def test_slice_canonize_negative_stop(self):
+        # GH#37524 negative stop is OK with negative step and positive start
+        slc = slice(3, -1, -2)
+
+        bp = BlockPlacement(slc)
+        assert bp.indexer == slice(3, None, -2)
+
     @pytest.mark.parametrize(
         "slc",
         [
@@ -1137,26 +1144,6 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
-
-
-def test_missing_unicode_key():
-    df = DataFrame({"a": [1]})
-    with pytest.raises(KeyError, match="\u05d0"):
-        df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
-
-
-def test_set_change_dtype_slice():
-    # GH#8850
-    cols = MultiIndex.from_tuples([("1st", "a"), ("2nd", "b"), ("3rd", "c")])
-    df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
-    df["2nd"] = df["2nd"] * 2.0
-
-    blocks = df._to_dict_of_blocks()
-    assert sorted(blocks.keys()) == ["float64", "int64"]
-    tm.assert_frame_equal(
-        blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
-    )
-    tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
 
 
 def test_single_block_manager_fastpath_deprecated():

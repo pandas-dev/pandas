@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -1000,7 +1001,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output)
@@ -1083,7 +1084,7 @@ b  2""",
                 output[key] = maybe_cast_result(result, obj, how=how)
                 idx += 1
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
@@ -1181,7 +1182,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
-        if len(output) == 0:
+        if not output:
             return self._python_apply_general(f, self._selected_obj)
 
         if self.grouper._filter_empty_groups:
@@ -2173,6 +2174,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
                 vals = np.asarray(vals).astype(float)
+            elif is_timedelta64_dtype(vals.dtype):
+                inference = "timedelta64[ns]"
+                vals = np.asarray(vals).astype(float)
 
             return vals, inference
 
@@ -2546,9 +2550,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
-        if post_processing:
-            if not callable(post_processing):
-                raise ValueError("'post_processing' must be a callable!")
+        if post_processing and not callable(post_processing):
+            raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
                 raise ValueError("'pre_processing' must be a callable!")
@@ -2627,7 +2630,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
-        if len(output) == 0 and error_msg != "":
+        if not output and error_msg != "":
             raise TypeError(error_msg)
 
         if aggregate:
