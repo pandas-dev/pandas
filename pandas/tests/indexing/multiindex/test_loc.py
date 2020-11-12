@@ -602,8 +602,11 @@ class TestKeyErrorsWithMultiIndex:
             names=["one", "two", "three"],
         )
         df = DataFrame(np.random.rand(4, 3), index=mi)
-        with pytest.raises(KeyError, match=r"\('b', '1', slice\(None, None, None\)\)"):
+        msg = r"\('b', '1', slice\(None, None, None\)\)"
+        with pytest.raises(KeyError, match=msg):
             df.loc[("b", "1", slice(None)), :]
+        with pytest.raises(KeyError, match=msg):
+            df.index.get_locs(("b", "1", slice(None)))
 
 
 def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
