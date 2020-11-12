@@ -11,7 +11,6 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.api.types import (
@@ -419,8 +418,6 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         from pandas.arrays import BooleanArray
 
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndex)):
-            return NotImplemented
         if isinstance(other, ArrowStringArray):
             result = pc_func(self.data, other.data)
         elif is_scalar(other):
