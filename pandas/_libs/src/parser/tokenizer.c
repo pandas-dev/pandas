@@ -1830,7 +1830,7 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
         if (q != NULL) {
            // p and pc are different len due to tsep removal. Can't report
            // how much it has consumed of p. Just rewind to beginning.
-	  *q = (char *)p;  // TODO: this could be undefined behavior
+           *q = (char *)p;  // TODO(willayd): this could be undefined behavior
         }
     }
     if (maybe_int != NULL) *maybe_int = 0;
