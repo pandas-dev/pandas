@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import abc
 from distutils.version import LooseVersion
-import operator
 from typing import TYPE_CHECKING, Any, Sequence, Type, Union
 
 import numpy as np
@@ -425,17 +424,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         elif is_scalar(other):
             result = pc_func(self.data, pa.scalar(other))
         else:
-            rops = {
-                "eq": operator.eq,
-                "ne": operator.ne,
-                "lt": operator.gt,
-                "gt": operator.lt,
-                "le": operator.ge,
-                "ge": operator.le,
-            }
-            rop = rops[op.__name__]
-            result = rop(other, self)
-            return BooleanArray._from_sequence(result)
+            return NotImplemented
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
