@@ -1046,12 +1046,14 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.csvs import CSVFormatter
 
-        created_buffer = path_or_buf is None
-        if created_buffer:
+        if path_or_buf is None:
+            created_buffer = True
             path_or_buf = StringIO()
+        else:
+            created_buffer = False
 
         csv_formatter = CSVFormatter(
-            path_or_buf=path_or_buf,  # type: ignore[arg-type]
+            path_or_buf=path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
@@ -1342,7 +1344,16 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             def base_formatter(v):
                 assert float_format is not None  # for mypy
-                return float_format(value=v) if notna(v) else self.na_rep
+                # pandas\io\formats\format.py:1411: error: "str" not callable
+                # [operator]
+
+                # pandas\io\formats\format.py:1411: error: Unexpected keyword
+                # argument "value" for "__call__" of "EngFormatter"  [call-arg]
+                return (
+                    float_format(value=v)  # type: ignore[operator,call-arg]
+                    if notna(v)
+                    else self.na_rep
+                )
 
         else:
 
