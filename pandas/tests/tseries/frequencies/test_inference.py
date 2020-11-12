@@ -367,6 +367,32 @@ def test_infer_freq_business_hour(data, expected):
     assert idx.inferred_freq == expected
 
 
+def test_infer_freq_across_dst_not_daily():
+    # GH#37295
+    dti = date_range(
+        start=Timestamp("2019-03-26 00:00:00-0400", tz="Canada/Eastern"),
+        end=Timestamp("2020-10-17 00:00:00-0400", tz="Canada/Eastern"),
+        freq="D",
+    )
+    diff = dti - dti.shift()
+    assert not diff.is_unique
+
+    assert dti.inferred_freq is None
+
+    dti2 = DatetimeIndex(dti._with_freq(None), freq="infer")
+    assert dti2.freq is None
+
+    # Comment in DatetimeArray._generate_range says that we knowingly
+    # assign a maybe-incorrect freq in pd.date_range:
+    #
+    #   We break Day arithmetic (fixed 24 hour) here and opt for
+    #   Day to mean calendar day (23/24/25 hour). Therefore, strip
+    #   tz info from start and day to avoid DST arithmetic
+    #
+    # As long as that is used, the following assertion will fail
+    #  assert dti.freq is None
+
+
 def test_not_monotonic():
     rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]

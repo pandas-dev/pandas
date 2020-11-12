@@ -320,7 +320,7 @@ class _FrequencyInferer:
         if monthly_rule:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
-        if self.is_unique:
+        if self.is_unique_asi8:
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
