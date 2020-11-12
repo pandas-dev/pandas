@@ -315,15 +315,19 @@ class TestSlicing:
         s = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
         nonmonotonic = s[[3, 5, 4]]
-        expected = nonmonotonic.iloc[:0]
         timestamp = Timestamp("2014-01-10")
+        msg = r"Timestamp\('2014-01-10 00:00:00'\)"
 
-        tm.assert_series_equal(nonmonotonic["2014-01-10":], expected)
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        with pytest.raises(KeyError, match=msg):
+            nonmonotonic["2014-01-10":]
+
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic[timestamp:]
 
-        tm.assert_series_equal(nonmonotonic.loc["2014-01-10":], expected)
-        with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+        with pytest.raises(KeyError, match=msg):
+            nonmonotonic.loc["2014-01-10":]
+
+        with pytest.raises(KeyError, match=msg):
             nonmonotonic.loc[timestamp:]
 
     def test_loc_datetime_length_one(self):

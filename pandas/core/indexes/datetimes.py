@@ -810,7 +810,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 if end is not None:
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
-
+                if not any(mask):
+                    raise
                 indexer = mask.nonzero()[0][::step]
                 if len(indexer) == len(self):
                     return slice(None)

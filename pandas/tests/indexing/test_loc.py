@@ -1563,6 +1563,15 @@ class TestLabelSlicing:
         expected = ser.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
 
+    def test_loc_getitem_slice_unordered_dt_index(self, frame_or_series):
+        # GH#18531
+        obj = frame_or_series(
+            [1, 2, 3],
+            index=[pd.Timestamp("2017"), pd.Timestamp("2019"), pd.Timestamp("2018")],
+        )
+        with pytest.raises(KeyError, match=r"Timestamp\('2020-01-01 00:00:00'\)"):
+            obj.loc["2020":"2022"]
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
