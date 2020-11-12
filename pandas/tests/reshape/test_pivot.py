@@ -2154,9 +2154,9 @@ class TestPivot:
         expected.columns.name = "columns"
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_index_list_values_none(self):
-        # Tests when index is a list and values None. See GH#37635
-        frame = pd.DataFrame(
+    def test_pivot_index_list_values_none_modifies_args(self):
+        # GH37635
+        df = DataFrame(
             {
                 "lev1": [1, 1, 1, 2, 2, 2],
                 "lev2": [1, 1, 2, 1, 1, 2],
@@ -2167,6 +2167,23 @@ class TestPivot:
         )
         index = ["lev1", "lev2"]
         columns = ["lev3"]
-        frame.pivot(index=index, columns=columns, values=None)
+        pivoted = df.pivot(index=index, columns=columns, values=None)
+
+        expected = DataFrame(
+            {
+                "a": [1.0, 3.0, 5.0, float("nan")],
+                "b": [2.0, float("nan"), 4.0, 6.0],
+                "c": [0.0, 2.0, 4.0, float("nan")],
+                "d": [1.0, float("nan"), 3.0, 5.0],
+            }
+        )
+        expected.index = MultiIndex.from_arrays(
+            [(1, 1, 2, 2), (1, 2, 1, 2)], names=["lev1", "lev2"]
+        )
+        expected.columns = MultiIndex.from_arrays(
+            [("lev4", "lev4", "values", "values"), (1, 2, 1, 2)], names=[None, "lev3"]
+        )
+
+        tm.assert_frame_equal(pivoted, expected)
 
         assert index == ["lev1", "lev2"]
