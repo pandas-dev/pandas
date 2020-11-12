@@ -1520,8 +1520,8 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
     def test_replace_ea_ignore_float(self, frame_or_series, value):
         # GH#34871
-        df = frame_or_series([value] * 3)
-        result = df.replace(1.0, 0.0)
+        obj = frame_or_series([value] * 3)
+        result = obj.replace(1.0, 0.0)
         expected = frame_or_series([value] * 3)
         tm.assert_equal(expected, result)
 
