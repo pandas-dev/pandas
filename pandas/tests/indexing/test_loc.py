@@ -1645,11 +1645,16 @@ class TestLocBooleanMask:
         tm.assert_frame_equal(df, df_copy)
 
     def test_loc_setitem_boolean_list(self):
-        # GH: 20438
+        # GH#20438 testing specifically list key, not arraylike
         ser = Series([0, 1, 2])
         ser.loc[[True, False, True]] = [5, 10]
         expected = Series([5, 1, 10])
         tm.assert_series_equal(ser, expected)
+
+        df = DataFrame({"a": [0, 1, 2]})
+        df.loc[[True, False, True]] = [[5], [10]]
+        expected = DataFrame({"a": [5, 1, 10]})
+        tm.assert_frame_equal(df, expected)
 
 
 def test_series_loc_getitem_label_list_missing_values():
