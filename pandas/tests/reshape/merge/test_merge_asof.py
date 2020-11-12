@@ -98,7 +98,7 @@ class TestAsOfMerge:
         pd.merge_asof(trades, quotes, on="time", by="ticker")
 
         pd.merge_asof(
-            trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+            trades, quotes, on="time", by="ticker", tolerance=Timedelta("2ms")
         )
 
         expected = pd.DataFrame(
@@ -126,7 +126,7 @@ class TestAsOfMerge:
             quotes,
             on="time",
             by="ticker",
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
             allow_exact_matches=False,
         )
         tm.assert_frame_equal(result, expected)
@@ -591,7 +591,7 @@ class TestAsOfMerge:
     @pytest.mark.parametrize(
         "tolerance",
         [Timedelta("1day"), datetime.timedelta(days=1)],
-        ids=["pd.Timedelta", "datetime.timedelta"],
+        ids=["Timedelta", "datetime.timedelta"],
     )
     def test_tolerance(self, tolerance):
 
@@ -652,7 +652,7 @@ class TestAsOfMerge:
                 "value2": list("ABCDE"),
             }
         )
-        result = pd.merge_asof(left, right, on="date", tolerance=pd.Timedelta("1 day"))
+        result = pd.merge_asof(left, right, on="date", tolerance=Timedelta("1 day"))
 
         expected = pd.DataFrame(
             {
@@ -698,7 +698,7 @@ class TestAsOfMerge:
             left_index=True,
             right_index=True,
             by="ticker",
-            tolerance=pd.Timedelta("1day"),
+            tolerance=Timedelta("1day"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -792,7 +792,7 @@ class TestAsOfMerge:
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
@@ -827,7 +827,7 @@ class TestAsOfMerge:
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=pd.Timedelta("10ms"),
+            tolerance=Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
@@ -1342,9 +1342,9 @@ class TestAsOfMerge:
 
     def test_left_index_right_index_tolerance(self):
         # https://github.com/pandas-dev/pandas/issues/35558
-        dr1 = pd.date_range(
-            start="1/1/2020", end="1/20/2020", freq="2D"
-        ) + pd.Timedelta(seconds=0.4)
+        dr1 = pd.date_range(start="1/1/2020", end="1/20/2020", freq="2D") + Timedelta(
+            seconds=0.4
+        )
         dr2 = pd.date_range(start="1/1/2020", end="2/1/2020")
 
         df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
@@ -1358,6 +1358,6 @@ class TestAsOfMerge:
             df2,
             left_index=True,
             right_index=True,
-            tolerance=pd.Timedelta(seconds=0.5),
+            tolerance=Timedelta(seconds=0.5),
         )
         tm.assert_frame_equal(result, expected)

@@ -67,7 +67,7 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core import algorithms, base, generic, missing, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
 from pandas.core.arrays import ExtensionArray
@@ -2814,7 +2814,8 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    @Appender(
+    @doc(
+        generic._shared_docs["compare"],
         """
 Returns
 -------
@@ -2874,9 +2875,9 @@ Keep all original rows and also all original values
 2    c     c
 3    d     b
 4    e     e
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: "Series",
@@ -4191,7 +4192,15 @@ Keep all original rows and also all original values
             )
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        *,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """
         Perform a reduction operation.
@@ -4642,6 +4651,31 @@ Keep all original rows and also all original values
             verbose=verbose,
             show_counts=null_counts,
         )
+
+    def _replace_single(self, to_replace, method, inplace, limit):
+        """
+        Replaces values in a Series using the fill method specified when no
+        replacement value is given in the replace method
+        """
+
+        orig_dtype = self.dtype
+        result = self if inplace else self.copy()
+        fill_f = missing.get_fill_func(method)
+
+        mask = missing.mask_missing(result.values, to_replace)
+        values = fill_f(result.values, limit=limit, mask=mask)
+
+        if values.dtype == orig_dtype and inplace:
+            return
+
+        result = self._constructor(values, index=self.index, dtype=self.dtype)
+        result = result.__finalize__(self)
+
+        if inplace:
+            self._update_inplace(result)
+            return
+
+        return result
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":

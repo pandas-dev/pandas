@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
@@ -601,3 +601,33 @@ class TestGrouperGrouping:
             df = df.set_index("a")
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
+
+    def test_groupby_rolling_group_keys(self):
+        # GH 37641
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        s = Series([1, 2, 3], index=index)
+        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
+        expected = Series(
+            [1.0, 2.0, 3.0],
+            index=MultiIndex.from_tuples(
+                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
+                names=["idx1", "idx2"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_index_level_and_column_label(self):
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=index)
+        result = df.groupby(["idx1", "A"]).rolling(1).mean()
+        expected = DataFrame(
+            {"B": [0.0, 1.0, 2.0]},
+            index=MultiIndex.from_tuples(
+                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
