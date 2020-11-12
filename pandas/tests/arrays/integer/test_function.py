@@ -64,6 +64,20 @@ def test_ufuncs_binary_int(ufunc):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_ufunc_binary_output():
+    a = integer_array([1, 2, np.nan])
+    result = np.modf(a)
+    expected = np.modf(a.to_numpy(na_value=np.nan, dtype="float"))
+
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+
+    for x, y in zip(result, expected):
+        # TODO(FloatArray): This will return an extension array.
+        # y = integer_array(y)
+        tm.assert_numpy_array_equal(x, y)
+
+
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
     a = integer_array(values)

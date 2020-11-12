@@ -3,7 +3,7 @@ Concat routines.
 """
 
 from collections import abc
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Type, Union, cast, overload
 
 import numpy as np
 
@@ -24,14 +24,14 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
     ensure_index,
-    get_consensus_names,
     get_objs_combined_axis,
+    get_unanimous_names,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
@@ -361,7 +361,7 @@ class _Concatenator:
                 raise TypeError(msg)
 
             # consolidate
-            obj._consolidate(inplace=True)
+            obj._consolidate_inplace()
             ndims.add(obj.ndim)
 
         # get the sample
@@ -456,14 +456,17 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
+        cons: Type[FrameOrSeriesUnion]
+        sample: FrameOrSeriesUnion
 
         # series only
         if self._is_series:
+            sample = cast("Series", self.objs[0])
 
             # stack blocks
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
-                cons = self.objs[0]._constructor
+                cons = sample._constructor
 
                 arrs = [ser._values for ser in self.objs]
 
@@ -476,7 +479,7 @@ class _Concatenator:
                 data = dict(zip(range(len(self.objs)), self.objs))
 
                 # GH28330 Preserves subclassed objects through concat
-                cons = self.objs[0]._constructor_expanddim
+                cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
@@ -485,6 +488,8 @@ class _Concatenator:
 
         # combine block managers
         else:
+            sample = cast("DataFrame", self.objs[0])
+
             mgrs_indexers = []
             for obj in self.objs:
                 indexers = {}
@@ -514,7 +519,7 @@ class _Concatenator:
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            cons = self.objs[0]._constructor
+            cons = sample._constructor
             return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
@@ -663,7 +668,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 )
 
             # also copies
-            names = names + get_consensus_names(indexes)
+            names = list(names) + list(get_unanimous_names(*indexes))
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False

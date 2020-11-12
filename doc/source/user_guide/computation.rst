@@ -328,6 +328,7 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Sample covariance (binary)
     :meth:`~Rolling.corr`, Sample correlation (binary)
+    :meth:`~Rolling.sem`, Standard error of mean
 
 .. _computation.window_variance.caveats:
 
@@ -449,6 +450,10 @@ The list of recognized types are the `scipy.signal window functions
 * ``general_gaussian`` (needs power, width)
 * ``slepian`` (needs width)
 * ``exponential`` (needs tau).
+
+.. versionadded:: 1.2.0
+
+All Scipy window types, concurrent with your installed version, are recognized ``win_types``.
 
 .. ipython:: python
 
@@ -651,9 +656,9 @@ parameter:
     :header: "``closed``", "Description", "Default for"
     :widths: 20, 30, 30
 
-    ``right``, close right endpoint, time-based windows
+    ``right``, close right endpoint,
     ``left``, close left endpoint,
-    ``both``, close both endpoints, fixed windows
+    ``both``, close both endpoints,
     ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
@@ -679,9 +684,6 @@ from present information back to past information. This allows the rolling windo
    df["neither"] = df.rolling("2s", closed="neither").x.sum()
 
    df
-
-Currently, this feature is only implemented for time-based windows.
-For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.iter_rolling_window:
 
@@ -787,7 +789,11 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = df[["B", "C", "D"]].rolling(window=50).cov(df[["A", "B", "C"]], pairwise=True)
+   covs = (
+       df[["B", "C", "D"]]
+       .rolling(window=50)
+       .cov(df[["A", "B", "C"]], pairwise=True)
+   )
    covs.loc["2002-09-22":]
 
 .. ipython:: python
@@ -934,6 +940,7 @@ Method summary
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Sample covariance (binary)
     :meth:`~Expanding.corr`, Sample correlation (binary)
+    :meth:`~Expanding.sem`, Standard error of mean
 
 .. note::
 

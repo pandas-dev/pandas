@@ -317,7 +317,9 @@ which can be specified. These are computed from the starting point specified by 
 
 .. ipython:: python
 
-   pd.to_datetime([1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s")
+   pd.to_datetime(
+       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s"
+   )
 
    pd.to_datetime(
        [1349720105100, 1349720105200, 1349720105300, 1349720105400, 1349720105500],
@@ -707,7 +709,9 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
 .. ipython:: python
     :okwarning:
 
-    dft_minute = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index)
+    dft_minute = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index
+    )
     dft_minute["2011-12-31 23"]
 
 
@@ -748,9 +752,10 @@ With no defaults.
 .. ipython:: python
 
    dft[
-       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(2013, 2, 28, 10, 12, 0)
+       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(
+           2013, 2, 28, 10, 12, 0
+       )
    ]
-
 
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -798,9 +803,11 @@ There are several time/date properties that one can access from ``Timestamp`` or
     time,"Returns datetime.time (does not contain timezone information)"
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
+    day_of_year,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
+    day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
@@ -872,7 +879,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
@@ -1036,8 +1043,15 @@ As an interesting example, let's look at Egypt where a Friday-Saturday weekend i
     # They also observe International Workers' Day so let's
     # add that for a couple of years
 
-    holidays = ["2012-05-01", datetime.datetime(2013, 5, 1), np.datetime64("2014-05-01")]
-    bday_egypt = pd.offsets.CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+    holidays = [
+        "2012-05-01",
+        datetime.datetime(2013, 5, 1),
+        np.datetime64("2014-05-01"),
+    ]
+    bday_egypt = pd.offsets.CustomBusinessDay(
+        holidays=holidays,
+        weekmask=weekmask_egypt,
+    )
     dt = datetime.datetime(2013, 4, 30)
     dt + 2 * bday_egypt
 
@@ -1417,7 +1431,12 @@ An example of how holidays and holiday calendars are defined:
         rules = [
             USMemorialDay,
             Holiday("July 4th", month=7, day=4, observance=nearest_workday),
-            Holiday("Columbus Day", month=10, day=1, offset=pd.DateOffset(weekday=MO(2))),
+            Holiday(
+                "Columbus Day",
+                month=10,
+                day=1,
+                offset=pd.DateOffset(weekday=MO(2)),
+            ),
         ]
 
 
@@ -1549,7 +1568,7 @@ Converting to Python datetimes
 Resampling
 ----------
 
-Pandas has a simple, powerful, and efficient functionality for performing
+pandas has a simple, powerful, and efficient functionality for performing
 resampling operations during frequency conversion (e.g., converting secondly
 data into 5-minutely data). This is extremely common in, but not limited to,
 financial applications.
@@ -2279,7 +2298,12 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    rng_dateutil.tz
 
    # dateutil - utc special case
-   rng_utc = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz=dateutil.tz.tzutc())
+   rng_utc = pd.date_range(
+       "3/6/2012 00:00",
+       periods=3,
+       freq="D",
+       tz=dateutil.tz.tzutc(),
+   )
    rng_utc.tz
 
 .. versionadded:: 0.25.0
@@ -2287,7 +2311,12 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
 .. ipython:: python
 
    # datetime.timezone
-   rng_utc = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz=datetime.timezone.utc)
+   rng_utc = pd.date_range(
+       "3/6/2012 00:00",
+       periods=3,
+       freq="D",
+       tz=datetime.timezone.utc,
+   )
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly
@@ -2440,10 +2469,18 @@ control over how they are handled.
 .. ipython:: python
 
    pd.Timestamp(
-       datetime.datetime(2019, 10, 27, 1, 30, 0, 0), tz="dateutil/Europe/London", fold=0
+       datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
+       tz="dateutil/Europe/London",
+       fold=0,
    )
    pd.Timestamp(
-       year=2019, month=10, day=27, hour=1, minute=30, tz="dateutil/Europe/London", fold=1
+       year=2019,
+       month=10,
+       day=27,
+       hour=1,
+       minute=30,
+       tz="dateutil/Europe/London",
+       fold=1,
    )
 
 .. _timeseries.timezone_ambiguous:

@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
@@ -420,23 +420,24 @@ def _validate_names(names):
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-        if not is_list_like(names, allow_sets=False):
+        if not (
+            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+        ):
             raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -459,14 +460,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        # close any fsspec-like objects
+        ioargs.close()
 
     return data
 
@@ -542,7 +539,7 @@ _deprecated_args: Set[str] = set()
 )
 def read_csv(
     filepath_or_buffer: FilePathOrBuffer,
-    sep=",",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -600,93 +597,14 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    # gh-23761
-    #
-    # When a dialect is passed, it overrides any of the overlapping
-    # parameters passed in directly. We don't want to warn if the
-    # default parameters were passed in (since it probably means
-    # that the user didn't pass them in explicitly in the first place).
-    #
-    # "delimiter" is the annoying corner case because we alias it to
-    # "sep" before doing comparison to the dialect values later on.
-    # Thus, we need a flag to indicate that we need to "override"
-    # the comparison to dialect values by checking if default values
-    # for BOTH "delimiter" and "sep" were provided.
-    default_sep = ","
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
 
-    if dialect is not None:
-        sep_override = delimiter is None and sep == default_sep
-        kwds = dict(sep_override=sep_override)
-    else:
-        kwds = dict()
-
-    # Alias sep -> delimiter.
-    if delimiter is None:
-        delimiter = sep
-
-    if delim_whitespace and delimiter != default_sep:
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-
-    if engine is not None:
-        engine_specified = True
-    else:
-        engine = "c"
-        engine_specified = False
-
-    kwds.update(
-        delimiter=delimiter,
-        engine=engine,
-        dialect=dialect,
-        compression=compression,
-        engine_specified=engine_specified,
-        doublequote=doublequote,
-        escapechar=escapechar,
-        quotechar=quotechar,
-        quoting=quoting,
-        skipinitialspace=skipinitialspace,
-        lineterminator=lineterminator,
-        header=header,
-        index_col=index_col,
-        names=names,
-        prefix=prefix,
-        skiprows=skiprows,
-        skipfooter=skipfooter,
-        na_values=na_values,
-        true_values=true_values,
-        false_values=false_values,
-        keep_default_na=keep_default_na,
-        thousands=thousands,
-        comment=comment,
-        decimal=decimal,
-        parse_dates=parse_dates,
-        keep_date_col=keep_date_col,
-        dayfirst=dayfirst,
-        date_parser=date_parser,
-        cache_dates=cache_dates,
-        nrows=nrows,
-        iterator=iterator,
-        chunksize=chunksize,
-        converters=converters,
-        dtype=dtype,
-        usecols=usecols,
-        verbose=verbose,
-        encoding=encoding,
-        squeeze=squeeze,
-        memory_map=memory_map,
-        float_precision=float_precision,
-        na_filter=na_filter,
-        delim_whitespace=delim_whitespace,
-        warn_bad_lines=warn_bad_lines,
-        error_bad_lines=error_bad_lines,
-        low_memory=low_memory,
-        mangle_dupe_cols=mangle_dupe_cols,
-        infer_datetime_format=infer_datetime_format,
-        skip_blank_lines=skip_blank_lines,
-        storage_options=storage_options,
+    kwds_defaults = _refine_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
     )
+    kwds.update(kwds_defaults)
 
     return _read(filepath_or_buffer, kwds)
 
@@ -700,7 +618,7 @@ def read_csv(
 )
 def read_table(
     filepath_or_buffer: FilePathOrBuffer,
-    sep="\t",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -757,17 +675,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    # TODO: validation duplicated in read_csv
-    if delim_whitespace and (delimiter is not None or sep != "\t"):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-    if delim_whitespace:
-        # In this case sep is not used so we set it to the read_csv
-        # default to avoid a ValueError
-        sep = ","
-    return read_csv(**locals())
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
+
+    kwds_defaults = _refine_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+    )
+    kwds.update(kwds_defaults)
+
+    return _read(filepath_or_buffer, kwds)
 
 
 def read_fwf(
@@ -867,63 +784,14 @@ class TextFileReader(abc.Iterator):
         else:
             engine = "python"
             engine_specified = False
-
+        self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
-        if kwds.get("dialect") is not None:
-            dialect = kwds["dialect"]
-            if dialect in csv.list_dialects():
-                dialect = csv.get_dialect(dialect)
+        _validate_skipfooter(kwds)
 
-            # Any valid dialect should have these attributes.
-            # If any are missing, we will raise automatically.
-            for param in (
-                "delimiter",
-                "doublequote",
-                "escapechar",
-                "skipinitialspace",
-                "quotechar",
-                "quoting",
-            ):
-                try:
-                    dialect_val = getattr(dialect, param)
-                except AttributeError as err:
-                    raise ValueError(
-                        f"Invalid dialect {kwds['dialect']} provided"
-                    ) from err
-                parser_default = _parser_defaults[param]
-                provided = kwds.get(param, parser_default)
-
-                # Messages for conflicting values between the dialect
-                # instance and the actual parameters provided.
-                conflict_msgs = []
-
-                # Don't warn if the default parameter was passed in,
-                # even if it conflicts with the dialect (gh-23761).
-                if provided != parser_default and provided != dialect_val:
-                    msg = (
-                        f"Conflicting values for '{param}': '{provided}' was "
-                        f"provided, but the dialect specifies '{dialect_val}'. "
-                        "Using the dialect-specified value."
-                    )
-
-                    # Annoying corner case for not warning about
-                    # conflicts between dialect and delimiter parameter.
-                    # Refer to the outer "_read_" function for more info.
-                    if not (param == "delimiter" and kwds.pop("sep_override", False)):
-                        conflict_msgs.append(msg)
-
-                if conflict_msgs:
-                    warnings.warn(
-                        "\n\n".join(conflict_msgs), ParserWarning, stacklevel=2
-                    )
-                kwds[param] = dialect_val
-
-        if kwds.get("skipfooter"):
-            if kwds.get("iterator") or kwds.get("chunksize"):
-                raise ValueError("'skipfooter' not supported for 'iteration'")
-            if kwds.get("nrows"):
-                raise ValueError("'skipfooter' not supported with 'nrows'")
+        dialect = _extract_dialect(kwds)
+        if dialect is not None:
+            kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -931,7 +799,6 @@ class TextFileReader(abc.Iterator):
         self.orig_options = kwds
 
         # miscellanea
-        self.engine = engine
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -984,7 +851,10 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            for argname, default in _fwf_defaults.items():
+            # pandas\io\parsers.py:907: error: Incompatible types in assignment
+            # (expression has type "object", variable has type "Union[int, str,
+            # None]")  [assignment]
+            for argname, default in _fwf_defaults.items():  # type: ignore[assignment]
                 options[argname] = kwds.get(argname, default)
 
         return options
@@ -1006,7 +876,6 @@ class TextFileReader(abc.Iterator):
     def _clean_options(self, options, engine):
         result = options.copy()
 
-        engine_specified = self._engine_specified
         fallback_reason = None
 
         # C engine not supported yet
@@ -1070,7 +939,7 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
 
-        if fallback_reason and engine_specified:
+        if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
 
         if engine == "c":
@@ -1106,24 +975,17 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        depr_warning = ""
-
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
             depr_default = _deprecated_defaults[arg]
-
-            msg = (
-                f"The {repr(arg)} argument has been deprecated and will be "
-                "removed in a future version."
-            )
-
             if result.get(arg, depr_default) != depr_default:
-                depr_warning += msg + "\n\n"
+                msg = (
+                    f"The {arg} argument has been deprecated and will be "
+                    "removed in a future version.\n\n"
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
             else:
                 result[arg] = parser_default
-
-        if depr_warning != "":
-            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -1176,9 +1038,18 @@ class TextFileReader(abc.Iterator):
 
     def _make_engine(self, engine="c"):
         mapping = {
-            "c": CParserWrapper,
-            "python": PythonParser,
-            "python-fwf": FixedWidthFieldParser,
+            # pandas\io\parsers.py:1099: error: Dict entry 0 has incompatible
+            # type "str": "Type[CParserWrapper]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "c": CParserWrapper,  # type: ignore[dict-item]
+            # pandas\io\parsers.py:1100: error: Dict entry 1 has incompatible
+            # type "str": "Type[PythonParser]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "python": PythonParser,  # type: ignore[dict-item]
+            # pandas\io\parsers.py:1101: error: Dict entry 2 has incompatible
+            # type "str": "Type[FixedWidthFieldParser]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "python-fwf": FixedWidthFieldParser,  # type: ignore[dict-item]
         }
         try:
             klass = mapping[engine]
@@ -1486,10 +1357,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1539,8 +1406,9 @@ class ParserBase:
             )
 
     def close(self):
-        for f in self.handles:
-            f.close()
+        # pandas\io\parsers.py:1409: error: "ParserBase" has no attribute
+        # "handles"  [attr-defined]
+        self.handles.close()  # type: ignore[attr-defined]
 
     @property
     def _has_complex_date_col(self):
@@ -1636,7 +1504,9 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = defaultdict(int)
+            # pandas\io\parsers.py:1559: error: Need type annotation for
+            # 'counts'  [var-annotated]
+            counts = defaultdict(int)  # type: ignore[var-annotated]
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -1681,7 +1551,9 @@ class ParserBase:
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            index = index.set_names(indexnamerow[:coffset])
+            # pandas\io\parsers.py:1604: error: Item "None" of "Optional[Any]"
+            # has no attribute "set_names"  [union-attr]
+            index = index.set_names(indexnamerow[:coffset])  # type: ignore[union-attr]
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -1739,7 +1611,7 @@ class ParserBase:
 
         return index
 
-    def _agg_index(self, index, try_parse_dates=True):
+    def _agg_index(self, index, try_parse_dates=True) -> Index:
         arrays = []
 
         for i, arr in enumerate(index):
@@ -1755,7 +1627,9 @@ class ParserBase:
                 col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
-                col_name = self.index_names[i]
+                # pandas\io\parsers.py:1678: error: Value of type
+                # "Optional[Any]" is not indexable  [index]
+                col_name = self.index_names[i]  # type: ignore[index]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
@@ -1974,23 +1848,42 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
+            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
+            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
+            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
+            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-            kwds["encoding"] = "utf-8"
+            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
+            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
+            # no attribute "mmap"  [union-attr]
+            self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1999,7 +1892,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2074,15 +1967,19 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                self.index_names = [None] * len(self.index_names)
+                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
+                # incompatible type "Optional[Any]"; expected "Sized"
+                # [arg-type]
+                self.index_names = [None] * len(
+                    self.index_names  # type: ignore[arg-type]
+                )
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:
@@ -2107,14 +2004,20 @@ class CParserWrapper(ParserBase):
             usecols = self.names[:]
         else:
             # Usecols is empty.
-            usecols = None
+
+            # pandas\io\parsers.py:2030: error: Incompatible types in
+            # assignment (expression has type "None", variable has type
+            # "List[Any]")  [assignment]
+            usecols = None  # type: ignore[assignment]
 
         def _set(x):
             if usecols is not None and is_integer(x):
                 x = usecols[x]
 
             if not is_integer(x):
-                x = names.index(x)
+                # pandas\io\parsers.py:2037: error: Item "None" of
+                # "Optional[Any]" has no attribute "index"  [union-attr]
+                x = names.index(x)  # type: ignore[union-attr]
 
             self._reader.set_noconvert(x)
 
@@ -2208,7 +2111,11 @@ class CParserWrapper(ParserBase):
             data = sorted(data.items())
 
             # ugh, mutation
-            names = list(self.orig_names)
+
+            # pandas\io\parsers.py:2131: error: Argument 1 to "list" has
+            # incompatible type "Optional[Any]"; expected "Iterable[Any]"
+            # [arg-type]
+            names = list(self.orig_names)  # type: ignore[arg-type]
             names = self._maybe_dedup_names(names)
 
             if self.usecols is not None:
@@ -2313,7 +2220,7 @@ def TextParser(*args, **kwds):
     return TextFileReader(*args, **kwds)
 
 
-def count_empty_vals(vals):
+def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
@@ -2373,20 +2280,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = f
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -2543,7 +2449,11 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        self.data = reader
+        # pandas\io\parsers.py:2427: error: Incompatible types in assignment
+        # (expression has type "_reader", variable has type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap, None]")
+        # [assignment]
+        self.data = reader  # type: ignore[assignment]
 
     def read(self, rows=None):
         try:
@@ -2557,7 +2467,10 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns = list(self.orig_names)
+        # pandas\io\parsers.py:2480: error: Argument 1 to "list" has
+        # incompatible type "Optional[Any]"; expected "Iterable[Any]"
+        # [arg-type]
+        columns = list(self.orig_names)  # type: ignore[arg-type]
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -2605,7 +2518,9 @@ class PythonParser(ParserBase):
     # legacy
     def get_chunk(self, size=None):
         if size is None:
-            size = self.chunksize
+            # pandas\io\parsers.py:2528: error: "PythonParser" has no attribute
+            # "chunksize"  [attr-defined]
+            size = self.chunksize  # type: ignore[attr-defined]
         return self.read(rows=size)
 
     def _convert_data(self, data):
@@ -2614,8 +2529,15 @@ class PythonParser(ParserBase):
             """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2537: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2538: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
                 clean[col] = v
             return clean
 
@@ -2635,8 +2557,15 @@ class PythonParser(ParserBase):
                 na_value = self.na_values[col]
                 na_fvalue = self.na_fvalues[col]
 
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2558: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2559: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
 
                 clean_na_values[col] = na_value
                 clean_na_fvalues[col] = na_fvalue
@@ -2657,7 +2586,10 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols = set()
+        # pandas\io\parsers.py:2580: error: Need type annotation for
+        # 'unnamed_cols' (hint: "unnamed_cols: Set[<type>] = ...")
+        # [var-annotated]
+        unnamed_cols = set()  # type: ignore[var-annotated]
 
         if self.header is not None:
             header = self.header
@@ -2671,7 +2603,9 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns = []
+            # pandas\io\parsers.py:2594: error: Need type annotation for
+            # 'columns' (hint: "columns: List[<type>] = ...")  [var-annotated]
+            columns = []  # type: ignore[var-annotated]
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -2716,7 +2650,9 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = defaultdict(int)
+                    # pandas\io\parsers.py:2639: error: Need type annotation
+                    # for 'counts'  [var-annotated]
+                    counts = defaultdict(int)  # type: ignore[var-annotated]
 
                     for i, col in enumerate(this_columns):
                         cur_count = counts[col]
@@ -2740,10 +2676,16 @@ class PythonParser(ParserBase):
 
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
-                            this_columns = [None] * lc
+                            # pandas\io\parsers.py:2663: error: List item 0 has
+                            # incompatible type "None"; expected "str"
+                            # [list-item]
+                            this_columns = [None] * lc  # type: ignore[list-item]
                             self.buf = [self.buf[-1]]
 
-                columns.append(this_columns)
+                # pandas\io\parsers.py:2666: error: Argument 1 to "append" of
+                # "list" has incompatible type "List[str]"; expected
+                # "List[None]"  [arg-type]
+                columns.append(this_columns)  # type: ignore[arg-type]
                 unnamed_cols.update({this_columns[i] for i in this_unnamed_cols})
 
                 if len(columns) == 1:
@@ -2788,9 +2730,19 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
+                    # pandas\io\parsers.py:2711: error: List comprehension has
+                    # incompatible type List[str]; expected List[None]  [misc]
+                    columns = [
+                        [
+                            f"{self.prefix}{i}"  # type: ignore[misc]
+                            for i in range(ncols)
+                        ]
+                    ]
                 else:
-                    columns = [list(range(ncols))]
+                    # pandas\io\parsers.py:2713: error: Argument 1 to "list"
+                    # has incompatible type "range"; expected "Iterable[None]"
+                    # [arg-type]
+                    columns = [list(range(ncols))]  # type: ignore[arg-type]
                 columns = self._handle_usecols(columns, columns[0])
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
@@ -2942,7 +2894,10 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                next(self.data)
+                # pandas\io\parsers.py:2865: error: Argument 1 to "next" has
+                # incompatible type "Optional[Any]"; expected "Iterator[Any]"
+                # [arg-type]
+                next(self.data)  # type: ignore[arg-type]
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
@@ -3003,7 +2958,10 @@ class PythonParser(ParserBase):
         row_num : The row number of the line being parsed.
         """
         try:
-            return next(self.data)
+            # pandas\io\parsers.py:2926: error: Argument 1 to "next" has
+            # incompatible type "Optional[Any]"; expected "Iterator[Any]"
+            # [arg-type]
+            return next(self.data)  # type: ignore[arg-type]
         except csv.Error as e:
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
@@ -3236,12 +3194,19 @@ class PythonParser(ParserBase):
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        or i - len(self.index_col) in self._col_indices
+                        # pandas\io\parsers.py:3159: error: Unsupported right
+                        # operand type for in ("Optional[Any]")  [operator]
+                        or i - len(self.index_col)  # type: ignore[operator]
+                        in self._col_indices
                     )
                 ]
             else:
                 zipped_content = [
-                    a for i, a in enumerate(zipped_content) if i in self._col_indices
+                    # pandas\io\parsers.py:3164: error: Unsupported right
+                    # operand type for in ("Optional[Any]")  [operator]
+                    a
+                    for i, a in enumerate(zipped_content)
+                    if i in self._col_indices  # type: ignore[operator]
                 ]
         return zipped_content
 
@@ -3286,7 +3251,10 @@ class PythonParser(ParserBase):
                 try:
                     if rows is not None:
                         for _ in range(rows):
-                            new_rows.append(next(self.data))
+                            # pandas\io\parsers.py:3209: error: Argument 1 to
+                            # "next" has incompatible type "Optional[Any]";
+                            # expected "Iterator[Any]"  [arg-type]
+                            new_rows.append(next(self.data))  # type: ignore[arg-type]
                         lines.extend(new_rows)
                     else:
                         rows = 0
@@ -3464,7 +3432,9 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = STR_NA_VALUES
         else:
             na_values = set()
-        na_fvalues = set()
+        # pandas\io\parsers.py:3387: error: Need type annotation for
+        # 'na_fvalues' (hint: "na_fvalues: Set[<type>] = ...")  [var-annotated]
+        na_fvalues = set()  # type: ignore[var-annotated]
     elif isinstance(na_values, dict):
         old_na_values = na_values.copy()
         na_values = {}  # Prevent aliasing.
@@ -3481,7 +3451,12 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
-        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
+        # pandas\io\parsers.py:3404: error: Incompatible types in assignment
+        # (expression has type "Dict[Any, Any]", variable has type "Set[Any]")
+        # [assignment]
+        na_fvalues = {  # type: ignore[assignment]
+            k: _floatify_na_values(v) for k, v in na_values.items()
+        }
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3522,7 +3497,10 @@ def _clean_index_names(columns, index_col, unnamed_cols):
     # Only clean index names that were placeholders.
     for i, name in enumerate(index_names):
         if isinstance(name, str) and name in unnamed_cols:
-            index_names[i] = None
+            # pandas\io\parsers.py:3445: error: No overload variant of
+            # "__setitem__" of "list" matches argument types "int", "None"
+            # [call-overload]
+            index_names[i] = None  # type: ignore[call-overload]
 
     return index_names, columns, index_col
 
@@ -3599,11 +3577,15 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            result.append(v)
+            # pandas\io\parsers.py:3522: error: Argument 1 to "append" of
+            # "list" has incompatible type "float"; expected "str"  [arg-type]
+            result.append(v)  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
         try:
-            result.append(int(x))
+            # pandas\io\parsers.py:3526: error: Argument 1 to "append" of
+            # "list" has incompatible type "int"; expected "str"  [arg-type]
+            result.append(int(x))  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
@@ -3774,7 +3756,11 @@ class FixedWidthFieldParser(PythonParser):
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
-        self.data = FixedWidthReader(
+        # pandas\io\parsers.py:3730: error: Incompatible types in assignment
+        # (expression has type "FixedWidthReader", variable has type
+        # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
+        # mmap, None]")  [assignment]
+        self.data = FixedWidthReader(  # type: ignore[assignment]
             f,
             self.colspecs,
             self.delimiter,
@@ -3782,3 +3768,209 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+
+def _refine_defaults_read(
+    dialect: Union[str, csv.Dialect],
+    delimiter: Union[str, object],
+    delim_whitespace: bool,
+    engine: str,
+    sep: Union[str, object],
+    defaults: Dict[str, Any],
+):
+    """Validate/refine default values of input parameters of read_csv, read_table.
+
+    Parameters
+    ----------
+    dialect : str or csv.Dialect
+        If provided, this parameter will override values (default or not) for the
+        following parameters: `delimiter`, `doublequote`, `escapechar`,
+        `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+        override values, a ParserWarning will be issued. See csv.Dialect
+        documentation for more details.
+    delimiter : str or object
+        Alias for sep.
+    delim_whitespace : bool
+        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+        is set to True, nothing should be passed in for the ``delimiter``
+        parameter.
+    engine : {{'c', 'python'}}
+        Parser engine to use. The C engine is faster while the python engine is
+        currently more feature-complete.
+    sep : str or object
+        A delimiter provided by the user (str) or a sentinel value, i.e.
+        pandas._libs.lib.no_default.
+    defaults: dict
+        Default values of input parameters.
+
+    Returns
+    -------
+    kwds : dict
+        Input parameters with correct values.
+
+    Raises
+    ------
+    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+        ``delim_whitespace=True``.
+    """
+    # fix types for sep, delimiter to Union(str, Any)
+    delim_default = defaults["delimiter"]
+    kwds: Dict[str, Any] = {}
+    # gh-23761
+    #
+    # When a dialect is passed, it overrides any of the overlapping
+    # parameters passed in directly. We don't want to warn if the
+    # default parameters were passed in (since it probably means
+    # that the user didn't pass them in explicitly in the first place).
+    #
+    # "delimiter" is the annoying corner case because we alias it to
+    # "sep" before doing comparison to the dialect values later on.
+    # Thus, we need a flag to indicate that we need to "override"
+    # the comparison to dialect values by checking if default values
+    # for BOTH "delimiter" and "sep" were provided.
+    if dialect is not None:
+        kwds["sep_override"] = delimiter is None and (
+            sep is lib.no_default or sep == delim_default
+        )
+
+    # Alias sep -> delimiter.
+    if delimiter is None:
+        delimiter = sep
+
+    if delim_whitespace and (delimiter is not lib.no_default):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter is lib.no_default:
+        # assign default separator value
+        kwds["delimiter"] = delim_default
+    else:
+        kwds["delimiter"] = delimiter
+
+    if engine is not None:
+        kwds["engine_specified"] = True
+    else:
+        kwds["engine"] = "c"
+        kwds["engine_specified"] = False
+
+    return kwds
+
+
+def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+    """
+    Extract concrete csv dialect instance.
+
+    Returns
+    -------
+    csv.Dialect or None
+    """
+    if kwds.get("dialect") is None:
+        return None
+
+    dialect = kwds["dialect"]
+    if dialect in csv.list_dialects():
+        dialect = csv.get_dialect(dialect)
+
+    _validate_dialect(dialect)
+
+    return dialect
+
+
+MANDATORY_DIALECT_ATTRS = (
+    "delimiter",
+    "doublequote",
+    "escapechar",
+    "skipinitialspace",
+    "quotechar",
+    "quoting",
+)
+
+
+def _validate_dialect(dialect: csv.Dialect) -> None:
+    """
+    Validate csv dialect instance.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
+    for param in MANDATORY_DIALECT_ATTRS:
+        if not hasattr(dialect, param):
+            raise ValueError(f"Invalid dialect {dialect} provided")
+
+
+def _merge_with_dialect_properties(
+    dialect: csv.Dialect,
+    defaults: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Merge default kwargs in TextFileReader with dialect parameters.
+
+    Parameters
+    ----------
+    dialect : csv.Dialect
+        Concrete csv dialect. See csv.Dialect documentation for more details.
+    defaults : dict
+        Keyword arguments passed to TextFileReader.
+
+    Returns
+    -------
+    kwds : dict
+        Updated keyword arguments, merged with dialect parameters.
+    """
+    kwds = defaults.copy()
+
+    for param in MANDATORY_DIALECT_ATTRS:
+        dialect_val = getattr(dialect, param)
+
+        parser_default = _parser_defaults[param]
+        provided = kwds.get(param, parser_default)
+
+        # Messages for conflicting values between the dialect
+        # instance and the actual parameters provided.
+        conflict_msgs = []
+
+        # Don't warn if the default parameter was passed in,
+        # even if it conflicts with the dialect (gh-23761).
+        if provided != parser_default and provided != dialect_val:
+            msg = (
+                f"Conflicting values for '{param}': '{provided}' was "
+                f"provided, but the dialect specifies '{dialect_val}'. "
+                "Using the dialect-specified value."
+            )
+
+            # Annoying corner case for not warning about
+            # conflicts between dialect and delimiter parameter.
+            # Refer to the outer "_read_" function for more info.
+            if not (param == "delimiter" and kwds.pop("sep_override", False)):
+                conflict_msgs.append(msg)
+
+        if conflict_msgs:
+            warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
+        kwds[param] = dialect_val
+    return kwds
+
+
+def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+    """
+    Check whether skipfooter is compatible with other kwargs in TextFileReader.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+
+    Raises
+    ------
+    ValueError
+        If skipfooter is not compatible with other parameters.
+    """
+    if kwds.get("skipfooter"):
+        if kwds.get("iterator") or kwds.get("chunksize"):
+            raise ValueError("'skipfooter' not supported for iteration")
+        if kwds.get("nrows"):
+            raise ValueError("'skipfooter' not supported with 'nrows'")

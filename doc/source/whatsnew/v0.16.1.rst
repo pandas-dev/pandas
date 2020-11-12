@@ -209,9 +209,8 @@ when sampling from rows.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'col1': [9, 8, 7, 6],
-                      'weight_column': [0.5, 0.4, 0.1, 0]})
-   df.sample(n=3, weights='weight_column')
+   df = pd.DataFrame({"col1": [9, 8, 7, 6], "weight_column": [0.5, 0.4, 0.1, 0]})
+   df.sample(n=3, weights="weight_column")
 
 
 .. _whatsnew_0161.enhancements.string:
@@ -229,7 +228,7 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     idx = pd.Index([' jack', 'jill ', ' jesse ', 'frank'])
+     idx = pd.Index([" jack", "jill ", " jesse ", "frank"])
      idx.str.strip()
 
   One special case for the ``.str`` accessor on ``Index`` is that if a string method returns ``bool``, the ``.str`` accessor
@@ -238,11 +237,11 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     idx = pd.Index(['a1', 'a2', 'b1', 'b2'])
+     idx = pd.Index(["a1", "a2", "b1", "b2"])
      s = pd.Series(range(4), index=idx)
      s
-     idx.str.startswith('a')
-     s[s.index.str.startswith('a')]
+     idx.str.startswith("a")
+     s[s.index.str.startswith("a")]
 
 - The following new methods are accessible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
@@ -257,21 +256,21 @@ enhancements make string operations easier and more consistent with standard pyt
 
   .. ipython:: python
 
-     s = pd.Series(['a,b', 'a,c', 'b,c'])
+     s = pd.Series(["a,b", "a,c", "b,c"])
 
      # return Series
-     s.str.split(',')
+     s.str.split(",")
 
      # return DataFrame
-     s.str.split(',', expand=True)
+     s.str.split(",", expand=True)
 
-     idx = pd.Index(['a,b', 'a,c', 'b,c'])
+     idx = pd.Index(["a,b", "a,c", "b,c"])
 
      # return Index
-     idx.str.split(',')
+     idx.str.split(",")
 
      # return MultiIndex
-     idx.str.split(',', expand=True)
+     idx.str.split(",", expand=True)
 
 
 - Improved ``extract`` and ``get_dummies`` methods for ``Index.str`` (:issue:`9980`)
@@ -286,9 +285,9 @@ Other enhancements
 
   .. ipython:: python
 
-     pd.Timestamp('2014-08-01 09:00') + pd.tseries.offsets.BusinessHour()
-     pd.Timestamp('2014-08-01 07:00') + pd.tseries.offsets.BusinessHour()
-     pd.Timestamp('2014-08-01 16:30') + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp("2014-08-01 09:00") + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp("2014-08-01 07:00") + pd.tseries.offsets.BusinessHour()
+     pd.Timestamp("2014-08-01 16:30") + pd.tseries.offsets.BusinessHour()
 
 - ``DataFrame.diff`` now takes an ``axis`` parameter that determines the direction of differencing (:issue:`9727`)
 
@@ -300,8 +299,8 @@ Other enhancements
 
   .. ipython:: python
 
-    df = pd.DataFrame(np.random.randn(3, 3), columns=['A', 'B', 'C'])
-    df.drop(['A', 'X'], axis=1, errors='ignore')
+    df = pd.DataFrame(np.random.randn(3, 3), columns=["A", "B", "C"])
+    df.drop(["A", "X"], axis=1, errors="ignore")
 
 - Add support for separating years and quarters using dashes, for
   example 2014-Q1.  (:issue:`9688`)
@@ -382,19 +381,16 @@ New behavior
 
 .. ipython:: python
 
-   pd.set_option('display.width', 80)
-   pd.Index(range(4), name='foo')
-   pd.Index(range(30), name='foo')
-   pd.Index(range(104), name='foo')
-   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'],
-                       ordered=True, name='foobar')
-   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 10,
-                       ordered=True, name='foobar')
-   pd.CategoricalIndex(['a', 'bb', 'ccc', 'dddd'] * 100,
-                       ordered=True, name='foobar')
-   pd.date_range('20130101', periods=4, name='foo', tz='US/Eastern')
-   pd.date_range('20130101', periods=25, freq='D')
-   pd.date_range('20130101', periods=104, name='foo', tz='US/Eastern')
+   pd.set_option("display.width", 80)
+   pd.Index(range(4), name="foo")
+   pd.Index(range(30), name="foo")
+   pd.Index(range(104), name="foo")
+   pd.CategoricalIndex(["a", "bb", "ccc", "dddd"], ordered=True, name="foobar")
+   pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 10, ordered=True, name="foobar")
+   pd.CategoricalIndex(["a", "bb", "ccc", "dddd"] * 100, ordered=True, name="foobar")
+   pd.date_range("20130101", periods=4, name="foo", tz="US/Eastern")
+   pd.date_range("20130101", periods=25, freq="D")
+   pd.date_range("20130101", periods=104, name="foo", tz="US/Eastern")
 
 
 .. _whatsnew_0161.performance:
