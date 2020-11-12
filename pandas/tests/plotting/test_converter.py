@@ -80,7 +80,7 @@ class TestRegistration:
             s.plot()
 
         if is_platform_windows():
-            mark = pytest.mark.xfail(reason="Getting two warnings")
+            mark = pytest.mark.xfail(reason="Getting two warnings", strict=False)
             request.node.add_marker(mark)
 
         assert len(w) == 0
