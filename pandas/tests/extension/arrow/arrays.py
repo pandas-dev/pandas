@@ -159,7 +159,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:

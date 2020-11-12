@@ -170,12 +170,13 @@ def coerce_to_array(
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
-        if inferred_dtype in integer_like:
-            if not np.all(
+        if (inferred_dtype in integer_like) and not (
+            np.all(
                 values[~mask_values].astype(float)
                 == values_object[~mask_values].astype(float)
-            ):
-                raise TypeError("Need to pass bool-like values")
+            )
+        ):
+            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(len(values), dtype=bool)
@@ -193,9 +194,9 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if not values.ndim == 1:
+    if values.ndim != 1:
         raise ValueError("values must be a 1D list-like")
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise ValueError("mask must be a 1D list-like")
 
     return values, mask
@@ -272,7 +273,9 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -280,7 +283,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], dtype=None, copy: bool = False
+        cls, strings: List[str], *, dtype=None, copy: bool = False
     ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
@@ -293,7 +296,7 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError(f"{s} cannot be cast to bool")
 
         scalars = [map_string(x) for x in strings]
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -395,9 +398,8 @@ class BooleanArray(BaseMaskedArray):
                 self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
         # for integer, error if there are missing values
-        if is_integer_dtype(dtype):
-            if self._hasna:
-                raise ValueError("cannot convert NA to integer")
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
@@ -576,7 +578,7 @@ class BooleanArray(BaseMaskedArray):
         elif isinstance(other, np.bool_):
             other = other.item()
 
-        if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+        if other_is_scalar and other is not libmissing.NA and not lib.is_bool(other):
             raise TypeError(
                 "'other' should be pandas.NA or a bool. "
                 f"Got {type(other).__name__} instead."
@@ -682,12 +684,12 @@ class BooleanArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        return super()._reduce(name, skipna, **kwargs)
+        return super()._reduce(name, skipna=skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
