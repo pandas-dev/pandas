@@ -72,39 +72,3 @@ def test_replace2(to_replace, value, result, expected_error_msg):
             tm.assert_categorical_equal(cat, expected)
     cat.replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)
-
-
-@pytest.mark.parametrize(
-    "to_replace,value,input_data,expected_data,inplace",
-    [
-        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], False),
-        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], False),
-        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], False),
-        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], True),
-        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], True),
-        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], True),
-    ],
-)
-def test_replace_regex(to_replace, value, input_data, expected_data, inplace):
-    # GH35977
-    df = pd.DataFrame({"col1": input_data}, dtype="string")
-    expected = pd.DataFrame({"col1": expected_data}, dtype="string")
-    df_replaced = df.replace(to_replace, value, inplace=inplace, regex=True)
-    result = df if inplace else df_replaced
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "to_replace,value,input_data,expected_data",
-    [
-        ("", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
-        ("ee", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
-        ("f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
-    ],
-)
-def test_replace_string(to_replace, value, input_data, expected_data):
-    # GH35977
-    df = pd.DataFrame({"col1": input_data}, dtype="string")
-    expected = pd.DataFrame({"col1": expected_data}, dtype="string")
-    result = df.replace(to_replace, value, inplace=False, regex=False)
-    tm.assert_frame_equal(result, expected)
