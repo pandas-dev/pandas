@@ -2301,10 +2301,10 @@ class DataFrame(NDFrame, OpsMixin):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        handles = get_handle(buf, mode, storage_options=storage_options)
-        assert not isinstance(handles.handle, (str, mmap.mmap))
-        handles.handle.writelines(result)
-        handles.close()
+
+        with get_handle(buf, mode, storage_options=storage_options) as handles:
+            assert not isinstance(handles.handle, (str, mmap.mmap))
+            handles.handle.writelines(result)
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")

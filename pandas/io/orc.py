@@ -48,10 +48,6 @@ def read_orc(
     if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
         raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
 
-    import pyarrow.orc
-
-    handles = get_handle(path, "rb", is_text=False)
-    orc_file = pyarrow.orc.ORCFile(handles.handle)
-    result = orc_file.read(columns=columns, **kwargs).to_pandas()
-    handles.close()
-    return result
+    with get_handle(path, "rb", is_text=False) as handles:
+        orc_file = pyarrow.orc.ORCFile(handles.handle)
+        return orc_file.read(columns=columns, **kwargs).to_pandas()

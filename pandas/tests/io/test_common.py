@@ -109,17 +109,15 @@ bar2,12,13,14,15
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         filename = path_type("~/sometest")
-        handles = icom.get_handle(filename, "w")
-        assert os.path.isabs(handles.handle.name)
-        assert os.path.expanduser(filename) == handles.handle.name
-        handles.close()
+        with icom.get_handle(filename, "w") as handles:
+            assert os.path.isabs(handles.handle.name)
+            assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
-        handles = icom.get_handle(input_buffer, "r")
-        assert handles.handle == input_buffer
-        handles.close()
-        assert not handles.handle.closed
+        with icom.get_handle(input_buffer, "r") as handles:
+            assert handles.handle == input_buffer
+        assert not input_buffer.closed
         input_buffer.close()
 
     def test_iterator(self):

@@ -98,13 +98,10 @@ def to_json(
 
     if path_or_buf is not None:
         # apply compression and byte/text conversion
-        handles = get_handle(
+        with get_handle(
             path_or_buf, "wt", compression=compression, storage_options=storage_options
-        )
-        try:
+        ) as handles:
             handles.handle.write(s)
-        finally:
-            handles.close()
     else:
         return s
 

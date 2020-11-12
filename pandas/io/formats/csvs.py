@@ -225,16 +225,15 @@ class CSVFormatter:
         Create the writer & save.
         """
         # apply compression and byte/text conversion
-        handles = get_handle(
+        with get_handle(
             self.filepath_or_buffer,
             self.mode,
             encoding=self.encoding,
             errors=self.errors,
             compression=self.compression,
             storage_options=self.storage_options,
-        )
+        ) as handles:
 
-        try:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
                 handles.handle,  # type: ignore[arg-type]
@@ -247,9 +246,6 @@ class CSVFormatter:
             )
 
             self._save()
-
-        finally:
-            handles.close()
 
     def _save(self) -> None:
         if self._need_to_save_header:

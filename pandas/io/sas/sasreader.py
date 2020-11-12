@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 from pandas._typing import FilePathOrBuffer, Label
 
-from pandas.io.common import get_handle, stringify_path
+from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -109,14 +109,12 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
-    handles = get_handle(filepath_or_buffer, "rb", encoding=encoding, is_text=False)
-
     reader: ReaderBase
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
 
         reader = XportReader(
-            handles.handle,
+            filepath_or_buffer,
             index=index,
             encoding=encoding,
             chunksize=chunksize,
@@ -125,7 +123,7 @@ def read_sas(
         from pandas.io.sas.sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
-            handles.handle,
+            filepath_or_buffer,
             index=index,
             encoding=encoding,
             chunksize=chunksize,
@@ -136,7 +134,4 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    try:
-        return reader.read()
-    finally:
-        handles.close()
+    return reader.read()

@@ -86,19 +86,17 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    handles = get_handle(
+    if protocol < 0:
+        protocol = pickle.HIGHEST_PROTOCOL
+
+    with get_handle(
         filepath_or_buffer,
         "wb",
         compression=compression,
         is_text=False,
         storage_options=storage_options,
-    )
-    if protocol < 0:
-        protocol = pickle.HIGHEST_PROTOCOL
-    try:
+    ) as handles:
         pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
-    finally:
-        handles.close()
 
 
 def read_pickle(
@@ -178,33 +176,31 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    handles = get_handle(
+    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+    with get_handle(
         filepath_or_buffer,
         "rb",
         compression=compression,
         is_text=False,
         storage_options=storage_options,
-    )
+    ) as handles:
 
-    # 1) try standard library Pickle
-    # 2) try pickle_compat (older pandas version) to handle subclass changes
-    # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
+        # 1) try standard library Pickle
+        # 2) try pickle_compat (older pandas version) to handle subclass changes
+        # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
 
-    try:
-        excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
-        # TypeError for Cython complaints about object.__new__ vs Tick.__new__
         try:
-            with warnings.catch_warnings(record=True):
-                # We want to silence any warnings about, e.g. moved modules.
-                warnings.simplefilter("ignore", Warning)
-                return pickle.load(handles.handle)  # type: ignore[arg-type]
-        except excs_to_catch:
-            # e.g.
-            #  "No module named 'pandas.core.sparse.series'"
-            #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(handles.handle, encoding=None)
-    except UnicodeDecodeError:
-        # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-        return pc.load(handles.handle, encoding="latin-1")
-    finally:
-        handles.close()
+            # TypeError for Cython complaints about object.__new__ vs Tick.__new__
+            try:
+                with warnings.catch_warnings(record=True):
+                    # We want to silence any warnings about, e.g. moved modules.
+                    warnings.simplefilter("ignore", Warning)
+                    return pickle.load(handles.handle)  # type: ignore[arg-type]
+            except excs_to_catch:
+                # e.g.
+                #  "No module named 'pandas.core.sparse.series'"
+                #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+                return pc.load(handles.handle, encoding=None)
+        except UnicodeDecodeError:
+            # e.g. can occur for files written in py27; see GH#28645 and GH#31988
+            return pc.load(handles.handle, encoding="latin-1")

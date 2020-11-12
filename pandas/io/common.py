@@ -62,6 +62,8 @@ class IOHandles:
     """
     Return value of io/common.py:get_handle
 
+    Can be used as a context manager.
+
     This is used to easily close created buffers and to handle corner cases when
     TextIOWrapper is inserted.
 
@@ -95,6 +97,12 @@ class IOHandles:
             pass
         self.created_handles = []
         self.is_wrapped = False
+
+    def __enter__(self) -> "IOHandles":
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
 
 
 def is_url(url) -> bool:
