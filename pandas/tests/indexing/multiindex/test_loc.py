@@ -626,7 +626,7 @@ def test_getitem_non_found_tuple():
 
 
 def test_get_loc_datetime_index():
-    # GH: 18185
+    # GH#18185
     index = pd.date_range("2001-01-01", periods=100)
     mi = MultiIndex.from_arrays([index])
     assert mi.get_loc("2001-01") == slice(0, 31, None)
