@@ -1637,7 +1637,7 @@ class TestDataFrameReplace:
         "to_replace,value,input_data,expected_data,inplace",
         [
             (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], False),
-            (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], False),
+            (r"e{2}", "rep", ["d", "ee", "f", ""], ["d", "rep", "f", ""], False),
             (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], False),
             (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], True),
             (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], True),
