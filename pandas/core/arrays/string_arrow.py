@@ -35,6 +35,16 @@ else:
         import pyarrow.compute as pc
     except ImportError:
         pass
+    else:
+        ARROW_CMP_FUNCS = {
+            "eq": pc.equal,
+            "ne": pc.not_equal,
+            "lt": pc.less,
+            "gt": pc.greater,
+            "le": pc.less_equal,
+            "ge": pc.greater_equal,
+        }
+
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -408,15 +418,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
-        ops = {
-            "eq": pc.equal,
-            "ne": pc.not_equal,
-            "lt": pc.less,
-            "gt": pc.greater,
-            "le": pc.less_equal,
-            "ge": pc.greater_equal,
-        }
-        pc_func = ops[op.__name__]
+        pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndex)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
