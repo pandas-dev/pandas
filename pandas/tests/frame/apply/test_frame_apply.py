@@ -356,12 +356,17 @@ class TestDataFrameApply:
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_apply_reduce_rows_to_dict(self):
-        # GH 25196
-        data = DataFrame([[1, 2], [3, 4]])
-        expected = Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
-        result = data.apply(dict)
-        tm.assert_series_equal(result, expected)
+    def test_apply_reduce_to_dict(self):
+        # GH 25196 37544
+        data = DataFrame([[1, 2], [3, 4]], columns=["c0", "c1"], index=["i0", "i1"])
+
+        result0 = data.apply(dict, axis=0)
+        expected0 = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
+        tm.assert_series_equal(result0, expected0)
+
+        result1 = data.apply(dict, axis=1)
+        expected1 = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
+        tm.assert_series_equal(result1, expected1)
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))
@@ -659,10 +664,10 @@ class TestDataFrameApply:
         # ufunc will not be boxed. Same test cases as the test_map_box
         df = DataFrame(
             {
-                "a": [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")],
+                "a": [Timestamp("2011-01-01"), Timestamp("2011-01-02")],
                 "b": [
-                    pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                    pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                    Timestamp("2011-01-01", tz="US/Eastern"),
+                    Timestamp("2011-01-02", tz="US/Eastern"),
                 ],
                 "c": [pd.Timedelta("1 days"), pd.Timedelta("2 days")],
                 "d": [
@@ -734,7 +739,7 @@ class TestDataFrameApply:
     def test_apply_noreduction_tzaware_object(self):
         # https://github.com/pandas-dev/pandas/issues/31505
         df = DataFrame(
-            {"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+            {"foo": [Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
         )
         result = df.apply(lambda x: x)
         tm.assert_frame_equal(result, df)
@@ -844,8 +849,8 @@ class TestInferOutputShape:
         tm.assert_series_equal(result, expected)
 
         df["tm"] = [
-            pd.Timestamp("2017-05-01 00:00:00"),
-            pd.Timestamp("2017-05-02 00:00:00"),
+            Timestamp("2017-05-01 00:00:00"),
+            Timestamp("2017-05-02 00:00:00"),
         ]
         result = df.apply(lambda x: {"s": x["a"] + x["b"]}, axis=1)
         tm.assert_series_equal(result, expected)
@@ -876,8 +881,8 @@ class TestInferOutputShape:
         tm.assert_frame_equal(result, expected)
 
         df["tm"] = [
-            pd.Timestamp("2017-05-01 00:00:00"),
-            pd.Timestamp("2017-05-02 00:00:00"),
+            Timestamp("2017-05-01 00:00:00"),
+            Timestamp("2017-05-02 00:00:00"),
         ]
         result = df.apply(
             lambda x: {"s": x["a"] + x["b"]}, axis=1, result_type="expand"
@@ -920,8 +925,8 @@ class TestInferOutputShape:
                 "number": [1.0, 2.0],
                 "string": ["foo", "bar"],
                 "datetime": [
-                    pd.Timestamp("2017-11-29 03:30:00"),
-                    pd.Timestamp("2017-11-29 03:45:00"),
+                    Timestamp("2017-11-29 03:30:00"),
+                    Timestamp("2017-11-29 03:45:00"),
                 ],
             }
         )
@@ -957,10 +962,10 @@ class TestInferOutputShape:
         df = DataFrame(
             {
                 "a": [
-                    pd.Timestamp("2010-02-01"),
-                    pd.Timestamp("2010-02-04"),
-                    pd.Timestamp("2010-02-05"),
-                    pd.Timestamp("2010-02-06"),
+                    Timestamp("2010-02-01"),
+                    Timestamp("2010-02-04"),
+                    Timestamp("2010-02-05"),
+                    Timestamp("2010-02-06"),
                 ],
                 "b": [9, 5, 4, 3],
                 "c": [5, 3, 4, 2],
@@ -1176,7 +1181,7 @@ class TestDataFrameAggregate:
                 "A": [1, 6],
                 "B": [1.0, 6.0],
                 "C": ["bar", "foobarbaz"],
-                "D": [pd.Timestamp("2013-01-01"), pd.NaT],
+                "D": [Timestamp("2013-01-01"), pd.NaT],
             },
             index=["min", "sum"],
         )
@@ -1297,12 +1302,12 @@ class TestDataFrameAggregate:
         )
 
         result = df.agg("min")
-        expected = Series([1, 1.0, "bar", pd.Timestamp("20130101")], index=df.columns)
+        expected = Series([1, 1.0, "bar", Timestamp("20130101")], index=df.columns)
         tm.assert_series_equal(result, expected)
 
         result = df.agg(["min"])
         expected = DataFrame(
-            [[1, 1.0, "bar", pd.Timestamp("20130101")]],
+            [[1, 1.0, "bar", Timestamp("20130101")]],
             index=["min"],
             columns=df.columns,
         )
@@ -1505,9 +1510,9 @@ class TestDataFrameAggregate:
         # GH 29052
 
         timestamps = [
-            pd.Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
-            pd.Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:34.359000+0000", tz="UTC"),
+            Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
         ]
         df = DataFrame(data=[0, 1, 2], index=timestamps)
         result = df.apply(lambda x: x.name, axis=1)

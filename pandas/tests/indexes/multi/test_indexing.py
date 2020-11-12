@@ -318,8 +318,8 @@ class TestGetIndexer:
         #  4: 2 7 6
         #  5: 2 7 8
         #  6: 3 6 8
-        mult_idx_1 = pd.MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
-        mult_idx_2 = pd.MultiIndex.from_tuples(
+        mult_idx_1 = MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
+        mult_idx_2 = MultiIndex.from_tuples(
             [
                 (1, 1, 8),
                 (1, 5, 9),
@@ -418,8 +418,8 @@ class TestGetIndexer:
         # mult_idx_2:
         #  0: 1 3 2 2
         #  1: 2 3 2 2
-        mult_idx_1 = pd.MultiIndex.from_product([[1, 2]] * 4)
-        mult_idx_2 = pd.MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
+        mult_idx_1 = MultiIndex.from_product([[1, 2]] * 4)
+        mult_idx_2 = MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
 
         # show the tuple orderings, which get_indexer() should respect
         assert mult_idx_1[7] < mult_idx_2[0] < mult_idx_1[8]
@@ -482,7 +482,7 @@ def test_getitem_bool_index_single(ind1, ind2):
     idx = MultiIndex.from_tuples([(10, 1)])
     tm.assert_index_equal(idx[ind1], idx)
 
-    expected = pd.MultiIndex(
+    expected = MultiIndex(
         levels=[np.array([], dtype=np.int64), np.array([], dtype=np.int64)],
         codes=[[], []],
     )
@@ -572,7 +572,7 @@ class TestGetLoc:
     def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
         # GH 18520
         levels = [np.array([0, 1]).astype(dtype1), np.array([0, 1]).astype(dtype2)]
-        idx = pd.MultiIndex.from_product(levels)
+        idx = MultiIndex.from_product(levels)
         assert idx.get_loc(idx[2]) == 2
 
     @pytest.mark.parametrize("level", [0, 1])
@@ -662,6 +662,13 @@ class TestGetLoc:
 
         assert result == slice(0, 1, None)
 
+    def test_multiindex_get_loc_list_raises(self):
+        # GH#35878
+        idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])
+
 
 class TestWhere:
     def test_where(self):
@@ -748,7 +755,7 @@ class TestContains:
 
 def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
-    idx = pd.MultiIndex.from_product(
+    idx = MultiIndex.from_product(
         [
             pd.date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
             ["x"],
@@ -757,7 +764,7 @@ def test_timestamp_multiindex_indexer():
     )
     df = pd.DataFrame({"foo": np.arange(len(idx))}, idx)
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
-    qidx = pd.MultiIndex.from_product(
+    qidx = MultiIndex.from_product(
         [
             pd.date_range(
                 start="2019-01-02T00:15:33",

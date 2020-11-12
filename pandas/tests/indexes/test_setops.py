@@ -93,8 +93,21 @@ def test_union_dtypes(left, right, expected):
     right = pandas_dtype(right)
     a = pd.Index([], dtype=left)
     b = pd.Index([], dtype=right)
-    result = (a | b).dtype
+    result = a.union(b).dtype
     assert result == expected
+
+
+def test_dunder_inplace_setops_deprecated(index):
+    # GH#37374 these will become logical ops, not setops
+
+    with tm.assert_produces_warning(FutureWarning):
+        index |= index
+
+    with tm.assert_produces_warning(FutureWarning):
+        index &= index
+
+    with tm.assert_produces_warning(FutureWarning):
+        index ^= index
 
 
 @pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])

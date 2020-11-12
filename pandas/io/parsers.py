@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
@@ -428,17 +428,16 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -461,14 +460,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        # close any fsspec-like objects
+        ioargs.close()
 
     return data
 
@@ -856,7 +851,10 @@ class TextFileReader(abc.Iterator):
             options[argname] = value
 
         if engine == "python-fwf":
-            for argname, default in _fwf_defaults.items():
+            # pandas\io\parsers.py:907: error: Incompatible types in assignment
+            # (expression has type "object", variable has type "Union[int, str,
+            # None]")  [assignment]
+            for argname, default in _fwf_defaults.items():  # type: ignore[assignment]
                 options[argname] = kwds.get(argname, default)
 
         return options
@@ -1040,9 +1038,18 @@ class TextFileReader(abc.Iterator):
 
     def _make_engine(self, engine="c"):
         mapping = {
-            "c": CParserWrapper,
-            "python": PythonParser,
-            "python-fwf": FixedWidthFieldParser,
+            # pandas\io\parsers.py:1099: error: Dict entry 0 has incompatible
+            # type "str": "Type[CParserWrapper]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "c": CParserWrapper,  # type: ignore[dict-item]
+            # pandas\io\parsers.py:1100: error: Dict entry 1 has incompatible
+            # type "str": "Type[PythonParser]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "python": PythonParser,  # type: ignore[dict-item]
+            # pandas\io\parsers.py:1101: error: Dict entry 2 has incompatible
+            # type "str": "Type[FixedWidthFieldParser]"; expected "str":
+            # "Type[ParserBase]"  [dict-item]
+            "python-fwf": FixedWidthFieldParser,  # type: ignore[dict-item]
         }
         try:
             klass = mapping[engine]
@@ -1350,10 +1357,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1403,8 +1406,9 @@ class ParserBase:
             )
 
     def close(self):
-        for f in self.handles:
-            f.close()
+        # pandas\io\parsers.py:1409: error: "ParserBase" has no attribute
+        # "handles"  [attr-defined]
+        self.handles.close()  # type: ignore[attr-defined]
 
     @property
     def _has_complex_date_col(self):
@@ -1500,7 +1504,9 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts = defaultdict(int)
+            # pandas\io\parsers.py:1559: error: Need type annotation for
+            # 'counts'  [var-annotated]
+            counts = defaultdict(int)  # type: ignore[var-annotated]
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -1545,7 +1551,9 @@ class ParserBase:
         # add names for the index
         if indexnamerow:
             coffset = len(indexnamerow) - len(columns)
-            index = index.set_names(indexnamerow[:coffset])
+            # pandas\io\parsers.py:1604: error: Item "None" of "Optional[Any]"
+            # has no attribute "set_names"  [union-attr]
+            index = index.set_names(indexnamerow[:coffset])  # type: ignore[union-attr]
 
         # maybe create a mi on the columns
         columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -1619,7 +1627,9 @@ class ParserBase:
                 col_na_fvalues = set()
 
             if isinstance(self.na_values, dict):
-                col_name = self.index_names[i]
+                # pandas\io\parsers.py:1678: error: Value of type
+                # "Optional[Any]" is not indexable  [index]
+                col_name = self.index_names[i]  # type: ignore[index]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
@@ -1838,23 +1848,42 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
+            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
+            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
+            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
+            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
 
-            kwds["encoding"] = "utf-8"
+            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
+            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
+            # no attribute "mmap"  [union-attr]
+            self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1863,7 +1892,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1938,15 +1967,19 @@ class CParserWrapper(ParserBase):
                     self.index_names = index_names
 
             if self._reader.header is None and not passed_names:
-                self.index_names = [None] * len(self.index_names)
+                # pandas\io\parsers.py:1997: error: Argument 1 to "len" has
+                # incompatible type "Optional[Any]"; expected "Sized"
+                # [arg-type]
+                self.index_names = [None] * len(
+                    self.index_names  # type: ignore[arg-type]
+                )
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:
@@ -1971,14 +2004,20 @@ class CParserWrapper(ParserBase):
             usecols = self.names[:]
         else:
             # Usecols is empty.
-            usecols = None
+
+            # pandas\io\parsers.py:2030: error: Incompatible types in
+            # assignment (expression has type "None", variable has type
+            # "List[Any]")  [assignment]
+            usecols = None  # type: ignore[assignment]
 
         def _set(x):
             if usecols is not None and is_integer(x):
                 x = usecols[x]
 
             if not is_integer(x):
-                x = names.index(x)
+                # pandas\io\parsers.py:2037: error: Item "None" of
+                # "Optional[Any]" has no attribute "index"  [union-attr]
+                x = names.index(x)  # type: ignore[union-attr]
 
             self._reader.set_noconvert(x)
 
@@ -2072,7 +2111,11 @@ class CParserWrapper(ParserBase):
             data = sorted(data.items())
 
             # ugh, mutation
-            names = list(self.orig_names)
+
+            # pandas\io\parsers.py:2131: error: Argument 1 to "list" has
+            # incompatible type "Optional[Any]"; expected "Iterable[Any]"
+            # [arg-type]
+            names = list(self.orig_names)  # type: ignore[arg-type]
             names = self._maybe_dedup_names(names)
 
             if self.usecols is not None:
@@ -2177,7 +2220,7 @@ def TextParser(*args, **kwds):
     return TextFileReader(*args, **kwds)
 
 
-def count_empty_vals(vals):
+def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
@@ -2237,20 +2280,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = f
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -2407,7 +2449,11 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        self.data = reader
+        # pandas\io\parsers.py:2427: error: Incompatible types in assignment
+        # (expression has type "_reader", variable has type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap, None]")
+        # [assignment]
+        self.data = reader  # type: ignore[assignment]
 
     def read(self, rows=None):
         try:
@@ -2421,7 +2467,10 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns = list(self.orig_names)
+        # pandas\io\parsers.py:2480: error: Argument 1 to "list" has
+        # incompatible type "Optional[Any]"; expected "Iterable[Any]"
+        # [arg-type]
+        columns = list(self.orig_names)  # type: ignore[arg-type]
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -2469,7 +2518,9 @@ class PythonParser(ParserBase):
     # legacy
     def get_chunk(self, size=None):
         if size is None:
-            size = self.chunksize
+            # pandas\io\parsers.py:2528: error: "PythonParser" has no attribute
+            # "chunksize"  [attr-defined]
+            size = self.chunksize  # type: ignore[attr-defined]
         return self.read(rows=size)
 
     def _convert_data(self, data):
@@ -2478,8 +2529,15 @@ class PythonParser(ParserBase):
             """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2537: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2538: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
                 clean[col] = v
             return clean
 
@@ -2499,8 +2557,15 @@ class PythonParser(ParserBase):
                 na_value = self.na_values[col]
                 na_fvalue = self.na_fvalues[col]
 
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
+                # pandas\io\parsers.py:2558: error: Unsupported right operand
+                # type for in ("Optional[Any]")  [operator]
+                if (
+                    isinstance(col, int)
+                    and col not in self.orig_names  # type: ignore[operator]
+                ):
+                    # pandas\io\parsers.py:2559: error: Value of type
+                    # "Optional[Any]" is not indexable  [index]
+                    col = self.orig_names[col]  # type: ignore[index]
 
                 clean_na_values[col] = na_value
                 clean_na_fvalues[col] = na_fvalue
@@ -2521,7 +2586,10 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols = set()
+        # pandas\io\parsers.py:2580: error: Need type annotation for
+        # 'unnamed_cols' (hint: "unnamed_cols: Set[<type>] = ...")
+        # [var-annotated]
+        unnamed_cols = set()  # type: ignore[var-annotated]
 
         if self.header is not None:
             header = self.header
@@ -2535,7 +2603,9 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns = []
+            # pandas\io\parsers.py:2594: error: Need type annotation for
+            # 'columns' (hint: "columns: List[<type>] = ...")  [var-annotated]
+            columns = []  # type: ignore[var-annotated]
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -2580,7 +2650,9 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns and self.mangle_dupe_cols:
-                    counts = defaultdict(int)
+                    # pandas\io\parsers.py:2639: error: Need type annotation
+                    # for 'counts'  [var-annotated]
+                    counts = defaultdict(int)  # type: ignore[var-annotated]
 
                     for i, col in enumerate(this_columns):
                         cur_count = counts[col]
@@ -2604,10 +2676,16 @@ class PythonParser(ParserBase):
 
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
-                            this_columns = [None] * lc
+                            # pandas\io\parsers.py:2663: error: List item 0 has
+                            # incompatible type "None"; expected "str"
+                            # [list-item]
+                            this_columns = [None] * lc  # type: ignore[list-item]
                             self.buf = [self.buf[-1]]
 
-                columns.append(this_columns)
+                # pandas\io\parsers.py:2666: error: Argument 1 to "append" of
+                # "list" has incompatible type "List[str]"; expected
+                # "List[None]"  [arg-type]
+                columns.append(this_columns)  # type: ignore[arg-type]
                 unnamed_cols.update({this_columns[i] for i in this_unnamed_cols})
 
                 if len(columns) == 1:
@@ -2652,9 +2730,19 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
+                    # pandas\io\parsers.py:2711: error: List comprehension has
+                    # incompatible type List[str]; expected List[None]  [misc]
+                    columns = [
+                        [
+                            f"{self.prefix}{i}"  # type: ignore[misc]
+                            for i in range(ncols)
+                        ]
+                    ]
                 else:
-                    columns = [list(range(ncols))]
+                    # pandas\io\parsers.py:2713: error: Argument 1 to "list"
+                    # has incompatible type "range"; expected "Iterable[None]"
+                    # [arg-type]
+                    columns = [list(range(ncols))]  # type: ignore[arg-type]
                 columns = self._handle_usecols(columns, columns[0])
             else:
                 if self.usecols is None or len(names) >= num_original_columns:
@@ -2806,7 +2894,10 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                next(self.data)
+                # pandas\io\parsers.py:2865: error: Argument 1 to "next" has
+                # incompatible type "Optional[Any]"; expected "Iterator[Any]"
+                # [arg-type]
+                next(self.data)  # type: ignore[arg-type]
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
@@ -2867,7 +2958,10 @@ class PythonParser(ParserBase):
         row_num : The row number of the line being parsed.
         """
         try:
-            return next(self.data)
+            # pandas\io\parsers.py:2926: error: Argument 1 to "next" has
+            # incompatible type "Optional[Any]"; expected "Iterator[Any]"
+            # [arg-type]
+            return next(self.data)  # type: ignore[arg-type]
         except csv.Error as e:
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
@@ -3100,12 +3194,19 @@ class PythonParser(ParserBase):
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        or i - len(self.index_col) in self._col_indices
+                        # pandas\io\parsers.py:3159: error: Unsupported right
+                        # operand type for in ("Optional[Any]")  [operator]
+                        or i - len(self.index_col)  # type: ignore[operator]
+                        in self._col_indices
                     )
                 ]
             else:
                 zipped_content = [
-                    a for i, a in enumerate(zipped_content) if i in self._col_indices
+                    # pandas\io\parsers.py:3164: error: Unsupported right
+                    # operand type for in ("Optional[Any]")  [operator]
+                    a
+                    for i, a in enumerate(zipped_content)
+                    if i in self._col_indices  # type: ignore[operator]
                 ]
         return zipped_content
 
@@ -3150,7 +3251,10 @@ class PythonParser(ParserBase):
                 try:
                     if rows is not None:
                         for _ in range(rows):
-                            new_rows.append(next(self.data))
+                            # pandas\io\parsers.py:3209: error: Argument 1 to
+                            # "next" has incompatible type "Optional[Any]";
+                            # expected "Iterator[Any]"  [arg-type]
+                            new_rows.append(next(self.data))  # type: ignore[arg-type]
                         lines.extend(new_rows)
                     else:
                         rows = 0
@@ -3328,7 +3432,9 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = STR_NA_VALUES
         else:
             na_values = set()
-        na_fvalues = set()
+        # pandas\io\parsers.py:3387: error: Need type annotation for
+        # 'na_fvalues' (hint: "na_fvalues: Set[<type>] = ...")  [var-annotated]
+        na_fvalues = set()  # type: ignore[var-annotated]
     elif isinstance(na_values, dict):
         old_na_values = na_values.copy()
         na_values = {}  # Prevent aliasing.
@@ -3345,7 +3451,12 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
-        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
+        # pandas\io\parsers.py:3404: error: Incompatible types in assignment
+        # (expression has type "Dict[Any, Any]", variable has type "Set[Any]")
+        # [assignment]
+        na_fvalues = {  # type: ignore[assignment]
+            k: _floatify_na_values(v) for k, v in na_values.items()
+        }
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3386,7 +3497,10 @@ def _clean_index_names(columns, index_col, unnamed_cols):
     # Only clean index names that were placeholders.
     for i, name in enumerate(index_names):
         if isinstance(name, str) and name in unnamed_cols:
-            index_names[i] = None
+            # pandas\io\parsers.py:3445: error: No overload variant of
+            # "__setitem__" of "list" matches argument types "int", "None"
+            # [call-overload]
+            index_names[i] = None  # type: ignore[call-overload]
 
     return index_names, columns, index_col
 
@@ -3463,11 +3577,15 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            result.append(v)
+            # pandas\io\parsers.py:3522: error: Argument 1 to "append" of
+            # "list" has incompatible type "float"; expected "str"  [arg-type]
+            result.append(v)  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
         try:
-            result.append(int(x))
+            # pandas\io\parsers.py:3526: error: Argument 1 to "append" of
+            # "list" has incompatible type "int"; expected "str"  [arg-type]
+            result.append(int(x))  # type: ignore[arg-type]
         except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
@@ -3638,7 +3756,11 @@ class FixedWidthFieldParser(PythonParser):
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
-        self.data = FixedWidthReader(
+        # pandas\io\parsers.py:3730: error: Incompatible types in assignment
+        # (expression has type "FixedWidthReader", variable has type
+        # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
+        # mmap, None]")  [assignment]
+        self.data = FixedWidthReader(  # type: ignore[assignment]
             f,
             self.colspecs,
             self.delimiter,
