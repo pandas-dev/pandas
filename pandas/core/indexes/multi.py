@@ -2677,6 +2677,8 @@ class MultiIndex(Index):
 
             idx = self._get_loc_single_level_index(lev, lab)
             if isinstance(idx, slice) and k < n - 1:
+                # Get start and end value from slice, necessary when a non-integer
+                # interval is given as input
                 start = idx.start
                 end = idx.stop
             elif k < n - 1:
