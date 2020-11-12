@@ -13,7 +13,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_array_like,
-    is_bool_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -603,7 +602,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Convert a potentially-label-based key into a positional indexer.
         """
-        if self.name == "loc" or is_bool_dtype(np.array(key)):
+        if self.name == "loc" or com.is_bool_indexer(key):
             self._ensure_listlike_indexer(key)
 
         if self.axis is not None:

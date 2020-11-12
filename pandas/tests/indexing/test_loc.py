@@ -1644,6 +1644,13 @@ class TestLocBooleanMask:
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
 
+    def test_loc_setitem_boolean_list(self):
+        # GH: 20438
+        ser = Series([0, 1, 2])
+        ser.loc[[True, False, True]] = [5, 10]
+        expected = Series([5, 1, 10])
+        tm.assert_series_equal(ser, expected)
+
 
 def test_series_loc_getitem_label_list_missing_values():
     # gh-11428
@@ -1954,13 +1961,6 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
-
-    def test_loc_setitem_boolean_list(self):
-        # GH: 20438
-        ser = Series([0, 1, 2])
-        ser.loc[[True, False, True]] = [5, 10]
-        expected = Series([5, 1, 10])
-        tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize("value", [1, 1.5])
