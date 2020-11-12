@@ -556,3 +556,15 @@ def test_concat_preserves_extension_int64_dtype():
     result = pd.concat([df_a, df_b], ignore_index=True)
     expected = DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_duplicate_indexes():
+    # GH#36263 ValueError with non unique indexes
+    df1 = pd.DataFrame([1, 2, 3, 4], index=[0, 1, 1, 4], columns=["a"])
+    df2 = pd.DataFrame([6, 7, 8, 9], index=[0, 0, 1, 3], columns=["b"])
+    result = pd.concat([df1, df2], axis=1)
+    expected = pd.DataFrame(
+        {"a": [1, 1, 2, 3, np.nan, 4], "b": [6, 7, 8, 8, 9, np.nan]},
+        index=pd.Index([0, 0, 1, 1, 3, 4]),
+    )
+    tm.assert_frame_equal(result, expected)
