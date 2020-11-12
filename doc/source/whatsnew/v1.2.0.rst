@@ -230,6 +230,10 @@ Other enhancements
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
+- :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
+- Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
+- Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
+- Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -379,7 +383,7 @@ Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
--
+- Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -399,17 +403,19 @@ Datetimelike
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
 - Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
+- Bug in :func:`to_datetime` with a read-only array incorrectly raising (:issue:`34857`)
 
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 - Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
+- Bug in :func:`to_timedelta` with a read-only array incorrectly raising (:issue:`34857`)
 
 Timezones
 ^^^^^^^^^
 
 - Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with ``ambiguous=False`` (:issue:`35297`)
--
+- Bug in :meth:`Timestamp.replace` was losing fold information (:issue:`37610`)
 
 
 Numeric
@@ -433,7 +439,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
 -
 
 Strings
@@ -462,6 +468,8 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
+- Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
 
 Missing
 ^^^^^^^
@@ -498,7 +506,9 @@ I/O
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 - Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- :func:`read_csv` was closing user-provided binary file handles when ``engine="c"`` and an ``encoding`` was requested (:issue:`36980`)
 - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
+- Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 
 Plotting
 ^^^^^^^^
@@ -506,6 +516,8 @@ Plotting
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
+- Bug in :meth:`DataFrameGroupBy.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -544,6 +556,7 @@ Reshaping
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
+- Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
 
 Sparse
 ^^^^^^
@@ -566,10 +579,11 @@ Other
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
-- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors and :class:`DataFrame.duplicated` and :class:`DataFrame.stack` and :class:`DataFrame.unstack` and :class:`DataFrame.pivot` methods (:issue:`28283`)
+- Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`) (:issue:`37381`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 - Bug in ``accessor.DirNamesMixin``, where ``dir(obj)`` wouldn't show attributes defined on the instance (:issue:`37173`).
+- Bug in :meth:`Series.nunique` with ``dropna=True`` was returning incorrect results when both ``NA`` and ``None`` missing values were present (:issue:`37566`)
 
 .. ---------------------------------------------------------------------------
 
