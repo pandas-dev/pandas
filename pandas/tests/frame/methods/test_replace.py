@@ -1517,6 +1517,14 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
+    def test_replace_ea_ignore_float(self, frame_or_series, value):
+        # GH#34871
+        df = frame_or_series([value] * 3)
+        result = df.replace(1.0, 0.0)
+        expected = frame_or_series([value] * 3)
+        tm.assert_equal(expected, result)
+
     def test_replace_value_category_type(self):
         """
         Test for #23305: to ensure category dtypes are maintained
@@ -1595,6 +1603,14 @@ class TestDataFrameReplace:
         # replace values in input dataframe using a dict
         result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_with_compiled_regex(self):
+        # https://github.com/pandas-dev/pandas/issues/35680
+        df = DataFrame(["a", "b", "c"])
+        regex = re.compile("^a$")
+        result = df.replace({regex: "z"}, regex=True)
+        expected = DataFrame(["z", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
     def test_replace_intervals(self):
