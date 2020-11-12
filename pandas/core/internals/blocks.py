@@ -735,40 +735,12 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         original_to_replace = to_replace
 
-        # If we cannot replace with own dtype, convert to ObjectBlock and
-        # retry
         if not self._can_hold_element(to_replace):
-            if not isinstance(to_replace, list):
-                if inplace:
-                    return [self]
-                return [self.copy()]
-
-            to_replace = [x for x in to_replace if self._can_hold_element(x)]
-            if not len(to_replace):
-                # GH#28084 avoid costly checks since we can infer
-                #  that there is nothing to replace in this block
-                if inplace:
-                    return [self]
-                return [self.copy()]
-
-            if len(to_replace) == 1:
-                # _can_hold_element checks have reduced this back to the
-                #  scalar case and we can avoid a costly object cast
-                return self.replace(to_replace[0], value, inplace=inplace, regex=regex)
-
-            # GH 22083, TypeError or ValueError occurred within error handling
-            # causes infinite loop. Cast and retry only if not objectblock.
-            if is_object_dtype(self):
-                raise AssertionError
-
-            # try again with a compatible block
-            block = self.astype(object)
-            return block.replace(
-                to_replace=to_replace,
-                value=value,
-                inplace=inplace,
-                regex=regex,
-            )
+            # We cannot hold `to_replace`, so we know immediately that
+            #  replacing it is a no-op.
+            # Note: If to_replace were a list, NDFrame.replace would call
+            #  replace_list instead of replace.
+            return [self] if inplace else [self.copy()]
 
         values = self.values
         if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):
