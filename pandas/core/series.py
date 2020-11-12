@@ -1047,10 +1047,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         loc = self.index._engine.get_loc(key)
         validate_numeric_casting(self.dtype, value)
         dtype, _ = infer_dtype_from_scalar(value)
-        if is_dtype_equal(self.dtype, dtype) or isna(value):
+        if is_dtype_equal(self.dtype, dtype):
             self._values[loc] = value
         else:
-            self.loc[key] = value
+            # This only raises when index contains tuples
+            try:
+                self.loc[key] = value
+            except KeyError:
+                self._values[loc] = value
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
