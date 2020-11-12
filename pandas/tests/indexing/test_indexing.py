@@ -831,7 +831,7 @@ class TestMisc:
 
     def test_label_indexing_on_nan(self):
         # GH 32431
-        df = pd.Series([1, "{1,2}", 1, None])
+        df = Series([1, "{1,2}", 1, None])
         vc = df.value_counts(dropna=False)
         result1 = vc.loc[np.nan]
         result2 = vc[np.nan]
