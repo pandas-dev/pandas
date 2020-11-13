@@ -65,12 +65,12 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
+    def test_view(self, data, request):
+        if isinstance(data.dtype, ArrowStringDtype):
             reason = "Fails until implement, remove before merge"
             mark = pytest.mark.xfail(reason=reason)
             request.node.add_marker(mark)
-        base.BaseInterfaceTests.test_view(self, data)
+        super().test_view(self, data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
