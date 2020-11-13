@@ -971,7 +971,9 @@ class TestPivotTable:
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
         expected = DataFrame(
-            {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi, dtype="int64"
+            {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]},
+            index=mi,
+            dtype="int64",
         ).rename_axis("C", axis=1)
         expected["All"] = expected["dull"] + expected["shiny"]
 
