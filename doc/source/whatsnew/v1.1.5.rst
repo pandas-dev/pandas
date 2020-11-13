@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
 -
 
 .. ---------------------------------------------------------------------------
