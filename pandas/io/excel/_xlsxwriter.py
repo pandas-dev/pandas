@@ -186,7 +186,7 @@ class XlsxWriter(ExcelWriter):
             **engine_kwargs,
         )
 
-        self.book = Workbook(path, **engine_kwargs)
+        self.book = Workbook(self.handles.handle, **engine_kwargs)
 
     def save(self):
         """

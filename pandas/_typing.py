@@ -146,10 +146,5 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-# let's bind types
-ModeVar = TypeVar("ModeVar", str, None, Optional[str])
-EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
-
-
 # type of float formatter in DataFrameFormatter
 FloatFormatType = Union[str, Callable, "EngFormatter"]

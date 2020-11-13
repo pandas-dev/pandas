@@ -53,12 +53,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import (
-    IOHandles,
-    get_filepath_or_buffer,
-    get_handle,
-    stringify_path,
-)
+from pandas.io.common import get_handle
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
@@ -1062,20 +1057,15 @@ class StataReader(StataParser, abc.Iterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        self.ioargs = get_filepath_or_buffer(
-            path_or_buf, storage_options=storage_options
-        )
-
-        if isinstance(self.ioargs.filepath_or_buffer, (str, bytes)):
-            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
-            self.ioargs.should_close = True
-        elif hasattr(path_or_buf, "read"):
+        with get_handle(
+            path_or_buf,
+            "rb",
+            storage_options=storage_options,
+            is_text=False,
+        ) as handles:
             # Copy to BytesIO, and ensure no encoding
-            contents = self.ioargs.filepath_or_buffer.read()
-            self.ioargs.close()
-            self.ioargs.filepath_or_buffer = BytesIO(contents)  # type: ignore[arg-type]
-            self.ioargs.should_close = True
-        self.path_or_buf = cast(BytesIO, self.ioargs.filepath_or_buffer)
+            contents = handles.handle.read()
+        self.path_or_buf = BytesIO(contents)  # type: ignore[arg-type]
 
         self._read_header()
         self._setup_dtype()
@@ -1090,7 +1080,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def close(self) -> None:
         """ close the handle if its open """
-        self.ioargs.close()
+        self.path_or_buf.close()
 
     def _set_encoding(self) -> None:
         """
@@ -1932,48 +1922,6 @@ def read_stata(
     return data
 
 
-def _open_file_binary_write(
-    fname: FilePathOrBuffer,
-    compression: CompressionOptions,
-    storage_options: StorageOptions = None,
-) -> Tuple[IOHandles, CompressionOptions]:
-    """
-    Open a binary file or no-op if file-like.
-
-    Parameters
-    ----------
-    fname : string path, path object or buffer
-        The file name or buffer.
-    compression : {str, dict, None}
-        The compression method to use.
-
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
-
-        .. versionadded:: 1.2.0
-    """
-    ioargs = get_filepath_or_buffer(
-        fname, mode="wb", compression=compression, storage_options=storage_options
-    )
-    handles = get_handle(
-        ioargs.filepath_or_buffer,
-        "wb",
-        compression=ioargs.compression,
-        is_text=False,
-    )
-    if ioargs.filepath_or_buffer != fname and not isinstance(
-        ioargs.filepath_or_buffer, str
-    ):
-        # add handle created by get_filepath_or_buffer
-        handles.created_handles.append(ioargs.filepath_or_buffer)
-    return handles, ioargs.compression
-
-
 def _set_endianness(endianness: str) -> str:
     if endianness.lower() in ["<", "little"]:
         return "<"
@@ -2231,7 +2179,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = stringify_path(fname)
+        self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
         self._converted_names: Dict[Label, str] = {}
 
@@ -2511,45 +2459,53 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
-        self.handles, compression = _open_file_binary_write(
-            self._fname, self._compression, storage_options=self.storage_options
-        )
-        if compression is not None:
-            # ZipFile creates a file (with the same name) for each write call.
-            # Write it first into a buffer and then write the buffer to the ZipFile.
-            self._output_file = self.handles.handle
-            self.handles.handle = BytesIO()
-        try:
-            self._write_header(data_label=self._data_label, time_stamp=self._time_stamp)
-            self._write_map()
-            self._write_variable_types()
-            self._write_varnames()
-            self._write_sortlist()
-            self._write_formats()
-            self._write_value_label_names()
-            self._write_variable_labels()
-            self._write_expansion_fields()
-            self._write_characteristics()
-            records = self._prepare_data()
-            self._write_data(records)
-            self._write_strls()
-            self._write_value_labels()
-            self._write_file_close_tag()
-            self._write_map()
-        except Exception as exc:
-            self._close()
-            if isinstance(self._fname, (str, Path)):
-                try:
-                    os.unlink(self._fname)
-                except OSError:
-                    warnings.warn(
-                        f"This save was not successful but {self._fname} could not "
-                        "be deleted.  This file is not valid.",
-                        ResourceWarning,
-                    )
-            raise exc
-        else:
-            self._close()
+        with get_handle(
+            self._fname,
+            "wb",
+            compression=self._compression,
+            is_text=False,
+            storage_options=self.storage_options,
+        ) as self.handles:
+
+            if self.handles.compression["method"] is not None:
+                # ZipFile creates a file (with the same name) for each write call.
+                # Write it first into a buffer and then write the buffer to the ZipFile.
+                self._output_file = self.handles.handle
+                self.handles.handle = BytesIO()
+
+            try:
+                self._write_header(
+                    data_label=self._data_label, time_stamp=self._time_stamp
+                )
+                self._write_map()
+                self._write_variable_types()
+                self._write_varnames()
+                self._write_sortlist()
+                self._write_formats()
+                self._write_value_label_names()
+                self._write_variable_labels()
+                self._write_expansion_fields()
+                self._write_characteristics()
+                records = self._prepare_data()
+                self._write_data(records)
+                self._write_strls()
+                self._write_value_labels()
+                self._write_file_close_tag()
+                self._write_map()
+            except Exception as exc:
+                self._close()
+                if isinstance(self._fname, (str, Path)):
+                    try:
+                        os.unlink(self._fname)
+                    except OSError:
+                        warnings.warn(
+                            f"This save was not successful but {self._fname} could not "
+                            "be deleted.  This file is not valid.",
+                            ResourceWarning,
+                        )
+                raise exc
+            else:
+                self._close()
 
     def _close(self) -> None:
         """
@@ -2566,8 +2522,6 @@ supported types."""
             self.handles.handle = self._output_file
             self.handles.handle.write(bio.read())  # type: ignore[arg-type]
             bio.close()
-        # close any created handles
-        self.handles.close()
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
