@@ -507,7 +507,7 @@ class _Concatenator:
                         # duplicate or duplicates again
                         if not obj_labels.is_unique:
                             new_labels = algos.make_duplicates_of_left_unique_in_right(
-                                obj_labels.values, new_labels.values
+                                np.asarray(obj_labels), np.asarray(new_labels)
                             )
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
