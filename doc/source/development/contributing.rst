@@ -1479,6 +1479,13 @@ Now you can commit your changes in your local repository::
 
     git commit -m
 
+.. note::
+
+    If your pull request only makes changes to the documentation, then you can
+    choose to skip the tests by including ``[skip ci]`` in your commit message, e.g.::
+
+        git commit -m "Fix typo in docstring [skip ci]"
+
 .. _contributing.push-code:
 
 Pushing your changes
