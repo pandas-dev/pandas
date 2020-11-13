@@ -143,14 +143,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> Union[int, np.datetime64, np.timedelta64]:
-        """
-        Box an integer unboxed via _unbox_scalar into the native type for
-        the underlying ndarray.
-        """
-        raise AbstractMethodError(cls)
-
     def _unbox_scalar(
         self, value: DTScalarOrNaT, setitem: bool = False
     ) -> Union[np.int64, np.datetime64, np.timedelta64]:
@@ -964,7 +956,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
