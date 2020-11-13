@@ -70,7 +70,7 @@ class TestInterface(base.BaseInterfaceTests):
             reason = "Fails until implement, remove before merge"
             mark = pytest.mark.xfail(reason=reason)
             request.node.add_marker(mark)
-        super().test_view(self, data)
+        super().test_view(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -83,7 +83,7 @@ class TestReshaping(base.BaseReshapingTests):
             reason = "Fails until implement, remove before merge"
             mark = pytest.mark.xfail(reason=reason)
             request.node.add_marker(mark)
-        base.BaseReshapingTests.test_transpose(self, data)
+        super().test_transpose(data)
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -96,7 +96,7 @@ class TestSetitem(base.BaseSetitemTests):
             reason = "Fails until implement, remove before merge"
             mark = pytest.mark.xfail(reason=reason)
             request.node.add_marker(mark)
-        base.BaseSetitemTests.test_setitem_preserves_views(self, data)
+        super().test_setitem_preserves_views(data)
 
 
 class TestMissing(base.BaseMissingTests):
