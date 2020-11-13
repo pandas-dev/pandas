@@ -123,7 +123,7 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -136,7 +136,7 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
             url, match="First Federal Bank of Florida", attrs={"id": "table"}
         )
