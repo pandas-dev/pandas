@@ -1568,10 +1568,14 @@ class TestLabelSlicing:
         # GH#18531
         obj = frame_or_series(
             [1, 2, 3],
-            index=[Timestamp("2017"), Timestamp("2019"), Timestamp("2018")],
+            index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
         )
         with pytest.raises(KeyError, match=r"Timestamp\('2020-01-01 00:00:00'\)"):
             obj.loc["2020":"2022"]
+
+        result = obj.loc["2018":"2022"]
+        expected = frame_or_series([2], index=[Timestamp("2019")])
+        tm.assert_equal(result, expected)
 
         obj.index = ["a", "c", "b"]
         with pytest.raises(KeyError, match=r"d"):
