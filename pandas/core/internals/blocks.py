@@ -1442,34 +1442,21 @@ class Block(PandasObject):
         if not hasattr(cond, "shape"):
             raise ValueError("where must have a condition that is ndarray like")
 
-        def where_func(cond, values, other):
-
-            if not (
-                (self.is_integer or self.is_bool)
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # np.where will cast integer array to floats in this case
-                if not self._can_hold_element(other):
-                    raise TypeError
-                if lib.is_scalar(other) and isinstance(values, np.ndarray):
-                    # convert datetime to datetime64, timedelta to timedelta64
-                    other = convert_scalar_for_putitemlike(other, values.dtype)
-
-            # By the time we get here, we should have all Series/Index
-            #  args extracted to  ndarray
-            fastres = expressions.where(cond, values, other)
-            return fastres
-
         if cond.ravel("K").all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            try:
-                result = where_func(cond, values, other)
-            except TypeError:
-
+            if (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
+                # GH#3733 special case to avoid object-dtype casting
+                #  and go through numexpr path instead.
+                # In integer case, np.where will cast to floats
+                pass
+            elif not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
@@ -1477,6 +1464,18 @@ class Block(PandasObject):
                     orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
                 )
                 return self._maybe_downcast(blocks, "infer")
+
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
+                # convert datetime to datetime64, timedelta to timedelta64
+                other = convert_scalar_for_putitemlike(other, values.dtype)
+
+            # By the time we get here, we should have all Series/Index
+            #  args extracted to ndarray
+            result = expressions.where(cond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
 
