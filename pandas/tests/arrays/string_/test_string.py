@@ -316,11 +316,8 @@ def test_constructor_raises(cls):
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
-    if cls is ArrowStringArray:
-        reason = (
-            "ValueError: Unsupported type '<class 'numpy.ndarray'>' for "
-            "ArrowStringArray"
-        )
+    if cls is ArrowStringArray and copy is False:
+        reason = "AssertionError: numpy array are different"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
 
@@ -328,7 +325,13 @@ def test_from_sequence_no_mutate(copy, cls, request):
     na_arr = np.array(["a", pd.NA], dtype=object)
 
     result = cls._from_sequence(nan_arr, copy=copy)
-    expected = cls(na_arr)
+
+    if cls is ArrowStringArray:
+        import pyarrow as pa
+
+        expected = cls(pa.array(na_arr, type=pa.string(), from_pandas=True))
+    else:
+        expected = cls(na_arr)
 
     tm.assert_extension_array_equal(result, expected)
 
