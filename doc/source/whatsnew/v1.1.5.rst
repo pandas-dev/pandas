@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
 - Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` for ``__setitem__`` when one-dimensional tuple was given to select from :class:`MultiIndex` (:issue:`37711`)
 
 .. ---------------------------------------------------------------------------
