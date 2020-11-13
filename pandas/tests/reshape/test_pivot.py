@@ -966,12 +966,12 @@ class TestPivotTable:
         # GH 17013
 
         df = self.data.copy()
-        df[["D", "E", "F"]] = np.arange(len(df) * 3).reshape(len(df), 3)
+        df[["D", "E", "F"]] = np.arange(len(df) * 3, dtype="int64").reshape(len(df), 3)
 
         mi_val = list(product(["bar", "foo"], ["one", "two"])) + [("All", "")]
         mi = MultiIndex.from_tuples(mi_val, names=("A", "B"))
         expected = DataFrame(
-            {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi
+            {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi, dtype="int64"
         ).rename_axis("C", axis=1)
         expected["All"] = expected["dull"] + expected["shiny"]
 
