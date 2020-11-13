@@ -607,6 +607,8 @@ class TestKeyErrorsWithMultiIndex:
             df.loc[("b", "1", slice(None)), :]
         with pytest.raises(KeyError, match=msg):
             df.index.get_locs(("b", "1", slice(None)))
+        with pytest.raises(KeyError, match=r"\('b', '1'\)"):
+            df.loc[('b', '1'), :]
 
 
 def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
