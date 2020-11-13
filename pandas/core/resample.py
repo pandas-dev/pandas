@@ -1413,8 +1413,9 @@ class TimeGrouper(Grouper):
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day' 'end' or "
-                    f"should be a Timestamp convertible type. Got '{origin}' instead."
+                    "'origin' should be equal to 'epoch', 'start', 'start_day', 'end' "
+                    f"or should be a Timestamp convertible type. Got '{origin}' "
+                    "instead."
                 ) from e
 
         try:
