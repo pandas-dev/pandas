@@ -79,7 +79,7 @@ def _process_parse_dates_argument(parse_dates):
 
 def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
-        return to_datetime(col, errors="ignore", **format)
+        return to_datetime(col, **{"errors": "ignore", **format})
     else:
         # Allow passing of formatting string for integers
         # GH17855

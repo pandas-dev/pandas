@@ -517,6 +517,7 @@ I/O
 - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 - :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
+- Allow custom error values in parse_dates argument of :func:`read_sql` (:issue:`GH35185`)
 
 Plotting
 ^^^^^^^^
