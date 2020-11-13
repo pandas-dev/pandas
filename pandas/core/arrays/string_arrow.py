@@ -298,7 +298,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if isinstance(item, abc.Iterable):
             if not is_array_like(item):
                 item = np.array(item)
-            if len(item) == 0:
+            if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item):
                 return self.take(item)
