@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sequence, TypeVar
+from typing import Any, Optional, Sequence, Type, TypeVar
 
 import numpy as np
 
@@ -160,7 +160,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._concat_same_type)
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(cls: Type[_T], to_concat: Sequence[_T], axis: int = 0) -> _T:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
