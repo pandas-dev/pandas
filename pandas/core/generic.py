@@ -3750,15 +3750,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 name=self.index[loc],
                 dtype=new_values.dtype,
             )
-
+        elif is_scalar(loc):
+            result = self.iloc[:, [loc]]
+        elif axis == 1:
+            result = self.iloc[:, loc]
         else:
-            if axis == 0:
-                result = self.iloc[loc]
-                result.index = new_index
-            else:
-                result = (
-                    self.iloc[:, loc] if not is_scalar(loc) else self.iloc[:, [loc]]
-                )
+            result = self.iloc[loc]
+            result.index = new_index
 
         # this could be a view
         # but only in a single-dtyped view sliceable case
