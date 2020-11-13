@@ -986,8 +986,8 @@ def group_last(rank_t[:, :] out,
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               ndarray[rank_t, ndim=2] values,
-              const int64_t[:] labels, int64_t rank=1,
-              Py_ssize_t min_count=-1):
+              const int64_t[:] labels, int64_t rank=1
+              ):
     """
     Only aggregates on axis=0
     """
@@ -997,8 +997,6 @@ def group_nth(rank_t[:, :] out,
         ndarray[rank_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
-
-    assert min_count == -1, "'min_count' only used in add and prod"
 
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
