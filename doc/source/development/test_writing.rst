@@ -56,6 +56,7 @@ This test likely belongs in one of:
 
     A) Is the test specifically testing an Index method (e.g. ``Index.get_loc``, ``Index.get_indexer``)?
     This test likely belongs in one of:
+
         - tests.indexes.test_indexing
         - tests.indexes.fooindex.test_indexing
 
@@ -65,11 +66,13 @@ This test likely belongs in one of:
 
     B) Is the test for a Series or DataFrame indexing method *other* than ``__getitem__`` or ``__setitem__``, e.g. ``xs``, ``where``, ``take``, ``mask``, ``lookup``, or ``insert``?
     This test likely belongs in one of:
+
         - tests.frame.indexing.test_methodname
         - tests.series.indexing.test_methodname
 
     C) Is the test for any of ``loc``, ``iloc``, ``at``, or ``iat``?
     This test likely belongs in one of:
+
         - tests.indexing.test_loc
         - tests.indexing.test_iloc
         - tests.indexing.test_at
@@ -81,6 +84,7 @@ This test likely belongs in one of:
 
     D) Is the test for ``Series.__getitem__``, ``Series.__setitem__``, ``DataFrame.__getitem__``, or ``DataFrame.__setitem__``?
     This test likely belongs in one of:
+
         - tests.series.test_getitem
         - tests.series.test_setitem
         - tests.frame.test_getitem
