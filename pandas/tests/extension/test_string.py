@@ -67,8 +67,7 @@ class TestDtype(base.BaseDtypeTests):
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
         if isinstance(data.dtype, ArrowStringDtype):
-            reason = "Fails until implement, remove before merge"
-            mark = pytest.mark.xfail(reason=reason)
+            mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_view(data)
 
@@ -80,8 +79,7 @@ class TestConstructors(base.BaseConstructorsTests):
 class TestReshaping(base.BaseReshapingTests):
     def test_transpose(self, data, dtype, request):
         if isinstance(dtype, ArrowStringDtype):
-            reason = "Fails until implement, remove before merge"
-            mark = pytest.mark.xfail(reason=reason)
+            mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_transpose(data)
 
@@ -93,8 +91,7 @@ class TestGetitem(base.BaseGetitemTests):
 class TestSetitem(base.BaseSetitemTests):
     def test_setitem_preserves_views(self, data, dtype, request):
         if isinstance(dtype, ArrowStringDtype):
-            reason = "Fails until implement, remove before merge"
-            mark = pytest.mark.xfail(reason=reason)
+            mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_setitem_preserves_views(data)
 
