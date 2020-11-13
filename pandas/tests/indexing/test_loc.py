@@ -1564,6 +1564,15 @@ class TestLabelSlicing:
         expected = ser.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("start", ["2018", "2020"])
+    def test_loc_getitem_slice_unordered_dt_index(self, frame_or_series, start):
+        obj = frame_or_series(
+            [1, 2, 3],
+            index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            obj.loc[start:"2022"]
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
