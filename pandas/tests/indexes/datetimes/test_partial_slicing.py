@@ -311,10 +311,9 @@ class TestSlicing:
         tm.assert_frame_equal(result, expected)
 
     def test_partial_slice_doesnt_require_monotonicity(self):
-        # For historical reasons.
-        s = Series(np.arange(10), date_range("2014-01-01", periods=10))
+        ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
-        nonmonotonic = s[[3, 5, 4]]
+        nonmonotonic = ser[[3, 5, 4]]
         timestamp = Timestamp("2014-01-10")
         msg = r"Timestamp\('2014-01-10 00:00:00'\)"
 
