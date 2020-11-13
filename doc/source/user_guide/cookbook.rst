@@ -18,9 +18,6 @@ above what the in-line examples offer.
 pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
-These examples are written for Python 3.  Minor tweaks might be necessary for earlier Python
-versions.
-
 Idioms
 ------
 
