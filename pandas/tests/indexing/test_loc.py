@@ -1645,17 +1645,18 @@ class TestLocBooleanMask:
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
 
+    @pytest.mark.parametrize("indexing_func", [list, np.array])
     @pytest.mark.parametrize("func", ["loc", "iloc"])
     @pytest.mark.parametrize("rhs_func", [list, np.array])
-    def test_loc_setitem_boolean_list(self, func, rhs_func):
+    def test_loc_setitem_boolean_list(self, func, rhs_func, indexing_func):
         # GH#20438 testing specifically list key, not arraylike
         ser = Series([0, 1, 2])
-        getattr(ser, func)[[True, False, True]] = rhs_func([5, 10])
+        getattr(ser, func)[indexing_func([True, False, True])] = rhs_func([5, 10])
         expected = Series([5, 1, 10])
         tm.assert_series_equal(ser, expected)
 
         df = DataFrame({"a": [0, 1, 2]})
-        getattr(df, func)[[True, False, True]] = rhs_func([[5], [10]])
+        getattr(df, func)[indexing_func([True, False, True])] = rhs_func([[5], [10]])
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
 
