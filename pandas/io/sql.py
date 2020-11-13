@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, Optional, Union, overload
+from typing import Dict, Iterator, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -301,7 +301,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: None = None,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
 ) -> DataFrame:
     ...
 
@@ -315,7 +315,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: int = 1,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -328,7 +328,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
@@ -367,6 +367,9 @@ def read_sql_query(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
         rows to include in each chunk.
+    dtype : Type name or dict of columns
+        Data type for data or columns. E.g. np.float64 or
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
 
     Returns
     -------
