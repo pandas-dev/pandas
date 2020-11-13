@@ -336,7 +336,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series
             pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
+            backfill / bfill: use NEXT valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -347,9 +347,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         Returns
         -------
-        filled : ExtensionArray with NA/NaN filled
+        ExtensionArray
+            With NA/NaN filled.
         """
-
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
