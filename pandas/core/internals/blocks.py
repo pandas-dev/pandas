@@ -1447,10 +1447,14 @@ class Block(PandasObject):
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            if self.is_bool and lib.is_float(other) and np.isnan(other):
+            if (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
                 # GH#3733 special case to avoid object-dtype casting
-                # and go through numexpr path instead.
-
+                #  and go through numexpr path instead.
+                # In integer case, np.where will cast to floats
                 pass
             elif not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
@@ -1470,7 +1474,7 @@ class Block(PandasObject):
                 other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
-            #  args extracted to  ndarray
+            #  args extracted to ndarray
             result = expressions.where(cond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
