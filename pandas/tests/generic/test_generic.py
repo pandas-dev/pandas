@@ -383,20 +383,22 @@ class TestNDFrame:
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.transpose().transpose(), df)
 
-    def test_numpy_transpose(self):
+    def test_numpy_transpose(self, frame_or_series):
+
+        obj = tm.makeTimeDataFrame()
+        if frame_or_series is Series:
+            obj = obj["A"]
+
+        if frame_or_series is Series:
+            # 1D -> np.transpose is no-op
+            tm.assert_series_equal(np.transpose(obj), obj)
+
+        # round-trip preserved
+        tm.assert_equal(np.transpose(np.transpose(obj)), obj)
+
         msg = "the 'axes' parameter is not supported"
-
-        s = tm.makeFloatSeries()
-        tm.assert_series_equal(np.transpose(s), s)
-
         with pytest.raises(ValueError, match=msg):
-            np.transpose(s, axes=1)
-
-        df = tm.makeTimeDataFrame()
-        tm.assert_frame_equal(np.transpose(np.transpose(df)), df)
-
-        with pytest.raises(ValueError, match=msg):
-            np.transpose(df, axes=1)
+            np.transpose(obj, axes=1)
 
     def test_take(self):
         indices = [1, 5, -2, 6, 3, -1]
@@ -415,23 +417,24 @@ class TestNDFrame:
             )
             tm.assert_frame_equal(out, expected)
 
-    def test_take_invalid_kwargs(self):
+    def test_take_invalid_kwargs(self, frame_or_series):
         indices = [-3, 2, 0, 1]
-        s = tm.makeFloatSeries()
-        df = tm.makeTimeDataFrame()
 
-        for obj in (s, df):
-            msg = r"take\(\) got an unexpected keyword argument 'foo'"
-            with pytest.raises(TypeError, match=msg):
-                obj.take(indices, foo=2)
+        obj = tm.makeTimeDataFrame()
+        if frame_or_series is Series:
+            obj = obj["A"]
 
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                obj.take(indices, out=indices)
+        msg = r"take\(\) got an unexpected keyword argument 'foo'"
+        with pytest.raises(TypeError, match=msg):
+            obj.take(indices, foo=2)
 
-            msg = "the 'mode' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                obj.take(indices, mode="clip")
+        msg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            obj.take(indices, out=indices)
+
+        msg = "the 'mode' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            obj.take(indices, mode="clip")
 
     @pytest.mark.parametrize("is_copy", [True, False])
     def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
@@ -473,21 +476,19 @@ class TestNDFrame:
             obj._AXIS_NUMBERS
 
     def test_flags_identity(self, frame_or_series):
-        s = Series([1, 2])
+        obj = Series([1, 2])
         if frame_or_series is DataFrame:
-            s = s.to_frame()
+            obj = obj.to_frame()
 
-        assert s.flags is s.flags
-        s2 = s.copy()
-        assert s2.flags is not s.flags
+        assert obj.flags is obj.flags
+        obj2 = obj.copy()
+        assert obj2.flags is not obj.flags
 
-    def test_slice_shift_deprecated(self):
+    def test_slice_shift_deprecated(self, frame_or_series):
         # GH 37601
-        df = DataFrame({"A": [1, 2, 3, 4]})
-        s = Series([1, 2, 3, 4])
+        obj = DataFrame({"A": [1, 2, 3, 4]})
+        if frame_or_series is DataFrame:
+            obj = obj["A"]
 
         with tm.assert_produces_warning(FutureWarning):
-            df["A"].slice_shift()
-
-        with tm.assert_produces_warning(FutureWarning):
-            s.slice_shift()
+            obj.slice_shift()
