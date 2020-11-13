@@ -611,3 +611,17 @@ def test_resample_agg_readonly():
 
     result = rs.agg("min")
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_end_origin():
+    # GH#37804
+    idx = pd.date_range('20200101 8:26:35', '20200101 9:31:58', freq='77s')
+    data = np.ones(len(idx))
+    s = pd.Series(data, index=idx)
+    result = s.resample('7min', origin='end', closed='right').sum()
+
+    exp_idx = pd.date_range('2020-01-01 08:20:45', '2020-01-01 09:23:45', freq='7T')
+    exp_data = [1., 6., 5., 6., 5., 6., 5., 6., 5., 6.]
+    expected = pd.Series(exp_data, index=exp_idx)
+
+    tm.assert_series_equal(result, expected)
