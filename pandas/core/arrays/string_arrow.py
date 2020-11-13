@@ -208,6 +208,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         scalars = lib.ensure_string_array(scalars, copy=False)
         return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
 
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
     @property
     def dtype(self) -> ArrowStringDtype:
         """
@@ -241,10 +245,6 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         length : int
         """
         return len(self.data)
-
-    @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
