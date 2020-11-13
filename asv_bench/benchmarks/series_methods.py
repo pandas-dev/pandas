@@ -93,15 +93,25 @@ class IsInForObjects:
 class IsInLongSeries:
     params = [
         ["int64", "int32", "float64", "float32", "object"],
-        [1, 2, 5, 10, 1000, 10 ** 5],
+        [1, 2, 5, 10, 50, 100, 1000, 10 ** 5],
+        ["random_hits", "random_misses", "monotone"],
     ]
-    param_names = ["dtype", "MaxNumber"]
+    param_names = ["dtype", "MaxNumber", "series_type"]
 
-    def setup(self, dtype, MaxNumber):
-        self.series = Series(np.random.randint(0, MaxNumber, 10 ** 7)).astype(dtype)
+    def setup(self, dtype, MaxNumber, series_type):
+        N = 10 ** 7
+        if series_type == "random_hits":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N)
+        if series_type == "random_misses":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N) + MaxNumber
+        if series_type == "monotone":
+            array = np.repeat(np.arange(MaxNumber), N // MaxNumber)
+        self.series = Series(array).astype(dtype)
         self.values = np.arange(MaxNumber).astype(dtype)
 
-    def time_isin(self, dtypes, MaxNumber):
+    def time_isin(self, dtypes, MaxNumber, series_type):
         self.series.isin(self.values)
 
 
