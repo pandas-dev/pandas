@@ -57,5 +57,5 @@ class TestReindex:
         # GH: 18185
         ser = Series([1, 2, 3, 1], dtype="category")
         msg = "'fill_value=-1' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ser.reindex([1, 2, 3, 4, 5], fill_value=-1)

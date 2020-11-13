@@ -454,7 +454,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to an i8 representation,
-        raising ValueError if this is not possible.
+        raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -466,19 +466,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Raises
         ------
-        ValueError
+        TypeError
         """
-        msg = (
-            f"'fill_value' should be a {self._scalar_type}. "
-            f"Got '{str(fill_value)}'."
-        )
-        try:
-            return self._validate_scalar(fill_value)
-        except TypeError as err:
-            if "Cannot compare tz-naive and tz-aware" in str(err):
-                # tzawareness-compat
-                raise
-            raise ValueError(msg) from err
+        return self._validate_scalar(fill_value)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
