@@ -2368,5 +2368,5 @@ def test_make_duplicates_of_left_unique_in_right(left_values):
     left = np.array(left_values)
     right = np.array([0, 0, 1, 1, 4])
     result = algos.make_duplicates_of_left_unique_in_right(left, right)
-    expected = np.array(([0, 0, 1, 4]))
+    expected = np.array([0, 0, 1, 4])
     tm.assert_numpy_array_equal(result, expected)
