@@ -322,6 +322,10 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
+- Passing an invalid ``fill_value`` to :meth:`Categorical.take`, :meth:`DatetimeArray.take`, :meth:`TimedeltaArray.take`, :meth:`PeriodArray.take` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
+- Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
+- Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
+- Attempting to reindex a :class:`Series` with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
 
 .. ---------------------------------------------------------------------------
 
@@ -470,6 +474,7 @@ Indexing
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
 
 Missing
 ^^^^^^^
@@ -544,6 +549,8 @@ Groupby/resample/rolling
 - Bug in :meth:`df.groupby(..).quantile() <pandas.core.groupby.DataFrameGroupBy.quantile>` and :meth:`df.resample(..).quantile() <pandas.core.resample.Resampler.quantile>` raised ``TypeError`` when values were of type ``Timedelta`` (:issue:`29485`)
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
+- Bug in :meth:`DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
+
 
 Reshaping
 ^^^^^^^^^
