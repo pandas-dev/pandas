@@ -199,7 +199,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
             # this relies on the fact that we aren't handling mixed
             # series / frame ufuncs.
             for i, (ax1, ax2) in enumerate(zip(axes, obj.axes)):
-                axes[i] = ax1 | ax2
+                axes[i] = ax1.union(ax2)
 
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes))
         inputs = tuple(
