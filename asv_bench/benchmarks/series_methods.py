@@ -95,14 +95,14 @@ class IsInLongSeries:
         ["int64", "int32", "float64", "float32", "object"],
         [1, 2, 5, 10, 1000, 10 ** 5],
     ]
-    param_names = ["dtype", "M"]
+    param_names = ["dtype", "MaxNumber"]
 
-    def setup(self, dtype, M):
-        self.s = Series(np.random.randint(0, M, 10 ** 7)).astype(dtype)
-        self.values = np.arange(M).astype(dtype)
+    def setup(self, dtype, MaxNumber):
+        self.series = Series(np.random.randint(0, MaxNumber, 10 ** 7)).astype(dtype)
+        self.values = np.arange(MaxNumber).astype(dtype)
 
-    def time_isin(self, dtypes, M):
-        self.s.isin(self.values)
+    def time_isin(self, dtypes, MaxNumber):
+        self.series.isin(self.values)
 
 
 class NSort:
