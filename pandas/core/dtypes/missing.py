@@ -162,8 +162,6 @@ def _isna(obj, inf_as_na: bool = False):
         return obj.isna()
     elif isinstance(obj, list):
         return _isna_ndarraylike(np.asarray(obj, dtype=object), inf_as_na=inf_as_na)
-    elif hasattr(obj, "__array__"):
-        return _isna_ndarraylike(np.asarray(obj), inf_as_na=inf_as_na)
     else:
         return False
 
