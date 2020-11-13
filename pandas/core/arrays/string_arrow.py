@@ -397,18 +397,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         # TODO: Implement .to_numpy for ChunkedArray
         return self.data.is_null().to_pandas().values
 
-    def copy(self) -> ExtensionArray:
+    def copy(self) -> ArrowStringArray:
         """
-        Return a copy of the array.
-
-        Parameters
-        ----------
-        deep : bool, default False
-            Also copy the underlying data backing this array.
+        Return a shallow copy of the array.
 
         Returns
         -------
-        ExtensionArray
+        ArrowStringArray
         """
         return type(self)(self.data)
 
