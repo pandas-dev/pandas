@@ -8752,8 +8752,6 @@ NaN 12.3   33.0
 
         def blk_func(values):
             if isinstance(values, ExtensionArray):
-                if values.ndim == 2:
-                    return values._reduce(name, skipna=skipna, axis=1, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=1, skipna=skipna, **kwds)

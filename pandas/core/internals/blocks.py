@@ -375,11 +375,7 @@ class Block(PandasObject):
         assert self.ndim == 2
 
         try:
-            if self.is_datetimetz:
-                # FIXME: kludge
-                result = func(self.values.reshape(self.shape))
-            else:
-                result = func(self.values)
+            result = func(self.values)
         except (TypeError, NotImplementedError):
             if ignore_failures:
                 return []
@@ -388,8 +384,6 @@ class Block(PandasObject):
         if np.ndim(result) == 0:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
-        elif self.is_datetimetz:
-            res_values = result  # FIXME: kludge
         else:
             res_values = result.reshape(-1, 1)
 

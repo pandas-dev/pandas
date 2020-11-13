@@ -1279,6 +1279,94 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["any", "all"])
+    def test_any_all_categorical_dtype_nuisance_column(self, method):
+        # GH#36076 DataFrame should match Series behavior
+        ser = Series([0, 1], dtype="category", name="A")
+        df = ser.to_frame()
+
+        # Double-check the Series behavior is to raise
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            getattr(ser, method)()
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            getattr(np, method)(ser)
+
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            getattr(df, method)(bool_only=False)
+
+        # With bool_only=None, operating on this column raises and is ignored,
+        #  so we expect an empty result.
+        result = getattr(df, method)(bool_only=None)
+        expected = Series([], index=Index([]), dtype=bool)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(np, method)(df, axis=0)
+        tm.assert_series_equal(result, expected)
+
+    def test_median_categorical_dtype_nuisance_column(self):
+        # GH#21020 DataFrame.median should match Series.median
+        df = DataFrame({"A": Categorical([1, 2, 2, 2, 3])})
+        ser = df["A"]
+
+        # Double-check the Series behavior is to raise
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            ser.median()
+
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            df.median(numeric_only=False)
+
+        result = df.median()
+        expected = Series([], index=Index([]), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
+
+        # same thing, but with an additional non-categorical column
+        df["B"] = df["A"].astype(int)
+
+        with pytest.raises(TypeError, match="does not implement reduction"):
+            df.median(numeric_only=False)
+
+        result = df.median()
+        expected = Series([2.0], index=["B"])
+        tm.assert_series_equal(result, expected)
+
+        # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
+        #  of expected.values
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
+        # GH#28948 DataFrame.min should behave like Series.min
+        cat = Categorical(["a", "b", "c", "b"], ordered=False)
+        ser = Series(cat)
+        df = ser.to_frame("A")
+
+        # Double-check the Series behavior
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(ser, method)()
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(np, method)(ser)
+
+        with pytest.raises(TypeError, match="is not ordered for operation"):
+            getattr(df, method)(numeric_only=False)
+
+        result = getattr(df, method)()
+        expected = Series([], index=Index([]), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(np, method)(df)
+        tm.assert_series_equal(result, expected)
+
+        # same thing, but with an additional non-categorical column
+        df["B"] = df["A"].astype(object)
+        result = getattr(df, method)()
+        if method == "min":
+            expected = Series(["a"], index=["B"])
+        else:
+            expected = Series(["c"], index=["B"])
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(np, method)(df)
+        tm.assert_series_equal(result, expected)
+
 
 def test_sum_timedelta64_skipna_false():
     # GH#17235
