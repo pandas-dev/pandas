@@ -277,19 +277,11 @@ of columns could result in a larger :class:`Series` result. See (:issue:`37799`)
 
 *New behavior*:
 
-.. code-block:: ipython
+.. ipython:: python
 
     In [5]: df.all(bool_only=True)
-    Out[5]:
-    B    False
-    C     True
-    dtype: bool
 
     In [6]: df[["B", "C"]].all(bool_only=True)
-    Out[6]:
-    B    False
-    C     True
-    dtype: bool
 
 
 .. _whatsnew_120.api_breaking.python:
