@@ -2151,7 +2151,9 @@ def _sort_tuples(values: np.ndarray[tuple]):
     return values[indexer]
 
 
-def make_duplicates_of_left_unique_in_right(left, right) -> np.ndarray:
+def make_duplicates_of_left_unique_in_right(
+    left: np.ndarray, right: np.ndarray
+) -> np.ndarray:
     """
     Drops all duplicates values from left in right, so that they are
     unique in right.
