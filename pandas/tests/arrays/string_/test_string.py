@@ -486,9 +486,7 @@ def test_memory_usage(dtype, request):
     # GH 33963
 
     if dtype == "arrow_string":
-        reason = "assert 147 < 147"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
+        pytest.skip("not applicable")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
