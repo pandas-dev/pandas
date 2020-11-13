@@ -74,7 +74,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising ValueError if this is not possible.
+        suitable for self._ndarray, raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -86,7 +86,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         Raises
         ------
-        ValueError
+        TypeError
         """
         raise AbstractMethodError(self)
 

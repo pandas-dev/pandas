@@ -192,7 +192,7 @@ class TestIntervalIndex:
 
         # invalid type
         msg = "can only insert Interval objects and NA into an IntervalArray"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
@@ -213,7 +213,7 @@ class TestIntervalIndex:
         if data.left.dtype.kind not in ["m", "M"]:
             # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
             msg = "can only insert Interval objects and NA into an IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 result = data.insert(1, pd.NaT)
         else:
             result = data.insert(1, pd.NaT)

@@ -245,7 +245,7 @@ class TestDataFrameReshape:
 
         # Fill with non-category results in a ValueError
         msg = r"'fill_value=d' is not present in"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
         # Fill with category value replaces missing values as expected
