@@ -7,6 +7,7 @@ from pandas import (
     DataFrame,
     date_range,
     read_csv,
+    read_excel,
     read_feather,
     read_json,
     read_parquet,
@@ -24,10 +25,7 @@ df1 = DataFrame(
         "dt": date_range("2018-06-18", periods=2),
     }
 )
-# the ignore on the following line accounts for to_csv returning Optional(str)
-# in general, but always str in the case we give no filename
-# error: Item "None" of "Optional[str]" has no attribute "encode"
-text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
+text = str(df1.to_csv(index=False)).encode()
 
 
 @pytest.fixture
@@ -69,7 +67,49 @@ def test_reasonable_error(monkeypatch, cleared_fs):
 
 def test_to_csv(cleared_fs):
     df1.to_csv("memory://test/test.csv", index=True)
+
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
+
+    tm.assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize("ext", ["xls", "xlsx"])
+def test_to_excel(cleared_fs, ext):
+    if ext == "xls":
+        pytest.importorskip("xlwt")
+    else:
+        pytest.importorskip("openpyxl")
+
+    path = f"memory://test/test.{ext}"
+    df1.to_excel(path, index=True)
+
+    df2 = read_excel(path, parse_dates=["dt"], index_col=0)
+
+    tm.assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize("binary_mode", [False, True])
+def test_to_csv_fsspec_object(cleared_fs, binary_mode):
+    fsspec = pytest.importorskip("fsspec")
+
+    path = "memory://test/test.csv"
+    mode = "wb" if binary_mode else "w"
+    fsspec_object = fsspec.open(path, mode=mode).open()
+
+    df1.to_csv(fsspec_object, index=True)
+    assert not fsspec_object.closed
+    fsspec_object.close()
+
+    mode = mode.replace("w", "r")
+    fsspec_object = fsspec.open(path, mode=mode).open()
+
+    df2 = read_csv(
+        fsspec_object,
+        parse_dates=["dt"],
+        index_col=0,
+    )
+    assert not fsspec_object.closed
+    fsspec_object.close()
 
     tm.assert_frame_equal(df1, df2)
 

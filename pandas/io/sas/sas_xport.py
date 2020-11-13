@@ -19,7 +19,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
@@ -253,13 +253,10 @@ class XportReader(ReaderBase, abc.Iterator):
         self._index = index
         self._chunksize = chunksize
 
-        self.ioargs = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
-
-        if isinstance(self.ioargs.filepath_or_buffer, str):
-            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
-            self.ioargs.should_close = True
-
-        self.filepath_or_buffer = cast(IO[bytes], self.ioargs.filepath_or_buffer)
+        self.handles = get_handle(
+            filepath_or_buffer, "rb", encoding=encoding, is_text=False
+        )
+        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
 
         try:
             self._read_header()
@@ -268,7 +265,7 @@ class XportReader(ReaderBase, abc.Iterator):
             raise
 
     def close(self):
-        self.ioargs.close()
+        self.handles.close()
 
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()

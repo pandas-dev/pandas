@@ -157,7 +157,7 @@ from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
@@ -2302,10 +2302,10 @@ class DataFrame(NDFrame, OpsMixin):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
-        ioargs.filepath_or_buffer.writelines(result)
-        ioargs.close()
+
+        with get_handle(buf, mode, storage_options=storage_options) as handles:
+            assert not isinstance(handles.handle, (str, mmap.mmap))
+            handles.handle.writelines(result)
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")

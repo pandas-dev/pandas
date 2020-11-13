@@ -84,7 +84,8 @@ Support for binary file handles in ``to_csv``
 
 :meth:`to_csv` supports file handles in binary mode (:issue:`19827` and :issue:`35058`)
 with ``encoding`` (:issue:`13068` and :issue:`23854`) and ``compression`` (:issue:`22555`).
-``mode`` has to contain a ``b`` for binary handles to be supported.
+If Pandas does not automatically detect whether the file handle is opened in binary or text mode,
+it is necessary to provide ``mode="wb"``.
 
 For example:
 
@@ -94,7 +95,7 @@ For example:
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, encoding="utf-8", compression="gzip")
 
 Support for short caption and table position in ``to_latex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -324,6 +325,10 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
+- Passing an invalid ``fill_value`` to :meth:`Categorical.take`, :meth:`DatetimeArray.take`, :meth:`TimedeltaArray.take`, :meth:`PeriodArray.take` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
+- Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
+- Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
+- Attempting to reindex a :class:`Series` with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
 
 .. ---------------------------------------------------------------------------
 
@@ -473,6 +478,8 @@ Indexing
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
+- Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 
 Missing
 ^^^^^^^
@@ -512,6 +519,7 @@ I/O
 - :func:`read_csv` was closing user-provided binary file handles when ``engine="c"`` and an ``encoding`` was requested (:issue:`36980`)
 - Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
+- :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 
 Plotting
 ^^^^^^^^
@@ -546,6 +554,8 @@ Groupby/resample/rolling
 - Bug in :meth:`df.groupby(..).quantile() <pandas.core.groupby.DataFrameGroupBy.quantile>` and :meth:`df.resample(..).quantile() <pandas.core.resample.Resampler.quantile>` raised ``TypeError`` when values were of type ``Timedelta`` (:issue:`29485`)
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
+- Bug in :meth:`DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
+
 
 Reshaping
 ^^^^^^^^^
@@ -582,6 +592,7 @@ Other
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 - Fixed metadata propagation in :meth:`Series.abs` and ufuncs called on Series and DataFrames (:issue:`28283`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly casting from ``PeriodDtype`` to object dtype (:issue:`34871`)
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`) (:issue:`37381`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
