@@ -655,7 +655,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             # if index is not a MultiIndex, set key to column part
             key = key[column_axis]
             axis = column_axis
-            pass
 
         if (
             axis == column_axis

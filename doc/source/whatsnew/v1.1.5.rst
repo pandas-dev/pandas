@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 -
--
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` for ``__setitem__`` when one-dimensional tuple was given to select from :class:`MultiIndex` (:issue:`37711`)
 
 .. ---------------------------------------------------------------------------
 
