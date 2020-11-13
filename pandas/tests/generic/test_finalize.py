@@ -90,10 +90,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", np.array([True]))),
     (pd.DataFrame, ({("A", "a"): [1]},), operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("query", "A == 1")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1")),
     (pd.DataFrame, frame_data, operator.methodcaller("select_dtypes", include="int")),
     (pd.DataFrame, frame_data, operator.methodcaller("assign", b=1)),
     (pd.DataFrame, frame_data, operator.methodcaller("set_axis", ["A"])),
