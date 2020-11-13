@@ -8798,32 +8798,6 @@ NaN 12.3   33.0
 
         assert numeric_only is None
 
-        if not self._is_homogeneous_type or self._mgr.any_extension_types:
-            # try to avoid self.values call
-
-            if filter_type is None and axis == 0:
-                # operate column-wise
-
-                # numeric_only must be None here, as other cases caught above
-
-                # this can end up with a non-reduction
-                # but not always. if the types are mixed
-                # with datelike then need to make sure a series
-
-                # we only end up here if we have not specified
-                # numeric_only and yet we have tried a
-                # column-by-column reduction, where we have mixed type.
-                # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=func, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
-
         data = self
         values = data.values
 
