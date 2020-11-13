@@ -3708,18 +3708,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result
 
         if axis == 1:
-            return self[key]
+            if drop_level:
+                return self[key]
+            index = self.columns
+        else:
+            index = self.index
 
-        index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index._get_loc_level(
+                loc, new_index = index._get_loc_level(
                     key, level=0, drop_level=drop_level
                 )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
-            loc = self.index.get_loc(key)
+            loc = index.get_loc(key)
 
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
@@ -3729,9 +3732,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     return self._take_with_is_copy(loc, axis=axis)
 
             if not is_scalar(loc):
-                new_index = self.index[loc]
+                new_index = index[loc]
 
-        if is_scalar(loc):
+        if is_scalar(loc) and axis == 0:
             # In this case loc should be an integer
             if self.ndim == 1:
                 # if we encounter an array-like and we only have 1 dim
@@ -3747,7 +3750,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 name=self.index[loc],
                 dtype=new_values.dtype,
             )
-
+        elif is_scalar(loc):
+            result = self.iloc[:, [loc]]
+        elif axis == 1:
+            result = self.iloc[:, loc]
         else:
             result = self.iloc[loc]
             result.index = new_index
