@@ -296,7 +296,7 @@ class TestMultiIndexLoc:
         expected = frame_or_series([0, 2], index=mi)
         tm.assert_equal(obj, expected)
 
-    @pytest.mark.parametrize("indexer", [('a',), ('a')])
+    @pytest.mark.parametrize("indexer", [("a",), ("a")])
     def test_multiindex_one_dimensiona_tuple_columns(self, indexer):
         # GH#37711
         mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
