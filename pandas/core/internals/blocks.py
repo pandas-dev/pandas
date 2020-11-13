@@ -1251,7 +1251,6 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
-                coerce=coerce,
                 downcast=downcast,
             )
         # validate the interp method
@@ -1278,20 +1277,12 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
-        coerce: bool = False,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # if we are coercing, then don't force the conversion
-        # if the block can't hold the type
-        if coerce:
-            if not self._can_hold_na:
-                if inplace:
-                    return [self]
-                else:
-                    return [self.copy()]
+        assert self._can_hold_na  # checked by caller
 
         values = self.values if inplace else self.values.copy()
 
