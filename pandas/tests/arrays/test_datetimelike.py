@@ -145,8 +145,8 @@ class SharedTests:
 
         arr = self.array_cls._simple_new(data, freq="D")
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '{fill_value}'"
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             arr.take([0, 1], allow_fill=True, fill_value=fill_value)
 
     def test_take_fill(self):
@@ -169,8 +169,8 @@ class SharedTests:
         expected = arr1d[[-1, 1]]
         tm.assert_equal(result, expected)
 
-        msg = r"'fill_value' should be a <.*>\. Got 'foo'"
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
 
     def test_concat_same_type(self):
@@ -191,10 +191,11 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, int)
+        expected = arr._data.dtype.type
+        assert isinstance(result, expected)
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, int)
+        assert isinstance(result, expected)
 
         msg = f"'value' should be a {self.dtype.__name__}."
         with pytest.raises(ValueError, match=msg):
@@ -744,13 +745,12 @@ class TestDatetimeArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
         assert result[0] == now
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '0 days 00:00:00'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # fill_value Timedelta invalid
             arr.take([-1, 1], allow_fill=True, fill_value=now - now)
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '2014Q1'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([-1, 1], allow_fill=True, fill_value=pd.Period("2014Q1"))
 
@@ -762,14 +762,13 @@ class TestDatetimeArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
         value = pd.NaT.value
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         value = np.timedelta64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
@@ -931,20 +930,18 @@ class TestTimedeltaArray(SharedTests):
 
         now = pd.Timestamp.now()
         value = now
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
         value = now.to_period("D")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
         value = np.datetime64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
@@ -980,14 +977,13 @@ class TestPeriodArray(SharedTests):
         arr = arr1d
 
         value = pd.NaT.value
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         value = np.timedelta64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 

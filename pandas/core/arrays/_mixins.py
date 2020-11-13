@@ -1,8 +1,9 @@
-from typing import Any, Sequence, Tuple, TypeVar
+from typing import Any, Optional, Sequence, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -44,7 +45,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
-    def _validate_insert_value(self, value):
+    def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
         raise AbstractMethodError(self)
 
@@ -53,6 +54,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def take(
         self: _T,
         indices: Sequence[int],
+        *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
@@ -72,7 +74,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising ValueError if this is not possible.
+        suitable for self._ndarray, raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -84,7 +86,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         Raises
         ------
-        ValueError
+        TypeError
         """
         raise AbstractMethodError(self)
 
@@ -93,7 +95,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # TODO: make this a cache_readonly; for that to work we need to remove
     #  the _index_data kludge in libreduction
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return self._ndarray.shape
 
     def __len__(self) -> int:
@@ -245,13 +247,18 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+    def _wrap_reduction_result(self, axis: Optional[int], result):
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     # ------------------------------------------------------------------------
 

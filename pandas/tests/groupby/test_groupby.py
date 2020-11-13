@@ -1298,6 +1298,13 @@ def test_groupby_nat_exclude():
             grouped.get_group(pd.NaT)
 
 
+def test_groupby_two_group_keys_all_nan():
+    # GH #36842: Grouping over two group keys shouldn't raise an error
+    df = DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
+    result = df.groupby(["a", "b"]).indices
+    assert result == {}
+
+
 def test_groupby_2d_malformed():
     d = DataFrame(index=range(2))
     d["group"] = ["g1", "g2"]
@@ -2074,7 +2081,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
 @pytest.mark.parametrize(
     "klass, attr, value",
     [
-        (DataFrame, "axis", 1),
         (DataFrame, "level", "a"),
         (DataFrame, "as_index", False),
         (DataFrame, "sort", False),
@@ -2111,6 +2117,14 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
     expected = df.groupby("a", **{attr: value})
     result = expected[["b"]] if klass is DataFrame else expected["b"]
     assert getattr(result, attr) == getattr(expected, attr)
+
+
+def test_subsetting_columns_axis_1():
+    # GH 37725
+    g = DataFrame({"A": [1], "B": [2], "C": [3]}).groupby([0, 0, 1], axis=1)
+    match = "Cannot subset columns when using axis=1"
+    with pytest.raises(ValueError, match=match):
+        g[["A", "B"]].sum()
 
 
 @pytest.mark.parametrize("func", ["sum", "any", "shift"])

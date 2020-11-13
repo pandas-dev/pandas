@@ -227,7 +227,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -649,7 +649,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        value_left, value_right = self._validate_fillna_value(value)
+        value_left, value_right = self._validate_fill_value(value)
 
         left = self.left.fillna(value=value_left)
         right = self.right.fillna(value=value_right)
@@ -788,7 +788,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             b = empty
         return self._concat_same_type([a, b])
 
-    def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
+    def take(self, indices, *, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
         Take elements from the IntervalArray.
 
@@ -870,26 +870,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # GH#18295
             left = right = value
         else:
-            raise ValueError(
+            raise TypeError(
                 "can only insert Interval objects and NA into an IntervalArray"
             )
         return left, right
 
     def _validate_fill_value(self, value):
-        return self._validate_scalar(value)
-
-    def _validate_fillna_value(self, value):
-        # This mirrors Datetimelike._validate_fill_value
-        try:
-            return self._validate_scalar(value)
-        except ValueError as err:
-            msg = (
-                "'IntervalArray.fillna' only supports filling with a "
-                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
-            )
-            raise TypeError(msg) from err
-
-    def _validate_insert_value(self, value):
         return self._validate_scalar(value)
 
     def _validate_setitem_value(self, value):

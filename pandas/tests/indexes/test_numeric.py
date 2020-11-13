@@ -273,7 +273,7 @@ class TestFloat64Index(Numeric):
     def test_lookups_datetimelike_values(self, vals):
         # If we have datetime64 or timedelta64 values, make sure they are
         #  wrappped correctly  GH#31163
-        ser = pd.Series(vals, index=range(3, 6))
+        ser = Series(vals, index=range(3, 6))
         ser.index = ser.index.astype("float64")
 
         expected = vals[1]
@@ -642,7 +642,7 @@ def test_range_float_union_dtype():
 def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
-    series = pd.Series(
+    series = Series(
         [0, 1, 2, 3, 4, 5],
         index=[
             7606741985629028552,
@@ -687,20 +687,3 @@ def test_float64_index_difference():
 
     result = string_index.difference(float_index)
     tm.assert_index_equal(result, string_index)
-
-
-class TestGetSliceBounds:
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
-    def test_get_slice_bounds_within(self, kind, side, expected):
-        index = Index(range(6))
-        result = index.get_slice_bound(4, kind=kind, side=side)
-        assert result == expected
-
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
-    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
-        index = Index(range(6))
-        result = index.get_slice_bound(bound, kind=kind, side=side)
-        assert result == expected
