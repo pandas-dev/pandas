@@ -73,19 +73,20 @@ class TestRegistration:
         ax.plot(s.index, s.values)
         plt.close()
 
-    def test_pandas_plots_register(self, request):
+    @pytest.mark.xfail(
+        is_platform_windows(), reason="Getting two warnings", strict=False
+    )
+    def test_pandas_plots_register(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
-        if is_platform_windows():
-            mark = pytest.mark.xfail(reason="Getting two warnings", strict=False)
-            request.node.add_marker(mark)
-
-        assert len(w) == 0
-        plt.close()
+        try:
+            assert len(w) == 0
+        finally:
+            plt.close()
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")
