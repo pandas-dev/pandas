@@ -8752,6 +8752,8 @@ NaN 12.3   33.0
 
         def blk_func(values):
             if isinstance(values, ExtensionArray):
+                if values.ndim == 2:
+                    return values._reduce(name, skipna=skipna, axis=1, **kwds)
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=1, skipna=skipna, **kwds)
@@ -8765,7 +8767,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None:
+        if numeric_only is not None or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -8790,6 +8792,10 @@ NaN 12.3   33.0
                 # GH#35865 careful to cast explicitly to object
                 nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
                 out[:] = np.array(nvs, dtype=object)
+            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+                # Even if we are object dtype, follow numpy and return
+                #  float64, see test_apply_funcs_over_empty
+                out = out.astype(np.float64)
             return out
 
         assert numeric_only is None

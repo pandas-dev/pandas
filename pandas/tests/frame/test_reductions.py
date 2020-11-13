@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -1083,10 +1084,12 @@ class TestDataFrameAnalytics:
             pytest.param(np.any, {"A": Series([0, 1], dtype="m8[ns]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="m8[ns]")}, True),
             pytest.param(np.any, {"A": Series([1, 2], dtype="m8[ns]")}, True),
-            (np.all, {"A": Series([0, 1], dtype="category")}, False),
-            (np.any, {"A": Series([0, 1], dtype="category")}, True),
+            # np.all on Categorical raises, so the reduction drops the
+            #  column, so all is being done on an empty Series, so is True
+            (np.all, {"A": Series([0, 1], dtype="category")}, True),
+            (np.any, {"A": Series([0, 1], dtype="category")}, False),
             (np.all, {"A": Series([1, 2], dtype="category")}, True),
-            (np.any, {"A": Series([1, 2], dtype="category")}, True),
+            (np.any, {"A": Series([1, 2], dtype="category")}, False),
             # Mix GH#21484
             pytest.param(
                 np.all,
@@ -1321,6 +1324,6 @@ def test_minmax_extensionarray(method, numeric_only):
     df = DataFrame({"Int64": ser})
     result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
-        [getattr(int64_info, method)], index=pd.Index(["Int64"], dtype="object")
+        [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
     tm.assert_series_equal(result, expected)
