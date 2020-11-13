@@ -621,7 +621,7 @@ def test_resample_end_origin():
     result = s.resample("7min", origin="end", closed="right").sum()
 
     exp_idx = date_range("2020-01-01 08:20:45", "2020-01-01 09:23:45", freq="7T")
-    exp_data = [1, 6, 5, 6, 5, 6, 5, 6, 5, 6]
+    exp_data = [1.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0]
     expected = Series(exp_data, index=exp_idx)
 
     tm.assert_series_equal(result, expected)
