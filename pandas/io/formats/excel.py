@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import Label, StorageOptions
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import ABCIndex
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
-from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -785,9 +784,10 @@ class ExcelFormatter:
         startcol=0,
         freeze_panes=None,
         engine=None,
+        storage_options: StorageOptions = None,
     ):
         """
-        writer : string or ExcelWriter object
+        writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter
         sheet_name : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
@@ -802,6 +802,12 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+            .. versionadded:: 1.2.0
         """
         from pandas.io.excel import ExcelWriter
 
@@ -819,7 +825,7 @@ class ExcelFormatter:
             # abstract class 'ExcelWriter' with abstract attributes 'engine',
             # 'save', 'supported_extensions' and 'write_cells'  [abstract]
             writer = ExcelWriter(  # type: ignore[abstract]
-                stringify_path(writer), engine=engine
+                writer, engine=engine, storage_options=storage_options
             )
             need_save = True
 
