@@ -227,7 +227,7 @@ class JoinUnit:
 
         return isna_all(values_flat)
 
-    def get_reindexed_values(self, empty_dtype, upcasted_na):
+    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na):
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
