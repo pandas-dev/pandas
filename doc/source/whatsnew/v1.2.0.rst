@@ -251,7 +251,7 @@ determines whether to exclude object-dtype columns on a column-by-column basis,
 instead of checking if *all* object-dtype columns can be considered boolean.
 
 This prevents pathological behavior where applying the reduction on a subset
-of columns could result in a larger :class:`Series` result.
+of columns could result in a larger :class:`Series` result. See (:issue:`37799`).
 
 .. ipython:: python
 
