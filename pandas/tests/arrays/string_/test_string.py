@@ -445,9 +445,7 @@ def test_arrow_roundtrip(dtype, dtype_object):
 
 def test_value_counts_na(dtype, request):
     if dtype == "arrow_string":
-        reason = (
-            "AttributeError: 'ArrowStringArray' object has no attribute 'value_counts'"
-        )
+        reason = "TypeError: boolean value of NA is ambiguous"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
 
