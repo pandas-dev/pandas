@@ -136,8 +136,8 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
     def test_fillna_series(self):
         pass
 
-    def test_non_scalar_raises(self, data_missing):
-        msg = "Got a 'list' instead."
+    def test_fillna_non_scalar_raises(self, data_missing):
+        msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
