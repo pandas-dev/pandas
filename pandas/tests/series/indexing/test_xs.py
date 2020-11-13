@@ -50,3 +50,18 @@ class TestXSWithMultiIndex:
 
         result = ser.xs("20130903", level=1)
         tm.assert_series_equal(result, expected)
+
+    def test_series_xs_droplevel_false(self):
+        # GH: 19056
+        mi = MultiIndex.from_tuples(
+            [("a", "x"), ("a", "y"), ("b", "x")], names=["level1", "level2"]
+        )
+        df = Series([1, 1, 1], index=mi)
+        result = df.xs("a", axis=0, drop_level=False)
+        expected = Series(
+            [1, 1],
+            index=MultiIndex.from_tuples(
+                [("a", "x"), ("a", "y")], names=["level1", "level2"]
+            ),
+        )
+        tm.assert_series_equal(result, expected)
