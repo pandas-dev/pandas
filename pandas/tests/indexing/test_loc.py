@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Index,
     MultiIndex,
@@ -1657,6 +1658,36 @@ class TestLocBooleanMask:
         getattr(df, func)[[True, False, True]] = rhs_func([[5], [10]])
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
+
+
+class TestLocListlike:
+    @pytest.mark.parametrize("box", [lambda x: x, np.asarray, list])
+    def test_loc_getitem_list_of_labels_categoricalindex_with_na(self, box):
+        # passing a list can include valid categories _or_ NA values
+        ci = CategoricalIndex(["A", "B", np.nan])
+        ser = Series(range(3), index=ci)
+
+        result = ser.loc[box(ci)]
+        tm.assert_series_equal(result, ser)
+
+        result = ser[box(ci)]
+        tm.assert_series_equal(result, ser)
+
+        result = ser.to_frame().loc[box(ci)]
+        tm.assert_frame_equal(result, ser.to_frame())
+
+        ser2 = ser[:-1]
+        ci2 = ci[1:]
+        # but if there are no NAs present, this should raise KeyError
+        msg = "a list-indexer must only include values that are in the categories"
+        with pytest.raises(KeyError, match=msg):
+            ser2.loc[box(ci2)]
+
+        with pytest.raises(KeyError, match=msg):
+            ser2[box(ci2)]
+
+        with pytest.raises(KeyError, match=msg):
+            ser2.to_frame().loc[box(ci2)]
 
 
 def test_series_loc_getitem_label_list_missing_values():
