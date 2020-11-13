@@ -602,7 +602,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Convert a potentially-label-based key into a positional indexer.
         """
-        if self.name == "loc" or com.is_bool_indexer(key):
+        if self.name == "loc":
             self._ensure_listlike_indexer(key)
 
         if self.axis is not None:
