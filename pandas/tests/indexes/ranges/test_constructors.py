@@ -43,7 +43,7 @@ class TestRangeIndexConstructors:
             r"kind, 0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
-            Index(0, 1000)
+            Index(0)
 
     @pytest.mark.parametrize(
         "args",
@@ -149,9 +149,9 @@ class TestRangeIndexConstructors:
         tm.assert_index_equal(index, Index(arr))
 
         # non-int raise Exception
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=r"Wrong type \<class 'str'\>"):
             RangeIndex("1", "10", "1")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=r"Wrong type \<class 'float'\>"):
             RangeIndex(1.1, 10.2, 1.3)
 
         # invalid passed type

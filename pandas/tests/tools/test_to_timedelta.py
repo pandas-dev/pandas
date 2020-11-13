@@ -9,6 +9,16 @@ import pandas._testing as tm
 
 
 class TestTimedeltas:
+    @pytest.mark.parametrize("readonly", [True, False])
+    def test_to_timedelta_readonly(self, readonly):
+        # GH#34857
+        arr = np.array([], dtype=object)
+        if readonly:
+            arr.setflags(write=False)
+        result = to_timedelta(arr)
+        expected = to_timedelta([])
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta(self):
 
         result = to_timedelta(["", ""])
@@ -121,6 +131,27 @@ class TestTimedeltas:
             invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
 
+    @pytest.mark.parametrize(
+        "val, warning",
+        [
+            ("1M", FutureWarning),
+            ("1 M", FutureWarning),
+            ("1Y", FutureWarning),
+            ("1 Y", FutureWarning),
+            ("1y", FutureWarning),
+            ("1 y", FutureWarning),
+            ("1m", None),
+            ("1 m", None),
+            ("1 day", None),
+            ("2day", None),
+        ],
+    )
+    def test_unambiguous_timedelta_values(self, val, warning):
+        # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
+        # in pd.to_timedelta
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            to_timedelta(val)
+
     def test_to_timedelta_via_apply(self):
         # GH 5458
         expected = Series([np.timedelta64(1, "s")])
@@ -155,3 +186,27 @@ class TestTimedeltas:
         result = pd.to_timedelta(arr, unit="s")
         expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
+
+    def test_to_timedelta_coerce_strings_unit(self):
+        arr = np.array([1, 2, "error"], dtype=object)
+        result = pd.to_timedelta(arr, unit="ns", errors="coerce")
+        expected = pd.to_timedelta([1, 2, pd.NaT], unit="ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timedelta_ignore_strings_unit(self):
+        arr = np.array([1, 2, "error"], dtype=object)
+        result = pd.to_timedelta(arr, unit="ns", errors="ignore")
+        tm.assert_numpy_array_equal(result, arr)
+
+    def test_to_timedelta_nullable_int64_dtype(self):
+        # GH 35574
+        expected = Series([timedelta(days=1), timedelta(days=2)])
+        result = to_timedelta(Series([1, 2], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)
+
+        # IntegerArray Series with nulls
+        expected = Series([timedelta(days=1), None])
+        result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)

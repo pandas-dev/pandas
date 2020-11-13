@@ -21,7 +21,7 @@ Installation
                 <div class="card-body">
                     <p class="card-text">
 
-pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
+pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution and can be
 installed with Anaconda or Miniconda:
 
 .. raw:: html
@@ -398,7 +398,7 @@ data set, a sliding window of the data or grouped by categories. The latter is a
                 <div class="card-body">
 
 Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot`
-from long to wide format. With aggregations built-in, a pivot table is created with a sinlge command.
+from long to wide format. With aggregations built-in, a pivot table is created with a single command.
 
 .. image:: ../_static/schemas/07_melt.svg
    :align: center
@@ -533,7 +533,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 

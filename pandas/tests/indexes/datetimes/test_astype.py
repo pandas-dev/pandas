@@ -12,7 +12,6 @@ from pandas import (
     Int64Index,
     NaT,
     PeriodIndex,
-    Series,
     Timestamp,
     date_range,
 )
@@ -65,37 +64,24 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        # BUG#10442 : testing astype(str) is correct for Series/DatetimeIndex
-        result = pd.Series(pd.date_range("2012-01-01", periods=3)).astype(str)
-        expected = pd.Series(["2012-01-01", "2012-01-02", "2012-01-03"], dtype=object)
-        tm.assert_series_equal(result, expected)
-
-        result = Series(pd.date_range("2012-01-01", periods=3, tz="US/Eastern")).astype(
-            str
-        )
-        expected = Series(
-            [
-                "2012-01-01 00:00:00-05:00",
-                "2012-01-02 00:00:00-05:00",
-                "2012-01-03 00:00:00-05:00",
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(result, expected)
-
+    def test_astype_tzaware_to_tzaware(self):
         # GH 18951: tz-aware to tz-aware
         idx = date_range("20170101", periods=4, tz="US/Pacific")
         result = idx.astype("datetime64[ns, US/Eastern]")
         expected = date_range("20170101 03:00:00", periods=4, tz="US/Eastern")
         tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
+    def test_astype_tznaive_to_tzaware(self):
         # GH 18951: tz-naive to tz-aware
         idx = date_range("20170101", periods=4)
+        idx = idx._with_freq(None)  # tz_localize does not preserve freq
         result = idx.astype("datetime64[ns, US/Eastern]")
         expected = date_range("20170101", periods=4, tz="US/Eastern")
+        expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
 
-    def test_astype_str_compat(self):
+    def test_astype_str_nat(self):
         # GH 13149, GH 13209
         # verify that we are returning NaT as a string (and not unicode)
 
@@ -106,7 +92,8 @@ class TestDatetimeIndex:
 
     def test_astype_str(self):
         # test astype string - #10442
-        result = date_range("2012-01-01", periods=4, name="test_name").astype(str)
+        dti = date_range("2012-01-01", periods=4, name="test_name")
+        result = dti.astype(str)
         expected = Index(
             ["2012-01-01", "2012-01-02", "2012-01-03", "2012-01-04"],
             name="test_name",
@@ -114,10 +101,10 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_astype_str_tz_and_name(self):
         # test astype string with tz and name
-        result = date_range(
-            "2012-01-01", periods=3, name="test_name", tz="US/Eastern"
-        ).astype(str)
+        dti = date_range("2012-01-01", periods=3, name="test_name", tz="US/Eastern")
+        result = dti.astype(str)
         expected = Index(
             [
                 "2012-01-01 00:00:00-05:00",
@@ -129,10 +116,10 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_astype_str_freq_and_name(self):
         # test astype string with freqH and name
-        result = date_range("1/1/2011", periods=3, freq="H", name="test_name").astype(
-            str
-        )
+        dti = date_range("1/1/2011", periods=3, freq="H", name="test_name")
+        result = dti.astype(str)
         expected = Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
             name="test_name",
@@ -140,10 +127,12 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_astype_str_freq_and_tz(self):
         # test astype string with freqH and timezone
-        result = date_range(
+        dti = date_range(
             "3/6/2012 00:00", periods=2, freq="H", tz="Europe/London", name="test_name"
-        ).astype(str)
+        )
+        result = dti.astype(str)
         expected = Index(
             ["2012-03-06 00:00:00+00:00", "2012-03-06 01:00:00+00:00"],
             dtype=object,
@@ -190,7 +179,7 @@ class TestDatetimeIndex:
             Timestamp("2013-03-31", tz=tz),
             Timestamp("2013-04-30", tz=tz),
         ]
-        expected = pd.Index(expected_list, dtype=object, name="idx")
+        expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
@@ -206,7 +195,7 @@ class TestDatetimeIndex:
             pd.NaT,
             Timestamp("2013-01-04"),
         ]
-        expected = pd.Index(expected_list, dtype=object, name="idx")
+        expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
@@ -279,9 +268,9 @@ class TestDatetimeIndex:
     )
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
-        val = [pd.Timestamp("2018-01-01", tz=tz).value]
-        result = pd.Index(val, name="idx").astype(dtype)
-        expected = pd.DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
+        val = [Timestamp("2018-01-01", tz=tz).value]
+        result = Index(val, name="idx").astype(dtype)
+        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
@@ -302,7 +291,7 @@ class TestAstype:
         obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
         expected = pd.CategoricalIndex(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)],
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)],
             name="idx",
         )
         tm.assert_index_equal(result, expected)
@@ -315,7 +304,7 @@ class TestAstype:
     def test_astype_array_fallback(self, tz):
         obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
-        expected = pd.Index(np.array([True, True]), name="idx")
+        expected = Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)

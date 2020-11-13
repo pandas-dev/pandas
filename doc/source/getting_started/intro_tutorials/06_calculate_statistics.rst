@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -72,7 +72,7 @@ Aggregating statistics
     <ul class="task-bullet">
         <li>
 
-What is the average age of the titanic passengers?
+What is the average age of the Titanic passengers?
 
 .. ipython:: python
 
@@ -95,7 +95,7 @@ across rows by default.
     <ul class="task-bullet">
         <li>
 
-What is the median age and ticket fare price of the titanic passengers?
+What is the median age and ticket fare price of the Titanic passengers?
 
 .. ipython:: python
 
@@ -122,8 +122,12 @@ aggregating statistics for given columns can be defined using the
 
 .. ipython:: python
 
-    titanic.agg({'Age': ['min', 'max', 'median', 'skew'],
-                 'Fare': ['min', 'max', 'median', 'mean']})
+    titanic.agg(
+        {
+            "Age": ["min", "max", "median", "skew"],
+            "Fare": ["min", "max", "median", "mean"],
+        }
+    )
 
 .. raw:: html
 
@@ -148,7 +152,7 @@ Aggregating statistics grouped by category
     <ul class="task-bullet">
         <li>
 
-What is the average age for male versus female titanic passengers?
+What is the average age for male versus female Titanic passengers?
 
 .. ipython:: python
 
@@ -197,7 +201,7 @@ on the grouped data as well:
    :align: center
 
 .. note::
-    The `Pclass` column contains numerical data but actually
+    The ``Pclass`` column contains numerical data but actually
     represents 3 categories (or factors) with respectively the labels ‘1’,
     ‘2’ and ‘3’. Calculating statistics on these does not make much sense.
     Therefore, pandas provides a ``Categorical`` data type to handle this

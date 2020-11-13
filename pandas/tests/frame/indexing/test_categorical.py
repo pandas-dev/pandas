@@ -326,7 +326,10 @@ class TestDataFrameIndexingCategorical:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        exp_fancy["cats"].cat.set_categories(["a", "b", "c"], inplace=True)
+        return_value = exp_fancy["cats"].cat.set_categories(
+            ["a", "b", "c"], inplace=True
+        )
+        assert return_value is None
 
         df[df["cats"] == "c"] = ["b", 2]
         # category c is kept in .categories
@@ -349,18 +352,10 @@ class TestDataFrameIndexingCategorical:
         df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
-    def test_functions_no_warnings(self):
-        df = DataFrame({"value": np.random.randint(0, 100, 20)})
-        labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
-        with tm.assert_produces_warning(False):
-            df["group"] = pd.cut(
-                df.value, range(0, 105, 10), right=False, labels=labels
-            )
-
-    def test_setitem_single_row_categorical(self):
+    def test_loc_setitem_single_row_categorical(self):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
-        categories = pd.Categorical(df["Alpha"], categories=["a", "b", "c"])
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
         df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
@@ -391,11 +386,3 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
-
-    def test_wrong_length_cat_dtype_raises(self):
-        # GH29523
-        cat = pd.Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
-        df = pd.DataFrame({"bar": range(10)})
-        err = "Length of values does not match length of index"
-        with pytest.raises(ValueError, match=err):
-            df["foo"] = cat

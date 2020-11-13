@@ -4,18 +4,18 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-import collections
-from collections import abc
-from datetime import datetime, timedelta
+from collections import abc, defaultdict
+import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Union
+from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
-from pandas._typing import T
-from pandas.compat.numpy import _np_version_under1p17
+from pandas._libs import lib
+from pandas._typing import AnyArrayLike, Scalar, T
+from pandas.compat.numpy import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -24,8 +24,13 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
+from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
 
@@ -55,9 +60,8 @@ def flatten(l):
     flattened : generator
     """
     for el in l:
-        if _iterable_not_string(el):
-            for s in flatten(el):
-                yield s
+        if iterable_not_string(el):
+            yield from flatten(el)
         else:
             yield el
 
@@ -71,21 +75,6 @@ def consensus_name_attr(objs):
         except ValueError:
             name = None
     return name
-
-
-def maybe_box_datetimelike(value, dtype=None):
-    # turn a datetime like into a Timestamp/timedelta as needed
-    if dtype == object:
-        # If we dont have datetime64/timedelta64 dtype, we dont want to
-        #  box datetimelike scalars
-        return value
-
-    if isinstance(value, (np.datetime64, datetime)):
-        value = tslibs.Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslibs.Timedelta(value)
-
-    return value
 
 
 def is_bool_indexer(key: Any) -> bool:
@@ -124,7 +113,9 @@ def is_bool_indexer(key: Any) -> bool:
 
             if not lib.is_bool_array(key):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if isna(key).any():
+                if lib.infer_dtype(key) == "boolean" and isna(key).any():
+                    # Don't raise on e.g. ["A", "B", np.nan], see
+                    #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
                 return False
             return True
@@ -140,13 +131,15 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val):
+def cast_scalar_indexer(val, warn_float=False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
     Parameters
     ----------
     val : scalar
+    warn_float : bool, default False
+        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -154,6 +147,13 @@ def cast_scalar_indexer(val):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
+        if warn_float:
+            warnings.warn(
+                "Indexing with a float is deprecated, and will raise an IndexError "
+                "in pandas 2.0. You can manually convert to an integer key instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return int(val)
     return val
 
@@ -198,14 +198,6 @@ def count_not_none(*args) -> int:
     Returns the count of arguments that are not None.
     """
     return sum(x is not None for x in args)
-
-
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except TypeError:
-        return listed
 
 
 def asarray_tuplesafe(values, dtype=None):
@@ -270,6 +262,11 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
+    # error: Incompatible return value type (got
+    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
+    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
+    # "Union[Collection[T], T]")  [return-value]
+    obj = cast(Collection, obj)
     return obj
 
 
@@ -336,23 +333,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     return maybe_callable
 
 
-def dict_compat(d):
-    """
-    Helper function to convert datetimelike-keyed dicts
-    to Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
-
-
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
@@ -375,12 +355,12 @@ def standardize_mapping(into):
     Series.to_dict
     """
     if not inspect.isclass(into):
-        if isinstance(into, collections.defaultdict):
-            return partial(collections.defaultdict, into.default_factory)
+        if isinstance(into, defaultdict):
+            return partial(defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == collections.defaultdict:
+    elif into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
@@ -398,9 +378,9 @@ def random_state(state=None):
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
 
-        ..versionchanged:: 1.1.0
+        .. versionchanged:: 1.1.0
 
-            array-like and BitGenerator (for NumPy>=1.17) object now passed to
+            array-like and BitGenerator (for NumPy>=1.18) object now passed to
             np.random.RandomState() as seed
 
         Default None.
@@ -413,7 +393,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not _np_version_under1p17 and isinstance(state, np.random.BitGenerator))
+        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
@@ -422,10 +402,8 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            (
-                "random_state must be an integer, array-like, a BitGenerator, "
-                "a numpy RandomState, or None"
-            )
+            "random_state must be an integer, array-like, a BitGenerator, "
+            "a numpy RandomState, or None"
         )
 
 
@@ -481,3 +459,36 @@ def get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def convert_to_list_like(
+    values: Union[Scalar, Iterable, AnyArrayLike]
+) -> Union[List, AnyArrayLike]:
+    """
+    Convert list-like or scalar input to list-like. List, numpy and pandas array-like
+    inputs are returned unmodified whereas others are converted to list.
+    """
+    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
+        return values
+    elif isinstance(values, abc.Iterable) and not isinstance(values, str):
+        return list(values)
+
+    return [values]
+
+
+@contextlib.contextmanager
+def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+    """Temporarily set attribute on an object.
+
+    Args:
+        obj: Object whose attribute will be modified.
+        attr: Attribute to modify.
+        value: Value to temporarily set attribute to.
+
+    Yields:
+        obj with modified attribute.
+    """
+    old_value = getattr(obj, attr)
+    setattr(obj, attr, value)
+    yield obj
+    setattr(obj, attr, old_value)

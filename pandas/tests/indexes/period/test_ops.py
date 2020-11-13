@@ -7,24 +7,23 @@ import pandas._testing as tm
 
 
 class TestPeriodIndexOps:
-    def test_resolution(self):
-        for freq, expected in zip(
-            ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],
-            [
-                "day",
-                "day",
-                "day",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "millisecond",
-                "microsecond",
-            ],
-        ):
-
-            idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
-            assert idx.resolution == expected
+    @pytest.mark.parametrize(
+        "freq,expected",
+        [
+            ("A", "year"),
+            ("Q", "quarter"),
+            ("M", "month"),
+            ("D", "day"),
+            ("H", "hour"),
+            ("T", "minute"),
+            ("S", "second"),
+            ("L", "millisecond"),
+            ("U", "microsecond"),
+        ],
+    )
+    def test_resolution(self, freq, expected):
+        idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
+        assert idx.resolution == expected
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -81,9 +80,10 @@ class TestPeriodIndexOps:
 
         tm.assert_index_equal(idx.unique(), exp_idx)
 
-    def test_drop_duplicates_metadata(self):
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    def test_drop_duplicates_metadata(self, freq):
         # GH 10115
-        idx = pd.period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
+        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -93,26 +93,32 @@ class TestPeriodIndexOps:
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
 
-    def test_drop_duplicates(self):
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    @pytest.mark.parametrize(
+        "keep, expected, index",
+        [
+            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                False,
+                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
+                np.arange(5, 10),
+            ),
+        ],
+    )
+    def test_drop_duplicates(self, freq, keep, expected, index):
         # to check Index/Series compat
-        base = pd.period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx = base.append(base[:5])
+        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
+        idx = idx.append(idx[:5])
 
-        res = idx.drop_duplicates()
-        tm.assert_index_equal(res, base)
-        res = Series(idx).drop_duplicates()
-        tm.assert_series_equal(res, Series(base))
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
+        expected = idx[~expected]
 
-        res = idx.drop_duplicates(keep="last")
-        exp = base[5:].append(base[:5])
-        tm.assert_index_equal(res, exp)
-        res = Series(idx).drop_duplicates(keep="last")
-        tm.assert_series_equal(res, Series(exp, index=np.arange(5, 36)))
+        result = idx.drop_duplicates(keep=keep)
+        tm.assert_index_equal(result, expected)
 
-        res = idx.drop_duplicates(keep=False)
-        tm.assert_index_equal(res, base[5:])
-        res = Series(idx).drop_duplicates(keep=False)
-        tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
+        result = Series(idx).drop_duplicates(keep=keep)
+        tm.assert_series_equal(result, Series(expected, index=index))
 
     def test_order_compat(self):
         def _check_freq(index, expected_index):
@@ -168,14 +174,11 @@ class TestPeriodIndexOps:
 
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
-
-            exp = np.array([2, 1, 3, 4, 0])
-            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
 
-        result = pidx.sort_values()
+        result = pidx.sort_values(na_position="first")
         expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
         tm.assert_index_equal(result, expected)
         assert result.freq == "D"
@@ -244,7 +247,7 @@ class TestPeriodIndexOps:
         )
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
-            ordered = idx.sort_values()
+            ordered = idx.sort_values(na_position="first")
             tm.assert_index_equal(ordered, expected)
             assert ordered.freq == "D"
 
@@ -252,7 +255,7 @@ class TestPeriodIndexOps:
             tm.assert_index_equal(ordered, expected[::-1])
             assert ordered.freq == "D"
 
-            ordered, indexer = idx.sort_values(return_indexer=True)
+            ordered, indexer = idx.sort_values(return_indexer=True, na_position="first")
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
@@ -262,7 +265,7 @@ class TestPeriodIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0])
+            exp = np.array([2, 1, 3, 0, 4])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
@@ -294,7 +297,7 @@ class TestPeriodIndexOps:
         assert idx.astype(object).equals(idx)
         assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
         idx2 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
         assert not idx.equals(idx2)
@@ -302,7 +305,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx2.astype(object))
         assert not idx.astype(object).equals(idx2)
         assert not idx.equals(list(idx2))
-        assert not idx.equals(pd.Series(idx2))
+        assert not idx.equals(Series(idx2))
 
         # same internal, different tz
         idx3 = pd.PeriodIndex._simple_new(
@@ -314,7 +317,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx3.astype(object))
         assert not idx.astype(object).equals(idx3)
         assert not idx.equals(list(idx3))
-        assert not idx.equals(pd.Series(idx3))
+        assert not idx.equals(Series(idx3))
 
     def test_freq_setter_deprecated(self):
         # GH 20678
@@ -327,3 +330,12 @@ class TestPeriodIndexOps:
         # warning for setter
         with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
+
+
+def test_order_stability_compat():
+    # GH 35922. sort_values is stable both for normal and datetime-like Index
+    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
+    iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
+    ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
+    ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)
+    tm.assert_numpy_array_equal(indexer1, indexer2)

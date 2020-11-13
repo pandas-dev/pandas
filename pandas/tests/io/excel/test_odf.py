@@ -33,7 +33,7 @@ def test_read_writer_table():
         columns=["Column 1", "Unnamed: 2", "Column 3"],
     )
 
-    result = pd.read_excel("writertable.odt", "Table1", index_col=0)
+    result = pd.read_excel("writertable.odt", sheet_name="Table1", index_col=0)
 
     tm.assert_frame_equal(result, expected)
 

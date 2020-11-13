@@ -111,6 +111,15 @@ class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        if all_arithmetic_operators in self.implements:
+            df = pd.DataFrame({"A": data})
+            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
+        else:
+            # ... but not the rest.
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
@@ -172,8 +181,10 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
     @pytest.mark.parametrize("obj", ["series", "frame"])
     def test_unstack(self, obj):
         # GH-13287: can't use base test, since building the expected fails.
+        dtype = DatetimeTZDtype(tz="US/Central")
         data = DatetimeArray._from_sequence(
-            ["2000", "2001", "2002", "2003"], tz="US/Central"
+            ["2000", "2001", "2002", "2003"],
+            dtype=dtype,
         )
         index = pd.MultiIndex.from_product(([["A", "B"], ["a", "b"]]), names=["a", "b"])
 

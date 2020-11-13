@@ -175,6 +175,6 @@ def test_delete_base(idx):
     assert result.equals(expected)
     assert result.name == expected.name
 
-    with pytest.raises((IndexError, ValueError)):
-        # Exception raised depends on NumPy version.
+    msg = "index 6 is out of bounds for axis 0 with size 6"
+    with pytest.raises(IndexError, match=msg):
         idx.delete(len(idx))

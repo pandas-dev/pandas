@@ -4,11 +4,13 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 import gzip
+import operator
 import os
+import re
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, List, Optional, Type, Union, cast
+from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -21,9 +23,10 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
+from pandas._libs.lib import no_default
 import pandas._libs.testing as _testing
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
+from pandas.compat import get_lzma_file, import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -63,15 +66,48 @@ from pandas.core.arrays import (
     TimedeltaArray,
     period_array,
 )
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 _N = 30
 _K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
+
+UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+
+FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
+COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: List[Dtype] = [str, "str", "U"]
+
+DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
+
+BOOL_DTYPES = [bool, "bool"]
+BYTES_DTYPES = [bytes, "bytes"]
+OBJECT_DTYPES = [object, "object"]
+
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_NUMPY_DTYPES = (
+    ALL_REAL_DTYPES
+    + COMPLEX_DTYPES
+    + STRING_DTYPES
+    + DATETIME64_DTYPES
+    + TIMEDELTA64_DTYPES
+    + BOOL_DTYPES
+    + OBJECT_DTYPES
+    + BYTES_DTYPES
+)
+
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
@@ -81,14 +117,24 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("always", _testing_mode_warnings)
+        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "always", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("ignore", _testing_mode_warnings)
+        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 set_testing_mode()
@@ -205,16 +251,22 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, "rb")
     elif compression == "gzip":
-        f = gzip.open(path, "rb")
+        # pandas\_testing.py:243: error: Incompatible types in assignment
+        # (expression has type "IO[Any]", variable has type "BinaryIO")
+        f = gzip.open(path, "rb")  # type: ignore[assignment]
     elif compression == "bz2":
-        f = bz2.BZ2File(path, "rb")
+        # pandas\_testing.py:245: error: Incompatible types in assignment
+        # (expression has type "BZ2File", variable has type "BinaryIO")
+        f = bz2.BZ2File(path, "rb")  # type: ignore[assignment]
     elif compression == "xz":
-        f = _get_lzma_file(lzma)(path, "rb")
+        f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
-            f = zip_file.open(zip_names.pop())
+            # pandas\_testing.py:252: error: Incompatible types in assignment
+            # (expression has type "IO[bytes]", variable has type "BinaryIO")
+            f = zip_file.open(zip_names.pop())  # type: ignore[assignment]
         else:
             raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
     else:
@@ -248,19 +300,19 @@ def write_to_compressed(compression, path, data, dest="test"):
     ValueError : An invalid compression value was passed in.
     """
     if compression == "zip":
-        import zipfile
-
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        import gzip
-
-        compress_method = gzip.GzipFile
+        # pandas\_testing.py:288: error: Incompatible types in assignment
+        # (expression has type "Type[GzipFile]", variable has type
+        # "Type[ZipFile]")
+        compress_method = gzip.GzipFile  # type: ignore[assignment]
     elif compression == "bz2":
-        import bz2
-
-        compress_method = bz2.BZ2File
+        # pandas\_testing.py:290: error: Incompatible types in assignment
+        # (expression has type "Type[BZ2File]", variable has type
+        # "Type[ZipFile]")
+        compress_method = bz2.BZ2File  # type: ignore[assignment]
     elif compression == "xz":
-        compress_method = _get_lzma_file(lzma)
+        compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
@@ -270,18 +322,64 @@ def write_to_compressed(compression, path, data, dest="test"):
         method = "writestr"
     else:
         mode = "wb"
-        args = (data,)
+        # pandas\_testing.py:302: error: Incompatible types in assignment
+        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
+        # Any]")
+        args = (data,)  # type: ignore[assignment]
         method = "write"
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
 
 
+def _get_tol_from_less_precise(check_less_precise: Union[bool, int]) -> float:
+    """
+    Return the tolerance equivalent to the deprecated `check_less_precise`
+    parameter.
+
+    Parameters
+    ----------
+    check_less_precise : bool or int
+
+    Returns
+    -------
+    float
+        Tolerance to be used as relative/absolute tolerance.
+
+    Examples
+    --------
+    >>> # Using check_less_precise as a bool:
+    >>> _get_tol_from_less_precise(False)
+    0.5e-5
+    >>> _get_tol_from_less_precise(True)
+    0.5e-3
+    >>> # Using check_less_precise as an int representing the decimal
+    >>> # tolerance intended:
+    >>> _get_tol_from_less_precise(2)
+    0.5e-2
+    >>> _get_tol_from_less_precise(8)
+    0.5e-8
+
+    """
+    if isinstance(check_less_precise, bool):
+        if check_less_precise:
+            # 3-digit tolerance
+            return 0.5e-3
+        else:
+            # 5-digit tolerance
+            return 0.5e-5
+    else:
+        # Equivalent to setting checking_less_precise=<decimals>
+        return 0.5 * 10 ** -check_less_precise
+
+
 def assert_almost_equal(
     left,
     right,
     check_dtype: Union[bool, str] = "equiv",
-    check_less_precise: Union[bool, int] = False,
+    check_less_precise: Union[bool, int] = no_default,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     **kwargs,
 ):
     """
@@ -308,14 +406,37 @@ def assert_almost_equal(
         they are equivalent within the specified precision. Otherwise, we
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
+
+        .. deprecated:: 1.1.0
+           Use `rtol` and `atol` instead to define relative/absolute
+           tolerance, respectively. Similar to :func:`math.isclose`.
+    rtol : float, default 1e-5
+        Relative tolerance.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance.
+
+        .. versionadded:: 1.1.0
     """
+    if check_less_precise is not no_default:
+        warnings.warn(
+            "The 'check_less_precise' keyword in testing.assert_*_equal "
+            "is deprecated and will be removed in a future version. "
+            "You can stop passing 'check_less_precise' to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+
     if isinstance(left, pd.Index):
         assert_index_equal(
             left,
             right,
             check_exact=False,
             exact=check_dtype,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             **kwargs,
         )
 
@@ -325,7 +446,8 @@ def assert_almost_equal(
             right,
             check_exact=False,
             check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             **kwargs,
         )
 
@@ -335,7 +457,8 @@ def assert_almost_equal(
             right,
             check_exact=False,
             check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             **kwargs,
         )
 
@@ -355,11 +478,7 @@ def assert_almost_equal(
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
         _testing.assert_almost_equal(
-            left,
-            right,
-            check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
-            **kwargs,
+            left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
         )
 
 
@@ -443,7 +562,7 @@ def rands(nchars):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import get_fignums, close as _close
+    from matplotlib.pyplot import close as _close, get_fignums
 
     if fignum is None:
         for fignum in get_fignums():
@@ -570,9 +689,12 @@ def assert_index_equal(
     right: Index,
     exact: Union[bool, str] = "equiv",
     check_names: bool = True,
-    check_less_precise: Union[bool, int] = False,
+    check_less_precise: Union[bool, int] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_order: bool = True,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
     obj: str = "Index",
 ) -> None:
     """
@@ -592,10 +714,28 @@ def assert_index_equal(
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        .. deprecated:: 1.1.0
+           Use `rtol` and `atol` instead to define relative/absolute
+           tolerance, respectively. Similar to :func:`math.isclose`.
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_order : bool, default True
+        Whether to compare the order of index entries as well as their values.
+        If True, both indexes must contain the same elements, in the same order.
+        If False, both indexes must contain the same elements, but in any order.
+
+        .. versionadded:: 1.2.0
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -621,8 +761,17 @@ def assert_index_equal(
         unique = index.levels[level]
         level_codes = index.codes[level]
         filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
-        values = unique._shallow_copy(filled, name=index.names[level])
-        return values
+        return unique._shallow_copy(filled, name=index.names[level])
+
+    if check_less_precise is not no_default:
+        warnings.warn(
+            "The 'check_less_precise' keyword in testing.assert_*_equal "
+            "is deprecated and will be removed in a future version. "
+            "You can stop passing 'check_less_precise' to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -644,6 +793,11 @@ def assert_index_equal(
         msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
 
+    # If order doesn't matter then sort the index entries
+    if not check_order:
+        left = left.sort_values()
+        right = right.sort_values()
+
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
         left = cast(MultiIndex, left)
@@ -660,8 +814,9 @@ def assert_index_equal(
                 rlevel,
                 exact=exact,
                 check_names=check_names,
-                check_less_precise=check_less_precise,
                 check_exact=check_exact,
+                rtol=rtol,
+                atol=atol,
                 obj=lobj,
             )
             # get_level_values may change dtype
@@ -677,7 +832,8 @@ def assert_index_equal(
         _testing.assert_almost_equal(
             left.values,
             right.values,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             check_dtype=exact,
             obj=obj,
             lobj=left,
@@ -693,7 +849,7 @@ def assert_index_equal(
         assert_interval_array_equal(left._values, right._values)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
@@ -821,7 +977,7 @@ def assert_categorical_equal(
     if check_category_order:
         assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
         assert_numpy_array_equal(
-            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
+            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )
     else:
         try:
@@ -830,9 +986,7 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(
-            lc, rc, obj=f"{obj}.categories",
-        )
+        assert_index_equal(lc, rc, obj=f"{obj}.categories")
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
@@ -860,8 +1014,14 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
-    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
+    kwargs = {}
+    if left._left.dtype.kind in ["m", "M"]:
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -872,20 +1032,22 @@ def assert_period_array_equal(left, right, obj="PeriodArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
+def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
+def assert_timedelta_array_equal(left, right, obj="TimedeltaArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
@@ -974,7 +1136,7 @@ def assert_numpy_array_equal(
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
-                    obj, f"{obj} shapes are different", left.shape, right.shape,
+                    obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
             diff = 0
@@ -999,7 +1161,14 @@ def assert_numpy_array_equal(
 
 
 def assert_extension_array_equal(
-    left, right, check_dtype=True, check_less_precise=False, check_exact=False
+    left,
+    right,
+    check_dtype=True,
+    index_values=None,
+    check_less_precise=no_default,
+    check_exact=False,
+    rtol: float = 1.0e-5,
+    atol: float = 1.0e-8,
 ):
     """
     Check that left and right ExtensionArrays are equal.
@@ -1010,12 +1179,26 @@ def assert_extension_array_equal(
         The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
+    index_values : numpy.ndarray, default None
+        Optional index (shared by both left and right), used in output.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare.
+
+        .. deprecated:: 1.1.0
+           Use `rtol` and `atol` instead to define relative/absolute
+           tolerance, respectively. Similar to :func:`math.isclose`.
     check_exact : bool, default False
         Whether to compare number exactly.
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -1023,32 +1206,54 @@ def assert_extension_array_equal(
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
+    if check_less_precise is not no_default:
+        warnings.warn(
+            "The 'check_less_precise' keyword in testing.assert_*_equal "
+            "is deprecated and will be removed in a future version. "
+            "You can stop passing 'check_less_precise' to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+
     assert isinstance(left, ExtensionArray), "left is not an ExtensionArray"
     assert isinstance(right, ExtensionArray), "right is not an ExtensionArray"
     if check_dtype:
         assert_attr_equal("dtype", left, right, obj="ExtensionArray")
 
-    if hasattr(left, "asi8") and type(right) == type(left):
+    if (
+        isinstance(left, DatetimeLikeArrayMixin)
+        and isinstance(right, DatetimeLikeArrayMixin)
+        and type(right) == type(left)
+    ):
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
-        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
+        assert_numpy_array_equal(
+            np.asarray(left.asi8), np.asarray(right.asi8), index_values=index_values
+        )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-    assert_numpy_array_equal(left_na, right_na, obj="ExtensionArray NA mask")
+    assert_numpy_array_equal(
+        left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
+    )
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
     if check_exact:
-        assert_numpy_array_equal(left_valid, right_valid, obj="ExtensionArray")
+        assert_numpy_array_equal(
+            left_valid, right_valid, obj="ExtensionArray", index_values=index_values
+        )
     else:
         _testing.assert_almost_equal(
             left_valid,
             right_valid,
             check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             obj="ExtensionArray",
+            index_values=index_values,
         )
 
 
@@ -1059,12 +1264,16 @@ def assert_series_equal(
     check_dtype=True,
     check_index_type="equiv",
     check_series_type=True,
-    check_less_precise=False,
+    check_less_precise=no_default,
     check_names=True,
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
     check_category_order=True,
+    check_freq=True,
+    check_flags=True,
+    rtol=1.0e-5,
+    atol=1.0e-8,
     obj="Series",
 ):
     """
@@ -1091,6 +1300,10 @@ def assert_series_equal(
         they are equivalent within the specified precision. Otherwise, we
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
+
+        .. deprecated:: 1.1.0
+           Use `rtol` and `atol` instead to define relative/absolute
+           tolerance, respectively. Similar to :func:`math.isclose`.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
@@ -1103,11 +1316,36 @@ def assert_series_equal(
         Whether to compare category order of internal Categoricals.
 
         .. versionadded:: 1.0.2
+    check_freq : bool, default True
+        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+
+        .. versionadded:: 1.2.0
+
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
     """
     __tracebackhide__ = True
+
+    if check_less_precise is not no_default:
+        warnings.warn(
+            "The 'check_less_precise' keyword in testing.assert_*_equal "
+            "is deprecated and will be removed in a future version. "
+            "You can stop passing 'check_less_precise' to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
     # instance validation
     _check_isinstance(left, right, Series)
@@ -1121,17 +1359,25 @@ def assert_series_equal(
         msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+
     # index comparison
     assert_index_equal(
         left.index,
         right.index,
         exact=check_index_type,
         check_names=check_names,
-        check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        rtol=rtol,
+        atol=atol,
         obj=f"{obj}.index",
     )
+    if check_freq and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+        lidx = left.index
+        ridx = right.index
+        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
@@ -1146,10 +1392,8 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
-    if check_exact:
-        if not is_numeric_dtype(left.dtype):
-            raise AssertionError("check_exact may only be used with numeric Series")
-
+    if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        # Only check exact if dtype is numeric
         assert_numpy_array_equal(
             left._values,
             right._values,
@@ -1178,20 +1422,33 @@ def assert_series_equal(
         _testing.assert_almost_equal(
             left._values,
             right._values,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             check_dtype=check_dtype,
             obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
+        )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
-        assert_extension_array_equal(left._values, right._values)
+        assert_extension_array_equal(
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
+        )
     else:
         _testing.assert_almost_equal(
             left._values,
             right._values,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
             check_dtype=check_dtype,
             obj=str(obj),
             index_values=np.asarray(left.index),
@@ -1202,7 +1459,7 @@ def assert_series_equal(
         assert_attr_equal("name", left, right, obj=obj)
 
     if check_categorical:
-        if is_categorical_dtype(left) or is_categorical_dtype(right):
+        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
             assert_categorical_equal(
                 left._values,
                 right._values,
@@ -1219,13 +1476,17 @@ def assert_frame_equal(
     check_index_type="equiv",
     check_column_type="equiv",
     check_frame_type=True,
-    check_less_precise=False,
+    check_less_precise=no_default,
     check_names=True,
     by_blocks=False,
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
     check_like=False,
+    check_freq=True,
+    check_flags=True,
+    rtol=1.0e-5,
+    atol=1.0e-8,
     obj="DataFrame",
 ):
     """
@@ -1263,6 +1524,10 @@ def assert_frame_equal(
         they are equivalent within the specified precision. Otherwise, we
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
+
+        .. deprecated:: 1.1.0
+           Use `rtol` and `atol` instead to define relative/absolute
+           tolerance, respectively. Similar to :func:`math.isclose`.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical.
@@ -1279,6 +1544,18 @@ def assert_frame_equal(
         If True, ignore the order of index & columns.
         Note: index labels must match their respective rows
         (same as in columns) - same labels must be with the same data.
+    check_freq : bool, default True
+        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+
+        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1318,6 +1595,16 @@ def assert_frame_equal(
     """
     __tracebackhide__ = True
 
+    if check_less_precise is not no_default:
+        warnings.warn(
+            "The 'check_less_precise' keyword in testing.assert_*_equal "
+            "is deprecated and will be removed in a future version. "
+            "You can stop passing 'check_less_precise' to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+
     # instance validation
     _check_isinstance(left, right, DataFrame)
 
@@ -1328,11 +1615,11 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}",
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
-    if check_like:
-        left, right = left.reindex_like(right), right
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1340,9 +1627,11 @@ def assert_frame_equal(
         right.index,
         exact=check_index_type,
         check_names=check_names,
-        check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
+        rtol=rtol,
+        atol=atol,
         obj=f"{obj}.index",
     )
 
@@ -1352,11 +1641,16 @@ def assert_frame_equal(
         right.columns,
         exact=check_column_type,
         check_names=check_names,
-        check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
+        rtol=rtol,
+        atol=atol,
         obj=f"{obj}.columns",
     )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # compare by blocks
     if by_blocks:
@@ -1380,12 +1674,14 @@ def assert_frame_equal(
                 rcol,
                 check_dtype=check_dtype,
                 check_index_type=check_index_type,
-                check_less_precise=check_less_precise,
                 check_exact=check_exact,
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
+                check_freq=check_freq,
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
+                rtol=rtol,
+                atol=atol,
             )
 
 
@@ -1404,6 +1700,8 @@ def assert_equal(left, right, **kwargs):
 
     if isinstance(left, pd.Index):
         assert_index_equal(left, right, **kwargs)
+        if isinstance(left, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, pd.Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
@@ -1440,7 +1738,9 @@ def box_expected(expected, box_cls, transpose=True):
     -------
     subclass of box_cls
     """
-    if box_cls is pd.Index:
+    if box_cls is pd.array:
+        expected = pd.array(expected)
+    elif box_cls is pd.Index:
         expected = pd.Index(expected)
     elif box_cls is pd.Series:
         expected = pd.Series(expected)
@@ -1469,11 +1769,13 @@ def box_expected(expected, box_cls, transpose=True):
 
 def to_array(obj):
     # temporary implementation until we get pd.array in place
-    if is_period_dtype(obj):
+    dtype = getattr(obj, "dtype", None)
+
+    if is_period_dtype(dtype):
         return period_array(obj)
-    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return DatetimeArray._from_sequence(obj)
-    elif is_timedelta64_dtype(obj):
+    elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
     else:
         return np.array(obj)
@@ -1607,8 +1909,7 @@ def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
-    return dr
+    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
@@ -1706,8 +2007,7 @@ def index_subclass_makers_generator():
         makeCategoricalIndex,
         makeMultiIndex,
     ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func
+    yield from make_index_funcs
 
 
 def all_timeseries_index_generator(k=10):
@@ -1721,7 +2021,8 @@ def all_timeseries_index_generator(k=10):
     """
     make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
     for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
+        # pandas\_testing.py:1986: error: Cannot call function of unknown type
+        yield make_index_func(k=k)  # type: ignore[operator]
 
 
 # make series
@@ -1855,7 +2156,8 @@ def makeCustomIndex(
         p=makePeriodIndex,
     ).get(idx_type)
     if idx_func:
-        idx = idx_func(nentries)
+        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -1883,7 +2185,8 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        cnt = Counter()
+        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
+        cnt = Counter()  # type: ignore[var-annotated]
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
@@ -2041,7 +2344,14 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "density"  [misc]
+
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "random_state"  [misc]
+    i, j = _create_missing_idx(  # type: ignore[misc]
+        *df.shape, density=density, random_state=random_state
+    )
     df.values[i, j] = np.nan
     return df
 
@@ -2066,7 +2376,10 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            args = []
+            # pandas\_testing.py:2331: error: Incompatible types in assignment
+            # (expression has type "List[<nothing>]", variable has type
+            # "Tuple[Any, ...]")
+            args = []  # type: ignore[assignment]
             return dec(f)
         else:
             return dec
@@ -2150,7 +2463,7 @@ def can_connect(url, error_classes=None):
 @optional_args
 def network(
     t,
-    url="http://www.google.com",
+    url="https://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
@@ -2174,7 +2487,7 @@ def network(
         The test requiring network connectivity.
     url : path
         The url to test via ``pandas.io.common.urlopen`` to check
-        for connectivity. Defaults to 'http://www.google.com'.
+        for connectivity. Defaults to 'https://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
     check_before_test : bool
@@ -2218,7 +2531,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @network("http://www.yahoo.com")
+        >>> @network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
@@ -2248,15 +2561,20 @@ def network(
 
     @wraps(t)
     def wrapper(*args, **kwargs):
-        if check_before_test and not raise_on_error:
-            if not can_connect(url, error_classes):
-                skip()
+        if (
+            check_before_test
+            and not raise_on_error
+            and not can_connect(url, error_classes)
+        ):
+            skip()
         try:
             return t(*args, **kwargs)
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(err.reason, "errno", None)
+                # pandas\_testing.py:2521: error: "Exception" has no attribute
+                # "reason"
+                errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
                 skip(f"Skipping test due to known errno and error {err}")
@@ -2284,10 +2602,11 @@ with_connectivity_check = network
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning=Warning,
+    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
     filter_level="always",
-    check_stacklevel=True,
-    raise_on_extra_warnings=True,
+    check_stacklevel: bool = True,
+    raise_on_extra_warnings: bool = True,
+    match: Optional[str] = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -2322,6 +2641,8 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
+    match : str, optional
+        Match warning message.
 
     Examples
     --------
@@ -2348,28 +2669,28 @@ def assert_produces_warning(
     with warnings.catch_warnings(record=True) as w:
 
         saw_warning = False
+        matched_message = False
+
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
         for actual_warning in w:
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
+            if not expected_warning:
+                continue
+
+            expected_warning = cast(Type[Warning], expected_warning)
+            if issubclass(actual_warning.category, expected_warning):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
                     actual_warning.category, (FutureWarning, DeprecationWarning)
                 ):
-                    from inspect import getframeinfo, stack
+                    _assert_raised_with_correct_stacklevel(actual_warning)
 
-                    caller = getframeinfo(stack()[2][0])
-                    msg = (
-                        "Warning not set with correct stacklevel. "
-                        f"File where warning is raised: {actual_warning.filename} != "
-                        f"{caller.filename}. Warning message: {actual_warning.message}"
-                    )
-                    assert actual_warning.filename == caller.filename, msg
+                if match is not None and re.search(match, str(actual_warning.message)):
+                    matched_message = True
+
             else:
                 extra_warnings.append(
                     (
@@ -2379,16 +2700,39 @@ def assert_produces_warning(
                         actual_warning.lineno,
                     )
                 )
+
         if expected_warning:
-            msg = (
-                f"Did not see expected warning of class "
-                f"{repr(expected_warning.__name__)}"
-            )
-            assert saw_warning, msg
+            expected_warning = cast(Type[Warning], expected_warning)
+            if not saw_warning:
+                raise AssertionError(
+                    f"Did not see expected warning of class "
+                    f"{repr(expected_warning.__name__)}"
+                )
+
+            if match and not matched_message:
+                raise AssertionError(
+                    f"Did not see warning {repr(expected_warning.__name__)} "
+                    f"matching {match}"
+                )
+
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
                 f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
+
+
+def _assert_raised_with_correct_stacklevel(
+    actual_warning: warnings.WarningMessage,
+) -> None:
+    from inspect import getframeinfo, stack
+
+    caller = getframeinfo(stack()[3][0])
+    msg = (
+        "Warning not set with correct stacklevel. "
+        f"File where warning is raised: {actual_warning.filename} != "
+        f"{caller.filename}. Warning message: {actual_warning.message}"
+    )
+    assert actual_warning.filename == caller.filename, msg
 
 
 class RNGContext:
@@ -2459,7 +2803,7 @@ def use_numexpr(use, min_elements=None):
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS
 
-    olduse = expr._USE_NUMEXPR
+    olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)
     expr._MIN_ELEMENTS = min_elements
@@ -2639,13 +2983,10 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
         Expected output of to_csv() in current OS.
     """
     sep = os.linesep
-    expected = sep.join(rows_list) + sep
-    return expected
+    return sep.join(rows_list) + sep
 
 
-def external_error_raised(
-    expected_exception: Type[Exception],
-) -> Callable[[Type[Exception], None], None]:
+def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -2693,3 +3034,28 @@ def get_cython_table_params(ndframe, func_names_and_expected):
             if name == func_name
         ]
     return results
+
+
+def get_op_from_name(op_name: str) -> Callable:
+    """
+    The operator function for a given op name.
+
+    Parameters
+    ----------
+    op_name : string
+        The op name, in form of "add" or "__add__".
+
+    Returns
+    -------
+    function
+        A function performing the operation.
+    """
+    short_opname = op_name.strip("_")
+    try:
+        op = getattr(operator, short_opname)
+    except AttributeError:
+        # Assume it is the reverse operator
+        rop = getattr(operator, short_opname[1:])
+        op = lambda x, y: rop(y, x)
+
+    return op

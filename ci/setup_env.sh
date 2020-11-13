@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+if [ "$JOB" == "3.9-dev" ]; then
+    /bin/bash ci/build39.sh
+    exit 0
+fi
+
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -36,9 +41,16 @@ else
   exit 1
 fi
 
-wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
+if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
+else
+  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
+fi
+wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
-./miniconda.sh -b
+
+# Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
+./miniconda.sh -b -p $MINICONDA_DIR
 
 export PATH=$MINICONDA_DIR/bin:$PATH
 
@@ -86,8 +98,6 @@ echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
-# (note workaround for https://github.com/conda/conda/issues/2679:
-#  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
 echo
@@ -128,12 +138,6 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i -j2
 
-# XXX: Some of our environments end up with old versions of pip (10.x)
-# Adding a new enough version of pip to the requirements explodes the
-# solve time. Just using pip to update itself.
-# - py35_macos
-# - py35_compat
-# - py36_32bit
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 
@@ -153,5 +157,4 @@ if [[ -n ${SQL:0} ]]; then
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
-
 echo "done"

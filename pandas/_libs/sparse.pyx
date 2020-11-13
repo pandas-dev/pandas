@@ -1,9 +1,18 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
+
 cnp.import_array()
 
 
@@ -94,7 +103,7 @@ cdef class IntIndex(SparseIndex):
         if not monotonic:
             raise ValueError("Indices must be strictly increasing")
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         if not isinstance(other, IntIndex):
             return False
 
@@ -390,7 +399,7 @@ cdef class BlockIndex(SparseIndex):
             if blengths[i] == 0:
                 raise ValueError(f'Zero-length block {i}')
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         if not isinstance(other, BlockIndex):
             return False
 
@@ -791,4 +800,4 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
         if value == fill_value and type(value) == type(fill_value):
             mask[i] = 0
 
-    return mask.view(dtype=np.bool)
+    return mask.view(dtype=bool)
