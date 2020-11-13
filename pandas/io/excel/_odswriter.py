@@ -34,7 +34,7 @@ class ODSWriter(ExcelWriter):
         """
         for sheet in self.sheets.values():
             self.book.spreadsheet.addElement(sheet)
-        self.book.save(self.path)
+        self.book.save(self.handles.handle)
 
     def write_cells(
         self,
