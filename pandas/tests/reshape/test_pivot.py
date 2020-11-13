@@ -2154,7 +2154,7 @@ class TestPivot:
         expected.columns.name = "columns"
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_index_list_values_none_modifies_args(self):
+    def test_pivot_index_list_values_none_immutable_args(self):
         # GH37635
         df = DataFrame(
             {
@@ -2190,3 +2190,4 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
         assert index == ["lev1", "lev2"]
+        assert columns == ["lev3"]
