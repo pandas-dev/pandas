@@ -1010,7 +1010,7 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
-`Plotting multiple charts in an ipython notebook
+`Plotting multiple charts in an IPython Jupyter notebook
 <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot

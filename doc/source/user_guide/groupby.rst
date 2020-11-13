@@ -672,7 +672,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    )
 
 
-If your desired output column names are not valid python keywords, construct a dictionary
+If your desired output column names are not valid Python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python

@@ -845,7 +845,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
-The implementation of ``pipe`` here is quite clean and feels right at home in python.
+The implementation of ``pipe`` here is quite clean and feels right at home in Python.
 We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
