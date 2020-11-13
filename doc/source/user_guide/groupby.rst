@@ -1090,7 +1090,7 @@ will be passed into ``values``, and the group index will be passed into ``index`
 .. warning::
 
    When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
-   data and group index will be passed as numpy arrays to the JITed user defined function, and no
+   data and group index will be passed as NumPy arrays to the JITed user defined function, and no
    alternative execution attempts will be tried.
 
 .. note::

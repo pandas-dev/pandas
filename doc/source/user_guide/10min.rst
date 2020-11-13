@@ -245,7 +245,7 @@ By integer slices, acting similar to numpy/Python:
 
    df.iloc[3:5, 0:2]
 
-By lists of integer position locations, similar to the numpy/Python style:
+By lists of integer position locations, similar to the NumPy/Python style:
 
 .. ipython:: python
 

@@ -68,7 +68,7 @@ Or use pandas where after you've set up a mask
    )
    df.where(df_mask, -1000)
 
-`if-then-else using numpy's where()
+`if-then-else using NumPy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python

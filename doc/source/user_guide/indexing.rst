@@ -509,11 +509,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in Python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
