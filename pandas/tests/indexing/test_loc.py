@@ -1573,6 +1573,10 @@ class TestLabelSlicing:
         with pytest.raises(KeyError, match=r"Timestamp\('2020-01-01 00:00:00'\)"):
             obj.loc["2020":"2022"]
 
+        obj.index = ["a", "c", "b"]
+        with pytest.raises(KeyError, match=r"d"):
+            obj.loc["d":"e"]
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
