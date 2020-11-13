@@ -10,6 +10,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 from collections import abc
 from datetime import datetime
 import struct
+from typing import IO, cast
 import warnings
 
 import numpy as np
@@ -18,7 +19,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
@@ -252,17 +253,10 @@ class XportReader(ReaderBase, abc.Iterator):
         self._index = index
         self._chunksize = chunksize
 
-        if isinstance(filepath_or_buffer, str):
-            filepath_or_buffer = get_filepath_or_buffer(
-                filepath_or_buffer, encoding=encoding
-            ).filepath_or_buffer
-
-        if isinstance(filepath_or_buffer, (str, bytes)):
-            self.filepath_or_buffer = open(filepath_or_buffer, "rb")
-        else:
-            # Since xport files include non-text byte sequences, xport files
-            # should already be opened in binary mode in Python 3.
-            self.filepath_or_buffer = filepath_or_buffer
+        self.handles = get_handle(
+            filepath_or_buffer, "rb", encoding=encoding, is_text=False
+        )
+        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
 
         try:
             self._read_header()
@@ -271,7 +265,7 @@ class XportReader(ReaderBase, abc.Iterator):
             raise
 
     def close(self):
-        self.filepath_or_buffer.close()
+        self.handles.close()
 
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()
