@@ -475,6 +475,7 @@ Indexing
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
+- Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` did not raise ``KeyError`` when non-existing label was sliced in unordered :class:`DatetimeIndex` (:issue:`18531`)
 
 Missing
@@ -586,6 +587,7 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly casting from ``PeriodDtype`` to object dtype (:issue:`34871`)
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`) (:issue:`37381`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
