@@ -210,11 +210,12 @@ class TestSetitemCasting:
         ser[:5] = np.nan
         tm.assert_series_equal(ser, expected)
 
-    def test_setitem_assigning_different_dtype(self):
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_assigning_different_dtype(self, dtype):
         # GH: 20635
         ser = Series(["3", "4"], name="A")
-        ser.loc[:] = ser.loc[:].astype("int64")
-        expected = Series([3, 4], name="A", dtype="int64")
+        ser.loc[:] = ser.loc[:].astype("int64").astype(dtype)
+        expected = Series([3, 4], name="A", dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
 
