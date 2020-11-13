@@ -3776,11 +3776,11 @@ class FixedWidthFieldParser(PythonParser):
 
         See PythonParser._remove_empty_lines.
         """
-
-        def _keep(line):
-            return any(not isinstance(e, str) or e.strip() for e in line)
-
-        return list(filter(_keep, lines))
+        return [
+            line
+            for line in lines
+            if any(not isinstance(e, str) or e.strip() for e in line)
+        ]
 
 
 def _refine_defaults_read(
