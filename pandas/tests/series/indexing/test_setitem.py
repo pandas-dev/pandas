@@ -126,6 +126,14 @@ class TestSetitemBooleanMask:
 
         tm.assert_series_equal(copy, expected)
 
+    def test_setitem_boolean_using_python_list(self):
+        # GH#19406
+        series = Series([None, "b", None])
+        mask = series.isnull()
+        series[mask] = ["a", "c"]
+        expected = Series(["a", "b", "c"])
+        tm.assert_series_equal(series, expected)
+
     @pytest.mark.parametrize("value", [None, NaT, np.nan])
     def test_setitem_boolean_td64_values_cast_na(self, value):
         # GH#18586
