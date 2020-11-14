@@ -75,8 +75,6 @@ def generate_numba_apply_func(
 
 
 def generate_numba_groupby_ewma_func(
-    args: Tuple,
-    kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
 ):
@@ -91,10 +89,6 @@ def generate_numba_groupby_ewma_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
     engine_kwargs : dict
@@ -104,13 +98,13 @@ def generate_numba_groupby_ewma_func(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
+    # TODO: what should func be?
     cache_key = (func, "groupby_ewma")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
     if parallel:
         loop_range = numba.prange
@@ -128,19 +122,20 @@ def generate_numba_groupby_ewma_func(
         ignore_na: bool,
     ) -> np.ndarray:
         # TODO (MATT): values should be in groupby sorted order
-        result = np.empty(len(values))
+        results = []
         alpha = 1.0 / (1.0 + com)
-        for i in loop_range(len(result)):
+        for i in loop_range(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
+            sub_result = np.np.empty(len(window))
 
             old_wt_factor = 1.0 - alpha
             new_wt = 1.0 if adjust else alpha
 
             weighted_avg = window[0]
             nobs = int(not np.isnan(weighted_avg))
-            output[0] = weighted_avg if nobs >= minimum_periods else np.nan
+            sub_result[0] = weighted_avg if nobs >= minimum_periods else np.nan
             old_wt = 1.0
 
             for j in range(1, len(window)):
@@ -166,6 +161,11 @@ def generate_numba_groupby_ewma_func(
                 elif is_observation:
                     weighted_avg = cur
 
-                output[i] = weighted_avg if nobs >= minimum_periods else np.nan
+                sub_result[i] = weighted_avg if nobs >= minimum_periods else np.nan
+
+            results.append(sub_result)
+
+        result = np.concatenate(results)
+        return result
 
     return groupby_ewma
