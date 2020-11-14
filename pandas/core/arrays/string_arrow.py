@@ -303,7 +303,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if isinstance(item, abc.Iterable):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
-            elif is_integer_dtype(item):
+            elif is_integer_dtype(item.dtype):
                 return self.take(item)
             elif is_bool_dtype(item):
                 return type(self)(self.data.filter(item))
