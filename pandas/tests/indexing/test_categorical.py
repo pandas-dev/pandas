@@ -445,11 +445,11 @@ class TestCategoricalIndex:
 
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
-        s = Series([1, 2, 3], index=pd.CategoricalIndex(["A", "B", "C"]))
+        s = Series([1, 2, 3], index=CategoricalIndex(["A", "B", "C"]))
         assert s.loc["A"] == 1
         assert s.at["A"] == 1
         df = DataFrame(
-            [[1, 2], [3, 4], [5, 6]], index=pd.CategoricalIndex(["A", "B", "C"])
+            [[1, 2], [3, 4], [5, 6]], index=CategoricalIndex(["A", "B", "C"])
         )
         assert df.loc["B", 1] == 4
         assert df.at["B", 1] == 4

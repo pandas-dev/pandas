@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
 import pandas._testing as tm
 
 # ------------------------------------------------------------------
@@ -93,10 +94,10 @@ def zero(request):
 
 @pytest.fixture(
     params=[
-        pd.Float64Index(np.arange(5, dtype="float64")),
-        pd.Int64Index(np.arange(5, dtype="int64")),
-        pd.UInt64Index(np.arange(5, dtype="uint64")),
-        pd.RangeIndex(5),
+        Float64Index(np.arange(5, dtype="float64")),
+        Int64Index(np.arange(5, dtype="int64")),
+        UInt64Index(np.arange(5, dtype="uint64")),
+        RangeIndex(5),
     ],
     ids=lambda x: type(x).__name__,
 )

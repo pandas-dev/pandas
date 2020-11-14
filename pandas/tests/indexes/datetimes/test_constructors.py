@@ -53,7 +53,7 @@ class TestDatetimeIndex:
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
         # TODO: parametrize over DatetimeIndex/DatetimeArray
-        #  once CategoricalIndex(DTA) works
+        #  once pd.CategoricalIndex(DTA) works
 
         dti = DatetimeIndex(
             [pd.NaT, "2015-01-01", "1999-04-06 15:14:13", "2015-01-01"], tz="US/Eastern"

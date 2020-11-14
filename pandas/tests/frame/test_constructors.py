@@ -2456,7 +2456,7 @@ class TestDataFrameConstructors:
 
         # tuples is in the order of the columns
         result = DataFrame.from_records(tuples)
-        tm.assert_index_equal(result.columns, pd.RangeIndex(8))
+        tm.assert_index_equal(result.columns, RangeIndex(8))
 
         # test exclude parameter & we are casting the results here (as we don't
         # have dtype info to recover)

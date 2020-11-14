@@ -6,7 +6,7 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
@@ -171,10 +171,10 @@ class TestFloat64Index(Numeric):
     @pytest.mark.parametrize(
         "index, dtype",
         [
-            (pd.Int64Index, "float64"),
-            (pd.UInt64Index, "categorical"),
-            (pd.Float64Index, "datetime64"),
-            (pd.RangeIndex, "float64"),
+            (Int64Index, "float64"),
+            (UInt64Index, "categorical"),
+            (Float64Index, "datetime64"),
+            (RangeIndex, "float64"),
         ],
     )
     def test_invalid_dtype(self, index, dtype):
