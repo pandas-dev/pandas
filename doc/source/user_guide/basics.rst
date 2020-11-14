@@ -538,8 +538,8 @@ standard deviation of 1), very concisely:
 
 Note that methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
 preserve the location of ``NaN`` values. This is somewhat different from
-:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling`.
-For more details please see :ref:`this note <stats.moments.expanding.note>`.
+:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling` since ``NaN`` behavior
+is furthermore dictated by a ``min_periods`` parameter.
 
 .. ipython:: python
 
@@ -945,7 +945,7 @@ Aggregation API
 
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
-:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+:ref:`window API <window.overview>`, and the :ref:`resample API <timeseries.aggregate>`.
 The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias
 :meth:`DataFrame.agg`.
 

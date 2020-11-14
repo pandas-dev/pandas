@@ -1580,11 +1580,6 @@ some advanced strategies.
 The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
-.. note::
-
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
-   a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
-
 Basics
 ~~~~~~
 
@@ -1730,7 +1725,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
