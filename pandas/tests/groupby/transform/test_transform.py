@@ -170,7 +170,7 @@ def test_transform_axis_1(transformation_func):
 
     if transformation_func == "diff":
         # Result contains nans, so transpose coerces to float
-        expected["b"] = expected["b"].astype(int)
+        expected["b"] = expected["b"].astype(np.intp)
 
     # cumcount returns Series; the rest are DataFrame
     tm.assert_equal(result, expected)
