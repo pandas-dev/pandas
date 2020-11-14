@@ -14,6 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
 - Fixed regression in :meth:`Series.groupby` raising when the :class:`Index` of the :class:`Series` had a tuple as its name (:issue:`37755`)
 -
 
