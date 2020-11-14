@@ -303,7 +303,8 @@ class TestDataFrameSetItem:
     def test_setitem_complete_columns_different_dtypes(self, dtype):
         # GH: 20635
         df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"], "D": [1, 2]})
-        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype("int64").astype(dtype)
+        rhs = df.loc[:, ["B", "C"]].astype("int64").astype(dtype)
+        df.loc[:, ["B", "C"]] = rhs
         expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4], "D": [1, 2]})
         expected[["B", "C"]] = expected[["B", "C"]].astype(dtype)
         tm.assert_frame_equal(df, expected)
@@ -318,8 +319,9 @@ class TestDataFrameSetItem:
     def test_setitem_conversion_to_datetime(self):
         # GH: 20511
         df = DataFrame(
-            [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]]
-        ).add_prefix("date")
+            [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]],
+            columns=["date0", "date1"],
+        )
         df.iloc[:, [0]] = df.iloc[:, [0]].apply(
             lambda x: to_datetime(x, errors="coerce")
         )
