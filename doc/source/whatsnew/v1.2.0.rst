@@ -284,6 +284,58 @@ of columns could result in a larger :class:`Series` result. See (:issue:`37799`)
     In [6]: df[["B", "C"]].all(bool_only=True)
 
 
+Other :class:`DataFrame` reductions with ``numeric_only=None`` will also avoid
+this pathological behavior:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.mean()
+    Out[3]: Series([], dtype: float64)
+
+    In [4]: df[["A"]].mean()
+    Out[4]:
+    A    1.0
+    dtype: float64
+
+*New behavior*:
+
+    In [3]: df.mean()
+
+    In [4]: df[["A"]].mean()
+
+Moreover, :class:`DataFrame` reductions with ``numeric_only=None`` will now be
+consistent with their :class:`Series` counterparts.  In particular, for
+reductions where the :class:`Series` method raises ``TypeError``, the
+:class:`DataFrame` reduction will now consider that column non-numeric
+instead of casting to NumPy which may have different semantics.
+
+.. ipython:: python
+
+    ser = pd.Series([0, 1], dtype="category", name="A")
+    df = ser.to_frame()
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df.any()
+    Out[5]:
+    A    True
+    dtype: bool
+
+*New behavior*:
+
+    In [5]: df.any()
+
+
 .. _whatsnew_120.api_breaking.python:
 
 Increased minimum version for Python
