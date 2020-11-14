@@ -324,6 +324,6 @@ class TestXSWithMultiIndex:
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
-        df["a"] = 2
+        df.values[0, 0] = 2
         expected = DataFrame({"a": [2]})
         tm.assert_frame_equal(result, expected)
