@@ -126,6 +126,11 @@ def test_csv_options(fsspectest):
 
 @pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_excel_options(fsspectest, extension):
+    if extension == "xls":
+        pytest.importorskip("xlwt")
+    else:
+        pytest.importorskip("openpyxl")
+
     df = DataFrame({"a": [0]})
 
     path = f"testmem://test/test.{extension}"
