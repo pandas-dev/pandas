@@ -457,7 +457,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = np.asarray(result)
 
             if use_numba_cache:
-                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
+                NUMBA_FUNC_CACHE[kwargs["numba_cache_key"]] = func
 
             return result
 
@@ -1306,7 +1306,7 @@ class RollingAndExpandingMixin(BaseWindow):
         return self._apply(
             apply_func,
             use_numba_cache=maybe_use_numba(engine),
-            original_func=func,
+            numba_cache_key=(func, "rolling_apply"),
             args=args,
             kwargs=kwargs,
         )

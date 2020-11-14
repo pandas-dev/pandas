@@ -75,6 +75,7 @@ def generate_numba_apply_func(
 
 
 def generate_numba_groupby_ewma_func(
+    func,
     engine_kwargs: Optional[Dict[str, bool]],
     com: float,
     adjust: bool,
@@ -85,6 +86,8 @@ def generate_numba_groupby_ewma_func(
 
     Parameters
     ----------
+    func : callable
+        The jitted groupby ewma func
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
     com : float
@@ -97,9 +100,7 @@ def generate_numba_groupby_ewma_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
-    # We really just want to check that "groupby_ewma" is in the cache, but this
-    # cache contains UDFs that are passed from the user
-    cache_key = (lambda x: x, "groupby_ewma")
+    cache_key = (func, "groupby_ewma")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
