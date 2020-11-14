@@ -82,6 +82,8 @@ class MPLPlot:
     _default_rot = 0
     orientation: Optional[str] = None
 
+    axes: np.ndarray  # of Axes objects
+
     def __init__(
         self,
         data,
@@ -177,7 +179,7 @@ class MPLPlot:
 
         self.ax = ax
         self.fig = fig
-        self.axes = None
+        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -342,7 +344,7 @@ class MPLPlot:
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
-            invalid_log = next(iter((input_log - valid_log)))
+            invalid_log = next(iter(input_log - valid_log))
             raise ValueError(
                 f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
@@ -575,8 +577,20 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    self.legend_handles = reversed(self.legend_handles)
-                    self.legend_labels = reversed(self.legend_labels)
+                    # pandas\plotting\_matplotlib\core.py:578: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Any]", variable has type "List[Any]")
+                    # [assignment]
+                    self.legend_handles = reversed(  # type: ignore[assignment]
+                        self.legend_handles
+                    )
+                    # pandas\plotting\_matplotlib\core.py:579: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Optional[Hashable]]", variable has type
+                    # "List[Optional[Hashable]]")  [assignment]
+                    self.legend_labels = reversed(  # type: ignore[assignment]
+                        self.legend_labels
+                    )
 
                 handles += self.legend_handles
                 labels += self.legend_labels
@@ -697,7 +711,7 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
-    def _get_ax(self, i):
+    def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
@@ -922,8 +936,10 @@ class PlanePlot(MPLPlot):
 
     def _post_plot_logic(self, ax: "Axes", data):
         x, y = self.x, self.y
-        ax.set_ylabel(pprint_thing(y))
-        ax.set_xlabel(pprint_thing(x))
+        xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
+        ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
 
     def _plot_colorbar(self, ax: "Axes", **kwds):
         # Addresses issues #10611 and #10678:
@@ -1097,7 +1113,11 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            plotf = self._plot
+            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
+            # types in assignment (expression has type "Callable[[Any, Any,
+            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
+            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
@@ -1231,11 +1251,15 @@ class LinePlot(MPLPlot):
             ax.xaxis.set_major_locator(FixedLocator(xticks))
             ax.set_xticklabels(xticklabels)
 
+        # If the index is an irregular time series, then by default
+        # we rotate the tick labels. The exception is if there are
+        # subplots which don't share their x-axes, in which we case
+        # we don't rotate the ticklabels as by default the subplots
+        # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and data.index.is_all_dates
-            and not self.subplots
-            or (self.subplots and self.sharex)
+            and (data.index._is_all_dates and self.use_index)
+            and (not self.subplots or (self.subplots and self.sharex))
         )
 
         index_name = self._get_index_name()
@@ -1539,7 +1563,10 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
             else:
-                blabels = None
+                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
+                # types in assignment (expression has type "None", variable has
+                # type "List[Any]")  [assignment]
+                blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:

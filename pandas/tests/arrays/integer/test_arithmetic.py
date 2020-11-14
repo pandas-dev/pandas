@@ -279,9 +279,7 @@ def test_unary_minus_nullable_int(any_signed_nullable_int_dtype, source, target)
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
-)
+@pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
 def test_unary_plus_nullable_int(any_signed_nullable_int_dtype, source):
     dtype = any_signed_nullable_int_dtype
     expected = pd.array(source, dtype=dtype)

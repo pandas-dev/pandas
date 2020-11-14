@@ -2,7 +2,7 @@ import contextlib
 import datetime as pydt
 from datetime import datetime, timedelta, tzinfo
 import functools
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -1002,7 +1002,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.format = None
         self.freq = freq
         self.locs: List[Any] = []  # unused, for matplotlib compat
-        self.formatdict = None
+        self.formatdict: Optional[Dict[Any, Any]] = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0

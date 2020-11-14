@@ -10,6 +10,8 @@ from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
+from pandas.compat import PY39
+
 import pandas.core.common as com
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
@@ -151,7 +153,7 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
+    return tokenize.untokenize(f(x) for x in tokenize_string(source))
 
 
 def _is_type(t):
@@ -186,7 +188,6 @@ _mod_nodes = _filter_nodes(ast.mod)
 _stmt_nodes = _filter_nodes(ast.stmt)
 _expr_nodes = _filter_nodes(ast.expr)
 _expr_context_nodes = _filter_nodes(ast.expr_context)
-_slice_nodes = _filter_nodes(ast.slice)
 _boolop_nodes = _filter_nodes(ast.boolop)
 _operator_nodes = _filter_nodes(ast.operator)
 _unary_op_nodes = _filter_nodes(ast.unaryop)
@@ -196,6 +197,9 @@ _handler_nodes = _filter_nodes(ast.excepthandler)
 _arguments_nodes = _filter_nodes(ast.arguments)
 _keyword_nodes = _filter_nodes(ast.keyword)
 _alias_nodes = _filter_nodes(ast.alias)
+
+if not PY39:
+    _slice_nodes = _filter_nodes(ast.slice)
 
 
 # nodes that we don't support directly but are needed for parsing
@@ -492,15 +496,14 @@ class BaseExprVisitor(ast.NodeVisitor):
                 f"'{lhs.type}' and '{rhs.type}'"
             )
 
-        if self.engine != "pytables":
-            if (
-                res.op in CMP_OPS_SYMS
-                and getattr(lhs, "is_datetime", False)
-                or getattr(rhs, "is_datetime", False)
-            ):
-                # all date ops must be done in python bc numexpr doesn't work
-                # well with NaT
-                return self._maybe_eval(res, self.binary_ops)
+        if self.engine != "pytables" and (
+            res.op in CMP_OPS_SYMS
+            and getattr(lhs, "is_datetime", False)
+            or getattr(rhs, "is_datetime", False)
+        ):
+            # all date ops must be done in python bc numexpr doesn't work
+            # well with NaT
+            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
@@ -656,7 +659,11 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError(f"Invalid function call {node.func.id}")
+            # pandas\core\computation\expr.py:663: error: "expr" has no
+            # attribute "id"  [attr-defined]
+            raise ValueError(
+                f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
+            )
         if hasattr(res, "value"):
             res = res.value
 
@@ -677,7 +684,12 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(f"keyword error in function call '{node.func.id}'")
+                    # pandas\core\computation\expr.py:684: error: "expr" has no
+                    # attribute "id"  [attr-defined]
+                    raise ValueError(
+                        "keyword error in function call "  # type: ignore[attr-defined]
+                        f"'{node.func.id}'"
+                    )
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value

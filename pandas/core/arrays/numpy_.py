@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, Union
+from typing import Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -7,20 +7,14 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import nanops, ops
-from pandas.core.array_algos import masked_reductions
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionOpsMixin
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -119,7 +113,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    OpsMixin,
+    NDArrayBackedExtensionArray,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -174,7 +171,9 @@ class PandasArray(
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -219,6 +218,16 @@ class PandasArray(
             if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
                 return NotImplemented
 
+        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
+            # For binary ops, use our custom dunder methods
+            # We haven't implemented logical dunder funcs, so exclude these
+            #  to avoid RecursionError
+            result = ops.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
@@ -248,63 +257,8 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def __getitem__(self, item):
-        if isinstance(item, type(self)):
-            item = item._ndarray
-
-        item = check_array_indexer(self, item)
-
-        result = self._ndarray[item]
-        if not lib.is_scalar(item):
-            result = type(self)(result)
-        return result
-
-    def __setitem__(self, key, value) -> None:
-        key = self._validate_setitem_key(key)
-        value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
-
-    def _validate_setitem_value(self, value):
-        value = extract_array(value, extract_numpy=True)
-
-        if not lib.is_scalar(value):
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-        return value
-
-    def _validate_setitem_key(self, key):
-        return check_array_indexer(self, key)
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
-
-    def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None
-    ) -> "PandasArray":
-        # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
-                new_values = func(self._ndarray, limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _validate_fill_value(self, fill_value):
         if fill_value is None:
@@ -318,89 +272,98 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
-
-    def any(self, axis=None, out=None, keepdims=False, skipna=True):
+    def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
-        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
-    def all(self, axis=None, out=None, keepdims=False, skipna=True):
+    def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_all((), dict(out=out, keepdims=keepdims))
-        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
-    def min(self, skipna: bool = True, **kwargs) -> Scalar:
+    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
-        result = masked_reductions.min(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        result = nanops.nanmin(
+            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
-        return result
+        return self._wrap_reduction_result(axis, result)
 
-    def max(self, skipna: bool = True, **kwargs) -> Scalar:
+    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
-        result = masked_reductions.max(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        result = nanops.nanmax(
+            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
-        return result
+        return self._wrap_reduction_result(axis, result)
 
-    def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)
-        return nanops.nansum(
+        result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
+        return self._wrap_reduction_result(axis, result)
 
-    def prod(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_prod((), kwargs)
-        return nanops.nanprod(
+        result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
+        return self._wrap_reduction_result(axis, result)
 
-    def mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))
-        return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     def median(
-        self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
     ):
         nv.validate_median(
             (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
         )
-        return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def std(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
-        return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def var(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="var"
         )
-        return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
-    def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def sem(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="sem"
         )
-        return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
-    def kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="kurt"
         )
-        return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
-    def skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="skew"
         )
-        return nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     # ------------------------------------------------------------------------
     # Additional Methods
@@ -424,26 +387,38 @@ class PandasArray(
     def __invert__(self):
         return type(self)(~self._ndarray)
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def arithmetic_method(self, other):
-            if isinstance(other, cls):
-                other = other._ndarray
+    def _cmp_method(self, other, op):
+        if isinstance(other, PandasArray):
+            other = other._ndarray
 
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
+        pd_op = ops.get_array_op(op)
+        result = pd_op(self._ndarray, other)
 
-            if op is divmod:
-                a, b = result
-                return cls(a), cls(b)
+        if op is divmod or op is ops.rdivmod:
+            a, b = result
+            if isinstance(a, np.ndarray):
+                # for e.g. op vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return self._wrap_ndarray_result(a), self._wrap_ndarray_result(b)
+            return a, b
 
-            return cls(result)
+        if isinstance(result, np.ndarray):
+            # for e.g. multiplication vs TimedeltaArray, we may already
+            #  have an ExtensionArray, in which case we do not wrap
+            return self._wrap_ndarray_result(result)
+        return result
 
-        return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
+    _arith_method = _cmp_method
 
-    _create_comparison_method = _create_arithmetic_method
+    def _wrap_ndarray_result(self, result: np.ndarray):
+        # If we have timedelta64[ns] result, return a TimedeltaArray instead
+        #  of a PandasArray
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
 
+            return TimedeltaArray._simple_new(result)
+        return type(self)(result)
 
-PandasArray._add_arithmetic_ops()
-PandasArray._add_comparison_ops()
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan

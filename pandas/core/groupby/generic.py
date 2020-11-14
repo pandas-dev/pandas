@@ -29,8 +29,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
+from pandas._libs import lib, reduction as libreduction
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -54,6 +54,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
+    agg_list_like,
+    aggregate,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
@@ -74,17 +76,16 @@ from pandas.core.groupby.groupby import (
     get_groupby,
     group_selection_context,
 )
-from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
+from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block  # noqa:F401
+    from pandas.core.internals import Block
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
@@ -472,12 +473,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
+        initialized = False
 
         for name, group in self:
-            group.name = name
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            group.name = name  # NB: libreduction does not pin name
+
             output = func(group, *args, **kwargs)
-            if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
+            output = libreduction.extract_result(output)
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(output, 0)
+                initialized = True
             result[name] = output
 
         return result
@@ -504,12 +512,9 @@ class SeriesGroupBy(GroupBy[Series]):
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
-        elif func in base.cythonized_kernels:
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
-        elif func in base.transformation_kernels:
-            return getattr(self, func)(*args, **kwargs)
-
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
         # and deal with possible broadcasting below.
@@ -518,29 +523,16 @@ class SeriesGroupBy(GroupBy[Series]):
             result = getattr(self, func)(*args, **kwargs)
         return self._transform_fast(result)
 
-    def _transform_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         """
         Transform with a non-str `func`.
         """
-        if maybe_use_numba(engine):
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_transform"
-            )
-
         klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            if maybe_use_numba(engine):
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
+            res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
@@ -719,7 +711,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes)
+            lab = lev.take(lab.cat.codes, allow_fill=True, fill_value=lev._na_value)
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
@@ -951,8 +943,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        func = maybe_mangle_lambdas(func)
 
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if how is None:
             return result
 
@@ -972,7 +965,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
+                    result = agg_list_like(self, [func], _axis=self.axis)
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1115,8 +1108,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # unwrap DataFrame to get array
                 result = result._mgr.blocks[0].values
 
-            res_values = cast_agg_result(result, bvalues, how)
-            return res_values
+            return cast_agg_result(result, bvalues, how)
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
@@ -1135,7 +1127,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: Dict[Union[int, str], Union[NDFrame, np.ndarray]] = {}
+        result: Dict[Label, Union[NDFrame, np.ndarray]] = {}
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1196,14 +1188,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         key_index = self.grouper.result_index if self.as_index else None
 
-        if isinstance(first_not_none, Series):
-            # this is to silence a DeprecationWarning
-            # TODO: Remove when default dtype of empty Series is object
-            kwargs = first_not_none._construct_axes_dict()
-            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
-
-            values = [x if (x is not None) else backup for x in values]
-
         if isinstance(first_not_none, (np.ndarray, Index)):
             # GH#1738: values is list of arrays of unequal lengths
             #  fall through to the outer else clause
@@ -1223,60 +1207,78 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = DataFrame(values, index=key_index, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
-
         else:
-            all_indexed_same = all_indexes_same((x.index for x in values))
+            # values are Series
+            return self._wrap_applied_output_series(
+                keys, values, not_indexed_same, first_not_none, key_index
+            )
 
-            # GH3596
-            # provide a reduction (Frame -> Series) if groups are
-            # unique
-            if self.squeeze:
-                applied_index = self._selected_obj._get_axis(self.axis)
-                singular_series = len(values) == 1 and applied_index.nlevels == 1
+    def _wrap_applied_output_series(
+        self,
+        keys,
+        values: List[Series],
+        not_indexed_same: bool,
+        first_not_none,
+        key_index,
+    ) -> FrameOrSeriesUnion:
+        # this is to silence a DeprecationWarning
+        # TODO: Remove when default dtype of empty Series is object
+        kwargs = first_not_none._construct_axes_dict()
+        backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
+        values = [x if (x is not None) else backup for x in values]
 
-                # assign the name to this series
-                if singular_series:
-                    values[0].name = keys[0]
+        all_indexed_same = all_indexes_same(x.index for x in values)
 
-                    # GH2893
-                    # we have series in the values array, we want to
-                    # produce a series:
-                    # if any of the sub-series are not indexed the same
-                    # OR we don't have a multi-index and we have only a
-                    # single values
-                    return self._concat_objects(
-                        keys, values, not_indexed_same=not_indexed_same
-                    )
+        # GH3596
+        # provide a reduction (Frame -> Series) if groups are
+        # unique
+        if self.squeeze:
+            applied_index = self._selected_obj._get_axis(self.axis)
+            singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-                # still a series
-                # path added as of GH 5545
-                elif all_indexed_same:
-                    from pandas.core.reshape.concat import concat
+            # assign the name to this series
+            if singular_series:
+                values[0].name = keys[0]
 
-                    return concat(values)
+                # GH2893
+                # we have series in the values array, we want to
+                # produce a series:
+                # if any of the sub-series are not indexed the same
+                # OR we don't have a multi-index and we have only a
+                # single values
+                return self._concat_objects(
+                    keys, values, not_indexed_same=not_indexed_same
+                )
 
-            if not all_indexed_same:
-                # GH 8467
-                return self._concat_objects(keys, values, not_indexed_same=True)
+            # still a series
+            # path added as of GH 5545
+            elif all_indexed_same:
+                from pandas.core.reshape.concat import concat
 
-            # Combine values
-            # vstack+constructor is faster than concat and handles MI-columns
-            stacked_values = np.vstack([np.asarray(v) for v in values])
+                return concat(values)
 
-            if self.axis == 0:
-                index = key_index
-                columns = first_not_none.index.copy()
-                if columns.name is None:
-                    # GH6124 - propagate name of Series when it's consistent
-                    names = {v.name for v in values}
-                    if len(names) == 1:
-                        columns.name = list(names)[0]
-            else:
-                index = first_not_none.index
-                columns = key_index
-                stacked_values = stacked_values.T
+        if not all_indexed_same:
+            # GH 8467
+            return self._concat_objects(keys, values, not_indexed_same=True)
 
-            result = self.obj._constructor(stacked_values, index=index, columns=columns)
+        # Combine values
+        # vstack+constructor is faster than concat and handles MI-columns
+        stacked_values = np.vstack([np.asarray(v) for v in values])
+
+        if self.axis == 0:
+            index = key_index
+            columns = first_not_none.index.copy()
+            if columns.name is None:
+                # GH6124 - propagate name of Series when it's consistent
+                names = {v.name for v in values}
+                if len(names) == 1:
+                    columns.name = list(names)[0]
+        else:
+            index = first_not_none.index
+            columns = key_index
+            stacked_values = stacked_values.T
+
+        result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         # if we have date/time like in the original, then coerce dates
         # as we are stacking can easily have object dtypes here
@@ -1362,12 +1364,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
-        elif func in base.cythonized_kernels:
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transformation or canned "reduction+broadcast"
             return getattr(self, func)(*args, **kwargs)
-        elif func in base.transformation_kernels:
-            return getattr(self, func)(*args, **kwargs)
-
         # GH 30918
         # Use _transform_fast only when we know func is an aggregation
         if func in base.reduction_kernels:
@@ -1395,9 +1394,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # by take operation
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        output = []
-        for i, _ in enumerate(result.columns):
-            output.append(algorithms.take_1d(result.iloc[:, i].values, ids))
+        output = [
+            algorithms.take_1d(result.iloc[:, i].values, ids)
+            for i, _ in enumerate(result.columns)
+        ]
 
         return self.obj._constructor._from_arrays(
             output, columns=result.columns, index=obj.index
@@ -1426,7 +1426,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except AssertionError:
             raise
         except Exception:
-            # GH#29631 For user-defined function, we cant predict what may be
+            # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
@@ -1456,7 +1456,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 inds.append(i)
 
-        if len(output) == 0:
+        if not output:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
@@ -1530,6 +1530,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._apply_filter(indices, dropna)
 
     def __getitem__(self, key):
+        if self.axis == 1:
+            # GH 37725
+            raise ValueError("Cannot subset columns when using axis=1")
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
@@ -1639,8 +1642,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
-        columns = Index([key.label for key in output], name=name)
+        columns = Index([key.label for key in output])
+        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns

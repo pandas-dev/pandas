@@ -4,9 +4,9 @@ _shared_docs: Dict[str, str] = dict()
 
 _shared_docs[
     "aggregate"
-] = """\
+] = """
 Aggregate using one or more operations over the specified axis.
-{versionadded}
+
 Parameters
 ----------
 func : function, str, list or dict
@@ -46,17 +46,17 @@ A passed user-defined-function will be passed a Series for evaluation.
 
 _shared_docs[
     "compare"
-] = """\
-Compare to another %(klass)s and show the differences.
+] = """
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
@@ -75,7 +75,7 @@ keep_equal : bool, default False
 
 _shared_docs[
     "groupby"
-] = """\
+] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -91,7 +91,7 @@ by : mapping, function, label, or list of labels
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
     aligned; see ``.align()`` method). If an ndarray is passed, the
-    values are used as-is determine the groups. A label or list of
+    values are used as-is to determine the groups. A label or list of
     labels may be passed to group by the columns in ``self``. Notice
     that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
@@ -119,8 +119,6 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
-
-    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
@@ -146,7 +144,7 @@ See the `user guide
 
 _shared_docs[
     "melt"
-] = """\
+] = """
 Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
 This function is useful to massage a DataFrame into a format where one
@@ -154,7 +152,7 @@ or more columns are identifier variables (`id_vars`), while all other
 columns, considered measured variables (`value_vars`), are "unpivoted" to
 the row axis, leaving just two non-identifier columns, 'variable' and
 'value'.
-%(versionadded)s
+
 Parameters
 ----------
 id_vars : tuple, list, or ndarray, optional
@@ -260,23 +258,24 @@ If you have multi-index columns:
 
 _shared_docs[
     "transform"
-] = """\
+] = """
 Call ``func`` on self producing a {klass} with transformed values.
 
 Produced {klass} will have same axis length as self.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list-like or dict-like
     Function to use for transforming the data. If a function, must either
-    work when passed a {klass} or when passed to {klass}.apply.
+    work when passed a {klass} or when passed to {klass}.apply. If func
+    is both list-like and dict-like, dict-like behavior takes precedence.
 
     Accepted combinations are:
 
     - function
     - string function name
-    - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
-    - dict of axis labels -> functions, function names or list of such.
+    - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+    - dict-like of axis labels -> functions, function names or list-like of such.
 {axis}
 *args
     Positional arguments to pass to `func`.

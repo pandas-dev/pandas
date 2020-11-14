@@ -13,14 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    TimedeltaIndex,
-)
+from pandas import CategoricalIndex, MultiIndex, RangeIndex
 import pandas._testing as tm
 
 
@@ -77,52 +70,6 @@ class TestCommon:
     def test_getitem_error(self, index, itm):
         with pytest.raises(IndexError):
             index[itm]
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_union(self, index, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
 
     def test_to_flat_index(self, index):
         # 22866
@@ -233,6 +180,10 @@ class TestCommon:
             vals[0] = np.nan
 
         vals_unique = vals[:2]
+        if index.dtype.kind in ["m", "M"]:
+            # i.e. needs_i8_conversion but not period_dtype, as above
+            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -244,13 +195,6 @@ class TestCommon:
             for i in [idx_nan, idx_unique_nan]:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
-
-    def test_mutability(self, index):
-        if not len(index):
-            pytest.skip("Skip check for empty Index")
-        msg = "Index does not support mutable operations"
-        with pytest.raises(TypeError, match=msg):
-            index[0] = index[0]
 
     def test_view(self, index):
         assert index.view().name == index.name
@@ -399,21 +343,19 @@ class TestCommon:
         else:
             assert result.name == index.name
 
+    def test_ravel_deprecation(self, index):
+        # GH#19956 ravel returning ndarray is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            index.ravel()
+
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-        # datetime-like indices will get na_position kwarg as part of
-        # synchronizing duplicate-sorting behavior, because we currently expect
-        # them, other indices, and Series to sort differently (xref 35922)
-        pytest.xfail("sort_values does not support na_position kwarg")
-    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
         pytest.xfail("missing value sorting order not defined for index type")
 
     if na_position not in ["first", "last"]:
-        with pytest.raises(
-            ValueError, match=f"invalid na_position: {na_position}",
-        ):
+        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
             index_with_missing.sort_values(na_position=na_position)
 
 
@@ -422,12 +364,7 @@ def test_sort_values_with_missing(index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-        # datetime-like indices will get na_position kwarg as part of
-        # synchronizing duplicate-sorting behavior, because we currently expect
-        # them, other indices, and Series to sort differently (xref 35922)
-        pytest.xfail("sort_values does not support na_position kwarg")
-    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
         pytest.xfail("missing value sorting order not defined for index type")
 
     missing_count = np.sum(index_with_missing.isna())

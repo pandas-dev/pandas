@@ -141,7 +141,11 @@ class FrameApply(metaclass=abc.ABCMeta):
         """ compute the results """
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
-            return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)
+            # pandas\core\apply.py:144: error: "aggregate" of "DataFrame" gets
+            # multiple values for keyword argument "axis"
+            return self.obj.aggregate(  # type: ignore[misc]
+                self.f, axis=self.axis, *self.args, **self.kwds
+            )
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
@@ -216,7 +220,23 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        result = np.apply_along_axis(self.f, self.axis, self.values)
+
+        def wrap_function(func):
+            """
+            Wrap user supplied function to work around numpy issue.
+
+            see https://github.com/numpy/numpy/issues/8352
+            """
+
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                if isinstance(result, str):
+                    result = np.array(result, dtype=object)
+                return result
+
+            return wrapper
+
+        result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -346,8 +366,10 @@ class FrameRowApply(FrameApply):
             isinstance(x, dict) for x in results.values()
         ):
             # Our operation was a to_dict op e.g.
-            #  test_apply_dict GH#8735, test_apply_reduce_rows_to_dict GH#25196
-            return self.obj._constructor_sliced(results)
+            #  test_apply_dict GH#8735, test_apply_reduce_to_dict GH#25196 #37544
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
 
         try:
             result = self.obj._constructor(data=results)
