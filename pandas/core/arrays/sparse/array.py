@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Type, TypeVar, Union
+from typing import Any, Callable, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -946,7 +946,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(
+        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
+    ) -> SparseArrayT:
         fill_value = to_concat[0].fill_value
 
         values = []
