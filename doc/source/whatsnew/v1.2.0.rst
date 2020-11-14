@@ -236,6 +236,54 @@ Other enhancements
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_120.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+Consistency of DataFrame Reductions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True`` now
+determines whether to exclude object-dtype columns on a column-by-column basis,
+instead of checking if *all* object-dtype columns can be considered boolean.
+
+This prevents pathological behavior where applying the reduction on a subset
+of columns could result in a larger :class:`Series` result. See (:issue:`37799`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": ["foo", "bar"], "B": [True, False]}, dtype=object)
+    df["C"] = pd.Series([True, True])
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df.all(bool_only=True)
+    Out[5]:
+    C    True
+    dtype: bool
+
+    In [6]: df[["B", "C"]].all(bool_only=True)
+    Out[6]:
+    B    False
+    C    True
+    dtype: bool
+
+*New behavior*:
+
+.. ipython:: python
+
+    In [5]: df.all(bool_only=True)
+
+    In [6]: df[["B", "C"]].all(bool_only=True)
+
+
 .. _whatsnew_120.api_breaking.python:
 
 Increased minimum version for Python
@@ -564,6 +612,7 @@ Reshaping
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
+- Bug in :meth:`DataFrame.pivot` modified ``index`` argument when ``columns`` was passed but ``values`` was not (:issue:`37635`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
