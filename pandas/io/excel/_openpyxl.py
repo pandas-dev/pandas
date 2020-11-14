@@ -16,11 +16,20 @@ class OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
 
-    def __init__(self, path, engine=None, mode="w", **engine_kwargs):
+    def __init__(
+        self,
+        path,
+        engine=None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        **engine_kwargs,
+    ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super().__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(
+            path, mode=mode, storage_options=storage_options, **engine_kwargs
+        )
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
