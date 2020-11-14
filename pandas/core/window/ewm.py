@@ -529,12 +529,16 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             return self._apply(
                 groupby_ewma_func,
                 use_numba_cache=maybe_use_numba(engine),
-                numba_cache_key=(groupby_ewma_func, "groupby_ewma"),
+                numba_cache_key=(lambda x: x, "groupby_ewma"),
             )
-        else:
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
 
             def f(x):
                 x = self._shallow_copy(x, groupby=self._groupby)
                 return x.mean()
 
             return self._groupby.apply(f)
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
