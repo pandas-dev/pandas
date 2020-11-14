@@ -424,6 +424,7 @@ Performance improvements
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - faster ``dir`` calls when many index labels, e.g. ``dir(ser)`` (:issue:`37450`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
+- Performance improvement in :meth:`pd.DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`pd.Index.value_counts`)
 
 .. ---------------------------------------------------------------------------
 
@@ -600,7 +601,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 - Bug in :meth:`DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
-
+- Bug in :meth:`DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
 
 Reshaping
 ^^^^^^^^^
