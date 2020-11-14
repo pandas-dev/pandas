@@ -1,6 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import StringIO
 import mmap
 import os
@@ -15,6 +16,8 @@ import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+import threading
 
 
 class CustomFSPath:
@@ -411,3 +414,84 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+
+
+class HeaderCSVResponder(BaseHTTPRequestHandler):
+    def do_GET(self):
+        requested_from_user_agent = self.headers["User-Agent"]
+        self.send_response(200)
+        self.send_header("Content-type", "text/csv")
+        self.end_headers()
+        response_df = pd.DataFrame(
+            {
+                "header": [requested_from_user_agent],
+            }
+        )
+        response_bytes = response_df.to_csv(index=False).encode("utf-8")
+        self.wfile.write(response_bytes)
+
+    # server = HTTPServer(("0.0.0.0", 8080), HeaderCSVResponder)
+
+
+class HeaderJSONResponder(BaseHTTPRequestHandler):
+    def do_GET(self):
+        requested_from_user_agent = self.headers["User-Agent"]
+        self.send_response(200)
+        self.send_header("Content-type", "text/csv")
+        self.end_headers()
+        response_df = pd.DataFrame(
+            {
+                "header": [requested_from_user_agent],
+            }
+        )
+        response_bytes = response_df.to_json().encode("utf-8")
+        self.wfile.write(response_bytes)
+
+
+@pytest.mark.parametrize(
+    "responder, read_method, port",
+    [
+        (HeaderCSVResponder, pd.read_csv, 34259),
+        (HeaderJSONResponder, pd.read_json, 34260),
+    ],
+)
+def test_server_and_default_headers(responder, read_method, port):
+    server = HTTPServer(("0.0.0.0", port), responder)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        df_http = read_method(f"http://localhost:{port}")
+        server.shutdown()
+    except Exception as e:
+        df_http = pd.DataFrame({"header": [1]})
+        server.shutdown()
+
+    server_thread.join()
+    df_true = pd.DataFrame({"header": [1]})
+    assert not (df_true == df_http).all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "responder, read_method, port",
+    [
+        (HeaderCSVResponder, pd.read_csv, 34261),
+        (HeaderJSONResponder, pd.read_json, 34262),
+    ],
+)
+def test_server_and_custom_headers(responder, read_method, port):
+    custom_user_agent = "Super Cool One"
+    server = HTTPServer(("0.0.0.0", port), responder)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+        )
+        server.shutdown()
+    except Exception as e:
+        df_http = pd.DataFrame({"header": [1]})
+        server.shutdown()
+    server_thread.join()
+    df_true = pd.DataFrame({"header": [custom_user_agent]})
+    assert (df_true == df_http).all(axis=None)
