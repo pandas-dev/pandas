@@ -629,5 +629,6 @@ def test_get_loc_datetime_index():
     # GH#24263
     index = pd.date_range("2001-01-01", periods=100)
     mi = MultiIndex.from_arrays([index])
+    # Check if get_loc matches for Index and MultiIndex
     assert mi.get_loc("2001-01") == slice(0, 31, None)
     assert index.get_loc("2001-01") == slice(0, 31, None)
