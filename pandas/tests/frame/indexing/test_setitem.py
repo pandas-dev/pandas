@@ -340,8 +340,9 @@ class TestDataFrameSetItemBooleanMask:
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_only_false_indexer_dtype_changed(self):
-        # GH: 37550
+    def test_setitem_loc_only_false_indexer_dtype_changed(self):
+        # GH#37550
+        # Dtype is only changed when value to set is a Series
         df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
         df.loc[[False], ["b"]] = 10 - df["c"]
         expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
