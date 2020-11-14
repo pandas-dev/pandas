@@ -1167,8 +1167,9 @@ An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
 Combined with setting a new column, you can use it to enlarge a dataframe where the
 values are determined conditionally.
 
-When you have two choices to choose from, say in the following dataframe, set the color
-to 'green' when the second column has 'Z'.  You can do the following:
+Consider you have two choices to choose from in the following dataframe. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
 
 .. ipython:: python
 
@@ -1176,9 +1177,9 @@ to 'green' when the second column has 'Z'.  You can do the following:
    df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
    df
 
-If you have more than one conditions, you can use :func:`numpy.select` to achieve that.
-Say corresponding to three conditions there are three choice of colors, with a fourth
-color as a fallback, you can do the following.
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
 
 .. ipython:: python
 
