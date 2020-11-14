@@ -1172,7 +1172,7 @@ to 'green' when the second column has 'Z'.  You can do the following:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'col1':list('ABBC'), 'col2':list('ZZXY')})
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
    df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
    df
 
