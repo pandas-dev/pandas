@@ -464,7 +464,9 @@ class Block(PandasObject):
             new_blocks.append(nb)
         return new_blocks
 
-    def split_and_operate(self, mask, f, inplace: bool) -> List["Block"]:
+    def split_and_operate(
+        self, mask, f, inplace: bool, ignore_failures: bool = False
+    ) -> List["Block"]:
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -474,7 +476,8 @@ class Block(PandasObject):
         ----------
         mask : 2-d boolean mask
         f : callable accepting (1d-mask, 1d values, indexer)
-        inplace : boolean
+        inplace : bool
+        ignore_failures : bool, default False
 
         Returns
         -------
@@ -513,8 +516,16 @@ class Block(PandasObject):
             v = new_values[i]
 
             # need a new block
-            if m.any():
-                nv = f(m, v, i)
+            if m.any() or m.size == 0:
+                # Apply our function; we may ignore_failures if this is a
+                #  reduction that is dropping nuisance columns GH#37827
+                try:
+                    nv = f(m, v, i)
+                except TypeError:
+                    if ignore_failures:
+                        continue
+                    else:
+                        raise
             else:
                 nv = v if inplace else v.copy()
 
@@ -2459,7 +2470,9 @@ class ObjectBlock(Block):
                     values = values.reshape(1, -1)
                 return func(values)
 
-            return self.split_and_operate(None, mask_func, False)
+            return self.split_and_operate(
+                None, mask_func, False, ignore_failures=ignore_failures
+            )
 
         try:
             res = func(values)
