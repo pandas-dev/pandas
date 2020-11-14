@@ -288,12 +288,13 @@ class TestMultiIndexLoc:
 
         tm.assert_series_equal(result, expected)
 
-    def test_multiindex_loc_one_dimensional_tuple(self, frame_or_series):
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_multiindex_loc_one_dimensional_tuple(self, klass):
         # GH#37711
         mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
-        obj = frame_or_series([1, 2], index=mi)
+        obj = klass([1, 2], index=mi)
         obj.loc[("a",)] = 0
-        expected = frame_or_series([0, 2], index=mi)
+        expected = klass([0, 2], index=mi)
         tm.assert_equal(obj, expected)
 
     @pytest.mark.parametrize("indexer", [("a",), ("a")])
