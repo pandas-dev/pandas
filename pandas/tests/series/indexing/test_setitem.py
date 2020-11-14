@@ -152,7 +152,6 @@ class TestSetitemBooleanMask:
         tm.assert_series_equal(ser, expected)
 
 
-
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
         # GH#24096 altering a datetime64tz Series inplace invalidates the
