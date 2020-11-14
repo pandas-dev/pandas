@@ -58,6 +58,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
+from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
@@ -431,6 +432,15 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
+
+    if is_numeric_dtype(dtype):
+        # Try downcasting values if comps is numeric to prevent precision
+        # loss resulting from casting values to comps its exact dtype
+        try:
+            values = to_numeric(values, downcast="integer")
+            dtype = None
+        except (TypeError, ValueError):
+            pass
     values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d
@@ -445,7 +455,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif (
+        is_integer_dtype(comps)
+        or is_integer_dtype(values)
+        and not (is_float_dtype(comps) or is_float_dtype(values))
+    ):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -453,8 +467,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         except (TypeError, ValueError, OverflowError):
             values = values.astype(object)
             comps = comps.astype(object)
-
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps) or is_float_dtype(values):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)

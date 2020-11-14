@@ -942,13 +942,19 @@ class TestIsin:
         )
         tm.assert_numpy_array_equal(np.array([True]), result)
 
-    def test_no_cast(self):
-        # GH 22160
-        # ensure 42 is not casted to a string
-        comps = ["ss", 42]
-        values = ["42"]
-        expected = np.array([False, False])
+    @pytest.mark.parametrize(
+        "comps, values, expected_values",
+        [
+            (["ss", 42], ["42"], [False, False]),
+            ([1, 0], [1, 0.5], [True, False]),
+        ],
+    )
+    def test_no_cast(self, comps, values, expected_values):
+        # GH 22160 ensure 42 is not casted to a string
+        # GH21804 Prevent Series.isin from unwantedly casting isin values
+        # from float to integer
         result = algos.isin(comps, values)
+        expected = np.array(expected_values)
         tm.assert_numpy_array_equal(expected, result)
 
     @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
