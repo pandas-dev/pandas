@@ -450,6 +450,20 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, inplace)
 
+    def _split(self) -> List["Block"]:
+        """
+        Split a block into a list of single-column blocks.
+        """
+        assert self.ndim == 2
+
+        new_blocks = []
+        for i, ref_loc in enumerate(self.mgr_locs):
+            vals = self.values[slice(i, i + 1)]
+
+            nb = self.make_block(vals, [ref_loc])
+            new_blocks.append(nb)
+        return new_blocks
+
     def split_and_operate(self, mask, f, inplace: bool) -> List["Block"]:
         """
         split the block per-column, and apply the callable f
@@ -752,36 +766,21 @@ class Block(PandasObject):
             to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
+        if not mask.any():
+            # Note: we get here with test_replace_extension_other incorrectly
+            #  bc _can_hold_element is incorrect.
+            return [self] if inplace else [self.copy()]
 
-        try:
-            blocks = self.putmask(mask, value, inplace=inplace)
-            # Note: it is _not_ the case that self._can_hold_element(value)
-            #  is always true at this point.  In particular, that can fail
-            #  for:
-            #   "2u" with bool-dtype, float-dtype
-            #   0.5 with int64-dtype
-            #   np.nan with int64-dtype
-        except (TypeError, ValueError):
-            # GH 22083, TypeError or ValueError occurred within error handling
-            # causes infinite loop. Cast and retry only if not objectblock.
-            if is_object_dtype(self):
-                raise
-
-            if not self.is_extension:
-                # TODO: https://github.com/pandas-dev/pandas/issues/32586
-                # Need an ExtensionArray._can_hold_element to indicate whether
-                # a scalar value can be placed in the array.
-                assert not self._can_hold_element(value), value
-
-            # try again with a compatible block
-            block = self.astype(object)
-            return block.replace(
+        if not self._can_hold_element(value):
+            blk = self.astype(object)
+            return blk.replace(
                 to_replace=original_to_replace,
                 value=value,
-                inplace=inplace,
+                inplace=True,
                 regex=regex,
             )
 
+        blocks = self.putmask(mask, value, inplace=inplace)
         blocks = extend_blocks(
             [b.convert(numeric=False, copy=not inplace) for b in blocks]
         )
@@ -1442,34 +1441,21 @@ class Block(PandasObject):
         if not hasattr(cond, "shape"):
             raise ValueError("where must have a condition that is ndarray like")
 
-        def where_func(cond, values, other):
-
-            if not (
-                (self.is_integer or self.is_bool)
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # np.where will cast integer array to floats in this case
-                if not self._can_hold_element(other):
-                    raise TypeError
-                if lib.is_scalar(other) and isinstance(values, np.ndarray):
-                    # convert datetime to datetime64, timedelta to timedelta64
-                    other = convert_scalar_for_putitemlike(other, values.dtype)
-
-            # By the time we get here, we should have all Series/Index
-            #  args extracted to  ndarray
-            fastres = expressions.where(cond, values, other)
-            return fastres
-
         if cond.ravel("K").all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            try:
-                result = where_func(cond, values, other)
-            except TypeError:
-
+            if (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
+                # GH#3733 special case to avoid object-dtype casting
+                #  and go through numexpr path instead.
+                # In integer case, np.where will cast to floats
+                pass
+            elif not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
@@ -1477,6 +1463,18 @@ class Block(PandasObject):
                     orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
                 )
                 return self._maybe_downcast(blocks, "infer")
+
+            if not (
+                (self.is_integer or self.is_bool)
+                and lib.is_float(other)
+                and np.isnan(other)
+            ):
+                # convert datetime to datetime64, timedelta to timedelta64
+                other = convert_scalar_for_putitemlike(other, values.dtype)
+
+            # By the time we get here, we should have all Series/Index
+            #  args extracted to ndarray
+            result = expressions.where(cond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
 
