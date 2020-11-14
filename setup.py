@@ -17,8 +17,9 @@ import platform
 import shutil
 import sys
 
-import pkg_resources
+import numpy
 from setuptools import Command, Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext as _build_ext
 
 import versioneer
 
@@ -37,9 +38,7 @@ min_numpy_ver = "1.16.5"
 min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
-    import Cython
-
-    _CYTHON_VERSION = Cython.__version__
+    from Cython import Tempita, __version__ as _CYTHON_VERSION
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
@@ -47,12 +46,6 @@ except ImportError:
     _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
-
-if _CYTHON_INSTALLED:
-    from Cython import Tempita
-    from Cython.Distutils.build_ext import build_ext as _build_ext
-else:
-    from distutils.command.build_ext import build_ext as _build_ext
 
 
 _pxi_dep_template = {
@@ -498,25 +491,18 @@ def maybe_cythonize(extensions, *args, **kwargs):
             )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
-    numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-    # TODO: Is this really necessary here?
-    for ext in extensions:
-        if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-            ext.include_dirs.append(numpy_incl)
+    # numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
+    # # TODO: Is this really necessary here?
+    # for ext in extensions:
+    #     if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
+    #         ext.include_dirs.append(numpy_incl)
 
     # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
-    parser.add_argument("-j", type=int)
-    parser.add_argument("--parallel", type=int)
+    parser.add_argument("--parallel", "-j", type=int, default=1)
     parsed, _ = parser.parse_known_args()
 
-    nthreads = 0
-    if parsed.parallel:
-        nthreads = parsed.parallel
-    elif parsed.j:
-        nthreads = parsed.j
-
-    kwargs["nthreads"] = nthreads
+    kwargs["nthreads"] = parsed.parallel
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -661,7 +647,8 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include")
+    include = data.get("include", [])
+    include.append(numpy.get_include())
 
     obj = Extension(
         f"pandas.{name}",
@@ -710,6 +697,7 @@ ujson_ext = Extension(
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
         "pandas/_libs/src/datetime",
+        numpy.get_include(),
     ],
     extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
     extra_link_args=extra_link_args,
