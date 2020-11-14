@@ -491,12 +491,6 @@ def maybe_cythonize(extensions, *args, **kwargs):
             )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
-    # numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-    # # TODO: Is this really necessary here?
-    # for ext in extensions:
-    #     if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-    #         ext.include_dirs.append(numpy_incl)
-
     # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
     parser.add_argument("--parallel", "-j", type=int, default=1)
