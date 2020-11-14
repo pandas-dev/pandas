@@ -94,7 +94,7 @@ class IsInLongSeries:
     params = [
         ["int64", "int32", "float64", "float32", "object"],
         [1, 2, 5, 10, 50, 100, 1000, 10 ** 5],
-        ["random_hits", "random_misses", "monotone"],
+        ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
     param_names = ["dtype", "MaxNumber", "series_type"]
 
@@ -106,8 +106,10 @@ class IsInLongSeries:
         if series_type == "random_misses":
             np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N) + MaxNumber
-        if series_type == "monotone":
+        if series_type == "monotone_hits":
             array = np.repeat(np.arange(MaxNumber), N // MaxNumber)
+        if series_type == "monotone_misses":
+            array = np.arange(N) + MaxNumber
         self.series = Series(array).astype(dtype)
         self.values = np.arange(MaxNumber).astype(dtype)
 
