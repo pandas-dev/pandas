@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -50,6 +50,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame")
@@ -1947,8 +1948,8 @@ def _factorize_keys(
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk = lk._ndarray
-        rk = rk._ndarray
+        lk = cast("DatetimeArray", lk)._ndarray
+        rk = cast("DatetimeArray", lk)._ndarray
 
     elif (
         is_categorical_dtype(lk.dtype)
