@@ -90,7 +90,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", np.array([True]))),
     (pd.DataFrame, ({("A", "a"): [1]},), operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("query", "A == 1")),
-    (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1")),
+    (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1", engine="python")),
     (pd.DataFrame, frame_data, operator.methodcaller("select_dtypes", include="int")),
     (pd.DataFrame, frame_data, operator.methodcaller("assign", b=1)),
     (pd.DataFrame, frame_data, operator.methodcaller("set_axis", ["A"])),
@@ -518,6 +518,15 @@ def test_finalize_called(ndframe_method):
     result = method(ndframe)
 
     assert result.attrs == {"a": 1}
+
+
+@not_implemented_mark
+def test_finalize_called_eval_numexpr():
+    pytest.importorskip("numexpr")
+    df = pd.DataFrame({"A": [1, 2]})
+    df.attrs["A"] = 1
+    result = df.eval("A + 1", engine="numexpr")
+    assert result.attrs == {"A": 1}
 
 
 # ----------------------------------------------------------------------------
