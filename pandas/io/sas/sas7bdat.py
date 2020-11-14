@@ -24,7 +24,7 @@ from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
@@ -168,12 +168,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self.ioargs = get_filepath_or_buffer(path_or_buf)
-        if isinstance(self.ioargs.filepath_or_buffer, str):
-            self.ioargs.filepath_or_buffer = open(path_or_buf, "rb")
-            self.ioargs.should_close = True
+        self.handles = get_handle(path_or_buf, "rb", is_text=False)
 
-        self._path_or_buf = cast(IO[Any], self.ioargs.filepath_or_buffer)
+        self._path_or_buf = cast(IO[Any], self.handles.handle)
 
         try:
             self._get_properties()
@@ -198,7 +195,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):
-        self.ioargs.close()
+        self.handles.close()
 
     def _get_properties(self):
 

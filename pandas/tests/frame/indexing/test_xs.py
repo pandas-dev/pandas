@@ -297,3 +297,25 @@ class TestXSWithMultiIndex:
         msg = "Index must be a MultiIndex"
         with pytest.raises(TypeError, match=msg):
             obj.xs(0, level="as")
+
+    def test_xs_multiindex_droplevel_false(self):
+        # GH#19056
+        mi = MultiIndex.from_tuples(
+            [("a", "x"), ("a", "y"), ("b", "x")], names=["level1", "level2"]
+        )
+        df = DataFrame([[1, 2, 3]], columns=mi)
+        result = df.xs("a", axis=1, drop_level=False)
+        expected = DataFrame(
+            [[1, 2]],
+            columns=MultiIndex.from_tuples(
+                [("a", "x"), ("a", "y")], names=["level1", "level2"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_xs_droplevel_false(self):
+        # GH#19056
+        df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
+        result = df.xs("a", axis=1, drop_level=False)
+        expected = DataFrame({"a": [1]})
+        tm.assert_frame_equal(result, expected)
