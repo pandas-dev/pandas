@@ -121,7 +121,12 @@ def test_string_methods(input, method, dtype, request):
     tm.assert_series_equal(result.astype(object), expected)
 
 
-def test_astype_roundtrip(dtype):
+def test_astype_roundtrip(dtype, request):
+    if dtype == "arrow_string":
+        reason = "ValueError: Could not convert object to NumPy datetime"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
     s = pd.Series(pd.date_range("2000", periods=12))
     s[0] = None
 
