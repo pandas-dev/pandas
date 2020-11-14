@@ -153,7 +153,7 @@ def test_single_level_drop():
     # GH 37820
 
     mi = MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
-    msg = ("labels \[4\] not found in level")
+    msg = r"labels \[4\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(4, level=0)
     with pytest.raises(KeyError, match=msg):
