@@ -1,7 +1,7 @@
 import operator
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
@@ -55,6 +55,8 @@ from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
+
+IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
 _interval_shared_docs = {}
 
@@ -745,7 +747,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         combined = _get_combined_data(left, right)  # TODO: 1-stage concat
         return cls._simple_new(combined, closed=closed)
 
-    def copy(self):
+    def copy(self: IntervalArrayT) -> IntervalArrayT:
         """
         Return a copy of the array.
 
