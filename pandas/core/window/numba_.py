@@ -75,24 +75,21 @@ def generate_numba_apply_func(
 
 
 def generate_numba_groupby_ewma_func(
-    func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
+    com: float,
+    adjust: bool,
+    ignore_na: bool,
 ):
     """
     Generate a numba jitted groupby ewma function specified by values from engine_kwargs.
 
-    1. jit the user's function
-    2. Return a rolling apply function with the jitted function inline
-
-    Configurations specified in engine_kwargs apply to both the user's
-    function _AND_ the groupby ewma function.
-
     Parameters
     ----------
-    func : function
-        function to be applied to each window and will be JITed
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
+    com : float
+    adjust : bool
+    ignore_na : bool
 
     Returns
     -------
@@ -100,8 +97,9 @@ def generate_numba_groupby_ewma_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
-    # TODO: what should func be?
-    cache_key = (func, "groupby_ewma")
+    # We really just want to check that "groupby_ewma" is in the cache, but this
+    # cache contains UDFs that are passed from the user
+    cache_key = (lambda x: x, "groupby_ewma")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
@@ -117,11 +115,7 @@ def generate_numba_groupby_ewma_func(
         begin: np.ndarray,
         end: np.ndarray,
         minimum_periods: int,
-        com: float,
-        adjust: bool,
-        ignore_na: bool,
     ) -> np.ndarray:
-        # TODO (MATT): values should be in groupby sorted order
         results = []
         alpha = 1.0 / (1.0 + com)
         for i in loop_range(len(begin)):
@@ -161,7 +155,7 @@ def generate_numba_groupby_ewma_func(
                 elif is_observation:
                     weighted_avg = cur
 
-                sub_result[i] = weighted_avg if nobs >= minimum_periods else np.nan
+                sub_result[j] = weighted_avg if nobs >= minimum_periods else np.nan
 
             results.append(sub_result)
 

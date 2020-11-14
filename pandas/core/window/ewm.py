@@ -1,7 +1,7 @@
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import numpy as np
 
@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 import pandas.core.common as common
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
+from pandas.core.window.indexers import ExponentialMovingWindowIndexer, GroupbyIndexer
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
 from pandas.core.window.rolling import (
     _dispatch,
@@ -499,14 +500,36 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     Provide an exponential moving window groupby implementation.
     """
 
+    def _get_window_indexer(self) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._groupby.indices,
+            window_indexer=ExponentialMovingWindowIndexer,
+        )
+        return window_indexer
+
     var = _dispatch("var", bias=False)
     std = _dispatch("std", bias=False)
     cov = _dispatch("cov", other=None, pairwise=None, bias=False)
 
     def mean(self, engine=None, engine_kwargs=None):
         if maybe_use_numba(engine):
-            generate_numba_groupby_ewma_func
-            pass
+            groupby_ewma_func = generate_numba_groupby_ewma_func(
+                engine_kwargs,
+                self.com,
+                self.adjust,
+                self.ignore_na,
+            )
+            return self._apply(
+                groupby_ewma_func,
+                use_numba_cache=maybe_use_numba(engine),
+            )
         else:
 
             def f(x):
