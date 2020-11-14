@@ -218,6 +218,7 @@ class TestTimedeltas:
             ("8:53:08.718001", "8:53:08.718001"),
             ("8:53:08.7180000001", "8:53:08.7180000001"),
             ("-8:53:08.71800000001", "-8:53:08.718"),
+            ("8:53:08.7180000089", "8:53:08.718000008"),
         ],
     )
     @pytest.mark.parametrize("func", [pd.Timedelta, pd.to_timedelta])
@@ -225,4 +226,5 @@ class TestTimedeltas:
         # GH: 36738
         expected = pd.Timedelta(expected)
         result = func(input)
+        print(result)
         assert result == expected

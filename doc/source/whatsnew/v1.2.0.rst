@@ -404,7 +404,7 @@ Datetimelike
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
 - Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 - Bug in :func:`to_datetime` with a read-only array incorrectly raising (:issue:`34857`)
-- Bug in :class:`Timedelta` incorrectly deleted all decimals when input had a higher precision than nanoseconds (:issue:`36738`)
+- Bug in :class:`Timedelta` incorrectly truncating to sub-second portion of a string input when it has precision higher than nanoseconds (:issue:`36738`)
 
 Timedelta
 ^^^^^^^^^

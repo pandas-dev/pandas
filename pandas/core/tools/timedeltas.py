@@ -69,7 +69,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
     Notes
     -----
     If the precision is higher than nanoseconds, the precision of the duration is
-    truncated to nanoseconds.
+    truncated to nanoseconds for string inputs.
 
     Examples
     --------
