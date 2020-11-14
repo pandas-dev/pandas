@@ -1401,6 +1401,7 @@ class TestNuisanceColumns:
         tm.assert_series_equal(result, expected)
 
     def test_reduction_object_block_splits_nuisance_columns(self):
+        # GH#37827
         df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
 
         # We should only exclude "B", not "A"

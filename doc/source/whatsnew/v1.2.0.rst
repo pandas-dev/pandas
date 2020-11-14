@@ -285,7 +285,7 @@ of columns could result in a larger :class:`Series` result. See (:issue:`37799`)
 
 
 Other :class:`DataFrame` reductions with ``numeric_only=None`` will also avoid
-this pathological behavior (:issue:`??`):
+this pathological behavior (:issue:`37827`):
 
 .. ipython:: python
 
