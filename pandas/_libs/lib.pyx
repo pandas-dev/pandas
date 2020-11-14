@@ -929,7 +929,7 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
 def is_float(obj: object) -> bool:
     """
-    Return a boolean if this is a float object.
+    Return True if given object is float.
 
     Returns
     -------
@@ -940,7 +940,7 @@ def is_float(obj: object) -> bool:
 
 def is_integer(obj: object) -> bool:
     """
-    Return a boolean if this is a integer object.
+    Return True if given object is integer.
 
     Returns
     -------
@@ -951,7 +951,7 @@ def is_integer(obj: object) -> bool:
 
 def is_bool(obj: object) -> bool:
     """
-    Return a boolean if this is a boolean object.
+    Return True if given object is boolean.
 
     Returns
     -------
@@ -962,7 +962,7 @@ def is_bool(obj: object) -> bool:
 
 def is_complex(obj: object) -> bool:
     """
-    Return a boolean if this is a complex object.
+    Return True if given object is complex.
 
     Returns
     -------
@@ -981,7 +981,7 @@ cpdef bint is_interval(object obj):
 
 def is_period(val: object) -> bool:
     """
-    Return a boolean if this is a Period object.
+    Return True if given object is Period.
 
     Returns
     -------
