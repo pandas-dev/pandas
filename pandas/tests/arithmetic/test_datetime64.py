@@ -17,8 +17,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DatetimeIndex,
     DateOffset,
+    DatetimeIndex,
     NaT,
     Period,
     Series,
