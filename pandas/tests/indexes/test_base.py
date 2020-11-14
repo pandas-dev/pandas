@@ -1082,27 +1082,6 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == "new_name"
 
-    def test_difference_type(self, index, sort):
-        # GH 20040
-        # If taking difference of a set and itself, it
-        # needs to preserve the type of the index
-        if not index.is_unique:
-            return
-        result = index.difference(index, sort=sort)
-        expected = index.drop(index)
-        tm.assert_index_equal(result, expected)
-
-    def test_intersection_difference(self, index, sort):
-        # GH 20040
-        # Test that the intersection of an index with an
-        # empty index produces the same index as the difference
-        # of an index with itself.  Test for all types
-        if not index.is_unique:
-            return
-        inter = index.intersection(index.drop(index))
-        diff = index.difference(index, sort=sort)
-        tm.assert_index_equal(inter, diff)
-
     def test_is_mixed_deprecated(self):
         # GH#32922
         index = self.create_index()
