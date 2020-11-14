@@ -414,21 +414,16 @@ def test_reduce_missing(skipna, dtype):
 
 
 @td.skip_if_no("pyarrow", min_version="0.15.0")
-def test_arrow_array(dtype, request):
+def test_arrow_array(dtype):
     # protocol added in 0.15.0
     import pyarrow as pa
-
-    if dtype == "arrow_string":
-        reason = (
-            "TypeError: Argument 'other' has incorrect type "
-            "(expected pyarrow.lib.ChunkedArray, got pyarrow.lib.StringArray)"
-        )
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    if dtype == "arrow_string":
+        expected = pa.chunked_array(expected)
+
     assert arr.equals(expected)
 
 
