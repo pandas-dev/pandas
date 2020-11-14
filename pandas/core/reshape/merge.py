@@ -1949,7 +1949,7 @@ def _factorize_keys(
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", lk)._ndarray
+        rk = cast("DatetimeArray", rk)._ndarray
 
     elif (
         is_categorical_dtype(lk.dtype)
