@@ -741,6 +741,16 @@ class _TestSQLApi(PandasSQLTest):
             Timestamp("2010-12-12"),
         ]
 
+    def test_custom_dateparsing_error(self):
+        sql.read_sql(
+            "SELECT * FROM types_test_data",
+            con=self.conn,
+            parse_dates={
+                "DateCol": {"errors": "coerce"},
+                "IntDateCol": {"errors": "ignore"},
+            },
+        )
+
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
 
