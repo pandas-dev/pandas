@@ -442,7 +442,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-* The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `IPython directive
   <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::

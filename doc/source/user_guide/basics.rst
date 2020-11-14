@@ -845,7 +845,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
-The implementation of ``pipe`` here is quite clean and feels right at home in python.
+The implementation of ``pipe`` here is quite clean and feels right at home in Python.
 We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
@@ -2203,7 +2203,7 @@ You can use the :meth:`~DataFrame.astype` method to explicitly convert dtypes fr
 even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
 exception if the astype operation is invalid.
 
-Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation,
+Upcasting is always according to the **NumPy** rules. If two different dtypes are involved in an operation,
 then the more *general* one will be used as the result of the operation.
 
 .. ipython:: python

@@ -179,7 +179,7 @@ sparse values instead.
   rather than a SparseSeries or SparseDataFrame.
 
 This section provides some guidance on migrating your code to the new style. As a reminder,
-you can use the python warnings module to control warnings. But we recommend modifying
+you can use the Python warnings module to control warnings. But we recommend modifying
 your code, rather than ignoring the warning.
 
 **Construction**
