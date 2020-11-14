@@ -1321,6 +1321,7 @@ class TestNuisanceColumns:
         # Double-check the Series behavior is to raise
         with pytest.raises(TypeError, match="does not implement reduction"):
             getattr(ser, method)()
+
         with pytest.raises(TypeError, match="does not implement reduction"):
             getattr(np, method)(ser)
 
@@ -1367,7 +1368,7 @@ class TestNuisanceColumns:
 
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_min_max_categorical_dtype_non_ordered_nuisance_column(self, method):
-        # GH#28948 DataFrame.min should behave like Series.min
+        # GH#28949 DataFrame.min should behave like Series.min
         cat = Categorical(["a", "b", "c", "b"], ordered=False)
         ser = Series(cat)
         df = ser.to_frame("A")
@@ -1375,6 +1376,7 @@ class TestNuisanceColumns:
         # Double-check the Series behavior
         with pytest.raises(TypeError, match="is not ordered for operation"):
             getattr(ser, method)()
+
         with pytest.raises(TypeError, match="is not ordered for operation"):
             getattr(np, method)(ser)
 

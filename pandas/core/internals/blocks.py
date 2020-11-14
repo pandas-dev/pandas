@@ -517,6 +517,8 @@ class Block(PandasObject):
 
             # need a new block
             if m.any() or m.size == 0:
+                # Apply our function; we may ignore_failures if this is a
+                #  reduction that is dropping nuisance columns GH#37827
                 try:
                     nv = f(m, v, i)
                 except TypeError:

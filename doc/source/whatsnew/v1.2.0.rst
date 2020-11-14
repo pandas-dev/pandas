@@ -306,15 +306,18 @@ this pathological behavior (:issue:`37827`):
 
 *New behavior*:
 
-    In [3]: df.mean()
+.. code-block:: ipython
 
-    In [4]: df[["A"]].mean()
+    df.mean()
+
+    df[["A"]].mean()
 
 Moreover, :class:`DataFrame` reductions with ``numeric_only=None`` will now be
 consistent with their :class:`Series` counterparts.  In particular, for
 reductions where the :class:`Series` method raises ``TypeError``, the
 :class:`DataFrame` reduction will now consider that column non-numeric
-instead of casting to NumPy which may have different semantics (:issue:`36076`).
+instead of casting to NumPy which may have different semantics (:issue:`36076`,
+:issue:`28949`, :issue:`21020`).
 
 .. ipython:: python
 
@@ -333,7 +336,9 @@ instead of casting to NumPy which may have different semantics (:issue:`36076`).
 
 *New behavior*:
 
-    In [5]: df.any()
+.. code-block:: ipython
+
+    df.any()
 
 
 .. _whatsnew_120.api_breaking.python:
