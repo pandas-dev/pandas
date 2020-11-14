@@ -301,8 +301,6 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         item = check_array_indexer(self, item)
 
         if isinstance(item, abc.Iterable):
-            if not is_array_like(item):
-                item = np.array(item)
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item):
