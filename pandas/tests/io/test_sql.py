@@ -742,23 +742,28 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
     @pytest.mark.parametrize(
-        "read_sql, text",
+        "read_sql, text, mode",
         [
-            (sql.read_sql, "SELECT * FROM types_test_data"),
-            (sql.read_sql, "types_test_data"),
-            (sql.read_sql_query, "SELECT * FROM types_test_data"),
-            (sql.read_sql_table, "types_test_data"),
+            (sql.read_sql, "SELECT * FROM types_test_data", ("sqlalchemy", "fallback")),
+            (sql.read_sql, "types_test_data", ("sqlalchemy")),
+            (
+                sql.read_sql_query,
+                "SELECT * FROM types_test_data",
+                ("sqlalchemy", "fallback"),
+            ),
+            (sql.read_sql_table, "types_test_data", ("sqlalchemy")),
         ],
     )
-    def test_custom_dateparsing_error(self, read_sql, text):
-        read_sql(
-            text,
-            con=self.conn,
-            parse_dates={
-                "DateCol": {"errors": "coerce"},
-                "IntDateCol": {"errors": "ignore"},
-            },
-        )
+    def test_custom_dateparsing_error(self, read_sql, text, mode):
+        if self.mode in mode:
+            read_sql(
+                text,
+                con=self.conn,
+                parse_dates={
+                    "DateCol": {"errors": "coerce"},
+                    "IntDateCol": {"errors": "ignore"},
+                },
+            )
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
