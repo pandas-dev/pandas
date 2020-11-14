@@ -158,7 +158,25 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis(tsframe):
+def test_transform_axis_1(transformation_func):
+    # GH 36308
+    if transformation_func == "tshift":
+        pytest.xfail("tshift is deprecated")
+    args = ("ffill",) if transformation_func == "fillna" else tuple()
+
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+
+    if transformation_func == "diff":
+        # Result contains nans, so transpose coerces to float
+        expected["b"] = expected["b"].astype("int64")
+
+    # cumcount returns Series; the rest are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_transform_axis_ts(tsframe):
 
     # make sure that we are setting the axes
     # correctly when on axis=0 or 1
