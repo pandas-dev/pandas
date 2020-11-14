@@ -233,8 +233,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         Convert to a NumPy ndarray.
         """
-        # TODO: copy and na_value arguments are ignored
-        return self.data.__array__(dtype=dtype)
+        # TODO: copy argument is ignored
+
+        if na_value is lib.no_default:
+            na_value = self._dtype.na_value
+        result = self.data.__array__(dtype=dtype)
+        result[isna(result)] = na_value
+        return result
 
     def __len__(self) -> int:
         """

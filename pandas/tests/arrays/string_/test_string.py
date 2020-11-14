@@ -500,3 +500,18 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     result = s.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_to_numpy_returns_pdna_default(dtype):
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    result = np.array(arr)
+    expected = np.array(["a", pd.NA, "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_na_value(dtype, nulls_fixture):
+    na_value = nulls_fixture
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    result = arr.to_numpy(na_value=na_value)
+    expected = np.array(["a", na_value, "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
