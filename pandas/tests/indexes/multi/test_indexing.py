@@ -768,7 +768,7 @@ def test_timestamp_multiindex_indexer():
         [
             pd.date_range(
                 start="2019-01-02T00:15:33",
-                end="2019-01-05T02:15:33",
+                end="2019-01-05T03:15:33",
                 freq="H",
                 name="date",
             ),

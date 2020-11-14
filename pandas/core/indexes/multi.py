@@ -3022,7 +3022,7 @@ class MultiIndex(Index):
                 if key.stop is not None:
                     stop = level_index.get_loc(key.stop)
                 elif isinstance(start, slice):
-                    stop = start.stop
+                    stop = len(level_index)
                 else:
                     stop = len(level_index) - 1
                 step = key.step
