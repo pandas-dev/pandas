@@ -624,7 +624,7 @@ I/O
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 - :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 - Bug in :meth:`read_fw` was not skipping blank lines (even with ``skip_blank_lines=True``) (:issue:`37758`)
-- Allow custom error values in parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`GH35185`)
+- Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`GH35185`)
 
 Plotting
 ^^^^^^^^
