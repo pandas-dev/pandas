@@ -1173,12 +1173,12 @@ class TestValueCounts:
         )
 
         tm.assert_series_equal(
-            Series([True, True, False, None]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False]),
+            Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
+            Series([3, 2], index=[True, False]),
         )
         tm.assert_series_equal(
-            Series([True, True, False, None]).value_counts(dropna=False),
-            Series([2, 1, 1], index=[True, np.nan, False]),
+            Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
+            Series([5, 3, 2], index=[True, False, np.nan]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
@@ -1194,26 +1194,24 @@ class TestValueCounts:
             Series([2, 1], index=[5.0, 10.3]),
         )
 
-        # 32-bit linux has a different ordering
-        if IS64:
-            result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
-            expected = Series([2, 1, 1], index=[5.0, np.nan, 10.3])
-            tm.assert_series_equal(result, expected)
+        result = Series([10.3, 10.3, 5.0, 5.0, 5.0, None]).value_counts(dropna=False)
+        expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan])
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
         # GH12558
-        s = Series([1, 2, np.nan, np.nan, np.nan])
+        s = Series([1] * 2 + [2] * 3 + [np.nan] * 5)
         dtypes = (np.float64, object, "M8[ns]")
         for t in dtypes:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
             expected = Series(
-                [0.6, 0.2, 0.2], index=Series([np.nan, 1.0, 2.0], dtype=t)
+                [0.5, 0.3, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=t)
             )
             tm.assert_series_equal(result, expected)
 
             result = s_typed.value_counts(normalize=True, dropna=True)
-            expected = Series([0.5, 0.5], index=Series([1.0, 2.0], dtype=t))
+            expected = Series([0.6, 0.4], index=Series([2.0, 1.0], dtype=t))
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
