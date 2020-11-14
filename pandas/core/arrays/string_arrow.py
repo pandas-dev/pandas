@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import abc
 from distutils.version import LooseVersion
 from typing import TYPE_CHECKING, Any, Sequence, Type, Union
 
