@@ -300,12 +300,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         item = check_array_indexer(self, item)
 
-        if isinstance(item, abc.Iterable):
+        if isinstance(item, np.ndarray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
                 return self.take(item)
-            elif is_bool_dtype(item):
+            elif is_bool_dtype(item.dtype):
                 return type(self)(self.data.filter(item))
             else:
                 raise IndexError(
