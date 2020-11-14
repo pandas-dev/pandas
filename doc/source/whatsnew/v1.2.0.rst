@@ -306,7 +306,7 @@ this pathological behavior (:issue:`37827`):
 
 *New behavior*:
 
-.. code-block:: ipython
+.. ipython:: python
 
     df.mean()
 
@@ -336,7 +336,7 @@ instead of casting to NumPy which may have different semantics (:issue:`36076`,
 
 *New behavior*:
 
-.. code-block:: ipython
+.. ipython:: python
 
     df.any()
 
