@@ -147,3 +147,14 @@ def test_drop_with_nan_in_index(nulls_fixture):
     msg = r"labels \[Timestamp\('2001-01-01 00:00:00'\)\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(pd.Timestamp("2001"), level="date")
+
+
+def test_single_level_drop():
+    # GH 37820
+
+    mi = MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
+    msg = ("labels \[4\] not found in level")
+    with pytest.raises(KeyError, match=msg):
+        mi.drop(4, level=0)
+    with pytest.raises(KeyError, match=msg):
+        mi.drop([1, 4], level=0)
