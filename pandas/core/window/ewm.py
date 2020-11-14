@@ -529,6 +529,9 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             return self._apply(
                 groupby_ewma_func,
                 use_numba_cache=maybe_use_numba(engine),
+                # Dummy function; we really just want to check "groupby_ewma"
+                # in the cache
+                original_func=lambda x: x,
             )
         else:
 
