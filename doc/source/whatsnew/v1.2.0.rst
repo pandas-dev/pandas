@@ -285,7 +285,7 @@ of columns could result in a larger :class:`Series` result. See (:issue:`37799`)
 
 
 Other :class:`DataFrame` reductions with ``numeric_only=None`` will also avoid
-this pathological behavior:
+this pathological behavior (:issue:`??`):
 
 .. ipython:: python
 
@@ -314,7 +314,7 @@ Moreover, :class:`DataFrame` reductions with ``numeric_only=None`` will now be
 consistent with their :class:`Series` counterparts.  In particular, for
 reductions where the :class:`Series` method raises ``TypeError``, the
 :class:`DataFrame` reduction will now consider that column non-numeric
-instead of casting to NumPy which may have different semantics.
+instead of casting to NumPy which may have different semantics (:issue:`36076`).
 
 .. ipython:: python
 
