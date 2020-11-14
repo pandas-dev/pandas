@@ -118,7 +118,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
 def is_scalar(val: object) -> bool:
     """
-    Check wether the provided object is of scalar type.
+    Return True if given object is scalar.
 
     Parameters
     ----------
@@ -929,7 +929,7 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
 def is_float(obj: object) -> bool:
     """
-    Check wether the provided object is of float type.
+    Return a boolean if this is a float object.
 
     Returns
     -------
@@ -940,7 +940,7 @@ def is_float(obj: object) -> bool:
 
 def is_integer(obj: object) -> bool:
     """
-    Check wether the provided object is of integer type.
+    Return a boolean if this is a integer object.
 
     Returns
     -------
@@ -951,7 +951,7 @@ def is_integer(obj: object) -> bool:
 
 def is_bool(obj: object) -> bool:
     """
-    Check wether the provided object is of boolean type.
+    Return a boolean if this is a boolean object.
 
     Returns
     -------
@@ -962,7 +962,7 @@ def is_bool(obj: object) -> bool:
 
 def is_complex(obj: object) -> bool:
     """
-    Check wether the provided object is of complex type.
+    Return a boolean if this is a complex object.
 
     Returns
     -------
