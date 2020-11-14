@@ -741,9 +741,18 @@ class _TestSQLApi(PandasSQLTest):
             Timestamp("2010-12-12"),
         ]
 
-    def test_custom_dateparsing_error(self):
-        sql.read_sql(
-            "SELECT * FROM types_test_data",
+    @pytest.mark.parametrize(
+        "read_sql, text",
+        [
+            (sql.read_sql, "SELECT * FROM types_test_data"),
+            (sql.read_sql, "types_test_data"),
+            (sql.read_sql_query, "SELECT * FROM types_test_data"),
+            (sql.read_sql_table, "types_test_data"),
+        ],
+    )
+    def test_custom_dateparsing_error(self, read_sql, text):
+        read_sql(
+            text,
             con=self.conn,
             parse_dates={
                 "DateCol": {"errors": "coerce"},
