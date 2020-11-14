@@ -1279,6 +1279,8 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
+
+class TestNuisanceColumns:
     @pytest.mark.parametrize("method", ["any", "all"])
     def test_any_all_categorical_dtype_nuisance_column(self, method):
         # GH#36076 DataFrame should match Series behavior
@@ -1365,6 +1367,21 @@ class TestDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
         result = getattr(np, method)(df)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduction_object_block_splits_nuisance_columns(self):
+        df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
+
+        # We should only exclude "B", not "A"
+        result = df.mean()
+        expected = Series([1.0], index=["A"])
+        tm.assert_series_equal(result, expected)
+
+        # Same behavior but heterogeneous dtype
+        df["C"] = df["A"].astype(int) + 4
+
+        result = df.mean()
+        expected = Series([1.0, 5.0], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
 
