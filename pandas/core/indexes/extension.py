@@ -231,10 +231,7 @@ class ExtensionIndex(Index):
     # ---------------------------------------------------------------------
 
     def _get_engine_target(self) -> np.ndarray:
-        # NB: _values_for_argsort happens to match the desired engine targets
-        #  for all of our existing EA-backed indexes, but in general
-        #  cannot be relied upon to exist.
-        return self._data._values_for_argsort()
+        return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
@@ -305,6 +302,9 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     """
 
     _data: NDArrayBackedExtensionArray
+
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._ndarray
 
     def delete(self, loc):
         """
