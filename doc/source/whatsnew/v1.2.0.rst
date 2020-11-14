@@ -238,6 +238,111 @@ Other enhancements
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_120.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+Consistency of DataFrame Reductions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`DataFrame.any` and :meth:`DataFrame.all` with ``bool_only=True`` now
+determines whether to exclude object-dtype columns on a column-by-column basis,
+instead of checking if *all* object-dtype columns can be considered boolean.
+
+This prevents pathological behavior where applying the reduction on a subset
+of columns could result in a larger :class:`Series` result. See (:issue:`37799`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": ["foo", "bar"], "B": [True, False]}, dtype=object)
+    df["C"] = pd.Series([True, True])
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df.all(bool_only=True)
+    Out[5]:
+    C    True
+    dtype: bool
+
+    In [6]: df[["B", "C"]].all(bool_only=True)
+    Out[6]:
+    B    False
+    C    True
+    dtype: bool
+
+*New behavior*:
+
+.. ipython:: python
+
+    In [5]: df.all(bool_only=True)
+
+    In [6]: df[["B", "C"]].all(bool_only=True)
+
+
+Other :class:`DataFrame` reductions with ``numeric_only=None`` will also avoid
+this pathological behavior (:issue:`37827`):
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [0, 1, 2], "B": ["a", "b", "c"]}, dtype=object)
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.mean()
+    Out[3]: Series([], dtype: float64)
+
+    In [4]: df[["A"]].mean()
+    Out[4]:
+    A    1.0
+    dtype: float64
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.mean()
+
+    df[["A"]].mean()
+
+Moreover, :class:`DataFrame` reductions with ``numeric_only=None`` will now be
+consistent with their :class:`Series` counterparts.  In particular, for
+reductions where the :class:`Series` method raises ``TypeError``, the
+:class:`DataFrame` reduction will now consider that column non-numeric
+instead of casting to NumPy which may have different semantics (:issue:`36076`,
+:issue:`28949`, :issue:`21020`).
+
+.. ipython:: python
+
+    ser = pd.Series([0, 1], dtype="category", name="A")
+    df = ser.to_frame()
+
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [5]: df.any()
+    Out[5]:
+    A    True
+    dtype: bool
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.any()
+
+
 .. _whatsnew_120.api_breaking.python:
 
 Increased minimum version for Python
@@ -379,6 +484,7 @@ Performance improvements
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - faster ``dir`` calls when many index labels, e.g. ``dir(ser)`` (:issue:`37450`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
+- Performance improvement in :meth:`pd.DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`pd.Index.value_counts`)
 
 .. ---------------------------------------------------------------------------
 
@@ -555,7 +661,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 - Bug in :meth:`DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
-
+- Bug in :meth:`DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
 
 Reshaping
 ^^^^^^^^^
@@ -566,6 +672,7 @@ Reshaping
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
+- Bug in :meth:`DataFrame.pivot` modified ``index`` argument when ``columns`` was passed but ``values`` was not (:issue:`37635`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)

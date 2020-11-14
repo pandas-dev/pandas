@@ -8766,7 +8766,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None:
+        if numeric_only is not None or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -8791,35 +8791,13 @@ NaN 12.3   33.0
                 # GH#35865 careful to cast explicitly to object
                 nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
                 out[:] = np.array(nvs, dtype=object)
+            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+                # Even if we are object dtype, follow numpy and return
+                #  float64, see test_apply_funcs_over_empty
+                out = out.astype(np.float64)
             return out
 
         assert numeric_only is None
-
-        if not self._is_homogeneous_type or self._mgr.any_extension_types:
-            # try to avoid self.values call
-
-            if filter_type is None and axis == 0:
-                # operate column-wise
-
-                # numeric_only must be None here, as other cases caught above
-
-                # this can end up with a non-reduction
-                # but not always. if the types are mixed
-                # with datelike then need to make sure a series
-
-                # we only end up here if we have not specified
-                # numeric_only and yet we have tried a
-                # column-by-column reduction, where we have mixed type.
-                # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=func, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
 
         data = self
         values = data.values
