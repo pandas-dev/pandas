@@ -133,7 +133,7 @@ class TestComparison:
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
 
-        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int64"):
+        if nulls_fixture is pd.NA and array.dtype != IntervalDtype("int64"):
             mark = pytest.mark.xfail(
                 reason="broken for non-integer IntervalArray; see GH 31882"
             )
@@ -290,6 +290,6 @@ class TestComparison:
     def test_comparison_operations(self, scalars):
         # GH #28981
         expected = Series([False, False])
-        s = Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
+        s = Series([Interval(0, 1), Interval(1, 2)], dtype="interval")
         result = s == scalars
         tm.assert_series_equal(result, expected)
