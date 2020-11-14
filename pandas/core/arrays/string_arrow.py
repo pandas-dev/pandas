@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from distutils.version import LooseVersion
 from typing import TYPE_CHECKING, Any, Sequence, Type, Union
 
@@ -9,17 +10,16 @@ from pandas._libs import lib, missing as libmissing
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import (
+from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.missing import isna
+
+from pandas.api.types import (
     is_array_like,
     is_bool_dtype,
     is_integer,
     is_integer_dtype,
-    is_list_like,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna
-
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer, validate_indices
@@ -298,9 +298,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
+        item = check_array_indexer(self, item)
 
-        if is_list_like(item):
-            item = check_array_indexer(self, item)
+        if isinstance(item, abc.Iterable):
+            if not is_array_like(item):
+                item = np.array(item)
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item):
