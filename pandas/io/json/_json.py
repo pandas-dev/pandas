@@ -20,7 +20,7 @@ from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_argume
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
-from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
+from pandas import DataFrame, MultiIndex, Series, isna, notna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
@@ -861,7 +861,10 @@ class Parser:
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
-                return data, False
+                if all(notna(data)):
+                    return data, False
+                return data.fillna(np.nan), True
+
             elif self.dtype is True:
                 pass
             else:
