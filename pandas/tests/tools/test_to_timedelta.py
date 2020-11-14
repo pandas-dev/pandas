@@ -226,5 +226,4 @@ class TestTimedeltas:
         # GH: 36738
         expected = pd.Timedelta(expected)
         result = func(input)
-        print(result)
         assert result == expected
