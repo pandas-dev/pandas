@@ -41,10 +41,10 @@ matrix:
         - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
-
-    - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
+      - JOB="3.8, slow" ENV_FILE="ci/deps/travis-38-slow.yaml" PATTERN="slow" SQL="1"
+      services:
+        - mysql
+        - postgresql
 
     - env:
         - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"

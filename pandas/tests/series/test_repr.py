@@ -251,8 +251,8 @@ class TestCategoricalRepr:
             def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
-        cat = pd.Categorical([County() for _ in range(61)])
-        idx = pd.Index(cat)
+        cat = Categorical([County() for _ in range(61)])
+        idx = Index(cat)
         ser = idx.to_series()
 
         repr(ser)
@@ -486,7 +486,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
 3   4 days
 4   5 days
 dtype: category
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(s) == exp
 

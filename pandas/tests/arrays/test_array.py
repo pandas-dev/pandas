@@ -210,7 +210,9 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2000, 1, 1, tzinfo=cet),
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
-            DatetimeArray._from_sequence(["2000", "2001"], tz=cet),
+            DatetimeArray._from_sequence(
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+            ),
         ),
         # timedelta
         (

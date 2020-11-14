@@ -8,7 +8,7 @@ from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Union
+from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, urlopen, validate_header_arg
+from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -435,7 +435,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder = []  # list of (index, text, nrows)
+        remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -910,6 +910,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
+        assert retained is not None  # for mypy
         raise retained
 
     ret = []
@@ -1079,6 +1080,9 @@ def read_html(
             "data (you passed a negative value)"
         )
     validate_header_arg(header)
+
+    io = stringify_path(io)
+
     return _parse(
         flavor=flavor,
         io=io,
