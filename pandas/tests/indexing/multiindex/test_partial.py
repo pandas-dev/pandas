@@ -239,6 +239,25 @@ class TestMultiIndexPartial:
         result = df.loc["2019-2":, :]
         tm.assert_frame_equal(result, expected)
 
+        df2 = df.swaplevel(0, 1).sort_index()
+        expected = expected.swaplevel(0, 1)
+
+        result = df2.loc[:, "2019-02":, :]
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        result = df[:"2019-2"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[:"2019-2"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc(axis=0)[:"2019-2"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[:"2019-2", :]
+        tm.assert_frame_equal(result, expected)
+
 
 def test_loc_getitem_partial_both_axis():
     # gh-12660
