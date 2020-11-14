@@ -398,8 +398,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> "SparseArray":
+        cls: Type[SparseArrayT],
+        sparse_array: np.ndarray,
+        sparse_index: SparseIndex,
+        dtype: SparseDtype,
+    ) -> SparseArrayT:
         new = object.__new__(cls)
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -938,7 +941,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
-    def copy(self):
+    def copy(self: SparseArrayT) -> SparseArrayT:
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 

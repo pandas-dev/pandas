@@ -23,7 +23,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Shape
+from pandas._typing import ArrayLike, Shape, TypeVar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -1029,7 +1029,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self) -> "ExtensionArray":
+    def copy(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Return a copy of the array.
 

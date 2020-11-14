@@ -749,7 +749,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         combined = _get_combined_data(left, right)  # TODO: 1-stage concat
         return cls._simple_new(combined, closed=closed)
 
-    def copy(self):
+    def copy(self: IntervalArrayT) -> IntervalArrayT:
         """
         Return a copy of the array.
 
