@@ -82,7 +82,7 @@ def zero(request):
     --------
     >>> arr = pd.RangeIndex(5)
     >>> arr / zeros
-    Float64Index([nan, inf, inf, inf, inf], dtype='float64')
+    pd.Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
 
