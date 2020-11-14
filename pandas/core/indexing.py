@@ -1654,8 +1654,8 @@ class _iLocIndexer(_LocationIndexer):
         # Ensure we have something we can iterate over
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        plane_indexer = indexer[:1]
-        lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+        pi = indexer[0]
+        lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
         if len(ilocs) == 1:
@@ -1686,14 +1686,10 @@ class _iLocIndexer(_LocationIndexer):
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
-            elif (
-                len(ilocs) == 1
-                and lplane_indexer == len(value)
-                and not is_scalar(plane_indexer[0])
-            ):
+            elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # we have an equal len list/ndarray
                 # We only get here with len(ilocs) == 1
-                self._setitem_single_column(ilocs[0], value, plane_indexer)
+                self._setitem_single_column(ilocs[0], value, pi)
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with a all-False mask
@@ -1708,7 +1704,7 @@ class _iLocIndexer(_LocationIndexer):
                     )
 
                 for loc, v in zip(ilocs, value):
-                    self._setitem_single_column(loc, v, plane_indexer)
+                    self._setitem_single_column(loc, v, pi)
         else:
 
             if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
@@ -1716,12 +1712,12 @@ class _iLocIndexer(_LocationIndexer):
 
             # scalar value
             for loc in ilocs:
-                self._setitem_single_column(loc, value, plane_indexer)
+                self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value):
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
-        plane_indexer = indexer[:1]
+        pi = indexer[0]
 
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
@@ -1734,13 +1730,13 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), plane_indexer)
+            self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame"):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
-        plane_indexer = indexer[:1]
+        pi = indexer[0]
 
         multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)
 
@@ -1761,7 +1757,7 @@ class _iLocIndexer(_LocationIndexer):
                 else:
                     val = np.nan
 
-                self._setitem_single_column(loc, val, plane_indexer)
+                self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols:
             raise ValueError("Setting with non-unique columns is not allowed.")
@@ -1777,10 +1773,18 @@ class _iLocIndexer(_LocationIndexer):
                 else:
                     val = np.nan
 
-                self._setitem_single_column(loc, val, plane_indexer)
+                self._setitem_single_column(loc, val, pi)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
-        # positional setting on column loc
+        """
+
+        Parameters
+        ----------
+        loc : int
+            Indexer for column position
+        plane_indexer : int, slice, listlike[int]
+            The indexer we use for setitem along axis=0.
+        """
         pi = plane_indexer
 
         ser = self.obj._ixs(loc, axis=1)
@@ -1790,15 +1794,12 @@ class _iLocIndexer(_LocationIndexer):
         # which means essentially reassign to the columns of a
         # multi-dim object
         # GH#6149 (null slice), GH#10408 (full bounds)
-        if isinstance(pi, tuple) and all(
-            com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
-            for idx in pi
-        ):
+        if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
-            ser._mgr = ser._mgr.setitem(indexer=pi, value=value)
+            ser._mgr = ser._mgr.setitem(indexer=(pi,), value=value)
             ser._maybe_update_cacher(clear=True)
 
         # reset the sliced object if unique
