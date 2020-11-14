@@ -3751,7 +3751,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 dtype=new_values.dtype,
             )
         elif is_scalar(loc):
-            result = self.iloc[:, [loc]]
+            result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
         else:
