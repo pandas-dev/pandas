@@ -528,7 +528,7 @@ Another aggregation example is to compute the number of unique values of a group
 
 .. ipython:: python
 
-   l = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
+   ll = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
    pd.DataFrame(l, columns=['A', 'B']).groupby('A').nunique()
 
 .. note::
