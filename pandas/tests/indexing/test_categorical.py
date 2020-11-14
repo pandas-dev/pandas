@@ -60,9 +60,9 @@ class TestCategoricalIndex:
             df.loc["d"] = 10
 
         msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.loc["d", "A"] = 10
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
         with pytest.raises(KeyError, match="^1$"):
@@ -285,12 +285,8 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
-        with pytest.raises(
-            KeyError,
-            match=(
-                "'a list-indexer must only include values that are in the categories'"
-            ),
-        ):
+        msg = "a list-indexer must only include values that are in the categories"
+        with pytest.raises(KeyError, match=msg):
             self.df2.loc[["a", "d"]]
 
     def test_loc_listlike_dtypes(self):

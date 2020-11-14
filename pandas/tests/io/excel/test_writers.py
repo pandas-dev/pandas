@@ -525,7 +525,7 @@ class TestExcelWriter:
         writer = ExcelWriter(path)
         frame.to_excel(writer, "test1")
         tsframe.to_excel(writer, "test2")
-        writer.save()
+        writer.close()
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(frame, recons)

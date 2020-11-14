@@ -339,6 +339,17 @@ class Base:
             with pytest.raises(exc):
                 to_parquet(df, path, engine, compression=None)
 
+    @tm.network
+    def test_parquet_read_from_url(self, df_compat, engine):
+        if engine != "auto":
+            pytest.importorskip(engine)
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
+        )
+        df = pd.read_parquet(url)
+        tm.assert_frame_equal(df, df_compat)
+
 
 class TestBasic(Base):
     def test_error(self, engine):
@@ -707,16 +718,6 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    @tm.network
-    @td.skip_if_no("pyarrow")
-    def test_parquet_read_from_url(self, df_compat):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
-        )
-        df = pd.read_parquet(url)
-        tm.assert_frame_equal(df, df_compat)
-
     @td.skip_if_no("pyarrow")
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
@@ -758,9 +759,7 @@ class TestParquetPyArrow(Base):
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
 
-    @pytest.mark.parametrize(
-        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
-    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_partition_cols_pathlib(self, pa, df_compat, path_type):
         # GH 35902
 
