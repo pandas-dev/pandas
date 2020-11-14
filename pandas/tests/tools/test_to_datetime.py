@@ -2447,12 +2447,12 @@ def test_na_to_datetime(nulls_fixture, klass):
 
 def test_empty_string_datetime_coerce():
     # GH13044
-    td = Series(["May 04", "Jun 02", ""])
-    format = "%b %y"
+    td = Series(["03/24/2016", "03/25/2016", ""])
+    format = "%m/%d/%Y"
 
     # coerce empty string to pd.NaT
     result = pd.to_datetime(td, format=format, errors="coerce")
-    expected = Series(["2004-05-01", "2002-06-01", pd.NaT], dtype="datetime64[ns]")
+    expected = Series(["2016-03-24", "2016-03-25", pd.NaT], dtype="datetime64[ns]")
     pd.testing.assert_series_equal(expected, result)
 
     # raise an exception in case a format is given
@@ -2460,6 +2460,5 @@ def test_empty_string_datetime_coerce():
         result = pd.to_datetime(td, format=format, errors="raise")
 
     # don't raise an expection in case no format is given
-    result = pd.to_datetime([1, ""], unit="s", errors="raise")
-    expected = DatetimeIndex(["1970-01-01 00:00:01", pd.NaT], dtype="datetime64[ns]")
-    pd.testing.assert_index_equal(result, expected)
+    result = pd.to_datetime(td, errors="raise")
+    pd.testing.assert_series_equal(result, expected)
