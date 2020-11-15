@@ -23,7 +23,7 @@ def parser_and_data(all_parsers, csv1):
 
     with open(csv1, "rb") as f:
         data = f.read()
-        expected = parser.read_csv(csv1)
+    expected = parser.read_csv(csv1)
 
     return parser, data, expected
 
@@ -75,7 +75,7 @@ def test_zip_error_invalid_zip(parser_and_data):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
-        with open(path, "wb") as f:
+        with open(path, "rb") as f:
             with pytest.raises(zipfile.BadZipfile, match="File is not a zip file"):
                 parser.read_csv(f, compression="zip")
 
