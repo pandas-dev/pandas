@@ -588,7 +588,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
             raise NotImplementedError(
-                f"method {method} not yet implemented for IntervalIndex"
+                f"method {method} not yet implemented for {type(self).__name__}"
             )
 
         raise ValueError("Invalid fill method")
