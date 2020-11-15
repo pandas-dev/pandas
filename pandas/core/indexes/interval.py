@@ -845,7 +845,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # we have missing values
         if (locs == -1).any():
-            raise KeyError
+            raise KeyError(keyarr[locs == -1].tolist())
 
         return locs
 
