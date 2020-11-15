@@ -751,7 +751,7 @@ class ExcelFormatter:
     @property
     def _has_aliases(self) -> bool:
         """Whether the aliases for column names are present."""
-        return bool(isinstance(self.header, (tuple, list, np.ndarray, ABCIndex)))
+        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
 
     def _generate_body(self, coloffset: int) -> Iterator[ExcelCell]:
         if self.styler is None:
