@@ -337,6 +337,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             )
         return window_func
 
+    @property
+    def _index_array(self):
+        # TODO: why do we get here with e.g. MultiIndex?
+        if needs_i8_conversion(self._on.dtype):
+            return self._on.asi8
+        return None
+
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -345,7 +352,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(
-                index_array=self._on.asi8, window_size=self.window
+                index_array=self._index_array, window_size=self.window
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -2143,7 +2150,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
-        index_array = self._on.asi8
+        index_array = self._index_array
         window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
