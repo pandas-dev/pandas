@@ -900,7 +900,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
 
-            except KeyError:
+            except (KeyError, TypeError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -964,7 +964,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("key of type tuple not found and not a MultiIndex")
+            raise KeyError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1020,7 +1020,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError(
+                raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
 

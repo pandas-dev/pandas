@@ -6,7 +6,7 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
@@ -171,10 +171,10 @@ class TestFloat64Index(Numeric):
     @pytest.mark.parametrize(
         "index, dtype",
         [
-            (pd.Int64Index, "float64"),
-            (pd.UInt64Index, "categorical"),
-            (pd.Float64Index, "datetime64"),
-            (pd.RangeIndex, "float64"),
+            (Int64Index, "float64"),
+            (UInt64Index, "categorical"),
+            (Float64Index, "datetime64"),
+            (RangeIndex, "float64"),
         ],
     )
     def test_invalid_dtype(self, index, dtype):
@@ -687,20 +687,3 @@ def test_float64_index_difference():
 
     result = string_index.difference(float_index)
     tm.assert_index_equal(result, string_index)
-
-
-class TestGetSliceBounds:
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
-    def test_get_slice_bounds_within(self, kind, side, expected):
-        index = Index(range(6))
-        result = index.get_slice_bound(4, kind=kind, side=side)
-        assert result == expected
-
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
-    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
-        index = Index(range(6))
-        result = index.get_slice_bound(bound, kind=kind, side=side)
-        assert result == expected

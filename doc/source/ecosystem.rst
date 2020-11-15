@@ -174,7 +174,7 @@ invoked with the following command
 
     dtale.show(df)
 
-D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
 and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
@@ -421,7 +421,7 @@ If also displays progress bars.
 `Vaex <https://docs.vaex.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a Python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
  * vaex.from_pandas
  * vaex.to_pandas_df
