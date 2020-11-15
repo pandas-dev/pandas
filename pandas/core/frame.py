@@ -64,7 +64,6 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.inference import is_array_like
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -117,6 +116,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     pandas_dtype,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
