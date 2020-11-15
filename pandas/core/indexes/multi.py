@@ -2687,7 +2687,9 @@ class MultiIndex(Index):
             else:
                 if isinstance(idx, slice):
                     idx = idx.start
-                return start + section.searchsorted(idx, side=side)
+                    return start + section.searchsorted(idx, side=side)
+                else:
+                    return start + section.searchsorted(idx, side=side)
 
     def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
         """
@@ -3066,6 +3068,7 @@ class MultiIndex(Index):
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
+
             if isinstance(idx, slice):
                 start = idx.start
                 end = idx.stop
