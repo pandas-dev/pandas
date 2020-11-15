@@ -27,11 +27,7 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import (
-    _dispatch,
-    BaseWindow,
-    BaseWindowGroupby,
-)
+from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, _dispatch
 
 if TYPE_CHECKING:
     from pandas import Series
