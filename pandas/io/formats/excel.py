@@ -530,8 +530,7 @@ class ExcelFormatter:
                     "index ('index'=False) is not yet implemented."
                 )
 
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
-        if not (has_aliases or self.header):
+        if not (self._has_aliases or self.header):
             return
 
         columns = self.columns
@@ -584,8 +583,7 @@ class ExcelFormatter:
         self.rowcounter = lnum
 
     def _format_header_regular(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
-        if has_aliases or self.header:
+        if self._has_aliases or self.header:
             coloffset = 0
 
             if self.index:
@@ -594,7 +592,7 @@ class ExcelFormatter:
                     coloffset = len(self.df.index[0])
 
             colnames = self.columns
-            if has_aliases:
+            if self._has_aliases:
                 # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
                 # has incompatible type "Union[Sequence[Optional[Hashable]],
                 # bool]"; expected "Sized"  [arg-type]
@@ -644,8 +642,7 @@ class ExcelFormatter:
             return self._format_regular_rows()
 
     def _format_regular_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
-        if has_aliases or self.header:
+        if self._has_aliases or self.header:
             self.rowcounter += 1
 
         # output index and index_label?
@@ -683,8 +680,7 @@ class ExcelFormatter:
         yield from self._generate_body(coloffset)
 
     def _format_hierarchical_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
-        if has_aliases or self.header:
+        if self._has_aliases or self.header:
             self.rowcounter += 1
 
         gcolidx = 0
@@ -757,6 +753,10 @@ class ExcelFormatter:
                     gcolidx += 1
 
         yield from self._generate_body(gcolidx)
+
+    @property
+    def _has_aliases(self) -> bool:
+        return bool(isinstance(self.header, (tuple, list, np.ndarray, ABCIndex)))
 
     def _generate_body(self, coloffset: int):
         if self.styler is None:
