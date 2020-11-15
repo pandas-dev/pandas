@@ -637,9 +637,9 @@ class TestEWM:
     @pytest.mark.parametrize(
         "method, expected_data",
         [
-            ["mean", [0.0, 0.6667, 1.428571, 2.266667]],
+            ["mean", [0.0, 0.6666666666666666, 1.4285714285714286, 2.2666666666666666]],
             ["std", [np.nan, 0.707107, 0.963624, 1.177164]],
-            ["var", [np.nan, 0.5, 0.963624, 1.177164]],
+            ["var", [np.nan, 0.5, 0.9285714285714286, 1.3857142857142857]],
         ],
     )
     def test_methods(self, method, expected_data):

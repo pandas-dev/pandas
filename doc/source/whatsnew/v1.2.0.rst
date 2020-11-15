@@ -204,6 +204,21 @@ example where the index name is preserved:
 The same is true for :class:`MultiIndex`, but the logic is applied separately on a
 level-by-level basis.
 
+.. _whatsnew_120.groupby_ewm:
+
+Groupby supports EWM operations directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`DataFrameGroupBy` now supports exponentially weighted window operations directly (:issue:`16037`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': ['a', 'b', 'a', 'b'], 'B': range(4)})
+    df
+    df.groupby('A').ewm(com=1.0).mean()
+
+Additionally ``mean`` supports execution via Numba with the  ``engine`` and ``engine_kwargs`` arguments.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
