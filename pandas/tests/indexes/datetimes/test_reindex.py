@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import pytest
 
-from pandas import DataFrame, Index, NA, date_range
+from pandas import NA, DataFrame, Index, date_range
 import pandas._testing as tm
 
 
