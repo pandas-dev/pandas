@@ -416,7 +416,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if isinstance(other, ArrowStringArray):
             result = pc_func(self.data, other.data)
         elif is_scalar(other):
-            result = pc_func(self.data, pa.scalar(other))
+            try:
+                result = pc_func(self.data, pa.scalar(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                mask = isna(self) | isna(other)
+                valid = ~mask
+                result = np.zeros(len(self), dtype="bool")
+                result[valid] = op(np.array(self)[valid], other)
+                return BooleanArray(result, mask)
+
         else:
             return NotImplemented
 

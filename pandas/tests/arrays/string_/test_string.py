@@ -247,20 +247,8 @@ def test_add_frame(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_comparison_methods_scalar(all_compare_operators, dtype, request):
-    if dtype == "arrow_string":
-        if all_compare_operators in ["__eq__", "__ne__"]:
-            reason = (
-                "pyarrow.lib.ArrowInvalid: Could not convert <NA> with type NAType: "
-                "did not recognize Python value type when inferring an Arrow data type"
-            )
-        else:
-            reason = "AssertionError: left is not an ExtensionArray"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
+def test_comparison_methods_scalar(all_compare_operators, dtype):
     op_name = all_compare_operators
-
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = "a"
     result = getattr(a, op_name)(other)
@@ -268,8 +256,29 @@ def test_comparison_methods_scalar(all_compare_operators, dtype, request):
     expected = pd.array(expected, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
+
+def test_comparison_methods_scalar_pd_na(all_compare_operators, dtype):
+    op_name = all_compare_operators
+    a = pd.array(["a", None, "c"], dtype=dtype)
     result = getattr(a, op_name)(pd.NA)
     expected = pd.array([None, None, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, request):
+    if all_compare_operators not in ["__eq__", "__ne__"]:
+        reason = "comparison op not supported between instances of 'str' and 'int'"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    op_name = all_compare_operators
+    a = pd.array(["a", None, "c"], dtype=dtype)
+    other = 42
+    result = getattr(a, op_name)(other)
+    expected_data = {"__eq__": [False, None, False], "__ne__": [True, None, True]}[
+        op_name
+    ]
+    expected = pd.array(expected_data, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
