@@ -333,6 +333,18 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_scalar_dtype_change(self):
+        # GH#27583
+        df = DataFrame({"a": [0.0], "b": [0.0]})
+        df[["a", "b"]] = 0
+        expected = DataFrame({"a": [0], "b": [0]})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame({"a": [0.0], "b": [0.0]})
+        df["b"] = 0
+        expected = DataFrame({"a": [0.0], "b": [0]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
