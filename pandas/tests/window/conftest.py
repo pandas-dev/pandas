@@ -81,8 +81,8 @@ def adjust(request):
 
 
 @pytest.fixture(params=[True, False])
-def ignore(request):
-    """ignore keyword argument for ewm"""
+def ignore_na(request):
+    """ignore_na keyword argument for ewm"""
     return request.param
 
 

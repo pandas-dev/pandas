@@ -91,9 +91,9 @@ class TestGroupbyEWMMean:
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
-    def test_cython_vs_numba(self, nogil, parallel, nopython, ignore, adjust):
+    def test_cython_vs_numba(self, nogil, parallel, nopython, ignore_na, adjust):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore=ignore)
+        gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)

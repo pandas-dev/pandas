@@ -1307,8 +1307,6 @@ class RollingAndExpandingMixin(BaseWindow):
             apply_func,
             use_numba_cache=maybe_use_numba(engine),
             numba_cache_key=(func, "rolling_apply"),
-            args=args,
-            kwargs=kwargs,
         )
 
     def _generate_cython_apply_func(
