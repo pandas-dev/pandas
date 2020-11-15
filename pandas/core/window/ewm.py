@@ -232,7 +232,6 @@ class ExponentialMovingWindow(BaseWindow):
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
-        super().__init__(obj=obj, min_periods=min_periods, axis=axis)
         self.com: Optional[float]
         self.obj = obj
         self.min_periods = max(int(min_periods), 1)
@@ -240,6 +239,8 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.axis = axis
         self.on = None
+        self.center = False
+        self.closed = None
         if times is not None:
             if isinstance(times, str):
                 times = self._selected_obj[times]
