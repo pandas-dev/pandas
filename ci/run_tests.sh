@@ -27,7 +27,7 @@ echo $PYTEST_CMD
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
     #  so troubleshoot without parallelism
-    sh -c "pytest -m \"$PATTERN\" --strict --durations=30 $TEST_ARGS pandas/tests/"
+    sh -c "pytest -m \"$PATTERN\" --strict --durations=30 $TEST_ARGS pandas/tests/ --ignore=pandas/tests/window"
 else
     sh -c "$PYTEST_CMD"
 fi
