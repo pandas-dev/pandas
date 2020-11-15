@@ -16,6 +16,11 @@
 // GH 13436 showed that _Py_HashDouble doesn't work well with khash
 // GH 28303 showed, that the simple xoring-version isn't good enough
 // See GH 36729 for evaluation of the currently used murmur2-hash version
+// An interesting alternative to expensive murmur2-hash would be to change
+// the probing strategy and use e.g. the probing strategy from CPython's
+// implementation of dicts, which shines for smaller sizes but is more
+// predisposed to superlinear running times (see GH 36729 for comparison)
+
 
 khint64_t PANDAS_INLINE asint64(double key) {
     khint64_t val;
