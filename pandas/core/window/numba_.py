@@ -114,13 +114,13 @@ def generate_numba_groupby_ewma_func(
         end: np.ndarray,
         minimum_periods: int,
     ) -> np.ndarray:
-        results = []
+        result = np.empty(len(values))
         alpha = 1.0 / (1.0 + com)
         for i in loop_range(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
-            sub_result = np.np.empty(len(window))
+            sub_result = np.empty(len(window))
 
             old_wt_factor = 1.0 - alpha
             new_wt = 1.0 if adjust else alpha
@@ -155,9 +155,8 @@ def generate_numba_groupby_ewma_func(
 
                 sub_result[j] = weighted_avg if nobs >= minimum_periods else np.nan
 
-            results.append(sub_result)
+            result[start:stop] = sub_result
 
-        result = np.concatenate(results)
         return result
 
     return groupby_ewma

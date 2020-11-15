@@ -231,6 +231,7 @@ class ExponentialMovingWindow(BaseWindow):
         ignore_na: bool = False,
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        **kwargs,
     ):
         self.com: Optional[float]
         self.obj = obj
