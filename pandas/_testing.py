@@ -743,9 +743,9 @@ def assert_index_equal(
     Examples
     --------
     >>> from pandas.testing import assert_index_equal
-    >>> a = pd.Index([1,2,3])
-    >>> b = pd.Index([1,2,3])
-    >>> assert_index_equal(a,b)
+    >>> a = pd.Index([1, 2, 3])
+    >>> b = pd.Index([1, 2, 3])
+    >>> assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
