@@ -5,7 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Callable, Dict, Mapping, Optional, Sequence, Sized, Union
 import warnings
 
 import numpy as np
@@ -593,16 +593,10 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
-                # has incompatible type "Union[Sequence[Optional[Hashable]],
-                # bool]"; expected "Sized"  [arg-type]
-                if len(self.header) != len(self.columns):  # type: ignore[arg-type]
-                    # pandas\io\formats\excel.py:602: error: Argument 1 to
-                    # "len" has incompatible type
-                    # "Union[Sequence[Optional[Hashable]], bool]"; expected
-                    # "Sized"  [arg-type]
+                assert isinstance(self.header, Sized)
+                if len(self.header) != len(self.columns):
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols "  # type: ignore[arg-type]
+                        f"Writing {len(self.columns)} cols "
                         f"but got {len(self.header)} aliases"
                     )
                 else:
