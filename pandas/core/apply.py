@@ -26,7 +26,6 @@ def frame_apply(
     axis: Axis = 0,
     raw: bool = False,
     result_type: Optional[str] = None,
-    ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
@@ -43,7 +42,6 @@ def frame_apply(
         func,
         raw=raw,
         result_type=result_type,
-        ignore_failures=ignore_failures,
         args=args,
         kwds=kwds,
     )
@@ -84,13 +82,11 @@ class FrameApply(metaclass=abc.ABCMeta):
         func,
         raw: bool,
         result_type: Optional[str],
-        ignore_failures: bool,
         args,
         kwds,
     ):
         self.obj = obj
         self.raw = raw
-        self.ignore_failures = ignore_failures
         self.args = args or ()
         self.kwds = kwds or {}
 
@@ -283,29 +279,14 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         results = {}
 
-        if self.ignore_failures:
-            successes = []
+        with option_context("mode.chained_assignment", None):
             for i, v in enumerate(series_gen):
-                try:
-                    results[i] = self.f(v)
-                except Exception:
-                    pass
-                else:
-                    successes.append(i)
-
-            # so will work with MultiIndex
-            if len(successes) < len(res_index):
-                res_index = res_index.take(successes)
-
-        else:
-            with option_context("mode.chained_assignment", None):
-                for i, v in enumerate(series_gen):
-                    # ignore SettingWithCopy here in case the user mutates
-                    results[i] = self.f(v)
-                    if isinstance(results[i], ABCSeries):
-                        # If we have a view on v, we need to make a copy because
-                        #  series_generator will swap out the underlying data
-                        results[i] = results[i].copy(deep=False)
+                # ignore SettingWithCopy here in case the user mutates
+                results[i] = self.f(v)
+                if isinstance(results[i], ABCSeries):
+                    # If we have a view on v, we need to make a copy because
+                    #  series_generator will swap out the underlying data
+                    results[i] = results[i].copy(deep=False)
 
         return results, res_index
 

@@ -10,7 +10,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
-from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
 from pandas.tests.frame.common import zip_frames
 
@@ -266,13 +265,6 @@ class TestDataFrameApply:
         d = float_frame.index[0]
         tapplied = float_frame.apply(np.mean, axis=1)
         assert tapplied[d] == np.mean(float_frame.xs(d))
-
-    def test_apply_ignore_failures(self, float_string_frame):
-        result = frame_apply(
-            float_string_frame, np.mean, 0, ignore_failures=True
-        ).apply_standard()
-        expected = float_string_frame._get_numeric_data().apply(np.mean)
-        tm.assert_series_equal(result, expected)
 
     def test_apply_mixed_dtype_corner(self):
         df = DataFrame({"A": ["foo"], "B": [1.0]})
