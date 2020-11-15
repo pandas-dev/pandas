@@ -435,6 +435,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     f = htable.ismember_object
 
+    # an alternative is to use np.in1d if values has a few
+    # elements (about 10) - it is faster than a hash-table
+    # for these cases. However, one must be cautious with
+    # nans (see GH22205)
     if is_integer_dtype(comps.dtype):
         try:
             values = values.astype("int64", copy=False)
