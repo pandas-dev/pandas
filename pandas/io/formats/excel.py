@@ -560,22 +560,21 @@ class ExcelFormatter:
             ):
                 values = levels.take(level_codes)
                 for i in spans:
+                    kwargs = dict(
+                        row=lnum,
+                        col=coloffset + i + 1,
+                        val=values[i],
+                        style=self.header_style,
+                    )
+
                     if spans[i] > 1:
-                        yield ExcelCell(
-                            row=lnum,
-                            col=coloffset + i + 1,
-                            val=values[i],
-                            style=self.header_style,
-                            mergestart=lnum,
-                            mergeend=coloffset + i + spans[i],
+                        kwargs.update(
+                            {
+                                "mergestart": lnum,
+                                "mergeend": coloffset + i + spans[i],
+                            }
                         )
-                    else:
-                        yield ExcelCell(
-                            row=lnum,
-                            col=coloffset + i + 1,
-                            val=values[i],
-                            style=self.header_style,
-                        )
+                    yield ExcelCell(**kwargs)
         else:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
@@ -729,22 +728,20 @@ class ExcelFormatter:
                     )
 
                     for i in spans:
+                        kwargs = dict(
+                            row=self.rowcounter + i,
+                            col=gcolidx,
+                            val=values[i],
+                            style=self.header_style,
+                        )
                         if spans[i] > 1:
-                            yield ExcelCell(
-                                row=self.rowcounter + i,
-                                col=gcolidx,
-                                val=values[i],
-                                style=self.header_style,
-                                mergestart=self.rowcounter + i + spans[i] - 1,
-                                mergeend=gcolidx,
+                            kwargs.update(
+                                {
+                                    "mergestart": self.rowcounter + i + spans[i] - 1,
+                                    "mergeend": gcolidx,
+                                }
                             )
-                        else:
-                            yield ExcelCell(
-                                row=self.rowcounter + i,
-                                col=gcolidx,
-                                val=values[i],
-                                style=self.header_style,
-                            )
+                        yield ExcelCell(**kwargs)
                     gcolidx += 1
 
             else:
