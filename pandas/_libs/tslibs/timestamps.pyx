@@ -436,6 +436,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_month_start
+        False
+
+        >>> ts = pd.Timestamp(2020, 1, 1)
+        >>> ts.is_month_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -446,6 +456,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_month_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 12, 31)
+        >>> ts.is_month_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -456,6 +476,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_month_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 4, 1)
+        >>> ts.is_quarter_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -466,6 +496,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_quarter_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 3, 31)
+        >>> ts.is_quarter_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -476,6 +516,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_year_start
+        False
+
+        >>> ts = pd.Timestamp(2020, 1, 1)
+        >>> ts.is_year_start
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -486,6 +536,16 @@ cdef class _Timestamp(ABCTimestamp):
     def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_year_end
+        False
+
+        >>> ts = pd.Timestamp(2020, 12, 31)
+        >>> ts.is_year_end
+        True
         """
         if self.freq is None:
             # fast-path for non-business frequencies
@@ -536,6 +596,12 @@ cdef class _Timestamp(ABCTimestamp):
     def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.is_leap_year
+        True
         """
         return bool(ccalendar.is_leapyear(self.year))
 
@@ -543,6 +609,12 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_week(self) -> int:
         """
         Return day of the week.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.day_of_week
+        5
         """
         return self.weekday()
 
@@ -550,6 +622,12 @@ cdef class _Timestamp(ABCTimestamp):
     def day_of_year(self) -> int:
         """
         Return the day of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.day_of_year
+        74
         """
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
@@ -557,6 +635,12 @@ cdef class _Timestamp(ABCTimestamp):
     def quarter(self) -> int:
         """
         Return the quarter of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.quarter
+        1
         """
         return ((self.month - 1) // 3) + 1
 
@@ -564,6 +648,12 @@ cdef class _Timestamp(ABCTimestamp):
     def week(self) -> int:
         """
         Return the week number of the year.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.week
+        11
         """
         return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
@@ -571,6 +661,12 @@ cdef class _Timestamp(ABCTimestamp):
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14)
+        >>> ts.days_in_month
+        31
         """
         return ccalendar.get_days_in_month(self.year, self.month)
 
@@ -691,6 +787,12 @@ cdef class _Timestamp(ABCTimestamp):
     def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14, 15)
+        >>> ts.asm8
+        numpy.datetime64('2020-03-14T15:00:00.000000000')
         """
         return np.datetime64(self.value, 'ns')
 
@@ -1249,6 +1351,12 @@ timedelta}, default 'raise'
     def tz(self):
         """
         Alias for tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
+        >>> ts.tz
+        <DstTzInfo 'Europe/Stockholm' CET+1:00:00 STD>
         """
         return self.tzinfo
 
