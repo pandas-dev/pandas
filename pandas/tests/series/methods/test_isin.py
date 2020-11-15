@@ -92,7 +92,7 @@ class TestSeriesIsIn:
 
     @pytest.mark.parametrize("values", [[-9.0, 0.0], [-9, 0]])
     def test_isin_float_in_int_series(self, values):
-        # GH: 19356
+        # GH#19356 GH#21804
         ser = Series(values)
         result = ser.isin([-9, -0.5])
         expected = Series([True, False])
