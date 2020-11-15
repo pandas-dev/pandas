@@ -361,7 +361,7 @@ class ExtensionArray:
         # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
         # would raise a TypeError. The implementation below works around that.
         if isna(item):
-            return isna(self).any() if self._can_hold_na else False
+            return False
         else:
             return (item == self).any()
 
