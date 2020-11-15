@@ -474,9 +474,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if not timezones.tz_compare(self.tz, other.tz):
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
-    def _maybe_clear_freq(self):
-        self._freq = None
-
     # -----------------------------------------------------------------
     # Descriptive Properties
 

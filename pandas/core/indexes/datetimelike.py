@@ -104,6 +104,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _is_all_dates(self) -> bool:
         return True
 
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
+        if values is not None:
+            return self._simple_new(values, name=name)
+
+        result = self._simple_new(self._data, name=name)
+        result._cache = self._cache
+        return result
+
     # ------------------------------------------------------------------------
     # Abstract data attributes
 
@@ -661,16 +671,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self.name)
-
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods
