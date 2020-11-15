@@ -302,7 +302,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 df = DataFrame({"a": [1]})
 
-                with pd.HDFStore(path, mode="w") as hdf:
+                with HDFStore(path, mode="w") as hdf:
                     hdf.put(
                         "table",
                         df,
@@ -843,7 +843,7 @@ class TestHDFStore:
 
         # Check if file-defaults can be overridden on a per table basis
         with ensure_clean_path(setup_path) as tmpfile:
-            store = pd.HDFStore(tmpfile)
+            store = HDFStore(tmpfile)
             store.append("dfc", df, complevel=9, complib="blosc")
             store.append("df", df)
             store.close()
@@ -1298,7 +1298,7 @@ class TestHDFStore:
             df = DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            with pd.HDFStore(path, "r") as store:
+            with HDFStore(path, "r") as store:
 
                 with pytest.raises(KeyError, match="'No object named k2 in the file'"):
                     pd.read_hdf(store, "k2")
@@ -3935,11 +3935,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_pathlib(writer, reader)
@@ -3956,11 +3956,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_localpath(writer, reader)
@@ -4829,7 +4829,7 @@ class TestHDFStore:
 
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
     def test_read_py2_hdf_file_in_py3(self, datapath):
@@ -4867,7 +4867,7 @@ class TestHDFStore:
 
         df = DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 store.put("df", df, "t")
                 result = pd.read_hdf(store, "df", where=where)
                 tm.assert_frame_equal(result, df)

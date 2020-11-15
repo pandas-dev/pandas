@@ -221,7 +221,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "klass,dtype,na_val",
         [
-            (pd.Float64Index, np.float64, np.nan),
+            (Float64Index, np.float64, np.nan),
             (DatetimeIndex, "datetime64[ns]", pd.NaT),
         ],
     )
@@ -411,7 +411,7 @@ class TestIndex(Base):
             (PeriodIndex([], freq="B"), PeriodIndex),
             (PeriodIndex(iter([]), freq="B"), PeriodIndex),
             (PeriodIndex((_ for _ in []), freq="B"), PeriodIndex),
-            (RangeIndex(step=1), pd.RangeIndex),
+            (RangeIndex(step=1), RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
     )
@@ -1982,7 +1982,7 @@ class TestIndex(Base):
         "labels,dtype",
         [
             (pd.Int64Index([]), np.int64),
-            (pd.Float64Index([]), np.float64),
+            (Float64Index([]), np.float64),
             (DatetimeIndex([]), np.datetime64),
         ],
     )
@@ -1994,7 +1994,7 @@ class TestIndex(Base):
     def test_reindex_no_type_preserve_target_empty_mi(self):
         index = Index(list("abc"))
         result = index.reindex(
-            MultiIndex([pd.Int64Index([]), pd.Float64Index([])], [[], []])
+            MultiIndex([pd.Int64Index([]), Float64Index([])], [[], []])
         )[0]
         assert result.levels[0].dtype.type == np.int64
         assert result.levels[1].dtype.type == np.float64
@@ -2342,12 +2342,12 @@ class TestMixedIntIndex(Base):
                 pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
-                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
-                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
             (
-                pd.PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="M"),
-                pd.PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
         ],
     )
@@ -2517,7 +2517,7 @@ def test_deprecated_fastpath():
         pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
-        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
+        RangeIndex(0, 5, 2, name="test", fastpath=True)
 
     with pytest.raises(TypeError, match=msg):
         pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
@@ -2544,7 +2544,7 @@ def test_validate_1d_input():
         Index(arr)
 
     with pytest.raises(ValueError, match=msg):
-        pd.Float64Index(arr.astype(np.float64))
+        Float64Index(arr.astype(np.float64))
 
     with pytest.raises(ValueError, match=msg):
         pd.Int64Index(arr.astype(np.int64))
