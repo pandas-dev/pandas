@@ -2367,4 +2367,4 @@ def test_merge_cross_error_reporting(kwargs):
     right = DataFrame({"b": [3, 4]})
     msg = "Can not pass any merge columns when using cross as merge method"
     with pytest.raises(MergeError, match=msg):
-        result = merge(left, right, how="cross", **kwargs)
+        merge(left, right, how="cross", **kwargs)
