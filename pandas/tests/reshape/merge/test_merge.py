@@ -2337,3 +2337,34 @@ def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
     )
     with pytest.raises(MergeError, match=msg):
         getattr(pd, func)(left, right, on="a", **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("input_col", "output_cols"), [("b", ["a", "b"]), ("a", ["a_x", "a_y"])]
+)
+def test_merge_cross(input_col, output_cols):
+    # GH#5401
+    left = DataFrame({"a": [1, 3]})
+    right = DataFrame({input_col: [3, 4]})
+    result = merge(left, right, how="cross")
+    expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"left_index": True},
+        {"right_index": True},
+        {"on": "a"},
+        {"left_on": "a"},
+        {"right_on": "b"},
+    ],
+)
+def test_merge_cross_error_reporting(kwargs):
+    # GH#5401
+    left = DataFrame({"a": [1, 3]})
+    right = DataFrame({"b": [3, 4]})
+    msg = "Can not pass any merge columns when using cross as merge method"
+    with pytest.raises(MergeError, match=msg):
+        result = merge(left, right, how="cross", **kwargs)

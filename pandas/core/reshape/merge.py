@@ -591,6 +591,8 @@ class _MergeOperation:
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
+        if how == "cross":
+            _left, _right, how, on = self._create_cross_configuration(_left, _right, on)
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
@@ -690,7 +692,14 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
+        self._maybe_drop_cross_column(result)
+
         return result.__finalize__(self, method="merge")
+
+    def _maybe_drop_cross_column(self, result: "DataFrame"):
+        cross_col = getattr(self, "_cross", None)
+        if cross_col is not None:
+            result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
         self, left: "DataFrame", right: "DataFrame"
@@ -1200,7 +1209,34 @@ class _MergeOperation:
                 typ = rk.categories.dtype if rk_is_cat else object
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
+    def _create_cross_configuration(
+        self, _left, _right, on
+    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+        if on is not None:
+            raise MergeError(
+                "Can not pass any merge columns when using cross as merge method"
+            )
+        cross_col = f"{max([*_left.columns, *_right.columns])}_cross"
+        _left = _left.copy()
+        _right = _right.copy()
+        _left.insert(loc=0, value=1, column=cross_col)
+        _right.insert(loc=0, value=1, column=cross_col)
+        how = "inner"
+        on = cross_col
+        self._cross = cross_col
+        return _left, _right, how, on
+
     def _validate_specification(self):
+        if hasattr(self, "_cross"):
+            if (
+                self.left_index
+                or self.right_index
+                or self.right_on is not None
+                or self.left_on is not None
+            ):
+                raise MergeError(
+                    "Can not pass any merge columns when using cross as merge method"
+                )
         # Hm, any way to make this logic less complicated??
         if self.on is None and self.left_on is None and self.right_on is None:
 
