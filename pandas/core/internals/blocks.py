@@ -2048,9 +2048,9 @@ class ExtensionBlock(Block):
             if not inplace:
                 return [
                     b.astype(dtype)
-                    for b in block.replace(to_replace, value, inplace, regex)
+                    for b in block._replace_regex(to_replace, value, inplace, regex)
                 ]
-            block.replace(to_replace, value, inplace, regex)
+            block._replace_regex(to_replace, value, inplace, regex)
             return block.astype(dtype)
         else:
             return super().replace(to_replace, value, inplace, regex)

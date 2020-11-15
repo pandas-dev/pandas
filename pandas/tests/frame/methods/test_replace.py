@@ -1640,35 +1640,39 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "to_replace,value,input_data,expected_data,inplace",
+        "to_replace,value,expected,inplace",
         [
-            (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], False),
-            (r"e{2}", "rep", ["d", "ee", "f", ""], ["d", "rep", "f", ""], False),
-            (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], False),
-            (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], True),
-            (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], True),
-            (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], True),
+            (r"^\s*$", pd.NA,
+             DataFrame({"col1": ["d", "ee", "f", pd.NA]}), False),
+            (r"e{2}", "rep",
+             DataFrame({"col1": ["d", "rep", "f", ""]}), False),
+            (r"f", "replace",
+             DataFrame({"col1": ["d", "ee", "replace", ""]}), False),
+            (r"^\s*$", pd.NA,
+             DataFrame({"col1": ["d", "ee", "f", pd.NA]}), True),
+            (r"e{2}", "replace",
+             DataFrame({"col1": ["d", "replace", "f", ""]}), True),
+            (r"f", "replace",
+             DataFrame({"col1": ["d", "ee", "replace", ""]}), True),
         ],
     )
-    def test_replace_regex(self, to_replace, value, input_data, expected_data, inplace):
+    def test_replace_regex(self, to_replace, value, expected, inplace):
         # GH35977
-        df = pd.DataFrame({"col1": input_data}, dtype="string")
-        expected = pd.DataFrame({"col1": expected_data}, dtype="string")
+        df = DataFrame({"col1": ["d", "ee", "f", ""]}, dtype="string")
         df_replaced = df.replace(to_replace, value, inplace=inplace, regex=True)
         result = df if inplace else df_replaced
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected.astype("string"))
 
     @pytest.mark.parametrize(
-        "to_replace,value,input_data,expected_data",
+        "to_replace,value,expected",
         [
-            ("", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
-            ("ee", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
-            ("f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
+            ("", pd.NA, DataFrame({"col1": ["d", "ee", "f", pd.NA]})),
+            ("ee", "replace", DataFrame({"col1": ["d", "replace", "f", ""]})),
+            ("f", "replace", DataFrame({"col1": ["d", "ee", "replace", ""]})),
         ],
     )
-    def test_replace_string(self, to_replace, value, input_data, expected_data):
+    def test_replace_string(self, to_replace, value, expected):
         # GH35977
-        df = pd.DataFrame({"col1": input_data}, dtype="string")
-        expected = pd.DataFrame({"col1": expected_data}, dtype="string")
+        df = DataFrame({"col1": ["d", "ee", "f", ""]}, dtype="string")
         result = df.replace(to_replace, value, inplace=False, regex=False)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected.astype("string"))
