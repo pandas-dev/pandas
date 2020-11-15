@@ -547,8 +547,7 @@ class ExcelFormatter:
 
         if self.merge_cells:
             # Format multi-index as a merged cells.
-            for lnum in range(len(level_lengths)):
-                name = columns.names[lnum]
+            for lnum, name in enumerate(columns.names):
                 yield ExcelCell(lnum, coloffset, name, self.header_style)
 
             for lnum, (spans, levels, level_codes) in enumerate(
