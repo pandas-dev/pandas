@@ -1216,9 +1216,9 @@ def assert_extension_array_equal(
     Examples
     --------
     >>> from pandas.testing import assert_extension_array_equal
-    >>> a = pd.Series([1,2,3,4])
-    >>> b,c = a.array,a.array
-    >>> assert_extension_array_equal(b,c)
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b, c = a.array, a.array
+    >>> assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
