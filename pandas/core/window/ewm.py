@@ -527,6 +527,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     var = _dispatch("var", bias=False)
     std = _dispatch("std", bias=False)
     cov = _dispatch("cov", other=None, pairwise=None, bias=False)
+    corr = _dispatch("corr", other=None, pairwise=None)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
