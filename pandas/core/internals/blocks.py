@@ -928,7 +928,7 @@ class Block(PandasObject):
 
             elif lib.is_scalar(value) and not isna(value):
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-            elif is_list_like(value) and is_empty_indexer(indexer, np.array(value)):
+            elif is_list_like(value) and is_empty_indexer(indexer, np.asarray(value)):
                 return self
             else:
                 # e.g. we are bool dtype and value is nan
