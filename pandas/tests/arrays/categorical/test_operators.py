@@ -397,7 +397,7 @@ class TestCategoricalOps:
             np.log(s)
 
     def test_contains(self, ordered):
-        # GH-xxxxx
+        # GH-37867
         cat = Categorical(["a", "b"], ordered=ordered)
         assert "a" in cat
         assert "x" not in cat

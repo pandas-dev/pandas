@@ -362,9 +362,8 @@ class ExtensionArray:
         # would raise a TypeError. The implementation below works around that.
         if isna(item):
             return isna(self).any() if self._can_hold_na else False
-
-        arr = self[notna(self)] if self._can_hold_na else self
-        return item in iter(arr)
+        else:
+            return (item == self).any()
 
     def __eq__(self, other: Any) -> ArrayLike:
         """
