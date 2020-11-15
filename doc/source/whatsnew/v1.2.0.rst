@@ -457,7 +457,7 @@ Deprecations
 - :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
 - :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
-
+- Partial slicing on unordered :class:`DatetimeIndexes` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
 
 .. ---------------------------------------------------------------------------
 
@@ -521,6 +521,7 @@ Timedelta
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 - Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
 - Bug in :func:`to_timedelta` with a read-only array incorrectly raising (:issue:`34857`)
+- Bug in :class:`Timedelta` incorrectly truncating to sub-second portion of a string input when it has precision higher than nanoseconds (:issue:`36738`)
 
 Timezones
 ^^^^^^^^^
@@ -699,6 +700,7 @@ Other
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly casting from ``PeriodDtype`` to object dtype (:issue:`34871`)
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`) (:issue:`37381`)
+- Fixed metadata propagation when selecting columns from a DataFrame with ``DataFrame.__getitem__`` (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 - Bug in ``accessor.DirNamesMixin``, where ``dir(obj)`` wouldn't show attributes defined on the instance (:issue:`37173`).
