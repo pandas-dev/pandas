@@ -93,7 +93,7 @@ class IsInForObjects:
 class IsInLongSeriesLookUpDominates:
     params = [
         ["int64", "int32", "float64", "float32", "object"],
-        [1, 2, 5, 10, 16, 50, 100, 1000, 10 ** 5],
+        [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
     param_names = ["dtype", "MaxNumber", "series_type"]
