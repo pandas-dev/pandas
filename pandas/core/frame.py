@@ -64,6 +64,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.core.dtypes.inference import is_array_like
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -2954,7 +2955,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.where(key)
 
         # Do we have a (boolean) 1d indexer?
-        if com.is_bool_indexer(key) or (is_list_like(key) and not len(key)):
+        if com.is_bool_indexer(key) or (is_array_like(key) and not len(key)):
             return self._getitem_bool_array(key)
 
         # We are left with two options: a single key, and a collection of keys,
