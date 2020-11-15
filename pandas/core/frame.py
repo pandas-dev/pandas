@@ -5376,12 +5376,12 @@ class DataFrame(NDFrame, OpsMixin):
         self, subset: Optional[Union[Hashable, Sequence[Hashable]]] = None
     ) -> Series:
         """
-        Return boolean Series denoting columns with unique values.
+        Return boolean Series denoting which columns have unique values.
 
         Parameters
         ----------
         subset : column label or sequence of labels, optional
-            Only consider certain columns for finding uniques. by default use columns.
+            Only check subset of columns for uniques. By default checks all columns.
 
         Returns
         -------
@@ -5390,9 +5390,32 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.duplicated : Indicate duplicate rows.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+        >>> df.is_unique()
+        name          True
+        class        False
+        max_speed     True
+        dtype: bool
+        >>> df.is_unique(["name", "class"])
+        name          True
+        class        False
+        dtype: bool
         """
         if subset is not None:
-            subset = subset if is_list_like(subset) else [subset]
+            subset = com.maybe_make_list(subset)
             self = self[subset]
 
         if len(self.columns):
