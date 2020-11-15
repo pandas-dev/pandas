@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -261,7 +261,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.nbytes + self._mask.nbytes
 
     @classmethod
-    def _concat_same_type(cls: Type[BaseMaskedArrayT], to_concat) -> BaseMaskedArrayT:
+    def _concat_same_type(
+        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+    ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask)

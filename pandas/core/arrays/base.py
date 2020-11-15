@@ -7,12 +7,23 @@ An interface for extending pandas with custom arrays.
    without warning.
 """
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Shape, TypeVar
+from pandas._typing import ArrayLike, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -1137,8 +1148,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence["ExtensionArray"]
-    ) -> "ExtensionArray":
+        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+    ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
 
