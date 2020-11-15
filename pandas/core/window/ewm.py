@@ -533,7 +533,8 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             * ``'cython'`` : Runs mean through C-extensions from cython.
             * ``'numba'`` : Runs mean through JIT compiled code from numba.
               Only available when ``raw`` is set to ``True``.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
 
               .. versionadded:: 1.2.0
 

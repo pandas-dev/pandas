@@ -81,7 +81,8 @@ def generate_numba_groupby_ewma_func(
     ignore_na: bool,
 ):
     """
-    Generate a numba jitted groupby ewma function specified by values from engine_kwargs.
+    Generate a numba jitted groupby ewma function specified by values
+    from engine_kwargs.
 
     Parameters
     ----------
