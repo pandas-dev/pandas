@@ -985,7 +985,7 @@ def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels,
-              int64_t min_count=0, int64_t rank=1
+              int64_t min_count=1, int64_t rank=1
               ):
     """
     Only aggregates on axis=0

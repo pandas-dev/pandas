@@ -1654,19 +1654,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
 
-    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="min", no=False, mc=1)
     def min(self, numeric_only: bool = False, min_count: int = 1):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
         )
 
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="max", no=False, mc=1)
     def max(self, numeric_only: bool = False, min_count: int = 1):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
         )
 
-    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="first", no=False, mc=1)
     def first(self, numeric_only: bool = False, min_count: int = 1):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
@@ -1690,7 +1690,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             npfunc=first_compat,
         )
 
-    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="last", no=False, mc=1)
     def last(self, numeric_only: bool = False, min_count: int = 1):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):

@@ -166,23 +166,23 @@ def test__cython_agg_general(op, targop):
 
 
 @pytest.mark.parametrize(
-    "op, targop",
+    "op, targop, kwargs",
     [
-        ("mean", np.mean),
-        ("median", lambda x: np.median(x) if len(x) > 0 else np.nan),
-        ("var", lambda x: np.var(x, ddof=1)),
-        ("min", np.min),
-        ("max", np.max),
+        ("mean", np.mean, {}),
+        ("median", lambda x: np.median(x) if len(x) > 0 else np.nan, {}),
+        ("var", lambda x: np.var(x, ddof=1), {}),
+        ("min", np.min, {"min_count": 1}),
+        ("max", np.max, {"min_count": 1}),
     ],
 )
-def test_cython_agg_empty_buckets(op, targop, observed):
+def test_cython_agg_empty_buckets(op, targop, kwargs, observed):
     df = DataFrame([11, 12, 13])
     grps = range(0, 55, 5)
 
     # calling _cython_agg_general directly, instead of via the user API
     # which sets different values for min_count, so do that here.
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
-    result = g._cython_agg_general(op)
+    result = g._cython_agg_general(op, **kwargs)
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
