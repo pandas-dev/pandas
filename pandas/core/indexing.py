@@ -1676,7 +1676,7 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
-                # we have an equal len list/ndarray
+                # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
@@ -1693,7 +1693,7 @@ class _iLocIndexer(_LocationIndexer):
                 pass
 
             elif len(ilocs) == len(value):
-                # per-label values
+                # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, pi)
 
