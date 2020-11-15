@@ -1,7 +1,7 @@
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 
@@ -14,9 +14,13 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
+from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.indexers import ExponentialMovingWindowIndexer, GroupbyIndexer
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
 from pandas.core.window.rolling import (
     _dispatch,
@@ -228,6 +232,7 @@ class ExponentialMovingWindow(BaseWindow):
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
+        super().__init__(obj=obj, min_periods=min_periods, axis=axis)
         self.com: Optional[float]
         self.obj = obj
         self.min_periods = max(int(min_periods), 1)
@@ -267,6 +272,12 @@ class ExponentialMovingWindow(BaseWindow):
     @property
     def _constructor(self):
         return ExponentialMovingWindow
+
+    def _get_window_indexer(self) -> BaseIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExponentialMovingWindowIndexer()
 
     _agg_see_also_doc = dedent(
         """
@@ -344,7 +355,6 @@ class ExponentialMovingWindow(BaseWindow):
             window_func = self._get_roll_func("ewma_time")
             window_func = partial(
                 window_func,
-                minp=self.min_periods,
                 times=self.times,
                 halflife=self.halflife,
             )
@@ -355,7 +365,6 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self.com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                minp=self.min_periods,
             )
         return self._apply(window_func)
 
@@ -379,13 +388,19 @@ class ExponentialMovingWindow(BaseWindow):
         Exponential weighted moving variance.
         """
         nv.validate_window_func("var", args, kwargs)
+        window_func = self._get_roll_func("ewmcov")
+        window_func = partial(
+            window_func,
+            com=self.com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            bias=bias,
+        )
 
-        def f(arg):
-            return window_aggregations.ewmcov(
-                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias
-            )
+        def var_func(values, begin, end, min_periods):
+            return window_func(values, begin, end, min_periods, values)
 
-        return self._apply(f)
+        return self._apply(var_func)
 
     @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
@@ -427,11 +442,13 @@ class ExponentialMovingWindow(BaseWindow):
             Y = self._shallow_copy(Y)
             cov = window_aggregations.ewmcov(
                 X._prep_values(),
+                np.array([0], dtype=np.int64),
+                np.array([0], dtype=np.int64),
+                self.min_periods,
                 Y._prep_values(),
                 self.com,
                 self.adjust,
                 self.ignore_na,
-                self.min_periods,
                 bias,
             )
             return wrap_result(X, cov)
@@ -478,7 +495,15 @@ class ExponentialMovingWindow(BaseWindow):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1
+                    x,
+                    np.array([0], dtype=np.int64),
+                    np.array([0], dtype=np.int64),
+                    self.min_periods,
+                    y,
+                    self.com,
+                    self.adjust,
+                    self.ignore_na,
+                    1,
                 )
 
             x_values = X._prep_values()
