@@ -1554,7 +1554,7 @@ class _iLocIndexer(_LocationIndexer):
                 take_split_path = not blk._can_hold_element(val)
                 if not take_split_path:
                     if is_scalar(value):
-                        dtype = infer_dtype_from_scalar(value)
+                        dtype, _ = infer_dtype_from_scalar(value)
                         take_split_path = not is_dtype_equal(dtype, blk.dtype)
                     elif isinstance(value, ABCSeries):
                         take_split_path = not (is_dtype_equal(value.dtype, blk.dtype))
