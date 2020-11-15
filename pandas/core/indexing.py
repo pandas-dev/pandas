@@ -9,10 +9,10 @@ from pandas._config.config import option_context
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
@@ -1557,7 +1557,7 @@ class _iLocIndexer(_LocationIndexer):
                     if is_scalar(value):
                         dtype = infer_dtype_from_scalar(value)
                         take_split_path = not is_dtype_equal(dtype, blk.dtype)
-                    if isinstance(value, ABCSeries):
+                    elif isinstance(value, ABCSeries):
                         take_split_path = not (is_dtype_equal(value.dtype, blk.dtype))
                     elif isinstance(value, ABCDataFrame):
                         dtypes = list(value.dtypes.unique())
