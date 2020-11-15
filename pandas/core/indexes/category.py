@@ -529,7 +529,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase.ensure_index(target)
 
-        check_indexing_method(self, method)
+        self._check_indexing_method(method)
 
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype="intp")
@@ -696,18 +696,3 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
-
-
-def check_indexing_method(self, method):
-    """
-    Raise if we have a get_indexer `method` that is not supported or valid.
-    """
-    if method is None:
-        return
-
-    if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-        raise NotImplementedError(
-            f"method {method} not yet implemented for {type(self).__name__}"
-        )
-
-    raise ValueError("Invalid fill method")

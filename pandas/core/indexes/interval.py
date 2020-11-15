@@ -51,7 +51,6 @@ from pandas.core.indexes.base import (
     ensure_index,
     maybe_extract_name,
 )
-from pandas.core.indexes.category import check_indexing_method
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
@@ -653,7 +652,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        check_indexing_method(self, method)
+        self._check_indexing_method(method)
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -704,7 +703,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        check_indexing_method(self, method)
+        self._check_indexing_method(method)
 
         if self.is_overlapping:
             raise InvalidIndexError(
