@@ -217,7 +217,9 @@ Groupby supports EWM operations directly
     df
     df.groupby('A').ewm(com=1.0).mean()
 
-Additionally ``mean`` supports execution via Numba with the  ``engine`` and ``engine_kwargs`` arguments.
+Additionally ``mean`` supports execution via `Numba <https://numba.pydata.org/>`__ with
+the  ``engine`` and ``engine_kwargs`` arguments. Numba must be installed as an optional dependency
+to use this feature.
 
 .. _whatsnew_120.enhancements.other:
 
