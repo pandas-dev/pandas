@@ -447,7 +447,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                breakpoint()
                 return func(x, start, end, min_periods)
 
             with np.errstate(all="ignore"):
