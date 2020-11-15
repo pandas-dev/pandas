@@ -4723,7 +4723,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
         if needs_i8_conversion(self.dtype):
-            # TODO: these do not match the underlying EA argsort methods
+            # TODO: these do not match the underlying EA argsort methods GH#37863
             return self.asi8.argsort(*args, **kwargs)
 
         # This works for either ndarray or EA, is overriden

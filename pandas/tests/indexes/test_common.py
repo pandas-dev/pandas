@@ -358,6 +358,7 @@ class TestCommon:
             index.ravel()
 
     def test_asi8_deprecation(self, index):
+        # GH#37877
         if isinstance(
             index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
         ):
