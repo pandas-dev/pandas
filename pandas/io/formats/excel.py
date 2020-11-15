@@ -591,14 +591,14 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                header = cast(Sequence, self.header)
-                if len(header) != len(self.columns):
+                self.header = cast(Sequence, self.header)
+                if len(self.header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "
-                        f"but got {len(header)} aliases"
+                        f"but got {len(self.header)} aliases"
                     )
                 else:
-                    colnames = header
+                    colnames = self.header
 
             for colindex, colname in enumerate(colnames):
                 yield ExcelCell(
