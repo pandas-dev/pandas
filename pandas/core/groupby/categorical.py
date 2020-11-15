@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import numpy as np
 
 from pandas.core.algorithms import unique1d
@@ -6,9 +8,12 @@ from pandas.core.arrays.categorical import (
     CategoricalDtype,
     recode_for_categories,
 )
+from pandas.core.indexes.api import CategoricalIndex
 
 
-def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
+def recode_for_groupby(
+    c: Categorical, sort: bool, observed: bool
+) -> Tuple[Categorical, Optional[Categorical]]:
     """
     Code the categories to ensure we can groupby for categoricals.
 
@@ -43,6 +48,9 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
     """
     # we only care about observed values
     if observed:
+        # In cases with c.ordered, this is equivalent to
+        #  return c.remove_unused_categories(), c
+
         unique_codes = unique1d(c.codes)
 
         take_codes = unique_codes[unique_codes != -1]
@@ -73,7 +81,9 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
     return c.reorder_categories(cat.categories), None
 
 
-def recode_from_groupby(c: Categorical, sort: bool, ci):
+def recode_from_groupby(
+    c: Categorical, sort: bool, ci: CategoricalIndex
+) -> CategoricalIndex:
     """
     Reverse the codes_to_groupby to account for sort / observed.
 
@@ -91,7 +101,10 @@ def recode_from_groupby(c: Categorical, sort: bool, ci):
     """
     # we re-order to the original category orderings
     if sort:
-        return ci.set_categories(c.categories)
+        # error: "CategoricalIndex" has no attribute "set_categories"
+        return ci.set_categories(c.categories)  # type: ignore[attr-defined]
 
     # we are not sorting, so add unobserved to the end
-    return ci.add_categories(c.categories[~c.categories.isin(ci.categories)])
+    new_cats = c.categories[~c.categories.isin(ci.categories)]
+    # error: "CategoricalIndex" has no attribute "add_categories"
+    return ci.add_categories(new_cats)  # type: ignore[attr-defined]

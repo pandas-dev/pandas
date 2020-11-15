@@ -286,12 +286,12 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}",
+        description="pandas documentation builder", epilog=f"Commands: {joined}"
     )
 
     joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
         "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"

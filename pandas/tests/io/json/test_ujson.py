@@ -15,7 +15,7 @@ import pytz
 
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
-import pandas.compat as compat
+from pandas.compat import IS64, is_platform_windows
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
 import pandas._testing as tm
@@ -53,7 +53,7 @@ def get_int32_compat_dtype(numpy, orient):
     # See GH#32527
     dtype = np.int64
     if not ((numpy is None or orient == "index") or (numpy is True and orient is None)):
-        if compat.is_platform_windows():
+        if is_platform_windows():
             dtype = np.int32
         else:
             dtype = np.intp
@@ -62,9 +62,7 @@ def get_int32_compat_dtype(numpy, orient):
 
 
 class TestUltraJSONTests:
-    @pytest.mark.skipif(
-        compat.is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
-    )
+    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     def test_encode_decimal(self):
         sut = decimal.Decimal("1337.1337")
         encoded = ujson.encode(sut, double_precision=15)
@@ -561,7 +559,7 @@ class TestUltraJSONTests:
         assert long_input == ujson.decode(output)
 
     @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35288")
+    @pytest.mark.xfail(not IS64, reason="GH-35288")
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         # GH34395
         bigNum = sys.maxsize + 1
@@ -593,14 +591,14 @@ class TestUltraJSONTests:
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = "\u00e5".encode("utf-8")
+            base = "\u00e5".encode()
             escape_input = base * 1024 * 1024 * 2
             ujson.encode(escape_input)
 
     def test_decode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = "\u00e5".encode("utf-8")
+            base = "\u00e5".encode()
             quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
@@ -703,7 +701,7 @@ class TestNumpyJSONTests:
         tm.assert_numpy_array_equal(arr_input, arr_output)
 
     def test_int_max(self, any_int_dtype):
-        if any_int_dtype in ("int64", "uint64") and compat.is_platform_32bit():
+        if any_int_dtype in ("int64", "uint64") and not IS64:
             pytest.skip("Cannot test 64-bit integer on 32-bit platform")
 
         klass = np.dtype(any_int_dtype).type

@@ -301,7 +301,7 @@ def test_arrow_roundtrip():
 def test_value_counts_na():
     arr = pd.array(["a", "b", "a", pd.NA], dtype="string")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=["a", pd.NA, "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
@@ -336,3 +336,12 @@ def test_memory_usage():
     series = pd.Series(["a", "b", "c"], dtype="string")
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+@pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+def test_astype_from_float_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/36451
+    s = pd.Series([0.1], dtype=dtype)
+    result = s.astype("string")
+    expected = pd.Series(["0.1"], dtype="string")
+    tm.assert_series_equal(result, expected)

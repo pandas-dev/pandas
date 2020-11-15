@@ -3,7 +3,14 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, period_range, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+    timedelta_range,
+    to_datetime,
+)
 
 from pandas.tseries.frequencies import infer_freq
 
@@ -121,12 +128,15 @@ class TimeDatetimeConverter:
 
 class Iteration:
 
-    params = [date_range, period_range]
+    params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
     def setup(self, time_index):
         N = 10 ** 6
-        self.idx = time_index(start="20140101", freq="T", periods=N)
+        if time_index is timedelta_range:
+            self.idx = time_index(start=0, freq="T", periods=N)
+        else:
+            self.idx = time_index(start="20140101", freq="T", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):
@@ -261,6 +271,29 @@ class Lookup:
     def time_lookup_and_cleanup(self):
         self.ts[self.lookup_val]
         self.ts.index._cleanup()
+
+
+class ToDatetimeFromIntsFloats:
+    def setup(self):
+        self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
+        self.ts_sec_float = self.ts_sec.astype("float64")
+
+        self.ts_nanosec = 1_000_000 * self.ts_sec
+        self.ts_nanosec_float = self.ts_nanosec.astype("float64")
+
+    # speed of int64 and float64 paths should be comparable
+
+    def time_nanosec_int64(self):
+        to_datetime(self.ts_nanosec, unit="ns")
+
+    def time_nanosec_float64(self):
+        to_datetime(self.ts_nanosec_float, unit="ns")
+
+    def time_sec_int64(self):
+        to_datetime(self.ts_sec, unit="s")
+
+    def time_sec_float64(self):
+        to_datetime(self.ts_sec_float, unit="s")
 
 
 class ToDatetimeYYYYMMDD:

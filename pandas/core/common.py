@@ -6,17 +6,16 @@ Note: pandas.core.common is *not* part of the public API.
 
 from collections import abc, defaultdict
 import contextlib
-from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union
+from typing import Any, Collection, Iterable, Iterator, List, Union, cast
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib
 from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import _np_version_under1p18
+from pandas.compat.numpy import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -31,7 +30,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
 
@@ -61,9 +60,8 @@ def flatten(l):
     flattened : generator
     """
     for el in l:
-        if _iterable_not_string(el):
-            for s in flatten(el):
-                yield s
+        if iterable_not_string(el):
+            yield from flatten(el)
         else:
             yield el
 
@@ -77,21 +75,6 @@ def consensus_name_attr(objs):
         except ValueError:
             name = None
     return name
-
-
-def maybe_box_datetimelike(value, dtype=None):
-    # turn a datetime like into a Timestamp/timedelta as needed
-    if dtype == object:
-        # If we dont have datetime64/timedelta64 dtype, we dont want to
-        #  box datetimelike scalars
-        return value
-
-    if isinstance(value, (np.datetime64, datetime)):
-        value = tslibs.Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslibs.Timedelta(value)
-
-    return value
 
 
 def is_bool_indexer(key: Any) -> bool:
@@ -130,7 +113,9 @@ def is_bool_indexer(key: Any) -> bool:
 
             if not lib.is_bool_array(key):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if isna(key).any():
+                if lib.infer_dtype(key) == "boolean" and isna(key).any():
+                    # Don't raise on e.g. ["A", "B", np.nan], see
+                    #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
                 return False
             return True
@@ -277,6 +262,11 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
+    # error: Incompatible return value type (got
+    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
+    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
+    # "Union[Collection[T], T]")  [return-value]
+    obj = cast(Collection, obj)
     return obj
 
 
@@ -343,23 +333,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     return maybe_callable
 
 
-def dict_compat(d):
-    """
-    Helper function to convert datetimelike-keyed dicts
-    to Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
-
-
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
@@ -420,7 +393,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
@@ -429,10 +402,8 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            (
-                "random_state must be an integer, array-like, a BitGenerator, "
-                "a numpy RandomState, or None"
-            )
+            "random_state must be an integer, array-like, a BitGenerator, "
+            "a numpy RandomState, or None"
         )
 
 

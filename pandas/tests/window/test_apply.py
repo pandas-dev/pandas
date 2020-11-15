@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -142,7 +142,6 @@ def test_invalid_kwargs_nopython():
 
 
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
-@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_rolling_apply_args_kwargs(args_kwargs):
     # GH 33433
     def foo(x, par):
@@ -155,8 +154,6 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
     result = df.rolling(1).apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_frame_equal(result, expected)
-
-    result = df.rolling(1).apply(foo, args=(10,))
 
     midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
     expected = Series([11.0, 12.0], index=midx, name="a")

@@ -46,7 +46,7 @@ Different choices for indexing
 ------------------------------
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. Pandas now supports three types
+support more explicit location based indexing. pandas now supports three types
 of multi-axis indexing.
 
 * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -313,8 +313,10 @@ Selection by label
 
 .. warning::
 
-   Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
-   this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
+   .. versionchanged:: 1.0.0
+
+   pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
+   missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 Every label asked for must be in the index, or a ``KeyError`` will be raised.
@@ -325,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -420,6 +422,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
+
 .. _indexing.integer:
 
 Selection by position
@@ -431,7 +444,7 @@ Selection by position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -496,11 +509,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -578,8 +591,9 @@ IX indexer is deprecated
 
 .. warning::
 
-   Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
-   and ``.loc`` indexers.
+   .. versionchanged:: 1.0.0
+
+   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
 
 ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
 to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
@@ -636,11 +650,13 @@ Indexing with list with missing labels is deprecated
 
 .. warning::
 
-   Starting in 0.21.0, using ``.loc`` or ``[]`` with a list with one or more missing labels, is deprecated, in favor of ``.reindex``.
+   .. versionchanged:: 1.0.0
+
+   Using ``.loc`` or ``[]`` with a list with one or more missing labels will no longer reindex, in favor of ``.reindex``.
 
 In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
-would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
-recommended alternative is to use ``.reindex()``.
+would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.
+The recommended alternative is to use ``.reindex()``.
 
 For example.
 
@@ -927,6 +943,24 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 .. ipython:: python
 
    df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
+
+.. warning::
+
+   ``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``,
+   an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok.
+   The boolean indexer is an array. But ``df.iloc[s, 1]`` would raise ``ValueError``.
+
+   .. ipython:: python
+
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                        index=list('abc'),
+                        columns=['A', 'B'])
+      s = (df['A'] > 2)
+      s
+
+      df.loc[s, 'B']
+
+      df.iloc[s.values, 1]
 
 .. _indexing.basics.indexing_isin:
 
@@ -1475,17 +1509,27 @@ default value.
    s.get('a')  # equivalent to s['a']
    s.get('x', default=-1)
 
-The :meth:`~pandas.DataFrame.lookup` method
--------------------------------------------
+.. _indexing.lookup:
+
+Looking up values by index/column labels
+----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, and the ``lookup`` method allows for this and returns a
-NumPy array.  For instance:
+and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
+rows with ``DataFrame.loc``.  For instance:
 
 .. ipython:: python
 
-  dflookup = pd.DataFrame(np.random.rand(20, 4), columns = ['A', 'B', 'C', 'D'])
-  dflookup.lookup(list(range(0, 10, 2)), ['B', 'C', 'A', 'B', 'D'])
+    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
+                       'A': [80, 23, np.nan, 22],
+                       'B': [80, 55, 76, 67]})
+    df
+    melt = df.melt('col')
+    melt = melt.loc[melt['col'] == melt['variable'], 'value']
+    melt.reset_index(drop=True)
+
+Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
+which was deprecated in version 1.2.0.
 
 .. _indexing.class:
 
@@ -1561,19 +1605,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1583,7 +1624,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1598,7 +1638,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 
@@ -1797,7 +1837,7 @@ about!
 
 Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
 obvious chained indexing going on. **These** are the bugs that
-``SettingWithCopy`` is designed to catch! Pandas is probably trying to warn you
+``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you
 that you've done this:
 
 .. code-block:: python
@@ -1820,7 +1860,7 @@ When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or
 a copy of the slice.
 
-Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
 slice is frequently not intentional, but a mistake caused by chained indexing
 returning a copy where a slice was expected.
 
