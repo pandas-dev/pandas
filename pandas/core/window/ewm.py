@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
+from pandas.core.window.common import _doc_template, _shared_docs, flex_binary_moment, zsqrt
 from pandas.core.window.indexers import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -26,7 +26,6 @@ from pandas.core.window.rolling import (
     _dispatch,
     BaseWindow,
     BaseWindowGroupby,
-    flex_binary_moment,
 )
 
 if TYPE_CHECKING:
