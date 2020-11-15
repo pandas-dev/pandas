@@ -524,7 +524,7 @@ index are the group names and whose values are the sizes of each group.
 
    grouped.describe()
 
-Another aggregation example is to compute the number of unique values of a group. This is similar to the ``value_counts`` function, execpt that ``value_counts`` return the number of all values instead of the number of unique values.
+Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts unique values.
 
 .. ipython:: python
 
