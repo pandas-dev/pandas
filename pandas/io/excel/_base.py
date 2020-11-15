@@ -3,12 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Mapping, Union
+from typing import Any, Dict, Mapping, Union, cast
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import StorageOptions
+from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -316,33 +316,36 @@ def read_excel(
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
-    data = io.parse(
-        sheet_name=sheet_name,
-        header=header,
-        names=names,
-        index_col=index_col,
-        usecols=usecols,
-        squeeze=squeeze,
-        dtype=dtype,
-        converters=converters,
-        true_values=true_values,
-        false_values=false_values,
-        skiprows=skiprows,
-        nrows=nrows,
-        na_values=na_values,
-        keep_default_na=keep_default_na,
-        na_filter=na_filter,
-        verbose=verbose,
-        parse_dates=parse_dates,
-        date_parser=date_parser,
-        thousands=thousands,
-        comment=comment,
-        skipfooter=skipfooter,
-        convert_float=convert_float,
-        mangle_dupe_cols=mangle_dupe_cols,
-    )
-    if should_close:
-        io.close()
+    try:
+        data = io.parse(
+            sheet_name=sheet_name,
+            header=header,
+            names=names,
+            index_col=index_col,
+            usecols=usecols,
+            squeeze=squeeze,
+            dtype=dtype,
+            converters=converters,
+            true_values=true_values,
+            false_values=false_values,
+            skiprows=skiprows,
+            nrows=nrows,
+            na_values=na_values,
+            keep_default_na=keep_default_na,
+            na_filter=na_filter,
+            verbose=verbose,
+            parse_dates=parse_dates,
+            date_parser=date_parser,
+            thousands=thousands,
+            comment=comment,
+            skipfooter=skipfooter,
+            convert_float=convert_float,
+            mangle_dupe_cols=mangle_dupe_cols,
+        )
+    finally:
+        # make sure to close opened file handles
+        if should_close:
+            io.close()
     return data
 
 
@@ -567,6 +570,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         File mode to use (write or append). Append does not work with fsspec URLs.
 
         .. versionadded:: 0.24.0
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+        .. versionadded:: 1.2.0
 
     Attributes
     ----------
@@ -710,11 +719,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path,
+        path: Union[FilePathOrBuffer, "ExcelWriter"],
         engine=None,
         date_format=None,
         datetime_format=None,
-        mode="w",
+        mode: str = "w",
+        storage_options: StorageOptions = None,
         **engine_kwargs,
     ):
         # validate that this engine can handle the extension
@@ -729,10 +739,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
-        self.handles = IOHandles(path, compression={"copression": None})
+        # cast ExcelWriter to avoid adding 'if self.handles is not None'
+        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
         if not isinstance(path, ExcelWriter):
-            self.handles = get_handle(path, mode, is_text=False)
-        self.sheets = {}
+            self.handles = get_handle(
+                path, mode, storage_options=storage_options, is_text=False
+            )
+        self.sheets: Dict[str, Any] = {}
         self.cur_sheet = None
 
         if date_format is None:
