@@ -1352,9 +1352,9 @@ def assert_series_equal(
     Examples
     --------
     >>> from pandas.testing import assert_series_equal
-    >>> a = pd.Series([1,2,3,4])
-    >>> b = pd.Series([1,2,3,4])
-    >>> assert_series_equal(a,b)
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b = pd.Series([1, 2, 3, 4])
+    >>> assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
