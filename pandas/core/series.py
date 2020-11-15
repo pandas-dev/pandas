@@ -1121,12 +1121,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             elif takeable:
                 self.iloc[label] = value
+            elif not is_dtype_equal(self.dtype, dtype) and is_numeric_dtype(dtype):
+                loc = self.index.get_loc(label)
+                validate_numeric_casting(self.dtype, value)
+                self.loc[label] = value
+                return
             else:
                 loc = self.index.get_loc(label)
                 validate_numeric_casting(self.dtype, value)
-                if not is_dtype_equal(self.dtype, dtype) and is_numeric_dtype(dtype):
-                    self.loc[label] = value
-                    return
                 self._values[loc] = value
         except KeyError:
 
