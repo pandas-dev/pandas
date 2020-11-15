@@ -15,7 +15,12 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
-from pandas.core.window.common import _doc_template, _shared_docs, flex_binary_moment, zsqrt
+from pandas.core.window.common import (
+    _doc_template,
+    _shared_docs,
+    flex_binary_moment,
+    zsqrt,
+)
 from pandas.core.window.indexers import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -524,6 +529,32 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     cov = _dispatch("cov", other=None, pairwise=None, bias=False)
 
     def mean(self, engine=None, engine_kwargs=None):
+        """
+        Parameters
+        ----------
+        engine : str, default None
+            * ``'cython'`` : Runs mean through C-extensions from cython.
+            * ``'numba'`` : Runs mean through JIT compiled code from numba.
+              Only available when ``raw`` is set to ``True``.
+            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+              .. versionadded:: 1.2.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              applied to both the ``func`` and the ``apply`` rolling aggregation.
+
+              .. versionadded:: 1.2.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is determined by the caller.
+        """
         if maybe_use_numba(engine):
             groupby_ewma_func = generate_numba_groupby_ewma_func(
                 engine_kwargs,
