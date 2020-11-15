@@ -415,6 +415,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
             result = pc_func(self.data, other.data)
+        elif isinstance(other, np.ndarray):
+            result = pc_func(self.data, other)
         elif is_scalar(other):
             try:
                 result = pc_func(self.data, pa.scalar(other))
@@ -424,7 +426,6 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 result = np.zeros(len(self), dtype="bool")
                 result[valid] = op(np.array(self)[valid], other)
                 return BooleanArray(result, mask)
-
         else:
             return NotImplemented
 
