@@ -100,6 +100,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     )
     _hasnans = hasnans  # for index / array -agnostic code
 
+    @classmethod
+    def _simple_new(cls, values, name: Label = None):
+        assert isinstance(values, cls.__annotations__["_data"]), type(values)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._name = name
+        result._cache = {}
+
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = values._data
+
+        result._reset_identity()
+        return result
+
     @property
     def _is_all_dates(self) -> bool:
         return True

@@ -244,28 +244,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return cls._simple_new(data, name=name)
 
-    @classmethod
-    def _simple_new(cls, values: PeriodArray, name: Label = None):
-        """
-        Create a new PeriodIndex.
-
-        Parameters
-        ----------
-        values : PeriodArray
-            Values that can be converted to a PeriodArray without inference
-            or coercion.
-        """
-        assert isinstance(values, PeriodArray), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
-
     # ------------------------------------------------------------------------
     # Data
 
