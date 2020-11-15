@@ -548,7 +548,12 @@ class ExcelFormatter:
         if self.merge_cells:
             # Format multi-index as a merged cells.
             for lnum, name in enumerate(columns.names):
-                yield ExcelCell(lnum, coloffset, name, self.header_style)
+                yield ExcelCell(
+                    row=lnum,
+                    col=coloffset,
+                    val=name,
+                    style=self.header_style,
+                )
 
             for lnum, (spans, levels, level_codes) in enumerate(
                 zip(level_lengths, columns.levels, columns.codes)
@@ -557,16 +562,19 @@ class ExcelFormatter:
                 for i in spans:
                     if spans[i] > 1:
                         yield ExcelCell(
-                            lnum,
-                            coloffset + i + 1,
-                            values[i],
-                            self.header_style,
-                            lnum,
-                            coloffset + i + spans[i],
+                            row=lnum,
+                            col=coloffset + i + 1,
+                            val=values[i],
+                            style=self.header_style,
+                            mergestart=lnum,
+                            mergeend=coloffset + i + spans[i],
                         )
                     else:
                         yield ExcelCell(
-                            lnum, coloffset + i + 1, values[i], self.header_style
+                            row=lnum,
+                            col=coloffset + i + 1,
+                            val=values[i],
+                            style=self.header_style,
                         )
         else:
             # Format in legacy format with dots to indicate levels.
@@ -723,19 +731,19 @@ class ExcelFormatter:
                     for i in spans:
                         if spans[i] > 1:
                             yield ExcelCell(
-                                self.rowcounter + i,
-                                gcolidx,
-                                values[i],
-                                self.header_style,
-                                self.rowcounter + i + spans[i] - 1,
-                                gcolidx,
+                                row=self.rowcounter + i,
+                                col=gcolidx,
+                                val=values[i],
+                                style=self.header_style,
+                                mergestart=self.rowcounter + i + spans[i] - 1,
+                                mergeend=gcolidx,
                             )
                         else:
                             yield ExcelCell(
-                                self.rowcounter + i,
-                                gcolidx,
-                                values[i],
-                                self.header_style,
+                                row=self.rowcounter + i,
+                                col=gcolidx,
+                                val=values[i],
+                                style=self.header_style,
                             )
                     gcolidx += 1
 
@@ -744,10 +752,10 @@ class ExcelFormatter:
                 for indexcolvals in zip(*self.df.index):
                     for idx, indexcolval in enumerate(indexcolvals):
                         yield ExcelCell(
-                            self.rowcounter + idx,
-                            gcolidx,
-                            indexcolval,
-                            self.header_style,
+                            row=self.rowcounter + idx,
+                            col=gcolidx,
+                            val=indexcolval,
+                            style=self.header_style,
                         )
                     gcolidx += 1
 
