@@ -1664,14 +1664,9 @@ class _iLocIndexer(_LocationIndexer):
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
-            # we have an equal len Frame
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value)
 
-            # we have an equal len ndarray/convertible to our ilocs
-            # hasattr first, to avoid coercing to ndarray without reason.
-            # But we may be relying on the ndarray coercion to check ndim.
-            # Why not just convert to an ndarray earlier on if needed?
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
