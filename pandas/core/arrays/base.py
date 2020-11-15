@@ -41,7 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import ops
 from pandas.core.algorithms import factorize_array, unique
@@ -353,6 +353,18 @@ class ExtensionArray:
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
+
+    def __contains__(self, item) -> bool:
+        """
+        Return for `item in self`.
+        """
+        # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
+        # would raise a TypeError. The implementation below works around that.
+        if isna(item):
+            return isna(self).any() if self._can_hold_na else False
+
+        arr = self[notna(self)] if self._can_hold_na else self
+        return item in iter(arr)
 
     def __eq__(self, other: Any) -> ArrayLike:
         """

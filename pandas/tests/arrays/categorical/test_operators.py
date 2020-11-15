@@ -395,3 +395,15 @@ class TestCategoricalOps:
         msg = "Object with dtype category cannot perform the numpy op log"
         with pytest.raises(TypeError, match=msg):
             np.log(s)
+
+    def test_contains(self, ordered):
+        # GH-xxxxx
+        cat = Categorical(["a", "b"], ordered=ordered)
+        assert "a" in cat
+        assert "x" not in cat
+        assert pd.NA not in cat
+
+        cat = Categorical([np.nan, "a"], ordered=ordered)
+        assert "a" in cat
+        assert "x" not in cat
+        assert pd.NA in cat
