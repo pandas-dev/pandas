@@ -233,7 +233,6 @@ class ExponentialMovingWindow(BaseWindow):
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
         **kwargs,
     ):
-        self.com: Optional[float]
         self.obj = obj
         self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
@@ -260,7 +259,7 @@ class ExponentialMovingWindow(BaseWindow):
             if common.count_not_none(com, span, alpha) > 0:
                 self.com = get_center_of_mass(com, span, None, alpha)
             else:
-                self.com = None
+                self.com = 0.0
         else:
             if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
