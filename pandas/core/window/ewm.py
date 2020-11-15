@@ -172,7 +172,7 @@ class ExponentialMovingWindow(BaseWindow):
     -----
 
     More details can be found at:
-    :ref:`Exponentially weighted windows <stats.moments.exponentially_weighted>`.
+    :ref:`Exponentially weighted windows <window.exponentially_weighted>`.
 
     Examples
     --------

@@ -2028,9 +2028,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_excel(
         self,
         excel_writer,
-        sheet_name="Sheet1",
-        na_rep="",
-        float_format=None,
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
         columns=None,
         header=True,
         index=True,
@@ -2043,6 +2043,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2059,7 +2060,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        excel_writer : str or ExcelWriter object
+        excel_writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter.
         sheet_name : str, default 'Sheet1'
             Name of sheet which will contain DataFrame.
@@ -2100,6 +2101,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2174,6 +2181,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     @final
