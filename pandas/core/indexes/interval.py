@@ -51,6 +51,7 @@ from pandas.core.indexes.base import (
     ensure_index,
     maybe_extract_name,
 )
+from pandas.core.indexes.category import check_indexing_method
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
@@ -582,17 +583,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return key_i8
 
-    def _check_method(self, method):
-        if method is None:
-            return
-
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for {type(self).__name__}"
-            )
-
-        raise ValueError("Invalid fill method")
-
     def _searchsorted_monotonic(self, label, side, exclude_label=False):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
@@ -663,7 +653,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_method(method)
+        check_indexing_method(self, method)
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -714,7 +704,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        self._check_method(method)
+        check_indexing_method(self, method)
 
         if self.is_overlapping:
             raise InvalidIndexError(
