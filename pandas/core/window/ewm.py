@@ -318,27 +318,6 @@ class ExponentialMovingWindow(BaseWindow):
 
     agg = aggregate
 
-    def _apply(self, func):
-        """
-        Rolling statistical measure using supplied function. Designed to be
-        used with passed-in Cython array-based functions.
-
-        Parameters
-        ----------
-        func : str/callable to apply
-
-        Returns
-        -------
-        y : same type as input argument
-        """
-
-        def homogeneous_func(values: np.ndarray):
-            if values.size == 0:
-                return values.copy()
-            return np.apply_along_axis(func, self.axis, values)
-
-        return self._apply_blockwise(homogeneous_func)
-
     @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
