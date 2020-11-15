@@ -235,6 +235,7 @@ Other enhancements
 - Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
+- Add support for ``min_count`` keyword for :meth:`DataFrame.groupby` and :meth:`DataFrame.resample` for functions ``min``, ``max``, ``first`` and ``last`` (:issue:`37821`, :issue:`37768`)
 
 .. ---------------------------------------------------------------------------
 

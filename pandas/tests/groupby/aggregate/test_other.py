@@ -643,7 +643,7 @@ def test_groupby_agg_err_catching(err_cls):
 @pytest.mark.parametrize("func", ["first", "last", "max", "min"])
 def test_min_count_implementation_min_max_first_last(func):
     # GH#37821
-    df = DataFrame({"a": [1] * 3, "b": [np.nan] * 3})
+    df = DataFrame({"a": [1] * 3, "b": [1, np.nan, np.nan]})
     result = getattr(df.groupby("a"), func)(min_count=2)
     expected = DataFrame({"b": [np.nan]}, index=Index([1], name="a"))
     tm.assert_frame_equal(result, expected)
