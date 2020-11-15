@@ -2066,6 +2066,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self.close()
                 raise
 
         # Done with first read, next time raise StopIteration
@@ -2449,6 +2450,7 @@ class PythonParser(ParserBase):
             if self._first_chunk:
                 content = []
             else:
+                self.close()
                 raise
 
         # done with first read, next time raise StopIteration

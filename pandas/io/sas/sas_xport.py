@@ -276,14 +276,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
-            self.close()
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
         fif = [["prefix", 24], ["version", 8], ["OS", 8], ["_", 24], ["created", 16]]
         file_info = _split_line(line2, fif)
         if file_info["prefix"] != "SAS     SAS     SASLIB":
-            self.close()
             raise ValueError("Header record has invalid prefix.")
         file_info["created"] = _parse_date(file_info["created"])
         self.file_info = file_info
@@ -297,7 +295,6 @@ class XportReader(ReaderBase, abc.Iterator):
         headflag1 = header1.startswith(_correct_header1)
         headflag2 = header2 == _correct_header2
         if not (headflag1 and headflag2):
-            self.close()
             raise ValueError("Member header not found")
         # usually 140, could be 135
         fieldnamelength = int(header1[-5:-2])
@@ -346,7 +343,6 @@ class XportReader(ReaderBase, abc.Iterator):
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]
             if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
-                self.close()
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
 
@@ -361,7 +357,6 @@ class XportReader(ReaderBase, abc.Iterator):
 
         header = self._get_row()
         if not header == _correct_obs_header:
-            self.close()
             raise ValueError("Observation header not found.")
 
         self.fields = fields
