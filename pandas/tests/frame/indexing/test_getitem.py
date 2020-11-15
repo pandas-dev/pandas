@@ -67,11 +67,13 @@ class TestGetitem:
         result = df.loc[:, "A"]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func", [Series, np.array])
     @pytest.mark.parametrize("dtype", ["bool", "object"])
-    def test_getitem_indexer_empty_series(self, dtype):
+    def test_getitem_indexer_empty_series(self, func, dtype):
         # GH: 19290
         df = DataFrame(columns=["a", "b", "c"])
-        result = df[Series([], name="a", dtype=dtype)]
+        indexer = func([], dtype=dtype)
+        result = df[indexer]
         tm.assert_frame_equal(result, df)
 
 
