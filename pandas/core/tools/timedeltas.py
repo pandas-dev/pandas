@@ -66,6 +66,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     to_datetime : Convert argument to datetime.
     convert_dtypes : Convert dtypes.
 
+    Notes
+    -----
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds for string inputs.
+
     Examples
     --------
     Parsing a single string to a Timedelta:
