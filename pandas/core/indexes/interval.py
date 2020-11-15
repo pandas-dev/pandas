@@ -239,7 +239,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result._data = array
         result.name = name
         result._cache = {}
-        result._no_setting_name = False
         result._reset_identity()
         return result
 
