@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_bool_dtype,
     is_categorical_dtype,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -791,10 +792,9 @@ class Block(PandasObject):
                 regex=regex,
             )
 
-        blocks = self.putmask(mask, value, inplace=inplace)
-        blocks = extend_blocks(
-            [b.convert(numeric=False, copy=not inplace) for b in blocks]
-        )
+        blk = self if inplace else self.copy()
+        blk._putmask_simple(mask, value)
+        blocks = blk.convert(numeric=False, copy=not inplace)
         return blocks
 
     def _replace_regex(
@@ -1184,39 +1184,15 @@ class Block(PandasObject):
             # don't coerce float/complex to int
             return self
 
-        elif (
-            self.is_datetime
-            or is_datetime64_dtype(dtype)
-            or is_datetime64tz_dtype(dtype)
-        ):
-
-            # not a datetime
-            if not (
-                (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype))
-                and self.is_datetime
-            ):
-                return self.astype(object)
-
-            # don't upcast timezone with different timezone or no timezone
-            mytz = getattr(self.dtype, "tz", None)
-            othertz = getattr(dtype, "tz", None)
-
-            if not tz_compare(mytz, othertz):
-                return self.astype(object)
-
-            raise AssertionError(
-                f"possible recursion in coerce_to_target_dtype: {self} {other}"
-            )
+        elif self.is_datetime or is_datetime64_any_dtype(dtype):
+            # The is_dtype_equal check above ensures that at most one of
+            #  these two conditions hold, so we must cast to object.
+            return self.astype(object)
 
         elif self.is_timedelta or is_timedelta64_dtype(dtype):
-
-            # not a timedelta
-            if not (is_timedelta64_dtype(dtype) and self.is_timedelta):
-                return self.astype(object)
-
-            raise AssertionError(
-                f"possible recursion in coerce_to_target_dtype: {self} {other}"
-            )
+            # The is_dtype_equal check above ensures that at most one of
+            #  these two conditions hold, so we must cast to object.
+            return self.astype(object)
 
         try:
             return self.astype(dtype)
@@ -2578,7 +2554,7 @@ class CategoricalBlock(ExtensionBlock):
         regex: bool = False,
     ) -> List["Block"]:
         if len(algos.unique(dest_list)) == 1:
-            # We got likely here by tiling value inside NDFrame.replace,
+            # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
         return super()._replace_list(src_list, dest_list, inplace, regex)
