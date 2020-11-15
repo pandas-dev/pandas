@@ -5,7 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterator, Mapping, Optional, Sequence, Sized, Union
+from typing import Callable, Dict, Iterator, Mapping, Optional, Sequence, Union, cast
 import warnings
 
 import numpy as np
@@ -14,7 +14,6 @@ from pandas._typing import Label, StorageOptions
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
@@ -592,14 +591,14 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                assert isinstance(self.header, Sized)
-                if len(self.header) != len(self.columns):
+                header = cast(Sequence, self.header)
+                if len(header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "
-                        f"but got {len(self.header)} aliases"
+                        f"but got {len(header)} aliases"
                     )
                 else:
-                    colnames = self.header
+                    colnames = header
 
             for colindex, colname in enumerate(colnames):
                 yield ExcelCell(
@@ -748,7 +747,7 @@ class ExcelFormatter:
     @property
     def _has_aliases(self) -> bool:
         """Whether the aliases for column names are present."""
-        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
+        return not isinstance(self.header, bool)
 
     def _generate_body(self, coloffset: int) -> Iterator[ExcelCell]:
         if self.styler is None:
