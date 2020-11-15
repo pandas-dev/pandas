@@ -1058,6 +1058,9 @@ class ExtensionArray:
         # - The only case that *must* be implemented is with dtype=None,
         #   giving a view with the same dtype as self.
         if dtype is not None:
+            if dtype is np.ndarray:
+                # passed in Index.values
+                return np.asarray(self)
             raise NotImplementedError(dtype)
         return self[:]
 

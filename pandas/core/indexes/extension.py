@@ -5,6 +5,7 @@ from typing import List, TypeVar
 
 import numpy as np
 
+from pandas._libs import index as libindex
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -229,6 +230,23 @@ class ExtensionIndex(Index):
         return result
 
     # ---------------------------------------------------------------------
+
+    @property
+    def _na_value(self):
+        return self.dtype.na_value
+
+    @property  # TODO: cache_readonly?
+    def _engine_type(self):
+        # TODO: can we avoid re-calling if get_engine_target is expensive?
+        dtype = self._get_engine_target().dtype
+        return {
+            np.int8: libindex.Int8Engine,
+            np.int16: libindex.Int16Engine,
+            np.int32: libindex.Int32Engine,
+            np.int64: libindex.Int64Engine,
+            np.object_: libindex.ObjectEngine,
+            # TODO: missing floats, uints
+        }[dtype.type]
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)

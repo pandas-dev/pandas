@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Int64Index, Series, Timedelta, TimedeltaIndex, array
+from pandas import Index, Series, Timedelta, TimedeltaIndex, array
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -1358,15 +1358,27 @@ def test_integer_array_add_list_like(
     left = container + box_1d_array(data)
     right = box_1d_array(data) + container
 
-    if Series == box_pandas_1d_array:
+    if box_pandas_1d_array is Series:
         assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="Int64")
-    elif Series == box_1d_array:
+
+    elif box_1d_array is Series:
         assert_function = tm.assert_series_equal
-        expected = Series(expected_data, dtype="object")
-    elif Index in (box_pandas_1d_array, box_1d_array):
+
+        if box_pandas_1d_array is Index:
+            expected = Series(expected_data, dtype="Int64")
+        else:
+            expected = Series(expected_data, dtype="object")
+
+    elif box_pandas_1d_array is Index:
         assert_function = tm.assert_index_equal
-        expected = Int64Index(expected_data)
+        expected = Index(array(expected_data))
+        assert expected.dtype == "Int64"
+
+    elif box_1d_array is Index:
+        assert_function = tm.assert_index_equal
+        expected = Index(expected_data)
+
     else:
         assert_function = tm.assert_numpy_array_equal
         expected = np.array(expected_data, dtype="object")

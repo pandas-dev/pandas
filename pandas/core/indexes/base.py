@@ -313,11 +313,18 @@ class Index(IndexOpsMixin, PandasObject):
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
             else:
-                data = np.asarray(data, dtype=object)
+                data = extract_array(data, extract_numpy=True)
+                if type(data).__name__ == "PandasArray":
+                    # We're doing the test that patches PandasArray to not be
+                    #  recognized as EA
+                    data = data._ndarray
+                    return Index(data, dtype=object, copy=copy, name=name, **kwargs)
 
-            # coerce to the object dtype
-            data = data.astype(object)
-            return Index(data, dtype=object, copy=copy, name=name, **kwargs)
+            from pandas.core.indexes.extension import ExtensionIndex
+
+            obj = ExtensionIndex._simple_new(data, name=name)
+            #  TODO: need to handle maybe_asobject
+            return obj
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -425,7 +432,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        assert isinstance(values, np.ndarray), type(values)
+        if cls.__name__ != "ExtensionIndex":
+            assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
         result._data = values

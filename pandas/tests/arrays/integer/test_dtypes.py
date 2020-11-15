@@ -69,8 +69,9 @@ def test_construct_index(all_data, dropna):
     else:
         other = all_data
 
-    result = pd.Index(integer_array(other, dtype=all_data.dtype))
-    expected = pd.Index(other, dtype=object)
+    arr = integer_array(other, dtype=all_data.dtype)
+    result = pd.Index(arr)
+    expected = pd.core.indexes.extension.ExtensionIndex._simple_new(arr)
 
     tm.assert_index_equal(result, expected)
 

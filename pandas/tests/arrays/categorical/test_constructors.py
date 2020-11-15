@@ -687,5 +687,7 @@ class TestCategoricalConstructors:
         # GH:
         arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
         result = Categorical(arr)
-        expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
+        idx = Index(arr)
+        assert idx.dtype == arr.dtype
+        expected = Categorical([np.nan, np.nan], categories=idx[:0])
         tm.assert_categorical_equal(result, expected)
