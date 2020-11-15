@@ -741,6 +741,7 @@ class _TestSQLApi(PandasSQLTest):
             Timestamp("2010-12-12"),
         ]
 
+    @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
     @pytest.mark.parametrize(
         "read_sql, text, mode",
         [
@@ -754,16 +755,20 @@ class _TestSQLApi(PandasSQLTest):
             (sql.read_sql_table, "types_test_data", ("sqlalchemy")),
         ],
     )
-    def test_custom_dateparsing_error(self, read_sql, text, mode):
+    def test_custom_dateparsing_error(self, read_sql, text, mode, error):
         if self.mode in mode:
-            read_sql(
+            df = read_sql(
                 text,
                 con=self.conn,
                 parse_dates={
-                    "DateCol": {"errors": "coerce"},
-                    "IntDateCol": {"errors": "ignore"},
+                    "DateCol": {"errors": error},
                 },
             )
+            assert issubclass(df.DateCol.dtype.type, np.datetime64)
+            assert df.DateCol.tolist() == [
+                Timestamp(2000, 1, 3, 0, 0, 0),
+                Timestamp(2000, 1, 4, 0, 0, 0),
+            ]
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
