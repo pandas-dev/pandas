@@ -1505,8 +1505,8 @@ def ewma_time(const float64_t[:] vals, int64_t[:] start, int64_t[:] end,
     Parameters
     ----------
     vals : ndarray[float_64]
-    start: ndarray (int64 type)
-    end: ndarray (int64 type)
+    start: ndarray[int_64]
+    end: ndarray[int_64]
     minp : int
     times : ndarray[int64]
     halflife : int64
@@ -1633,11 +1633,13 @@ def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
     Parameters
     ----------
     input_x : ndarray (float64 type)
+    start: ndarray (int64 type)
+    end: ndarray (int64 type)
+    minp : int
     input_y : ndarray (float64 type)
     com : float64
     adjust : int
     ignore_na : bool
-    minp : int
     bias : int
 
     Returns
