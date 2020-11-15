@@ -715,7 +715,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     )
 
 
-def _dispatch(name: str, *args, **kwargs):
+def dispatch(name: str, *args, **kwargs):
     """
     Dispatch to groupby apply.
     """
@@ -746,8 +746,8 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    corr = _dispatch("corr", other=None, pairwise=None)
-    cov = _dispatch("cov", other=None, pairwise=None)
+    corr = dispatch("corr", other=None, pairwise=None)
+    cov = dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,

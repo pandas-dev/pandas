@@ -27,7 +27,7 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
-from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, _dispatch
+from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, dispatch
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -520,10 +520,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         )
         return window_indexer
 
-    var = _dispatch("var", bias=False)
-    std = _dispatch("std", bias=False)
-    cov = _dispatch("cov", other=None, pairwise=None, bias=False)
-    corr = _dispatch("corr", other=None, pairwise=None)
+    var = dispatch("var", bias=False)
+    std = dispatch("std", bias=False)
+    cov = dispatch("cov", other=None, pairwise=None, bias=False)
+    corr = dispatch("corr", other=None, pairwise=None)
 
     def mean(self, engine=None, engine_kwargs=None):
         """
