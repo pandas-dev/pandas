@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
 from pandas.core.accessor import DirNamesMixin
@@ -982,9 +982,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
-        1.0    1
         2.0    1
         4.0    1
+        1.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -993,9 +993,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
-        1.0    0.2
         2.0    0.2
         4.0    0.2
+        1.0    0.2
         dtype: float64
 
         **bins**
@@ -1017,10 +1017,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        1.0    1
         2.0    1
-        4.0    1
         NaN    1
+        4.0    1
+        1.0    1
         dtype: int64
         """
         result = value_counts(
@@ -1081,11 +1081,8 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        uniqs = self.unique()
-        n = len(uniqs)
-        if dropna and isna(uniqs).any():
-            n -= 1
-        return n
+        obj = remove_na_arraylike(self) if dropna else self
+        return len(obj.unique())
 
     @property
     def is_unique(self) -> bool:
