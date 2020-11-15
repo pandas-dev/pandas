@@ -682,3 +682,10 @@ class TestCategoricalConstructors:
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
+
+    def test_categorical_extension_array_nullable(self, nulls_fixture):
+        # GH:
+        arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
+        result = Categorical(arr)
+        expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
+        tm.assert_categorical_equal(result, expected)
