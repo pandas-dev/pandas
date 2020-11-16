@@ -523,6 +523,7 @@ def to_sql(
     con,
     schema=None,
     if_exists="fail",
+    on_conflict=None,
     index=True,
     index_label=None,
     chunksize=None,
@@ -545,15 +546,21 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
+    if_exists : {'fail', 'replace', 'append'},
         default 'fail'.
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-        - upsert_overwrite: If table exists, perform an UPSERT (based on primary keys),
-                prioritising incoming records over duplicates already in the database.
-        - upsert_keep: If table exists, perform an UPSERT (based on primary keys),
-                prioritising records already in the database over incoming duplicates.
+    on_conflict : {None, 'do_nothing', 'do_update'}, optional
+        Determine insertion behaviour in case of a primary key clash.
+        If the table being written has primary key constraints, attempting
+        to insert new rows with the same values in the primary key columns,
+        will cause an error.  In this case the conflicting records can either
+        be updated in the database or ignored from the incoming dataframe.
+        - do_nothing: Ignore incoming rows with primary key clashes, and
+          insert only the incoming rows with non-conflicting primary keys
+        - do_update: Update existing rows in database with primary key clashes,
+          and append the remaining rows with non-conflicting primary keys
     index : boolean, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -584,10 +591,8 @@ def to_sql(
         "fail",
         "replace",
         "append",
-        "upsert_keep",
-        "upsert_overwrite",
     ):
-        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+        raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
 
@@ -602,6 +607,7 @@ def to_sql(
         frame,
         name,
         if_exists=if_exists,
+        on_conflict=on_conflict,
         index=index,
         index_label=index_label,
         schema=schema,
@@ -690,6 +696,7 @@ class SQLTable(PandasObject):
         frame=None,
         index=True,
         if_exists="fail",
+        on_conflict=None,
         prefix="pandas",
         index_label=None,
         schema=None,
@@ -703,6 +710,7 @@ class SQLTable(PandasObject):
         self.index = self._index_name(index, index_label)
         self.schema = schema
         self.if_exists = if_exists
+        self.on_conflict = on_conflict
         self.keys = keys
         self.dtype = dtype
 
@@ -736,74 +744,142 @@ class SQLTable(PandasObject):
             elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
-            elif self.if_exists in {"append", "upsert_overwrite", "upsert_keep"}:
+            elif self.if_exists == "append":
                 pass
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
         else:
             self._execute_create()
 
-    def _upsert_overwrite_processing(self):
+    def _load_existing_pkeys(self, primary_keys, primary_key_values):
         """
-        Generate delete statement for rows with clashing primary key from database.
+        Load existing primary keys from Database
 
-        `upsert_overwrite` prioritizes incoming data, over existing data in the DB.
-        This method generates the Delete statement for duplicate rows,
-        which is to be executed in the same transaction as the ensuing data insert.
+        Parameters
+        ----------
+        primary_keys : list of str
+            List of primary key column names
+        primary_key_values : list of str
+            List of primary key values already present in incoming dataframe
+
+        Returns
+        -------
+        list of str
+            primary key values in incoming dataframe which already exist in database
+        """
+        from sqlalchemy import select, tuple_
+
+        cols_to_fetch = [self.table.c[key] for key in primary_keys]
+        select_stmt = select(cols_to_fetch).where(
+            tuple_(*cols_to_fetch).in_(primary_key_values)
+        )
+        return self.pd_sql.execute(select_stmt).fetchall()
+
+    def _split_incoming_data(self, primary_keys, keys_in_db):
+        """
+        Split incoming dataframe based off whether primary key already exists in db.
+
+        Parameters
+        ----------
+        primary_keys : list of str
+            Primary keys columns
+        keys_in_db : list of str
+            Primary key values which already exist in database table
+
+        Returns
+        -------
+        tuple of DataFrame, DataFrame
+            DataFrame of rows with duplicate pkey, DataFrame of rows with new pkey
+        """
+        in_db = _wrap_result(data=keys_in_db, columns=primary_keys)
+        # Get temporary dataframe so as not to delete values from main df
+        temp = self._get_index_formatted_dataframe()
+        exists_mask = (
+            temp[primary_keys]
+            .apply(tuple, axis=1)
+            .isin(in_db[primary_keys].apply(tuple, axis=1))
+        )
+        return temp.loc[exists_mask], temp.loc[~exists_mask]
+
+    def _generate_update_statements(self, primary_keys, keys_in_db, rows_to_update):
+        """
+        Generate SQL Update statements for rows with existing primary keys
+
+        Currently, SQL Update statements do not support a multi-statement query,
+        therefore this method returns a list of individual update queries which
+        will need to be executed in one transaction.
+
+        Parameters
+        ----------
+        primary_keys : list of str
+            Primary key columns
+        keys_in_db : list of str
+            Primary key values which already exist in database table
+        rows_to_update : DataFrame
+            DataFrame of rows containing data with which to update existing pkeys
+
+        Returns
+        -------
+        list of sqlalchemy.sql.dml.Update
+            List of update queries
+        """
+        from sqlalchemy import tuple_
+
+        new_records = rows_to_update.to_dict(orient="records")
+        # TODO: Move this or remove entirely
+        assert len(new_records) == len(
+            keys_in_db
+        ), "Mismatch between new records and existing keys"
+        stmts = []
+        for i, keys in enumerate(keys_in_db):
+            stmt = (
+                self.table.update()
+                .where(tuple_(*(self.table.c[key] for key in primary_keys)).in_([keys]))
+                .values(new_records[i])
+            )
+            stmts.append(stmt)
+        return stmts
+
+    def _on_conflict_do_update(self):
+        """
+        Generate update statements for rows with clashing primary key from database.
+
+        `on_conflict do_update` prioritizes incoming data, over existing data in the DB.
+        This method splits the incoming dataframe between rows with new and existing
+        primary key values.
+        For existing values Update statements are generated, while new values are passed
+        on to be inserted as usual.
+
+        Updates are executed in the same transaction as the ensuing data insert.
 
         Returns
         ----------
         sqlalchemy.sql.dml.Delete
             Delete statement to be executed against DB
         """
-        from sqlalchemy import tuple_
-
         # Primary key data
-        primary_keys, primary_key_values = self._get_primary_key_data()
-        # Generate delete statement
-        delete_statement = self.table.delete().where(
-            tuple_(*(self.table.c[col] for col in primary_keys)).in_(primary_key_values)
+        pk_cols, pk_values = self._get_primary_key_data()
+        existing_keys = self._load_existing_pkeys(pk_cols, pk_values)
+        existing_data, new_data = self._split_incoming_data(pk_cols, existing_keys)
+        update_stmts = self._generate_update_statements(
+            pk_cols, existing_keys, existing_data
         )
-        return delete_statement
 
-    def _upsert_keep_processing(self):
+        return new_data, update_stmts
+
+    def _on_conflict_do_nothing(self):
         """
-        Delete clashing values from a copy of the incoming dataframe.
+        Split incoming dataframe so that only rows with new primary keys are inserted
 
-        `upsert_keep` prioritizes data in DB over incoming data.
-        This method creates a copy of the incoming dataframe,
-        fetches matching data from DB, deletes matching data from copied frame,
-        and returns that frame to be inserted.
-
-        Returns
-        ----------
-        DataFrame
-            Filtered dataframe, with values that are already in DB removed.
+        `on_conflict` set to `do_nothing` prioritizes existing data in the DB.
+        This method identifies incoming records in the primary key columns
+        which correspond to existing primary key constraints in the db table, and
+        avoids them from being inserted.
         """
-        from sqlalchemy import select, tuple_
-
-        # Primary key data
-        primary_keys, primary_key_values = self._get_primary_key_data()
-        # Fetch matching pkey values from database
-        columns_to_fetch = [self.table.c[key] for key in primary_keys]
-        select_statement = select(columns_to_fetch).where(
-            tuple_(*columns_to_fetch).in_(primary_key_values)
-        )
-        pkeys_from_database = _wrap_result(
-            data=self.pd_sql.execute(select_statement), columns=primary_keys
-        )
-        # Get temporary dataframe so as not to delete values from main df
-        temp = self._get_index_formatted_dataframe()
-        # Delete rows from dataframe where primary keys match
-        # Method requires tuples, to account for cases where indexes do not match
-        to_be_deleted_mask = (
-            temp[primary_keys]
-            .apply(tuple, axis=1)
-            .isin(pkeys_from_database[primary_keys].apply(tuple, axis=1))
-        )
-        temp.drop(temp[to_be_deleted_mask].index, inplace=True)
-
-        return temp
+        pk_cols, pk_values = self._get_primary_key_data()
+        existing_keys = self._load_existing_pkeys(pk_cols, pk_values)
+        existing_data, new_data = self._split_incoming_data(pk_cols, existing_keys)
+        return new_data
 
     def _get_primary_key_data(self):
         """
@@ -818,7 +894,7 @@ class SQLTable(PandasObject):
         -------
         primary_keys : list of str
             Primary key names
-        primary_key_values : iterable
+        primary_key_values : list of str
             DataFrame rows, for columns corresponding to `primary_key` names
         """
         # reflect MetaData object and assign contents of db to self.table attribute
@@ -838,7 +914,7 @@ class SQLTable(PandasObject):
             raise ValueError(f"No primary keys found for table {self.name}")
 
         temp = self._get_index_formatted_dataframe()
-        primary_key_values = zip(*[temp[key] for key in primary_keys])
+        primary_key_values = list(zip(*[temp[key] for key in primary_keys]))
         return primary_keys, primary_key_values
 
     def _execute_insert(self, conn, keys, data_iter):
@@ -921,14 +997,17 @@ class SQLTable(PandasObject):
         """
         Determines what data to pass to the underlying insert method.
         """
-        if self.if_exists == "upsert_keep":
-            data = self._upsert_keep_processing()
-            self._insert(data=data, chunksize=chunksize, method=method)
-        elif self.if_exists == "upsert_overwrite":
-            delete_statement = self._upsert_overwrite_processing()
+        if self.on_conflict == "do_update":
+            new_data, update_stmts = self._on_conflict_do_update()
             self._insert(
-                chunksize=chunksize, method=method, other_stmts=[delete_statement]
+                data=new_data,
+                chunksize=chunksize,
+                method=method,
+                other_stmts=update_stmts,
             )
+        elif self.on_conflict == "do_nothing":
+            new_data = self._on_conflict_do_nothing()
+            self._insert(data=new_data, chunksize=chunksize, method=method)
         else:
             self._insert(chunksize=chunksize, method=method)
 
@@ -1467,6 +1546,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
+        on_conflict=None,
         index=True,
         index_label=None,
         schema=None,
@@ -1482,15 +1562,21 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
-        default 'fail'.
-        - fail: If table exists, do nothing.
-        - replace: If table exRsts, drop it, recreate it, and insert data.
-        - append: If table exists, insert data. Create if does not exist.
-        - upsert_overwrite: If table exists, perform an UPSERT (based on primary keys),
-                prioritising incoming records over duplicates already in the database.
-        - upsert_keep: If table exists, perform an UPSERT (based on primary keys),
-                prioritising records already in the database over incoming duplicates.
+        if_exists : {'fail', 'replace', 'append'},
+            default 'fail'.
+            - fail: If table exists, do nothing.
+            - replace: If table exRsts, drop it, recreate it, and insert data.
+            - append: If table exists, insert data. Create if does not exist.
+        on_conflict : {None, 'do_nothing', 'do_update'}, optional
+            Determine insertion behaviour in case of a primary key clash.
+            If the table being written has primary key constraints, attempting
+            to insert new rows with the same values in the primary key columns,
+            will cause an error.  In this case the conflicting records can either
+            be updated in the database or ignored from the incoming dataframe.
+            - do_nothing: Ignore incoming rows with primary key clashes, and
+              insert only the incoming rows with non-conflicting primary keys
+            - do_update: Update existing rows in database with primary key clashes,
+              and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -1536,6 +1622,7 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             index=index,
             if_exists=if_exists,
+            on_conflict=on_conflict,
             index_label=index_label,
             schema=schema,
             dtype=dtype,
@@ -1910,6 +1997,7 @@ class SQLiteDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
+        on_conflict=None,
         index=True,
         index_label=None,
         schema=None,
@@ -1929,6 +2017,16 @@ class SQLiteDatabase(PandasSQL):
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
+        on_conflict : {None, 'do_nothing', 'do_update'}, optional
+            Determine insertion behaviour in case of a primary key clash.
+            If the table being written has primary key constraints, attempting
+            to insert new rows with the same values in the primary key columns,
+            will cause an error.  In this case the conflicting records can either
+            be updated in the database or ignored from the incoming dataframe.
+            - do_nothing: Ignore incoming rows with primary key clashes, and
+              insert only the incoming rows with non-conflicting primary keys
+            - do_update: Update existing rows in database with primary key clashes,
+              and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
