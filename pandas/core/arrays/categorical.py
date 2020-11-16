@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Type, Union, cast
+from typing import Dict, Hashable, List, Sequence, Type, TypeVar, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -55,6 +55,8 @@ from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
+
+CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -1190,7 +1192,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _validate_fill_value(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
-        underlying ndarray, raising ValueError if this is not possible.
+        underlying ndarray, raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -1202,7 +1204,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Raises
         ------
-        ValueError
+        TypeError
         """
 
         if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
@@ -1210,7 +1212,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
         else:
-            raise ValueError(
+            raise TypeError(
                 f"'fill_value={fill_value}' is not present "
                 "in this Categorical's categories"
             )
@@ -1659,7 +1661,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
                 codes[mask] = new_codes[mask]
-
             else:
                 codes[mask] = new_codes
 
@@ -2081,7 +2082,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(self, to_concat):
+    def _concat_same_type(
+        cls: Type[CategoricalT], to_concat: Sequence[CategoricalT], axis: int = 0
+    ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
         return union_categoricals(to_concat)
