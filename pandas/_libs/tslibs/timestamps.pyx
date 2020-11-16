@@ -480,7 +480,7 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> ts = pd.Timestamp(2020, 3, 14)
-        >>> ts.is_month_end
+        >>> ts.is_quarter_start
         False
 
         >>> ts = pd.Timestamp(2020, 4, 1)
