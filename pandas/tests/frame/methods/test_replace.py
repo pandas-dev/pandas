@@ -1531,6 +1531,7 @@ class TestDataFrameReplace:
             obj = obj["Per"]
 
         expected = obj.copy()
+        result = obj.replace(1.0, 0.0)
         tm.assert_equal(expected, result)
 
     def test_replace_value_category_type(self):
