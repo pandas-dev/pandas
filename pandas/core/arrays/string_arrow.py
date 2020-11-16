@@ -568,7 +568,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if fill_mask.any():
                 validate_indices(indices_array, len(self.data))
                 # TODO(ARROW-9433): Treat negative indices as NULL
-                indices_array = pa.array(indices_array, mask=indices_array < 0)
+                indices_array = pa.array(indices_array, mask=fill_mask)
                 result = self.data.take(indices_array)
                 if isna(fill_value):
                     return type(self)(result)
