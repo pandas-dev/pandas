@@ -65,9 +65,7 @@ def test_info_empty():
     assert result == expected
 
 
-def test_info_categorical_column():
-
-    # make sure it works
+def test_info_categorical_column_just_works():
     n = 2500
     df = DataFrame({"int64": np.random.randint(100, size=n)})
     df["category"] = Series(
@@ -82,18 +80,41 @@ def test_info_categorical_column():
     df2.info(buf=buf)
 
 
-def test_info(float_frame, datetime_frame):
+def test_info_frame_float_frame_just_works(float_frame):
     io = StringIO()
     float_frame.info(buf=io)
+
+
+def test_info_datetime_just_works(datetime_frame):
+    io = StringIO()
     datetime_frame.info(buf=io)
 
-    frame = DataFrame(np.random.randn(5, 3))
 
-    frame.info()
-    frame.info(verbose=False)
+@pytest.mark.parametrize(
+    "num_columns, max_info_columns, verbose",
+    [
+        (10, 100, True),
+        (10, 11, True),
+        (10, 10, True),
+        (10, 9, False),
+        (10, 1, False),
+    ],
+)
+def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
+    frame = DataFrame(np.random.randn(5, num_columns))
+    with option_context("display.max_info_columns", max_info_columns):
+        io_default = StringIO()
+        frame.info(buf=io_default)
+        result = io_default.getvalue()
+
+        io_explicit = StringIO()
+        frame.info(buf=io_explicit, verbose=verbose)
+        expected = io_explicit.getvalue()
+
+        assert result == expected
 
 
-def test_info_verbose():
+def test_info_verbose_check_header_separator_body():
     buf = StringIO()
     size = 1001
     start = 5
@@ -213,9 +234,8 @@ def test_info_wide():
     reset_option("display.max_info_columns")
 
 
-def test_info_duplicate_columns():
+def test_info_duplicate_columns_works():
     io = StringIO()
-
     # it works!
     frame = DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
     frame.info(buf=io)
@@ -224,11 +244,9 @@ def test_info_duplicate_columns():
 def test_info_duplicate_columns_shows_correct_dtypes():
     # GH11761
     io = StringIO()
-
     frame = DataFrame([[1, 2.0]], columns=["a", "a"])
     frame.info(buf=io)
-    io.seek(0)
-    lines = io.readlines()
+    lines = io.getvalue().splitlines(True)
     assert " 0   a       1 non-null      int64  \n" == lines[5]
     assert " 1   a       1 non-null      float64\n" == lines[6]
 
@@ -272,7 +290,6 @@ def test_info_max_cols():
             assert len(res.strip().split("\n")) == len_
 
     for len_, verbose in [(12, None), (5, False), (12, True)]:
-
         # max_cols not exceeded
         with option_context("max_info_columns", 5):
             buf = StringIO()
@@ -417,31 +434,36 @@ def test_usage_via_getsizeof():
     assert abs(diff) < 100
 
 
-def test_info_memory_usage_qualified():
-
+@pytest.mark.parametrize(
+    "frame, plus",
+    [
+        (DataFrame(1, columns=list("ab"), index=[1, 2, 3]), False),
+        (DataFrame(1, columns=list("ab"), index=list("ABC")), True),
+        (
+            DataFrame(
+                1,
+                columns=list("ab"),
+                index=MultiIndex.from_product([range(3), range(3)]),
+            ),
+            False,
+        ),
+        (
+            DataFrame(
+                1,
+                columns=list("ab"),
+                index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
+            ),
+            True,
+        ),
+    ],
+)
+def test_info_memory_usage_qualified(frame, plus):
     buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
-    df.info(buf=buf)
-    assert "+" not in buf.getvalue()
-
-    buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=list("ABC"))
-    df.info(buf=buf)
-    assert "+" in buf.getvalue()
-
-    buf = StringIO()
-    df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
-    )
-    df.info(buf=buf)
-    assert "+" not in buf.getvalue()
-
-    buf = StringIO()
-    df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
-    )
-    df.info(buf=buf)
-    assert "+" in buf.getvalue()
+    frame.info(buf=buf)
+    if plus:
+        assert "+" in buf.getvalue()
+    else:
+        assert "+" not in buf.getvalue()
 
 
 def test_info_memory_usage_bug_on_multiindex():
@@ -454,7 +476,8 @@ def test_info_memory_usage_bug_on_multiindex():
     N = 100
     M = len(uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"]
+        [list(uppercase), date_range("20160101", periods=N)],
+        names=["id", "date"],
     )
     df = DataFrame({"value": np.random.randn(N * M)}, index=index)
 
