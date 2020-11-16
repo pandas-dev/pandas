@@ -9,7 +9,12 @@ import pandas._testing as tm
     [
         ([1, 2, 3], [1, 3], ["a", "c"], ["a", 2, "c"]),
         ([1, 2, 3], 1, "a", ["a", 2, 3]),
-        ([1, None, 2], [1, 2], "a", ["a", None, "a"],),
+        (
+            [1, None, 2],
+            [1, 2],
+            "a",
+            ["a", None, "a"],
+        ),
     ],
 )
 def test_index_replace(index, to_replace, value, expected):
