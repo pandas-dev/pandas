@@ -1344,6 +1344,37 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Example
+        -------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be ceiled to multiple frequencies:
+
+        >>> ts.ceil(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+        >>> ts.ceil(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+        >>> ts.ceil(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:53')
+        >>> ts.ceil(freq='L') # miliseconds
+        Timestamp('2020-03-14 15:32:52.193000')
+        >>> ts.ceil(freq='U') # microseconds
+        Timestamp('2020-03-14 15:32:52.192549')
+        >>> ts.ceil(freq='N') # nanoseconds
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.ceil('5T') # hour
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.ceil('1H30T') # hour
+        Timestamp('2020-03-14 16:30:00')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
