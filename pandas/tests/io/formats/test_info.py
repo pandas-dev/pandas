@@ -16,8 +16,6 @@ from pandas import (
     Series,
     date_range,
     option_context,
-    reset_option,
-    set_option,
 )
 import pandas._testing as tm
 
@@ -223,20 +221,19 @@ def test_info_wide():
 
     io = StringIO()
     df.info(buf=io, max_cols=101)
-    rs = io.getvalue()
-    assert len(rs.splitlines()) > 100
-    xp = rs
+    result = io.getvalue()
+    assert len(result.splitlines()) > 100
 
-    set_option("display.max_info_columns", 101)
+    expected = result
+    with option_context("display.max_info_columns", 101):
+        io = StringIO()
+        df.info(buf=io)
+        result = io.getvalue()
+        assert result == expected
+
+
+def test_info_duplicate_columns_just_works():
     io = StringIO()
-    df.info(buf=io)
-    assert rs == xp
-    reset_option("display.max_info_columns")
-
-
-def test_info_duplicate_columns_works():
-    io = StringIO()
-    # it works!
     frame = DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
     frame.info(buf=io)
 
