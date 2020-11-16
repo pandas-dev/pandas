@@ -1037,7 +1037,7 @@ class Window(BaseWindow):
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -1049,9 +1049,8 @@ class Window(BaseWindow):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        use_numba_cache : tuple
+            unused
         **kwargs
             additional arguments for scipy windows if necessary
 
