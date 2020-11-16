@@ -1428,12 +1428,12 @@ timedelta}, default 'raise'
 
         ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.floor(freq='5T')
         Timestamp('2020-03-14 15:30:00')
 
         or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.floor(freq='1H30T')
         Timestamp('2020-03-14 15:00:00')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
