@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import OutOfBoundsDatetime
+from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
@@ -31,7 +31,7 @@ def period_index(freqstr):
     the PeriodIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates
-    pi = pd.period_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
 
@@ -45,7 +45,7 @@ def datetime_index(freqstr):
     the DatetimeIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    dti = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    dti = pd.date_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return dti
 
 
@@ -58,7 +58,7 @@ def timedelta_index():
     the TimedeltaIndex behavior.
     """
     # TODO: flesh this out
-    return pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
+    return TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
 
 
 class SharedTests:
@@ -139,14 +139,14 @@ class SharedTests:
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
-    @pytest.mark.parametrize("fill_value", [2, 2.0, pd.Timestamp.now().time])
+    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp.now().time])
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
         arr = self.array_cls._simple_new(data, freq="D")
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '{fill_value}'"
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             arr.take([0, 1], allow_fill=True, fill_value=fill_value)
 
     def test_take_fill(self):
@@ -169,8 +169,8 @@ class SharedTests:
         expected = arr1d[[-1, 1]]
         tm.assert_equal(result, expected)
 
-        msg = r"'fill_value' should be a <.*>\. Got 'foo'"
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
 
     def test_concat_same_type(self):
@@ -191,10 +191,11 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
-        assert isinstance(result, int)
+        expected = arr._data.dtype.type
+        assert isinstance(result, expected)
 
         result = arr._unbox_scalar(pd.NaT)
-        assert isinstance(result, int)
+        assert isinstance(result, expected)
 
         msg = f"'value' should be a {self.dtype.__name__}."
         with pytest.raises(ValueError, match=msg):
@@ -328,10 +329,40 @@ class SharedTests:
         data2d = arr1d._data[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
         result = list(arr2d)
+        assert len(result) == 3
         for x in result:
             assert isinstance(x, type(arr1d))
             assert x.ndim == 1
             assert x.dtype == arr1d.dtype
+
+    def test_repr_2d(self, arr1d):
+        data2d = arr1d._data[:3, np.newaxis]
+        arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
+
+        result = repr(arr2d)
+
+        if isinstance(arr2d, TimedeltaArray):
+            expected = (
+                f"<{type(arr2d).__name__}>\n"
+                "[\n"
+                f"['{arr1d[0]._repr_base()}'],\n"
+                f"['{arr1d[1]._repr_base()}'],\n"
+                f"['{arr1d[2]._repr_base()}']\n"
+                "]\n"
+                f"Shape: (3, 1), dtype: {arr1d.dtype}"
+            )
+        else:
+            expected = (
+                f"<{type(arr2d).__name__}>\n"
+                "[\n"
+                f"['{arr1d[0]}'],\n"
+                f"['{arr1d[1]}'],\n"
+                f"['{arr1d[2]}']\n"
+                "]\n"
+                f"Shape: (3, 1), dtype: {arr1d.dtype}"
+            )
+
+        assert result == expected
 
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
@@ -399,7 +430,7 @@ class SharedTests:
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
             arr[12] = val
 
-        with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
+        with pytest.raises(TypeError, match="value should be a.* 'object'"):
             arr[0] = object()
 
         msg = "cannot set using a list-like indexer with a different length"
@@ -456,16 +487,64 @@ class SharedTests:
         expected[1:] = arr[:-1]
         tm.assert_equal(result, expected)
 
+    def test_median(self, arr1d):
+        arr = arr1d
+        if len(arr) % 2 == 0:
+            # make it easier to define `expected`
+            arr = arr[:-1]
+
+        expected = arr[len(arr) // 2]
+
+        result = arr.median()
+        assert type(result) is type(expected)
+        assert result == expected
+
+        arr[len(arr) // 2] = NaT
+        if not isinstance(expected, Period):
+            expected = arr[len(arr) // 2 - 1 : len(arr) // 2 + 2].mean()
+
+        assert arr.median(skipna=False) is NaT
+
+        result = arr.median()
+        assert type(result) is type(expected)
+        assert result == expected
+
+        assert arr[:0].median() is NaT
+        assert arr[:0].median(skipna=False) is NaT
+
+        # 2d Case
+        arr2 = arr.reshape(-1, 1)
+
+        result = arr2.median(axis=None)
+        assert type(result) is type(expected)
+        assert result == expected
+
+        assert arr2.median(axis=None, skipna=False) is NaT
+
+        result = arr2.median(axis=0)
+        expected2 = type(arr)._from_sequence([expected], dtype=arr.dtype)
+        tm.assert_equal(result, expected2)
+
+        result = arr2.median(axis=0, skipna=False)
+        expected2 = type(arr)._from_sequence([NaT], dtype=arr.dtype)
+        tm.assert_equal(result, expected2)
+
+        result = arr2.median(axis=1)
+        tm.assert_equal(result, arr)
+
+        result = arr2.median(axis=1, skipna=False)
+        tm.assert_equal(result, arr)
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
     array_cls = DatetimeArray
-    dtype = pd.Timestamp
+    dtype = Timestamp
 
     @pytest.fixture
     def arr1d(self, tz_naive_fixture, freqstr):
         tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=3, freq=freqstr, tz=tz)
+        dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz)
         dta = dti._data
         return dta
 
@@ -662,38 +741,45 @@ class TestDatetimeArray(SharedTests):
         arr = arr1d
         dti = self.index_cls(arr1d)
 
-        now = pd.Timestamp.now().tz_localize(dti.tz)
+        now = Timestamp.now().tz_localize(dti.tz)
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
         assert result[0] == now
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '0 days 00:00:00'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # fill_value Timedelta invalid
             arr.take([-1, 1], allow_fill=True, fill_value=now - now)
 
-        msg = f"'fill_value' should be a {self.dtype}. Got '2014Q1'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
-            arr.take([-1, 1], allow_fill=True, fill_value=pd.Period("2014Q1"))
+            arr.take([-1, 1], allow_fill=True, fill_value=Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
-        now = pd.Timestamp.now().tz_localize(tz)
+        now = Timestamp.now().tz_localize(tz)
         msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
         value = pd.NaT.value
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         value = np.timedelta64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+        if arr.tz is not None:
+            # GH#37356
+            # Assuming here that arr1d fixture does not include Australia/Melbourne
+            value = Timestamp.now().tz_localize("Australia/Melbourne")
+            msg = "Timezones don't match. .* != 'Australia/Melbourne'"
+            with pytest.raises(ValueError, match=msg):
+                # require tz match, not just tzawareness match
+                arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
@@ -742,22 +828,22 @@ class TestDatetimeArray(SharedTests):
 
 
 class TestTimedeltaArray(SharedTests):
-    index_cls = pd.TimedeltaIndex
+    index_cls = TimedeltaIndex
     array_cls = TimedeltaArray
     dtype = pd.Timedelta
 
     def test_from_tdi(self):
-        tdi = pd.TimedeltaIndex(["1 Day", "3 Hours"])
+        tdi = TimedeltaIndex(["1 Day", "3 Hours"])
         arr = TimedeltaArray(tdi)
         assert list(arr) == list(tdi)
 
         # Check that Index.__new__ knows what to do with TimedeltaArray
         tdi2 = pd.Index(arr)
-        assert isinstance(tdi2, pd.TimedeltaIndex)
+        assert isinstance(tdi2, TimedeltaIndex)
         assert list(tdi2) == list(arr)
 
     def test_astype_object(self):
-        tdi = pd.TimedeltaIndex(["1 Day", "3 Hours"])
+        tdi = TimedeltaIndex(["1 Day", "3 Hours"])
         arr = TimedeltaArray(tdi)
         asobj = arr.astype("O")
         assert isinstance(asobj, np.ndarray)
@@ -782,7 +868,7 @@ class TestTimedeltaArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected.values)
 
-    @pytest.mark.parametrize("propname", pd.TimedeltaIndex._field_ops)
+    @pytest.mark.parametrize("propname", TimedeltaIndex._field_ops)
     def test_int_properties(self, timedelta_index, propname):
         tdi = timedelta_index
         arr = TimedeltaArray(tdi)
@@ -842,30 +928,28 @@ class TestTimedeltaArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
         assert result[0] == td1
 
-        now = pd.Timestamp.now()
+        now = Timestamp.now()
         value = now
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
         value = now.to_period("D")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
         value = np.datetime64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
 
 class TestPeriodArray(SharedTests):
-    index_cls = pd.PeriodIndex
+    index_cls = PeriodIndex
     array_cls = PeriodArray
-    dtype = pd.Period
+    dtype = Period
 
     @pytest.fixture
     def arr1d(self, period_index):
@@ -878,7 +962,7 @@ class TestPeriodArray(SharedTests):
 
         # Check that Index.__new__ knows what to do with PeriodArray
         pi2 = pd.Index(arr)
-        assert isinstance(pi2, pd.PeriodIndex)
+        assert isinstance(pi2, PeriodIndex)
         assert list(pi2) == list(arr)
 
     def test_astype_object(self, arr1d):
@@ -893,14 +977,13 @@ class TestPeriodArray(SharedTests):
         arr = arr1d
 
         value = pd.NaT.value
-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
-        with pytest.raises(ValueError, match=msg):
+        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
+        with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         value = np.timedelta64("NaT", "ns")
-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
@@ -992,7 +1075,7 @@ class TestPeriodArray(SharedTests):
     "array,casting_nats",
     [
         (
-            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
             (pd.NaT, np.timedelta64("NaT", "ns")),
         ),
         (
@@ -1016,7 +1099,7 @@ def test_casting_nat_setitem_array(array, casting_nats):
     "array,non_casting_nats",
     [
         (
-            pd.TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
+            TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
             (np.datetime64("NaT", "ns"), pd.NaT.value),
         ),
         (
@@ -1032,7 +1115,7 @@ def test_casting_nat_setitem_array(array, casting_nats):
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
     msg = (
-        "'value' should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
         "Got '(timedelta64|datetime64|int)' instead."
     )
 
@@ -1081,8 +1164,8 @@ def test_to_numpy_extra(array):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.TimedeltaIndex([1, 2], unit="D"),
-        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+        TimedeltaIndex([1, 2], unit="D"),
+        PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
 @pytest.mark.parametrize(
@@ -1112,12 +1195,12 @@ def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.TimedeltaIndex([1, 2], unit="D"),
-        pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
+        TimedeltaIndex([1, 2], unit="D"),
+        PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
 @pytest.mark.parametrize(
-    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+    "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2]
 )
 def test_searchsorted_datetimelike_with_listlike_invalid_dtype(values, arg):
     # https://github.com/pandas-dev/pandas/issues/32762

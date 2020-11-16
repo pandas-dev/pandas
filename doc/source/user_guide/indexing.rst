@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -327,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -422,6 +422,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
+
 .. _indexing.integer:
 
 Selection by position
@@ -498,11 +509,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -1594,19 +1605,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1616,7 +1624,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1631,7 +1638,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 

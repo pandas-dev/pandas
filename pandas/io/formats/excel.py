@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import Label, StorageOptions
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import ABCIndex
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
-from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -475,10 +474,10 @@ class ExcelFormatter:
         if cols is not None:
 
             # all missing, raise
-            if not len(Index(cols) & df.columns):
+            if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            if len(Index(cols) & df.columns) != len(cols):
+            if len(Index(cols).intersection(df.columns)) != len(cols):
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
@@ -590,10 +589,17 @@ class ExcelFormatter:
 
             colnames = self.columns
             if has_aliases:
-                if len(self.header) != len(self.columns):
+                # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
+                # has incompatible type "Union[Sequence[Optional[Hashable]],
+                # bool]"; expected "Sized"  [arg-type]
+                if len(self.header) != len(self.columns):  # type: ignore[arg-type]
+                    # pandas\io\formats\excel.py:602: error: Argument 1 to
+                    # "len" has incompatible type
+                    # "Union[Sequence[Optional[Hashable]], bool]"; expected
+                    # "Sized"  [arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols but got {len(self.header)} "
-                        "aliases"
+                        f"Writing {len(self.columns)} cols "  # type: ignore[arg-type]
+                        f"but got {len(self.header)} aliases"
                     )
                 else:
                     colnames = self.header
@@ -615,7 +621,10 @@ class ExcelFormatter:
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                gen2 = (
+                # pandas\io\formats\excel.py:618: error: Incompatible types in
+                # assignment (expression has type "Generator[ExcelCell, None,
+                # None]", variable has type "Tuple[]")  [assignment]
+                gen2 = (  # type: ignore[assignment]
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
@@ -775,9 +784,10 @@ class ExcelFormatter:
         startcol=0,
         freeze_panes=None,
         engine=None,
+        storage_options: StorageOptions = None,
     ):
         """
-        writer : string or ExcelWriter object
+        writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter
         sheet_name : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
@@ -792,6 +802,12 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+            .. versionadded:: 1.2.0
         """
         from pandas.io.excel import ExcelWriter
 
@@ -802,19 +818,27 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            writer = ExcelWriter(stringify_path(writer), engine=engine)
+            # pandas\io\formats\excel.py:808: error: Cannot instantiate
+            # abstract class 'ExcelWriter' with abstract attributes 'engine',
+            # 'save', 'supported_extensions' and 'write_cells'  [abstract]
+            writer = ExcelWriter(  # type: ignore[abstract]
+                writer, engine=engine, storage_options=storage_options
+            )
             need_save = True
 
-        formatted_cells = self.get_formatted_cells()
-        writer.write_cells(
-            formatted_cells,
-            sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-        )
-        if need_save:
-            writer.save()
+        try:
+            writer.write_cells(
+                formatted_cells,
+                sheet_name,
+                startrow=startrow,
+                startcol=startcol,
+                freeze_panes=freeze_panes,
+            )
+        finally:
+            # make sure to close opened file handles
+            if need_save:
+                writer.close()

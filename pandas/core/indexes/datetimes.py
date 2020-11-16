@@ -1,12 +1,18 @@
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
+from pandas._libs.tslibs import (
+    Resolution,
+    ints_to_pydatetime,
+    parsing,
+    timezones,
+    to_offset,
+)
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -93,6 +99,7 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
+        "std",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
@@ -158,9 +165,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     time
     timetz
     dayofyear
+    day_of_year
     weekofyear
     week
     dayofweek
+    day_of_week
     weekday
     quarter
     tz
@@ -193,6 +202,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     month_name
     day_name
     mean
+    std
 
     See Also
     --------
@@ -410,6 +420,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if this.name != res_name:
             return this.rename(res_name)
         return this
+
+    def _maybe_utc_convert(self, other: Index) -> Tuple["DatetimeIndex", Index]:
+        this = self
+
+        if isinstance(other, DatetimeIndex):
+            if self.tz is not None:
+                if other.tz is None:
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+            elif other.tz is not None:
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+            if not timezones.tz_compare(self.tz, other.tz):
+                this = self.tz_convert("UTC")
+                other = other.tz_convert("UTC")
+        return this, other
 
     # --------------------------------------------------------------------
 
@@ -777,15 +802,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if (start is None or isinstance(start, str)) and (
                 end is None or isinstance(end, str)
             ):
-                mask = True
+                mask = np.array(True)
+                deprecation_mask = np.array(True)
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(start, "left", kind)
                     mask = start_casted <= self
+                    deprecation_mask = start_casted == self
 
                 if end is not None:
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
+                    deprecation_mask = (end_casted == self) | deprecation_mask
 
+                if not deprecation_mask.any():
+                    warnings.warn(
+                        "Value based partial slicing on non-monotonic DatetimeIndexes "
+                        "with non-existing keys is deprecated and will raise a "
+                        "KeyError in a future Version.",
+                        FutureWarning,
+                        stacklevel=5,
+                    )
                 indexer = mask.nonzero()[0][::step]
                 if len(indexer) == len(self):
                     return slice(None)

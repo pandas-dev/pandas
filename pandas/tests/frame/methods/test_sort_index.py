@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Index, IntervalIndex, MultiIndex, Series
+from pandas import (
+    CategoricalDtype,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -487,7 +496,7 @@ class TestDataFrameSortIndex:
             columns=["a"],
             index=MultiIndex(
                 levels=[
-                    pd.CategoricalIndex(
+                    CategoricalIndex(
                         ["c", "a", "b"],
                         categories=["c", "a", "b"],
                         ordered=True,
@@ -668,6 +677,94 @@ class TestDataFrameSortIndex:
         result = frame.sort_index()
         assert result.index.names == frame.index.names
 
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
+            ([1.0, 3.0, 2.0, 5.0], 4.0),
+            ([1, 3, 2, 5], 4),
+            (
+                [
+                    Timestamp("20130101"),
+                    Timestamp("20130103"),
+                    Timestamp("20130102"),
+                    Timestamp("20130105"),
+                ],
+                Timestamp("20130104"),
+            ),
+            (["1one", "3one", "2one", "5one"], "4one"),
+        ],
+    )
+    def test_sort_index_multilevel_repr_8017(self, gen, extra):
+
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
+
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
+
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
+
+        # GH 8017
+        # sorting fails after columns added
+
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pytest.param(["a", "b", "c"], id="str"),
+            pytest.param(
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                id="pd.Interval",
+            ),
+        ],
+    )
+    def test_sort_index_with_categories(self, categories):
+        # GH#23452
+        df = DataFrame(
+            {"foo": range(len(categories))},
+            index=CategoricalIndex(
+                data=categories, categories=categories, ordered=True
+            ),
+        )
+        df.index = df.index.reorder_categories(df.index.categories[::-1])
+        result = df.sort_index()
+        expected = DataFrame(
+            {"foo": reversed(range(len(categories)))},
+            index=CategoricalIndex(
+                data=categories[::-1], categories=categories[::-1], ordered=True
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -754,7 +851,7 @@ class TestDataFrameSortIndexKey:
                 i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
                 for i in range(0, 4)
             },
-            index=pd.MultiIndex.from_product([[1, 2], [1, 2]]),
+            index=MultiIndex.from_product([[1, 2], [1, 2]]),
         )
 
         result = expected.sort_index(level=0)

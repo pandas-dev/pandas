@@ -14,9 +14,11 @@ from pandas import (
     CategoricalDtype,
     Index,
     Interval,
+    NaT,
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
@@ -75,6 +77,48 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("dtype", np.typecodes["All"])
+    def test_astype_empty_constructor_equality(self, dtype):
+        # see GH#15524
+
+        if dtype not in (
+            "S",
+            "V",  # poor support (if any) currently
+            "M",
+            "m",  # Generic timestamps raise a ValueError. Already tested.
+        ):
+            init_empty = Series([], dtype=dtype)
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                as_type_empty = Series([]).astype(dtype)
+            tm.assert_series_equal(init_empty, as_type_empty)
+
+    @pytest.mark.parametrize("dtype", [str, np.str_])
+    @pytest.mark.parametrize(
+        "series",
+        [
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
+        ],
+    )
+    def test_astype_str_map(self, dtype, series):
+        # see GH#4405
+        result = series.astype(dtype)
+        expected = series.map(str)
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_float_to_period(self):
+        result = Series([np.nan]).astype("period[D]")
+        expected = Series([NaT], dtype="period[D]")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_no_pandas_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/24866
+        ser = Series([1, 2], dtype="int64")
+        # Don't have PandasDtype in the public API, so we use `.array.dtype`,
+        # which is a PandasDtype.
+        result = ser.astype(ser.array.dtype)
+        tm.assert_series_equal(result, ser)
+
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
     def test_astype_generic_timestamp_no_frequency(self, dtype, request):
         # see GH#15524, GH#15987
@@ -295,6 +339,21 @@ class TestAstype:
 
 
 class TestAstypeCategorical:
+    def test_astype_categorical_invalid_conversions(self):
+        # invalid conversion (these are NOT a dtype)
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
+        msg = (
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(Categorical)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("object").astype(Categorical)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))

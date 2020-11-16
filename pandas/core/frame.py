@@ -15,6 +15,7 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
+import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -34,6 +35,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -82,6 +84,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
+    maybe_box_datetimelike,
     maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
@@ -111,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -130,7 +132,13 @@ from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    PeriodIndex,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -149,12 +157,14 @@ from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.groupby.generic import DataFrameGroupBy
 
     from pandas.io.formats.style import Styler
@@ -350,7 +360,7 @@ class DataFrame(NDFrame, OpsMixin):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects. If
+        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order.
 
         .. versionchanged:: 0.25.0
@@ -410,6 +420,16 @@ class DataFrame(NDFrame, OpsMixin):
     0  1  2  3
     1  4  5  6
     2  7  8  9
+
+    Constructing DataFrame from dataclass:
+
+    >>> from dataclasses import make_dataclass
+    >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
+    >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+        x  y
+    0  0  0
+    1  0  3
+    2  2  3
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
@@ -420,7 +440,7 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     _constructor_sliced: Type[Series] = Series
-    _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
     _accessors: Set[str] = {"sparse"}
 
     @property
@@ -586,7 +606,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -970,9 +990,6 @@ class DataFrame(NDFrame, OpsMixin):
             The index of the row. A tuple for a `MultiIndex`.
         data : Series
             The data of the row as a Series.
-
-        it : generator
-            A generator that iterates over the rows of the frame.
 
         See Also
         --------
@@ -1521,7 +1538,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_datetimelike, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1529,7 +1546,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1538,7 +1555,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
 
@@ -2113,6 +2130,11 @@ class DataFrame(NDFrame, OpsMixin):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
+
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
@@ -2279,11 +2301,10 @@ class DataFrame(NDFrame, OpsMixin):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.writelines(result)
-        if ioargs.should_close:
-            ioargs.filepath_or_buffer.close()
+
+        with get_handle(buf, mode, storage_options=storage_options) as handles:
+            assert not isinstance(handles.handle, (str, mmap.mmap))
+            handles.handle.writelines(result)
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -2920,6 +2941,10 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            if isinstance(indexer, np.ndarray):
+                indexer = lib.maybe_indices_to_slice(
+                    indexer.astype(np.intp, copy=False), len(self)
+                )
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -3838,7 +3863,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
@@ -4706,6 +4736,30 @@ class DataFrame(NDFrame, OpsMixin):
         if not inplace:
             return frame
 
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def reset_index(  # type: ignore[misc]
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[False] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[True] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> None:
+        ...
+
     def reset_index(
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
@@ -5535,8 +5589,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
@@ -5556,8 +5610,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
-        6         0            0.25
         2         2            0.25
+        6         0            0.25
         dtype: float64
         """
         if subset is None:
@@ -5987,7 +6041,8 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -6017,11 +6072,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
@@ -6089,9 +6144,9 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: DataFrame,
@@ -6319,29 +6374,11 @@ Keep all original rows and columns and also all original values
         """
         import pandas.core.computation.expressions as expressions
 
-        def extract_values(arr):
-            # Does two things:
-            # 1. maybe gets the values from the Series / Index
-            # 2. convert datelike to i8
-            # TODO: extract_array?
-            if isinstance(arr, (Index, Series)):
-                arr = arr._values
-
-            if needs_i8_conversion(arr.dtype):
-                if is_extension_array_dtype(arr.dtype):
-                    arr = arr.asi8
-                else:
-                    arr = arr.view("i8")
-            return arr
-
         def combiner(x, y):
-            mask = isna(x)
-            # TODO: extract_array?
-            if isinstance(mask, (Index, Series)):
-                mask = mask._values
+            mask = extract_array(isna(x))
 
-            x_values = extract_values(x)
-            y_values = extract_values(y)
+            x_values = extract_array(x, extract_numpy=True)
+            y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
@@ -6404,7 +6441,7 @@ Keep all original rows and columns and also all original values
         See Also
         --------
         dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Examples
         --------
@@ -7185,8 +7222,6 @@ NaN 12.3   33.0
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
-        # TODO: use overload to refine return type of reset_index
-        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         if ignore_index:
@@ -7256,7 +7291,9 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value)
+
+        return result.__finalize__(self, method="unstack")
 
     @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
@@ -7367,7 +7404,7 @@ NaN 12.3   33.0
             return self - self.shift(periods, axis=axis)
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -7442,9 +7479,9 @@ NaN 12.3   33.0
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
-    max   NaN  8.0
-    min   1.0  2.0
     sum  12.0  NaN
+    min   1.0  2.0
+    max   NaN  8.0
 
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
@@ -7746,7 +7783,7 @@ NaN 12.3   33.0
                 return lib.map_infer(x, func, ignore_na=ignore_na)
             return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
 
-        return self.apply(infer)
+        return self.apply(infer).__finalize__(self, "applymap")
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
@@ -7883,12 +7920,14 @@ NaN 12.3   33.0
             to_concat = [self, *other]
         else:
             to_concat = [self, other]
-        return concat(
-            to_concat,
-            ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
-        )
+        return (
+            concat(
+                to_concat,
+                ignore_index=ignore_index,
+                verify_integrity=verify_integrity,
+                sort=sort,
+            )
+        ).__finalize__(self, method="append")
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
@@ -7938,7 +7977,7 @@ NaN 12.3   33.0
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
         -----
@@ -8547,6 +8586,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.count: Number of non-NA elements in a Series.
+        DataFrame.value_counts: Count unique combinations of columns.
         DataFrame.shape: Number of DataFrame rows and columns (including NA
             elements).
         DataFrame.isna: Boolean same-sized DataFrame showing places of NA
@@ -8671,6 +8711,7 @@ NaN 12.3   33.0
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,
@@ -8698,11 +8739,6 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = np.array(
-            [is_object_dtype(dtype) for dtype in own_dtypes],
-            dtype=bool,
-        ).any()
-
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
@@ -8729,12 +8765,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or (
-            numeric_only is None
-            and axis == 0
-            and not any_object
-            and not self._mgr.any_extension_types
-        ):
+        if numeric_only is not None or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -8759,35 +8790,13 @@ NaN 12.3   33.0
                 # GH#35865 careful to cast explicitly to object
                 nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
                 out[:] = np.array(nvs, dtype=object)
+            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+                # Even if we are object dtype, follow numpy and return
+                #  float64, see test_apply_funcs_over_empty
+                out = out.astype(np.float64)
             return out
 
         assert numeric_only is None
-
-        if not self._is_homogeneous_type or self._mgr.any_extension_types:
-            # try to avoid self.values call
-
-            if filter_type is None and axis == 0:
-                # operate column-wise
-
-                # numeric_only must be None here, as other cases caught above
-
-                # this can end up with a non-reduction
-                # but not always. if the types are mixed
-                # with datelike then need to make sure a series
-
-                # we only end up here if we have not specified
-                # numeric_only and yet we have tried a
-                # column-by-column reduction, where we have mixed type.
-                # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=func, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
 
         data = self
         values = data.values
@@ -9224,6 +9233,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
         setattr(new_obj, axis_name, new_ax)
@@ -9253,6 +9265,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_period(freq=freq)
 
         setattr(new_obj, axis_name, new_ax)
