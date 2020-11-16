@@ -103,6 +103,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     _typ = "timedeltaindex"
 
+    _data_cls = TimedeltaArray
     _engine_type = libindex.TimedeltaEngine
 
     _comparables = ["name", "freq"]

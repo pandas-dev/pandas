@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -88,6 +88,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
+    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -101,8 +102,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _hasnans = hasnans  # for index / array -agnostic code
 
     @classmethod
-    def _simple_new(cls, values, name: Label = None):
-        assert isinstance(values, cls.__annotations__["_data"]), type(values)
+    def _simple_new(
+        cls,
+        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
+        name: Label = None,
+    ):
+        assert isinstance(values, cls._data_cls), type(values)
 
         result = object.__new__(cls)
         result._data = values

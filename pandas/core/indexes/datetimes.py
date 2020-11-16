@@ -220,6 +220,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _typ = "datetimeindex"
 
+    _data_cls = DatetimeArray
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
