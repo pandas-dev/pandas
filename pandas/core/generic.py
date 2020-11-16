@@ -3759,7 +3759,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 dtype=new_values.dtype,
             )
         elif is_scalar(loc):
-            result = self.iloc[:, [loc]]
+            result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
         else:
@@ -3785,7 +3785,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             loc = self.columns.get_loc(item)
             values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc)
+            res = self._box_col_values(values, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)

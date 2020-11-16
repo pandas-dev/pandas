@@ -813,6 +813,7 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
@@ -824,13 +825,15 @@ class ExcelFormatter:
             )
             need_save = True
 
-        formatted_cells = self.get_formatted_cells()
-        writer.write_cells(
-            formatted_cells,
-            sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-        )
-        if need_save:
-            writer.save()
+        try:
+            writer.write_cells(
+                formatted_cells,
+                sheet_name,
+                startrow=startrow,
+                startcol=startcol,
+                freeze_panes=freeze_panes,
+            )
+        finally:
+            # make sure to close opened file handles
+            if need_save:
+                writer.close()
