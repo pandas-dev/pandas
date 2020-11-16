@@ -1264,6 +1264,37 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        Example
+        -------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be rounded using multiple frequency units:
+
+        >>> ts.round(freq='H') # hour
+        Timestamp('2020-03-14 16:00:00')
+        >>> ts.round(freq='T') # minute
+        Timestamp('2020-03-14 15:33:00')
+        >>> ts.round(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+        >>> ts.round(freq='L') # miliseconds
+        Timestamp('2020-03-14 15:32:52.193000')
+        >>> ts.round(freq='U') # microseconds
+        Timestamp('2020-03-14 15:32:52.192549')
+        >>> ts.round(freq='N') # nanoseconds
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.round(freq='5T')
+        Timestamp('2020-03-14 15:35:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.round(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1305,6 +1336,37 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Example
+        -------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+
+        A timestamp can be floored using multiple frequency units:
+
+        >>> ts.floor(freq='H') # hour
+        Timestamp('2020-03-14 15:00:00')
+        >>> ts.floor(freq='T') # minute
+        Timestamp('2020-03-14 15:32:00')
+        >>> ts.floor(freq='S') # seconds
+        Timestamp('2020-03-14 15:32:52')
+        >>> ts.floor(freq='L') # miliseconds
+        Timestamp('2020-03-14 15:32:52.192000')
+        >>> ts.floor(freq='U') # microseconds
+        Timestamp('2020-03-14 15:32:52.192548')
+        >>> ts.floor(freq='N') # nanoseconds
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+
+        >>> ts.ceil(freq='5T')
+        Timestamp('2020-03-14 15:30:00')
+
+        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+
+        >>> ts.ceil(freq='1H30T')
+        Timestamp('2020-03-14 15:00:00')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1351,7 +1413,7 @@ timedelta}, default 'raise'
 
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
 
-        A timestamp can be ceiled to multiple frequencies:
+        A timestamp can be ceiled using multiple frequency units:
 
         >>> ts.ceil(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
@@ -1368,12 +1430,12 @@ timedelta}, default 'raise'
 
         ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
 
-        >>> ts.ceil('5T') # hour
+        >>> ts.ceil(freq='5T')
         Timestamp('2020-03-14 15:35:00')
 
         or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil('1H30T') # hour
+        >>> ts.ceil(freq='1H30T')
         Timestamp('2020-03-14 16:30:00')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
