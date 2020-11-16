@@ -124,6 +124,23 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+@pytest.mark.parametrize("extension", ["xlsx", "xls"])
+def test_excel_options(fsspectest, extension):
+    if extension == "xls":
+        pytest.importorskip("xlwt")
+    else:
+        pytest.importorskip("openpyxl")
+
+    df = DataFrame({"a": [0]})
+
+    path = f"testmem://test/test.{extension}"
+
+    df.to_excel(path, storage_options={"test": "write"}, index=False)
+    assert fsspectest.test[0] == "write"
+    read_excel(path, storage_options={"test": "read"})
+    assert fsspectest.test[0] == "read"
+
+
 @td.skip_if_no("fastparquet")
 def test_to_parquet_new_file(monkeypatch, cleared_fs):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
