@@ -709,19 +709,25 @@ class TestDataFrameReplace:
         )
         tm.assert_frame_equal(res, expec)
 
-    def test_replace_with_empty_list(self):
+    def test_replace_with_empty_list(self, frame_or_series):
         # GH 21977
-        s = Series([["a", "b"], [], np.nan, [1]])
-        df = DataFrame({"col": s})
-        expected = df
-        result = df.replace([], np.nan)
-        tm.assert_frame_equal(result, expected)
+        ser = Series([["a", "b"], [], np.nan, [1]])
+        obj = DataFrame({"col": ser})
+        if frame_or_series is Series:
+            obj = ser
+        expected = obj
+        result = obj.replace([], np.nan)
+        tm.assert_equal(result, expected)
 
         # GH 19266
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            df.replace({np.nan: []})
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            df.replace({np.nan: ["dummy", "alt"]})
+        msg = (
+            "NumPy boolean array indexing assignment cannot assign {size} "
+            "input values to the 1 output values where the mask is true"
+        )
+        with pytest.raises(ValueError, match=msg.format(size=0)):
+            obj.replace({np.nan: []})
+        with pytest.raises(ValueError, match=msg.format(size=2)):
+            obj.replace({np.nan: ["dummy", "alt"]})
 
     def test_replace_series_dict(self):
         # from GH 3064
@@ -1520,9 +1526,11 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
     def test_replace_ea_ignore_float(self, frame_or_series, value):
         # GH#34871
-        obj = frame_or_series([value] * 3)
-        result = obj.replace(1.0, 0.0)
-        expected = frame_or_series([value] * 3)
+        obj = DataFrame({"Per": [value] * 3})
+        if frame_or_series is not DataFrame:
+            obj = obj["Per"]
+
+        expected = obj.copy()
         tm.assert_equal(expected, result)
 
     def test_replace_value_category_type(self):

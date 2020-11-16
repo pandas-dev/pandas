@@ -9,7 +9,7 @@ from pandas.core.arrays.integer import Int8Dtype, Int32Dtype, Int64Dtype
 
 
 def test_uses_pandas_na():
-    a = pd.array([1, None], dtype=pd.Int64Dtype())
+    a = pd.array([1, None], dtype=Int64Dtype())
     assert a[1] is pd.NA
 
 

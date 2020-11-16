@@ -2081,7 +2081,6 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
 @pytest.mark.parametrize(
     "klass, attr, value",
     [
-        (DataFrame, "axis", 1),
         (DataFrame, "level", "a"),
         (DataFrame, "as_index", False),
         (DataFrame, "sort", False),
@@ -2120,6 +2119,14 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
     assert getattr(result, attr) == getattr(expected, attr)
 
 
+def test_subsetting_columns_axis_1():
+    # GH 37725
+    g = DataFrame({"A": [1], "B": [2], "C": [3]}).groupby([0, 0, 1], axis=1)
+    match = "Cannot subset columns when using axis=1"
+    with pytest.raises(ValueError, match=match):
+        g[["A", "B"]].sum()
+
+
 @pytest.mark.parametrize("func", ["sum", "any", "shift"])
 def test_groupby_column_index_name_lost(func):
     # GH: 29764 groupby loses index sometimes
@@ -2139,3 +2146,13 @@ def test_groupby_duplicate_columns():
     result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_series_with_tuple_name():
+    # GH 37755
+    ser = Series([1, 2, 3, 4], index=[1, 1, 2, 2], name=("a", "a"))
+    ser.index.name = ("b", "b")
+    result = ser.groupby(level=0).last()
+    expected = Series([2, 4], index=[1, 2], name=("a", "a"))
+    expected.index.name = ("b", "b")
+    tm.assert_series_equal(result, expected)
