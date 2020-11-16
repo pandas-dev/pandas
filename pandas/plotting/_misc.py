@@ -12,10 +12,14 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     ax : Matplotlib axes object
     data : DataFrame or Series
         Data for table contents.
-    **kwargs
-        Keyword arguments to be passed to matplotlib.table.table.
+    rowLabels : list of str, optional
+        The text of the row header cells.
+    colLabels : list of str, optional
+        The text of the column header cells.
         If `rowLabels` or `colLabels` is not specified, data index or column
         name will be used.
+    **kwargs
+        Keyword arguments to be passed to matplotlib.table.table.
 
     Returns
     -------
@@ -23,7 +27,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
-        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
+        ax=ax, data=data, rowLabels=rowLabels, colLabels=colLabels, **kwargs
     )
 
 
