@@ -405,7 +405,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -417,9 +417,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        numba_cache_key : tuple
+            caching key to be used to store a compiled numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -456,8 +455,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = calc(values)
                     result = np.asarray(result)
 
-            if use_numba_cache:
-                NUMBA_FUNC_CACHE[kwargs["numba_cache_key"]] = func
+            if numba_cache_key is not None:
+                NUMBA_FUNC_CACHE[numba_cache_key] = func
 
             return result
 
@@ -753,13 +752,13 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
-            use_numba_cache,
+            numba_cache_key,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex from tuples
@@ -1292,10 +1291,12 @@ class RollingAndExpandingMixin(BaseWindow):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
+        numba_cache_key = None
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
+            numba_cache_key = (func, "rolling_apply")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1305,8 +1306,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            use_numba_cache=maybe_use_numba(engine),
-            numba_cache_key=(func, "rolling_apply"),
+            numba_cache_key=numba_cache_key,
         )
 
     def _generate_cython_apply_func(

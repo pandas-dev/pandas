@@ -561,7 +561,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             )
             return self._apply(
                 groupby_ewma_func,
-                use_numba_cache=maybe_use_numba(engine),
                 numba_cache_key=(lambda x: x, "groupby_ewma"),
             )
         elif engine in ("cython", None):
