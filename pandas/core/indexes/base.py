@@ -418,7 +418,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, name: Label = None):
+    def _simple_new(cls, values, name: Label = None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
