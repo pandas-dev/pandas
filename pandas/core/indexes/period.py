@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -694,7 +694,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return type(self)._simple_new(self._data[:0], name=self.name)
+
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            values = cast(PeriodArray, self._data[:0])
+            return type(self)._simple_new(values, name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
