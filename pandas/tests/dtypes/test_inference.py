@@ -595,7 +595,7 @@ class TestInference:
             red = 1
             blue = 2
 
-        ind = pd.Index([Colors.red, Colors.blue], dtype=object)
+        ind = Index([Colors.red, Colors.blue], dtype=object)
         expected = np.array([Colors.red, Colors.blue], dtype=object)
         result = lib.maybe_convert_objects(ind.values)
 
