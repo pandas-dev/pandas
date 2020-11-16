@@ -574,6 +574,12 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.day_name()
+        'Saturday'
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -589,6 +595,12 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.month_name()
+        'March'
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -954,6 +966,11 @@ class Timestamp(_Timestamp):
             Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for the Timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromordinal(737425)
+        Timestamp('2020-01-01 00:00:00')
         """
         return cls(datetime.fromordinal(ordinal),
                    freq=freq, tz=tz)
@@ -1006,6 +1023,11 @@ class Timestamp(_Timestamp):
         Timestamp.utcfromtimestamp(ts)
 
         Construct a naive UTC datetime from a POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
         """
         return cls(datetime.utcfromtimestamp(ts))
 
@@ -1015,6 +1037,13 @@ class Timestamp(_Timestamp):
         Timestamp.fromtimestamp(ts)
 
         Transform timestamp[, tz] to tz's local time from POSIX timestamp.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        Timestamp('2020-03-14 15:32:52')
+
+        Note that the output may change depending on your local time.
         """
         return cls(datetime.fromtimestamp(ts))
 
@@ -1053,6 +1082,12 @@ class Timestamp(_Timestamp):
         Timestamp.combine(date, time)
 
         Combine date, time into datetime with same date and time fields.
+
+        Examples
+        --------
+        >>> from datetime import date, time
+        >>> pd.Timestamp.combine(date(2020, 3, 14), time(15, 30, 15))
+        Timestamp('2020-03-14 15:30:15')
         """
         return cls(datetime.combine(date, time))
 
@@ -1265,8 +1300,8 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
 
-        Example
-        -------
+        Examples
+        --------
         Create a timestamp object:
 
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -1337,8 +1372,8 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
-        Example
-        -------
+        Examples
+        --------
         Create a timestamp object:
 
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -1407,8 +1442,8 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
-        Example
-        -------
+        Examples
+        --------
         Create a timestamp object:
 
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
