@@ -819,6 +819,12 @@ cdef class _Timestamp(ABCTimestamp):
         Convert a Timestamp object to a native Python datetime object.
 
         If warn=True, issue a warning if nanoseconds is nonzero.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.to_pydatetime()
+        datetime.datetime(2020, 3, 14, 15, 32, 52, 192548)
         """
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion",
@@ -851,6 +857,12 @@ cdef class _Timestamp(ABCTimestamp):
         See Also
         --------
         DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.to_numpy()
+        numpy.datetime64('2020-03-14T15:32:52.192548651')
         """
         return self.to_datetime64()
 
@@ -987,6 +999,11 @@ class Timestamp(_Timestamp):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.now()
+        Timestamp('2020-11-16 22:06:16.378782')
         """
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
@@ -1005,6 +1022,11 @@ class Timestamp(_Timestamp):
         ----------
         tz : str or timezone object, default None
             Timezone to localize to.
+
+        Examples
+        --------
+        >>> pd.Timestamp.today()
+        Timestamp('2020-11-16 22:37:39.969883')
         """
         return cls.now(tz)
 
@@ -1014,6 +1036,11 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        Examples
+        --------
+        >>> pd.Timestamp.utcnow()
+        Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
         return cls.now(UTC)
 
@@ -1060,6 +1087,12 @@ class Timestamp(_Timestamp):
             Format string to convert Timestamp to string.
             See strftime documentation for more information on the format string:
             https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.strftime('%Y-%m-%d %X')
+        '2020-03-14 15:32:52'
         """
         return datetime.strftime(self, format)
 
@@ -1555,6 +1588,19 @@ default 'raise'
         ------
         TypeError
             If the Timestamp is tz-aware and tz is not None.
+
+        Examples
+        --------
+        Create a naive timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651')
+
+        Add 'Europe/Stockholm' as timezone:
+
+        >>> ts.tz_localize(tz='Europe/Stockholm')
+        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm')
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
@@ -1603,6 +1649,19 @@ default 'raise'
         ------
         TypeError
             If Timestamp is tz-naive.
+
+        Examples
+        --------
+        Create a timestamp object with UTC timezone:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Change to Tokyo timezone:
+
+        >>> ts.tz_convert(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -1647,6 +1706,25 @@ default 'raise'
         Returns
         -------
         Timestamp with fields replaced
+
+        Examples
+        --------
+        Create a timestamp object:
+
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651', tz='UTC')
+        >>> ts
+        Timestamp('2020-03-14 15:32:52.192548651+0000', tz='UTC')
+
+        Replace year and the hour:
+
+        >>> ts.replace(year=1999, hour=10)
+        Timestamp('1999-03-14 10:32:52.192548651+0000', tz='UTC')
+
+        Replace timezone (not a conversion):
+
+        >>> import pytz
+        >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
+        Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
         """
 
         cdef:
@@ -1726,6 +1804,12 @@ default 'raise'
         """
         Convert TimeStamp to a Julian Date.
         0 Julian date is noon January 1, 4713 BC.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52')
+        >>> ts.to_julian_date()
+        2458923.147824074
         """
         year = self.year
         month = self.month
