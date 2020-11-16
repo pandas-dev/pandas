@@ -92,7 +92,8 @@ def _initialize_memory_usage(
 
 
 class BaseInfo(ABC):
-    """Base class for DataFrameInfo and SeriesInfo.
+    """
+    Base class for DataFrameInfo and SeriesInfo.
 
     Parameters
     ----------
@@ -109,7 +110,8 @@ class BaseInfo(ABC):
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
-        """Dtypes.
+        """
+        Dtypes.
 
         Returns
         -------
@@ -130,7 +132,8 @@ class BaseInfo(ABC):
     @property
     @abstractmethod
     def memory_usage_bytes(self) -> int:
-        """Memory usage in bytes.
+        """
+        Memory usage in bytes.
 
         Returns
         -------
@@ -235,7 +238,8 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
-        """Dtypes.
+        """
+        Dtypes.
 
         Returns
         -------
@@ -246,7 +250,8 @@ class DataFrameInfo(BaseInfo):
 
     @property
     def ids(self) -> Index:
-        """Column names.
+        """
+        Column names.
 
         Returns
         -------
@@ -548,7 +553,8 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
         return [max(len(x) for x in col) for col in strcols]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
-        """Generator function yielding rows content.
+        """
+        Generator function yielding rows content.
 
         Each element represents a row comprising a sequence of strings.
         """
