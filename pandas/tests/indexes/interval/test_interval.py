@@ -869,7 +869,7 @@ class TestIntervalIndex:
 
     def test_is_all_dates(self):
         # GH 23576
-        year_2017 = pd.Interval(
+        year_2017 = Interval(
             Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])
