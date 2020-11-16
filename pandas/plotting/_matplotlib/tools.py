@@ -32,19 +32,19 @@ def format_date_labels(ax: "Axes", rot):
 
 def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
     if isinstance(data, ABCSeries):
-        data = data.to_frame()
+        frame = data.to_frame()
     elif isinstance(data, ABCDataFrame):
-        pass
+        frame = data
     else:
         raise ValueError("Input data must be DataFrame or Series")
 
     if rowLabels is None:
-        rowLabels = data.index
+        rowLabels = frame.index
 
     if colLabels is None:
-        colLabels = data.columns
+        colLabels = frame.columns
 
-    cellText = data.values
+    cellText = frame.values
 
     table = matplotlib.table.table(
         ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs

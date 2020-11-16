@@ -369,7 +369,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes = []
+        indexes: List[Any] = []
 
         have_raw_arrays = False
         have_series = False

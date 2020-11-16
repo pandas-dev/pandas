@@ -2016,7 +2016,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: ABCDataFrame):
+    def _align_frame(self, indexer, df: "DataFrame"):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):

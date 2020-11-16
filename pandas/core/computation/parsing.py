@@ -6,10 +6,13 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Iterator, Tuple
+from typing import TYPE_CHECKING, Iterator, Tuple
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
+
+if TYPE_CHECKING:
+    from pandas._typing import Label
 
 
 def create_valid_python_identifier(name: str) -> str:
@@ -91,7 +94,7 @@ def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: str) -> str:
+def clean_column_name(name: "Label") -> "Label":
     """
     Function to emulate the cleaning of a backtick quoted name.
 

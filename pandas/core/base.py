@@ -269,12 +269,14 @@ class SelectionMixin:
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            if key not in self.obj.columns:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj.columns:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            if key not in self.obj:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 

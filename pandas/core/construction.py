@@ -351,7 +351,9 @@ def array(
     return result
 
 
-def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
+def extract_array(
+    obj: AnyArrayLike, extract_numpy: bool = False
+) -> Union[AnyArrayLike, ExtensionArray, np.ndarray]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -394,14 +396,14 @@ def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndexClass, ABCSeries)):
-        obj = obj.array
+        result = obj.array
+    else:
+        result = obj
 
-    if extract_numpy and isinstance(obj, ABCPandasArray):
-        obj = obj.to_numpy()
+    if extract_numpy and isinstance(result, ABCPandasArray):
+        result = result.to_numpy()
 
-    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
-    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
-    return obj  # type: ignore[return-value]
+    return result
 
 
 def sanitize_array(
