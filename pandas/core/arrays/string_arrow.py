@@ -312,6 +312,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                     "boolean arrays are valid indices."
                 )
 
+        # We are not an array indexer, so maybe e.g. a slice or integer
+        # indexer. We dispatch to pyarrow.
         value = self.data[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
