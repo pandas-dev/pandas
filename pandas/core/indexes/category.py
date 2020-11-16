@@ -583,23 +583,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # the categories
 
         if self.categories._defer_to_indexing:
+            # See tests.indexing.interval.test_interval:test_loc_getitem_frame
             indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
-        msg = "a list-indexer must only include values that are in the categories"
-        if self.hasnans:
-            msg += " or NA"
-        try:
-            codes = self._data._validate_setitem_value(keyarr)
-        except (ValueError, TypeError) as err:
-            if "Index data must be 1-dimensional" in str(err):
-                # e.g. test_setitem_ndarray_3d
-                raise
-            raise KeyError(msg)
-        if not self.hasnans and (codes == -1).any():
-            raise KeyError(msg)
-
-        return self.get_indexer(keyarr)
+        return self.get_indexer_for(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind):
