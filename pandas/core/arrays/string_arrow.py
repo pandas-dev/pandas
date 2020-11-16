@@ -564,7 +564,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
-            if (indices_array < 0).any():
+            fill_mask = indices_array < 0
+            if fill_mask.any():
                 validate_indices(indices_array, len(self.data))
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=indices_array < 0)
@@ -574,7 +575,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 # TODO: ArrowNotImplementedError: Function fill_null has no
                 # kernel matching input types (array[string], scalar[string])
                 result = type(self)(result)
-                result[result.isna()] = fill_value
+                result[fill_mask] = fill_value
                 return result
                 # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
