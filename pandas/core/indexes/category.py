@@ -224,7 +224,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         result._cache = {}
 
         result._reset_identity()
-        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------
@@ -491,6 +490,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
+            new_target = Categorical(new_target, dtype=target.dtype)
             new_target = target._shallow_copy(new_target, name=self.name)
         else:
             new_target = Index(new_target, name=self.name)
@@ -514,6 +514,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if not (cats == -1).any():
             # .reindex returns normal Index. Revert to CategoricalIndex if
             # all targets are included in my categories
+            new_target = Categorical(new_target, dtype=self.dtype)
             new_target = self._shallow_copy(new_target)
 
         return new_target, indexer, new_indexer
@@ -529,18 +530,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase.ensure_index(target)
 
+        self._check_indexing_method(method)
+
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype="intp")
-
-        if method == "pad" or method == "backfill":
-            raise NotImplementedError(
-                "method='pad' and method='backfill' not "
-                "implemented yet for CategoricalIndex"
-            )
-        elif method == "nearest":
-            raise NotImplementedError(
-                "method='nearest' not implemented yet for CategoricalIndex"
-            )
 
         # Note: we use engine.get_indexer_non_unique below because, even if
         #  `target` is unique, any non-category entries in it will be encoded
