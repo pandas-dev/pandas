@@ -340,6 +340,7 @@ class Grouper:
         # Keep self.grouper value before overriding
         if self._grouper is None:
             self._grouper = self.grouper
+            self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
@@ -348,9 +349,14 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
-                # pandas\core\groupby\grouper.py:348: error: Item "None" of
-                # "Optional[Any]" has no attribute "take"  [union-attr]
-                ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
+                if self.indexer is not None:
+                    reverse_indexer = self._indexer.argsort()
+                    unsorted_ax = self._grouper.take(reverse_indexer)
+                    ax = unsorted_ax.take(obj.index)
+                else:
+                    # pandas\core\groupby\grouper.py:348: error: Item "None" of
+                    # "Optional[Any]" has no attribute "take"  [union-attr]
+                    ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
