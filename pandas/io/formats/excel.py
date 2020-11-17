@@ -10,6 +10,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.lib import is_list_like
 from pandas._typing import Label, StorageOptions
 
 from pandas.core.dtypes import missing
@@ -749,7 +750,7 @@ class ExcelFormatter:
     @property
     def _has_aliases(self) -> bool:
         """Whether the aliases for column names are present."""
-        return not isinstance(self.header, bool)
+        return is_list_like(self.header)
 
     def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
         if self.styler is None:
