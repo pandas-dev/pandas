@@ -815,7 +815,15 @@ cdef class _Timestamp(ABCTimestamp):
         return np.datetime64(self.value, 'ns')
 
     def timestamp(self):
-        """Return POSIX timestamp as float."""
+        """
+        Return POSIX timestamp as float.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.timestamp()
+        1584199972.192548
+        """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
         return round(self.value / 1e9, 6)
@@ -875,6 +883,18 @@ cdef class _Timestamp(ABCTimestamp):
     def to_period(self, freq=None):
         """
         Return an period of which this timestamp is an observation.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.to_period(freq='Y) # Year end frequency
+        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        >>> ts.to_period(freq='M') # Month end frequency
+        Period('2020-03', 'M')
+        >>> ts.to_period(freq='W') # Weekly frequency
+        Period('2020-03-09/2020-03-15', 'W-SUN')
+        >>> ts.to_period(freq='Q') # Quarter end frequency
+        Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
 
