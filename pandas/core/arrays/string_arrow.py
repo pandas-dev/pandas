@@ -183,13 +183,13 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     def __init__(self, values):
         self._chk_pyarrow_available()
         if isinstance(values, pa.Array):
-            self.data = pa.chunked_array([values])
+            self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
-            self.data = values
+            self._data = values
         else:
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
 
-        if not pa.types.is_string(self.data.type):
+        if not pa.types.is_string(self._data.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
@@ -226,7 +226,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
-        return self.data
+        return self._data
 
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value=lib.no_default
@@ -238,7 +238,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         if na_value is lib.no_default:
             na_value = self._dtype.na_value
-        result = self.data.__array__(dtype=dtype)
+        result = self._data.__array__(dtype=dtype)
         result[isna(result)] = na_value
         return result
 
@@ -250,7 +250,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         -------
         length : int
         """
-        return len(self.data)
+        return len(self._data)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -271,7 +271,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return cls(
             pa.chunked_array(
-                [array for ea in to_concat for array in ea.data.iterchunks()]
+                [array for ea in to_concat for array in ea._data.iterchunks()]
             )
         )
 
@@ -307,7 +307,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             elif is_integer_dtype(item.dtype):
                 return self.take(item)
             elif is_bool_dtype(item.dtype):
-                return type(self)(self.data.filter(item))
+                return type(self)(self._data.filter(item))
             else:
                 raise IndexError(
                     "Only integers, slices and integer or "
@@ -316,7 +316,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
-        value = self.data[item]
+        value = self._data[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
@@ -392,7 +392,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         The number of bytes needed to store this object in memory.
         """
-        return self.data.nbytes
+        return self._data.nbytes
 
     def isna(self) -> np.ndarray:
         """
@@ -401,7 +401,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         This should return a 1-D array the same length as 'self'.
         """
         # TODO: Implement .to_numpy for ChunkedArray
-        return self.data.is_null().to_pandas().values
+        return self._data.is_null().to_pandas().values
 
     def copy(self) -> ArrowStringArray:
         """
@@ -411,19 +411,19 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         -------
         ArrowStringArray
         """
-        return type(self)(self.data)
+        return type(self)(self._data)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
 
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
-            result = pc_func(self.data, other.data)
+            result = pc_func(self._data, other._data)
         elif isinstance(other, np.ndarray):
-            result = pc_func(self.data, other)
+            result = pc_func(self._data, other)
         elif is_scalar(other):
             try:
-                result = pc_func(self.data, pa.scalar(other))
+                result = pc_func(self._data, pa.scalar(other))
             except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
                 mask = isna(self) | isna(other)
                 valid = ~mask
@@ -469,11 +469,11 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert inbetween
             new_data = [
-                *self.data[0:key].chunks,
+                *self._data[0:key].chunks,
                 pa.array([value], type=pa.string()),
-                *self.data[(key + 1) :].chunks,
+                *self._data[(key + 1) :].chunks,
             ]
-            self.data = pa.chunked_array(new_data)
+            self._data = pa.chunked_array(new_data)
         else:
             # Convert to integer indices and iteratively assign.
             # TODO: Make a faster variant of this in Arrow upstream.
@@ -562,18 +562,18 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         else:
             indices_array = indices
 
-        if len(self.data) == 0 and (indices_array >= 0).any():
+        if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
-        if indices_array.size > 0 and indices_array.max() >= len(self.data):
+        if indices_array.size > 0 and indices_array.max() >= len(self._data):
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
             fill_mask = indices_array < 0
             if fill_mask.any():
-                validate_indices(indices_array, len(self.data))
+                validate_indices(indices_array, len(self._data))
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=fill_mask)
-                result = self.data.take(indices_array)
+                result = self._data.take(indices_array)
                 if isna(fill_value):
                     return type(self)(result)
                 # TODO: ArrowNotImplementedError: Function fill_null has no
@@ -584,14 +584,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
                 # Nothing to fill
-                return type(self)(self.data.take(indices))
+                return type(self)(self._data.take(indices))
         else:  # allow_fill=False
             # TODO(ARROW-9432): Treat negative indices as indices from the right.
             if (indices_array < 0).any():
                 # Don't modify in-place
                 indices_array = np.copy(indices_array)
-                indices_array[indices_array < 0] += len(self.data)
-            return type(self)(self.data.take(indices_array))
+                indices_array[indices_array < 0] += len(self._data)
+            return type(self)(self._data.take(indices_array))
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -612,14 +612,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         from pandas import Index, Series
 
-        vc = self.data.value_counts()
+        vc = self._data.value_counts()
 
         # Index cannot hold ExtensionArrays yet
         index = Index(type(self)(vc.field(0)).astype(object))
         # No missings, so we can adhere to the interface and return a numpy array.
         counts = np.array(vc.field(1))
 
-        if dropna and self.data.null_count > 0:
+        if dropna and self._data.null_count > 0:
             raise NotImplementedError("yo")
 
         return Series(counts, index=index).astype("Int64")
