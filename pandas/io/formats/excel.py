@@ -5,7 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterator, Mapping, Optional, Sequence, Union, cast
+from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
 import warnings
 
 import numpy as np
@@ -527,7 +527,7 @@ class ExcelFormatter:
             )
         return val
 
-    def _format_header_mi(self) -> Iterator[ExcelCell]:
+    def _format_header_mi(self) -> Iterable[ExcelCell]:
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError(
@@ -580,7 +580,7 @@ class ExcelFormatter:
 
         self.rowcounter = lnum
 
-    def _format_header_regular(self) -> Iterator[ExcelCell]:
+    def _format_header_regular(self) -> Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             coloffset = 0
 
@@ -605,7 +605,7 @@ class ExcelFormatter:
                     self.rowcounter, colindex + coloffset, colname, self.header_style
                 )
 
-    def _format_header(self) -> Iterator[ExcelCell]:
+    def _format_header(self) -> Iterable[ExcelCell]:
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
@@ -627,13 +627,13 @@ class ExcelFormatter:
                 self.rowcounter += 1
         return itertools.chain(gen, gen2)
 
-    def _format_body(self) -> Iterator[ExcelCell]:
+    def _format_body(self) -> Iterable[ExcelCell]:
         if isinstance(self.df.index, MultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
 
-    def _format_regular_rows(self) -> Iterator[ExcelCell]:
+    def _format_regular_rows(self) -> Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             self.rowcounter += 1
 
@@ -671,7 +671,7 @@ class ExcelFormatter:
 
         yield from self._generate_body(coloffset)
 
-    def _format_hierarchical_rows(self) -> Iterator[ExcelCell]:
+    def _format_hierarchical_rows(self) -> Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             self.rowcounter += 1
 
@@ -749,7 +749,7 @@ class ExcelFormatter:
         """Whether the aliases for column names are present."""
         return not isinstance(self.header, bool)
 
-    def _generate_body(self, coloffset: int) -> Iterator[ExcelCell]:
+    def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
         if self.styler is None:
             styles = None
         else:
@@ -766,7 +766,7 @@ class ExcelFormatter:
                     xlstyle = self.style_converter(";".join(styles[i, colidx]))
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
-    def get_formatted_cells(self) -> Iterator[ExcelCell]:
+    def get_formatted_cells(self) -> Iterable[ExcelCell]:
         for cell in itertools.chain(self._format_header(), self._format_body()):
             cell.val = self._format_value(cell.val)
             yield cell
