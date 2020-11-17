@@ -773,10 +773,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            # pandas\core\indexes\datetimelike.py:776: error: Argument 1 to
-            # "_simple_new" of "DatetimeIndexOpsMixin" has incompatible type
-            # "Union[ExtensionArray, Any]"; expected "Union[DatetimeArray,
-            # TimedeltaArray, PeriodArray]"  [arg-type]
+            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
+            # incompatible type "Union[ExtensionArray, Any]"; expected
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
             result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)
