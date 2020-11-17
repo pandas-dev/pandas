@@ -3222,8 +3222,14 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
         target_values = target._values
-        left_distances = np.abs(self._values[left_indexer] - target_values)
-        right_distances = np.abs(self._values[right_indexer] - target_values)
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        left_distances = np.abs(
+            self._values[left_indexer] - target_values  # type: ignore[operator]
+        )
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        right_distances = np.abs(
+            self._values[right_indexer] - target_values  # type: ignore[operator]
+        )
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3242,7 +3248,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
-        distance = abs(self._values[indexer] - target)
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
@@ -3446,6 +3453,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
+            values: Union[range, ExtensionArray, np.ndarray]
             if isinstance(self, ABCRangeIndex):
                 values = range(0)
             else:
@@ -4538,8 +4546,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = np.arange(len(self))[mask].take(locs)
 
-        first = mask.argmax()
-        result[(locs == 0) & (where._values < self._values[first])] = -1
+        # TODO: overload return type of ExtensionArray.__getitem__
+        first_value = cast(Any, self._values[mask.argmax()])
+        result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
 

@@ -1671,10 +1671,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[0]
+                return arr[0]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(first, axis=axis)
@@ -1695,10 +1695,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[-1]
+                return arr[-1]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(last, axis=axis)

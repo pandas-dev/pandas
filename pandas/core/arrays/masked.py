@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type, TypeVar
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import numpy as np
 
@@ -56,7 +58,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+    def construct_array_type(cls) -> Type[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -100,7 +102,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
