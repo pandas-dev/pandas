@@ -1727,7 +1727,7 @@ class _iLocIndexer(_LocationIndexer):
         if name == "iloc":
             for i, loc in enumerate(ilocs):
                 val = value.iloc[:, i]
-                self._setitem_single_column(loc, val, plane_indexer)
+                self._setitem_single_column(loc, val, pi)
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
