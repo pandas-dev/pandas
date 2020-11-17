@@ -661,7 +661,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 - Bug in :meth:`DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
 - Bug in :meth:`DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
-- Bug in :meth:`DataFrame.groupby(...).resample(...)` using .agg with sum produced different result than just calling .sum (:issue:`33548`)
+- Bug in :meth:`DataFrameGroupBy.resample` using ``.agg`` with sum produced different result than just calling ``.sum`` (:issue:`33548`)
 
 Reshaping
 ^^^^^^^^^
