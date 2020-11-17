@@ -136,7 +136,7 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         sum_x[0] = t
 
 
-def roll_sum(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
@@ -240,7 +240,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, compensation_add = 0, compensation_remove = 0, sum_x = 0
@@ -361,7 +361,7 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_var(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
@@ -772,7 +772,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 # Rolling median, min, max
 
 
-def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp):
     # GH 32865. win argument kept for compatibility
     cdef:
@@ -1032,7 +1032,7 @@ interpolation_types = {
 }
 
 
-def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
+def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp,
                   float64_t quantile, str interpolation):
     """
