@@ -1691,7 +1691,12 @@ class TestLocListlike:
         ser2 = ser[:-1]
         ci2 = ci[1:]
         # but if there are no NAs present, this should raise KeyError
-        msg = "a list-indexer must only include values that are in the categories"
+        msg = (
+            r"Passing list-likes to .loc or \[\] with any missing labels is no "
+            "longer supported. The following labels were missing: "
+            r"(Categorical)?Index\(\[nan\], .*\). "
+            "See https"
+        )
         with pytest.raises(KeyError, match=msg):
             ser2.loc[box(ci2)]
 
