@@ -29,6 +29,8 @@ try:
 except ImportError:
     pa = None
 else:
+    # our min supported version of pyarrow, 0.15.1, does not have a compute
+    # module
     try:
         import pyarrow.compute as pc
     except ImportError:
