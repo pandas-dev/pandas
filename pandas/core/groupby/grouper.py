@@ -349,14 +349,19 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
+                # Sometimes (when self.indexer is not None) self._grouper will be
+                # sorted while obj is not. In this case there is a mismatch when we
+                # call self._grouper.take(obj.index) so we need to undo the sorting
+                # before we call _grouper.take.
                 if self.indexer is not None:
+                    assert self._indexer is not None
+                    assert self._grouper is not None
                     reverse_indexer = self._indexer.argsort()
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
                 else:
-                    # pandas\core\groupby\grouper.py:348: error: Item "None" of
-                    # "Optional[Any]" has no attribute "take"  [union-attr]
-                    ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
+                    assert self._grouper is not None
+                    ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
