@@ -458,7 +458,7 @@ Deprecations
 - :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
 - Partial slicing on unordered :class:`DatetimeIndex` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
-- Deprecated :meth:`Index.asi8` (:issue:`37877`)
+- Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 
 .. ---------------------------------------------------------------------------
 
