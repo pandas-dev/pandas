@@ -34,7 +34,3 @@ cdef extern from "khash_python.h":
     bint kh_exist_{{name}}(kh_{{name}}_t*, khiter_t) nogil
 
 {{endfor}}
-
-cdef extern from "khash_python.h":
-
-    ctypedef uint64_t khuint64_t
