@@ -819,6 +819,15 @@ class TestiLoc2:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_conversion_to_float_32_for_columns_list(self):
+        # GH#33198
+        arr = np.random.randn(10 ** 2).reshape(5, 20).astype(np.float64)
+        df = DataFrame(arr)
+        df.iloc[:, 10:] = df.iloc[:, 10:].astype(np.float32)
+        result = df.dtypes.value_counts()
+        expected = Series([10, 10], index=[np.float64, np.float32])
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
