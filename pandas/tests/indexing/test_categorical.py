@@ -256,13 +256,14 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_listlike(self):
-
+    def test_loc_getitem_listlike_labels(self):
         # list of labels
         result = self.df.loc[["c", "a"]]
         expected = self.df.iloc[[4, 0, 1, 5]]
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
+    def test_loc_getitem_listlike_unused_category(self):
+        # GH#37901 a label that is in index.categories but not in index
         # listlike containing an element in the categories but not in the values
         msg = (
             "The following labels were missing: CategoricalIndex(['e'], "
@@ -272,24 +273,27 @@ class TestCategoricalIndex:
         with pytest.raises(KeyError, match=re.escape(msg)):
             self.df2.loc[["a", "b", "e"]]
 
+    def test_loc_getitem_label_unused_category(self):
         # element in the categories but not in the values
         with pytest.raises(KeyError, match=r"^'e'$"):
             self.df2.loc["e"]
 
-        # assign is ok
-        df = self.df2.copy()
-        df.loc["e"] = 20
-        result = df.loc[["a", "b", "e"]]
-        exp_index = CategoricalIndex(list("aaabbe"), categories=list("cabe"), name="B")
-        expected = DataFrame({"A": [0, 1, 5, 2, 3, 20]}, index=exp_index)
-        tm.assert_frame_equal(result, expected)
-
+    def test_loc_getitem_non_category(self):
         # not all labels in the categories
         msg = (
             "The following labels were missing: Index(['d'], dtype='object', name='B')"
         )
         with pytest.raises(KeyError, match=re.escape(msg)):
             self.df2.loc[["a", "d"]]
+
+    def test_loc_setitem_expansion_label_unused_category(self):
+        # assigning with a label that is in the categories but not in the index
+        df = self.df2.copy()
+        df.loc["e"] = 20
+        result = df.loc[["a", "b", "e"]]
+        exp_index = CategoricalIndex(list("aaabbe"), categories=list("cabe"), name="B")
+        expected = DataFrame({"A": [0, 1, 5, 2, 3, 20]}, index=exp_index)
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_listlike_dtypes(self):
         # GH 11586
