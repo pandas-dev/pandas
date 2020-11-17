@@ -529,18 +529,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase.ensure_index(target)
 
+        self._check_indexing_method(method)
+
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype="intp")
-
-        if method == "pad" or method == "backfill":
-            raise NotImplementedError(
-                "method='pad' and method='backfill' not "
-                "implemented yet for CategoricalIndex"
-            )
-        elif method == "nearest":
-            raise NotImplementedError(
-                "method='nearest' not implemented yet for CategoricalIndex"
-            )
 
         # Note: we use engine.get_indexer_non_unique below because, even if
         #  `target` is unique, any non-category entries in it will be encoded
