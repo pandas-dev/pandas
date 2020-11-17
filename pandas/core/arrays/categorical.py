@@ -10,6 +10,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
+from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
@@ -1046,7 +1047,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories, ordered=self.ordered, rename=False, inplace=inplace
         )
 
-    def remove_unused_categories(self, inplace=False):
+    def remove_unused_categories(self, inplace=no_default):
         """
         Remove categories which are not used.
 
@@ -1056,10 +1057,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to drop unused categories inplace or return a copy of
            this categorical with unused categories dropped.
 
+           .. deprecated:: 1.2.0
+
         Returns
         -------
         cat : Categorical or None
-            Categorical with unused categories dropped or None if ``inplace=True``.
+            Categorical with unused categories dropped.
 
         See Also
         --------
@@ -1069,8 +1072,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         set_categories : Set the categories to the specified ones.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        cat = self if inplace else self.copy()
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical.remove_unused_categories"
+                " is deprecated and will be removed in a future version.",
+                FutureWarning, stacklevel=2
+            )
+
+        cat = self.copy()
         idx, inv = np.unique(cat._codes, return_inverse=True)
 
         if idx.size != 0 and idx[0] == -1:  # na sentinel
@@ -1083,8 +1092,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat._dtype = new_dtype
         cat._codes = coerce_indexer_dtype(inv, new_dtype.categories)
 
-        if not inplace:
-            return cat
+        return cat
 
     # ------------------------------------------------------------------
 
