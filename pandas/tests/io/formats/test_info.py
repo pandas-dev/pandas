@@ -18,6 +18,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.conftest import float_frame, int_frame
 
 
 @pytest.fixture
@@ -63,7 +64,7 @@ def test_info_empty():
     assert result == expected
 
 
-def test_info_categorical_column_just_works():
+def test_info_categorical_column_smoke_test():
     n = 2500
     df = DataFrame({"int64": np.random.randint(100, size=n)})
     df["category"] = Series(
@@ -78,14 +79,18 @@ def test_info_categorical_column_just_works():
     df2.info(buf=buf)
 
 
-def test_info_frame_float_frame_just_works(float_frame):
+@pytest.mark.parametrize(
+    "fixture_func",
+    [
+        int_frame,
+        float_frame,
+        datetime_frame,
+    ],
+)
+def test_info_smoke_test(fixture_func, request):
+    frame = request.getfixturevalue(fixture_func.__name__)
     io = StringIO()
-    float_frame.info(buf=io)
-
-
-def test_info_datetime_just_works(datetime_frame):
-    io = StringIO()
-    datetime_frame.info(buf=io)
+    frame.info(buf=io)
 
 
 @pytest.mark.parametrize(
