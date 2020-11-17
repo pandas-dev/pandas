@@ -1747,8 +1747,8 @@ class _iLocIndexer(_LocationIndexer):
         unique_cols = value.columns.is_unique
 
         if name == "iloc":
-            for index, loc in zip(range(len(ilocs)), ilocs):
-                val = value.iloc[:, index]
+            for i, loc in enumerate(ilocs):
+                val = value.iloc[:, i]
                 self._setitem_single_column(loc, val, plane_indexer)
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
