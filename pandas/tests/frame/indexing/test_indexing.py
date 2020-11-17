@@ -1471,7 +1471,7 @@ class TestDataFrameIndexing:
         result.loc[akey] = 0
         result = result.loc[akey]
         expected = df.loc[akey].copy()
-        expected.loc[:] = 0
+        expected.loc[:] = 0.
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
@@ -1483,7 +1483,7 @@ class TestDataFrameIndexing:
         result.loc[bkey] = 0
         result = result.loc[bkey]
         expected = df.loc[bkey].copy()
-        expected.loc[:] = 0
+        expected.loc[:] = 0.
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
