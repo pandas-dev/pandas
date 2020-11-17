@@ -832,6 +832,7 @@ class TestiLoc2:
         rhs = dict(x=9, y=99)
         df.iloc[1] = rhs
         expected = DataFrame({"x": [1, 9], "y": [2, 99]})
+        tm.assert_frame_equal(df, expected)
 
 
 class TestILocErrors:
