@@ -436,36 +436,23 @@ def test_usage_via_getsizeof():
     assert abs(diff) < 100
 
 
-@pytest.mark.parametrize(
-    "frame, plus",
-    [
-        (DataFrame(1, columns=list("ab"), index=[1, 2, 3]), False),
-        (DataFrame(1, columns=list("ab"), index=list("ABC")), True),
-        (
-            DataFrame(
-                1,
-                columns=list("ab"),
-                index=MultiIndex.from_product([range(3), range(3)]),
-            ),
-            False,
-        ),
-        (
-            DataFrame(
-                1,
-                columns=list("ab"),
-                index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
-            ),
-            True,
-        ),
-    ],
-)
-def test_info_memory_usage_qualified(frame, plus):
+def test_info_memory_usage_qualified():
     buf = StringIO()
-    frame.info(buf=buf)
-    if plus:
-        assert "+" in buf.getvalue()
-    else:
-        assert "+" not in buf.getvalue()
+    df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
+    df.info(buf=buf)
+    assert "+" not in buf.getvalue()
+
+    buf = StringIO()
+    df = DataFrame(1, columns=list("ab"), index=list("ABC"))
+    df.info(buf=buf)
+    assert "+" in buf.getvalue()
+
+    buf = StringIO()
+    df = DataFrame(
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
+    )
+    df.info(buf=buf)
+    assert "+" not in buf.getvalue()
 
 
 def test_info_memory_usage_bug_on_multiindex():
