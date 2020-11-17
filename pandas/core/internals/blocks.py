@@ -1447,6 +1447,7 @@ class Block(PandasObject):
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1,)))
             elif transpose and values.ndim == self.ndim - 1:
+                # TODO(EA2D): not neceesssary with 2D EAs
                 cond = cond.T
 
         if not hasattr(cond, "shape"):
@@ -2413,9 +2414,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
         return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
-
-        # allow filling with integers to be
-        # interpreted as nanoseconds
+        # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
+        #  raising here.
         if is_integer(value):
             # Deprecation GH#24694, GH#19233
             raise TypeError(
