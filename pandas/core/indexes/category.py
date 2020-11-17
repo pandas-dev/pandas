@@ -491,6 +491,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
+            new_target = Categorical(new_target, dtype=target.dtype)
             new_target = target._shallow_copy(new_target, name=self.name)
         else:
             new_target = Index(new_target, name=self.name)
@@ -514,6 +515,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if not (cats == -1).any():
             # .reindex returns normal Index. Revert to CategoricalIndex if
             # all targets are included in my categories
+            new_target = Categorical(new_target, dtype=self.dtype)
             new_target = self._shallow_copy(new_target)
 
         return new_target, indexer, new_indexer
