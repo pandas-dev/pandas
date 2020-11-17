@@ -53,6 +53,7 @@ _pxi_dep_template = {
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
+        "_libs/khash_for_primitive_helper.pxi.in",
     ],
     "index": ["_libs/index_class_helper.pxi.in"],
     "sparse": ["_libs/sparse_op_helper.pxi.in"],
