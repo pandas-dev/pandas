@@ -14,10 +14,8 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
-    is_interval_dtype,
     is_list_like,
     is_scalar,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
@@ -224,7 +222,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         result._cache = {}
 
         result._reset_identity()
-        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------
@@ -371,20 +368,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-        if is_interval_dtype(dtype):
-            from pandas import IntervalIndex
-
-            return IntervalIndex(np.array(self))
-        elif is_categorical_dtype(dtype):
-            # GH 18630
-            dtype = self.dtype.update_dtype(dtype)
-            if dtype == self.dtype:
-                return self.copy() if copy else self
-
-        return Index.astype(self, dtype=dtype, copy=copy)
+        res_data = self._data.astype(dtype, copy=copy)
+        return Index(res_data, name=self.name)
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
@@ -491,6 +476,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
+            new_target = Categorical(new_target, dtype=target.dtype)
             new_target = target._shallow_copy(new_target, name=self.name)
         else:
             new_target = Index(new_target, name=self.name)
@@ -514,6 +500,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if not (cats == -1).any():
             # .reindex returns normal Index. Revert to CategoricalIndex if
             # all targets are included in my categories
+            new_target = Categorical(new_target, dtype=self.dtype)
             new_target = self._shallow_copy(new_target)
 
         return new_target, indexer, new_indexer
@@ -529,18 +516,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase.ensure_index(target)
 
+        self._check_indexing_method(method)
+
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype="intp")
-
-        if method == "pad" or method == "backfill":
-            raise NotImplementedError(
-                "method='pad' and method='backfill' not "
-                "implemented yet for CategoricalIndex"
-            )
-        elif method == "nearest":
-            raise NotImplementedError(
-                "method='nearest' not implemented yet for CategoricalIndex"
-            )
 
         # Note: we use engine.get_indexer_non_unique below because, even if
         #  `target` is unique, any non-category entries in it will be encoded
@@ -583,23 +562,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # the categories
 
         if self.categories._defer_to_indexing:
+            # See tests.indexing.interval.test_interval:test_loc_getitem_frame
             indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
-        msg = "a list-indexer must only include values that are in the categories"
-        if self.hasnans:
-            msg += " or NA"
-        try:
-            codes = self._data._validate_setitem_value(keyarr)
-        except (ValueError, TypeError) as err:
-            if "Index data must be 1-dimensional" in str(err):
-                # e.g. test_setitem_ndarray_3d
-                raise
-            raise KeyError(msg)
-        if not self.hasnans and (codes == -1).any():
-            raise KeyError(msg)
-
-        return self.get_indexer(keyarr)
+        return self.get_indexer_for(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind):

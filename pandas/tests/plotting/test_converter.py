@@ -7,6 +7,7 @@ import pytest
 
 import pandas._config.config as cf
 
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -72,6 +73,11 @@ class TestRegistration:
         ax.plot(s.index, s.values)
         plt.close()
 
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason="Getting two warnings intermittently, see GH#37746",
+        strict=False,
+    )
     def test_pandas_plots_register(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -79,8 +85,10 @@ class TestRegistration:
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
-        assert len(w) == 0
-        plt.close()
+        try:
+            assert len(w) == 0
+        finally:
+            plt.close()
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")

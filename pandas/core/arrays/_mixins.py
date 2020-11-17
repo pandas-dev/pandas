@@ -1,4 +1,6 @@
-from typing import Any, Optional, Sequence, TypeVar
+from __future__ import annotations
+
+from typing import Any, Optional, Sequence, Type, TypeVar, Union
 
 import numpy as np
 
@@ -20,7 +22,9 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 
-_T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
+NDArrayBackedExtensionArrayT = TypeVar(
+    "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
+)
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
@@ -30,7 +34,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     _ndarray: np.ndarray
 
-    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+    def _from_backing_data(
+        self: NDArrayBackedExtensionArrayT, arr: np.ndarray
+    ) -> NDArrayBackedExtensionArrayT:
         """
         Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
 
@@ -52,13 +58,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
 
     def take(
-        self: _T,
+        self: NDArrayBackedExtensionArrayT,
         indices: Sequence[int],
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
-    ) -> _T:
+    ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
@@ -113,16 +119,20 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 
-    def reshape(self: _T, *args, **kwargs) -> _T:
+    def reshape(
+        self: NDArrayBackedExtensionArrayT, *args, **kwargs
+    ) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.reshape(*args, **kwargs)
         return self._from_backing_data(new_data)
 
-    def ravel(self: _T, *args, **kwargs) -> _T:
+    def ravel(
+        self: NDArrayBackedExtensionArrayT, *args, **kwargs
+    ) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.ravel(*args, **kwargs)
         return self._from_backing_data(new_data)
 
     @property
-    def T(self: _T) -> _T:
+    def T(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.T
         return self._from_backing_data(new_data)
 
@@ -138,11 +148,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _values_for_argsort(self):
         return self._ndarray
 
-    def copy(self: _T) -> _T:
+    def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = self._ndarray.copy()
         return self._from_backing_data(new_data)
 
-    def repeat(self: _T, repeats, axis=None) -> _T:
+    def repeat(
+        self: NDArrayBackedExtensionArrayT, repeats, axis=None
+    ) -> NDArrayBackedExtensionArrayT:
         """
         Repeat elements of an array.
 
@@ -154,13 +166,17 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         new_data = self._ndarray.repeat(repeats, axis=axis)
         return self._from_backing_data(new_data)
 
-    def unique(self: _T) -> _T:
+    def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
 
     @classmethod
     @doc(ExtensionArray._concat_same_type)
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(
+        cls: Type[NDArrayBackedExtensionArrayT],
+        to_concat: Sequence[NDArrayBackedExtensionArrayT],
+        axis: int = 0,
+    ) -> NDArrayBackedExtensionArrayT:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
@@ -198,7 +214,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
+    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -216,7 +234,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return result
 
     @doc(ExtensionArray.fillna)
-    def fillna(self: _T, value=None, method=None, limit=None) -> _T:
+    def fillna(
+        self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
+    ) -> NDArrayBackedExtensionArrayT:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
