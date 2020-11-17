@@ -2,8 +2,10 @@ from numpy cimport intp_t, ndarray
 
 from pandas._libs.khash cimport (
     float64_t,
+    int32_t,
     int64_t,
     kh_float64_t,
+    kh_int32_t,
     kh_int64_t,
     kh_pymap_t,
     kh_str_t,
@@ -27,6 +29,12 @@ cdef class Int64HashTable(HashTable):
 
     cpdef get_item(self, int64_t val)
     cpdef set_item(self, int64_t key, Py_ssize_t val)
+
+cdef class Int32HashTable(HashTable):
+    cdef kh_int32_t *table
+
+    cpdef get_item(self, int32_t val)
+    cpdef set_item(self, int32_t key, Py_ssize_t val)
 
 cdef class Float64HashTable(HashTable):
     cdef kh_float64_t *table

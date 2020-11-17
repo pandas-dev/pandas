@@ -10,7 +10,8 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 dtypes = [('float64', 'float64', 'float64_t'),
           ('uint64', 'uint64', 'uint64_t'),
           ('object', 'pymap', 'object'),
-          ('int64', 'int64', 'int64_t')]
+          ('int64', 'int64', 'int64_t'),
+          ('int32', 'int32', 'int32_t')]
 
 }}
 
@@ -276,6 +277,7 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 # dtype, ctype, table_type, npy_dtype
 dtypes = [('float64', 'float64_t', 'float64', 'float64'),
           ('int64', 'int64_t', 'int64', 'int64'),
+          ('int32', 'int32_t', 'int32', 'int32'),
           ('uint64', 'uint64_t', 'uint64', 'uint64'),
           ('object', 'object', 'pymap', 'object_')]
 }}
