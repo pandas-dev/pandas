@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta, tzinfo
-from typing import Optional, Union, cast
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -444,11 +444,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         if not left_closed and len(index) and index[0] == start:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[1:])
+            index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[:-1])
+            index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index.asi8, freq=freq, dtype=dtype)

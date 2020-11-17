@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -266,9 +267,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
+    @overload
+    def __getitem__(self, key: int) -> DTScalarOrNaT:
+        ...
+
+    @overload
     def __getitem__(
-        self, key: Union[int, slice, np.ndarray]
-    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
+        self: DatetimeLikeArrayT, key: Union[slice, np.ndarray]
+    ) -> DatetimeLikeArrayT:
+        ...
+
+    def __getitem__(
+        self: DatetimeLikeArrayT, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayT, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars

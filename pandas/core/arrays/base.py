@@ -20,6 +20,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -51,6 +52,7 @@ from pandas.core.sorting import nargminmax, nargsort
 _extension_array_shared_docs: Dict[str, str] = dict()
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
+EAScalarOrMissing = object  # both scalar value and na_value can be any type
 
 
 class ExtensionArray:
@@ -256,9 +258,19 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
+    @overload
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types  [misc]
+    def __getitem__(self, item: int) -> EAScalarOrMissing:  # type: ignore[misc]
+        ...
+
+    @overload
+    def __getitem__(self, item: Union[slice, np.ndarray]) -> ExtensionArray:
+        ...
+
     def __getitem__(
         self, item: Union[int, slice, np.ndarray]
-    ) -> Union[ExtensionArray, Any]:
+    ) -> Union[ExtensionArray, EAScalarOrMissing]:
         """
         Select a subset of self.
 

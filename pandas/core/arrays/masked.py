@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import Scalar
+from pandas._typing import NAType, Scalar
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -30,6 +39,8 @@ if TYPE_CHECKING:
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
+# scalar value is a Python scalar, missing value is pd.NA
+ScalarOrNAType = Union[Scalar, NAType]
 
 
 class BaseMaskedDtype(ExtensionDtype):
@@ -102,9 +113,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
+    @overload
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible return
+    # types  [misc]
+    def __getitem__(self, item: int) -> ScalarOrNAType:  # type: ignore[misc]
+        ...
+
+    @overload
+    def __getitem__(self, item: Union[slice, np.ndarray]) -> BaseMaskedArray:
+        ...
+
     def __getitem__(
         self, item: Union[int, slice, np.ndarray]
-    ) -> Union[BaseMaskedArray, Any]:
+    ) -> Union[BaseMaskedArray, ScalarOrNAType]:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value

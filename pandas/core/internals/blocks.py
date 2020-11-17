@@ -484,6 +484,7 @@ class Block(PandasObject):
         -------
         list of blocks
         """
+        assert isinstance(self.values, np.ndarray)
         if mask is None:
             mask = np.broadcast_to(True, shape=self.shape)
 

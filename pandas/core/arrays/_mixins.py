@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Optional, Sequence, Type, TypeVar, Union, overload
 
 import numpy as np
 
@@ -25,6 +25,7 @@ from pandas.core.indexers import check_array_indexer
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
+EAScalarOrMissing = object  # both scalar value and na_value can be any type
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
@@ -214,9 +215,21 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
+    @overload
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types  [misc]
+    def __getitem__(self, key: int) -> EAScalarOrMissing:  # type: ignore[misc]
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: Union[slice, np.ndarray]
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
+
     def __getitem__(
         self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
-    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
+    ) -> Union[NDArrayBackedExtensionArrayT, EAScalarOrMissing]:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]

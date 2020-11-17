@@ -3222,14 +3222,8 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
         target_values = target._values
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        left_distances = np.abs(
-            self._values[left_indexer] - target_values  # type: ignore[operator]
-        )
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        right_distances = np.abs(
-            self._values[right_indexer] - target_values  # type: ignore[operator]
-        )
+        left_distances = np.abs(self._values[left_indexer] - target_values)
+        right_distances = np.abs(self._values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3248,8 +3242,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
+        distance = abs(self._values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
@@ -4546,9 +4539,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = np.arange(len(self))[mask].take(locs)
 
-        # TODO: overload return type of ExtensionArray.__getitem__
-        first_value = cast(Any, self._values[mask.argmax()])
-        result[(locs == 0) & (where._values < first_value)] = -1
+        first = mask.argmax()
+        result[(locs == 0) & (where._values < self._values[first])] = -1
 
         return result
 
