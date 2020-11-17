@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import (
@@ -264,7 +266,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars

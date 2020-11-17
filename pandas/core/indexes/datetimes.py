@@ -14,7 +14,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -220,6 +220,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _typ = "datetimeindex"
 
+    _data_cls = DatetimeArray
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
@@ -319,20 +320,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         subarr = cls._simple_new(dtarr, name=name)
         return subarr
 
-    @classmethod
-    def _simple_new(cls, values: DatetimeArray, name: Label = None):
-        assert isinstance(values, DatetimeArray), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        result.name = name
-        result._cache = {}
-        result._no_setting_name = False
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-        result._reset_identity()
-        return result
-
     # --------------------------------------------------------------------
 
     @cache_readonly
@@ -387,7 +374,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         from pandas.io.formats.format import get_format_datetime64
 
         formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: f"'{formatter(x, tz=self.tz)}'"
+        return lambda x: f"'{formatter(x)}'"
 
     # --------------------------------------------------------------------
     # Set Operation Methods
