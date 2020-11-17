@@ -5,6 +5,29 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
+{{py:
+
+# name
+cimported_types = ['float64',
+                   'int64',
+                   'int32',
+                   'pymap',
+                   'str',
+                   'strbox',
+                   'uint64']
+}}
+
+{{for name in cimported_types}}
+from pandas._libs.khash cimport (
+    kh_destroy_{{name}},
+    kh_exist_{{name}},
+    kh_get_{{name}},
+    kh_init_{{name}},
+    kh_put_{{name}},
+    kh_resize_{{name}},
+)
+{{endfor}}
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
