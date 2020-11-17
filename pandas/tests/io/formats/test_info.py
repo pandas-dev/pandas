@@ -50,6 +50,12 @@ def datetime_frame():
     return DataFrame(tm.getTimeSeriesData())
 
 
+@pytest.fixture
+def duplicate_columns_frame():
+    """Dataframe with duplicate column names."""
+    return DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
+
+
 def test_info_empty():
     df = DataFrame()
     buf = StringIO()
@@ -85,6 +91,7 @@ def test_info_categorical_column_smoke_test():
         int_frame,
         float_frame,
         datetime_frame,
+        duplicate_columns_frame,
     ],
 )
 def test_info_smoke_test(fixture_func, request):
@@ -235,12 +242,6 @@ def test_info_wide():
         df.info(buf=io)
         result = io.getvalue()
         assert result == expected
-
-
-def test_info_duplicate_columns_just_works():
-    io = StringIO()
-    frame = DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
-    frame.info(buf=io)
 
 
 def test_info_duplicate_columns_shows_correct_dtypes():
