@@ -15,6 +15,8 @@ import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
+from .test_floats import gen_obj
+
 # ------------------------------------------------------------------------
 # Indexing test cases
 
@@ -31,10 +33,7 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        msg = (
-            "cannot set using a multi-index selection "
-            "indexer with a different length than the value"
-        )
+        msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
@@ -57,14 +56,6 @@ class TestFancy:
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
-        "obj",
-        [
-            lambda i: Series(np.arange(len(i)), index=i),
-            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),
-        ],
-        ids=["Series", "DataFrame"],
-    )
-    @pytest.mark.parametrize(
         "idxr, idxr_id",
         [
             (lambda x: x, "getitem"),
@@ -72,9 +63,9 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = gen_obj(frame_or_series, index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
@@ -95,14 +86,6 @@ class TestFancy:
                 idxr[nd3]
 
     @pytest.mark.parametrize(
-        "obj",
-        [
-            lambda i: Series(np.arange(len(i)), index=i),
-            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),
-        ],
-        ids=["Series", "DataFrame"],
-    )
-    @pytest.mark.parametrize(
         "idxr, idxr_id",
         [
             (lambda x: x, "setitem"),
@@ -110,15 +93,11 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = gen_obj(frame_or_series, index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
-
-        if (len(index) == 0) and (idxr_id == "iloc") and isinstance(obj, pd.DataFrame):
-            # gh-32896
-            pytest.skip("This is currently failing. There's an xfailed test below.")
 
         if idxr_id == "iloc":
             err = ValueError
@@ -138,17 +117,6 @@ class TestFancy:
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
-
-    @pytest.mark.xfail(reason="gh-32896")
-    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
-        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
-        i = Index([])
-        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
-
-        msg = f"Cannot set values with ndim > {obj.ndim}"
-        with pytest.raises(ValueError, match=msg):
-            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
@@ -623,7 +591,8 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    def test_index_type_coercion(self):
+    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x])
+    def test_index_type_coercion(self, indexer):
 
         # GH 11836
         # if we have an index type and set it with something that looks
@@ -636,41 +605,38 @@ class TestFancy:
 
             assert s.index.is_integer()
 
-            for indexer in [lambda x: x.loc, lambda x: x]:
-                s2 = s.copy()
-                indexer(s2)[0.1] = 0
-                assert s2.index.is_floating()
-                assert indexer(s2)[0.1] == 0
+            s2 = s.copy()
+            indexer(s2)[0.1] = 0
+            assert s2.index.is_floating()
+            assert indexer(s2)[0.1] == 0
 
-                s2 = s.copy()
-                indexer(s2)[0.0] = 0
-                exp = s.index
-                if 0 not in s:
-                    exp = Index(s.index.tolist() + [0])
-                tm.assert_index_equal(s2.index, exp)
+            s2 = s.copy()
+            indexer(s2)[0.0] = 0
+            exp = s.index
+            if 0 not in s:
+                exp = Index(s.index.tolist() + [0])
+            tm.assert_index_equal(s2.index, exp)
 
-                s2 = s.copy()
-                indexer(s2)["0"] = 0
-                assert s2.index.is_object()
+            s2 = s.copy()
+            indexer(s2)["0"] = 0
+            assert s2.index.is_object()
 
         for s in [Series(range(5), index=np.arange(5.0))]:
 
             assert s.index.is_floating()
 
-            for idxr in [lambda x: x.loc, lambda x: x]:
+            s2 = s.copy()
+            indexer(s2)[0.1] = 0
+            assert s2.index.is_floating()
+            assert indexer(s2)[0.1] == 0
 
-                s2 = s.copy()
-                idxr(s2)[0.1] = 0
-                assert s2.index.is_floating()
-                assert idxr(s2)[0.1] == 0
+            s2 = s.copy()
+            indexer(s2)[0.0] = 0
+            tm.assert_index_equal(s2.index, s.index)
 
-                s2 = s.copy()
-                idxr(s2)[0.0] = 0
-                tm.assert_index_equal(s2.index, s.index)
-
-                s2 = s.copy()
-                idxr(s2)["0"] = 0
-                assert s2.index.is_object()
+            s2 = s.copy()
+            indexer(s2)["0"] = 0
+            assert s2.index.is_object()
 
 
 class TestMisc:
@@ -698,22 +664,6 @@ class TestMisc:
             assert s.at[el] == item
         for i in range(len(s)):
             assert s.iat[i] == i + 1
-
-    def test_mixed_index_assignment(self):
-        # GH 19860
-        s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
-        s.at["a"] = 11
-        assert s.iat[0] == 11
-        s.at[1] = 22
-        assert s.iat[3] == 22
-
-    def test_mixed_index_no_fallback(self):
-        # GH 19860
-        s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
-        with pytest.raises(KeyError, match="^0$"):
-            s.at[0]
-        with pytest.raises(KeyError, match="^4$"):
-            s.at[4]
 
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
@@ -849,6 +799,7 @@ class TestMisc:
 
         result = maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ["A", "C"]]
+        assert all(result[1] == expected[1])
         result = maybe_numeric_slice(df, [1])
         expected = [1]
         assert result == expected

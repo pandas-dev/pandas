@@ -433,19 +433,20 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
-    # faster for larger cases to use np.in1d
     f = htable.ismember_object
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1_000_000 and not is_object_dtype(comps):
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # in1d is faster for small sizes
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
-        if np.isnan(values).any():
+        if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps.dtype):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -454,7 +455,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps.dtype):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)
@@ -1181,10 +1182,8 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-            reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
-            slc = np.s_[::-1] if reverse_it else np.s_[:]
-            return dropped[slc].sort_values(ascending=ascending).head(n)
+            return dropped.sort_values(ascending=ascending).head(n)
 
         # fast method
         arr, pandas_dtype = _ensure_data(dropped.values)
@@ -2063,27 +2062,25 @@ def safe_sort(
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
 
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
-
     sorter = None
+
     if (
         not is_extension_array_dtype(values)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
+        ordered = _sort_mixed(values)
     else:
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
         except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
+            # Previous sorters failed or were not applicable, try `_sort_mixed`
+            # which would work, but which fails for special case of 1d arrays
+            # with tuples.
+            if values.size and isinstance(values[0], tuple):
+                ordered = _sort_tuples(values)
+            else:
+                ordered = _sort_mixed(values)
 
     # codes:
 
@@ -2130,3 +2127,26 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
+
+def _sort_mixed(values):
+    """ order ints before strings in 1d arrays, safe in py3 """
+    str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos])
+    strs = np.sort(values[str_pos])
+    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+
+def _sort_tuples(values: np.ndarray[tuple]):
+    """
+    Convert array of tuples (1d) to array or array (2d).
+    We need to keep the columns separately as they contain different types and
+    nans (can't use `np.sort` as it may fail when str and nan are mixed in a
+    column as types cannot be compared).
+    """
+    from pandas.core.internals.construction import to_arrays
+    from pandas.core.sorting import lexsort_indexer
+
+    arrays, _ = to_arrays(values, None)
+    indexer = lexsort_indexer(arrays, orders=True)
+    return values[indexer]

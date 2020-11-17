@@ -6,7 +6,7 @@ import codecs
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import BytesIO, StringIO
 import os
 import platform
 from urllib.error import URLError
@@ -2312,3 +2312,60 @@ def test_dict_keys_as_names(all_parsers):
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("io_class", [StringIO, BytesIO])
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_read_csv_file_handle(all_parsers, io_class, encoding):
+    """
+    Test whether read_csv does not close user-provided file handles.
+
+    GH 36980
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    content = "a,b\n1,2"
+    if io_class == BytesIO:
+        content = content.encode("utf-8")
+    handle = io_class(content)
+
+    tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
+    assert not handle.closed
+
+
+def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
+    """
+    Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
+
+    GH 37621
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    handle = BytesIO()
+    expected.to_csv(handle, index=False, compression=compression, mode="wb")
+    handle.seek(0)
+
+    tm.assert_frame_equal(
+        parser.read_csv(handle, memory_map=True, compression=compression),
+        expected,
+    )
+
+
+def test_memory_map_compression(all_parsers, compression):
+    """
+    Support memory map for compressed files.
+
+    GH 37621
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    with tm.ensure_clean() as path:
+        expected.to_csv(path, index=False, compression=compression)
+
+        tm.assert_frame_equal(
+            parser.read_csv(path, memory_map=True, compression=compression),
+            expected,
+        )

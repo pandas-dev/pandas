@@ -803,9 +803,11 @@ There are several time/date properties that one can access from ``Timestamp`` or
     time,"Returns datetime.time (does not contain timezone information)"
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
+    day_of_year,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
+    day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
@@ -877,7 +879,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
@@ -1578,11 +1580,6 @@ some advanced strategies.
 The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
-.. note::
-
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
-   a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
-
 Basics
 ~~~~~~
 
@@ -1728,7 +1725,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.

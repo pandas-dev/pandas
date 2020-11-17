@@ -1009,7 +1009,7 @@ class TestDataFrameFormatting:
 
         # GH 12211
         df = DataFrame(
-            {"date": [pd.Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
+            {"date": [Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
         )
 
         with option_context("display.max_rows", 5):
@@ -1019,7 +1019,7 @@ class TestDataFrameFormatting:
             assert "..." in result
             assert "[6 rows x 1 columns]" in result
 
-        dts = [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
+        dts = [Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1033,7 +1033,7 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.NaT] * 5 + [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5
+        dts = [pd.NaT] * 5 + [Timestamp("2011-01-01", tz="US/Eastern")] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1047,8 +1047,8 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
-            pd.Timestamp("2011-01-01", tz="US/Eastern")
+        dts = [Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
+            Timestamp("2011-01-01", tz="US/Eastern")
         ] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
@@ -2029,6 +2029,35 @@ c  10  11  12  13  14\
         )
         assert str(df) == exp
 
+    @pytest.mark.parametrize(
+        "length, max_rows, min_rows, expected",
+        [
+            (10, 10, 10, 10),
+            (10, 10, None, 10),
+            (10, 8, None, 8),
+            (20, 30, 10, 30),  # max_rows > len(frame), hence max_rows
+            (50, 30, 10, 10),  # max_rows < len(frame), hence min_rows
+            (100, 60, 10, 10),  # same
+            (60, 60, 10, 60),  # edge case
+            (61, 60, 10, 10),  # edge case
+        ],
+    )
+    def test_max_rows_fitted(self, length, min_rows, max_rows, expected):
+        """Check that display logic is correct.
+
+        GH #37359
+
+        See description here:
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
+        """
+        formatter = fmt.DataFrameFormatter(
+            DataFrame(np.random.rand(length, 3)),
+            max_rows=max_rows,
+            min_rows=min_rows,
+        )
+        result = formatter.max_rows_fitted
+        assert result == expected
+
 
 def gen_series_formatting():
     s1 = Series(["a"] * 100)
@@ -2184,7 +2213,7 @@ class TestSeriesFormatting:
 
         # object dtype, longer than unicode repr
         s = Series(
-            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+            [1, 22, 3333, 44444], index=[1, "AB", Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -2282,7 +2311,7 @@ class TestSeriesFormatting:
             # object dtype, longer than unicode repr
             s = Series(
                 [1, 22, 3333, 44444],
-                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
+                index=[1, "AB", Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"

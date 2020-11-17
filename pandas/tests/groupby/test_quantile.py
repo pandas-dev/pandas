@@ -194,7 +194,7 @@ def test_quantile_missing_group_values_correct_results(
     df = DataFrame({"key": key, "val": val})
 
     expected = DataFrame(
-        expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
+        expected_val, index=Index(expected_key, name="key"), columns=["val"]
     )
 
     grp = df.groupby("key")
@@ -223,7 +223,7 @@ def test_groupby_quantile_nullable_array(values, q):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
         true_quantiles = [0.0, 0.5, 1.0]
     else:
-        idx = pd.Index(["x", "y"], name="a")
+        idx = Index(["x", "y"], name="a")
         true_quantiles = [0.5]
 
     expected = pd.Series(true_quantiles * 2, index=idx, name="b")
@@ -235,4 +235,22 @@ def test_groupby_quantile_skips_invalid_dtype(q):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
     result = df.groupby("a").quantile(q)
     expected = df.groupby("a")[["b"]].quantile(q)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_timedelta_quantile():
+    # GH: 29485
+    df = DataFrame(
+        {"value": pd.to_timedelta(np.arange(4), unit="s"), "group": [1, 1, 2, 2]}
+    )
+    result = df.groupby("group").quantile(0.99)
+    expected = DataFrame(
+        {
+            "value": [
+                pd.Timedelta("0 days 00:00:00.990000"),
+                pd.Timedelta("0 days 00:00:02.990000"),
+            ]
+        },
+        index=Index([1, 2], name="group"),
+    )
     tm.assert_frame_equal(result, expected)

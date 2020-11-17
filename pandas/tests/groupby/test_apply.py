@@ -898,7 +898,7 @@ def test_apply_multi_level_name(category):
 
 def test_groupby_apply_datetime_result_dtypes():
     # GH 14849
-    data = pd.DataFrame.from_records(
+    data = DataFrame.from_records(
         [
             (pd.Timestamp(2016, 1, 1), "red", "dark", 1, "8"),
             (pd.Timestamp(2015, 1, 1), "green", "stormy", 2, "9"),
@@ -977,25 +977,6 @@ def test_apply_function_index_return(function):
     expected = Series(
         [Index([0, 4, 7, 9]), Index([1, 2, 3, 5]), Index([6, 8])],
         index=Index([1, 2, 3], name="id"),
-    )
-    tm.assert_series_equal(result, expected)
-
-
-def test_apply_function_with_indexing():
-    # GH: 33058
-    df = DataFrame({"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]})
-
-    def fn(x):
-        x.col2[x.index[-1]] = 0
-        return x.col2
-
-    result = df.groupby(["col1"], as_index=False).apply(fn)
-    expected = Series(
-        [1, 2, 0, 4, 5, 0],
-        index=pd.MultiIndex.from_tuples(
-            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
-        ),
-        name="col2",
     )
     tm.assert_series_equal(result, expected)
 

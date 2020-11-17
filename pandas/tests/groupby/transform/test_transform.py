@@ -106,10 +106,10 @@ def test_transform_fast():
     result = df.groupby("grouping").transform("first")
 
     dates = [
-        pd.Timestamp("2014-1-1"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-1"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
@@ -158,7 +158,25 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis(tsframe):
+def test_transform_axis_1(transformation_func):
+    # GH 36308
+    if transformation_func == "tshift":
+        pytest.xfail("tshift is deprecated")
+    args = ("ffill",) if transformation_func == "fillna" else tuple()
+
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+
+    if transformation_func == "diff":
+        # Result contains nans, so transpose coerces to float
+        expected["b"] = expected["b"].astype("int64")
+
+    # cumcount returns Series; the rest are DataFrame
+    tm.assert_equal(result, expected)
+
+
+def test_transform_axis_ts(tsframe):
 
     # make sure that we are setting the axes
     # correctly when on axis=0 or 1
@@ -393,9 +411,9 @@ def test_series_fast_transform_date():
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
         pd.NaT,
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = Series(dates, name="d")
     tm.assert_series_equal(result, expected)
@@ -1134,7 +1152,7 @@ def test_categorical_and_not_categorical_key(observed):
     # GH 32494
     df_with_categorical = DataFrame(
         {
-            "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
+            "A": Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
             "B": [1, 2, 3],
             "C": ["a", "b", "a"],
         }

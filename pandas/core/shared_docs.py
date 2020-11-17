@@ -47,16 +47,16 @@ A passed user-defined-function will be passed a Series for evaluation.
 _shared_docs[
     "compare"
 ] = """
-Compare to another %(klass)s and show the differences.
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
@@ -91,7 +91,7 @@ by : mapping, function, label, or list of labels
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
     aligned; see ``.align()`` method). If an ndarray is passed, the
-    values are used as-is determine the groups. A label or list of
+    values are used as-is to determine the groups. A label or list of
     labels may be passed to group by the columns in ``self``. Notice
     that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
