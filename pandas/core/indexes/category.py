@@ -224,7 +224,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         result._cache = {}
 
         result._reset_identity()
-        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------

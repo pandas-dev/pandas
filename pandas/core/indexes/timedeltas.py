@@ -2,7 +2,7 @@
 
 from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import Timedelta, to_offset
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
@@ -103,6 +103,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     _typ = "timedeltaindex"
 
+    _data_cls = TimedeltaArray
     _engine_type = libindex.TimedeltaEngine
 
     _comparables = ["name", "freq"]
@@ -155,20 +156,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
         return cls._simple_new(tdarr, name=name)
-
-    @classmethod
-    def _simple_new(cls, values: TimedeltaArray, name: Label = None):
-        assert isinstance(values, TimedeltaArray)
-
-        result = object.__new__(cls)
-        result._data = values
-        result._name = name
-        result._cache = {}
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-
-        result._reset_identity()
-        return result
 
     # -------------------------------------------------------------------
     # Rendering Methods
