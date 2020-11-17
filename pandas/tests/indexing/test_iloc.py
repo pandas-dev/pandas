@@ -826,6 +826,13 @@ class TestiLoc2:
         expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
         tm.assert_frame_equal(df2, expected)
 
+    def test_setitem_iloc_dictionary_value(self):
+        # GH#37728
+        df = DataFrame({"x": [1, 2], "y": [2, 2]})
+        rhs = dict(x=9, y=99)
+        df.iloc[1] = rhs
+        expected = DataFrame({"x": [1, 9], "y": [2, 99]})
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as

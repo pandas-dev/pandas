@@ -1820,8 +1820,7 @@ class _iLocIndexer(_LocationIndexer):
                 return
 
             indexer = maybe_convert_ix(*indexer)
-
-        if isinstance(value, (ABCSeries, dict)) and name != "iloc":
+        if isinstance(value, ABCSeries) and name != "iloc" or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
