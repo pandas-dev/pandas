@@ -1,4 +1,6 @@
-from typing import Any, Optional, Sequence, Type, TypeVar
+from __future__ import annotations
+
+from typing import Any, Optional, Sequence, Type, TypeVar, Union
 
 import numpy as np
 
@@ -212,7 +214,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
+    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
