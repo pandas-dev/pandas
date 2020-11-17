@@ -439,7 +439,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
-    if len(comps) > 1_000_000 and len(values) <= 16 and not is_object_dtype(comps):
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
