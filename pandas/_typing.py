@@ -23,8 +23,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.missing import NAType  # noqa: F401
-
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
@@ -32,6 +30,7 @@ if TYPE_CHECKING:
     from typing import final
 
     from pandas._libs import Period, Timedelta, Timestamp
+    from pandas._libs.missing import NAType
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -46,9 +45,11 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+
 else:
     # typing.final does not exist until py38
     final = lambda x: x
+    NAType = Any
 
 
 # array-like
