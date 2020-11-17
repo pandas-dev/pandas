@@ -219,8 +219,13 @@ class TestMultiIndexPartial:
         "indexer, exp_idx, exp_values",
         [
             (slice("2019-2", None), [to_datetime("2019-02-01")], [2, 3]),
-            (slice(None, "2019-2"), date_range("2019", periods=2, freq="MS"), [0, 1, 2, 3]),
-        ])
+            (
+                slice(None, "2019-2"),
+                date_range("2019", periods=2, freq="MS"),
+                [0, 1, 2, 3],
+            ),
+        ],
+    )
     def test_partial_getitem_loc_datetime(self, indexer, exp_idx, exp_values):
         # GH: 25165
         date_idx = date_range("2019", periods=2, freq="MS")
@@ -230,9 +235,7 @@ class TestMultiIndexPartial:
         )
         expected = DataFrame(
             exp_values,
-            index=MultiIndex.from_product(
-                [exp_idx, [0, 1]], names=["x", "y"]
-            ),
+            index=MultiIndex.from_product([exp_idx, [0, 1]], names=["x", "y"]),
         )
         result = df[indexer]
         tm.assert_frame_equal(result, expected)
