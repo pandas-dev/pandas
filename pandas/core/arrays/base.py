@@ -591,7 +591,7 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self):
+    def argmin(self, *args):
         """
         Return the index of minimum value.
 
@@ -608,7 +608,7 @@ class ExtensionArray:
         """
         return nargminmax(self, "argmin")
 
-    def argmax(self):
+    def argmax(self, *args):
         """
         Return the index of maximum value.
 
