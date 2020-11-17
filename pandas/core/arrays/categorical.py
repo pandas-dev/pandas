@@ -405,12 +405,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if is_categorical_dtype(dtype):
             dtype = cast(Union[str, CategoricalDtype], dtype)
 
-            # GH 10696/18593
+            # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
-            self = self.copy() if copy else self
+            result = self.copy() if copy else self
             if dtype == self.dtype:
-                return self
-            return self._set_dtype(dtype)
+                return result
+            return result._set_dtype(dtype)
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():

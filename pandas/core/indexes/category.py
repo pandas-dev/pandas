@@ -14,10 +14,8 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
-    is_interval_dtype,
     is_list_like,
     is_scalar,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
@@ -370,20 +368,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-        if is_interval_dtype(dtype):
-            from pandas import IntervalIndex
-
-            return IntervalIndex(np.array(self))
-        elif is_categorical_dtype(dtype):
-            # GH 18630
-            dtype = self.dtype.update_dtype(dtype)
-            if dtype == self.dtype:
-                return self.copy() if copy else self
-
-        return Index.astype(self, dtype=dtype, copy=copy)
+        res_data = self._data.astype(dtype, copy=copy)
+        return Index(res_data, name=self.name)
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
