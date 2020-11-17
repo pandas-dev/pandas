@@ -144,6 +144,22 @@ class TestSetitemBooleanMask:
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
 
+    def test_setitem_boolean_nullable_int_types(self, any_numeric_dtype):
+        # GH: 26468
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        loc_ser = Series(range(4), dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
