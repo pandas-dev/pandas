@@ -458,6 +458,7 @@ Deprecations
 - :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
 - Partial slicing on unordered :class:`DatetimeIndexes` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
+- The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 
 .. ---------------------------------------------------------------------------
 

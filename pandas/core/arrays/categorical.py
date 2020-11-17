@@ -1076,7 +1076,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warn(
                 "The `inplace` parameter in pandas.Categorical.remove_unused_categories"
                 " is deprecated and will be removed in a future version.",
-                FutureWarning, stacklevel=2
+                FutureWarning,
+                stacklevel=2,
             )
 
         cat = self.copy()
