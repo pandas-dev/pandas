@@ -17,6 +17,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    DateOffset,
     DatetimeIndex,
     NaT,
     Period,
@@ -166,14 +167,33 @@ class TestDatetime64SeriesComparison:
                 [NaT, NaT, Timedelta("3 days")],
             ),
             (
-                [pd.Period("2011-01", freq="M"), NaT, pd.Period("2011-03", freq="M")],
-                [NaT, NaT, pd.Period("2011-03", freq="M")],
+                [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")],
+                [NaT, NaT, Period("2011-03", freq="M")],
             ),
         ],
     )
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_nat_comparisons(self, dtype, index_or_series, reverse, pair):
+    @pytest.mark.parametrize(
+        "op, expected",
+        [
+            (operator.eq, Series([False, False, True])),
+            (operator.ne, Series([True, True, False])),
+            (operator.lt, Series([False, False, False])),
+            (operator.gt, Series([False, False, False])),
+            (operator.ge, Series([False, False, True])),
+            (operator.le, Series([False, False, True])),
+        ],
+    )
+    def test_nat_comparisons(
+        self,
+        dtype,
+        index_or_series,
+        reverse,
+        pair,
+        op,
+        expected,
+    ):
         box = index_or_series
         l, r = pair
         if reverse:
@@ -182,25 +202,10 @@ class TestDatetime64SeriesComparison:
 
         left = Series(l, dtype=dtype)
         right = box(r, dtype=dtype)
-        # Series, Index
 
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left == right, expected)
+        result = op(left, right)
 
-        expected = Series([True, True, False])
-        tm.assert_series_equal(left != right, expected)
-
-        expected = Series([False, False, False])
-        tm.assert_series_equal(left < right, expected)
-
-        expected = Series([False, False, False])
-        tm.assert_series_equal(left > right, expected)
-
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left >= right, expected)
-
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left <= right, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
         # GH#4968
@@ -1074,7 +1079,7 @@ class TestDatetime64Arithmetic:
             3.14,
             np.array([2.0, 3.0]),
             # GH#13078 datetime +/- Period is invalid
-            pd.Period("2011-01-01", freq="D"),
+            Period("2011-01-01", freq="D"),
             # https://github.com/pandas-dev/pandas/issues/10329
             time(1, 2, 3),
         ],
@@ -1284,7 +1289,7 @@ class TestDatetime64DateOffsetArithmetic:
             ("microseconds", 5),
         ]
         for i, kwd in enumerate(relative_kwargs):
-            off = pd.DateOffset(**dict([kwd]))
+            off = DateOffset(**dict([kwd]))
 
             expected = DatetimeIndex([x + off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
@@ -1294,7 +1299,7 @@ class TestDatetime64DateOffsetArithmetic:
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
 
-            off = pd.DateOffset(**dict(relative_kwargs[: i + 1]))
+            off = DateOffset(**dict(relative_kwargs[: i + 1]))
 
             expected = DatetimeIndex([x + off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
@@ -1427,14 +1432,14 @@ class TestDatetime64DateOffsetArithmetic:
         # GH#10699
         s = date_range("2000-01-01", "2000-01-31", name="a")
         s = tm.box_expected(s, box_with_array)
-        result = s + pd.DateOffset(years=1)
-        result2 = pd.DateOffset(years=1) + s
+        result = s + DateOffset(years=1)
+        result2 = DateOffset(years=1) + s
         exp = date_range("2001-01-01", "2001-01-31", name="a")._with_freq(None)
         exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
-        result = s - pd.DateOffset(years=1)
+        result = s - DateOffset(years=1)
         exp = date_range("1999-01-01", "1999-01-31", name="a")._with_freq(None)
         exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
@@ -1523,7 +1528,7 @@ class TestDatetime64DateOffsetArithmetic:
         [
             (
                 "__add__",
-                pd.DateOffset(months=3, days=10),
+                DateOffset(months=3, days=10),
                 [
                     Timestamp("2014-04-11"),
                     Timestamp("2015-04-11"),
@@ -1534,7 +1539,7 @@ class TestDatetime64DateOffsetArithmetic:
             ),
             (
                 "__add__",
-                pd.DateOffset(months=3),
+                DateOffset(months=3),
                 [
                     Timestamp("2014-04-01"),
                     Timestamp("2015-04-01"),
@@ -1545,7 +1550,7 @@ class TestDatetime64DateOffsetArithmetic:
             ),
             (
                 "__sub__",
-                pd.DateOffset(months=3, days=10),
+                DateOffset(months=3, days=10),
                 [
                     Timestamp("2013-09-21"),
                     Timestamp("2014-09-21"),
@@ -1556,7 +1561,7 @@ class TestDatetime64DateOffsetArithmetic:
             ),
             (
                 "__sub__",
-                pd.DateOffset(months=3),
+                DateOffset(months=3),
                 [
                     Timestamp("2013-10-01"),
                     Timestamp("2014-10-01"),

@@ -802,15 +802,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if (start is None or isinstance(start, str)) and (
                 end is None or isinstance(end, str)
             ):
-                mask = True
+                mask = np.array(True)
+                deprecation_mask = np.array(True)
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(start, "left", kind)
                     mask = start_casted <= self
+                    deprecation_mask = start_casted == self
 
                 if end is not None:
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
+                    deprecation_mask = (end_casted == self) | deprecation_mask
 
+                if not deprecation_mask.any():
+                    warnings.warn(
+                        "Value based partial slicing on non-monotonic DatetimeIndexes "
+                        "with non-existing keys is deprecated and will raise a "
+                        "KeyError in a future Version.",
+                        FutureWarning,
+                        stacklevel=5,
+                    )
                 indexer = mask.nonzero()[0][::step]
                 if len(indexer) == len(self):
                     return slice(None)

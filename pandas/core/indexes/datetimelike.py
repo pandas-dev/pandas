@@ -482,16 +482,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self._data._ndarray
+        other = self._data._validate_setitem_value(other)
 
-        try:
-            other = self._data._validate_where_value(other)
-        except (TypeError, ValueError) as err:
-            # Includes tzawareness mismatch and IncompatibleFrequencyError
-            oth = getattr(other, "dtype", other)
-            raise TypeError(f"Where requires matching dtype, not {oth}") from err
-
-        result = np.where(cond, values, other)
+        result = np.where(cond, self._data._ndarray, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -588,7 +581,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         Find the `freq` for self.insert(loc, item).
         """
-        value = self._data._validate_insert_value(item)
+        value = self._data._validate_scalar(item)
         item = self._data._box_func(value)
 
         freq = None
@@ -752,7 +745,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
+            # pandas\core\indexes\datetimelike.py:758: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                data=[], dtype=self.dtype, freq=self.freq  # type: ignore[call-arg]
+            )
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
@@ -881,7 +878,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
+            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
+            )
             return result
 
     # --------------------------------------------------------------------

@@ -227,7 +227,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, str unit=None, str errors="raise"):
+def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="raise"):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -405,9 +405,11 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
             m = 10**(3 -len(frac)) * 1000 * 1000
         elif len(frac) > 3 and len(frac) <= 6:
             m = 10**(6 -len(frac)) * 1000
-        else:
+        elif len(frac) > 6 and len(frac) <= 9:
             m = 10**(9 -len(frac))
-
+        else:
+            m = 1
+            frac = frac[:9]
         r = <int64_t>int(''.join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
@@ -1143,6 +1145,9 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
+
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds.
     """
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):

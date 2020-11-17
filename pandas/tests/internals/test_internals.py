@@ -264,6 +264,25 @@ class TestBlock:
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
 
+    def test_split(self):
+        # GH#37799
+        values = np.random.randn(3, 4)
+        blk = make_block(values, placement=[3, 1, 6])
+        result = blk._split()
+
+        # check that we get views, not copies
+        values[:] = -9999
+        assert (blk.values == -9999).all()
+
+        assert len(result) == 3
+        expected = [
+            make_block(values[[0]], placement=[3]),
+            make_block(values[[1]], placement=[1]),
+            make_block(values[[2]], placement=[6]),
+        ]
+        for res, exp in zip(result, expected):
+            assert_block_equal(res, exp)
+
 
 class TestBlockManager:
     def test_attrs(self):
@@ -667,7 +686,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool"]))
+        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -1129,12 +1148,6 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
-
-
-def test_missing_unicode_key():
-    df = DataFrame({"a": [1]})
-    with pytest.raises(KeyError, match="\u05d0"):
-        df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
 
 
 def test_single_block_manager_fastpath_deprecated():

@@ -27,6 +27,7 @@ from pandas import (
     MultiIndex,
     NaT,
     Period,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -267,7 +268,7 @@ class TestSeriesConstructors:
             (["1", "2"]),
             (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
             (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
+            ([Interval(left=0, right=5)]),
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
@@ -624,7 +625,7 @@ class TestSeriesConstructors:
             pd.period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
-            pd.RangeIndex(0, 3),
+            RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -1004,7 +1005,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [pd.Interval(0, 1), pd.Interval(0, 2), None]
+        data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64]"
@@ -1015,7 +1016,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_interval_mixed_closed(self, data_constructor):
         # GH 23563: mixed closed results in object dtype (not interval dtype)
-        data = [pd.Interval(0, 1, closed="both"), pd.Interval(0, 2, closed="neither")]
+        data = [Interval(0, 1, closed="both"), Interval(0, 2, closed="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
         assert result.tolist() == data
@@ -1044,6 +1045,16 @@ class TestSeriesConstructors:
         expected = Series(period_array(data))
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
+
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
+    def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+
+        val = series[3]
+        assert isna(val)
+
+        series[2] = val
+        assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
         data = [pd.Period("2000", "D"), pd.Period("2001", "A")]

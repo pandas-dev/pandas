@@ -220,7 +220,9 @@ class ExtensionIndex(Index):
             if result.ndim == 1:
                 return type(self)(result, name=self.name)
             # Unpack to ndarray for MPL compat
-            result = result._data
+            # pandas\core\indexes\extension.py:220: error: "ExtensionArray" has
+            # no attribute "_data"  [attr-defined]
+            result = result._data  # type: ignore[attr-defined]
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)
@@ -228,11 +230,23 @@ class ExtensionIndex(Index):
 
     # ---------------------------------------------------------------------
 
+    def _check_indexing_method(self, method):
+        """
+        Raise if we have a get_indexer `method` that is not supported or valid.
+        """
+        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
+        if method is None:
+            return
+
+        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
+            raise NotImplementedError(
+                f"method {method} not yet implemented for {type(self).__name__}"
+            )
+
+        raise ValueError("Invalid fill method")
+
     def _get_engine_target(self) -> np.ndarray:
-        # NB: _values_for_argsort happens to match the desired engine targets
-        #  for all of our existing EA-backed indexes, but in general
-        #  cannot be relied upon to exist.
-        return self._data._values_for_argsort()
+        return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
@@ -304,6 +318,9 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     _data: NDArrayBackedExtensionArray
 
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._ndarray
+
     def delete(self, loc):
         """
         Make new Index with passed location(-s) deleted
@@ -335,7 +352,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         ValueError if the item is not valid for this dtype.
         """
         arr = self._data
-        code = arr._validate_insert_value(item)
+        code = arr._validate_scalar(item)
 
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
@@ -343,7 +360,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def putmask(self, mask, value):
         try:
-            value = self._data._validate_where_value(value)
+            value = self._data._validate_setitem_value(value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 

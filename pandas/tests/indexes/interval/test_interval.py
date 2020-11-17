@@ -192,7 +192,7 @@ class TestIntervalIndex:
 
         # invalid type
         msg = "can only insert Interval objects and NA into an IntervalArray"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
@@ -213,7 +213,7 @@ class TestIntervalIndex:
         if data.left.dtype.kind not in ["m", "M"]:
             # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
             msg = "can only insert Interval objects and NA into an IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 result = data.insert(1, pd.NaT)
         else:
             result = data.insert(1, pd.NaT)
@@ -579,9 +579,11 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        msg = (
-            "not supported between instances of 'int' and "
-            "'pandas._libs.interval.Interval'"
+        msg = "|".join(
+            [
+                "not supported between instances of 'int' and '.*.Interval'",
+                r"Invalid comparison between dtype=interval\[int64\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             self.index > 0
@@ -867,7 +869,7 @@ class TestIntervalIndex:
 
     def test_is_all_dates(self):
         # GH 23576
-        year_2017 = pd.Interval(
+        year_2017 = Interval(
             Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])

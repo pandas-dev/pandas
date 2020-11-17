@@ -152,14 +152,17 @@ def test_binary_mode_file_buffers(
 
     with open(fpath, mode="r", encoding=encoding) as fa:
         result = parser.read_csv(fa)
+        assert not fa.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb") as fb:
         result = parser.read_csv(fb, encoding=encoding)
+        assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb", buffering=0) as fb:
         result = parser.read_csv(fb, encoding=encoding)
+        assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
 
@@ -199,6 +202,7 @@ def test_encoding_named_temp_file(all_parsers):
 
         result = parser.read_csv(f, encoding=encoding)
         tm.assert_frame_equal(result, expected)
+        assert not f.closed
 
 
 @pytest.mark.parametrize(
