@@ -340,16 +340,16 @@ class TestDataFrameSetItemBooleanMask:
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("func", [list, np.array, Series])
+    @pytest.mark.parametrize("box", [list, np.array, Series])
     @pytest.mark.parametrize("value", [[], [False]])
-    def test_setitem_loc_only_false_indexer_dtype_changed(self, func, value):
+    def test_setitem_loc_only_false_indexer_dtype_changed(self, box, value):
         # GH#37550
         # Dtype is only changed when value to set is a Series and indexer is
         # empty/bool all False
         df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
-        df.loc[func(value), ["b"]] = 10 - df["c"]
+        df.loc[box(value), ["b"]] = 10 - df["c"]
         expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
         tm.assert_frame_equal(df, expected)
 
-        df.loc[[False], ["b"]] = 9
+        df.loc[box(value), ["b"]] = 9
         tm.assert_frame_equal(df, expected)
