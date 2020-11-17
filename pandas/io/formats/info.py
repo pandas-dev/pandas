@@ -97,7 +97,7 @@ class BaseInfo(ABC):
 
     Parameters
     ----------
-    data : FrameOrSeriesUnion
+    data : DataFrame or Series
         Either dataframe or series.
     memory_usage : bool or str, optional
         If "deep", introspect the data deeply by interrogating object dtypes
