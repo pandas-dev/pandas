@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -146,6 +146,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _data: PeriodArray
     freq: BaseOffset
 
+    _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
 
@@ -243,28 +244,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             data = data.copy()
 
         return cls._simple_new(data, name=name)
-
-    @classmethod
-    def _simple_new(cls, values: PeriodArray, name: Label = None):
-        """
-        Create a new PeriodIndex.
-
-        Parameters
-        ----------
-        values : PeriodArray
-            Values that can be converted to a PeriodArray without inference
-            or coercion.
-        """
-        assert isinstance(values, PeriodArray), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
 
     # ------------------------------------------------------------------------
     # Data
@@ -694,7 +673,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return type(self)._simple_new(self._data[:0], name=self.name)
+
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            values = cast(PeriodArray, self._data[:0])
+            return type(self)._simple_new(values, name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
