@@ -31,7 +31,7 @@ from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     is_list_like_indexer,
-    length_of_indexer, is_empty_indexer,
+    length_of_indexer,
 )
 from pandas.core.indexes.api import Index
 
