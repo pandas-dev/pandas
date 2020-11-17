@@ -563,14 +563,15 @@ class ExcelFormatter:
                 zip(level_lengths, columns.levels, columns.codes)
             ):
                 values = levels.take(level_codes)
-                for i in spans:
+                for i, span_val in spans.items():
+                    is_multilevel = span_val > 1
                     yield ExcelCell(
                         row=lnum,
                         col=coloffset + i + 1,
                         val=values[i],
                         style=self.header_style,
-                        mergestart=lnum if spans[i] > 1 else None,
-                        mergeend=coloffset + i + spans[i] if spans[i] > 1 else None,
+                        mergestart=lnum if is_multilevel else None,
+                        mergeend=coloffset + i + span_val if is_multilevel else None,
                     )
         else:
             # Format in legacy format with dots to indicate levels.
@@ -715,7 +716,8 @@ class ExcelFormatter:
                         fill_value=levels._na_value,
                     )
 
-                    for i in spans:
+                    for i, span_val in spans.items():
+                        is_multilevel = span_val > 1
                         yield ExcelCell(
                             row=self.rowcounter + i,
                             col=gcolidx,
@@ -723,10 +725,10 @@ class ExcelFormatter:
                             style=self.header_style,
                             mergestart=(
                                 self.rowcounter + i + spans[i] - 1
-                                if spans[i] > 1
+                                if is_multilevel
                                 else None
                             ),
-                            mergeend=gcolidx if spans[i] > 1 else None,
+                            mergeend=gcolidx if is_multilevel else None,
                         )
                     gcolidx += 1
 
