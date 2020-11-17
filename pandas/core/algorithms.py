@@ -433,19 +433,20 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
-    # faster for larger cases to use np.in1d
     f = htable.ismember_object
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1_000_000 and not is_object_dtype(comps):
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # in1d is faster for small sizes
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
-        if np.isnan(values).any():
+        if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps.dtype):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -454,7 +455,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps.dtype):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)
@@ -696,6 +697,8 @@ def factorize(
 
     # return original tenor
     if isinstance(original, ABCIndexClass):
+        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -1179,10 +1182,8 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-            reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
-            slc = np.s_[::-1] if reverse_it else np.s_[:]
-            return dropped[slc].sort_values(ascending=ascending).head(n)
+            return dropped.sort_values(ascending=ascending).head(n)
 
         # fast method
         arr, pandas_dtype = _ensure_data(dropped.values)
@@ -1650,7 +1651,8 @@ def take_nd(
     """
     mask_info = None
 
-    if is_extension_array_dtype(arr):
+    if isinstance(arr, ABCExtensionArray):
+        # Check for EA to catch DatetimeArray, TimedeltaArray
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = extract_array(arr)
@@ -1908,6 +1910,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if is_extension_array_dtype(dtype):
         if hasattr(arr, f"__{op.__name__}__"):
+            if axis != 0:
+                raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
             warn(
@@ -1922,17 +1926,25 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     is_timedelta = False
     is_bool = False
     if needs_i8_conversion(arr.dtype):
-        dtype = np.float64
+        dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
         is_timedelta = True
 
     elif is_bool_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.object_
         is_bool = True
 
     elif is_integer_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.float64
+
+    orig_ndim = arr.ndim
+    if orig_ndim == 1:
+        # reshape so we can always use algos.diff_2d
+        arr = arr.reshape(-1, 1)
+        # TODO: require axis == 0
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
@@ -1944,7 +1956,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis)
+        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1978,8 +1990,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
+        out_arr = out_arr.view("timedelta64[ns]")
 
+    if orig_ndim == 1:
+        out_arr = out_arr[:, 0]
     return out_arr
 
 
@@ -2043,32 +2057,30 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
 
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
-
     sorter = None
+
     if (
         not is_extension_array_dtype(values)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
+        ordered = _sort_mixed(values)
     else:
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
         except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
+            # Previous sorters failed or were not applicable, try `_sort_mixed`
+            # which would work, but which fails for special case of 1d arrays
+            # with tuples.
+            if values.size and isinstance(values[0], tuple):
+                ordered = _sort_tuples(values)
+            else:
+                ordered = _sort_mixed(values)
 
     # codes:
 
@@ -2115,3 +2127,26 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
+
+def _sort_mixed(values):
+    """ order ints before strings in 1d arrays, safe in py3 """
+    str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos])
+    strs = np.sort(values[str_pos])
+    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+
+def _sort_tuples(values: np.ndarray[tuple]):
+    """
+    Convert array of tuples (1d) to array or array (2d).
+    We need to keep the columns separately as they contain different types and
+    nans (can't use `np.sort` as it may fail when str and nan are mixed in a
+    column as types cannot be compared).
+    """
+    from pandas.core.internals.construction import to_arrays
+    from pandas.core.sorting import lexsort_indexer
+
+    arrays, _ = to_arrays(values, None)
+    indexer = lexsort_indexer(arrays, orders=True)
+    return values[indexer]

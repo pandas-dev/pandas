@@ -206,7 +206,7 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
-**Mac OS**
+**macOS**
 
 Information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
@@ -299,7 +299,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS with virtualenv**
+**Unix**/**macOS with virtualenv**
 
 .. code-block:: bash
 
@@ -318,7 +318,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-**Unix**/**Mac OS with pyenv**
+**Unix**/**macOS with pyenv**
 
 Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
@@ -442,7 +442,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-* The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `IPython directive
   <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
@@ -598,7 +598,7 @@ Building master branch documentation
 
 When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<https://dev.pandas.io>`__, see also
+<https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
 .. _contributing.code:
@@ -638,7 +638,46 @@ In addition to ``./ci/code_checks.sh``, some extra checks are run by
 ``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
 run them.
 
-Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
+Additional standards are outlined on the :ref:`pandas code style guide <code_style>`.
+
+.. _contributing.pre-commit:
+
+Pre-commit
+----------
+
+You can run many of these styling checks manually as we have described above. However,
+we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
+to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+    pip install pre-commit
+
+and then running::
+
+    pre-commit install
+
+from the root of the pandas repository. Now all of the styling checks will be
+run each time you commit changes without your needing to run each one manually.
+In addition, using ``pre-commit`` will also allow you to more easily
+remain up-to-date with our code checks as they change.
+
+Note that if needed, you can skip these checks with ``git commit --no-verify``.
+
+If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
+to run its checks with::
+
+    pre-commit run --files <files you have modified>
+
+without needing to have done ``pre-commit install`` beforehand.
+
+.. note::
+
+    If you have conflicting installations of ``virtualenv``, then you may get an
+    error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
+
+    Also, due to a `bug in virtualenv <https://github.com/pypa/virtualenv/issues/1986>`_,
+    you may run into issues if you're using conda. To solve this, you can downgrade
+    ``virtualenv`` to version ``20.0.33``.
 
 Optional dependencies
 ---------------------
@@ -712,7 +751,7 @@ Python (PEP8 / black)
 pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
-format throughout the project.
+format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
 
 :ref:`Continuous Integration <contributing.ci>` will run those tools and
 report any stylistic errors in your code. Therefore, it is helpful before
@@ -726,9 +765,6 @@ apply ``black`` as you edit files.
 
 You should use a ``black`` version 20.8b1 as previous versions are not compatible
 with the pandas codebase.
-
-If you wish to run these checks automatically, we encourage you to use
-:ref:`pre-commits <contributing.pre-commit>` instead.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
@@ -806,39 +842,6 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 Where similar caveats apply if you are on OSX or Windows.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
-
-.. _contributing.pre-commit:
-
-Pre-commit
-~~~~~~~~~~
-
-You can run many of these styling checks manually as we have described above. However,
-we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
-to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
-can be done by installing ``pre-commit``::
-
-    pip install pre-commit
-
-and then running::
-
-    pre-commit install
-
-from the root of the pandas repository. Now all of the styling checks will be
-run each time you commit changes without your needing to run each one manually.
-In addition, using this pre-commit hook will also allow you to more easily
-remain up-to-date with our code checks as they change.
-
-Note that if needed, you can skip these checks with ``git commit --no-verify``.
-
-If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks by running::
-
-    pre-commit run --files <files you have modified>
-
-without having to have done ``pre-commit install`` beforehand.
-
-Note that if you have conflicting installations of ``virtualenv``, then you may get an
-error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~

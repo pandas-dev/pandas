@@ -1,5 +1,7 @@
 """ parquet compat """
 
+import io
+import os
 from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
@@ -9,7 +11,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, stringify_path
+from pandas.io.common import get_handle, is_fsspec_url, stringify_path
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -101,19 +103,21 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
+        path = stringify_path(path)
+        # get_handle could be used here (for write_table, not for write_to_dataset)
+        # but it would complicate the code.
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             # make fsspec instance, which pyarrow will use to open paths
-            import_optional_dependency("fsspec")
-            import fsspec.core
+            fsspec = import_optional_dependency("fsspec")
 
             fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             kwargs["filesystem"] = fs
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with file object or non-fsspec file path"
-                )
-            path = stringify_path(path)
+
+        elif storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
+
         if partition_cols is not None:
             # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
@@ -130,32 +134,31 @@ class PyArrowImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        if is_fsspec_url(path) and "filesystem" not in kwargs:
-            import_optional_dependency("fsspec")
-            import fsspec.core
+        path = stringify_path(path)
+        handles = None
+        fs = kwargs.pop("filesystem", None)
+        if is_fsspec_url(path) and fs is None:
+            fsspec = import_optional_dependency("fsspec")
 
             fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
-            should_close = False
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with buffer or non-fsspec filepath"
-                )
-            fs = kwargs.pop("filesystem", None)
-            should_close = False
-            path = stringify_path(path)
-
-        if not fs:
-            ioargs = get_filepath_or_buffer(path)
-            path = ioargs.filepath_or_buffer
-            should_close = ioargs.should_close
+        elif storage_options:
+            raise ValueError(
+                "storage_options passed with buffer or non-fsspec filepath"
+            )
+        if not fs and isinstance(path, str) and not os.path.isdir(path):
+            # use get_handle only when we are very certain that it is not a directory
+            # fsspec resources can also point to directories
+            # this branch is used for example when reading from non-fsspec URLs
+            handles = get_handle(path, "rb", is_text=False)
+            path = handles.handle
 
         kwargs["use_pandas_metadata"] = True
         result = self.api.parquet.read_table(
             path, columns=columns, filesystem=fs, **kwargs
         ).to_pandas()
-        if should_close:
-            path.close()
+
+        if handles is not None:
+            handles.close()
 
         return result
 
@@ -195,6 +198,8 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
+        # cannot use get_handle as write() does not accept file buffers
+        path = stringify_path(path)
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
@@ -202,12 +207,10 @@ class FastParquetImpl(BaseImpl):
             kwargs["open_with"] = lambda path, _: fsspec.open(
                 path, "wb", **(storage_options or {})
             ).open()
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with file object or non-fsspec file path"
-                )
-            path = get_filepath_or_buffer(path).filepath_or_buffer
+        elif storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
 
         with catch_warnings(record=True):
             self.api.write(
@@ -222,44 +225,55 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        path = stringify_path(path)
+        parquet_kwargs = {}
+        handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            open_with = lambda path, _: fsspec.open(
+            parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
                 path, "rb", **(storage_options or {})
             ).open()
-            parquet_file = self.api.ParquetFile(path, open_with=open_with)
-        else:
-            path = get_filepath_or_buffer(path).filepath_or_buffer
-            parquet_file = self.api.ParquetFile(path)
+        elif isinstance(path, str) and not os.path.isdir(path):
+            # use get_handle only when we are very certain that it is not a directory
+            # fsspec resources can also point to directories
+            # this branch is used for example when reading from non-fsspec URLs
+            handles = get_handle(path, "rb", is_text=False)
+            path = handles.handle
+        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
-        return parquet_file.to_pandas(columns=columns, **kwargs)
+        result = parquet_file.to_pandas(columns=columns, **kwargs)
+
+        if handles is not None:
+            handles.close()
+        return result
 
 
 def to_parquet(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: Optional[FilePathOrBuffer] = None,
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
     storage_options: StorageOptions = None,
     partition_cols: Optional[List[str]] = None,
     **kwargs,
-):
+) -> Optional[bytes]:
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
     df : DataFrame
-    path : str or file-like object
+    path : str or file-like object, default None
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects.
+        fastparquet does not accept file-like objects. If path is None,
+        a bytes object is returned.
 
-        .. versionchanged:: 0.24.0
+        .. versionchanged:: 1.2.0
 
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
@@ -298,19 +312,32 @@ def to_parquet(
 
     kwargs
         Additional keyword arguments passed to the engine
+
+    Returns
+    -------
+    bytes if no path argument is provided else None
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
     impl = get_engine(engine)
-    return impl.write(
+
+    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
+
+    impl.write(
         df,
-        path,
+        path_or_buf,
         compression=compression,
         index=index,
         partition_cols=partition_cols,
         storage_options=storage_options,
         **kwargs,
     )
+
+    if path is None:
+        assert isinstance(path_or_buf, io.BytesIO)
+        return path_or_buf.getvalue()
+    else:
+        return None
 
 
 def read_parquet(path, engine: str = "auto", columns=None, **kwargs):

@@ -17,9 +17,9 @@ from pandas.core.dtypes.common import (
     ensure_python_int,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
@@ -369,7 +369,7 @@ class RangeIndex(Int64Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
-        if not (is_integer_dtype(target_array) and target_array.ndim == 1):
+        if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
             return super().get_indexer(target, method=method, tolerance=tolerance)
 
@@ -810,6 +810,12 @@ class RangeIndex(Int64Index):
         return any(self._range)
 
     # --------------------------------------------------------------------
+
+    def _cmp_method(self, other, op):
+        if isinstance(other, RangeIndex) and self._range == other._range:
+            # Both are immutable so if ._range attr. are equal, shortcut is possible
+            return super()._cmp_method(self, op)
+        return super()._cmp_method(other, op)
 
     def _arith_method(self, other, op):
         """

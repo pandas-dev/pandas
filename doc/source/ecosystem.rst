@@ -174,7 +174,7 @@ invoked with the following command
 
     dtale.show(df)
 
-D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
 and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
@@ -201,7 +201,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
 Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+pandas DataFrames implement ``_repr_html_`` and ``_repr_latex`` methods
 which are utilized by Jupyter Notebook for displaying
 (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
 (Note: HTML tables may or may not be
@@ -230,7 +230,7 @@ allows users to view, manipulate and edit pandas ``Index``, ``Series``,
 and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
 values, sorting, displaying a "heatmap", converting data types and more.
 pandas objects can also be renamed, duplicated, new columns added,
-copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+copied/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
 Spyder can also import data from a variety of plain text and binary files
 or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 
@@ -376,6 +376,23 @@ Dask-ML enables parallel and distributed machine learning using Dask alongside e
 
 Koalas provides a familiar pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
 
+`Modin <https://github.com/modin-project/modin>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``modin.pandas`` DataFrame is a parallel and distributed drop-in replacement
+for pandas. This means that you can use Modin with existing pandas code or write
+new code with the existing pandas API. Modin can leverage your entire machine or
+cluster to speed up and scale your pandas workloads, including traditionally
+time-consuming tasks like ingesting data (``read_csv``, ``read_excel``,
+``read_parquet``, etc.).
+
+.. code:: python
+
+    # import pandas as pd
+    import modin.pandas as pd
+
+    df = pd.read_csv("big.csv")  # use all your cores!
+
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -400,21 +417,11 @@ If also displays progress bars.
     # df.apply(func)
     df.parallel_apply(func)
 
-`Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-pandas on Ray is an early stage DataFrame library that wraps pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous pandas notebooks while experiencing a considerable speedup from pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use pandas on Ray just like you would pandas.
-
-.. code:: python
-
-    # import pandas as pd
-    import ray.dataframe as pd
-
 
 `Vaex <https://docs.vaex.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a Python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
  * vaex.from_pandas
  * vaex.to_pandas_df
