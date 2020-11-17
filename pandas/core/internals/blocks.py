@@ -2041,6 +2041,16 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     def external_values(self):
         return self.values.astype(object)
 
+    def _can_hold_element(self, element: Any) -> bool:
+        if is_valid_nat_for_dtype(element, self.dtype):
+            return True
+        if isinstance(element, list) and len(element) == 0:
+            return True
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, self.dtype.type)
+        return isinstance(element, self.dtype.type)
+
 
 class NumericBlock(Block):
     __slots__ = ()

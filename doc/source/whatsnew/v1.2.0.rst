@@ -562,6 +562,8 @@ Strings
 
 Interval
 ^^^^^^^^
+
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dtypes (:issue:`34871`)
 - Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 -
 -
@@ -625,6 +627,11 @@ I/O
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 - :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 - Bug in :meth:`read_fw` was not skipping blank lines (even with ``skip_blank_lines=True``) (:issue:`37758`)
+
+Period
+^^^^^^
+
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Period` dtypes would be converted to object dtypes (:issue:`34871`)
 
 Plotting
 ^^^^^^^^
