@@ -109,6 +109,7 @@ class BaseInfo(ABC):
     memory_usage: Union[bool, str]
 
     @property
+    @abstractmethod
     def dtypes(self) -> Iterable[Dtype]:
         """
         Dtypes.
