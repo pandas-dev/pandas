@@ -16,7 +16,6 @@ from pandas import (
     date_range,
     notna,
     period_range,
-    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
