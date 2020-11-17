@@ -1639,6 +1639,8 @@ class _iLocIndexer(_LocationIndexer):
             indexer = _tuplify(self.ndim, indexer)
         if len(indexer) > self.ndim:
             raise IndexError("too many indices for array")
+        if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
+            raise ValueError(r"Cannot set values with ndim > 2")
 
         if isinstance(value, ABCSeries):
             value = self._align_series(indexer, value)
@@ -1650,57 +1652,45 @@ class _iLocIndexer(_LocationIndexer):
         lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
-        if len(ilocs) == 1:
-            # We can operate on a single column
-
-            # require that we are setting the right number of values that
-            # we are indexing
-            if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
-                # Exclude zero-len for e.g. boolean masking that is all-false
-                raise ValueError(
-                    "cannot set using a multi-index "
-                    "selection indexer with a different "
-                    "length than the value"
-                )
-
         # we need an iterable, with a ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
-            # we have an equal len Frame
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value)
 
-            # we have an equal len ndarray/convertible to our ilocs
-            # hasattr first, to avoid coercing to ndarray without reason.
-            # But we may be relying on the ndarray coercion to check ndim.
-            # Why not just convert to an ndarray earlier on if needed?
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
-                # we have an equal len list/ndarray
-                # We only get here with len(ilocs) == 1
+                # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
+
+            elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
+                # We are trying to set N values into M entries of a single
+                #  column, which is invalid for N != M
+                # Exclude zero-len for e.g. boolean masking that is all-false
+                raise ValueError(
+                    "Must have equal len keys and value "
+                    "when setting with an iterable"
+                )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
-            else:
-                # per-label values
-                if len(ilocs) != len(value):
-                    raise ValueError(
-                        "Must have equal len keys and value "
-                        "when setting with an iterable"
-                    )
-
+            elif len(ilocs) == len(value):
+                # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, pi)
-        else:
 
-            if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
-                raise ValueError(r"Cannot set values with ndim > 2")
+            else:
+                raise ValueError(
+                    "Must have equal len keys and value "
+                    "when setting with an iterable"
+                )
+
+        else:
 
             # scalar value
             for loc in ilocs:
