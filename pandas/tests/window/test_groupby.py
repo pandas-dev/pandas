@@ -660,6 +660,10 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        # There may be a bug in the above statement; not returning the correct index
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
     @pytest.mark.parametrize(
         "method, expected_data",
         [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
@@ -680,4 +684,7 @@ class TestEWM:
                 names=["A", None, None],
             ),
         )
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
         tm.assert_frame_equal(result, expected)
