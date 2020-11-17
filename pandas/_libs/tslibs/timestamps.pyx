@@ -688,6 +688,12 @@ cdef class _Timestamp(ABCTimestamp):
     def normalize(self) -> "Timestamp":
         """
         Normalize Timestamp to midnight, preserving tz information.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(2020, 3, 14, 15, 30)
+        >>> ts.normalize()
+        Timestamp('2020-03-14 00:00:00')
         """
         cdef:
             local_val = self._maybe_convert_value_to_local()
