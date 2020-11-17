@@ -1246,9 +1246,7 @@ class _LocIndexer(_LocationIndexer):
         indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(
-                keyarr, indexer, axis, raise_missing=raise_missing
-            )
+            # _validate_read_indexer is a no-op if no -1s, so skip
             return ax[indexer], indexer
 
         if ax._index_as_unique:
@@ -1309,21 +1307,15 @@ class _LocIndexer(_LocationIndexer):
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
-            # we skip the warning on Categorical
-            # as this check is actually done (check for
-            # non-missing values), but a bit later in the
-            # code, so we want to avoid warning & then
-            # just raising
-            if not ax.is_categorical():
-                not_found = key[missing_mask]
+            not_found = key[missing_mask]
 
-                with option_context("display.max_seq_items", 10, "display.width", 80):
-                    raise KeyError(
-                        "Passing list-likes to .loc or [] with any missing labels "
-                        "is no longer supported. "
-                        f"The following labels were missing: {not_found}. "
-                        "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                    )
+            with option_context("display.max_seq_items", 10, "display.width", 80):
+                raise KeyError(
+                    "Passing list-likes to .loc or [] with any missing labels "
+                    "is no longer supported. "
+                    f"The following labels were missing: {not_found}. "
+                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                )
 
 
 @doc(IndexingMixin.iloc)
