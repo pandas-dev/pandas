@@ -1403,6 +1403,19 @@ cdef class BusinessDay(BusinessMixin):
 cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "BH"
@@ -3251,6 +3264,19 @@ cdef class CustomBusinessDay(BusinessDay):
 cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "CBH"
