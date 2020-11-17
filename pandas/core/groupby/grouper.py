@@ -350,8 +350,8 @@ class Grouper:
                 obj, ABCSeries
             ):
                 if self.indexer is not None:
-                    reverse_indexer = self._indexer.argsort()  # type: ignore[union-attr]
-                    unsorted_ax = self._grouper.take(reverse_indexer)  # type: ignore[union-attr]
+                    reverse_indexer = self._indexer.argsort()
+                    unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
                 else:
                     # pandas\core\groupby\grouper.py:348: error: Item "None" of
