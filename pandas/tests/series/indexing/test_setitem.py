@@ -282,12 +282,3 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
-
-
-def test_setitem_iloc_pure_position_based():
-    # GH: 22046
-    ser1 = Series([1, 2, 3])
-    ser2 = Series([4, 5, 6], index=[1, 0, 2])
-    ser1.iloc[1:3] = ser2.iloc[1:3]
-    expected = Series([1, 5, 6])
-    tm.assert_series_equal(ser1, expected)
