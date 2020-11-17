@@ -120,7 +120,7 @@ class TestMultiIndexPartial:
         exp["A"].loc[2000, 4].values[:] = 1
         tm.assert_frame_equal(df, exp)
 
-        df.loc[2000] = 5
+        df.loc[2000] = 5.0
         exp.loc[2000].values[:] = 5
         tm.assert_frame_equal(df, exp)
 
