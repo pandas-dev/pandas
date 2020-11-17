@@ -299,40 +299,6 @@ class TestDataFrameSetItem:
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-    def test_setitem_complete_columns_different_dtypes(self, dtype):
-        # GH: 20635
-        df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"], "D": [1, 2]})
-        rhs = df[["B", "C"]].astype("int64").astype(dtype)
-        df.loc[:, ["B", "C"]] = rhs
-        expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4], "D": [1, 2]})
-        expected[["B", "C"]] = expected[["B", "C"]].astype(dtype)
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_single_column_as_series_different_dtype(self):
-        # GH: 20635
-        df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"]})
-        df.loc[:, "C"] = df["C"].astype("int64")
-        expected = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": [3, 4]})
-        tm.assert_frame_equal(df, expected)
-
-    def test_setitem_conversion_to_datetime(self):
-        # GH: 20511
-        df = DataFrame(
-            [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]],
-            columns=["date0", "date1"],
-        )
-        df.iloc[:, [0]] = df.iloc[:, [0]].apply(
-            lambda x: to_datetime(x, errors="coerce")
-        )
-        expected = DataFrame(
-            {
-                "date0": [to_datetime("2015-01-01"), to_datetime("2016-01-01")],
-                "date1": ["2016-01-01", "2015-01-01"],
-            }
-        )
-        tm.assert_frame_equal(df, expected)
-
     def test_setitem_scalar_dtype_change(self):
         # GH#27583
         df = DataFrame({"a": [0.0], "b": [0.0]})

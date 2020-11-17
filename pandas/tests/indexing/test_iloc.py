@@ -17,6 +17,7 @@ from pandas import (
     concat,
     date_range,
     isna,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
@@ -800,6 +801,23 @@ class TestiLoc2:
         msg = f"Cannot set values with ndim > {obj.ndim}"
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
+
+    def test_setitem_conversion_to_datetime(self):
+        # GH: 20511
+        df = DataFrame(
+            [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]],
+            columns=["date0", "date1"],
+        )
+        df.iloc[:, [0]] = df.iloc[:, [0]].apply(
+            lambda x: to_datetime(x, errors="coerce")
+        )
+        expected = DataFrame(
+            {
+                "date0": [to_datetime("2015-01-01"), to_datetime("2016-01-01")],
+                "date1": ["2016-01-01", "2015-01-01"],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestILocErrors:

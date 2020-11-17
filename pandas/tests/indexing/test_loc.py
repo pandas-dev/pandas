@@ -1127,6 +1127,23 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(expected, df)
 
+    def test_setitem_null_slice_single_column_series_value_different_dtype(self):
+        # GH: 20635
+        df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"]})
+        df.loc[:, "C"] = df["C"].astype("int64")
+        expected = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": [3, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_null_slice_different_dtypes(self, dtype):
+        # GH: 20635
+        df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"], "D": [1, 2]})
+        rhs = df[["B", "C"]].astype("int64").astype(dtype)
+        df.loc[:, ["B", "C"]] = rhs
+        expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4], "D": [1, 2]})
+        expected[["B", "C"]] = expected[["B", "C"]].astype(dtype)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
@@ -1994,6 +2011,14 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_series_null_slice_different_dtypes(self, dtype):
+        # GH: 20635
+        ser = Series(["3", "4"], name="A")
+        ser.loc[:] = ser.astype("int64").astype(dtype)
+        expected = Series([3, 4], name="A", dtype=dtype)
+        tm.assert_series_equal(ser, expected)
 
 
 @pytest.mark.parametrize("value", [1, 1.5])
