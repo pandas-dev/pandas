@@ -433,19 +433,20 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
-    # faster for larger cases to use np.in1d
     f = htable.ismember_object
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1_000_000 and not is_object_dtype(comps):
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # in1d is faster for small sizes
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps.dtype):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -454,7 +455,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps.dtype):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)
