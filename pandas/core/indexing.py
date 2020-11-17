@@ -31,7 +31,7 @@ from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     is_list_like_indexer,
-    length_of_indexer,
+    length_of_indexer, is_empty_indexer,
 )
 from pandas.core.indexes.api import Index
 
@@ -1683,6 +1683,10 @@ class _iLocIndexer(_LocationIndexer):
             # hasattr first, to avoid coercing to ndarray without reason.
             # But we may be relying on the ndarray coercion to check ndim.
             # Why not just convert to an ndarray earlier on if needed?
+            elif lplane_indexer == 0:
+                # We get here in one case via .loc with a all-False mask
+                pass
+
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
@@ -1694,10 +1698,6 @@ class _iLocIndexer(_LocationIndexer):
                 # we have an equal len list/ndarray
                 # We only get here with len(ilocs) == 1
                 self._setitem_single_column(ilocs[0], value, plane_indexer)
-
-            elif lplane_indexer == 0 and len(value) == len(self.obj.index):
-                # We get here in one case via .loc with a all-False mask
-                pass
 
             else:
                 # per-label values
