@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     FrozenSet,
+    Generic,
     Hashable,
     List,
     NewType,
@@ -27,7 +28,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -147,7 +148,7 @@ def _new_Index(cls, d):
 _IndexT = TypeVar("_IndexT", bound="Index")
 
 
-class Index(IndexOpsMixin, PandasObject):
+class Index(IndexOpsMixin, PandasObject, Generic[ArrayLike]):
     """
     Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects.
@@ -219,7 +220,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data: Union[ExtensionArray, np.ndarray]
+    _data: ArrayLike
     _id: Optional[_Identity] = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -3222,14 +3223,8 @@ class Index(IndexOpsMixin, PandasObject):
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
         target_values = target._values
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        left_distances = np.abs(
-            self._values[left_indexer] - target_values  # type: ignore[operator]
-        )
-        # error: Unsupported left operand type for - ("ExtensionArray")
-        right_distances = np.abs(
-            self._values[right_indexer] - target_values  # type: ignore[operator]
-        )
+        left_distances = np.abs(self._values[left_indexer] - target_values)
+        right_distances = np.abs(self._values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -4022,7 +4017,7 @@ class Index(IndexOpsMixin, PandasObject):
         return array
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ArrayLike:
         """
         The best array representation.
 
