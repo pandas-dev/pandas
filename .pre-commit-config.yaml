@@ -26,7 +26,7 @@ repos:
         name: isort (cython)
         types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.3
+    rev: v2.7.4
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
