@@ -111,6 +111,25 @@ def test_expanding_corr_pairwise(frame):
     tm.assert_frame_equal(result, rolling_result)
 
 
+@pytest.mark.parametrize(
+    "func,static_comp",
+    [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
+    ids=["sum", "mean", "max", "min"],
+)
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_func(func, static_comp, constructor):
+    data = constructor(np.array(list(range(10)) + [np.nan] * 10))
+    result = getattr(data.expanding(min_periods=1, axis=0), func)()
+    assert isinstance(result, constructor)
+
+    if constructor is Series:
+        tm.assert_almost_equal(result[10], static_comp(data[:11]))
+    else:
+        tm.assert_series_equal(
+            result.iloc[10], static_comp(data[:11]), check_names=False
+        )
+
+
 @pytest.mark.parametrize("has_min_periods", [True, False])
 @pytest.mark.parametrize(
     "func,static_comp",
@@ -122,14 +141,6 @@ def test_expanding_func(func, static_comp, has_min_periods, series, frame, nan_l
         exp = x.expanding(min_periods=min_periods, axis=axis)
         return getattr(exp, func)()
 
-    _check_expanding(
-        expanding_func,
-        static_comp,
-        preserve_nan=False,
-        series=series,
-        frame=frame,
-        nan_locs=nan_locs,
-    )
     _check_expanding_has_min_periods(expanding_func, static_comp, has_min_periods)
 
 
