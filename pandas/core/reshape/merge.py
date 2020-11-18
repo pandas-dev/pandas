@@ -4,6 +4,7 @@ SQL-style merge routines
 
 import copy
 import datetime
+import hashlib
 from functools import partial
 import string
 from typing import TYPE_CHECKING, Optional, Tuple, cast
@@ -591,8 +592,6 @@ class _MergeOperation:
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
-        if how == "cross":
-            _left, _right, how, on = self._create_cross_configuration(_left, _right, on)
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
@@ -644,6 +643,16 @@ class _MergeOperation:
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
+
+        if self.how == "cross":
+            (
+                self.left,
+                self.right,
+                self.how,
+                cross_col,
+            ) = self._create_cross_configuration(self.left, self.right)
+            self.left_on = self.right_on = [cross_col]
+            self._cross = cross_col
 
         # note this function has side effects
         (
@@ -1210,35 +1219,31 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, _left, _right, on
+        self, _left, _right
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
-        if on is not None:
-            raise MergeError(
-                "Can not pass any merge columns when using cross as merge method"
-            )
-        cross_col = f"{max([*_left.columns, *_right.columns])}_cross"
-        _left = _left.copy()
-        _right = _right.copy()
-        _left.insert(loc=0, value=1, column=cross_col)
-        _right.insert(loc=0, value=1, column=cross_col)
+        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
         how = "inner"
-        on = cross_col
-        self._cross = cross_col
-        return _left, _right, how, on
+        return (
+            _left.assign(**{cross_col: 1}),
+            _right.assign(**{cross_col: 1}),
+            how,
+            cross_col,
+        )
 
     def _validate_specification(self):
-        if hasattr(self, "_cross"):
+        if self.how == "cross":
             if (
                 self.left_index
                 or self.right_index
                 or self.right_on is not None
                 or self.left_on is not None
+                or self.on is not None
             ):
                 raise MergeError(
                     "Can not pass any merge columns when using cross as merge method"
                 )
         # Hm, any way to make this logic less complicated??
-        if self.on is None and self.left_on is None and self.right_on is None:
+        elif self.on is None and self.left_on is None and self.right_on is None:
 
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
@@ -1302,7 +1307,7 @@ class _MergeOperation:
                         'of levels in the index of "left"'
                     )
                 self.left_on = [None] * n
-        if len(self.right_on) != len(self.left_on):
+        if self.how != "cross" and len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
     def _validate(self, validate: str):
