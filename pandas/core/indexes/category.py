@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 import warnings
 
 import numpy as np
@@ -227,10 +227,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = no_default):
+    def _shallow_copy(
+        self, values: Optional[Categorical] = None, name: Label = no_default
+    ):
         name = self.name if name is no_default else name
 
         if values is not None:
+            # In tests we only get here with Categorical objects that
+            #  have matching .ordered, and values.categories a subset of
+            #  our own.  However we do _not_ have a dtype match in general.
             values = Categorical(values, dtype=self.dtype)
 
         return super()._shallow_copy(values=values, name=name)
@@ -521,40 +526,33 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype="intp")
 
-        # Note: we use engine.get_indexer_non_unique below because, even if
-        #  `target` is unique, any non-category entries in it will be encoded
-        #  as -1 by _get_codes_for_get_indexer, so `codes` may not be unique.
-        codes = self._get_codes_for_get_indexer(target._values)
-        indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer)
+        return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
+        return self._get_indexer_non_unique(target._values)
 
-        codes = self._get_codes_for_get_indexer(target._values)
-        indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer), missing
-
-    def _get_codes_for_get_indexer(self, target: ArrayLike) -> np.ndarray:
+    def _get_indexer_non_unique(self, values: ArrayLike):
         """
-        Extract integer codes we can use for comparison.
-
-        Notes
-        -----
-        If a value in target is not present, it gets coded as -1.
+        get_indexer_non_unique but after unrapping the target Index object.
         """
+        # Note: we use engine.get_indexer_non_unique for get_indexer in addition
+        #  to get_indexer_non_unique because, even if `target` is unique, any
+        #  non-category entries in it will be encoded as -1  so `codes` may
+        #  not be unique.
 
-        if isinstance(target, Categorical):
+        if isinstance(values, Categorical):
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
             #  dtype-matching.
-            cat = self._data._encode_with_my_categories(target)
+            cat = self._data._encode_with_my_categories(values)
             codes = cat._codes
         else:
-            codes = self.categories.get_indexer(target)
+            codes = self.categories.get_indexer(values)
 
-        return codes
+        indexer, missing = self._engine.get_indexer_non_unique(codes)
+        return ensure_platform_int(indexer), missing
 
     @doc(Index._convert_list_indexer)
     def _convert_list_indexer(self, keyarr):
