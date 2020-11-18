@@ -205,17 +205,36 @@ def test_expanding_apply_consistency(
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_moments_consistency_var(consistency_data, min_periods):
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_moments_consistency_var(consistency_data, min_periods, ddof):
     x, is_constant, no_nans = consistency_data
-    moments_consistency_var_data(
-        x=x,
-        is_constant=is_constant,
-        min_periods=min_periods,
-        count=lambda x: x.expanding(min_periods=min_periods).count(),
-        mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-        var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-        var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-    )
+
+    mean_x = x.expanding(min_periods=min_periods).mean()
+    var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
+    assert not (var_x < 0).any().any()
+
+    if ddof == 0:
+        # check that biased var(x) == mean(x^2) - mean(x)^2
+        mean_x2 = (x * x).expanding(min_periods=min_periods).mean()
+        tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_moments_consistency_var_constant(consistency_data, min_periods, ddof):
+    x, is_constant, no_nans = consistency_data
+
+    if is_constant:
+        count_x = x.expanding(min_periods=min_periods).count()
+        var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
+
+        # check that variance of constant series is identically 0
+        assert not (var_x > 0).any().any()
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = 0.0
+        if ddof == 1:
+            expected[count_x < 2] = np.nan
+        tm.assert_equal(var_x, expected)
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
@@ -250,6 +269,7 @@ def test_expanding_consistency_cov(consistency_data, min_periods, ddof):
 @pytest.mark.parametrize("ddof", [0, 1])
 def test_expanding_consistency_series_cov_corr(consistency_data, min_periods, ddof):
     x, is_constant, no_nans = consistency_data
+
     if isinstance(x, Series):
         var_x_plus_y = (x + x).expanding(min_periods=min_periods).var(ddof=ddof)
         var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
