@@ -73,13 +73,12 @@ def test_expanding_corr_pairwise(frame):
     [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
     ids=["sum", "mean", "max", "min"],
 )
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_expanding_func(func, static_comp, constructor):
-    data = constructor(np.array(list(range(10)) + [np.nan] * 10))
+def test_expanding_func(func, static_comp, frame_or_series):
+    data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
     result = getattr(data.expanding(min_periods=1, axis=0), func)()
-    assert isinstance(result, constructor)
+    assert isinstance(result, frame_or_series)
 
-    if constructor is Series:
+    if frame_or_series is Series:
         tm.assert_almost_equal(result[10], static_comp(data[:11]))
     else:
         tm.assert_series_equal(
@@ -118,16 +117,15 @@ def test_expanding_min_periods(func, static_comp):
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_expanding_apply(engine_and_raw, constructor):
+def test_expanding_apply(engine_and_raw, frame_or_series):
     engine, raw = engine_and_raw
-    data = constructor(np.array(list(range(10)) + [np.nan] * 10))
+    data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
     result = data.expanding(min_periods=1).apply(
         lambda x: x.mean(), raw=raw, engine=engine
     )
-    assert isinstance(result, constructor)
+    assert isinstance(result, frame_or_series)
 
-    if constructor is Series:
+    if frame_or_series is Series:
         tm.assert_almost_equal(result[9], np.mean(data[:11]))
     else:
         tm.assert_series_equal(result.iloc[9], np.mean(data[:11]), check_names=False)
