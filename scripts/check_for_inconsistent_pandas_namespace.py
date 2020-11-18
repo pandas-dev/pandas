@@ -17,15 +17,15 @@ from typing import Optional, Sequence
 PATTERN = r"""
     (
         (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
-        ([A-Z]\w+)\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        ([A-Z]\w+)\(        # match DataFrame but not pd.DataFrame or tm.makeDataFrame
         .*                  # match anything
-        pd\.\2\(  # only match e.g. pd.DataFrame
+        pd\.\2\(            # only match e.g. pd.DataFrame
     )|
     (
-        pd\.([A-Z]\w+)\(  # only match e.g. pd.DataFrame
+        pd\.([A-Z]\w+)\(    # only match e.g. pd.DataFrame
         .*                  # match anything
         (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
-        \4\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        \4\(                # match DataFrame but not pd.DataFrame or tm.makeDataFrame
     )
     """
 ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
