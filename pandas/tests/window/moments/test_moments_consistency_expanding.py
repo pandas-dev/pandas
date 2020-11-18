@@ -16,49 +16,6 @@ from pandas.tests.window.common import (
 )
 
 
-def _check_expanding(
-    func, static_comp, preserve_nan=True, series=None, frame=None, nan_locs=None
-):
-
-    series_result = func(series)
-    assert isinstance(series_result, Series)
-    frame_result = func(frame)
-    assert isinstance(frame_result, DataFrame)
-
-    result = func(series)
-    tm.assert_almost_equal(result[10], static_comp(series[:11]))
-
-    if preserve_nan:
-        assert result.iloc[nan_locs].isna().all()
-
-
-def _check_expanding_has_min_periods(func, static_comp, has_min_periods):
-    ser = Series(np.random.randn(50))
-
-    if has_min_periods:
-        result = func(ser, min_periods=30)
-        assert result[:29].isna().all()
-        tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
-
-        # min_periods is working correctly
-        result = func(ser, min_periods=15)
-        assert isna(result.iloc[13])
-        assert notna(result.iloc[14])
-
-        ser2 = Series(np.random.randn(20))
-        result = func(ser2, min_periods=5)
-        assert isna(result[3])
-        assert notna(result[4])
-
-        # min_periods=0
-        result0 = func(ser, min_periods=0)
-        result1 = func(ser, min_periods=1)
-        tm.assert_almost_equal(result0, result1)
-    else:
-        result = func(ser)
-        tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
-
-
 def test_expanding_corr(series):
     A = series.dropna()
     B = (A + np.random.randn(len(A)))[:-5]
@@ -111,50 +68,106 @@ def test_expanding_corr_pairwise(frame):
     tm.assert_frame_equal(result, rolling_result)
 
 
-@pytest.mark.parametrize("has_min_periods", [True, False])
 @pytest.mark.parametrize(
     "func,static_comp",
     [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
     ids=["sum", "mean", "max", "min"],
 )
-def test_expanding_func(func, static_comp, has_min_periods, series, frame, nan_locs):
-    def expanding_func(x, min_periods=1, axis=0):
-        exp = x.expanding(min_periods=min_periods, axis=axis)
-        return getattr(exp, func)()
+def test_expanding_func(func, static_comp, frame_or_series):
+    data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
+    result = getattr(data.expanding(min_periods=1, axis=0), func)()
+    assert isinstance(result, frame_or_series)
 
-    _check_expanding(
-        expanding_func,
-        static_comp,
-        preserve_nan=False,
-        series=series,
-        frame=frame,
-        nan_locs=nan_locs,
-    )
-    _check_expanding_has_min_periods(expanding_func, static_comp, has_min_periods)
+    if frame_or_series is Series:
+        tm.assert_almost_equal(result[10], static_comp(data[:11]))
+    else:
+        tm.assert_series_equal(
+            result.iloc[10], static_comp(data[:11]), check_names=False
+        )
 
 
-@pytest.mark.parametrize("has_min_periods", [True, False])
-def test_expanding_apply(engine_and_raw, has_min_periods, series, frame, nan_locs):
+@pytest.mark.parametrize(
+    "func,static_comp",
+    [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
+    ids=["sum", "mean", "max", "min"],
+)
+def test_expanding_min_periods(func, static_comp):
+    ser = Series(np.random.randn(50))
 
+    result = getattr(ser.expanding(min_periods=30, axis=0), func)()
+    assert result[:29].isna().all()
+    tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
+
+    # min_periods is working correctly
+    result = getattr(ser.expanding(min_periods=15, axis=0), func)()
+    assert isna(result.iloc[13])
+    assert notna(result.iloc[14])
+
+    ser2 = Series(np.random.randn(20))
+    result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
+    assert isna(result[3])
+    assert notna(result[4])
+
+    # min_periods=0
+    result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
+    result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    tm.assert_almost_equal(result0, result1)
+
+    result = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
+
+
+def test_expanding_apply(engine_and_raw, frame_or_series):
     engine, raw = engine_and_raw
-
-    def expanding_mean(x, min_periods=1):
-
-        exp = x.expanding(min_periods=min_periods)
-        result = exp.apply(lambda x: x.mean(), raw=raw, engine=engine)
-        return result
-
-    # TODO(jreback), needed to add preserve_nan=False
-    # here to make this pass
-    _check_expanding(
-        expanding_mean,
-        np.mean,
-        preserve_nan=False,
-        series=series,
-        frame=frame,
-        nan_locs=nan_locs,
+    data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
+    result = data.expanding(min_periods=1).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
     )
-    _check_expanding_has_min_periods(expanding_mean, np.mean, has_min_periods)
+    assert isinstance(result, frame_or_series)
+
+    if frame_or_series is Series:
+        tm.assert_almost_equal(result[9], np.mean(data[:11]))
+    else:
+        tm.assert_series_equal(result.iloc[9], np.mean(data[:11]), check_names=False)
+
+
+def test_expanding_min_periods_apply(engine_and_raw):
+    engine, raw = engine_and_raw
+    ser = Series(np.random.randn(50))
+
+    result = ser.expanding(min_periods=30).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    assert result[:29].isna().all()
+    tm.assert_almost_equal(result.iloc[-1], np.mean(ser[:50]))
+
+    # min_periods is working correctly
+    result = ser.expanding(min_periods=15).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    assert isna(result.iloc[13])
+    assert notna(result.iloc[14])
+
+    ser2 = Series(np.random.randn(20))
+    result = ser2.expanding(min_periods=5).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    assert isna(result[3])
+    assert notna(result[4])
+
+    # min_periods=0
+    result0 = ser.expanding(min_periods=0).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    result1 = ser.expanding(min_periods=1).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    tm.assert_almost_equal(result0, result1)
+
+    result = ser.expanding(min_periods=1).apply(
+        lambda x: x.mean(), raw=raw, engine=engine
+    )
+    tm.assert_almost_equal(result.iloc[-1], np.mean(ser[:50]))
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
