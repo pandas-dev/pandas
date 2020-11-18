@@ -243,19 +243,32 @@ def test_expanding_consistency_cov(consistency_data, min_periods):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_series(consistency_data, min_periods):
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_expanding_consistency_series_ddof(consistency_data, min_periods, ddof):
     x, is_constant, no_nans = consistency_data
-    moments_consistency_series_data(
-        x=x,
-        mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-        corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
-        var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-        std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
-        cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
-        var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-        std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
-        cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(y, ddof=0),
-    )
+    if isinstance(x, Series):
+        var_x_plus_y = (x + x).expanding(min_periods=min_periods).var(ddof=ddof)
+        var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
+        var_y = x.expanding(min_periods=min_periods).var(ddof=ddof)
+        cov_x_y = x.expanding(min_periods=min_periods).cov(x, ddof=ddof)
+        # check that cov(x, y) == (var(x+y) - var(x) -
+        # var(y)) / 2
+        tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
+
+        # check that corr(x, y) == cov(x, y) / (std(x) *
+        # std(y))
+        corr_x_y = x.expanding(min_periods=min_periods).corr(x)
+        std_x = x.expanding(min_periods=min_periods).std(ddof=ddof)
+        std_y = x.expanding(min_periods=min_periods).std(ddof=ddof)
+        tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
+
+        if ddof == 0:
+            # check that biased cov(x, y) == mean(x*y) -
+            # mean(x)*mean(y)
+            mean_x = x.expanding(min_periods=min_periods).mean()
+            mean_y = x.expanding(min_periods=min_periods).mean()
+            mean_x_times_y = (x * x).expanding(min_periods=min_periods).mean()
+            tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
