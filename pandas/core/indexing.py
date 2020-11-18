@@ -1686,8 +1686,9 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
-                #  test_loc_setitem_empty_append_expands_rows
+                #  test_loc_setitem_empty_append_expands_rows_mixed_dtype
                 # e.g. df = DataFrame(columns=["x", "y"])
+                #  df["x"] = df["x"].astype(np.int64)
                 #  df.loc[:, "x"] = [1, 2, 3]
                 self._setitem_single_column(ilocs[0], value, pi)
 
