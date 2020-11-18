@@ -1540,7 +1540,6 @@ def _get_combined_data(
                 # pandas\core\arrays\interval.py:1540: error: List item 0 has
                 # incompatible type "Union[DatetimeArray, TimedeltaArray]";
                 # expected "DatetimeArray"  [list-item]
-
                 # pandas\core\arrays\interval.py:1540: error: List item 0 has
                 # incompatible type "Union[DatetimeArray, TimedeltaArray]";
                 # expected "TimedeltaArray"  [list-item]
@@ -1548,7 +1547,6 @@ def _get_combined_data(
                 # pandas\core\arrays\interval.py:1541: error: List item 1 has
                 # incompatible type "Union[DatetimeArray, TimedeltaArray]";
                 # expected "DatetimeArray"  [list-item]
-
                 # pandas\core\arrays\interval.py:1541: error: List item 1 has
                 # incompatible type "Union[DatetimeArray, TimedeltaArray]";
                 # expected "TimedeltaArray"  [list-item]
