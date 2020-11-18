@@ -8069,6 +8069,15 @@ NaN 12.3   33.0
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
+            if how == "cross":
+                return merge(
+                    self,
+                    other,
+                    how=how,
+                    on=on,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort,
+                )
             return merge(
                 self,
                 other,
