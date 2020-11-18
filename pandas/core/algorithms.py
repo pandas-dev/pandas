@@ -2168,4 +2168,4 @@ def make_duplicates_of_left_unique_in_right(
     Duplicates of left are unique in right
     """
     left_duplicates = unique(left[duplicated(left)])
-    return right[~(duplicated(right) & np.isin(right, left_duplicates))]
+    return right[~(duplicated(right) & isin(right, left_duplicates))]
