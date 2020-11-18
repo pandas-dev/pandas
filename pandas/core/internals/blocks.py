@@ -511,7 +511,7 @@ class Block(PandasObject):
             return [block]
 
         # ndim > 1
-        assert isinstance(self.values, np.ndarray), type(self.values)
+        assert isinstance(new_values, np.ndarray), type(new_values)
         new_blocks = []
         for i, ref_loc in enumerate(self.mgr_locs):
             m = mask[i]
