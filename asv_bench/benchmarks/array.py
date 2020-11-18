@@ -39,3 +39,17 @@ class IntegerArray:
 
     def time_from_integer_array(self):
         pd.array(self.values_integer, dtype="Int64")
+
+
+class Isna:
+    def setup(self):
+        N = 10 ** 8
+        data = np.random.default_rng().choice(np.ones(2 ** 20), size=N)
+        self.pandas_array = pd.array(data, dtype=int)
+        self.integer_array = pd.array(data, dtype="Int64")
+
+    def time_isna_integer_array(self):
+        pd.isna(self.integer_array)
+
+    def time_isna_pandas_array(self):
+        pd.isna(self.pandas_array)
