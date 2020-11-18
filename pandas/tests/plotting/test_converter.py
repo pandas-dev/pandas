@@ -372,3 +372,14 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter
         result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
         assert result == format_expected
+
+    @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])
+    def test_call_w_different_view_intervals(self, view_interval, monkeypatch):
+        # previously broke on reversed xlmits; see GH37454
+        class mock_axis:
+            def get_view_interval(self):
+                return view_interval
+
+        tdc = converter.TimeSeries_TimedeltaFormatter()
+        monkeypatch.setattr(tdc, "axis", mock_axis())
+        tdc(0.0, 0)
