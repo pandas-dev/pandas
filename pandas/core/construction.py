@@ -353,7 +353,7 @@ def array(
 
 def extract_array(
     obj: AnyArrayLike, extract_numpy: bool = False
-) -> Union[AnyArrayLike, ExtensionArray, np.ndarray]:
+) -> Union[ExtensionArray, np.ndarray]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 

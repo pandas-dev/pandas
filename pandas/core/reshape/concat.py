@@ -447,7 +447,7 @@ class _Concatenator:
                     if self._is_frame and axis == 1:
                         name = 0
                     # mypy needs to know sample is not an NDFrame
-                    assert isinstance(sample, (ABCSeries, ABCDataFrame))
+                    sample = cast("FrameOrSeriesUnion", sample)
                     obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)

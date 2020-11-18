@@ -3,9 +3,7 @@
 from typing import TYPE_CHECKING, Type, cast
 
 if TYPE_CHECKING:
-    from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame
-    from pandas.core.series import Series
+    from pandas import DataFrame, NDFrame, Series
 
 
 # define abstract base classes to enable isinstance type checking on our

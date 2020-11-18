@@ -3,7 +3,7 @@ Core eval alignment algorithms.
 """
 
 from functools import partial, wraps
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -39,7 +39,7 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: Type[FrameOrSeries], new_axes: List["Index"]
+    typ: Type[FrameOrSeries], new_axes: Sequence["Index"]
 ) -> Dict[str, "Index"]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 

@@ -6,13 +6,12 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import TYPE_CHECKING, Iterator, Tuple
+from typing import Iterator, Tuple
+
+from pandas._typing import Label
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
-
-if TYPE_CHECKING:
-    from pandas._typing import Label
 
 
 def create_valid_python_identifier(name: str) -> str:
@@ -105,12 +104,12 @@ def clean_column_name(name: "Label") -> "Label":
 
     Parameters
     ----------
-    name : str
+    name : Label
         Name to be cleaned.
 
     Returns
     -------
-    name : str
+    name : Label
         Returns the name after tokenizing and cleaning.
 
     Notes
