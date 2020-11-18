@@ -518,84 +518,60 @@ def test_moment_functions_zero_length_pairwise(f):
     tm.assert_frame_equal(df2_result, df2_expected)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_var(consistency_data, window, min_periods, center):
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_moments_consistency_var(consistency_data, window, min_periods, center, ddof):
     x, is_constant, no_nans = consistency_data
-    moments_consistency_var_data(
-        x=x,
-        is_constant=is_constant,
-        min_periods=min_periods,
-        count=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).count()
-        ),
-        mean=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).mean()
-        ),
-        var_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var()
-        ),
-        var_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
-        ),
+
+    mean_x = x.rolling(window=window, min_periods=min_periods, center=center).mean()
+    var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+        ddof=ddof
     )
+    assert not (var_x < 0).any().any()
 
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "window,min_periods,center", list(_rolling_consistency_cases())
-)
-def test_rolling_consistency_std(consistency_data, window, min_periods, center):
-    x, is_constant, no_nans = consistency_data
-    moments_consistency_std_data(
-        x=x,
-        var_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var()
-        ),
-        std_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).std()
-        ),
-        var_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
-        ),
-        std_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).std(ddof=0)
-        ),
-    )
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "window,min_periods,center", list(_rolling_consistency_cases())
-)
-def test_rolling_consistency_cov(consistency_data, window, min_periods, center):
-    x, is_constant, no_nans = consistency_data
-    moments_consistency_cov_data(
-        x=x,
-        var_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var()
-        ),
-        cov_unbiased=lambda x, y: (
-            x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
-        ),
-        var_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
-        ),
-        cov_biased=lambda x, y: (
-            x.rolling(window=window, min_periods=min_periods, center=center).cov(
-                y, ddof=0
-            )
-        ),
-    )
+    if ddof == 0:
+        # check that biased var(x) == mean(x^2) - mean(x)^2
+        mean_x2 = (
+            (x * x)
+            .rolling(window=window, min_periods=min_periods, center=center)
+            .mean()
+        )
+        tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
 
 
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
 @pytest.mark.parametrize("ddof", [0, 1])
-def test_rolling_consistency_series_std(consistency_data, window, min_periods, center, ddof):
+def test_moments_consistency_var_constant(
+    consistency_data, window, min_periods, center, ddof
+):
+    x, is_constant, no_nans = consistency_data
+
+    if is_constant:
+        count_x = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).count()
+        var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+            ddof=ddof
+        )
+
+        # check that variance of constant series is identically 0
+        assert not (var_x > 0).any().any()
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = 0.0
+        if ddof == 1:
+            expected[count_x < 2] = np.nan
+        tm.assert_equal(var_x, expected)
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_rolling_consistency_std(consistency_data, window, min_periods, center, ddof):
     x, is_constant, no_nans = consistency_data
 
     var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
@@ -615,7 +591,7 @@ def test_rolling_consistency_series_std(consistency_data, window, min_periods, c
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
 @pytest.mark.parametrize("ddof", [0, 1])
-def test_rolling_consistency_series_cov(consistency_data, window, min_periods, center, ddof):
+def test_rolling_consistency_cov(consistency_data, window, min_periods, center, ddof):
     x, is_constant, no_nans = consistency_data
     var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
         ddof=ddof
