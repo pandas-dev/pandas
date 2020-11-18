@@ -65,10 +65,13 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        msg = r"Passing list-likes to \.loc or \[\] with any missing labels is no " \
+              r"longer supported. The following labels were missing: " \
+              r"Int64Index\(\[-1\], dtype='int64'\)"
+        with pytest.raises(KeyError, match=msg):
             s.loc[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=msg):
             s.loc[[-1, 3]]
 
     @pytest.mark.arm_slow
