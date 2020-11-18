@@ -2739,7 +2739,7 @@ class Index(IndexOpsMixin, PandasObject):
                         stacklevel=3,
                     )
 
-        return self._shallow_copy(result)
+        return result
 
     @final
     def _wrap_setop_result(self, other, result):
@@ -2747,6 +2747,8 @@ class Index(IndexOpsMixin, PandasObject):
             result, np.ndarray
         ):
             result = type(self._data)._simple_new(result, dtype=self.dtype)
+        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+            result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
         if isinstance(result, Index):

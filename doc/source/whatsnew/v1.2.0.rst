@@ -204,6 +204,23 @@ example where the index name is preserved:
 The same is true for :class:`MultiIndex`, but the logic is applied separately on a
 level-by-level basis.
 
+.. _whatsnew_120.groupby_ewm:
+
+Groupby supports EWM operations directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`DataFrameGroupBy` now supports exponentially weighted window operations directly (:issue:`16037`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': ['a', 'b', 'a', 'b'], 'B': range(4)})
+    df
+    df.groupby('A').ewm(com=1.0).mean()
+
+Additionally ``mean`` supports execution via `Numba <https://numba.pydata.org/>`__ with
+the  ``engine`` and ``engine_kwargs`` arguments. Numba must be installed as an optional dependency
+to use this feature.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
@@ -459,6 +476,7 @@ Deprecations
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
 - Partial slicing on unordered :class:`DatetimeIndex` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
+- The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 
 .. ---------------------------------------------------------------------------
 
@@ -631,6 +649,7 @@ I/O
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 - :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 - Bug in :meth:`read_fw` was not skipping blank lines (even with ``skip_blank_lines=True``) (:issue:`37758`)
+- :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 
 Period
 ^^^^^^
@@ -643,8 +662,9 @@ Plotting
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
+- Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` was throwing :exc:`ValueError` with a :class:`Series` or :class:`DataFrame`
+  indexed by a :class:`TimedeltaIndex` with a fixed frequency when x-axis lower limit was greater than upper limit (:issue:`37454`)
 - Bug in :meth:`DataFrameGroupBy.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
-
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
