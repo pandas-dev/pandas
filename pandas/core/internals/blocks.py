@@ -484,7 +484,6 @@ class Block(PandasObject):
         -------
         list of blocks
         """
-        assert isinstance(self.values, np.ndarray)
         if mask is None:
             mask = np.broadcast_to(True, shape=self.shape)
 
@@ -512,6 +511,7 @@ class Block(PandasObject):
             return [block]
 
         # ndim > 1
+        assert isinstance(self.values, np.ndarray), type(self.values)
         new_blocks = []
         for i, ref_loc in enumerate(self.mgr_locs):
             m = mask[i]
