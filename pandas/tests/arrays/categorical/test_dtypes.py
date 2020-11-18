@@ -138,8 +138,8 @@ class TestCategoricalDtypes:
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(int)
-        expected = np.array(cat, dtype=int)
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        expected = np.array(cat, dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(float)
         expected = np.array(cat, dtype=float)
