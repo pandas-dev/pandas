@@ -1028,10 +1028,15 @@ class Block(PandasObject):
         if lib.is_scalar(value) and isinstance(values, np.ndarray):
             value = convert_scalar_for_putitemlike(value, values.dtype)
 
-        if is_list_like(value) and len(value) == len(values):
-            values[mask] = value[mask]
+        if self.is_extension or self.is_object:
+            # GH#19266 using np.putmask gives unexpected results with listlike value
+            if is_list_like(value) and len(value) == len(values):
+                values[mask] = value[mask]
+            else:
+                values[mask] = value
         else:
-            values[mask] = value
+            # GH#37833 np.putmask is more performant than __setitem__
+            np.putmask(values, mask, value)
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
