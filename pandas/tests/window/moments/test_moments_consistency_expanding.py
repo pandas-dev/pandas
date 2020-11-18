@@ -258,43 +258,51 @@ def test_expanding_consistency_series(consistency_data, min_periods):
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency(consistency_data, min_periods):
+def test_expanding_consistency_mean(consistency_data, min_periods):
     x, is_constant, no_nans = consistency_data
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with empty/0-length Series/DataFrames
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
-        )
 
-        # test consistency between different expanding_* moments
-        moments_consistency_mock_mean(
-            x=x,
-            mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-            mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
-            / x.expanding().count(),
-        )
+    result = x.expanding(min_periods=min_periods).mean()
+    expected = (
+        x.expanding(min_periods=min_periods).sum()
+        / x.expanding(min_periods=min_periods).count()
+    )
+    tm.assert_equal(result, expected.astype("float64"))
 
-        moments_consistency_is_constant(
-            x=x,
-            is_constant=is_constant,
-            min_periods=min_periods,
-            count=lambda x: x.expanding().count(),
-            mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-            corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
-        )
 
-        moments_consistency_var_debiasing_factors(
-            x=x,
-            var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-            var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-            var_debiasing_factors=lambda x: (
-                x.expanding().count()
-                / (x.expanding().count() - 1.0).replace(0.0, np.nan)
-            ),
-        )
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+def test_expanding_consistency_constant(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
+
+    if is_constant:
+        count_x = x.expanding().count()
+        mean_x = x.expanding(min_periods=min_periods).mean()
+        # check that correlation of a series with itself is either 1 or NaN
+        corr_x_x = x.expanding(min_periods=min_periods).corr(x)
+
+        exp = x.max() if isinstance(x, Series) else x.max().max()
+
+        # check mean of constant series
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = exp
+        tm.assert_equal(mean_x, expected)
+
+        # check correlation of constant series with itself is NaN
+        expected[:] = np.nan
+        tm.assert_equal(corr_x_x, expected)
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+def test_expanding_consistency_var_debiasing_factors(consistency_data, min_periods):
+    x, is_constant, no_nans = consistency_data
+
+    # check variance debiasing factors
+    var_unbiased_x = x.expanding(min_periods=min_periods).var()
+    var_biased_x = x.expanding(min_periods=min_periods).var(ddof=0)
+    var_debiasing_factors_x = x.expanding().count() / (
+        x.expanding().count() - 1.0
+    ).replace(0.0, np.nan)
+    tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
 
 
 @pytest.mark.parametrize(
