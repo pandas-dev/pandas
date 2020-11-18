@@ -35,7 +35,18 @@ def win_types_special(request):
 
 
 @pytest.fixture(
-    params=["sum", "mean", "median", "max", "min", "var", "std", "kurt", "skew"]
+    params=[
+        "sum",
+        "mean",
+        "median",
+        "max",
+        "min",
+        "var",
+        "std",
+        "kurt",
+        "skew",
+        "count",
+    ]
 )
 def arithmetic_win_operators(request):
     return request.param
@@ -71,6 +82,18 @@ def nogil(request):
 @pytest.fixture(params=[True, False])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def adjust(request):
+    """adjust keyword argument for ewm"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ignore_na(request):
+    """ignore_na keyword argument for ewm"""
     return request.param
 
 

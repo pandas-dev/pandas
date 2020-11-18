@@ -90,6 +90,55 @@ class IsInForObjects:
         self.s_long_floats.isin(self.vals_long_floats)
 
 
+class IsInLongSeriesLookUpDominates:
+    params = [
+        ["int64", "int32", "float64", "float32", "object"],
+        [5, 1000],
+        ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
+    ]
+    param_names = ["dtype", "MaxNumber", "series_type"]
+
+    def setup(self, dtype, MaxNumber, series_type):
+        N = 10 ** 7
+        if series_type == "random_hits":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N)
+        if series_type == "random_misses":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N) + MaxNumber
+        if series_type == "monotone_hits":
+            array = np.repeat(np.arange(MaxNumber), N // MaxNumber)
+        if series_type == "monotone_misses":
+            array = np.arange(N) + MaxNumber
+        self.series = Series(array).astype(dtype)
+        self.values = np.arange(MaxNumber).astype(dtype)
+
+    def time_isin(self, dtypes, MaxNumber, series_type):
+        self.series.isin(self.values)
+
+
+class IsInLongSeriesValuesDominate:
+    params = [
+        ["int64", "int32", "float64", "float32", "object"],
+        ["random", "monotone"],
+    ]
+    param_names = ["dtype", "series_type"]
+
+    def setup(self, dtype, series_type):
+        N = 10 ** 7
+        if series_type == "random":
+            np.random.seed(42)
+            vals = np.random.randint(0, 10 * N, N)
+        if series_type == "monotone":
+            vals = np.arange(N)
+        self.values = vals.astype(dtype)
+        M = 10 ** 6 + 1
+        self.series = Series(np.arange(M)).astype(dtype)
+
+    def time_isin(self, dtypes, series_type):
+        self.series.isin(self.values)
+
+
 class NSort:
 
     params = ["first", "last", "all"]
