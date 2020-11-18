@@ -259,7 +259,7 @@ def test_ewm_consistency_cov(consistency_data, min_periods, adjust, ignore_na):
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
-def test_expanding_consistency_series_cov_corr(
+def test_ewm_consistency_series_cov_corr(
     consistency_data, adjust, ignore_na, min_periods, bias
 ):
     x, is_constant, no_nans = consistency_data
