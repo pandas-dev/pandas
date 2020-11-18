@@ -287,6 +287,7 @@ class Grouper:
         self.obj = None
         self.indexer = None
         self.binner = None
+        self.grouper_resorted = False
         self._grouper = None
         self._indexer = None
         self.dropna = dropna
