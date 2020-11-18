@@ -638,7 +638,7 @@ cc\tdd """
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("infer", [True, False, None])
+@pytest.mark.parametrize("infer", [True, False])
 def test_fwf_compression(compression_only, infer):
     data = """1111111111
     2222222222
