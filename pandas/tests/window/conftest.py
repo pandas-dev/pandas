@@ -35,7 +35,18 @@ def win_types_special(request):
 
 
 @pytest.fixture(
-    params=["sum", "mean", "median", "max", "min", "var", "std", "kurt", "skew"]
+    params=[
+        "sum",
+        "mean",
+        "median",
+        "max",
+        "min",
+        "var",
+        "std",
+        "kurt",
+        "skew",
+        "count",
+    ]
 )
 def arithmetic_win_operators(request):
     return request.param
