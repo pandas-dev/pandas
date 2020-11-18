@@ -1628,7 +1628,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             self._setitem_single_block(indexer, value, name)
 
-    def _setitem_with_indexer_split_path(self, indexer, value, name):
+    def _setitem_with_indexer_split_path(self, indexer, value, name: str):
         """
         Setitem column-wise.
         """
@@ -1714,7 +1714,7 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name):
+    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -1792,7 +1792,7 @@ class _iLocIndexer(_LocationIndexer):
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
 
-    def _setitem_single_block(self, indexer, value, name):
+    def _setitem_single_block(self, indexer, value, name: str):
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
@@ -1837,7 +1837,7 @@ class _iLocIndexer(_LocationIndexer):
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
         self.obj._maybe_update_cacher(clear=True)
 
-    def _setitem_with_indexer_missing(self, indexer, value, name):
+    def _setitem_with_indexer_missing(self, indexer, value, name: str):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
