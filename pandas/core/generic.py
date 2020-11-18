@@ -9020,7 +9020,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = -cond if inplace else cond
 
         # try to align with other
-        try_quick = True
         if isinstance(other, NDFrame):
 
             # align with me
@@ -9059,12 +9058,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first (if try_quick)
-                        if try_quick:
-                            new_other = np.asarray(self)
-                            new_other = new_other.copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first
+                        new_other = np.asarray(self)
+                        new_other = new_other.copy()
+                        new_other[icond] = other
+                        other = new_other
 
                     else:
                         raise ValueError(

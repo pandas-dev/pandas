@@ -765,11 +765,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            # pandas\core\indexes\datetimelike.py:758: error: Unexpected
-            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
-            result = type(self)(
-                data=[], dtype=self.dtype, freq=self.freq  # type: ignore[call-arg]
-            )
+            result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
