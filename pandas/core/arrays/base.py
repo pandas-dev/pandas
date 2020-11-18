@@ -1072,7 +1072,10 @@ class ExtensionArray:
         #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
-        return self[:]
+        # pandas\core\arrays\base.py:1075: error: Incompatible return value
+        # type (got "Union[ExtensionArray, Any]", expected "ndarray")
+        # [return-value]
+        return self[:]  # type: ignore[return-value]
 
     # ------------------------------------------------------------------------
     # Printing

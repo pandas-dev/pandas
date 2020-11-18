@@ -184,7 +184,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         new_values = [x._ndarray for x in to_concat]
         new_values = np.concatenate(new_values, axis=axis)
-        return to_concat[0]._from_backing_data(new_values)
+        # pandas\core\arrays\_mixins.py:187: error: Argument 1 to
+        # "_from_backing_data" of "NDArrayBackedExtensionArray" has
+        # incompatible type "List[ndarray]"; expected "ndarray"  [arg-type]
+        return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(self, value, side="left", sorter=None):
@@ -225,7 +228,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        key = extract_array(key, extract_numpy=True)
+        # pandas\core\arrays\_mixins.py:228: error: Value of type variable
+        # "AnyArrayLike" of "extract_array" cannot be "Union[int, slice,
+        # ndarray]"  [type-var]
+
+        # pandas\core\arrays\_mixins.py:228: error: Incompatible types in
+        # assignment (expression has type "ExtensionArray", variable has type
+        # "Union[int, slice, ndarray]")  [assignment]
+        key = extract_array(  # type: ignore[type-var,assignment]
+            key, extract_numpy=True
+        )
         key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):

@@ -1262,8 +1262,14 @@ def assert_extension_array_equal(
         left_na, right_na, obj="ExtensionArray NA mask", index_values=index_values
     )
 
-    left_valid = np.asarray(left[~left_na].astype(object))
-    right_valid = np.asarray(right[~right_na].astype(object))
+    # pandas\_testing.py:1265: error: Invalid index type "Union[ndarray,
+    # integer[Any], bool_]" for "ExtensionArray"; expected type "Union[int,
+    # slice, ndarray]"  [index]
+    left_valid = np.asarray(left[~left_na].astype(object))  # type: ignore[index]
+    # pandas\_testing.py:1266: error: Invalid index type "Union[ndarray,
+    # integer[Any], bool_]" for "ExtensionArray"; expected type "Union[int,
+    # slice, ndarray]"  [index]
+    right_valid = np.asarray(right[~right_na].astype(object))  # type: ignore[index]
     if check_exact:
         assert_numpy_array_equal(
             left_valid, right_valid, obj="ExtensionArray", index_values=index_values

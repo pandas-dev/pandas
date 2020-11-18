@@ -397,7 +397,12 @@ def _datetimelike_compat(func: F) -> F:
         if datetimelike:
             result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
             if not skipna:
-                result = _mask_datetimelike_result(result, axis, mask, orig_values)
+                # pandas\core\nanops.py:400: error: Argument 3 to
+                # "_mask_datetimelike_result" has incompatible type
+                # "Optional[ndarray]"; expected "ndarray"  [arg-type]
+                result = _mask_datetimelike_result(
+                    result, axis, mask, orig_values  # type: ignore[arg-type]
+                )
 
         return result
 

@@ -652,7 +652,12 @@ def isna_all(arr: ArrayLike) -> bool:
         )
 
     for i in range(0, total_len, chunk_len):
-        if not checker(arr[i : i + chunk_len]).all():
+        # pandas\core\dtypes\missing.py:655: error: Argument 1 to "__call__" of
+        # "ufunc" has incompatible type "Union[ExtensionArray, Any]"; expected
+        # "Union[Union[int, float, complex, str, bytes, generic],
+        # Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        if not checker(arr[i : i + chunk_len]).all():  # type: ignore[arg-type]
             return False
 
     return True

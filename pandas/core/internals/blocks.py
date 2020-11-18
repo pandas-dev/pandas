@@ -1500,7 +1500,14 @@ class Block(PandasObject):
                 and np.isnan(other)
             ):
                 # convert datetime to datetime64, timedelta to timedelta64
-                other = convert_scalar_for_putitemlike(other, values.dtype)
+
+                # pandas\core\internals\blocks.py:1503: error: Argument 2 to
+                # "convert_scalar_for_putitemlike" has incompatible type
+                # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
+                # [arg-type]
+                other = convert_scalar_for_putitemlike(
+                    other, values.dtype  # type: ignore[arg-type]
+                )
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to ndarray
@@ -1737,7 +1744,10 @@ class ExtensionBlock(Block):
             elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
-                return self.values[[loc]]
+                # pandas\core\internals\blocks.py:1740: error: Invalid index
+                # type "List[Any]" for "ExtensionArray"; expected type
+                # "Union[int, slice, ndarray]"  [index]
+                return self.values[[loc]]  # type: ignore[index]
             return self.values[loc]
         else:
             if col != 0:

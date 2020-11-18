@@ -3253,7 +3253,13 @@ class Index(IndexOpsMixin, PandasObject):
         tolerance,
     ) -> np.ndarray:
         # error: Unsupported left operand type for - ("ExtensionArray")
-        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
+
+        # pandas\core\indexes\base.py:3256: error: Argument 1 to "abs" has
+        # incompatible type "Union[Any, ndarray, generic]"; expected
+        # "SupportsAbs[Any]"  [arg-type]
+        distance = abs(
+            self._values[indexer] - target  # type: ignore[operator,arg-type]
+        )
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
@@ -4280,7 +4286,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            if np.ndim(result) > 1:
+            # pandas\core\indexes\base.py:4283: error: Argument 1 to "ndim" has
+            # incompatible type "Union[ExtensionArray, Any]"; expected
+            # "Union[Union[int, float, complex, str, bytes, generic],
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+            if np.ndim(result) > 1:  # type: ignore[arg-type]
                 deprecate_ndim_indexing(result)
                 return result
             return promote(result)

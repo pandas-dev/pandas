@@ -1537,8 +1537,22 @@ def _get_combined_data(
             # pandas\core\arrays\interval.py:1443: error: Item "Index" of
             # "Union[Index, ndarray]" has no attribute "reshape"  [union-attr]
             [
-                left.reshape(-1, 1),  # type: ignore[attr-defined]
-                right.reshape(-1, 1),  # type: ignore[union-attr]
+                # pandas\core\arrays\interval.py:1540: error: List item 0 has
+                # incompatible type "Union[DatetimeArray, TimedeltaArray]";
+                # expected "DatetimeArray"  [list-item]
+
+                # pandas\core\arrays\interval.py:1540: error: List item 0 has
+                # incompatible type "Union[DatetimeArray, TimedeltaArray]";
+                # expected "TimedeltaArray"  [list-item]
+                left.reshape(-1, 1),  # type: ignore[attr-defined,list-item]
+                # pandas\core\arrays\interval.py:1541: error: List item 1 has
+                # incompatible type "Union[DatetimeArray, TimedeltaArray]";
+                # expected "DatetimeArray"  [list-item]
+
+                # pandas\core\arrays\interval.py:1541: error: List item 1 has
+                # incompatible type "Union[DatetimeArray, TimedeltaArray]";
+                # expected "TimedeltaArray"  [list-item]
+                right.reshape(-1, 1),  # type: ignore[union-attr,list-item]
             ],
             axis=1,
         )
