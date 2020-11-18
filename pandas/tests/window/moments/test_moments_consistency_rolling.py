@@ -591,41 +591,102 @@ def test_rolling_consistency_cov(consistency_data, window, min_periods, center):
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency_series(consistency_data, window, min_periods, center):
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_rolling_consistency_series_std(consistency_data, window, min_periods, center, ddof):
     x, is_constant, no_nans = consistency_data
-    moments_consistency_series_data(
-        x=x,
-        mean=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).mean()
-        ),
-        corr=lambda x, y: (
-            x.rolling(window=window, min_periods=min_periods, center=center).corr(y)
-        ),
-        var_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var()
-        ),
-        std_unbiased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).std()
-        ),
-        cov_unbiased=lambda x, y: (
-            x.rolling(window=window, min_periods=min_periods, center=center).cov(y)
-        ),
-        var_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).var(ddof=0)
-        ),
-        std_biased=lambda x: (
-            x.rolling(window=window, min_periods=min_periods, center=center).std(ddof=0)
-        ),
-        cov_biased=lambda x, y: (
-            x.rolling(window=window, min_periods=min_periods, center=center).cov(
-                y, ddof=0
-            )
-        ),
+
+    var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+        ddof=ddof
     )
+    std_x = x.rolling(window=window, min_periods=min_periods, center=center).std(
+        ddof=ddof
+    )
+    assert not (var_x < 0).any().any()
+    assert not (std_x < 0).any().any()
+
+    # check that var(x) == std(x)^2
+    tm.assert_equal(var_x, std_x * std_x)
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_rolling_consistency_series_cov(consistency_data, window, min_periods, center, ddof):
+    x, is_constant, no_nans = consistency_data
+    var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+        ddof=ddof
+    )
+    assert not (var_x < 0).any().any()
+
+    cov_x_x = x.rolling(window=window, min_periods=min_periods, center=center).cov(
+        x, ddof=ddof
+    )
+    assert not (cov_x_x < 0).any().any()
+
+    # check that var(x) == cov(x, x)
+    tm.assert_equal(var_x, cov_x_x)
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_rolling_consistency_series_cov_corr(
+    consistency_data, window, min_periods, center, ddof
+):
+    x, is_constant, no_nans = consistency_data
+
+    if isinstance(x, Series):
+        var_x_plus_y = (
+            (x + x)
+            .rolling(window=window, min_periods=min_periods, center=center)
+            .var(ddof=ddof)
+        )
+        var_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+            ddof=ddof
+        )
+        var_y = x.rolling(window=window, min_periods=min_periods, center=center).var(
+            ddof=ddof
+        )
+        cov_x_y = x.rolling(window=window, min_periods=min_periods, center=center).cov(
+            x, ddof=ddof
+        )
+        # check that cov(x, y) == (var(x+y) - var(x) -
+        # var(y)) / 2
+        tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
+
+        # check that corr(x, y) == cov(x, y) / (std(x) *
+        # std(y))
+        corr_x_y = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).corr(x)
+        std_x = x.rolling(window=window, min_periods=min_periods, center=center).std(
+            ddof=ddof
+        )
+        std_y = x.rolling(window=window, min_periods=min_periods, center=center).std(
+            ddof=ddof
+        )
+        tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
+
+        if ddof == 0:
+            # check that biased cov(x, y) == mean(x*y) -
+            # mean(x)*mean(y)
+            mean_x = x.rolling(
+                window=window, min_periods=min_periods, center=center
+            ).mean()
+            mean_y = x.rolling(
+                window=window, min_periods=min_periods, center=center
+            ).mean()
+            mean_x_times_y = (
+                (x * x)
+                .rolling(window=window, min_periods=min_periods, center=center)
+                .mean()
+            )
+            tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
 
 
 @pytest.mark.parametrize(
