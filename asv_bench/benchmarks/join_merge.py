@@ -133,7 +133,7 @@ class Join:
         self.df_shuf.join(self.df_key2, on="key2", sort=sort)
 
     def time_join_dataframes_cross(self):
-        self.df.join(self.df_key1, how="cross")
+        self.df.loc[:2000].join(self.df_key1, how="cross")
 
 
 class JoinIndex:
@@ -209,7 +209,7 @@ class Merge:
         merge(self.df, self.df2, on="key1", sort=sort)
 
     def time_merge_dataframes_cross(self):
-        merge(self.left, self.right, how="cross")
+        merge(self.left.loc[:2000], self.right.loc[:2000], how="cross")
 
 
 class I8Merge:
