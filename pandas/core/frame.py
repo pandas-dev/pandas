@@ -225,6 +225,9 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the karthesian product from both frames, preserves the order
       of the left keys.
+      
+      .. versionadded:: 1.2.0
+
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
