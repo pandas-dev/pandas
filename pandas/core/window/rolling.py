@@ -422,7 +422,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -434,9 +434,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        numba_cache_key : tuple
+            caching key to be used to store a compiled numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -473,8 +472,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = calc(values)
                     result = np.asarray(result)
 
-            if use_numba_cache:
-                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
+            if numba_cache_key is not None:
+                NUMBA_FUNC_CACHE[numba_cache_key] = func
 
             return result
 
@@ -732,7 +731,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     )
 
 
-def _dispatch(name: str, *args, **kwargs):
+def dispatch(name: str, *args, **kwargs):
     """
     Dispatch to groupby apply.
     """
@@ -763,20 +762,20 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    corr = _dispatch("corr", other=None, pairwise=None)
-    cov = _dispatch("cov", other=None, pairwise=None)
+    corr = dispatch("corr", other=None, pairwise=None)
+    cov = dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
-            use_numba_cache,
+            numba_cache_key,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex from tuples
@@ -1055,7 +1054,7 @@ class Window(BaseWindow):
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -1067,9 +1066,8 @@ class Window(BaseWindow):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        use_numba_cache : tuple
+            unused
         **kwargs
             additional arguments for scipy windows if necessary
 
@@ -1287,7 +1285,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Notes
     -----
-    See :ref:`stats.rolling_apply` for extended documentation and performance
+    See :ref:`window.numba_engine` for extended documentation and performance
     considerations for the Numba engine.
     """
     )
@@ -1309,10 +1307,12 @@ class RollingAndExpandingMixin(BaseWindow):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
+        numba_cache_key = None
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
+            numba_cache_key = (func, "rolling_apply")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1322,10 +1322,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            use_numba_cache=maybe_use_numba(engine),
-            original_func=func,
-            args=args,
-            kwargs=kwargs,
+            numba_cache_key=numba_cache_key,
         )
 
     def _generate_cython_apply_func(

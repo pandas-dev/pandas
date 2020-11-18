@@ -14,8 +14,20 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
-from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.rolling import BaseWindow, flex_binary_moment
+from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.window.common import (
+    _doc_template,
+    _shared_docs,
+    flex_binary_moment,
+    zsqrt,
+)
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
+from pandas.core.window.numba_ import generate_numba_groupby_ewma_func
+from pandas.core.window.rolling import BaseWindow, BaseWindowGroupby, dispatch
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -201,7 +213,7 @@ class ExponentialMovingWindow(BaseWindow):
     -----
 
     More details can be found at:
-    :ref:`Exponentially weighted windows <stats.moments.exponentially_weighted>`.
+    :ref:`Exponentially weighted windows <window.exponentially_weighted>`.
 
     Examples
     --------
@@ -248,14 +260,16 @@ class ExponentialMovingWindow(BaseWindow):
         ignore_na: bool = False,
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        **kwargs,
     ):
-        self.com: Optional[float]
         self.obj = obj
         self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.axis = axis
         self.on = None
+        self.center = False
+        self.closed = None
         if times is not None:
             if isinstance(times, str):
                 times = self._selected_obj[times]
@@ -284,7 +298,7 @@ class ExponentialMovingWindow(BaseWindow):
             if common.count_not_none(com, span, alpha) > 0:
                 self.com = get_center_of_mass(com, span, None, alpha)
             else:
-                self.com = None
+                self.com = 0.0
         else:
             if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
@@ -306,6 +320,12 @@ class ExponentialMovingWindow(BaseWindow):
     @property
     def _constructor(self):
         return ExponentialMovingWindow
+
+    def _get_window_indexer(self) -> BaseIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExponentialMovingWindowIndexer()
 
     _agg_see_also_doc = dedent(
         """
@@ -346,27 +366,6 @@ class ExponentialMovingWindow(BaseWindow):
 
     agg = aggregate
 
-    def _apply(self, func):
-        """
-        Rolling statistical measure using supplied function. Designed to be
-        used with passed-in Cython array-based functions.
-
-        Parameters
-        ----------
-        func : str/callable to apply
-
-        Returns
-        -------
-        y : same type as input argument
-        """
-
-        def homogeneous_func(values: np.ndarray):
-            if values.size == 0:
-                return values.copy()
-            return np.apply_along_axis(func, self.axis, values)
-
-        return self._apply_blockwise(homogeneous_func)
-
     @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
@@ -383,7 +382,6 @@ class ExponentialMovingWindow(BaseWindow):
             window_func = self._get_roll_func("ewma_time")
             window_func = partial(
                 window_func,
-                minp=self.min_periods,
                 times=self.times,
                 halflife=self.halflife,
             )
@@ -394,7 +392,6 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self.com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                minp=self.min_periods,
             )
         return self._apply(window_func)
 
@@ -418,13 +415,19 @@ class ExponentialMovingWindow(BaseWindow):
         Exponential weighted moving variance.
         """
         nv.validate_window_func("var", args, kwargs)
+        window_func = self._get_roll_func("ewmcov")
+        window_func = partial(
+            window_func,
+            com=self.com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            bias=bias,
+        )
 
-        def f(arg):
-            return window_aggregations.ewmcov(
-                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias
-            )
+        def var_func(values, begin, end, min_periods):
+            return window_func(values, begin, end, min_periods, values)
 
-        return self._apply(f)
+        return self._apply(var_func)
 
     @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
@@ -466,11 +469,13 @@ class ExponentialMovingWindow(BaseWindow):
             Y = self._shallow_copy(Y)
             cov = window_aggregations.ewmcov(
                 X._prep_values(),
+                np.array([0], dtype=np.int64),
+                np.array([0], dtype=np.int64),
+                self.min_periods,
                 Y._prep_values(),
                 self.com,
                 self.adjust,
                 self.ignore_na,
-                self.min_periods,
                 bias,
             )
             return wrap_result(X, cov)
@@ -526,7 +531,15 @@ class ExponentialMovingWindow(BaseWindow):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1
+                    x,
+                    np.array([0], dtype=np.int64),
+                    np.array([0], dtype=np.int64),
+                    self.min_periods,
+                    y,
+                    self.com,
+                    self.adjust,
+                    self.ignore_na,
+                    1,
                 )
 
             x_values = X._prep_values()
@@ -550,3 +563,78 @@ class ExponentialMovingWindow(BaseWindow):
             _get_corr,
             pairwise=bool(pairwise),
         )
+
+
+class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+    """
+    Provide an exponential moving window groupby implementation.
+    """
+
+    def _get_window_indexer(self) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._groupby.indices,
+            window_indexer=ExponentialMovingWindowIndexer,
+        )
+        return window_indexer
+
+    var = dispatch("var", bias=False)
+    std = dispatch("std", bias=False)
+    cov = dispatch("cov", other=None, pairwise=None, bias=False)
+    corr = dispatch("corr", other=None, pairwise=None)
+
+    def mean(self, engine=None, engine_kwargs=None):
+        """
+        Parameters
+        ----------
+        engine : str, default None
+            * ``'cython'`` : Runs mean through C-extensions from cython.
+            * ``'numba'`` : Runs mean through JIT compiled code from numba.
+              Only available when ``raw`` is set to ``True``.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+              .. versionadded:: 1.2.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+
+              .. versionadded:: 1.2.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is determined by the caller.
+        """
+        if maybe_use_numba(engine):
+            groupby_ewma_func = generate_numba_groupby_ewma_func(
+                engine_kwargs,
+                self.com,
+                self.adjust,
+                self.ignore_na,
+            )
+            return self._apply(
+                groupby_ewma_func,
+                numba_cache_key=(lambda x: x, "groupby_ewma"),
+            )
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+
+            def f(x):
+                x = self._shallow_copy(x, groupby=self._groupby)
+                return x.mean()
+
+            return self._groupby.apply(f)
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")

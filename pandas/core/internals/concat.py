@@ -227,7 +227,7 @@ class JoinUnit:
 
         return isna_all(values_flat)
 
-    def get_reindexed_values(self, empty_dtype, upcasted_na):
+    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na):
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
@@ -248,9 +248,8 @@ class JoinUnit:
                     empty_dtype
                 ):
                     if self.block is None:
-                        array = empty_dtype.construct_array_type()
                         # TODO(EA2D): special case unneeded with 2D EAs
-                        return array(
+                        return DatetimeArray(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
                 elif getattr(self.block, "is_categorical", False):

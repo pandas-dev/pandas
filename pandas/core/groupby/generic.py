@@ -1554,6 +1554,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._apply_filter(indices, dropna)
 
     def __getitem__(self, key):
+        if self.axis == 1:
+            # GH 37725
+            raise ValueError("Cannot subset columns when using axis=1")
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
@@ -1696,11 +1699,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index(key.label for key in output)
-        columns.name = self.obj.columns.name
-
         result = self.obj._constructor(indexed_output)
-        result.columns = columns
+
+        if self.axis == 1:
+            result = result.T
+            result.columns = self.obj.columns
+        else:
+            columns = Index(key.label for key in output)
+            columns.name = self.obj.columns.name
+            result.columns = columns
+
         result.index = self.obj.index
 
         return result

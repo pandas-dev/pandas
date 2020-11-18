@@ -371,14 +371,21 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
     return result
 
 
-def _datetimelike_compat(func):
+def _datetimelike_compat(func: F) -> F:
     """
     If we have datetime64 or timedelta64 values, ensure we have a correct
     mask before calling the wrapped function, then cast back afterwards.
     """
 
     @functools.wraps(func)
-    def new_func(values, *, axis=None, skipna=True, mask=None, **kwargs):
+    def new_func(
+        values: np.ndarray,
+        *,
+        axis: Optional[int] = None,
+        skipna: bool = True,
+        mask: Optional[np.ndarray] = None,
+        **kwargs,
+    ):
         orig_values = values
 
         datetimelike = values.dtype.kind in ["m", "M"]
@@ -394,7 +401,7 @@ def _datetimelike_compat(func):
 
         return result
 
-    return new_func
+    return cast(F, new_func)
 
 
 def _na_for_min_count(

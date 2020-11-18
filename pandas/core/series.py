@@ -911,7 +911,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
 
-            except KeyError:
+            except (KeyError, TypeError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -975,7 +975,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("key of type tuple not found and not a MultiIndex")
+            raise KeyError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1026,12 +1026,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # positional setter
                 values[key] = value
             else:
-                # GH#12862 adding an new key to the Series
+                # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
         except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError(
+                raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
 
@@ -2830,7 +2830,8 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    @Appender(
+    @doc(
+        generic._shared_docs["compare"],
         """
 Returns
 -------
@@ -2890,9 +2891,9 @@ Keep all original rows and also all original values
 2    c     c
 3    d     b
 4    e     e
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: "Series",

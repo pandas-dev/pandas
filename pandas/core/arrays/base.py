@@ -6,8 +6,21 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+from __future__ import annotations
+
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -36,6 +49,8 @@ from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
+
+ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
 
 class ExtensionArray:
@@ -241,8 +256,9 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(self, item):
-        # type (Any) -> Any
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
 
@@ -655,7 +671,7 @@ class ExtensionArray:
         # ("ExtensionArray")  [operator]
         return self[~self.isna()]  # type: ignore[operator]
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
         Shift values by desired number.
 
@@ -826,7 +842,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -937,7 +953,7 @@ class ExtensionArray:
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> "ExtensionArray":
+    ) -> ExtensionArray:
         """
         Take elements from an array.
 
@@ -1026,7 +1042,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self) -> "ExtensionArray":
+    def copy(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Return a copy of the array.
 
@@ -1106,7 +1122,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> "ExtensionArray":
+    def transpose(self, *axes) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1116,10 +1132,10 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self) -> "ExtensionArray":
+    def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> "ExtensionArray":
+    def ravel(self, order="C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1140,8 +1156,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence["ExtensionArray"]
-    ) -> "ExtensionArray":
+        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+    ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
 

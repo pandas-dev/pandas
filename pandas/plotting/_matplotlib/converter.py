@@ -1076,7 +1076,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         # "int" has incompatible type "Union[ndarray, generic]"; expected
         # "Union[str, bytes, SupportsInt, _SupportsIndex]"  [arg-type]
         n_decimals = int(
-            np.ceil(np.log10(100 * 1e9 / (vmax - vmin)))  # type: ignore[arg-type]
+            np.ceil(np.log10(100 * 1e9 / abs(vmax - vmin)))  # type: ignore[arg-type]
         )
         if n_decimals > 9:
             n_decimals = 9
