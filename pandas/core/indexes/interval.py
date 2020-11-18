@@ -130,19 +130,13 @@ def setop_check(method):
             if op_name in ("difference",):
                 result = result.astype(self.dtype)
             return result
-        elif self.closed != other.closed:
-            raise ValueError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side"
-            )
 
-        # GH 19016: ensure set op will not return a prohibited dtype
-        subtypes = [self.dtype.subtype, other.dtype.subtype]
-        common_subtype = find_common_type(subtypes)
-        if is_object_dtype(common_subtype):
+        if self._is_non_comparable_own_type(other):
+            # GH#19016: ensure set op will not return a prohibited dtype
             raise TypeError(
-                f"can only do {op_name} between two IntervalIndex "
-                "objects that have compatible dtypes"
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side "
+                "and have compatible dtypes"
             )
 
         return method(self, other, sort)
@@ -239,7 +233,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result._data = array
         result.name = name
         result._cache = {}
-        result._no_setting_name = False
         result._reset_identity()
         return result
 
@@ -582,17 +575,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return key_i8
 
-    def _check_method(self, method):
-        if method is None:
-            return
-
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for IntervalIndex"
-            )
-
-        raise ValueError("Invalid fill method")
-
     def _searchsorted_monotonic(self, label, side, exclude_label=False):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
@@ -663,7 +645,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_method(method)
+        self._check_indexing_method(method)
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -714,7 +696,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        self._check_method(method)
+        self._check_indexing_method(method)
 
         if self.is_overlapping:
             raise InvalidIndexError(
@@ -729,11 +711,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             if self.equals(target_as_index):
                 return np.arange(len(self), dtype="intp")
 
-            # different closed or incompatible subtype -> no matches
-            common_subtype = find_common_type(
-                [self.dtype.subtype, target_as_index.dtype.subtype]
-            )
-            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+            if self._is_non_comparable_own_type(target_as_index):
+                # different closed or incompatible subtype -> no matches
                 return np.repeat(np.intp(-1), len(target_as_index))
 
             # non-overlapping -> at most one match per interval in target_as_index
@@ -775,10 +754,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # check that target_as_index IntervalIndex is compatible
         if isinstance(target_as_index, IntervalIndex):
-            common_subtype = find_common_type(
-                [self.dtype.subtype, target_as_index.dtype.subtype]
-            )
-            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+
+            if self._is_non_comparable_own_type(target_as_index):
                 # different closed or incompatible subtype -> no matches
                 return (
                     np.repeat(-1, len(target_as_index)),
@@ -848,6 +825,16 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             raise KeyError
 
         return locs
+
+    def _is_non_comparable_own_type(self, other: "IntervalIndex") -> bool:
+        # different closed or incompatible subtype -> no matches
+
+        # TODO: once closed is part of IntervalDtype, we can just define
+        #  is_comparable_dtype GH#19371
+        if self.closed != other.closed:
+            return True
+        common_subtype = find_common_type([self.dtype.subtype, other.dtype.subtype])
+        return is_object_dtype(common_subtype)
 
     # --------------------------------------------------------------------
 
