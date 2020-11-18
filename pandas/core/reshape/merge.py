@@ -654,7 +654,7 @@ class _MergeOperation:
             self.left_on = self.right_on = [cross_col]
             self._cross = cross_col
         else:
-            self._cross is None
+            self._cross = None
 
         # note this function has side effects
         (
