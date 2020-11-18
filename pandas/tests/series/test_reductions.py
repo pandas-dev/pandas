@@ -115,6 +115,8 @@ def test_validate_stat_keepdims():
     with pytest.raises(ValueError, match=msg):
         np.sum(ser, keepdims=True)
 
-def test_idxmax_with_nullable_integer_dtype():
-    s = Series([1, 2, 3], dtype="Int64")
-    s.idxmax()
+
+def test_idxmax_idxmin_with_nullable_integer_dtype():
+    ser = Series([1, 2, 3], dtype="Int64")
+    assert ser.idxmax() == 2
+    assert ser.idxmin() == 0
