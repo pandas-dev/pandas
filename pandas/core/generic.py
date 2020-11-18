@@ -2028,9 +2028,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_excel(
         self,
         excel_writer,
-        sheet_name="Sheet1",
-        na_rep="",
-        float_format=None,
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
         columns=None,
         header=True,
         index=True,
@@ -2043,6 +2043,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2059,7 +2060,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        excel_writer : str or ExcelWriter object
+        excel_writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter.
         sheet_name : str, default 'Sheet1'
             Name of sheet which will contain DataFrame.
@@ -2100,6 +2101,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2174,6 +2181,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     @final
@@ -3751,7 +3759,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 dtype=new_values.dtype,
             )
         elif is_scalar(loc):
-            result = self.iloc[:, [loc]]
+            result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
         else:
@@ -3777,7 +3785,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             loc = self.columns.get_loc(item)
             values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc)
+            res = self._box_col_values(values, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
@@ -9012,7 +9020,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = -cond if inplace else cond
 
         # try to align with other
-        try_quick = True
         if isinstance(other, NDFrame):
 
             # align with me
@@ -9051,12 +9058,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first (if try_quick)
-                        if try_quick:
-                            new_other = np.asarray(self)
-                            new_other = new_other.copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first
+                        new_other = np.asarray(self)
+                        new_other = new_other.copy()
+                        new_other[icond] = other
+                        other = new_other
 
                     else:
                         raise ValueError(

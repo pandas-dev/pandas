@@ -2066,6 +2066,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self.close()
                 raise
 
         # Done with first read, next time raise StopIteration
@@ -2449,6 +2450,7 @@ class PythonParser(ParserBase):
             if self._first_chunk:
                 content = []
             else:
+                self.close()
                 raise
 
         # done with first read, next time raise StopIteration
@@ -3749,6 +3751,19 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+    def _remove_empty_lines(self, lines) -> List:
+        """
+        Returns the list of lines without the empty ones. With fixed-width
+        fields, empty lines become arrays of empty strings.
+
+        See PythonParser._remove_empty_lines.
+        """
+        return [
+            line
+            for line in lines
+            if any(not isinstance(e, str) or e.strip() for e in line)
+        ]
 
 
 def _refine_defaults_read(
