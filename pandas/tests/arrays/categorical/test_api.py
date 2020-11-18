@@ -372,7 +372,11 @@ class TestCategoricalAPI:
         tm.assert_index_equal(c.categories, exp_categories_all)
 
         with tm.assert_produces_warning(FutureWarning):
-            c.remove_unused_categories(inplace=True)
+            # issue #37643 inplace kwarg deprecated
+            res = c.remove_unused_categories(inplace=True)
+
+        tm.assert_index_equal(c.categories, exp_categories_dropped)
+        assert res is None
 
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan], categories=["a", "b", "c", "d", "e"])

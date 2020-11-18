@@ -1062,7 +1062,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns
         -------
         cat : Categorical or None
-            Categorical with unused categories dropped.
+            Categorical with unused categories dropped or None if ``inplace=True``.
 
         See Also
         --------
@@ -1079,8 +1079,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 FutureWarning,
                 stacklevel=2,
             )
+        else:
+            inplace = False
 
-        cat = self.copy()
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        cat = self if inplace else self.copy()
         idx, inv = np.unique(cat._codes, return_inverse=True)
 
         if idx.size != 0 and idx[0] == -1:  # na sentinel
@@ -1093,7 +1096,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat._dtype = new_dtype
         cat._codes = coerce_indexer_dtype(inv, new_dtype.categories)
 
-        return cat
+        if not inplace:
+            return cat
 
     # ------------------------------------------------------------------
 
