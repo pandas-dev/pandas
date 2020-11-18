@@ -257,47 +257,60 @@ def test_ewm_consistency_cov(consistency_data, min_periods, adjust, ignore_na):
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-@pytest.mark.parametrize("adjust", [True, False])
-@pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_series_data(consistency_data, min_periods, adjust, ignore_na):
+@pytest.mark.parametrize("bias", [True, False])
+def test_expanding_consistency_series_cov_corr(
+    consistency_data, adjust, ignore_na, min_periods, bias
+):
     x, is_constant, no_nans = consistency_data
     com = 3.0
-    moments_consistency_series_data(
-        x=x,
-        mean=lambda x: x.ewm(
+
+    if isinstance(x, Series):
+        var_x_plus_y = (
+            (x + x)
+            .ewm(com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na)
+            .var(bias=bias)
+        )
+        var_x = x.ewm(
             com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-        ).mean(),
-        corr=lambda x, y: x.ewm(
+        ).var(bias=bias)
+        var_y = x.ewm(
             com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-        ).corr(y),
-        var_unbiased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=False)
-        ),
-        std_unbiased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).std(bias=False)
-        ),
-        cov_unbiased=lambda x, y: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).cov(y, bias=False)
-        ),
-        var_biased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=True)
-        ),
-        std_biased=lambda x: x.ewm(
+        ).var(bias=bias)
+        cov_x_y = x.ewm(
             com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-        ).std(bias=True),
-        cov_biased=lambda x, y: (
-            x.ewm(
+        ).cov(x, bias=bias)
+        # check that cov(x, y) == (var(x+y) - var(x) -
+        # var(y)) / 2
+        tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
+
+        # check that corr(x, y) == cov(x, y) / (std(x) *
+        # std(y))
+        corr_x_y = x.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).corr(x, bias=bias)
+        std_x = x.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).std(bias=bias)
+        std_y = x.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).std(bias=bias)
+        tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
+
+        if bias:
+            # check that biased cov(x, y) == mean(x*y) -
+            # mean(x)*mean(y)
+            mean_x = x.ewm(
                 com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).cov(y, bias=True)
-        ),
-    )
+            ).mean()
+            mean_y = x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).mean()
+            mean_x_times_y = (
+                (x * x)
+                .ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                )
+                .mean()
+            )
+            tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
