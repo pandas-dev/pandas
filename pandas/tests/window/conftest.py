@@ -74,6 +74,18 @@ def nopython(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def adjust(request):
+    """adjust keyword argument for ewm"""
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ignore_na(request):
+    """ignore_na keyword argument for ewm"""
+    return request.param
+
+
 @pytest.fixture(
     params=[
         pytest.param(

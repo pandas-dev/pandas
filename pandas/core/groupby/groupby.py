@@ -1859,6 +1859,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return ExpandingGroupby(self, *args, **kwargs)
 
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
+    def ewm(self, *args, **kwargs):
+        """
+        Return an ewm grouper, providing ewm functionality per group.
+        """
+        from pandas.core.window import ExponentialMovingWindowGroupby
+
+        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+
     def _fill(self, direction, limit=None):
         """
         Shared function for `pad` and `backfill` to call Cython method.

@@ -1496,8 +1496,8 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
-              int64_t halflife):
+def ewma_time(const float64_t[:] vals, int64_t[:] start, int64_t[:] end,
+              int minp, ndarray[int64_t] times, int64_t halflife):
     """
     Compute exponentially-weighted moving average using halflife and time
     distances.
@@ -1505,6 +1505,8 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     Parameters
     ----------
     vals : ndarray[float_64]
+    start: ndarray[int_64]
+    end: ndarray[int_64]
     minp : int
     times : ndarray[int64]
     halflife : int64
@@ -1552,17 +1554,20 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     return output
 
 
-def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
+def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
+         float64_t com, bint adjust, bint ignore_na):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
     Parameters
     ----------
     vals : ndarray (float64 type)
+    start: ndarray (int64 type)
+    end: ndarray (int64 type)
+    minp : int
     com : float64
     adjust : int
     ignore_na : bool
-    minp : int
 
     Returns
     -------
@@ -1620,19 +1625,21 @@ def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp
 # Exponentially weighted moving covariance
 
 
-def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, bint adjust, bint ignore_na, int minp, bint bias):
+def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
+           float64_t[:] input_y, float64_t com, bint adjust, bint ignore_na, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
     Parameters
     ----------
     input_x : ndarray (float64 type)
+    start: ndarray (int64 type)
+    end: ndarray (int64 type)
+    minp : int
     input_y : ndarray (float64 type)
     com : float64
     adjust : int
     ignore_na : bool
-    minp : int
     bias : int
 
     Returns

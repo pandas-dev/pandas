@@ -329,6 +329,7 @@ def test_tab_completion(mframe):
         "expanding",
         "pipe",
         "sample",
+        "ewm",
     }
     assert results == expected
 
