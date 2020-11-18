@@ -225,7 +225,7 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the karthesian product from both frames, preserves the order
       of the left keys.
-      
+
       .. versionadded:: 1.2.0
 
 on : label or list
