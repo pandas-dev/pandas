@@ -653,6 +653,8 @@ class _MergeOperation:
             ) = self._create_cross_configuration(self.left, self.right)
             self.left_on = self.right_on = [cross_col]
             self._cross = cross_col
+        else:
+            self._cross is None
 
         # note this function has side effects
         (
@@ -701,12 +703,11 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        self._maybe_drop_cross_column(result)
+        self._maybe_drop_cross_column(result, self._cross)
 
         return result.__finalize__(self, method="merge")
 
-    def _maybe_drop_cross_column(self, result: "DataFrame"):
-        cross_col = getattr(self, "_cross", None)
+    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: str):
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
