@@ -1724,6 +1724,7 @@ class _iLocIndexer(_LocationIndexer):
 
         unique_cols = value.columns.is_unique
 
+        # We do not want to align the value in case of iloc GH#37728
         if name == "iloc":
             for i, loc in enumerate(ilocs):
                 val = value.iloc[:, i]
