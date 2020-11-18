@@ -174,14 +174,9 @@ def test_corr_sanity():
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
-    # and some fuzzing
-    for _ in range(10):
-        df = DataFrame(np.random.rand(30, 2))
-        res = df[0].rolling(5, center=True).corr(df[1])
-        try:
-            assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
-        except AssertionError:
-            print(res)
+    df = DataFrame(np.random.rand(30, 2))
+    res = df[0].rolling(5, center=True).corr(df[1])
+    assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
 
 def test_rolling_cov_diff_length():
@@ -227,10 +222,12 @@ def test_rolling_corr_diff_length():
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
-        lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
+        pytest.param(
+            lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
+            marks=td.skip_if_no_scipy,
+        ),
     ],
 )
-@td.skip_if_no_scipy
 def test_rolling_functions_window_non_shrinkage(f):
     # GH 7764
     s = Series(range(4))
@@ -245,7 +242,14 @@ def test_rolling_functions_window_non_shrinkage(f):
     tm.assert_frame_equal(df_result, df_expected)
 
 
-def test_rolling_functions_window_non_shrinkage_binary():
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+    ],
+)
+def test_rolling_functions_window_non_shrinkage_binary(f):
 
     # corr/cov return a MI DataFrame
     df = DataFrame(
@@ -258,13 +262,8 @@ def test_rolling_functions_window_non_shrinkage_binary():
         index=pd.MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
         dtype="float64",
     )
-    functions = [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
-    ]
-    for f in functions:
-        df_result = f(df)
-        tm.assert_frame_equal(df_result, df_expected)
+    df_result = f(df)
+    tm.assert_frame_equal(df_result, df_expected)
 
 
 def test_rolling_skew_edge_cases():
@@ -427,34 +426,26 @@ def test_rolling_median_memory_error():
     Series(np.random.randn(n)).rolling(window=2, center=False).median()
 
 
-def test_rolling_min_max_numeric_types():
-
+@pytest.mark.parametrize(
+    "data_type",
+    [np.dtype(f"f{width}") for width in [4, 8]]
+    + [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"],
+)
+def test_rolling_min_max_numeric_types(data_type):
     # GH12373
-    types_test = [np.dtype(f"f{width}") for width in [4, 8]]
-    types_test.extend(
-        [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"]
-    )
-    for data_type in types_test:
-        # Just testing that these don't throw exceptions and that
-        # the return type is float64. Other tests will cover quantitative
-        # correctness
-        result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()
-        assert result.dtypes[0] == np.dtype("f8")
-        result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
-        assert result.dtypes[0] == np.dtype("f8")
+
+    # Just testing that these don't throw exceptions and that
+    # the return type is float64. Other tests will cover quantitative
+    # correctness
+    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()
+    assert result.dtypes[0] == np.dtype("f8")
+    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
+    assert result.dtypes[0] == np.dtype("f8")
 
 
-def test_moment_functions_zero_length():
-    # GH 8056
-    s = Series(dtype=np.float64)
-    s_expected = s
-    df1 = DataFrame()
-    df1_expected = df1
-    df2 = DataFrame(columns=["a"])
-    df2["a"] = df2["a"].astype("float64")
-    df2_expected = df2
-
-    functions = [
+@pytest.mark.parametrize(
+    "f",
+    [
         lambda x: x.rolling(window=10, min_periods=0).count(),
         lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
@@ -470,25 +461,40 @@ def test_moment_functions_zero_length():
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
-        lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-    ]
-    for f in functions:
-        try:
-            s_result = f(s)
-            tm.assert_series_equal(s_result, s_expected)
+        pytest.param(
+            lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
+            marks=td.skip_if_no_scipy,
+        ),
+    ],
+)
+def test_moment_functions_zero_length(f):
+    # GH 8056
+    s = Series(dtype=np.float64)
+    s_expected = s
+    df1 = DataFrame()
+    df1_expected = df1
+    df2 = DataFrame(columns=["a"])
+    df2["a"] = df2["a"].astype("float64")
+    df2_expected = df2
 
-            df1_result = f(df1)
-            tm.assert_frame_equal(df1_result, df1_expected)
+    s_result = f(s)
+    tm.assert_series_equal(s_result, s_expected)
 
-            df2_result = f(df2)
-            tm.assert_frame_equal(df2_result, df2_expected)
-        except (ImportError):
+    df1_result = f(df1)
+    tm.assert_frame_equal(df1_result, df1_expected)
 
-            # scipy needed for rolling_window
-            continue
+    df2_result = f(df2)
+    tm.assert_frame_equal(df2_result, df2_expected)
 
 
-def test_moment_functions_zero_length_pairwise():
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+    ],
+)
+def test_moment_functions_zero_length_pairwise(f):
 
     df1 = DataFrame()
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
@@ -505,17 +511,11 @@ def test_moment_functions_zero_length_pairwise():
         dtype="float64",
     )
 
-    functions = [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
-    ]
+    df1_result = f(df1)
+    tm.assert_frame_equal(df1_result, df1_expected)
 
-    for f in functions:
-        df1_result = f(df1)
-        tm.assert_frame_equal(df1_result, df1_expected)
-
-        df2_result = f(df2)
-        tm.assert_frame_equal(df2_result, df2_expected)
+    df2_result = f(df2)
+    tm.assert_frame_equal(df2_result, df2_expected)
 
 
 @pytest.mark.slow
