@@ -10,15 +10,6 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 from pandas.core.window.common import flex_binary_moment
-from pandas.tests.window.common import (
-    moments_consistency_cov_data,
-    moments_consistency_is_constant,
-    moments_consistency_mock_mean,
-    moments_consistency_series_data,
-    moments_consistency_std_data,
-    moments_consistency_var_data,
-    moments_consistency_var_debiasing_factors,
-)
 
 
 def _rolling_consistency_cases():
@@ -87,56 +78,47 @@ def test_flex_binary_frame(method, frame):
     tm.assert_frame_equal(res3, exp)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_apply_consistency(
-    consistency_data, base_functions, no_nan_functions, window, min_periods, center
+@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum])
+def test_rolling_apply_consistency_sum_nans(
+    consistency_data, window, min_periods, center, f
 ):
     x, is_constant, no_nans = consistency_data
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
-        )
-        # test consistency between rolling_xyz() and either (a)
-        # rolling_apply of Series.xyz(), or (b) rolling_apply of
-        # np.nanxyz()
-        functions = base_functions
+    if f is np.nansum and min_periods == 0:
+        pass
+    else:
+        rolling_f_result = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).sum()
+        rolling_apply_f_result = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).apply(func=f, raw=True)
+        tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
-        # GH 8269
-        if no_nans:
-            functions = no_nan_functions + base_functions
-        for (f, require_min_periods, name) in functions:
-            rolling_f = getattr(
-                x.rolling(window=window, center=center, min_periods=min_periods), name
-            )
 
-            if (
-                require_min_periods
-                and (min_periods is not None)
-                and (min_periods < require_min_periods)
-            ):
-                continue
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum, np.sum])
+def test_rolling_apply_consistency_sum_no_nans(
+    consistency_data, window, min_periods, center, f
+):
+    x, is_constant, no_nans = consistency_data
 
-            if name == "count":
-                rolling_f_result = rolling_f()
-                rolling_apply_f_result = x.rolling(
-                    window=window, min_periods=min_periods, center=center
-                ).apply(func=f, raw=True)
-            else:
-                if name in ["cov", "corr"]:
-                    rolling_f_result = rolling_f(pairwise=False)
-                else:
-                    rolling_f_result = rolling_f()
-                rolling_apply_f_result = x.rolling(
-                    window=window, min_periods=min_periods, center=center
-                ).apply(func=f, raw=True)
-
-            # GH 9422
-            if name in ["sum", "prod"]:
-                tm.assert_equal(rolling_f_result, rolling_apply_f_result)
+    if no_nans:
+        if f is np.nansum and min_periods == 0:
+            pass
+        else:
+            rolling_f_result = x.rolling(
+                window=window, min_periods=min_periods, center=center
+            ).sum()
+            rolling_apply_f_result = x.rolling(
+                window=window, min_periods=min_periods, center=center
+            ).apply(func=f, raw=True)
+            tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
 
 @pytest.mark.parametrize("window", range(7))
