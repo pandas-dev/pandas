@@ -254,7 +254,7 @@ def test_assert_frame_equal_interval_dtype_mismatch():
         "Attributes of DataFrame\\.iloc\\[:, 0\\] "
         '\\(column name="a"\\) are different\n\n'
         'Attribute "dtype" are different\n'
-        "\\[left\\]:  interval\\[int64\\]\n"
+        "\\[left\\]:  interval\\[int64, right\\]\n"
         "\\[right\\]: object"
     )
 

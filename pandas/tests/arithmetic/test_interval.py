@@ -133,7 +133,7 @@ class TestComparison:
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
 
-        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int64"):
+        if nulls_fixture is pd.NA and array.dtype.subtype != "int64":
             mark = pytest.mark.xfail(
                 reason="broken for non-integer IntervalArray; see GH 31882"
             )

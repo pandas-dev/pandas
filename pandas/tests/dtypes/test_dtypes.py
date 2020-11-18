@@ -678,7 +678,7 @@ class TestIntervalDtype(Base):
     def test_name_repr(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
-        expected = f"interval[{subtype}]"
+        expected = f"interval[{subtype}, None]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 

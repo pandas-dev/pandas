@@ -722,8 +722,8 @@ class TestDataFrameConstructors:
         [
             (pd.Period("2012-01", freq="M"), "period[M]"),
             (pd.Period("2012-02-01", freq="D"), "period[D]"),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+            (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         ],
     )
     def test_constructor_period_dict_scalar(self, data, dtype):
@@ -739,7 +739,7 @@ class TestDataFrameConstructors:
         "data,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),

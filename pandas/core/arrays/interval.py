@@ -222,10 +222,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _simple_new(cls, data, closed="right"):
         result = IntervalMixin.__new__(cls)
 
+        dtype = IntervalDtype(data.dtype, closed=closed)
+        result._dtype = dtype
+
         result._combined = data
         result._left = data[:, 0]
         result._right = data[:, 1]
-        result._closed = closed
         return result
 
     @classmethod
@@ -480,7 +482,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def dtype(self):
-        return IntervalDtype(self.left.dtype)
+        return self._dtype
 
     @property
     def nbytes(self) -> int:
@@ -1117,7 +1119,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
         """
-        return self._closed
+        return self.dtype.closed
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
@@ -1212,7 +1214,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = self._left
         right = self._right
         mask = self.isna()
-        closed = self._closed
+        closed = self.closed
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):
