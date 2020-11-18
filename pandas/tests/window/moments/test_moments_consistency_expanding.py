@@ -219,32 +219,36 @@ def test_moments_consistency_var(consistency_data, min_periods):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_std(consistency_data, min_periods):
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_expanding_consistency_std(consistency_data, min_periods, ddof):
     x, is_constant, no_nans = consistency_data
-    moments_consistency_std_data(
-        x=x,
-        var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-        std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
-        var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-        std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
-    )
 
+    var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
+    std_x = x.expanding(min_periods=min_periods).std(ddof=ddof)
+    assert not (var_x < 0).any().any()
+    assert not (std_x < 0).any().any()
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_consistency_cov(consistency_data, min_periods):
-    x, is_constant, no_nans = consistency_data
-    moments_consistency_cov_data(
-        x=x,
-        var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
-        cov_unbiased=lambda x, y: x.expanding(min_periods=min_periods).cov(y),
-        var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
-        cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(y, ddof=0),
-    )
+    # check that var(x) == std(x)^2
+    tm.assert_equal(var_x, std_x * std_x)
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("ddof", [0, 1])
-def test_expanding_consistency_series_ddof(consistency_data, min_periods, ddof):
+def test_expanding_consistency_cov(consistency_data, min_periods, ddof):
+    x, is_constant, no_nans = consistency_data
+    var_x = x.expanding(min_periods=min_periods).var(ddof=ddof)
+    assert not (var_x < 0).any().any()
+
+    cov_x_x = x.expanding(min_periods=min_periods).cov(x, ddof=ddof)
+    assert not (cov_x_x < 0).any().any()
+
+    # check that var(x) == cov(x, x)
+    tm.assert_equal(var_x, cov_x_x)
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_expanding_consistency_series_cov_corr(consistency_data, min_periods, ddof):
     x, is_constant, no_nans = consistency_data
     if isinstance(x, Series):
         var_x_plus_y = (x + x).expanding(min_periods=min_periods).var(ddof=ddof)
