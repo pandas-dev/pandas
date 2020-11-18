@@ -7,7 +7,7 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -30,21 +30,23 @@ def format_date_labels(ax: "Axes", rot):
     fig.subplots_adjust(bottom=0.2)
 
 
-def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
+def table(
+    ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
+) -> "Table":
     if isinstance(data, ABCSeries):
-        frame = data.to_frame()
+        data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
-        frame = data
+        pass
     else:
         raise ValueError("Input data must be DataFrame or Series")
 
     if rowLabels is None:
-        rowLabels = frame.index
+        rowLabels = data.index
 
     if colLabels is None:
-        colLabels = frame.columns
+        colLabels = data.columns
 
-    cellText = frame.values
+    cellText = data.values
 
     table = matplotlib.table.table(
         ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
