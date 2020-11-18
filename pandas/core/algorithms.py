@@ -2155,8 +2155,9 @@ def make_duplicates_of_left_unique_in_right(
     left: np.ndarray, right: np.ndarray
 ) -> np.ndarray:
     """
-    Drops all duplicates values from left in right, so that they are
-    unique in right.
+    If left has duplicates, which are also duplicated in right, this duplicated values
+    are dropped from right, meaning that every duplicate value from left exists only
+    once in right.
 
     Parameters
     ----------
