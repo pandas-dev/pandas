@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.errors import MergeError
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
 import pandas._testing as tm
-from pandas.errors import MergeError
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
 a_ = np.array
