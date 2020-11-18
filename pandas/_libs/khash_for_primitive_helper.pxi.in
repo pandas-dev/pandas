@@ -11,6 +11,7 @@ primitive_types = [('int64', 'int64_t'),
                    ('uint64', 'uint64_t'),
                    ('float64', 'float64_t'),
                    ('int32', 'int32_t'),
+                   ('uint32', 'uint32_t'),
                   ]
 }}
 

@@ -591,6 +591,9 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
 	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_MAP_INIT_UINT(name, khval_t)								\
+	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
 /*! @function
   @abstract     Instantiate a hash map containing 64-bit integer keys
   @param  name  Name of the hash table [symbol]
@@ -635,9 +638,11 @@ typedef const char *kh_cstr_t;
 #define kh_exist_uint64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
+#define kh_exist_uint32(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
+KHASH_MAP_INIT_UINT(uint32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
 

@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 
 from pandas._libs import hashtable as ht
+
 import pandas._testing as tm
 
 
@@ -12,6 +13,7 @@ import pandas._testing as tm
         (ht.UInt64HashTable, np.uint64),
         (ht.Float64HashTable, np.float64),
         (ht.Int32HashTable, np.int32),
+        (ht.UInt32HashTable, np.uint32),
     ],
 )
 class TestHashTable:
@@ -141,6 +143,7 @@ def get_ht_function(fun_name, type_suffix):
         (np.uint64, "uint64"),
         (np.float64, "float64"),
         (np.int32, "int32"),
+        (np.uint32, "uint32"),
     ],
 )
 class TestHelpFunctions:

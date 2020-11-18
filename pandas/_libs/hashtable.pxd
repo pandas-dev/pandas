@@ -9,7 +9,9 @@ from pandas._libs.khash cimport (
     kh_int64_t,
     kh_pymap_t,
     kh_str_t,
+    kh_uint32_t,
     kh_uint64_t,
+    uint32_t,
     uint64_t,
 )
 
@@ -29,6 +31,12 @@ cdef class Int64HashTable(HashTable):
 
     cpdef get_item(self, int64_t val)
     cpdef set_item(self, int64_t key, Py_ssize_t val)
+
+cdef class UInt32HashTable(HashTable):
+    cdef kh_uint32_t *table
+
+    cpdef get_item(self, uint32_t val)
+    cpdef set_item(self, uint32_t key, Py_ssize_t val)
 
 cdef class Int32HashTable(HashTable):
     cdef kh_int32_t *table
