@@ -1,19 +1,8 @@
-import warnings
-
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 import pandas._testing as tm
-from pandas.tests.window.common import (
-    moments_consistency_cov_data,
-    moments_consistency_is_constant,
-    moments_consistency_mock_mean,
-    moments_consistency_series_data,
-    moments_consistency_std_data,
-    moments_consistency_var_data,
-    moments_consistency_var_debiasing_factors,
-)
 
 
 def _check_expanding(
