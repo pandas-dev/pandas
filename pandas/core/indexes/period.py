@@ -4,10 +4,9 @@ from typing import Any, cast
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -257,16 +256,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _shallow_copy(self, values=None, name: Label = no_default):
-        name = name if name is not no_default else self.name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -320,7 +309,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def _formatter_func(self):
-        return self.array._formatter(boxed=False)
+        return self._data._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
