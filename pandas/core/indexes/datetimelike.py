@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -88,6 +88,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
+    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -100,9 +101,38 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     )
     _hasnans = hasnans  # for index / array -agnostic code
 
+    @classmethod
+    def _simple_new(
+        cls,
+        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
+        name: Label = None,
+    ):
+        assert isinstance(values, cls._data_cls), type(values)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._name = name
+        result._cache = {}
+
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = values._data
+
+        result._reset_identity()
+        return result
+
     @property
     def _is_all_dates(self) -> bool:
         return True
+
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
+        if values is not None:
+            return self._simple_new(values, name=name)
+
+        result = self._simple_new(self._data, name=name)
+        result._cache = self._cache
+        return result
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -662,16 +692,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self.name)
 
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     # --------------------------------------------------------------------
     # Set Operation Methods
 
@@ -745,11 +765,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
+            result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            result = type(self)._simple_new(left_chunk)
+            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
+            # incompatible type "Union[ExtensionArray, Any]"; expected
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
+            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)
 
@@ -874,7 +897,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
+            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
+            )
             return result
 
     # --------------------------------------------------------------------

@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Type, Union, cast
+from typing import Dict, Hashable, List, Sequence, Type, TypeVar, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -10,6 +10,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
+from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
@@ -55,6 +56,8 @@ from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
+
+CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -385,7 +388,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
@@ -403,12 +406,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if is_categorical_dtype(dtype):
             dtype = cast(Union[str, CategoricalDtype], dtype)
 
-            # GH 10696/18593
+            # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
-            self = self.copy() if copy else self
+            result = self.copy() if copy else self
             if dtype == self.dtype:
-                return self
-            return self._set_dtype(dtype)
+                return result
+            return result._set_dtype(dtype)
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
@@ -1044,7 +1047,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories, ordered=self.ordered, rename=False, inplace=inplace
         )
 
-    def remove_unused_categories(self, inplace=False):
+    def remove_unused_categories(self, inplace=no_default):
         """
         Remove categories which are not used.
 
@@ -1053,6 +1056,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to drop unused categories inplace or return a copy of
            this categorical with unused categories dropped.
+
+           .. deprecated:: 1.2.0
 
         Returns
         -------
@@ -1067,6 +1072,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         set_categories : Set the categories to the specified ones.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "remove_unused_categories is deprecated and "
+                "will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
         idx, inv = np.unique(cat._codes, return_inverse=True)
@@ -1190,7 +1206,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _validate_fill_value(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
-        underlying ndarray, raising ValueError if this is not possible.
+        underlying ndarray, raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -1202,7 +1218,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Raises
         ------
-        ValueError
+        TypeError
         """
 
         if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
@@ -1210,7 +1226,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
         else:
-            raise ValueError(
+            raise TypeError(
                 f"'fill_value={fill_value}' is not present "
                 "in this Categorical's categories"
             )
@@ -1659,7 +1675,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
                 codes[mask] = new_codes[mask]
-
             else:
                 codes[mask] = new_codes
 
@@ -1680,37 +1695,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return np.NaN
         return self.categories[i]
 
-    def _validate_listlike(self, target: ArrayLike) -> np.ndarray:
-        """
-        Extract integer codes we can use for comparison.
-
-        Notes
-        -----
-        If a value in target is not present, it gets coded as -1.
-        """
-
-        if isinstance(target, Categorical):
-            # Indexing on codes is more efficient if categories are the same,
-            #  so we can apply some optimizations based on the degree of
-            #  dtype-matching.
-            codes = recode_for_categories(
-                target.codes, target.categories, self.categories, copy=False
-            )
-        else:
-            codes = self.categories.get_indexer(target)
-
-        return codes
-
     def _unbox_scalar(self, key) -> int:
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
         code = self.categories.get_loc(key)
         code = self._codes.dtype.type(code)
         return code
-
-    def _unbox_listlike(self, value):
-        unboxed = self.categories.get_indexer(value)
-        return unboxed.astype(self._ndarray.dtype, copy=False)
 
     # ------------------------------------------------------------------
 
@@ -1867,8 +1857,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     "without identical categories"
                 )
             # is_dtype_equal implies categories_match_up_to_permutation
-            new_codes = self._validate_listlike(value)
-            value = Categorical.from_codes(new_codes, dtype=self.dtype)
+            value = self._encode_with_my_categories(value)
+            return value._codes
 
         # wrap scalars and hashable-listlikes in list
         rvalue = value if not is_hashable(value) else [value]
@@ -1885,7 +1875,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "category, set the categories first"
             )
 
-        return self._unbox_listlike(rvalue)
+        codes = self.categories.get_indexer(rvalue)
+        return codes.astype(self._ndarray.dtype, copy=False)
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
@@ -1957,7 +1948,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 return np.nan
         else:
             pointer = self._codes.min()
-        return self.categories[pointer]
+        return self._wrap_reduction_result(None, pointer)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def max(self, *, skipna=True, **kwargs):
@@ -1993,7 +1984,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 return np.nan
         else:
             pointer = self._codes.max()
-        return self.categories[pointer]
+        return self._wrap_reduction_result(None, pointer)
 
     def mode(self, dropna=True):
         """
@@ -2100,17 +2091,36 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not isinstance(other, Categorical):
             return False
         elif self._categories_match_up_to_permutation(other):
-            other_codes = self._validate_listlike(other)
-            return np.array_equal(self._codes, other_codes)
+            other = self._encode_with_my_categories(other)
+            return np.array_equal(self._codes, other._codes)
         return False
 
     @classmethod
-    def _concat_same_type(self, to_concat):
+    def _concat_same_type(
+        cls: Type[CategoricalT], to_concat: Sequence[CategoricalT], axis: int = 0
+    ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
         return union_categoricals(to_concat)
 
     # ------------------------------------------------------------------
+
+    def _encode_with_my_categories(self, other: "Categorical") -> "Categorical":
+        """
+        Re-encode another categorical using this Categorical's categories.
+
+        Notes
+        -----
+        This assumes we have already checked
+        self._categories_match_up_to_permutation(other).
+        """
+        # Indexing on codes is more efficient if categories are the same,
+        #  so we can apply some optimizations based on the degree of
+        #  dtype-matching.
+        codes = recode_for_categories(
+            other.codes, other.categories, self.categories, copy=False
+        )
+        return self._from_backing_data(codes)
 
     def _categories_match_up_to_permutation(self, other: "Categorical") -> bool:
         """

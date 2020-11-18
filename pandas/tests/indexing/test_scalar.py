@@ -146,69 +146,6 @@ class TestScalar2:
         expected = Series([2.0, 2.0], index=["A", "A"], name=1)
         tm.assert_series_equal(df.iloc[1], expected)
 
-    def test_series_at_raises_type_error(self):
-        # at should not fallback
-        # GH 7814
-        # GH#31724 .at should match .loc
-        ser = Series([1, 2, 3], index=list("abc"))
-        result = ser.at["a"]
-        assert result == 1
-        result = ser.loc["a"]
-        assert result == 1
-
-        with pytest.raises(KeyError, match="^0$"):
-            ser.at[0]
-        with pytest.raises(KeyError, match="^0$"):
-            ser.loc[0]
-
-    def test_frame_raises_key_error(self):
-        # GH#31724 .at should match .loc
-        df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
-        result = df.at["a", "A"]
-        assert result == 1
-        result = df.loc["a", "A"]
-        assert result == 1
-
-        with pytest.raises(KeyError, match="^0$"):
-            df.at["a", 0]
-        with pytest.raises(KeyError, match="^0$"):
-            df.loc["a", 0]
-
-    def test_series_at_raises_key_error(self):
-        # GH#31724 .at should match .loc
-
-        ser = Series([1, 2, 3], index=[3, 2, 1])
-        result = ser.at[1]
-        assert result == 3
-        result = ser.loc[1]
-        assert result == 3
-
-        with pytest.raises(KeyError, match="a"):
-            ser.at["a"]
-        with pytest.raises(KeyError, match="a"):
-            # .at should match .loc
-            ser.loc["a"]
-
-    def test_frame_at_raises_key_error(self):
-        # GH#31724 .at should match .loc
-
-        df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
-
-        result = df.at[1, 0]
-        assert result == 3
-        result = df.loc[1, 0]
-        assert result == 3
-
-        with pytest.raises(KeyError, match="a"):
-            df.at["a", 0]
-        with pytest.raises(KeyError, match="a"):
-            df.loc["a", 0]
-
-        with pytest.raises(KeyError, match="a"):
-            df.at[1, "a"]
-        with pytest.raises(KeyError, match="a"):
-            df.loc[1, "a"]
-
     # TODO: belongs somewhere else?
     def test_getitem_list_missing_key(self):
         # GH 13822, incorrect error string with non-unique columns when missing
@@ -241,7 +178,7 @@ class TestScalar2:
         result = df.at[0, "date"]
         assert result == expected
 
-    def test_series_set_tz_timestamp(self, tz_naive_fixture):
+    def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
         # GH 25506
         ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
         result = Series(ts)

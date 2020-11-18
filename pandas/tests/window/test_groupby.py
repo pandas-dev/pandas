@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
@@ -601,3 +601,90 @@ class TestGrouperGrouping:
             df = df.set_index("a")
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
+
+    def test_groupby_rolling_group_keys(self):
+        # GH 37641
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        s = Series([1, 2, 3], index=index)
+        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
+        expected = Series(
+            [1.0, 2.0, 3.0],
+            index=MultiIndex.from_tuples(
+                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
+                names=["idx1", "idx2"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_index_level_and_column_label(self):
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=index)
+        result = df.groupby(["idx1", "A"]).rolling(1).mean()
+        expected = DataFrame(
+            {"B": [0.0, 1.0, 2.0]},
+            index=MultiIndex.from_tuples(
+                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+
+class TestEWM:
+    @pytest.mark.parametrize(
+        "method, expected_data",
+        [
+            ["mean", [0.0, 0.6666666666666666, 1.4285714285714286, 2.2666666666666666]],
+            ["std", [np.nan, 0.707107, 0.963624, 1.177164]],
+            ["var", [np.nan, 0.5, 0.9285714285714286, 1.3857142857142857]],
+        ],
+    )
+    def test_methods(self, method, expected_data):
+        # GH 16037
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+        result = getattr(df.groupby("A").ewm(com=1.0), method)()
+        expected = DataFrame(
+            {"B": expected_data},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        # There may be a bug in the above statement; not returning the correct index
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    @pytest.mark.parametrize(
+        "method, expected_data",
+        [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
+    )
+    def test_pairwise_methods(self, method, expected_data):
+        # GH 16037
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+        result = getattr(df.groupby("A").ewm(com=1.0), method)()
+        expected = DataFrame(
+            {"B": expected_data},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0, "B"),
+                    ("a", 1, "B"),
+                    ("a", 2, "B"),
+                    ("a", 3, "B"),
+                ],
+                names=["A", None, None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        tm.assert_frame_equal(result, expected)

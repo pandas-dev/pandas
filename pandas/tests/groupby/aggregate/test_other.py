@@ -425,7 +425,7 @@ def test_agg_over_numpy_arrays():
     result = df.groupby("category").agg(sum)
 
     expected_data = [[np.array([50, 70, 90])], [np.array([20, 30, 40])]]
-    expected_index = pd.Index([1, 2], name="category")
+    expected_index = Index([1, 2], name="category")
     expected_column = ["arraydata"]
     expected = DataFrame(expected_data, index=expected_index, columns=expected_column)
 
@@ -497,7 +497,7 @@ def test_sum_uint64_overflow():
     df = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
     df = df + 9223372036854775807
 
-    index = pd.Index(
+    index = Index(
         [9223372036854775808, 9223372036854775810, 9223372036854775812], dtype=np.uint64
     )
     expected = DataFrame(
@@ -596,7 +596,7 @@ def test_agg_lambda_with_timezone():
     result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
     expected = DataFrame(
         [pd.Timestamp("2018-01-01", tz="UTC")],
-        index=pd.Index([1], name="tag"),
+        index=Index([1], name="tag"),
         columns=["date"],
     )
     tm.assert_frame_equal(result, expected)
