@@ -1404,6 +1404,8 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
+        self.grouper_resorted = False
+
         if origin in ("epoch", "start", "start_day"):
             self.origin = origin
         else:

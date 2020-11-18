@@ -349,11 +349,11 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
-                # Sometimes (when self.indexer is not None) self._grouper will be
-                # sorted while obj is not. In this case there is a mismatch when we
+                # Sometimes self._grouper will have been resorted while
+                # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
                 # before we call _grouper.take.
-                if self.indexer is not None:
+                if self.grouper_resorted:
                     assert self._indexer is not None
                     assert self._grouper is not None
                     reverse_indexer = self._indexer.argsort()
@@ -388,6 +388,7 @@ class Grouper:
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
+            self.grouper_resorted = True
 
         self.obj = obj
         self.grouper = ax
