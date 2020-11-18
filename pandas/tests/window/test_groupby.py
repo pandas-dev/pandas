@@ -631,3 +631,60 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+
+class TestEWM:
+    @pytest.mark.parametrize(
+        "method, expected_data",
+        [
+            ["mean", [0.0, 0.6666666666666666, 1.4285714285714286, 2.2666666666666666]],
+            ["std", [np.nan, 0.707107, 0.963624, 1.177164]],
+            ["var", [np.nan, 0.5, 0.9285714285714286, 1.3857142857142857]],
+        ],
+    )
+    def test_methods(self, method, expected_data):
+        # GH 16037
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+        result = getattr(df.groupby("A").ewm(com=1.0), method)()
+        expected = DataFrame(
+            {"B": expected_data},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        # There may be a bug in the above statement; not returning the correct index
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    @pytest.mark.parametrize(
+        "method, expected_data",
+        [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
+    )
+    def test_pairwise_methods(self, method, expected_data):
+        # GH 16037
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+        result = getattr(df.groupby("A").ewm(com=1.0), method)()
+        expected = DataFrame(
+            {"B": expected_data},
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0, "B"),
+                    ("a", 1, "B"),
+                    ("a", 2, "B"),
+                    ("a", 3, "B"),
+                ],
+                names=["A", None, None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        tm.assert_frame_equal(result, expected)
