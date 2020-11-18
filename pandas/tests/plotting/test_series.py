@@ -983,3 +983,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.timedelta_range(start=0, periods=2, freq="D"),
+            [pd.Timedelta(days=1), pd.Timedelta(days=2)],
+        ],
+    )
+    def test_timedelta_index(self, index):
+        # GH37454
+        xlims = (3, 1)
+        ax = Series([1, 2], index=index).plot(xlim=(xlims))
+        assert ax.get_xlim() == (3, 1)
