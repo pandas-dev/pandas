@@ -66,8 +66,10 @@ def test_info_categorical_column_smoke_test():
 )
 def test_info_smoke_test(fixture_func, request):
     frame = request.getfixturevalue(fixture_func.__name__)
-    io = StringIO()
-    frame.info(buf=io)
+    buf = StringIO()
+    frame.info(buf=buf)
+    result = buf.getvalue().splitlines()
+    assert len(result) > 10
 
 
 @pytest.mark.parametrize(
