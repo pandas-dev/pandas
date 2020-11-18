@@ -33,10 +33,7 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        msg = (
-            "cannot set using a multi-index selection "
-            "indexer with a different length than the value"
-        )
+        msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
@@ -828,6 +825,17 @@ class TestMisc:
         wr = weakref.ref(df)
         del df
         assert wr() is None
+
+    def test_label_indexing_on_nan(self):
+        # GH 32431
+        df = Series([1, "{1,2}", 1, None])
+        vc = df.value_counts(dropna=False)
+        result1 = vc.loc[np.nan]
+        result2 = vc[np.nan]
+
+        expected = 1
+        assert result1 == expected
+        assert result2 == expected
 
 
 class TestSeriesNoneCoercion:
