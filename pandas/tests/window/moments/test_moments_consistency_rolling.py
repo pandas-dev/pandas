@@ -628,71 +628,74 @@ def test_rolling_consistency_series(consistency_data, window, min_periods, cente
     )
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
-def test_rolling_consistency(consistency_data, window, min_periods, center):
+def test_rolling_consistency_mean(consistency_data, window, min_periods, center):
     x, is_constant, no_nans = consistency_data
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with empty/0-length Series/DataFrames
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
-        )
 
-        # test consistency between different rolling_* moments
-        moments_consistency_mock_mean(
-            x=x,
-            mean=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center).mean()
-            ),
-            mock_mean=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center)
-                .sum()
-                .divide(
-                    x.rolling(
-                        window=window, min_periods=min_periods, center=center
-                    ).count()
-                )
-            ),
+    result = x.rolling(window=window, min_periods=min_periods, center=center).mean()
+    expected = (
+        x.rolling(window=window, min_periods=min_periods, center=center)
+        .sum()
+        .divide(
+            x.rolling(window=window, min_periods=min_periods, center=center).count()
         )
+    )
+    tm.assert_equal(result, expected.astype("float64"))
 
-        moments_consistency_is_constant(
-            x=x,
-            is_constant=is_constant,
-            min_periods=min_periods,
-            count=lambda x: (
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_constant(consistency_data, window, min_periods, center):
+    x, is_constant, no_nans = consistency_data
+
+    if is_constant:
+        count_x = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).count()
+        mean_x = x.rolling(window=window, min_periods=min_periods, center=center).mean()
+        # check that correlation of a series with itself is either 1 or NaN
+        corr_x_x = x.rolling(
+            window=window, min_periods=min_periods, center=center
+        ).corr(x)
+
+        exp = x.max() if isinstance(x, Series) else x.max().max()
+
+        # check mean of constant series
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = exp
+        tm.assert_equal(mean_x, expected)
+
+        # check correlation of constant series with itself is NaN
+        expected[:] = np.nan
+        tm.assert_equal(corr_x_x, expected)
+
+
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_consistency_var_debiasing_factors(
+    consistency_data, window, min_periods, center
+):
+    x, is_constant, no_nans = consistency_data
+
+    # check variance debiasing factors
+    var_unbiased_x = x.rolling(
+        window=window, min_periods=min_periods, center=center
+    ).var()
+    var_biased_x = x.rolling(window=window, min_periods=min_periods, center=center).var(
+        ddof=0
+    )
+    var_debiasing_factors_x = (
+        x.rolling(window=window, min_periods=min_periods, center=center)
+        .count()
+        .divide(
+            (
                 x.rolling(window=window, min_periods=min_periods, center=center).count()
-            ),
-            mean=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center).mean()
-            ),
-            corr=lambda x, y: (
-                x.rolling(window=window, min_periods=min_periods, center=center).corr(y)
-            ),
+                - 1.0
+            ).replace(0.0, np.nan)
         )
-
-        moments_consistency_var_debiasing_factors(
-            x=x,
-            var_unbiased=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center).var()
-            ),
-            var_biased=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center).var(
-                    ddof=0
-                )
-            ),
-            var_debiasing_factors=lambda x: (
-                x.rolling(window=window, min_periods=min_periods, center=center)
-                .count()
-                .divide(
-                    (
-                        x.rolling(
-                            window=window, min_periods=min_periods, center=center
-                        ).count()
-                        - 1.0
-                    ).replace(0.0, np.nan)
-                )
-            ),
-        )
+    )
+    tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
