@@ -227,34 +227,22 @@ def test_ewm_consistency_std(consistency_data, min_periods, adjust, ignore_na):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-@pytest.mark.parametrize("adjust", [True, False])
-@pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_cov(consistency_data, min_periods, adjust, ignore_na):
+@pytest.mark.parametrize("bias", [True, False])
+def test_ewm_consistency_cov(consistency_data, adjust, ignore_na, min_periods, bias):
     x, is_constant, no_nans = consistency_data
     com = 3.0
-    moments_consistency_cov_data(
-        x=x,
-        var_unbiased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=False)
-        ),
-        cov_unbiased=lambda x, y: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).cov(y, bias=False)
-        ),
-        var_biased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=True)
-        ),
-        cov_biased=lambda x, y: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).cov(y, bias=True)
-        ),
-    )
+    var_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).var(bias=bias)
+    assert not (var_x < 0).any().any()
+
+    cov_x_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).cov(x, bias=bias)
+    assert not (cov_x_x < 0).any().any()
+
+    # check that var(x) == cov(x, x)
+    tm.assert_equal(var_x, cov_x_x)
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
