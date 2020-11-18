@@ -522,7 +522,7 @@ class TestInt64Index(NumericInt):
 
     def test_constructor_unwraps_index(self):
         idx = Index([1, 2])
-        result = pd.Int64Index(idx)
+        result = Int64Index(idx)
         expected = np.array([1, 2], dtype="int64")
         tm.assert_numpy_array_equal(result._data, expected)
 
@@ -614,8 +614,8 @@ def test_int_float_union_dtype(dtype):
     # https://github.com/pandas-dev/pandas/issues/26778
     # [u]int | float -> float
     index = Index([0, 2, 3], dtype=dtype)
-    other = pd.Float64Index([0.5, 1.5])
-    expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
+    other = Float64Index([0.5, 1.5])
+    expected = Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
     result = index.union(other)
     tm.assert_index_equal(result, expected)
 
@@ -626,9 +626,9 @@ def test_int_float_union_dtype(dtype):
 def test_range_float_union_dtype():
     # https://github.com/pandas-dev/pandas/issues/26778
     index = pd.RangeIndex(start=0, stop=3)
-    other = pd.Float64Index([0.5, 1.5])
+    other = Float64Index([0.5, 1.5])
     result = index.union(other)
-    expected = pd.Float64Index([0.0, 0.5, 1, 1.5, 2.0])
+    expected = Float64Index([0.0, 0.5, 1, 1.5, 2.0])
     tm.assert_index_equal(result, expected)
 
     result = other.union(index)
