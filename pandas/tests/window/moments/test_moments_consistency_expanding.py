@@ -158,50 +158,35 @@ def test_expanding_apply(engine_and_raw, has_min_periods, series, frame, nan_loc
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-def test_expanding_apply_consistency(
-    consistency_data, base_functions, no_nan_functions, min_periods
-):
+@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum])
+def test_expanding_apply_consistency_sum_nans(consistency_data, min_periods, f):
     x, is_constant, no_nans = consistency_data
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
+    if f is np.nansum and min_periods == 0:
+        pass
+    else:
+        expanding_f_result = x.expanding(min_periods=min_periods).sum()
+        expanding_apply_f_result = x.expanding(min_periods=min_periods).apply(
+            func=f, raw=True
         )
-        # test consistency between expanding_xyz() and either (a)
-        # expanding_apply of Series.xyz(), or (b) expanding_apply of
-        # np.nanxyz()
-        functions = base_functions
+        tm.assert_equal(expanding_f_result, expanding_apply_f_result)
 
-        # GH 8269
-        if no_nans:
-            functions = base_functions + no_nan_functions
-        for (f, require_min_periods, name) in functions:
-            expanding_f = getattr(x.expanding(min_periods=min_periods), name)
 
-            if (
-                require_min_periods
-                and (min_periods is not None)
-                and (min_periods < require_min_periods)
-            ):
-                continue
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+@pytest.mark.parametrize("f", [lambda v: Series(v).sum(), np.nansum, np.sum])
+def test_expanding_apply_consistency_sum_no_nans(consistency_data, min_periods, f):
 
-            if name == "count":
-                expanding_f_result = expanding_f()
-                expanding_apply_f_result = x.expanding(min_periods=0).apply(
-                    func=f, raw=True
-                )
-            else:
-                if name in ["cov", "corr"]:
-                    expanding_f_result = expanding_f(pairwise=False)
-                else:
-                    expanding_f_result = expanding_f()
-                expanding_apply_f_result = x.expanding(min_periods=min_periods).apply(
-                    func=f, raw=True
-                )
+    x, is_constant, no_nans = consistency_data
 
-            # GH 9422
-            if name in ["sum", "prod"]:
-                tm.assert_equal(expanding_f_result, expanding_apply_f_result)
+    if no_nans:
+        if f is np.nansum and min_periods == 0:
+            pass
+        else:
+            expanding_f_result = x.expanding(min_periods=min_periods).sum()
+            expanding_apply_f_result = x.expanding(min_periods=min_periods).apply(
+                func=f, raw=True
+            )
+            tm.assert_equal(expanding_f_result, expanding_apply_f_result)
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
