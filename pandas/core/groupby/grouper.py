@@ -288,6 +288,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self._indexer = None
         self.dropna = dropna
 
     @property
