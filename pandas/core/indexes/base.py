@@ -3124,7 +3124,7 @@ class Index(IndexOpsMixin, PandasObject):
                 target, method=method, limit=limit, tolerance=tolerance
             )
 
-        if not self._index_as_unique:
+        if not self.is_unique:
             raise InvalidIndexError(
                 "Reindexing only valid with uniquely valued Index objects"
             )

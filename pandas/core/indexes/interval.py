@@ -698,7 +698,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         self._check_indexing_method(method)
 
-        if not self._index_as_unique:
+        if self.is_overlapping:
             raise InvalidIndexError(
                 "cannot handle overlapping indices; "
                 "use IntervalIndex.get_indexer_non_unique"
@@ -766,7 +766,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def _get_indexer_pointwise(self, target: Index):
+    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
