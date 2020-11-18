@@ -22,15 +22,14 @@ fi
 
 PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
-echo $PYTEST_CMD
-
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
-    #  so troubleshoot without parallelism
-    sh -c "pytest -m \"$PATTERN\" --strict --durations=30 $TEST_ARGS pandas/tests/ --ignore=pandas/tests/window --ignore=pandas/tests/groupby --ignore=pandas/tests/plotting"
-else
-    sh -c "$PYTEST_CMD"
+    #  skip collection of window tests
+    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/ --ignore=pandas/tests/plotting/"
 fi
+
+echo $PYTEST_CMD
+sh -c "$PYTEST_CMD"
 
 if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
     echo "uploading coverage"
