@@ -208,7 +208,7 @@ behavior:
 
     .. versionchanged:::::: 1.0.0
 
-    The default behavior with ``join='outer` changed to not sort.
+    The default behavior with ``join='outer'`` changed to not sort.
 
 Here is the same thing with ``join='inner'``:
 
