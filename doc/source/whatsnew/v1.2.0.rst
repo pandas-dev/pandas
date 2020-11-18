@@ -475,6 +475,7 @@ Deprecations
 - :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
 - Partial slicing on unordered :class:`DatetimeIndexes` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
+- The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 
 .. ---------------------------------------------------------------------------
 
@@ -647,6 +648,7 @@ I/O
 - Bug in :func:`read_html` was raising a ``TypeError`` when supplying a ``pathlib.Path`` argument to the ``io`` parameter (:issue:`37705`)
 - :meth:`to_excel` and :meth:`to_markdown` support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 - Bug in :meth:`read_fw` was not skipping blank lines (even with ``skip_blank_lines=True``) (:issue:`37758`)
+- :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 
 Period
 ^^^^^^

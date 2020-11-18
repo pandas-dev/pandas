@@ -732,17 +732,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = self._engine.get_indexer(target_as_index.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
-            # (non-overlapping so get_loc guarantees scalar of KeyError)
-            indexer = []
-            for key in target_as_index:
-                try:
-                    loc = self.get_loc(key)
-                except KeyError:
-                    loc = -1
-                except InvalidIndexError as err:
-                    # i.e. non-scalar key
-                    raise TypeError(key) from err
-                indexer.append(loc)
+            return self._get_indexer_pointwise(target_as_index)[0]
 
         return ensure_platform_int(indexer)
 
@@ -766,24 +756,38 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             target_as_index, IntervalIndex
         ):
             # target_as_index might contain intervals: defer elementwise to get_loc
-            indexer, missing = [], []
-            for i, key in enumerate(target_as_index):
-                try:
-                    locs = self.get_loc(key)
-                    if isinstance(locs, slice):
-                        locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                    locs = np.array(locs, ndmin=1)
-                except KeyError:
-                    missing.append(i)
-                    locs = np.array([-1])
-                indexer.append(locs)
-            indexer = np.concatenate(indexer)
+            return self._get_indexer_pointwise(target_as_index)
+
         else:
             target_as_index = self._maybe_convert_i8(target_as_index)
             indexer, missing = self._engine.get_indexer_non_unique(
                 target_as_index.values
             )
 
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        pointwise implementation for get_indexer and get_indexer_non_unique.
+        """
+        indexer, missing = [], []
+        for i, key in enumerate(target):
+            try:
+                locs = self.get_loc(key)
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                locs = np.array(locs, ndmin=1)
+            except KeyError:
+                missing.append(i)
+                locs = np.array([-1])
+            except InvalidIndexError as err:
+                # i.e. non-scalar key
+                raise TypeError(key) from err
+
+            indexer.append(locs)
+
+        indexer = np.concatenate(indexer)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
