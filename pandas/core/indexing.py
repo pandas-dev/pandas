@@ -1618,7 +1618,7 @@ class _iLocIndexer(_LocationIndexer):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                self._setitem_with_indexer_missing(indexer, value, name)
+                self._setitem_with_indexer_missing(indexer, value)
                 return
 
         # align and set the values
@@ -1838,7 +1838,7 @@ class _iLocIndexer(_LocationIndexer):
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
         self.obj._maybe_update_cacher(clear=True)
 
-    def _setitem_with_indexer_missing(self, indexer, value, name: str):
+    def _setitem_with_indexer_missing(self, indexer, value):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
@@ -1859,7 +1859,7 @@ class _iLocIndexer(_LocationIndexer):
             if index.is_unique:
                 new_indexer = index.get_indexer([new_index[-1]])
                 if (new_indexer != -1).any():
-                    return self._setitem_with_indexer(new_indexer, value, name)
+                    return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value
             new_values = Series([value])._values
