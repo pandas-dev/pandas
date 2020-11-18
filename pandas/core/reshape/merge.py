@@ -4,8 +4,8 @@ SQL-style merge routines
 
 import copy
 import datetime
-import hashlib
 from functools import partial
+import hashlib
 import string
 from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
