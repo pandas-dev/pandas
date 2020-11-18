@@ -942,7 +942,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = s.loc[[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]]
         tm.assert_series_equal(result, s)
 
-    def test_loc_setitem_empty_append(self):
+    def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe
 
         data = [1, 2, 3]
@@ -953,6 +953,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
+        # same thing, but with mixed dtypes
+        df = DataFrame(columns=["x", "y"])
+        df["x"] = df["x"].astype(np.int64)
+        df.loc[:, "x"] = data
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_empty_append_single_value(self):
         # only appends one value
         expected = DataFrame({"x": [1.0], "y": [np.nan]})
         df = DataFrame(columns=["x", "y"], dtype=float)
