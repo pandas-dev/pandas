@@ -712,7 +712,7 @@ Reshaping
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 - Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
 - Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
-- Bug in :meth:`df.merge() <pandas.DataFrame.merge>` returned inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
+- Bug in :meth:`df.merge() <pandas.DataFrame.merge>` returning inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
 
 Sparse
 ^^^^^^
