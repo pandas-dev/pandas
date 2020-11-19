@@ -19,10 +19,10 @@ def test_doc_string():
     df.rolling(2, min_periods=1).sum()
 
 
-def test_constructor(which):
+def test_constructor(frame_or_series):
     # GH 12669
 
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     # valid
     c(0)
@@ -40,10 +40,10 @@ def test_constructor(which):
 
 
 @pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
-def test_invalid_constructor(which, w):
+def test_invalid_constructor(frame_or_series, w):
     # not valid
 
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     msg = (
         "window must be an integer|"

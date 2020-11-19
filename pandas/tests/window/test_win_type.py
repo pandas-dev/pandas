@@ -9,9 +9,9 @@ import pandas._testing as tm
 
 
 @td.skip_if_no_scipy
-def test_constructor(which):
+def test_constructor(frame_or_series):
     # GH 12669
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     # valid
     c(win_type="boxcar", window=2, min_periods=1)
@@ -21,10 +21,10 @@ def test_constructor(which):
 
 @pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
 @td.skip_if_no_scipy
-def test_invalid_constructor(which, w):
+def test_invalid_constructor(frame_or_series, w):
     # not valid
 
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
     with pytest.raises(ValueError, match="min_periods must be an integer"):
         c(win_type="boxcar", window=2, min_periods=w)
     with pytest.raises(ValueError, match="center must be a boolean"):
@@ -33,16 +33,16 @@ def test_invalid_constructor(which, w):
 
 @pytest.mark.parametrize("wt", ["foobar", 1])
 @td.skip_if_no_scipy
-def test_invalid_constructor_wintype(which, wt):
-    c = which.rolling
+def test_invalid_constructor_wintype(frame_or_series, wt):
+    c = frame_or_series(range(5)).rolling
     with pytest.raises(ValueError, match="Invalid win_type"):
         c(win_type=wt, window=2)
 
 
 @td.skip_if_no_scipy
-def test_constructor_with_win_type(which, win_types):
+def test_constructor_with_win_type(frame_or_series, win_types):
     # GH 12669
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
     c(win_type=win_types, window=2)
 
 
@@ -85,9 +85,9 @@ def test_invalid_scipy_arg():
 
 
 @td.skip_if_no_scipy
-def test_constructor_with_win_type(which):
+def test_constructor_with_win_type(frame_or_series):
     # GH 13383
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     msg = "window must be > 0"
 
