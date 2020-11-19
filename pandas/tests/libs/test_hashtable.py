@@ -22,23 +22,27 @@ class TestHashTable:
         table = table_type(55)
         assert len(table) == 0
         assert index not in table
+
         table.set_item(index, 42)
         assert len(table) == 1
         assert index in table
         assert table.get_item(index) == 42
+
         table.set_item(index + 1, 41)
         assert index in table
         assert index + 1 in table
         assert len(table) == 2
-        table.get_item(index) == 42
-        table.get_item(index + 1) == 41
+        assert table.get_item(index) == 42
+        assert table.get_item(index + 1) == 41
+
         table.set_item(index, 21)
         assert index in table
         assert index + 1 in table
         assert len(table) == 2
-        table.get_item(index) == 21
-        table.get_item(index + 1) == 41
+        assert table.get_item(index) == 21
+        assert table.get_item(index + 1) == 41
         assert index + 2 not in table
+
         with pytest.raises(KeyError) as excinfo:
             table.get_item(index + 2)
         assert str(index + 2) in str(excinfo.value)
