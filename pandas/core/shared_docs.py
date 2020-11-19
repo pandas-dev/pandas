@@ -325,7 +325,7 @@ dtype: int64
 1  1.000000   2.718282
 2  1.414214   7.389056
 
-It is possible to call transform on a GroupBy object:
+You can call transform on a GroupBy object:
 
 >>> df = pd.DataFrame({{
 ...     "Date": [
