@@ -7,9 +7,8 @@ import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
 
-class TestGrouperGrouping:
+class TestRolling:
     def setup_method(self):
-        self.series = Series(np.arange(10))
         self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     def test_mutated(self):
@@ -150,68 +149,6 @@ class TestGrouperGrouping:
 
         # Make sure nothing has been mutated
         result = g.rolling(window=2).sum()
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
-    )
-    def test_expanding(self, f):
-        g = self.frame.groupby("A")
-        r = g.expanding()
-
-        result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.expanding(), f)())
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("f", ["std", "var"])
-    def test_expanding_ddof(self, f):
-        g = self.frame.groupby("A")
-        r = g.expanding()
-
-        result = getattr(r, f)(ddof=0)
-        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
-    )
-    def test_expanding_quantile(self, interpolation):
-        g = self.frame.groupby("A")
-        r = g.expanding()
-        result = r.quantile(0.4, interpolation=interpolation)
-        expected = g.apply(
-            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
-        )
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_expanding_corr_cov(self, f):
-        g = self.frame.groupby("A")
-        r = g.expanding()
-
-        result = getattr(r, f)(self.frame)
-
-        def func(x):
-            return getattr(x.expanding(), f)(self.frame)
-
-        expected = g.apply(func)
-        tm.assert_frame_equal(result, expected)
-
-        result = getattr(r.B, f)(pairwise=True)
-
-        def func(x):
-            return getattr(x.B.expanding(), f)(pairwise=True)
-
-        expected = g.apply(func)
-        tm.assert_series_equal(result, expected)
-
-    def test_expanding_apply(self, raw):
-        g = self.frame.groupby("A")
-        r = g.expanding()
-
-        # reduction
-        result = r.apply(lambda x: x.sum(), raw=raw)
-        expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("expected_value,raw_value", [[1.0, True], [0.0, False]])
@@ -630,6 +567,73 @@ class TestGrouperGrouping:
                 [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
             ),
         )
+        tm.assert_frame_equal(result, expected)
+
+
+class TestExpanding:
+    def setup_method(self):
+        self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+
+    @pytest.mark.parametrize(
+        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
+    )
+    def test_expanding(self, f):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+
+        result = getattr(r, f)()
+        expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("f", ["std", "var"])
+    def test_expanding_ddof(self, f):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+
+        result = getattr(r, f)(ddof=0)
+        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
+    )
+    def test_expanding_quantile(self, interpolation):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+        result = r.quantile(0.4, interpolation=interpolation)
+        expected = g.apply(
+            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_expanding_corr_cov(self, f):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+
+        result = getattr(r, f)(self.frame)
+
+        def func(x):
+            return getattr(x.expanding(), f)(self.frame)
+
+        expected = g.apply(func)
+        tm.assert_frame_equal(result, expected)
+
+        result = getattr(r.B, f)(pairwise=True)
+
+        def func(x):
+            return getattr(x.B.expanding(), f)(pairwise=True)
+
+        expected = g.apply(func)
+        tm.assert_series_equal(result, expected)
+
+    def test_expanding_apply(self, raw):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+
+        # reduction
+        result = r.apply(lambda x: x.sum(), raw=raw)
+        expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
 
