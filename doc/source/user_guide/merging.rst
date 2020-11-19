@@ -194,7 +194,7 @@ behavior:
        },
        index=[2, 3, 6, 7],
    )
-   result = pd.concat([df1, df4], axis=1, sort=False)
+   result = pd.concat([df1, df4], axis=1)
 
 
 .. ipython:: python
@@ -203,13 +203,6 @@ behavior:
    @savefig merging_concat_axis1.png
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
-
-.. warning::
-
-   The default behavior with ``join='outer'`` is to sort the other axis
-   (columns in this case). In a future version of pandas, the default will
-   be to not sort. We specified ``sort=False`` to opt in to the new
-   behavior now.
 
 Here is the same thing with ``join='inner'``:
 
