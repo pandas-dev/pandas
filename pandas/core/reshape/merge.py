@@ -1241,7 +1241,8 @@ class _MergeOperation:
                 or self.on is not None
             ):
                 raise MergeError(
-                    "Can not pass any merge columns when using cross as merge method"
+                    "Can not pass on, right_on, left_on or set right_index=True or "
+                    "left_index=True"
                 )
         # Hm, any way to make this logic less complicated??
         elif self.on is None and self.left_on is None and self.right_on is None:

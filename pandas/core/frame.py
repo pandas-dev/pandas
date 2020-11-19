@@ -348,6 +348,24 @@ Traceback (most recent call last):
 ...
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
+
+>>> df1 = pd.DataFrame({'left_col': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right_col': [7, 8]})
+>>> df1
+    left
+0   foo
+1   bar
+>>> df2
+    right
+0   7
+1   8
+
+>>> df1.merge(df2, how='cross')
+   left  right
+0   foo      7
+1   foo      8
+2   bar      7
+3   bar      8
 """
 
 
