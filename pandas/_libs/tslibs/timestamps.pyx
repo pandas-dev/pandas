@@ -889,10 +889,13 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_period(freq='Y) # Year end frequency
         numpy.datetime64('2020-03-14T15:32:52.192548651')
+
         >>> ts.to_period(freq='M') # Month end frequency
         Period('2020-03', 'M')
+
         >>> ts.to_period(freq='W') # Weekly frequency
         Period('2020-03-09/2020-03-15', 'W-SUN')
+
         >>> ts.to_period(freq='Q') # Quarter end frequency
         Period('2020Q1', 'Q-DEC')
         """
@@ -1369,16 +1372,15 @@ timedelta}, default 'raise'
 
         >>> ts.round(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
+
         >>> ts.round(freq='T') # minute
         Timestamp('2020-03-14 15:33:00')
+
         >>> ts.round(freq='S') # seconds
         Timestamp('2020-03-14 15:32:52')
-        >>> ts.round(freq='L') # miliseconds
+
+        >>> ts.round(freq='L') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
-        >>> ts.round(freq='U') # microseconds
-        Timestamp('2020-03-14 15:32:52.192549')
-        >>> ts.round(freq='N') # nanoseconds
-        Timestamp('2020-03-14 15:32:52.192548651')
 
         ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
 
@@ -1441,14 +1443,13 @@ timedelta}, default 'raise'
 
         >>> ts.floor(freq='H') # hour
         Timestamp('2020-03-14 15:00:00')
+
         >>> ts.floor(freq='T') # minute
         Timestamp('2020-03-14 15:32:00')
+
         >>> ts.floor(freq='S') # seconds
         Timestamp('2020-03-14 15:32:52')
-        >>> ts.floor(freq='L') # miliseconds
-        Timestamp('2020-03-14 15:32:52.192000')
-        >>> ts.floor(freq='U') # microseconds
-        Timestamp('2020-03-14 15:32:52.192548')
+
         >>> ts.floor(freq='N') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
@@ -1511,16 +1512,15 @@ timedelta}, default 'raise'
 
         >>> ts.ceil(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
+
         >>> ts.ceil(freq='T') # minute
         Timestamp('2020-03-14 15:33:00')
+
         >>> ts.ceil(freq='S') # seconds
         Timestamp('2020-03-14 15:32:53')
-        >>> ts.ceil(freq='L') # miliseconds
-        Timestamp('2020-03-14 15:32:52.193000')
+
         >>> ts.ceil(freq='U') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
-        >>> ts.ceil(freq='N') # nanoseconds
-        Timestamp('2020-03-14 15:32:52.192548651')
 
         ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
 
