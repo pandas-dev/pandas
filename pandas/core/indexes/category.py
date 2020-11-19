@@ -582,6 +582,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # Return our indexer or raise if all of the values are not included in
         # the categories
 
+        if self.categories._defer_to_indexing:
+            indexer = self.categories._convert_list_indexer(keyarr)
+            return Index(self.codes).get_indexer_for(indexer)
+
         msg = "a list-indexer must only include values that are in the categories"
         if self.hasnans:
             msg += " or NA"

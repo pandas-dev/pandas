@@ -203,15 +203,14 @@ class TestIntervalIndex:
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s.loc[Interval(3, 5)]
-        msg = r"None of \[IntervalIndex\(\[\(3, 5\]\],\\n \s* closed='right',\\n \s* " \
-              r"dtype='interval\[int64\]'\)\] are in the \[index\]"
-        with pytest.raises(KeyError, match=msg):
+
+        with pytest.raises(KeyError, match=r"^\[Interval\(3, 5, closed='right'\)\]$"):
             s.loc[[Interval(3, 5)]]
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             s[Interval(3, 5)]
 
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=r"^\[Interval\(3, 5, closed='right'\)\]$"):
             s[[Interval(3, 5)]]
 
         # slices with interval (only exact matches)
