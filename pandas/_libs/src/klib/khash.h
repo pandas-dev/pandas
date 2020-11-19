@@ -130,6 +130,7 @@ typedef signed long long khint64_t;
 #endif
 
 typedef double khfloat64_t;
+typedef double khfloat32_t;
 
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
@@ -637,6 +638,7 @@ typedef const char *kh_cstr_t;
 #define kh_exist_float64(h, k) (kh_exist(h, k))
 #define kh_exist_uint64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
+#define kh_exist_float32(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
 #define kh_exist_uint32(h, k) (kh_exist(h, k))
 

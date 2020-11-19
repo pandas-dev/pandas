@@ -23,6 +23,12 @@ khint64_t PANDAS_INLINE asint64(double key) {
     return val;
 }
 
+khint32_t PANDAS_INLINE asint32(float key) {
+    khint32_t val;
+    memcpy(&val, &key, sizeof(float));
+    return val;
+}
+
 #define ZERO_HASH 0
 #define NAN_HASH  0
 
@@ -39,12 +45,30 @@ khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     return murmur2_64to32(as_int);
 }
 
-#define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
+khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
+    // 0.0 and -0.0 should have the same hash:
+    if (val == 0.0f){
+        return ZERO_HASH;
+    }
+    // all nans should have the same hash:
+    if ( val!=val ){
+        return NAN_HASH;
+    }
+    khint32_t as_int = asint32(val);
+    return murmur2_32to32(as_int);
+}
+
+#define kh_floats_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
-	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_float64_hash_equal)
+	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
+
+#define KHASH_MAP_INIT_FLOAT32(name, khval_t)								\
+	KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func, kh_floats_hash_equal)
+
+KHASH_MAP_INIT_FLOAT32(float32, size_t)
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {

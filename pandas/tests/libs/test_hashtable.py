@@ -14,6 +14,7 @@ import pandas._testing as tm
         (ht.Float64HashTable, np.float64),
         (ht.Int32HashTable, np.int32),
         (ht.UInt32HashTable, np.uint32),
+        (ht.Float32HashTable, np.float32),
     ],
 )
 class TestHashTable:
@@ -95,6 +96,7 @@ class TestHashTable:
     "table_type, dtype",
     [
         (ht.Float64HashTable, np.float64),
+        (ht.Float32HashTable, np.float32),
     ],
 )
 class TestHashTableWithNans:
@@ -102,10 +104,12 @@ class TestHashTableWithNans:
         index = float("nan")
         table = table_type()
         assert index not in table
+
         table.set_item(index, 42)
         assert len(table) == 1
         assert index in table
         assert table.get_item(index) == 42
+
         table.set_item(index, 41)
         assert len(table) == 1
         assert index in table
@@ -148,6 +152,7 @@ def get_ht_function(fun_name, type_suffix):
         (np.float64, "float64"),
         (np.int32, "int32"),
         (np.uint32, "uint32"),
+        (np.float32, "float32"),
     ],
 )
 class TestHelpFunctions:
@@ -200,6 +205,7 @@ class TestHelpFunctions:
     "dtype, type_suffix",
     [
         (np.float64, "float64"),
+        (np.float32, "float32"),
     ],
 )
 class TestHelpFunctionsWithNans:
