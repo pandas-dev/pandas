@@ -644,6 +644,7 @@ class _MergeOperation:
 
         self._validate_specification()
 
+        cross_col = None
         if self.how == "cross":
             (
                 self.left,
@@ -652,9 +653,7 @@ class _MergeOperation:
                 cross_col,
             ) = self._create_cross_configuration(self.left, self.right)
             self.left_on = self.right_on = [cross_col]
-            self._cross = cross_col
-        else:
-            self._cross = None
+        self._cross = cross_col
 
         # note this function has side effects
         (
@@ -707,7 +706,7 @@ class _MergeOperation:
 
         return result.__finalize__(self, method="merge")
 
-    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: str):
+    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: Optional[str]):
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
@@ -1244,6 +1243,7 @@ class _MergeOperation:
                     "Can not pass on, right_on, left_on or set right_index=True or "
                     "left_index=True"
                 )
+            return
         # Hm, any way to make this logic less complicated??
         elif self.on is None and self.left_on is None and self.right_on is None:
 
