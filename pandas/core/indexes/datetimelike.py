@@ -10,7 +10,6 @@ from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -399,7 +398,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @property
     def _formatter_func(self):
-        raise AbstractMethodError(self)
+        return self._data._formatter()
 
     def _format_attrs(self):
         """
@@ -691,6 +690,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self.name)
+
+    @property
+    def _has_complex_internals(self) -> bool:
+        # used to avoid libreduction code paths, which raise or require conversion
+        return False
 
     # --------------------------------------------------------------------
     # Set Operation Methods

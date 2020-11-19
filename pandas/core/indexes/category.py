@@ -6,7 +6,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
-from pandas._libs.hashtable import duplicated_int64
 from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -358,11 +357,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
@@ -398,11 +392,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # Use _simple_new instead of _shallow_copy to ensure we keep dtype
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
-
-    @doc(Index.duplicated)
-    def duplicated(self, keep="first"):
-        codes = self.codes.astype("i8")
-        return duplicated_int64(codes, keep)
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """

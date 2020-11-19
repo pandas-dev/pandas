@@ -211,6 +211,11 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
+    @property
+    def _has_complex_internals(self) -> bool:
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
+
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
 
