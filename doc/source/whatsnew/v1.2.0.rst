@@ -711,6 +711,7 @@ Reshaping
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 - Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
+- Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
 
 Sparse
 ^^^^^^
