@@ -205,3 +205,10 @@ parameter:
   - ``min`` : lowest rank in the group
   - ``max`` : highest rank in the group
   - ``first`` : ranks assigned in the order they appear in the array
+
+.. _computation.windowing:
+
+Windowing functions
+~~~~~~~~~~~~~~~~~~~
+
+See :ref:`the window operations user guide <window.overview>` for an overview of windowing functions.

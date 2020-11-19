@@ -473,8 +473,11 @@ def infer_compression(
     ------
     ValueError on invalid compression specified.
     """
+    if compression is None:
+        return None
+
     # Infer compression
-    if compression in ("infer", None):
+    if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
         filepath_or_buffer = stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
