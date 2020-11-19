@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from functools import wraps
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -65,7 +64,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -79,26 +78,6 @@ if TYPE_CHECKING:
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-def ravel_compat(meth):
-    """
-    Decorator to ravel a 2D array before passing it to a cython operation,
-    then reshape the result to our own shape.
-    """
-
-    @wraps(meth)
-    def method(self, *args, **kwargs):
-        if self.ndim == 1:
-            return meth(self, *args, **kwargs)
-
-        flags = self._ndarray.flags
-        flat = self.ravel("K")
-        result = meth(flat, *args, **kwargs)
-        order = "F" if flags.f_contiguous else "C"
-        return result.reshape(self.shape, order=order)
-
-    return method
 
 
 class InvalidComparison(Exception):
@@ -708,6 +687,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return Series(result._values, index=index, name=result.name)
 
+    @ravel_compat
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
