@@ -10,16 +10,17 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import Label, StorageOptions
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
+from pandas.core import generic
 import pandas.core.common as com
 
-from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -777,6 +778,7 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     def write(
         self,
         writer,
@@ -785,9 +787,10 @@ class ExcelFormatter:
         startcol=0,
         freeze_panes=None,
         engine=None,
+        storage_options: StorageOptions = None,
     ):
         """
-        writer : string or ExcelWriter object
+        writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter
         sheet_name : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
@@ -802,6 +805,9 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
+        {storage_options}
+
+            .. versionadded:: 1.2.0
         """
         from pandas.io.excel import ExcelWriter
 
@@ -812,6 +818,7 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
@@ -819,17 +826,19 @@ class ExcelFormatter:
             # abstract class 'ExcelWriter' with abstract attributes 'engine',
             # 'save', 'supported_extensions' and 'write_cells'  [abstract]
             writer = ExcelWriter(  # type: ignore[abstract]
-                stringify_path(writer), engine=engine
+                writer, engine=engine, storage_options=storage_options
             )
             need_save = True
 
-        formatted_cells = self.get_formatted_cells()
-        writer.write_cells(
-            formatted_cells,
-            sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-        )
-        if need_save:
-            writer.save()
+        try:
+            writer.write_cells(
+                formatted_cells,
+                sheet_name,
+                startrow=startrow,
+                startcol=startcol,
+                freeze_panes=freeze_panes,
+            )
+        finally:
+            # make sure to close opened file handles
+            if need_save:
+                writer.close()

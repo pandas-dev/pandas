@@ -274,7 +274,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
 
     def test_take_all_empty(self):
-        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        a = pd.array([0, 0], dtype=SparseDtype("int64"))
         result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
         tm.assert_sp_array_equal(a, result)
 
