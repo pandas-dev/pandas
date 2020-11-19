@@ -1522,6 +1522,7 @@ class _iLocIndexer(_LocationIndexer):
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
         if isinstance(key, list) and com.is_bool_indexer(key):
+            # GH#37761
             return np.array(key)
         return key
 
