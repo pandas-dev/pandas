@@ -1,4 +1,5 @@
 import datetime
+import re
 
 import numpy as np
 import pytest
@@ -82,7 +83,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = re.escape(
+            "invalid info for [values_block_1] for [tz], "
+            "existing_value [dateutil//usr/share/zoneinfo/US/Eastern] "
+            "conflicts with new value [dateutil//usr/share/zoneinfo/EET]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -100,7 +107,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = re.escape(
+            "invalid info for [B] for [tz], "
+            "existing_value [dateutil//usr/share/zoneinfo/EET] "
+            "conflicts with new value [dateutil//usr/share/zoneinfo/CET]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
@@ -169,7 +182,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = re.escape(
+            "invalid info for [values_block_1] for [tz], "
+            "existing_value [US/Eastern] conflicts with new value [EET]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -187,7 +205,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = re.escape(
+            "invalid info for [B] for [tz], "
+            "existing_value [EET] conflicts with new value [CET]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
