@@ -9,6 +9,14 @@ from .common import Base
 
 
 class DatetimeLike(Base):
+    def test_argsort_matches_array(self):
+        rng = self.create_index()
+        rng = rng.insert(1, pd.NaT)
+
+        result = rng.argsort()
+        expected = rng._data.argsort()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_argmax_axis_invalid(self):
         # GH#23081
         msg = r"`axis` must be fewer than the number of dimensions \(1\)"
