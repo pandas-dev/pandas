@@ -218,9 +218,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(
+    def _from_sequence_strict(
         cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
     ) -> "TimedeltaArray":
+        # GH#37179 eventually we want _from_sequence to be strict
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -239,6 +240,15 @@ class TimedeltaArray(dtl.TimelikeOps):
             pass
         else:
             raise TypeError(data.dtype)
+
+        return cls._from_sequence(data=data, copy=copy)
+
+    @classmethod
+    def _from_sequence(
+        cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
+    ) -> "TimedeltaArray":
+        if dtype:
+            _validate_td64_dtype(dtype)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)

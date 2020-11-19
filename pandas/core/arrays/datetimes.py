@@ -306,7 +306,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
+    def _from_sequence_strict(cls, scalars, *, dtype=None, copy: bool = False):
+        # GH#37179 eventually _from_sequence should be strict
 
         scalars, copy = dtl.ensure_arraylike(scalars, copy)
 
@@ -335,6 +336,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             msg = f"dtype {scalars.dtype} cannot be converted to datetime64[ns]"
             raise TypeError(msg)
 
+        return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod

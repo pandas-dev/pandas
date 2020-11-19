@@ -16,7 +16,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 
 import numpy as np
@@ -98,7 +97,7 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import DatetimeArray, ExtensionArray
+    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
     from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -1045,10 +1044,6 @@ def astype_nansafe(
         cls = dtype.construct_array_type()
         if lib.infer_dtype(arr) == "string":
             return cls._from_sequence_of_strings(arr, dtype=dtype, copy=copy)
-        if is_datetime64tz_dtype(dtype):
-            # GH#37179 workaround until we have a more robust solution
-            cls = cast(Type["DatetimeArray"], cls)
-            return cls._from_sequence_not_strict(arr, dtype=dtype, copy=copy)
         return cls._from_sequence(arr, dtype=dtype, copy=copy)
 
     if not isinstance(dtype, np.dtype):

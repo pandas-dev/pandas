@@ -61,15 +61,15 @@ class TestTimedeltaArrayConstructor:
         assert arr._data is not data
         assert arr._data.base is not data
 
-    def test_from_sequence_invalid_dtypes(self):
+    def test_from_sequence_strict_invalid_dtypes(self):
         # GH#37179
         data = np.arange(5, dtype=np.float64)
         with pytest.raises(TypeError, match="float64"):
-            TimedeltaArray._from_sequence(data)
+            TimedeltaArray._from_sequence_strict(data)
 
         with pytest.raises(TypeError, match="floating"):
             # object-dtype array of floats
-            TimedeltaArray._from_sequence(data.astype(object))
+            TimedeltaArray._from_sequence_strict(data.astype(object))
 
 
 class TestTimedeltaArray:

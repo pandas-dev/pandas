@@ -16,7 +16,7 @@ from pandas.core.arrays.datetimes import sequence_to_dt64ns
 
 
 class TestDatetimeArrayConstructor:
-    def test_from_sequence_invalid_type(self):
+    def test_from_sequence_strict_invalid_type(self):
         mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
         with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
             DatetimeArray._from_sequence(mi)
@@ -24,7 +24,7 @@ class TestDatetimeArrayConstructor:
         msg = "mixed scalars cannot be converted to datetime64"
         with pytest.raises(TypeError, match=msg):
             # GH#37179
-            DatetimeArray._from_sequence(mi._values)
+            DatetimeArray._from_sequence_strict(mi._values)
 
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
