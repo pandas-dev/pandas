@@ -135,6 +135,10 @@ typedef unsigned int khint16_t;
 typedef unsigned short khint16_t;
 #endif
 
+#if UCHAR_MAX == 0xffu
+typedef unsigned char khint8_t;
+#endif
+
 typedef double khfloat64_t;
 typedef double khfloat32_t;
 
@@ -633,6 +637,18 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
 #define KHASH_MAP_INIT_UINT16(name, khval_t)								\
 	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+/*! @function
+  @abstract     Instantiate a hash map containing 8bit-integer keys
+  @param  name  Name of the hash table [symbol]
+  @param  khval_t  Type of values [type]
+ */
+#define KHASH_MAP_INIT_INT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+
 
 typedef const char *kh_cstr_t;
 /*! @function
@@ -660,6 +676,8 @@ typedef const char *kh_cstr_t;
 #define kh_exist_uint32(h, k) (kh_exist(h, k))
 #define kh_exist_int16(h, k) (kh_exist(h, k))
 #define kh_exist_uint16(h, k) (kh_exist(h, k))
+#define kh_exist_int8(h, k) (kh_exist(h, k))
+#define kh_exist_uint8(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
@@ -668,6 +686,8 @@ KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
 KHASH_MAP_INIT_INT16(int16, size_t)
 KHASH_MAP_INIT_UINT16(uint16, size_t)
+KHASH_MAP_INIT_INT16(int8, size_t)
+KHASH_MAP_INIT_UINT16(uint8, size_t)
 
 
 #endif /* __AC_KHASH_H */

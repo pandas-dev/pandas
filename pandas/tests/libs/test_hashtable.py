@@ -17,6 +17,8 @@ import pandas._testing as tm
         (ht.Float32HashTable, np.float32),
         (ht.Int16HashTable, np.int16),
         (ht.UInt16HashTable, np.uint16),
+        (ht.Int8HashTable, np.int8),
+        (ht.UInt8HashTable, np.uint8),
     ],
 )
 class TestHashTable:
@@ -77,7 +79,10 @@ class TestHashTable:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_lookup_wrong(self, table_type, dtype):
-        N = 512
+        if dtype in (np.int8, np.uint8):
+            N = 100
+        else:
+            N = 512
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
         table.map_locations(keys)
@@ -86,7 +91,10 @@ class TestHashTable:
         assert np.all(result == -1)
 
     def test_unique(self, table_type, dtype):
-        N = 1000
+        if dtype in (np.int8, np.uint8):
+            N = 88
+        else:
+            N = 1000
         table = table_type()
         expected = (np.arange(N) + N).astype(dtype)
         keys = np.repeat(expected, 5)
@@ -157,6 +165,8 @@ def get_ht_function(fun_name, type_suffix):
         (np.float32, "float32"),
         (np.int16, "int16"),
         (np.uint16, "uint16"),
+        (np.int8, "int8"),
+        (np.uint8, "uint8"),
     ],
 )
 class TestHelpFunctions:
@@ -197,7 +207,10 @@ class TestHelpFunctions:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_mode(self, dtype, type_suffix):
-        N = 11111
+        if dtype in (np.int8, np.uint8):
+            N = 53
+        else:
+            N = 11111
         mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
