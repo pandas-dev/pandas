@@ -204,12 +204,6 @@ behavior:
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-.. warning::
-
-    .. versionchanged:::::: 1.0.0
-
-    The default behavior with ``join='outer'`` changed to not sort.
-
 Here is the same thing with ``join='inner'``:
 
 .. ipython:: python
