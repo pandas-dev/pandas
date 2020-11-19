@@ -349,8 +349,8 @@ Traceback (most recent call last):
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
 
->>> df1 = pd.DataFrame({'left_col': ['foo', 'bar']})
->>> df2 = pd.DataFrame({'right_col': [7, 8]})
+>>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right': [7, 8]})
 >>> df1
     left
 0   foo
