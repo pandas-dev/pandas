@@ -667,6 +667,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if k not in self.obj:
                     if value is None:
                         self.obj[k] = np.nan
+                    elif is_array_like(value) and value.ndim == 2:
+                        self.obj[k] = value[:, i]
                     elif is_list_like(value):
                         self.obj[k] = value[i]
                     else:
