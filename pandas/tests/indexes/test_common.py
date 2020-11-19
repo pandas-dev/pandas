@@ -13,7 +13,16 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    Int64Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -347,6 +356,18 @@ class TestCommon:
         # GH#19956 ravel returning ndarray is deprecated
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
+
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(
+            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
+        ):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])

@@ -10,6 +10,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
@@ -123,8 +124,9 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = arg.values
     elif isinstance(arg, ABCIndexClass):
         is_index = True
-        values = arg.asi8
-        if values is None:
+        if needs_i8_conversion(arg.dtype):
+            values = arg.asi8
+        else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
