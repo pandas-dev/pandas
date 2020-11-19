@@ -477,6 +477,18 @@ class TestDataFramePlots(TestPlotBase):
             ymin, ymax = ax.get_ylim()
             assert ymax == 0
 
+    def test_area_sharey_dont_overwrite(self):
+        # GH37942
+        df1 = DataFrame(np.random.rand(4, 2), columns=["x", "y"])
+        df2 = DataFrame(np.random.rand(4, 2), columns=["x", "y"])
+        fig, (ax1, ax2) = self.plt.subplots(1, 2, sharey=True)
+
+        df1.plot(ax=ax1, kind="area")
+        df2.plot(ax=ax2, kind="area")
+
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)
+
     @pytest.mark.slow
     def test_bar_linewidth(self):
         df = DataFrame(np.random.randn(5, 5))
