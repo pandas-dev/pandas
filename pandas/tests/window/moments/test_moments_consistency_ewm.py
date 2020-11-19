@@ -65,8 +65,126 @@ def test_different_input_array_raise_exception(name, binary_ew_data):
         getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
 
 
-@pytest.mark.slow
+def create_mock_weights(obj, com, adjust, ignore_na):
+    if isinstance(obj, DataFrame):
+        if not len(obj.columns):
+            return DataFrame(index=obj.index, columns=obj.columns)
+        w = concat(
+            [
+                create_mock_series_weights(
+                    obj.iloc[:, i], com=com, adjust=adjust, ignore_na=ignore_na
+                )
+                for i, _ in enumerate(obj.columns)
+            ],
+            axis=1,
+        )
+        w.index = obj.index
+        w.columns = obj.columns
+        return w
+    else:
+        create_mock_series_weights(obj, com, adjust, ignore_na)
+
+
+def create_mock_series_weights(s, com, adjust, ignore_na):
+    w = Series(np.nan, index=s.index)
+    alpha = 1.0 / (1.0 + com)
+    if adjust:
+        count = 0
+        for i in range(len(s)):
+            if s.iat[i] == s.iat[i]:
+                w.iat[i] = pow(1.0 / (1.0 - alpha), count)
+                count += 1
+            elif not ignore_na:
+                count += 1
+    else:
+        sum_wts = 0.0
+        prev_i = -1
+        count = 0
+        for i in range(len(s)):
+            if s.iat[i] == s.iat[i]:
+                if prev_i == -1:
+                    w.iat[i] = 1.0
+                else:
+                    w.iat[i] = alpha * sum_wts / pow(1.0 - alpha, count - prev_i)
+                sum_wts += w.iat[i]
+                prev_i = count
+                count += 1
+            elif not ignore_na:
+                count += 1
+    return w
+
+
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+def test_ewm_consistency_mean(consistency_data, adjust, ignore_na, min_periods):
+    x, is_constant, no_nans = consistency_data
+    com = 3.0
+
+    result = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).mean()
+    weights = create_mock_weights(x, com=com, adjust=adjust, ignore_na=ignore_na)
+    expected = (
+        x.multiply(weights).cumsum().divide(weights.cumsum()).fillna(method="ffill")
+    )
+    expected[
+        x.expanding().count() < (max(min_periods, 1) if min_periods else 1)
+    ] = np.nan
+    tm.assert_equal(result, expected.astype("float64"))
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+def test_ewm_consistency_consistent(consistency_data, adjust, ignore_na, min_periods):
+    x, is_constant, no_nans = consistency_data
+    com = 3.0
+
+    if is_constant:
+        count_x = x.expanding().count()
+        mean_x = x.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).mean()
+        # check that correlation of a series with itself is either 1 or NaN
+        corr_x_x = x.ewm(
+            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        ).corr(x)
+        exp = x.max() if isinstance(x, Series) else x.max().max()
+
+        # check mean of constant series
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = exp
+        tm.assert_equal(mean_x, expected)
+
+        # check correlation of constant series with itself is NaN
+        expected[:] = np.nan
+        tm.assert_equal(corr_x_x, expected)
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+def test_ewm_consistency_var_debiasing_factors(
+    consistency_data, adjust, ignore_na, min_periods
+):
+    x, is_constant, no_nans = consistency_data
+    com = 3.0
+
+    # check variance debiasing factors
+    var_unbiased_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).var(bias=False)
+    var_biased_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).var(bias=True)
+
+    weights = create_mock_weights(x, com=com, adjust=adjust, ignore_na=ignore_na)
+    cum_sum = weights.cumsum().fillna(method="ffill")
+    cum_sum_sq = (weights * weights).cumsum().fillna(method="ffill")
+    numerator = cum_sum * cum_sum
+    denominator = numerator - cum_sum_sq
+    denominator[denominator <= 0.0] = np.nan
+    var_debiasing_factors_x = numerator / denominator
+
+    tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
+
+"""
+@pytest.mark.slow
 @pytest.mark.parametrize("adjust", [True, False])
 @pytest.mark.parametrize("ignore_na", [True, False])
 def test_ewm_consistency(consistency_data, min_periods, adjust, ignore_na):
@@ -87,25 +205,29 @@ def test_ewm_consistency(consistency_data, min_periods, adjust, ignore_na):
 
         w = Series(np.nan, index=s.index)
         alpha = 1.0 / (1.0 + com)
-        if ignore_na:
-            w[s.notna()] = _weights(
-                s[s.notna()], com=com, adjust=adjust, ignore_na=False
-            )
-        elif adjust:
+        if adjust:
+            count = 0
             for i in range(len(s)):
                 if s.iat[i] == s.iat[i]:
-                    w.iat[i] = pow(1.0 / (1.0 - alpha), i)
+                    w.iat[i] = pow(1.0 / (1.0 - alpha), count)
+                    count += 1
+                elif not ignore_na:
+                    count += 1
         else:
             sum_wts = 0.0
             prev_i = -1
+            count = 0
             for i in range(len(s)):
                 if s.iat[i] == s.iat[i]:
                     if prev_i == -1:
                         w.iat[i] = 1.0
                     else:
-                        w.iat[i] = alpha * sum_wts / pow(1.0 - alpha, i - prev_i)
+                        w.iat[i] = alpha * sum_wts / pow(1.0 - alpha, count - prev_i)
                     sum_wts += w.iat[i]
-                    prev_i = i
+                    prev_i = count
+                    count += 1
+                elif not ignore_na:
+                    count += 1
         return w
 
     def _variance_debiasing_factors(s, com, adjust, ignore_na):
@@ -168,7 +290,7 @@ def test_ewm_consistency(consistency_data, min_periods, adjust, ignore_na):
             _variance_debiasing_factors(x, com=com, adjust=adjust, ignore_na=ignore_na)
         ),
     )
-
+"""
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
