@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from functools import wraps
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -78,6 +79,26 @@ if TYPE_CHECKING:
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
+
+
+def ravel_compat(meth):
+    """
+    Decorator to ravel a 2D array before passing it to a cython operation,
+    then reshape the result to our own shape.
+    """
+
+    @wraps(meth)
+    def method(self, *args, **kwargs):
+        if self.ndim == 1:
+            return meth(self, *args, **kwargs)
+
+        flags = self._ndarray.flags
+        flat = self.ravel("K")
+        result = meth(flat, *args, **kwargs)
+        order = "F" if flags.f_contiguous else "C"
+        return result.reshape(self.shape, order=order)
+
+    return method
 
 
 class InvalidComparison(Exception):
@@ -681,7 +702,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         cls = type(self)
 
-        result = value_counts(values, sort=False, dropna=dropna)
+        result = value_counts(values.ravel("K"), sort=False, dropna=dropna)
         index = Index(
             cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
         )
@@ -757,6 +778,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
+
+            if self.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
 
@@ -854,7 +878,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @property
     def _is_unique(self):
-        return len(unique1d(self.asi8)) == len(self)
+        return len(unique1d(self.asi8.ravel("K"))) == self.size
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
