@@ -253,7 +253,7 @@ Other enhancements
 - Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
-- :func:`pandas.load_pickle` can now load from ``.zip`` files created by OS X/macOS that contain ``__MACOSX/`` or ``.DS_STORE`` hidden folders/files (:issue:`37098`).
+- :func:`read_pickle` (and other `read_*` functions that handle compressed inputs) can now load from ``.zip`` files created by OS X/macOS that contain ``__MACOSX/`` or ``.DS_STORE`` hidden folders/files (:issue:`37098`).
 
 
 .. ---------------------------------------------------------------------------
