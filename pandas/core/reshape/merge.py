@@ -1221,6 +1221,22 @@ class _MergeOperation:
     def _create_cross_configuration(
         self, _left, _right
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
+        """
+        Creates the configuration to dispatch the cross operation to inner join,
+        e.g. adding a join column and resetting parameters. Join column is added
+        to a new object, no inplace modification
+
+        Parameters
+        ----------
+        _left: DataFrame
+        _right DataFrame
+
+        Returns
+        -------
+            a tuple (_left_df, _right_df, how, cross_col) representing the adjusted
+            DataFrames with cross_col, the merge operation set to inner and the column
+            to join over.
+        """
         cross_col = f"_cross_{hashlib.md5().hexdigest()}"
         how = "inner"
         return (
