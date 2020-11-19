@@ -606,7 +606,7 @@ class TestMerge:
     )
     @pytest.mark.parametrize("how", ["left", "right"])
     def test_merge_same_order_left_right(self, sort, values, how):
-        # GH: 35382
+        # GH#35382
         df = DataFrame({"a": [1, 0, 1]})
 
         result = df.merge(df, on="a", how=how, sort=sort)
