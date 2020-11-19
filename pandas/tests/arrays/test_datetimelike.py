@@ -10,6 +10,7 @@ from pandas.compat.numpy import np_version_under1p18
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.construction import array, extract_array
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -302,11 +303,26 @@ class SharedTests:
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        with pytest.raises(TypeError):
-            arr.searchsorted("foo")
+        string = "foo"
+        with pytest.raises(
+            TypeError,
+            match=(
+                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(string).__name__}' instead."
+            ),
+        ):
+            arr.searchsorted(string)
 
-        with pytest.raises(TypeError):
-            arr.searchsorted([str(arr[1]), "baz"])
+        str_arr = [str(arr[1]), "baz"]
+        with pytest.raises(
+            TypeError,
+            match=(
+                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                f"or array of those."
+                f"Got '{type(extract_array(array(str_arr))).__name__}' instead."
+            ),
+        ):
+            arr.searchsorted(str_arr)
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
