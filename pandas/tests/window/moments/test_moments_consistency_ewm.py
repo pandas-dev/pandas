@@ -171,30 +171,51 @@ def test_ewm_consistency(consistency_data, min_periods, adjust, ignore_na):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-@pytest.mark.parametrize("adjust", [True, False])
-@pytest.mark.parametrize("ignore_na", [True, False])
-def test_ewm_consistency_var(consistency_data, min_periods, adjust, ignore_na):
+@pytest.mark.parametrize("bias", [True, False])
+def test_moments_consistency_var(
+    consistency_data, adjust, ignore_na, min_periods, bias
+):
     x, is_constant, no_nans = consistency_data
     com = 3.0
-    moments_consistency_var_data(
-        x=x,
-        is_constant=is_constant,
-        min_periods=min_periods,
-        count=lambda x: x.expanding().count(),
-        mean=lambda x: x.ewm(
+
+    mean_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).mean()
+    var_x = x.ewm(
+        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+    ).var(bias=bias)
+    assert not (var_x < 0).any().any()
+
+    if bias:
+        # check that biased var(x) == mean(x^2) - mean(x)^2
+        mean_x2 = (
+            (x * x)
+            .ewm(com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na)
+            .mean()
+        )
+        tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
+
+
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
+@pytest.mark.parametrize("bias", [True, False])
+def test_moments_consistency_var_constant(
+    consistency_data, adjust, ignore_na, min_periods, bias
+):
+    x, is_constant, no_nans = consistency_data
+    com = 3.0
+    if is_constant:
+        count_x = x.expanding(min_periods=min_periods).count()
+        var_x = x.ewm(
             com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-        ).mean(),
-        var_unbiased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=False)
-        ),
-        var_biased=lambda x: (
-            x.ewm(
-                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ).var(bias=True)
-        ),
-    )
+        ).var(bias=bias)
+
+        # check that variance of constant series is identically 0
+        assert not (var_x > 0).any().any()
+        expected = x * np.nan
+        expected[count_x >= max(min_periods, 1)] = 0.0
+        if not bias:
+            expected[count_x < 2] = np.nan
+        tm.assert_equal(var_x, expected)
 
 
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
