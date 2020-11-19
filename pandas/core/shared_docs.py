@@ -325,3 +325,13 @@ dtype: int64
 1  1.000000   2.718282
 2  1.414214   7.389056
 """
+
+_shared_docs[
+    "storage_options"
+] = """storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a non-fsspec URL.
+    See the fsspec and backend storage implementation docs for the set of
+    allowed keys and values."""
