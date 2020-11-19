@@ -318,7 +318,7 @@ class SharedTests:
             TypeError,
             match=(
                 f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                f"or array of those."
+                f"or array of those. "
                 f"Got '{type(extract_array(array(str_arr))).__name__}' instead."
             ),
         ):
