@@ -305,6 +305,7 @@ def series():
     return _create_series()
 
 
+# Use frame_or_series
 @pytest.fixture(params=[_create_series(), _create_frame()])
 def which(request):
     """Turn parametrized which as fixture for series and frame"""

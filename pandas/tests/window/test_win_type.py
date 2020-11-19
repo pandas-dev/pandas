@@ -4,8 +4,8 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
-import pandas as pd
-from pandas import Series
+from pandas import DataFrame, Series, concat
+import pandas._testing as tm
 
 
 @td.skip_if_no_scipy
@@ -62,7 +62,7 @@ def test_numpy_compat(method):
 @td.skip_if_no_scipy
 @pytest.mark.parametrize("arg", ["median", "kurt", "skew"])
 def test_agg_function_support(arg):
-    df = pd.DataFrame({"A": np.arange(5)})
+    df = DataFrame({"A": np.arange(5)})
     roll = df.rolling(2, win_type="triang")
 
     msg = f"'{arg}' is not a valid function for 'Window' object"
@@ -82,3 +82,38 @@ def test_invalid_scipy_arg():
     msg = r"boxcar\(\) got an unexpected"
     with pytest.raises(TypeError, match=msg):
         Series(range(3)).rolling(1, win_type="boxcar").mean(foo="bar")
+
+
+@td.skip_if_no_scipy
+def test_constructor_with_win_type(which):
+    # GH 13383
+    c = which.rolling
+
+    msg = "window must be > 0"
+
+    with pytest.raises(ValueError, match=msg):
+        c(-1, win_type="boxcar")
+
+
+@td.skip_if_no_scipy
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+def test_window_with_args():
+    # make sure that we are aggregating window functions correctly with arg
+    r = Series(np.random.randn(100)).rolling(
+        window=10, min_periods=1, win_type="gaussian"
+    )
+    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected.columns = ["<lambda>", "<lambda>"]
+    result = r.aggregate([lambda x: x.mean(std=10), lambda x: x.mean(std=0.01)])
+    tm.assert_frame_equal(result, expected)
+
+    def a(x):
+        return x.mean(std=10)
+
+    def b(x):
+        return x.mean(std=0.01)
+
+    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected.columns = ["a", "b"]
+    result = r.aggregate([a, b])
+    tm.assert_frame_equal(result, expected)
