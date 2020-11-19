@@ -2156,6 +2156,10 @@ class MultiIndex(Index):
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
+        # If nan should be dropped it will equal -1 here. We have to check which values
+        # are not nan and equal -1, this means they are missing in the index
+        nan_codes = isna(codes)
+        values[(np.equal(nan_codes, False)) & (values == -1)] = -2
 
         mask = ~algos.isin(self.codes[i], values)
         if mask.all() and errors != "ignore":
@@ -3660,7 +3664,12 @@ class MultiIndex(Index):
                 # must insert at end otherwise you have to recompute all the
                 # other codes
                 lev_loc = len(level)
-                level = level.insert(lev_loc, k)
+                try:
+                    level = level.insert(lev_loc, k)
+                except TypeError:
+                    # TODO: Should this be done inside insert?
+                    # TODO: smarter casting rules?
+                    level = level.astype(object).insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

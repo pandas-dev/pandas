@@ -602,19 +602,22 @@ z
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
-    def test_to_csv_binary_handle(self):
+    @pytest.mark.parametrize("mode", ["wb", "w"])
+    def test_to_csv_binary_handle(self, mode):
         """
-        Binary file objects should work if 'mode' contains a 'b'.
+        Binary file objects should work (if 'mode' contains a 'b') or even without
+        it in most cases.
 
         GH 35058 and GH 19827
         """
         df = tm.makeDataFrame()
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
-                df.to_csv(handle, mode="w+b")
+                df.to_csv(handle, mode=mode)
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
-    def test_to_csv_encoding_binary_handle(self):
+    @pytest.mark.parametrize("mode", ["wb", "w"])
+    def test_to_csv_encoding_binary_handle(self, mode):
         """
         Binary file objects should honor a specified encoding.
 
@@ -626,14 +629,14 @@ z
         df = pd.read_csv(buffer, encoding="utf-8-sig")
 
         buffer = io.BytesIO()
-        df.to_csv(buffer, mode="w+b", encoding="utf-8-sig", index=False)
+        df.to_csv(buffer, mode=mode, encoding="utf-8-sig", index=False)
         buffer.seek(0)  # tests whether file handle wasn't closed
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
         with tm.ensure_clean() as path:
             with open(path, "w+b") as handle:
-                DataFrame().to_csv(handle, mode="w+b", encoding="utf-8-sig")
+                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
