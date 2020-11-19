@@ -162,6 +162,6 @@ def test_single_level_drop():
     with pytest.raises(KeyError, match=msg):
         mi.drop([np.nan], level=0)
     mi = MultiIndex.from_tuples([(np.nan, 1), (1, 2)])
-    msg = r"labels \[2\.0\] not found in level"
+    msg = r"labels \['a'\] not found in level"
     with pytest.raises(KeyError, match=msg):
-        mi.drop([np.nan, 1, 2], level=0)
+        mi.drop([np.nan, 1, "a"], level=0)
