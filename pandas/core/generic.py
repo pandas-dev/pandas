@@ -3759,7 +3759,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 dtype=new_values.dtype,
             )
         elif is_scalar(loc):
-            result = self.iloc[:, [loc]]
+            result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
         else:
@@ -3785,7 +3785,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             loc = self.columns.get_loc(item)
             values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc)
+            res = self._box_col_values(values, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
@@ -9020,7 +9020,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = -cond if inplace else cond
 
         # try to align with other
-        try_quick = True
         if isinstance(other, NDFrame):
 
             # align with me
@@ -9059,12 +9058,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first (if try_quick)
-                        if try_quick:
-                            new_other = np.asarray(self)
-                            new_other = new_other.copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first
+                        new_other = np.asarray(self)
+                        new_other = new_other.copy()
+                        new_other[icond] = other
+                        other = new_other
 
                     else:
                         raise ValueError(
