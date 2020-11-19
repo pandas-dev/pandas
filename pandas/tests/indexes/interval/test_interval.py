@@ -228,7 +228,7 @@ class TestIntervalIndex:
         assert idx.is_unique is True
 
         # unique overlapping - shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
         assert idx.is_unique is True
 
         # unique nested
@@ -279,14 +279,14 @@ class TestIntervalIndex:
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
         assert idx.is_monotonic is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
+        idx = IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
         assert idx.is_monotonic is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
@@ -869,10 +869,10 @@ class TestIntervalIndex:
 
     def test_is_all_dates(self):
         # GH 23576
-        year_2017 = pd.Interval(
+        year_2017 = Interval(
             Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
-        year_2017_index = pd.IntervalIndex([year_2017])
+        year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
 
     @pytest.mark.parametrize("key", [[5], (2, 3)])
