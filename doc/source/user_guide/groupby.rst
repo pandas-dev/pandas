@@ -478,7 +478,7 @@ Aggregation
 
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data. These operations are similar to the
-:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
+:ref:`aggregating API <basics.aggregate>`, :ref:`window API <window.overview>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the
@@ -672,7 +672,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    )
 
 
-If your desired output column names are not valid python keywords, construct a dictionary
+If your desired output column names are not valid Python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python
@@ -1090,7 +1090,7 @@ will be passed into ``values``, and the group index will be passed into ``index`
 .. warning::
 
    When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
-   data and group index will be passed as numpy arrays to the JITed user defined function, and no
+   data and group index will be passed as NumPy arrays to the JITed user defined function, and no
    alternative execution attempts will be tried.
 
 .. note::

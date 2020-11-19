@@ -54,7 +54,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
-from pandas.util._decorators import Appender, doc, rewrite_axis_style_signature
+from pandas.util._decorators import doc, rewrite_axis_style_signature
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -2028,9 +2028,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_excel(
         self,
         excel_writer,
-        sheet_name="Sheet1",
-        na_rep="",
-        float_format=None,
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
         columns=None,
         header=True,
         index=True,
@@ -2043,6 +2043,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2059,7 +2060,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        excel_writer : str or ExcelWriter object
+        excel_writer : path-like, file-like, or ExcelWriter object
             File path or existing ExcelWriter.
         sheet_name : str, default 'Sheet1'
             Name of sheet which will contain DataFrame.
@@ -2100,6 +2101,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2174,6 +2181,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             startcol=startcol,
             freeze_panes=freeze_panes,
             engine=engine,
+            storage_options=storage_options,
         )
 
     @final
@@ -3221,7 +3229,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             File path or object, if None is provided the result is returned as
             a string.  If a non-binary file object is passed, it should be opened
             with `newline=''`, disabling universal newlines. If a binary
-            file object is passed, `mode` needs to contain a `'b'`.
+            file object is passed, `mode` might need to contain a `'b'`.
 
             .. versionchanged:: 0.24.0
 
@@ -3708,18 +3716,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result
 
         if axis == 1:
-            return self[key]
+            if drop_level:
+                return self[key]
+            index = self.columns
+        else:
+            index = self.index
 
-        index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index._get_loc_level(
+                loc, new_index = index._get_loc_level(
                     key, level=0, drop_level=drop_level
                 )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
-            loc = self.index.get_loc(key)
+            loc = index.get_loc(key)
 
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
@@ -3729,9 +3740,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     return self._take_with_is_copy(loc, axis=axis)
 
             if not is_scalar(loc):
-                new_index = self.index[loc]
+                new_index = index[loc]
 
-        if is_scalar(loc):
+        if is_scalar(loc) and axis == 0:
             # In this case loc should be an integer
             if self.ndim == 1:
                 # if we encounter an array-like and we only have 1 dim
@@ -3747,7 +3758,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 name=self.index[loc],
                 dtype=new_values.dtype,
             )
-
+        elif is_scalar(loc):
+            result = self.iloc[:, slice(loc, loc + 1)]
+        elif axis == 1:
+            result = self.iloc[:, loc]
         else:
             result = self.iloc[loc]
             result.index = new_index
@@ -3771,7 +3785,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             loc = self.columns.get_loc(item)
             values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc)
+            res = self._box_col_values(values, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
@@ -9006,7 +9020,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = -cond if inplace else cond
 
         # try to align with other
-        try_quick = True
         if isinstance(other, NDFrame):
 
             # align with me
@@ -9045,12 +9058,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first (if try_quick)
-                        if try_quick:
-                            new_other = np.asarray(self)
-                            new_other = new_other.copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first
+                        new_other = np.asarray(self)
+                        new_other = new_other.copy()
+                        new_other[icond] = other
+                        other = new_other
 
                     else:
                         raise ValueError(
@@ -10861,6 +10873,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.all = all  # type: ignore[assignment]
 
         @doc(
+            NDFrame.mad,
             desc="Return the mean absolute deviation of the values "
             "over the requested axis.",
             name1=name1,
@@ -10869,7 +10882,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        @Appender(NDFrame.mad.__doc__)
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 

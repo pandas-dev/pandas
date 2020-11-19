@@ -143,10 +143,86 @@ typedef khint_t khiter_t;
 #define __ac_set_isboth_false(flag, i) __ac_set_isempty_false(flag, i)
 #define __ac_set_isdel_true(flag, i) ((void)0)
 
+
+// specializations of https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
+khint32_t PANDAS_INLINE murmur2_32to32(khint32_t k){
+    const khint32_t SEED = 0xc70f6907UL;
+    // 'm' and 'r' are mixing constants generated offline.
+    // They're not really 'magic', they just happen to work well.
+    const khint32_t M_32 = 0x5bd1e995;
+    const int R_32 = 24;
+
+    // Initialize the hash to a 'random' value
+    khint32_t h = SEED ^ 4;
+
+    //handle 4 bytes:
+    k *= M_32;
+    k ^= k >> R_32;
+    k *= M_32;
+
+    h *= M_32;
+    h ^= k;
+
+    // Do a few final mixes of the hash to ensure the "last few
+    // bytes" are well-incorporated. (Really needed here?)
+    h ^= h >> 13;
+    h *= M_32;
+    h ^= h >> 15;
+    return h;
+}
+
+// it is possible to have a special x64-version, which would need less operations, but
+// using 32bit version always has also some benifits:
+//    - one code for 32bit and 64bit builds
+//    - the same case for 32bit and 64bit builds
+//    - no performance difference could be measured compared to a possible x64-version
+
+khint32_t PANDAS_INLINE murmur2_32_32to32(khint32_t k1, khint32_t k2){
+    const khint32_t SEED = 0xc70f6907UL;
+    // 'm' and 'r' are mixing constants generated offline.
+    // They're not really 'magic', they just happen to work well.
+    const khint32_t M_32 = 0x5bd1e995;
+    const int R_32 = 24;
+
+    // Initialize the hash to a 'random' value
+    khint32_t h = SEED ^ 4;
+
+    //handle first 4 bytes:
+    k1 *= M_32;
+    k1 ^= k1 >> R_32;
+    k1 *= M_32;
+
+    h *= M_32;
+    h ^= k1;
+
+    //handle second 4 bytes:
+    k2 *= M_32;
+    k2 ^= k2 >> R_32;
+    k2 *= M_32;
+
+    h *= M_32;
+    h ^= k2;
+
+    // Do a few final mixes of the hash to ensure the "last few
+    // bytes" are well-incorporated.
+    h ^= h >> 13;
+    h *= M_32;
+    h ^= h >> 15;
+    return h;
+}
+
+khint32_t PANDAS_INLINE murmur2_64to32(khint64_t k){
+    khint32_t k1 = (khint32_t)k;
+    khint32_t k2 = (khint32_t)(k >> 32);
+
+    return murmur2_32_32to32(k1, k2);
+}
+
+
 #ifdef KHASH_LINEAR
 #define __ac_inc(k, m) 1
 #else
-#define __ac_inc(k, m) (((k)>>3 ^ (k)<<3) | 1) & (m)
+#define __ac_inc(k, m) (murmur2_32to32(k) | 1) & (m)
 #endif
 
 #define __ac_fsize(m) ((m) < 32? 1 : (m)>>5)
