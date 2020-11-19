@@ -10,11 +10,13 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # name
 cimported_types = ['float32',
                    'float64',
+                   'int16',
                    'int32',
                    'int64',
                    'pymap',
                    'str',
                    'strbox',
+                   'uint16',
                    'uint32',
                    'uint64']
 }}
@@ -48,9 +50,11 @@ dtypes = [('Float64', 'float64', 'float64_t'),
           ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Int32', 'int32', 'int32_t'),
+          ('Int16', 'int16', 'int16_t'),
           ('String', 'string', 'char *'),
           ('UInt64', 'uint64', 'uint64_t'),
-          ('UInt32', 'uint32', 'uint32_t')]
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('UInt16', 'uint16', 'uint16_t')]
 }}
 
 {{for name, dtype, c_type in dtypes}}
@@ -78,8 +82,10 @@ cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
 ctypedef fused vector_data:
     Int64VectorData
     Int32VectorData
+    Int16VectorData
     UInt64VectorData
     UInt32VectorData
+    UInt16VectorData
     Float64VectorData
     Float32VectorData
     StringVectorData
@@ -99,7 +105,9 @@ dtypes = [('Float64', 'float64', 'float64_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Float32', 'float32', 'float32_t'),
           ('UInt32', 'uint32', 'uint32_t'),
-          ('Int32', 'int32', 'int32_t')]
+          ('Int32', 'int32', 'int32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('Int16', 'int16', 'int16_t')]
 
 }}
 
@@ -293,7 +301,9 @@ dtypes = [('Float64', 'float64', True, 'np.nan'),
           ('Int64', 'int64', False, 'NPY_NAT'),
           ('Float32', 'float32', True, 'np.nan'),
           ('UInt32', 'uint32', False, 0),
-          ('Int32', 'int32', False, 0)]
+          ('Int32', 'int32', False, 0),
+          ('UInt16', 'uint16', False, 0),
+          ('Int16', 'int16', False, 0)]
 
 }}
 

@@ -15,6 +15,8 @@ import pandas._testing as tm
         (ht.Int32HashTable, np.int32),
         (ht.UInt32HashTable, np.uint32),
         (ht.Float32HashTable, np.float32),
+        (ht.Int16HashTable, np.int16),
+        (ht.UInt16HashTable, np.uint16),
     ],
 )
 class TestHashTable:
@@ -153,6 +155,8 @@ def get_ht_function(fun_name, type_suffix):
         (np.int32, "int32"),
         (np.uint32, "uint32"),
         (np.float32, "float32"),
+        (np.int16, "int16"),
+        (np.uint16, "uint16"),
     ],
 )
 class TestHelpFunctions:

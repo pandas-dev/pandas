@@ -11,9 +11,11 @@ dtypes = [('float64', 'float64', 'float64_t'),
           ('float32', 'float32', 'float32_t'),
           ('uint64', 'uint64', 'uint64_t'),
           ('uint32', 'uint32', 'uint32_t'),
+          ('uint16', 'uint16', 'uint16_t'),
           ('object', 'pymap', 'object'),
           ('int64', 'int64', 'int64_t'),
-          ('int32', 'int32', 'int32_t')]
+          ('int32', 'int32', 'int32_t'),
+          ('int16', 'int16', 'int16_t')]
 
 }}
 
@@ -281,8 +283,10 @@ dtypes = [('float64', 'float64_t', 'float64', 'float64'),
           ('float32', 'float32_t', 'float32', 'float32'),
           ('int64', 'int64_t', 'int64', 'int64'),
           ('int32', 'int32_t', 'int32', 'int32'),
+          ('int16', 'int16_t', 'int16', 'int16'),
           ('uint64', 'uint64_t', 'uint64', 'uint64'),
           ('uint32', 'uint32_t', 'uint32', 'uint32'),
+          ('uint16', 'uint16_t', 'uint16', 'uint16'),
           ('object', 'object', 'pymap', 'object_')]
 }}
 

@@ -1,5 +1,14 @@
 from cpython.object cimport PyObject
-from numpy cimport float32_t, float64_t, int32_t, int64_t, uint32_t, uint64_t
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 
 
 cdef extern from "khash_python.h":
