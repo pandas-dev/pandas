@@ -5,10 +5,14 @@ import warnings
 
 from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
+from pandas.util._decorators import doc
+
+from pandas.core import generic
 
 from pandas.io.common import get_handle
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePathOrBuffer,
@@ -29,7 +33,7 @@ def to_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
@@ -43,13 +47,7 @@ def to_pickle(
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -64,7 +62,7 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -99,6 +97,7 @@ def to_pickle(
         pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def read_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: CompressionOptions = "infer",
@@ -120,19 +119,13 @@ def read_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -154,7 +147,7 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5

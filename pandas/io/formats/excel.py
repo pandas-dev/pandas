@@ -11,12 +11,14 @@ import warnings
 import numpy as np
 
 from pandas._typing import Label, StorageOptions
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
+from pandas.core import generic
 import pandas.core.common as com
 
 from pandas.io.formats.css import CSSResolver, CSSWarning
@@ -776,6 +778,7 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     def write(
         self,
         writer,
@@ -802,10 +805,7 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+        {storage_options}
 
             .. versionadded:: 1.2.0
         """

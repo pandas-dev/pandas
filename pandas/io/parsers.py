@@ -62,7 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import algorithms, generic
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
@@ -355,13 +355,7 @@ float_precision : str, optional
 
     .. versionchanged:: 1.2
 
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2
 
@@ -532,6 +526,7 @@ _deprecated_args: Set[str] = set()
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_csv(
@@ -611,6 +606,7 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_table(
