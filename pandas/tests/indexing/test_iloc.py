@@ -818,7 +818,7 @@ class TestiLoc2:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [[1], slice(1, 2)])
-    def test_setitem_iloc_pure_position_based(self, indexer):
+    def test_iloc_setitem_pure_position_based(self, indexer):
         # GH#22046
         df1 = DataFrame({"a2": [11, 12, 13], "b2": [14, 15, 16]})
         df2 = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
@@ -826,7 +826,7 @@ class TestiLoc2:
         expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
         tm.assert_frame_equal(df2, expected)
 
-    def test_setitem_iloc_dictionary_value(self):
+    def test_iloc_setitem_dictionary_value(self):
         # GH#37728
         df = DataFrame({"x": [1, 2], "y": [2, 2]})
         rhs = dict(x=9, y=99)

@@ -1859,7 +1859,7 @@ class _iLocIndexer(_LocationIndexer):
             if index.is_unique:
                 new_indexer = index.get_indexer([new_index[-1]])
                 if (new_indexer != -1).any():
-                    # We get only in this method with loc, so can hard code
+                    # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value
