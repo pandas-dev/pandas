@@ -85,7 +85,7 @@ def test_invalid_scipy_arg():
 
 
 @td.skip_if_no_scipy
-def test_constructor_with_win_type(frame_or_series):
+def test_constructor_with_win_type_invalid(frame_or_series):
     # GH 13383
     c = frame_or_series(range(5)).rolling
 
