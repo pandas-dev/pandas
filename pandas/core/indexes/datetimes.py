@@ -858,7 +858,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 raise ValueError("Index must be timezone aware.")
             time_micros = self.tz_convert(time.tzinfo)._get_time_micros()
         else:
-            # TODO: should check for self.tz being None?
             time_micros = self._get_time_micros()
         micros = _time_to_micros(time)
         return (micros == time_micros).nonzero()[0]
