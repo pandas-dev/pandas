@@ -144,8 +144,8 @@ class TestSeriesPlots(TestPlotBase):
         # GH37942
         fig, (ax1, ax2) = self.plt.subplots(1, 2, sharey=True)
 
-        self.ts.plot(ax=ax1, kind="area")
-        self.ts.plot(ax=ax2, kind="area")
+        abs(self.ts).plot(ax=ax1, kind="area")
+        abs(self.ts).plot(ax=ax2, kind="area")
 
         assert ax1._shared_y_axes.joined(ax1, ax2)
         assert ax2._shared_y_axes.joined(ax1, ax2)
