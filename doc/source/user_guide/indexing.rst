@@ -1158,6 +1158,40 @@ Mask
    s.mask(s >= 0)
    df.mask(df >= 0)
 
+.. _indexing.np_where:
+
+Setting with enlargement conditionally using :func:`numpy`
+----------------------------------------------------------
+
+An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
+Combined with setting a new column, you can use it to enlarge a dataframe where the
+values are determined conditionally.
+
+Consider you have two choices to choose from in the following dataframe. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
+   df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
+   df
+
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
+
+.. ipython:: python
+
+   conditions = [
+       (df['col2'] == 'Z') & (df['col1'] == 'A'),
+       (df['col2'] == 'Z') & (df['col1'] == 'B'),
+       (df['col1'] == 'B')
+   ]
+   choices = ['yellow', 'blue', 'purple']
+   df['color'] = np.select(conditions, choices, default='black')
+   df
+
 .. _indexing.query:
 
 The :meth:`~pandas.DataFrame.query` Method
