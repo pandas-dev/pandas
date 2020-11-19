@@ -288,6 +288,23 @@ class TestMultiIndexLoc:
 
         tm.assert_series_equal(result, expected)
 
+    def test_multiindex_loc_one_dimensional_tuple(self, frame_or_series):
+        # GH#37711
+        mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
+        obj = frame_or_series([1, 2], index=mi)
+        obj.loc[("a",)] = 0
+        expected = frame_or_series([0, 2], index=mi)
+        tm.assert_equal(obj, expected)
+
+    @pytest.mark.parametrize("indexer", [("a",), ("a")])
+    def test_multiindex_one_dimensional_tuple_columns(self, indexer):
+        # GH#37711
+        mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
+        obj = DataFrame([1, 2], index=mi)
+        obj.loc[indexer, :] = 0
+        expected = DataFrame([0, 2], index=mi)
+        tm.assert_frame_equal(obj, expected)
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
@@ -598,3 +615,28 @@ def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_da
     result = ser[2000, 5]
     expected = df.loc[2000, 5]["A"]
     tm.assert_series_equal(result, expected)
+
+
+def test_loc_with_nan():
+    # GH: 27104
+    df = DataFrame(
+        {"col": [1, 2, 5], "ind1": ["a", "d", np.nan], "ind2": [1, 4, 5]}
+    ).set_index(["ind1", "ind2"])
+    result = df.loc[["a"]]
+    expected = DataFrame(
+        {"col": [1]}, index=MultiIndex.from_tuples([("a", 1)], names=["ind1", "ind2"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc["a"]
+    expected = DataFrame({"col": [1]}, index=Index([1], name="ind2"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_getitem_non_found_tuple():
+    # GH: 25236
+    df = DataFrame([[1, 2, 3, 4]], columns=["a", "b", "c", "d"]).set_index(
+        ["a", "b", "c"]
+    )
+    with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
+        df.loc[(2.0, 2.0, 3.0)]

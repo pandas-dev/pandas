@@ -322,10 +322,9 @@ class BaseGrouper:
 
         codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
-        result = MultiIndex(
+        return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
-        return result
 
     def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
@@ -604,8 +603,7 @@ class BaseGrouper:
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
-            # TODO: should we be using min_count instead of hard-coding it?
-            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
+            agg_func(result, counts, values, comp_ids, rank=1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 

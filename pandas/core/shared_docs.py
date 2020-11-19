@@ -47,16 +47,16 @@ A passed user-defined-function will be passed a Series for evaluation.
 _shared_docs[
     "compare"
 ] = """
-Compare to another %(klass)s and show the differences.
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
@@ -324,4 +324,57 @@ dtype: int64
 0  0.000000   1.000000
 1  1.000000   2.718282
 2  1.414214   7.389056
+
+You can call transform on a GroupBy object:
+
+>>> df = pd.DataFrame({{
+...     "Date": [
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05",
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05"],
+...     "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+... }})
+>>> df
+         Date  Data
+0  2015-05-08     5
+1  2015-05-07     8
+2  2015-05-06     6
+3  2015-05-05     1
+4  2015-05-08    50
+5  2015-05-07   100
+6  2015-05-06    60
+7  2015-05-05   120
+>>> df.groupby('Date')['Data'].transform('sum')
+0     55
+1    108
+2     66
+3    121
+4     55
+5    108
+6     66
+7    121
+Name: Data, dtype: int64
+
+>>> df = pd.DataFrame({{
+...     "c": [1, 1, 1, 2, 2, 2, 2],
+...     "type": ["m", "n", "o", "m", "m", "n", "n"]
+... }})
+>>> df
+   c type
+0  1    m
+1  1    n
+2  1    o
+3  2    m
+4  2    m
+5  2    n
+6  2    n
+>>> df['size'] = df.groupby('c')['type'].transform(len)
+>>> df
+   c type size
+0  1    m    3
+1  1    n    3
+2  1    o    3
+3  2    m    4
+4  2    m    4
+5  2    n    4
+6  2    n    4
 """
