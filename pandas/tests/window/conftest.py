@@ -275,17 +275,9 @@ def consistency_data(request):
     return request.param
 
 
-def _create_series():
-    """Internal function to mock Series."""
-    arr = np.random.randn(100)
-    locs = np.arange(20, 40)
-    arr[locs] = np.NaN
-    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
-    return series
-
-
-def _create_frame():
-    """Internal function to mock DataFrame."""
+@pytest.fixture
+def frame():
+    """Make mocked frame as fixture."""
     return DataFrame(
         np.random.randn(100, 10),
         index=bdate_range(datetime(2009, 1, 1), periods=100),
@@ -294,21 +286,13 @@ def _create_frame():
 
 
 @pytest.fixture
-def frame():
-    """Make mocked frame as fixture."""
-    return _create_frame()
-
-
-@pytest.fixture
 def series():
     """Make mocked series as fixture."""
-    return _create_series()
-
-
-@pytest.fixture(params=[_create_series(), _create_frame()])
-def which(request):
-    """Turn parametrized which as fixture for series and frame"""
-    return request.param
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
+    return series
 
 
 @pytest.fixture(params=["1 day", timedelta(days=1)])

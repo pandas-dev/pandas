@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
@@ -20,10 +19,10 @@ def test_doc_string():
     df.rolling(2, min_periods=1).sum()
 
 
-def test_constructor(which):
+def test_constructor(frame_or_series):
     # GH 12669
 
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     # valid
     c(0)
@@ -41,10 +40,10 @@ def test_constructor(which):
 
 
 @pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
-def test_invalid_constructor(which, w):
+def test_invalid_constructor(frame_or_series, w):
     # not valid
 
-    c = which.rolling
+    c = frame_or_series(range(5)).rolling
 
     msg = (
         "window must be an integer|"
@@ -60,17 +59,6 @@ def test_invalid_constructor(which, w):
     msg = "center must be a boolean"
     with pytest.raises(ValueError, match=msg):
         c(window=2, min_periods=1, center=w)
-
-
-@td.skip_if_no_scipy
-def test_constructor_with_win_type(which):
-    # GH 13383
-    c = which.rolling
-
-    msg = "window must be > 0"
-
-    with pytest.raises(ValueError, match=msg):
-        c(-1, win_type="boxcar")
 
 
 @pytest.mark.parametrize("window", [timedelta(days=3), pd.Timedelta(days=3)])
@@ -466,24 +454,22 @@ def test_min_periods1():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_rolling_count_with_min_periods(constructor):
+def test_rolling_count_with_min_periods(frame_or_series):
     # GH 26996
-    result = constructor(range(5)).rolling(3, min_periods=3).count()
-    expected = constructor([np.nan, np.nan, 3.0, 3.0, 3.0])
+    result = frame_or_series(range(5)).rolling(3, min_periods=3).count()
+    expected = frame_or_series([np.nan, np.nan, 3.0, 3.0, 3.0])
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_rolling_count_default_min_periods_with_null_values(constructor):
+def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     # GH 26996
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = constructor(values).rolling(3).count()
-    expected = constructor(expected_counts)
+        result = frame_or_series(values).rolling(3).count()
+    expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
 
 
@@ -890,10 +876,9 @@ def test_rolling_period_index(index, window, func, values):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
-def test_rolling_sem(constructor):
+def test_rolling_sem(frame_or_series):
     # GH: 26476
-    obj = getattr(pd, constructor)([0, 1, 2])
+    obj = frame_or_series([0, 1, 2])
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
