@@ -475,7 +475,8 @@ Deprecations
 - :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
 - :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
-- Partial slicing on unordered :class:`DatetimeIndexes` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
+- Partial slicing on unordered :class:`DatetimeIndex` with keys, which are not in Index is deprecated and will be removed in a future version (:issue:`18531`)
+- Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 
 .. ---------------------------------------------------------------------------
@@ -500,6 +501,7 @@ Performance improvements
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - faster ``dir`` calls when many index labels, e.g. ``dir(ser)`` (:issue:`37450`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
+- Performance improvement in :meth:`Series.astype` and :meth:`DataFrame.astype` for :class:`Categorical` (:issue:`8628`)
 - Performance improvement in :meth:`pd.DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`pd.Index.value_counts`)
 - Performance improvement in :meth:`pd.isin` for inputs with more than 1e6 elements
 
@@ -608,6 +610,7 @@ Indexing
 - Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 - Bug in :meth:`DataFrame.reindex` raising ``IndexingError`` wrongly for empty :class:`DataFrame` with ``tolerance`` not None or ``method="nearest"`` (:issue:`27315`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
+- Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
 
 Missing
 ^^^^^^^
@@ -621,6 +624,7 @@ MultiIndex
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 - Bug in :meth:`DataFrame.combine_first` when used with :class:`MultiIndex` containing string and ``NaN`` values raises ``TypeError`` (:issue:`36562`)
+- Bug in :meth:`MultiIndex.drop` dropped ``NaN`` values when non existing key was given as input (:issue:`18853`)
 
 I/O
 ^^^

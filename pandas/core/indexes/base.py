@@ -415,6 +415,11 @@ class Index(IndexOpsMixin, PandasObject):
         ndarray
             An ndarray with int64 dtype.
         """
+        warnings.warn(
+            "Index.asi8 is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return None
 
     @classmethod
@@ -4738,12 +4743,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        result = self.asi8
+        if needs_i8_conversion(self.dtype):
+            # TODO: these do not match the underlying EA argsort methods GH#37863
+            return self.asi8.argsort(*args, **kwargs)
 
-        if result is None:
-            result = np.array(self)
-
-        return result.argsort(*args, **kwargs)
+        # This works for either ndarray or EA, is overriden
+        #  by RangeIndex, MultIIndex
+        return self._data.argsort(*args, **kwargs)
 
     @final
     def get_value(self, series: "Series", key):
