@@ -2453,7 +2453,7 @@ def test_empty_string_datetime_coerce__format():
     # coerce empty string to pd.NaT
     result = pd.to_datetime(td, format=format, errors="coerce")
     expected = Series(["2016-03-24", "2016-03-25", pd.NaT], dtype="datetime64[ns]")
-    pd.testing.assert_series_equal(expected, result)
+    tm.assert_series_equal(expected, result)
 
     # raise an exception in case a format is given
     with pytest.raises(ValueError, match="does not match format"):
@@ -2461,7 +2461,7 @@ def test_empty_string_datetime_coerce__format():
 
     # don't raise an expection in case no format is given
     result = pd.to_datetime(td, errors="raise")
-    pd.testing.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_empty_string_datetime_coerce__unit():
@@ -2469,8 +2469,8 @@ def test_empty_string_datetime_coerce__unit():
     # coerce empty string to pd.NaT
     result = pd.to_datetime([1, ""], unit="s", errors="coerce")
     expected = DatetimeIndex(["1970-01-01 00:00:01", "NaT"], dtype="datetime64[ns]")
-    pd.testing.assert_index_equal(expected, result)
+    tm.assert_index_equal(expected, result)
 
     # verify that no exception is raised even when errors='raise' is set
     result = pd.to_datetime([1, ""], unit="s", errors="raise")
-    pd.testing.assert_index_equal(expected, result)
+    tm.assert_index_equal(expected, result)
