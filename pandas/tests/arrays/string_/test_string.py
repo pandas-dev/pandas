@@ -226,6 +226,15 @@ def test_astype_int():
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_float():
+    arr = pd.array(["1.1", pd.NA, "3.3"], dtype="string")
+
+    result = arr.astype("float")
+    expected = pd.array([1.1, pd.NA, 3.3], dtype="float")
+    tm.assert_extension_array_equal(result, expected)
+
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):
