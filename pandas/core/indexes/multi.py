@@ -2163,7 +2163,7 @@ class MultiIndex(Index):
         if index.shape[0] == self.shape[0]:
             values[np.equal(nan_codes, True)] = -2
 
-        not_found = codes[values == -2].tolist()
+        not_found = codes[values == -2]
         if len(not_found) != 0 and errors != "ignore":
             raise KeyError(f"labels {not_found} not found in level")
         mask = ~algos.isin(self.codes[i], values)
