@@ -221,6 +221,23 @@ Additionally ``mean`` supports execution via `Numba <https://numba.pydata.org/>`
 the  ``engine`` and ``engine_kwargs`` arguments. Numba must be installed as an optional dependency
 to use this feature.
 
+.. _whatsnew_120.read_csv_json_http_headers:
+
+Custom HTTP(s) headers when reading csv or json files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`read_csv` and :meth:`read_json` use the dictionary passed to ``storage_options`` to create custom HTTP(s) headers.
+For example:
+
+.. ipython:: python
+
+    headers = {"User-Agent": "pandas"}
+    df = pd.read_csv(
+             "https://download.bls.gov/pub/time.series/cu/cu.item",
+             sep="\t",
+             storage_options=headers
+         )
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
