@@ -1344,7 +1344,9 @@ def get_join_indexers(
     join_func = {
         "inner": libjoin.inner_join,
         "left": libjoin.left_outer_join,
-        "right": _right_outer_join,
+        "right": lambda x, y, count, **kwargs: libjoin.left_outer_join(
+            y, x, count, **kwargs
+        )[::-1],
         "outer": libjoin.full_outer_join,
     }[how]
 
@@ -1862,11 +1864,6 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
 
     # left frame preserves order & length of its index
     return left_ax, None, right_indexer
-
-
-def _right_outer_join(x, y, max_groups, **kwargs):
-    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups, **kwargs)
-    return left_indexer, right_indexer
 
 
 def _factorize_keys(
