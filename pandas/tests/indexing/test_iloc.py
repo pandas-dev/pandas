@@ -1000,7 +1000,7 @@ class TestILocSeries:
         ser = Series([0, 1, 2], index=[0, 1, 0])
         assert ser.iloc[2] == 2
 
-    def test_setitem_iloc_pure_position_based(self):
+    def test_iloc_setitem_pure_position_based(self):
         # GH#22046
         ser1 = Series([1, 2, 3])
         ser2 = Series([4, 5, 6], index=[1, 0, 2])
