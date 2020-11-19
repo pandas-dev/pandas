@@ -16,18 +16,28 @@ def test_ewm_pairwise_cov_corr(func, frame):
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov(name, binary_ew_data):
-    A, B = binary_ew_data
+def test_ewm_corr_cov(name):
+    A = Series(np.random.randn(50), index=np.arange(50))
+    B = A[2:] + np.random.randn(48)
+
+    A[:10] = np.NaN
+    B[-10:] = np.NaN
 
     result = getattr(A.ewm(com=20, min_periods=5), name)(B)
     assert np.isnan(result.values[:14]).all()
     assert not np.isnan(result.values[14:]).any()
 
 
+@pytest.mark.parametrize("min_periods", [0, 1, 2])
 @pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov_min_periods(name, min_periods, binary_ew_data):
+def test_ewm_corr_cov_min_periods(name, min_periods):
     # GH 7898
-    A, B = binary_ew_data
+    A = Series(np.random.randn(50), index=np.arange(50))
+    B = A[2:] + np.random.randn(48)
+
+    A[:10] = np.NaN
+    B[-10:] = np.NaN
+
     result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
     # binary functions (ewmcov, ewmcorr) with bias=False require at
     # least two values
@@ -47,9 +57,10 @@ def test_ewm_corr_cov_min_periods(name, min_periods, binary_ew_data):
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
-def test_different_input_array_raise_exception(name, binary_ew_data):
+def test_different_input_array_raise_exception(name):
+    A = Series(np.random.randn(50), index=np.arange(50))
+    A[:10] = np.NaN
 
-    A, _ = binary_ew_data
     msg = "Input arrays must be of the same type!"
     # exception raised is Exception
     with pytest.raises(Exception, match=msg):
