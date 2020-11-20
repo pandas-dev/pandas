@@ -251,11 +251,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def values(self) -> np.ndarray:
         return np.asarray(self)
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -306,10 +301,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
-
-    @property
-    def _formatter_func(self):
-        return self._data._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing

@@ -158,13 +158,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return cls._simple_new(tdarr, name=name)
 
     # -------------------------------------------------------------------
-    # Rendering Methods
-
-    @property
-    def _formatter_func(self):
-        return self._data._formatter()
-
-    # -------------------------------------------------------------------
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True):
