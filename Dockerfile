@@ -43,5 +43,5 @@ RUN conda env update -n base -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
 RUN cd "$pandas_home" \
-    && python setup.py build_ext --inplace -j 4 \
+    && python setup.py build_ext -j 4 \
     && python -m pip install -e .
