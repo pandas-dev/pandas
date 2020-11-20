@@ -381,6 +381,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         dtype = pandas_dtype(dtype)
 
         if how is not lib.no_default:
+            # GH#37982
             warnings.warn(
                 "The 'how' keyword in PeriodIndex.astype is deprecated and "
                 "will be removed in a future version. "

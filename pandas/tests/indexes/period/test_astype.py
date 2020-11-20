@@ -145,7 +145,7 @@ class TestPeriodIndexAsType:
 
         exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], freq="MS")
         with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated
+            # how keyword deprecated GH#37982
             res = pi.astype("datetime64[ns]", how="start")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
@@ -153,7 +153,7 @@ class TestPeriodIndexAsType:
         exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
         exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
         with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated
+            # how keyword deprecated GH#37982
             res = pi.astype("datetime64[ns]", how="end")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
@@ -166,7 +166,7 @@ class TestPeriodIndexAsType:
         exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"], tz="US/Eastern")
         exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
         with tm.assert_produces_warning(FutureWarning):
-            # how keyword deprecated
+            # how keyword deprecated GH#37982
             res = pi.astype("datetime64[ns, US/Eastern]", how="end")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
