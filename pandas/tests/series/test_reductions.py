@@ -126,3 +126,11 @@ def test_argmax_argmin_with_nullable_integer_dtype():
     ser = Series([1, 2, 3], dtype="Int64")
     assert ser.argmax() == 2
     assert ser.argmin() == 0
+
+
+def test_with_nullable_float_dtype():
+    ser = Series([1, 2, 3], dtype="Float64")
+    assert ser.idxmax() == 2
+    assert ser.idxmin() == 0
+    assert ser.argmax() == 2
+    assert ser.argmin() == 0
