@@ -358,6 +358,11 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         new_arr = arr._from_backing_data(new_vals)
         return type(self)._simple_new(new_arr, name=self.name)
 
+    @doc(Index.where)
+    def where(self, cond, other=None):
+        res_values = self._data.where(cond, other)
+        return type(self)._simple_new(res_values, name=self.name)
+
     def putmask(self, mask, value):
         res_values = self._data.copy()
         try:
