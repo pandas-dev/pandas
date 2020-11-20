@@ -243,7 +243,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return super()._shallow_copy(values=values, name=name)
 
-    def _is_dtype_compat(self, other: Index) -> Categorical:
+    def _is_dtype_compat(self, other) -> Categorical:
         """
         *this is an internal non-public method*
 
