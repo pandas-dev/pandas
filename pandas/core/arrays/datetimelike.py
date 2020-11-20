@@ -1531,7 +1531,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         # Note: for now at least, caller is responsible for checking that
         #  strings are being passed.
-        return cls._from_sequence_not_strict(strings, dtype=dtype, copy=copy)
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     # --------------------------------------------------------------
 
