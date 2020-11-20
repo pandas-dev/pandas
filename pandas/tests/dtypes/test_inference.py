@@ -45,6 +45,7 @@ from pandas import (
     Index,
     Interval,
     Period,
+    PeriodIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
@@ -884,30 +885,30 @@ class TestTypeInference:
 
     def test_infer_dtype_period(self):
         # GH 13664
-        arr = np.array([pd.Period("2011-01", freq="D"), pd.Period("2011-02", freq="D")])
+        arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="D")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
-        arr = np.array([pd.Period("2011-01", freq="D"), pd.Period("2011-02", freq="M")])
+        arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
-            [pd.Period("2011-01", freq="M"), np.datetime64("nat")], dtype=object
+            [Period("2011-01", freq="M"), np.datetime64("nat")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
         arr = np.array(
-            [np.datetime64("nat"), pd.Period("2011-01", freq="M")], dtype=object
+            [np.datetime64("nat"), Period("2011-01", freq="M")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     def test_infer_dtype_period_with_na(self, na_value):
         # starts with nan
-        arr = np.array([na_value, pd.Period("2011-01", freq="D")])
+        arr = np.array([na_value, Period("2011-01", freq="D")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
-        arr = np.array([na_value, pd.Period("2011-01", freq="D"), na_value])
+        arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
     @pytest.mark.parametrize(
@@ -1192,8 +1193,8 @@ class TestTypeInference:
         tm.assert_numpy_array_equal(out, expected)
 
     def test_is_period(self):
-        assert lib.is_period(pd.Period("2011-01", freq="M"))
-        assert not lib.is_period(pd.PeriodIndex(["2011-01"], freq="M"))
+        assert lib.is_period(Period("2011-01", freq="M"))
+        assert not lib.is_period(PeriodIndex(["2011-01"], freq="M"))
         assert not lib.is_period(Timestamp("2011-01"))
         assert not lib.is_period(1)
         assert not lib.is_period(np.nan)

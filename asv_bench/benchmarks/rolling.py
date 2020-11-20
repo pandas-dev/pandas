@@ -225,4 +225,17 @@ class Groupby:
         getattr(self.groupby_roll_offset, method)()
 
 
+class GroupbyEWM:
+
+    params = ["cython", "numba"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
+        df = pd.DataFrame({"A": range(50), "B": range(50)})
+        self.gb_ewm = df.groupby("A").ewm(com=1.0)
+
+    def time_groupby_mean(self, engine):
+        self.gb_ewm.mean(engine=engine)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
