@@ -1010,6 +1010,7 @@ class TestDataFrameConstructors:
             ([True, False, None], "boolean", pd.BooleanDtype),
             ([1.0, 2.0, None], "Float64", pd.Float64Dtype),
             ([1, 2, None], "Int64", pd.Int64Dtype),
+            (["a", "b", "c"], "string", pd.StringDtype),
         ),
     )
     def test_constructor_dtype_nullable_extension_arrays(
