@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Index,
     MultiIndex,
@@ -1563,6 +1564,15 @@ class TestLabelSlicing:
         expected = ser.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("start", ["2018", "2020"])
+    def test_loc_getitem_slice_unordered_dt_index(self, frame_or_series, start):
+        obj = frame_or_series(
+            [1, 2, 3],
+            index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            obj.loc[start:"2022"]
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
@@ -1643,6 +1653,41 @@ class TestLocBooleanMask:
 
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
+
+
+class TestLocListlike:
+    @pytest.mark.parametrize("box", [lambda x: x, np.asarray, list])
+    def test_loc_getitem_list_of_labels_categoricalindex_with_na(self, box):
+        # passing a list can include valid categories _or_ NA values
+        ci = CategoricalIndex(["A", "B", np.nan])
+        ser = Series(range(3), index=ci)
+
+        result = ser.loc[box(ci)]
+        tm.assert_series_equal(result, ser)
+
+        result = ser[box(ci)]
+        tm.assert_series_equal(result, ser)
+
+        result = ser.to_frame().loc[box(ci)]
+        tm.assert_frame_equal(result, ser.to_frame())
+
+        ser2 = ser[:-1]
+        ci2 = ci[1:]
+        # but if there are no NAs present, this should raise KeyError
+        msg = (
+            r"Passing list-likes to .loc or \[\] with any missing labels is no "
+            "longer supported. The following labels were missing: "
+            r"(Categorical)?Index\(\[nan\], .*\). "
+            "See https"
+        )
+        with pytest.raises(KeyError, match=msg):
+            ser2.loc[box(ci2)]
+
+        with pytest.raises(KeyError, match=msg):
+            ser2[box(ci2)]
+
+        with pytest.raises(KeyError, match=msg):
+            ser2.to_frame().loc[box(ci2)]
 
 
 def test_series_loc_getitem_label_list_missing_values():

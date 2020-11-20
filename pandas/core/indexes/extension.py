@@ -230,11 +230,23 @@ class ExtensionIndex(Index):
 
     # ---------------------------------------------------------------------
 
+    def _check_indexing_method(self, method):
+        """
+        Raise if we have a get_indexer `method` that is not supported or valid.
+        """
+        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
+        if method is None:
+            return
+
+        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
+            raise NotImplementedError(
+                f"method {method} not yet implemented for {type(self).__name__}"
+            )
+
+        raise ValueError("Invalid fill method")
+
     def _get_engine_target(self) -> np.ndarray:
-        # NB: _values_for_argsort happens to match the desired engine targets
-        #  for all of our existing EA-backed indexes, but in general
-        #  cannot be relied upon to exist.
-        return self._data._values_for_argsort()
+        return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
@@ -306,6 +318,9 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     _data: NDArrayBackedExtensionArray
 
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._ndarray
+
     def delete(self, loc):
         """
         Make new Index with passed location(-s) deleted
@@ -344,15 +359,13 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return type(self)._simple_new(new_arr, name=self.name)
 
     def putmask(self, mask, value):
+        res_values = self._data.copy()
         try:
-            value = self._data._validate_setitem_value(value)
+            res_values.putmask(mask, value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
-        new_values = self._data._ndarray.copy()
-        np.putmask(new_values, mask, value)
-        new_arr = self._data._from_backing_data(new_values)
-        return type(self)._simple_new(new_arr, name=self.name)
+        return type(self)._simple_new(res_values, name=self.name)
 
     def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
         name = get_op_result_name(self, other)
