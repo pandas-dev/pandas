@@ -4354,10 +4354,6 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-        if not isinstance(values, np.ndarray):
-            # in particular IntervalIndex tests fail without this
-            return self.astype(object).putmask(mask, value)
-
         np.putmask(values, mask, converted)
         return self._shallow_copy(values)
 
