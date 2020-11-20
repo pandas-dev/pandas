@@ -303,22 +303,22 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'np.nan'),
-          ('UInt64', 'uint64', False, 0),
-          ('Int64', 'int64', False, 'NPY_NAT'),
-          ('Float32', 'float32', True, 'np.nan'),
-          ('UInt32', 'uint32', False, 0),
-          ('Int32', 'int32', False, 0),
-          ('UInt16', 'uint16', False, 0),
-          ('Int16', 'int16', False, 0),
-          ('UInt8', 'uint8', False, 0),
-          ('Int8', 'int8', False, 0)]
+# name, dtype, float_group
+dtypes = [('Float64', 'float64', True),
+          ('UInt64', 'uint64', False),
+          ('Int64', 'int64', False),
+          ('Float32', 'float32', True),
+          ('UInt32', 'uint32', False),
+          ('Int32', 'int32', False),
+          ('UInt16', 'uint16', False),
+          ('Int16', 'int16', False),
+          ('UInt8', 'uint8', False),
+          ('Int8', 'int8', False)]
 
 }}
 
 
-{{for name, dtype, float_group, default_na_value in dtypes}}
+{{for name, dtype, float_group in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -487,7 +487,7 @@ cdef class {{name}}HashTable(HashTable):
             # which is only used if it's *specified*.
             na_value2 = <{{dtype}}_t>na_value
         else:
-            na_value2 = {{default_na_value}}
+            na_value2 = 0
 
         with nogil:
             for i in range(n):
