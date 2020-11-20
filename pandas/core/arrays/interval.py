@@ -627,11 +627,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         *args,
         **kwargs,
     ) -> np.ndarray:
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+
         if ascending and kind == "quicksort" and na_position == "last":
             return np.lexsort((self.right, self.left))
+
         # TODO: other cases we can use lexsort for?  much more performant.
         return super().argsort(
-            *args, ascending=ascending, kind=kind, na_position=na_position, **kwargs
+            ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
     def fillna(self, value=None, method=None, limit=None):
