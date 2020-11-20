@@ -227,12 +227,11 @@ def test_astype_int():
 
 
 def test_astype_float():
-    arr = pd.array(["1.1", pd.NA, "3.3"], dtype="string")
+    s = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
 
-    result = arr.astype("float")
-    expected = pd.array([1.1, pd.NA, 3.3], dtype="float")
-    tm.assert_extension_array_equal(result, expected)
-
+    result = s.astype("float")
+    expected = pd.Series([1.1, np.nan, 3.3], dtype="float64")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("skipna", [True, False])
