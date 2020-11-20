@@ -76,7 +76,7 @@ class TestHashTable:
         table.map_locations(keys)
         result = table.lookup(keys)
         expected = np.arange(N)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result.astype(np.int64), expected.astype(np.int64))
 
     def test_lookup_wrong(self, table_type, dtype):
         if dtype in (np.int8, np.uint8):
@@ -184,7 +184,7 @@ class TestHelpFunctions:
         duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         result = duplicated(values)
-        expected = np.ones_like(values, dtype=np.bool)
+        expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
         tm.assert_numpy_array_equal(result, expected)
 
@@ -194,7 +194,7 @@ class TestHelpFunctions:
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
         result = ismember(arr, values)
-        expected = np.ones_like(values, dtype=np.bool)
+        expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_ismember_no(self, dtype, type_suffix):
@@ -203,7 +203,7 @@ class TestHelpFunctions:
         arr = np.arange(N).astype(dtype)
         values = (np.arange(N) + N).astype(dtype)
         result = ismember(arr, values)
-        expected = np.zeros_like(values, dtype=np.bool)
+        expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_mode(self, dtype, type_suffix):
@@ -247,7 +247,7 @@ class TestHelpFunctionsWithNans:
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([np.nan, np.nan], dtype=dtype)
         result = ismember(arr, values)
-        expected = np.array([True, True, True], dtype=np.bool)
+        expected = np.array([True, True, True], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_ismember_no(self, dtype, type_suffix):
@@ -255,7 +255,7 @@ class TestHelpFunctionsWithNans:
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([1], dtype=dtype)
         result = ismember(arr, values)
-        expected = np.array([False, False, False], dtype=np.bool)
+        expected = np.array([False, False, False], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_mode(self, dtype, type_suffix):
