@@ -526,7 +526,10 @@ ext_data = {
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
+        "depends": (
+            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            + _pxi_dep["hashtable"]
+        ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
