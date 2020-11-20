@@ -82,6 +82,7 @@ class TestBase(Base):
 
     @pytest.mark.parametrize("tz", ["US/Pacific", None])
     def test_putmask_dt64(self, tz):
+        # GH#37968
         dti = date_range("2016-01-01", periods=9, tz=tz)
         idx = IntervalIndex.from_breaks(dti)
         mask = np.zeros(idx.shape, dtype=bool)
@@ -92,6 +93,7 @@ class TestBase(Base):
         tm.assert_index_equal(result, expected)
 
     def test_putmask_td64(self):
+        # GH#37968
         dti = date_range("2016-01-01", periods=9)
         tdi = dti - dti[0]
         idx = IntervalIndex.from_breaks(tdi)
