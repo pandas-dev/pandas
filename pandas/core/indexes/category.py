@@ -13,7 +13,6 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_categorical_dtype,
-    is_list_like,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -225,9 +224,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
+    # error: Argument 1 of "_shallow_copy" is incompatible with supertype
+    #  "ExtensionIndex"; supertype defines the argument type as
+    #  "Optional[ExtensionArray]"  [override]
     @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self, values: Optional[Categorical] = None, name: Label = no_default
+    def _shallow_copy(  # type:ignore[override]
+        self,
+        values: Optional[Categorical] = None,
+        name: Label = no_default,
     ):
         name = self.name if name is no_default else name
 
@@ -239,12 +243,16 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return super()._shallow_copy(values=values, name=name)
 
-    def _is_dtype_compat(self, other) -> Categorical:
+    def _is_dtype_compat(self, other: Index) -> Categorical:
         """
         *this is an internal non-public method*
 
         provide a comparison between the dtype of self and other (coercing if
         needed)
+
+        Parameters
+        ----------
+        other : Index
 
         Returns
         -------
@@ -262,8 +270,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 )
         else:
             values = other
-            if not is_list_like(values):
-                values = [values]
 
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
