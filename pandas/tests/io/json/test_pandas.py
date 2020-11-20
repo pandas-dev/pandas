@@ -345,10 +345,16 @@ class TestPandasContainer:
             convert_axes=convert_axes,
             dtype=dtype,
         )
-        if not dtype:  # TODO: Special case for object data; maybe a bug?
-            assert result.iloc[0, 2] is None
-        else:
-            assert np.isnan(result.iloc[0, 2])
+        assert np.isnan(result.iloc[0, 2])
+
+    @pytest.mark.parametrize("dtype", [True, False])
+    def test_frame_read_json_dtype_missing_value(self, orient, dtype):
+        # GH28501 Parse missing values using read_json with dtype=False
+        # to NaN instead of None
+        result = read_json("[null]", dtype=dtype)
+        expected = DataFrame([np.nan])
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("inf", [np.inf, np.NINF])
     @pytest.mark.parametrize("dtype", [True, False])
