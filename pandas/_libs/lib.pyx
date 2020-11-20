@@ -1357,9 +1357,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             if inferred is not None:
                 return inferred
 
-            # its ndarray-like but we can't handle
-            values = np.asarray(value)
-
         # Unwrap Series/Index
         values = np.asarray(value)
 
