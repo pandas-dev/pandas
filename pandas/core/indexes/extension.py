@@ -359,15 +359,13 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return type(self)._simple_new(new_arr, name=self.name)
 
     def putmask(self, mask, value):
+        res_values = self._data.copy()
         try:
-            value = self._data._validate_setitem_value(value)
+            res_values.putmask(mask, value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
-        new_values = self._data._ndarray.copy()
-        np.putmask(new_values, mask, value)
-        new_arr = self._data._from_backing_data(new_values)
-        return type(self)._simple_new(new_arr, name=self.name)
+        return type(self)._simple_new(res_values, name=self.name)
 
     def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
         name = get_op_result_name(self, other)

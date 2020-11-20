@@ -4344,17 +4344,18 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             converted = self._validate_fill_value(value)
-            np.putmask(values, mask, converted)
-            return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
+
+        np.putmask(values, mask, converted)
+        return self._shallow_copy(values)
 
     def equals(self, other: object) -> bool:
         """
