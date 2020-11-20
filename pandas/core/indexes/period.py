@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -146,6 +145,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _data: PeriodArray
     freq: BaseOffset
 
+    _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
 
@@ -244,49 +244,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return cls._simple_new(data, name=name)
 
-    @classmethod
-    def _simple_new(cls, values: PeriodArray, name: Label = None):
-        """
-        Create a new PeriodIndex.
-
-        Parameters
-        ----------
-        values : PeriodArray
-            Values that can be converted to a PeriodArray without inference
-            or coercion.
-        """
-        assert isinstance(values, PeriodArray), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
-
     # ------------------------------------------------------------------------
     # Data
 
     @property
     def values(self) -> np.ndarray:
         return np.asarray(self)
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
-    def _shallow_copy(self, values=None, name: Label = no_default):
-        name = name if name is not no_default else self.name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -338,10 +301,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -694,7 +653,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return type(self)._simple_new(self._data[:0], name=self.name)
+
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            values = cast(PeriodArray, self._data[:0])
+            return type(self)._simple_new(values, name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
