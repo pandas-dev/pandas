@@ -636,7 +636,7 @@ cpdef ndarray[object] ensure_string_array(
     ----------
     arr : array-like
         The values to be converted to str, if needed.
-    na_value : Any
+    na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
