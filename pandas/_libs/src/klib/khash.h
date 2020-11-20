@@ -122,11 +122,9 @@ typedef unsigned long khint32_t;
 #endif
 
 #if ULONG_MAX == ULLONG_MAX
-typedef unsigned long khuint64_t;
-typedef signed long khint64_t;
+typedef unsigned long khint64_t;
 #else
-typedef unsigned long long khuint64_t;
-typedef signed long long khint64_t;
+typedef unsigned long long khint64_t;
 #endif
 
 #if UINT_MAX == 0xffffu
@@ -605,7 +603,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
 // is implementation defined for signed ints if sign-bit is set.
 // because we never really "get" the keys, there will be no convertion from
 // unsigend int to (signed) int (which would be implementation defined behavior)
-// this holds also for 16- and 8-bit integers
+// this holds also for 64-, 16- and 8-bit integers
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
 	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
@@ -617,7 +615,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
  */
 #define KHASH_SET_INIT_UINT64(name)										\
-	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_SET_INIT_INT64(name)										\
 	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
@@ -628,7 +626,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_UINT64(name, khval_t)								\
-	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
 	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
