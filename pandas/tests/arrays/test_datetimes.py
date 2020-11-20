@@ -19,12 +19,17 @@ class TestDatetimeArrayConstructor:
     def test_from_sequence_strict_invalid_type(self):
         mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
         with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
-            DatetimeArray._from_sequence(mi)
+            DatetimeArray._from_sequence_strict(mi)
 
         msg = "mixed scalars cannot be converted to datetime64"
         with pytest.raises(TypeError, match=msg):
             # GH#37179
             DatetimeArray._from_sequence_strict(mi._values)
+
+    def test_from_sequence_invalid_type(self):
+        mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
+        with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
+            DatetimeArray._from_sequence(mi)
 
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
@@ -77,10 +82,10 @@ class TestDatetimeArrayConstructor:
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10 ** 9
 
-        result = pd.DatetimeIndex(arr, freq="infer")
+        result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
-        expected = pd.date_range("1970-01-01", periods=5, freq="H")
-        tm.assert_index_equal(result, expected)
+        expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):
         arr = DatetimeArray(
@@ -169,7 +174,7 @@ class TestDatetimeArrayComparisons:
 class TestDatetimeArray:
     def test_astype_to_same(self):
         arr = DatetimeArray._from_sequence(
-            [pd.Timestamp("2000")], dtype=DatetimeTZDtype(tz="US/Central")
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
         assert result is arr
@@ -202,7 +207,7 @@ class TestDatetimeArray:
 
     def test_tz_setter_raises(self):
         arr = DatetimeArray._from_sequence(
-            [pd.Timestamp("2000")], dtype=DatetimeTZDtype(tz="US/Central")
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(AttributeError, match="tz_localize"):
             arr.tz = "UTC"
@@ -458,14 +463,14 @@ class TestDatetimeArray:
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
         arr = DatetimeArray._from_sequence(
-            [pd.Timestamp("2000")], dtype=DatetimeTZDtype(tz="US/Central")
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(TypeError, match="data is already tz-aware"):
             sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
         arr = DatetimeArray._from_sequence(
-            [pd.Timestamp("2000")], dtype=DatetimeTZDtype(tz="US/Central")
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         result, _, _ = sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
@@ -478,12 +483,12 @@ class TestReductions:
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(
             [
-                pd.Timestamp("2000-01-03"),
-                pd.Timestamp("2000-01-03"),
-                pd.NaT,
-                pd.Timestamp("2000-01-02"),
-                pd.Timestamp("2000-01-05"),
-                pd.Timestamp("2000-01-04"),
+                "2000-01-03",
+                "2000-01-03",
+                "NaT",
+                "2000-01-02",
+                "2000-01-05",
+                "2000-01-04",
             ],
             dtype=dtype,
         )

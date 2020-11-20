@@ -234,10 +234,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             if inferred in ["timedelta64", "timedelta", "empty"]:
                 pass
             else:
-                raise TypeError(inferred)
-        elif is_string_dtype(data.dtype):
-            # TODO: should go through from_sequence_of_strings?
-            pass
+                raise ValueError(inferred)
         else:
             raise TypeError(data.dtype)
 

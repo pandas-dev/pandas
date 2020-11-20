@@ -67,7 +67,7 @@ class TestTimedeltaArrayConstructor:
         with pytest.raises(TypeError, match="float64"):
             TimedeltaArray._from_sequence_strict(data)
 
-        with pytest.raises(TypeError, match="floating"):
+        with pytest.raises(ValueError, match="floating"):
             # object-dtype array of floats
             TimedeltaArray._from_sequence_strict(data.astype(object))
 
@@ -213,9 +213,7 @@ class TestReductions:
         assert result == Timedelta(0)
 
     def test_min_max(self):
-        vals = ["3H", "3H", "NaT", "2H", "5H", "4H"]
-        vals = [Timedelta(x) for x in vals]
-        arr = TimedeltaArray._from_sequence(vals)
+        arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
 
         result = arr.min()
         expected = Timedelta("2H")
