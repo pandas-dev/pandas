@@ -958,11 +958,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return f"\n{space}"
 
     # --------------------------------------------------------------------
-
-    def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.lexsort((self.right, self.left))
-
-    # --------------------------------------------------------------------
     # Set Operations
 
     @Appender(Index.intersection.__doc__)
