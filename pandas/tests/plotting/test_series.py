@@ -140,6 +140,16 @@ class TestSeriesPlots(TestPlotBase):
         assert xmax >= line[-1]
         self._check_ticks_props(ax, xrot=0)
 
+    def test_area_sharey_dont_overwrite(self):
+        # GH37942
+        fig, (ax1, ax2) = self.plt.subplots(1, 2, sharey=True)
+
+        abs(self.ts).plot(ax=ax1, kind="area")
+        abs(self.ts).plot(ax=ax2, kind="area")
+
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)
+
     def test_label(self):
         s = Series([1, 2])
         _, ax = self.plt.subplots()
