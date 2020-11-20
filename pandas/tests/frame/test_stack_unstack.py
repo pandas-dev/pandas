@@ -1188,9 +1188,9 @@ def test_stack_empty_frame(dropna):
 def test_stack_unstack_empty_frame(dropna, fill_value):
     # GH 36113
     result = (
-        DataFrame(dtype=np.intp).stack(dropna=dropna).unstack(fill_value=fill_value)
+        DataFrame(dtype=np.int64).stack(dropna=dropna).unstack(fill_value=fill_value)
     )
-    expected = DataFrame(dtype=np.intp)
+    expected = DataFrame(dtype=np.int64)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1198,7 +1198,7 @@ def test_unstack_single_index_series():
     # GH 36113
     msg = r"index must be a MultiIndex to unstack.*"
     with pytest.raises(ValueError, match=msg):
-        Series(dtype=np.intp).unstack()
+        Series(dtype=np.int64).unstack()
 
 
 def test_unstacking_multi_index_df():
