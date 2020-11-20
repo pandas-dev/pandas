@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import (
@@ -264,7 +266,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -375,7 +379,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ExtensionArray Interface
 
     @classmethod
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(
+        cls: Type[DatetimeLikeArrayT],
+        to_concat: Sequence[DatetimeLikeArrayT],
+        axis: int = 0,
+    ) -> DatetimeLikeArrayT:
         new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
@@ -1549,6 +1557,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
     # Frequency Methods
+
+    def _maybe_clear_freq(self):
+        self._freq = None
 
     def _with_freq(self, freq):
         """

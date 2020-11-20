@@ -1,7 +1,7 @@
 import operator
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -55,6 +55,8 @@ from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
+
+IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
 _interval_shared_docs = {}
 
@@ -722,7 +724,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(
+        cls: Type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
+    ) -> IntervalArrayT:
         """
         Concatenate multiple IntervalArray
 
@@ -745,7 +749,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         combined = _get_combined_data(left, right)  # TODO: 1-stage concat
         return cls._simple_new(combined, closed=closed)
 
-    def copy(self):
+    def copy(self: IntervalArrayT) -> IntervalArrayT:
         """
         Return a copy of the array.
 
@@ -1468,10 +1472,19 @@ def _get_combined_data(
             axis=1,
         )
     else:
-        left = cast(Union["DatetimeArray", "TimedeltaArray"], left)
-        right = cast(Union["DatetimeArray", "TimedeltaArray"], right)
-        combined = type(left)._concat_same_type(
-            [left.reshape(-1, 1), right.reshape(-1, 1)],
+        # error: Item "type" of "Union[Type[Index], Type[ExtensionArray]]" has
+        # no attribute "_concat_same_type"  [union-attr]
+
+        # error: Unexpected keyword argument "axis" for "_concat_same_type" of
+        # "ExtensionArray" [call-arg]
+
+        # error: Item "Index" of "Union[Index, ExtensionArray]" has no
+        # attribute "reshape" [union-attr]
+
+        # error: Item "ExtensionArray" of "Union[Index, ExtensionArray]" has no
+        # attribute "reshape" [union-attr]
+        combined = type(left)._concat_same_type(  # type: ignore[union-attr,call-arg]
+            [left.reshape(-1, 1), right.reshape(-1, 1)],  # type: ignore[union-attr]
             axis=1,
         )
     return combined

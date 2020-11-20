@@ -183,7 +183,7 @@ See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
 Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
 
-    python setup.py build_ext --inplace -j 4
+    python setup.py build_ext -j 4
 
 .. _contributing.dev_c:
 
@@ -268,7 +268,7 @@ We'll now kick off a three-step process:
    source activate pandas-dev
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
@@ -315,7 +315,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Unix**/**macOS with pyenv**
@@ -339,7 +339,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -365,7 +365,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
@@ -442,7 +442,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-* The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `IPython directive
   <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
