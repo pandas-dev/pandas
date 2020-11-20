@@ -702,7 +702,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             combined = _get_combined_data(new_left, new_right)
             return type(self)._simple_new(combined, closed=self.closed)
         elif is_categorical_dtype(dtype):
-            return Categorical(np.asarray(self))
+            return Categorical(np.asarray(self), dtype=dtype)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
