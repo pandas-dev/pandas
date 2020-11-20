@@ -1449,7 +1449,9 @@ class MultiIndex(Index):
                     raise TypeError(
                         f"{type(self).__name__}.name must be a hashable type"
                     )
-            self._names[lev] = name
+            # pandas\core\indexes\multi.py:1448: error: Cannot determine type
+            # of '__setitem__'  [has-type]
+            self._names[lev] = name  # type: ignore[has-type]
 
         # If .levels has been accessed, the names in our cache will be stale.
         self._reset_cache()
@@ -2154,6 +2156,10 @@ class MultiIndex(Index):
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
+        # If nan should be dropped it will equal -1 here. We have to check which values
+        # are not nan and equal -1, this means they are missing in the index
+        nan_codes = isna(codes)
+        values[(np.equal(nan_codes, False)) & (values == -1)] = -2
 
         mask = ~algos.isin(self.codes[i], values)
         if mask.all() and errors != "ignore":
@@ -3306,19 +3312,17 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
             return False
 
+        if len(self) != len(other):
+            return False
+
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-            elif len(self) != len(other):
-                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
-            return False
-
-        if len(self) != len(other):
             return False
 
         for i in range(self.nlevels):
@@ -3506,8 +3510,13 @@ class MultiIndex(Index):
         if uniq_tuples is None:
             other_uniq = set(rvals)
             seen = set()
+            # pandas\core\indexes\multi.py:3503: error: "add" of "set" does not
+            # return a value  [func-returns-value]
             uniq_tuples = [
-                x for x in lvals if x in other_uniq and not (x in seen or seen.add(x))
+                x
+                for x in lvals
+                if x in other_uniq
+                and not (x in seen or seen.add(x))  # type: ignore[func-returns-value]
             ]
 
         if sort is None:
@@ -3653,7 +3662,12 @@ class MultiIndex(Index):
                 # must insert at end otherwise you have to recompute all the
                 # other codes
                 lev_loc = len(level)
-                level = level.insert(lev_loc, k)
+                try:
+                    level = level.insert(lev_loc, k)
+                except TypeError:
+                    # TODO: Should this be done inside insert?
+                    # TODO: smarter casting rules?
+                    level = level.astype(object).insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

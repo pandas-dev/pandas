@@ -22,6 +22,18 @@ from pandas.core.arrays import SparseArray
 
 
 class TestDataFrameSetItem:
+    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
+    def test_setitem_dtype(self, dtype, float_frame):
+        arr = np.random.randn(len(float_frame))
+
+        float_frame[dtype] = np.array(arr, dtype=dtype)
+        assert float_frame[dtype].dtype.name == dtype
+
+    def test_setitem_list_not_dataframe(self, float_frame):
+        data = np.random.randn(len(float_frame), 2)
+        float_frame[["A", "B"]] = data
+        tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
+
     def test_setitem_error_msmgs(self):
 
         # GH 7432
@@ -277,11 +289,44 @@ class TestDataFrameSetItem:
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
-    @pytest.mark.parametrize("klass", [list, np.array])
-    def test_iloc_setitem_bool_indexer(self, klass):
-        # GH: 36741
-        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
-        indexer = klass([True, False, False])
-        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
-        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+
+class TestDataFrameSetItemSlicing:
+    def test_setitem_slice_position(self):
+        # GH#31469
+        df = DataFrame(np.zeros((100, 1)))
+        df[-4:] = 1
+        arr = np.zeros((100, 1))
+        arr[-4:] = 1
+        expected = DataFrame(arr)
         tm.assert_frame_equal(df, expected)
+
+
+class TestDataFrameSetItemCallable:
+    def test_setitem_callable(self):
+        # GH#12533
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]})
+        df[lambda x: "A"] = [11, 12, 13, 14]
+
+        exp = DataFrame({"A": [11, 12, 13, 14], "B": [5, 6, 7, 8]})
+        tm.assert_frame_equal(df, exp)
+
+
+class TestDataFrameSetItemBooleanMask:
+    @pytest.mark.parametrize(
+        "mask_type",
+        [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
+        ids=["dataframe", "array"],
+    )
+    def test_setitem_boolean_mask(self, mask_type, float_frame):
+
+        # Test for issue #18582
+        df = float_frame.copy()
+        mask = mask_type(df)
+
+        # index with boolean mask
+        result = df.copy()
+        result[mask] = np.nan
+
+        expected = df.copy()
+        expected.values[np.array(mask)] = np.nan
+        tm.assert_frame_equal(result, expected)

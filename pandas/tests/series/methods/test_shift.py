@@ -170,7 +170,7 @@ class TestShift:
 
         # check for incorrect fill_value
         msg = "'fill_value=f' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 
     def test_shift_dst(self):
