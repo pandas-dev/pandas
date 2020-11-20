@@ -599,6 +599,13 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
   @param  khval_t  Type of values [type]
  */
+
+// we implicitly convert signed int to unsigned int, thus potential overflows
+// for operations (<<,*,+) don't trigger undefined behavior, also >>-operator
+// is implementation defined for signed ints if sign-bit is set.
+// because we never really "get" the keys, there will be no convertion from
+// unsigend int to (signed) int (which would be implementation defined behavior)
+// this holds also for 16- and 8-bit integers
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
 	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
