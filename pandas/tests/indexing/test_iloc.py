@@ -802,8 +802,8 @@ class TestiLoc2:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
-    def test_setitem_conversion_to_datetime(self):
-        # GH: 20511
+    def test_iloc_setitem_conversion_to_datetime(self):
+        # GH#20511
         df = DataFrame(
             [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]],
             columns=["date0", "date1"],
