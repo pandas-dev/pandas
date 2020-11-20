@@ -1,3 +1,4 @@
+import re
 from typing import Type, Union
 
 import numpy as np
@@ -302,10 +303,22 @@ class SharedTests:
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                "or array of those. Got 'str' instead."
+            ),
+        ):
             arr.searchsorted("foo")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                "or array of those. Got 'StringArray' instead."
+            ),
+        ):
             arr.searchsorted([str(arr[1]), "baz"])
 
     def test_getitem_2d(self, arr1d):
