@@ -1,7 +1,6 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
-
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -33,6 +32,7 @@ from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
+from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -204,7 +204,11 @@ class Styler:
         """
         return self.render()
 
-    @doc(NDFrame.to_excel, klass="Styler")
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=generic._shared_docs["storage_options"],
+    )
     def to_excel(
         self,
         excel_writer,
@@ -829,7 +833,8 @@ class Styler:
 
         See Also
         --------
-        Styler.where
+        Styler.where: Updates the HTML representation with a style which is
+            selected in accordance with the return value of a function.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -870,7 +875,7 @@ class Styler:
 
         See Also
         --------
-        Styler.applymap
+        Styler.applymap: Updates the HTML representation with the result.
         """
         if other is None:
             other = ""
@@ -930,7 +935,7 @@ class Styler:
 
         See Also
         --------
-        Styler.use
+        Styler.use: Set the styles on the current Styler.
         """
         return self._todo
 
@@ -951,7 +956,7 @@ class Styler:
 
         See Also
         --------
-        Styler.export
+        Styler.export : Export the styles to applied to the current Styler.
         """
         self._todo.extend(styles)
         return self

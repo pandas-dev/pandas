@@ -20,15 +20,13 @@ def test_transform_ufunc(axis, float_frame):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", sorted(transformation_kernels))
 def test_transform_groupby_kernel(axis, float_frame, op):
     # GH 35964
     if op == "cumcount":
         pytest.xfail("DataFrame.cumcount does not exist")
     if op == "tshift":
         pytest.xfail("Only works on time index and is deprecated")
-    if axis == 1 or axis == "columns":
-        pytest.xfail("GH 36308: groupby.transform with axis=1 is broken")
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":
@@ -161,7 +159,7 @@ def test_transform_reducer_raises(all_reductions):
 
 # mypy doesn't allow adding lists of different types
 # https://github.com/python/mypy/issues/5492
-@pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
+@pytest.mark.parametrize("op", [*sorted(transformation_kernels), lambda x: x + 1])
 def test_transform_bad_dtype(op):
     # GH 35964
     df = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
@@ -182,7 +180,7 @@ def test_transform_bad_dtype(op):
             df.transform({"A": [op]})
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", sorted(transformation_kernels))
 def test_transform_partial_failure(op):
     # GH 35964
     wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]

@@ -1,12 +1,23 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+import inspect
 from itertools import permutations
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
+from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.common as com
 
 
@@ -744,4 +755,139 @@ class TestDataFrameSelectReindex:
 
         result = df2.reindex(midx)
         expected = DataFrame({"a": [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_with_categoricalindex(self):
+        df = DataFrame(
+            {
+                "A": np.arange(3, dtype="int64"),
+            },
+            index=CategoricalIndex(list("abc"), dtype=CDT(list("cabe")), name="B"),
+        )
+
+        # reindexing
+        # convert to a regular index
+        result = df.reindex(["a", "b", "e"])
+        expected = DataFrame({"A": [0, 1, np.nan], "B": Series(list("abe"))}).set_index(
+            "B"
+        )
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["a", "b"])
+        expected = DataFrame({"A": [0, 1], "B": Series(list("ab"))}).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["e"])
+        expected = DataFrame({"A": [np.nan], "B": Series(["e"])}).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["d"])
+        expected = DataFrame({"A": [np.nan], "B": Series(["d"])}).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        # since we are actually reindexing with a Categorical
+        # then return a Categorical
+        cats = list("cabe")
+
+        result = df.reindex(Categorical(["a", "e"], categories=cats))
+        expected = DataFrame(
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats))}
+        ).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(Categorical(["a"], categories=cats))
+        expected = DataFrame(
+            {"A": [0], "B": Series(list("a")).astype(CDT(cats))}
+        ).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["a", "b", "e"])
+        expected = DataFrame({"A": [0, 1, np.nan], "B": Series(list("abe"))}).set_index(
+            "B"
+        )
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["a", "b"])
+        expected = DataFrame({"A": [0, 1], "B": Series(list("ab"))}).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(["e"])
+        expected = DataFrame({"A": [np.nan], "B": Series(["e"])}).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        # give back the type of categorical that we received
+        result = df.reindex(Categorical(["a", "e"], categories=cats, ordered=True))
+        expected = DataFrame(
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats, ordered=True))}
+        ).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        result = df.reindex(Categorical(["a", "d"], categories=["a", "d"]))
+        expected = DataFrame(
+            {"A": [0, np.nan], "B": Series(list("ad")).astype(CDT(["a", "d"]))}
+        ).set_index("B")
+        tm.assert_frame_equal(result, expected, check_index_type=True)
+
+        df2 = DataFrame(
+            {
+                "A": np.arange(6, dtype="int64"),
+            },
+            index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+        )
+        # passed duplicate indexers are not allowed
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df2.reindex(["a", "b"])
+
+        # args NotImplemented ATM
+        msg = r"argument {} is not implemented for CategoricalIndex\.reindex"
+        with pytest.raises(NotImplementedError, match=msg.format("method")):
+            df.reindex(["a"], method="ffill")
+        with pytest.raises(NotImplementedError, match=msg.format("level")):
+            df.reindex(["a"], level=1)
+        with pytest.raises(NotImplementedError, match=msg.format("limit")):
+            df.reindex(["a"], limit=2)
+
+    def test_reindex_signature(self):
+        sig = inspect.signature(DataFrame.reindex)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "labels",
+            "index",
+            "columns",
+            "axis",
+            "limit",
+            "copy",
+            "level",
+            "method",
+            "fill_value",
+            "tolerance",
+        }
+
+    def test_reindex_multiindex_ffill_added_rows(self):
+        # GH#23693
+        # reindex added rows with nan values even when fill method was specified
+        mi = MultiIndex.from_tuples([("a", "b"), ("d", "e")])
+        df = DataFrame([[0, 7], [3, 4]], index=mi, columns=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
+        result = df.reindex(mi2, axis=0, method="ffill")
+        expected = DataFrame([[0, 7], [3, 4], [3, 4]], index=mi2, columns=["x", "y"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"method": "pad", "tolerance": timedelta(seconds=9)},
+            {"method": "backfill", "tolerance": timedelta(seconds=9)},
+            {"method": "nearest"},
+            {"method": None},
+        ],
+    )
+    def test_reindex_empty_frame(self, kwargs):
+        # GH#27315
+        idx = date_range(start="2020", freq="30s", periods=3)
+        df = DataFrame([], index=Index([], name="time"), columns=["a"])
+        result = df.reindex(idx, **kwargs)
+        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
         tm.assert_frame_equal(result, expected)

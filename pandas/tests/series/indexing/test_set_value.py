@@ -19,3 +19,24 @@ def test_series_set_value():
     expected = Series([1.0, np.nan], index=index)
 
     tm.assert_series_equal(s, expected)
+
+
+def test_set_value_dt64(datetime_series):
+    idx = datetime_series.index[10]
+    res = datetime_series._set_value(idx, 0)
+    assert res is None
+    assert datetime_series[idx] == 0
+
+
+def test_set_value_str_index(string_series):
+    # equiv
+    ser = string_series.copy()
+    res = ser._set_value("foobar", 0)
+    assert res is None
+    assert ser.index[-1] == "foobar"
+    assert ser["foobar"] == 0
+
+    ser2 = string_series.copy()
+    ser2.loc["foobar"] = 0
+    assert ser2.index[-1] == "foobar"
+    assert ser2["foobar"] == 0

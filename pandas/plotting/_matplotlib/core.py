@@ -577,8 +577,20 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    self.legend_handles = reversed(self.legend_handles)
-                    self.legend_labels = reversed(self.legend_labels)
+                    # pandas\plotting\_matplotlib\core.py:578: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Any]", variable has type "List[Any]")
+                    # [assignment]
+                    self.legend_handles = reversed(  # type: ignore[assignment]
+                        self.legend_handles
+                    )
+                    # pandas\plotting\_matplotlib\core.py:579: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Optional[Hashable]]", variable has type
+                    # "List[Optional[Hashable]]")  [assignment]
+                    self.legend_labels = reversed(  # type: ignore[assignment]
+                        self.legend_labels
+                    )
 
                 handles += self.legend_handles
                 labels += self.legend_labels
@@ -1101,7 +1113,11 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            plotf = self._plot
+            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
+            # types in assignment (expression has type "Callable[[Any, Any,
+            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
+            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
@@ -1322,7 +1338,9 @@ class AreaPlot(LinePlot):
     def _post_plot_logic(self, ax: "Axes", data):
         LinePlot._post_plot_logic(self, ax, data)
 
-        if self.ylim is None:
+        is_shared_y = len(list(ax.get_shared_y_axes())) > 0
+        # do not override the default axis behaviour in case of shared y axes
+        if self.ylim is None and not is_shared_y:
             if (data >= 0).all().all():
                 ax.set_ylim(0, None)
             elif (data <= 0).all().all():
@@ -1547,7 +1565,10 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
             else:
-                blabels = None
+                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
+                # types in assignment (expression has type "None", variable has
+                # type "List[Any]")  [assignment]
+                blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:

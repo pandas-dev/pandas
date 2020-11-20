@@ -355,7 +355,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
-        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
 

@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -95,7 +94,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     ----------
     day
     dayofweek
+    day_of_week
     dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time
@@ -144,11 +145,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _data: PeriodArray
     freq: BaseOffset
 
+    _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in PeriodIndex
+    # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
@@ -160,6 +162,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.hour.fget)
+    def hour(self) -> Int64Index:
+        return Int64Index(self._data.hour, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.minute.fget)
+    def minute(self) -> Int64Index:
+        return Int64Index(self._data.minute, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.second.fget)
+    def second(self) -> Int64Index:
+        return Int64Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -224,49 +244,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return cls._simple_new(data, name=name)
 
-    @classmethod
-    def _simple_new(cls, values: PeriodArray, name: Label = None):
-        """
-        Create a new PeriodIndex.
-
-        Parameters
-        ----------
-        values : PeriodArray
-            Values that can be converted to a PeriodArray without inference
-            or coercion.
-        """
-        assert isinstance(values, PeriodArray), type(values)
-
-        result = object.__new__(cls)
-        result._data = values
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._data
-        result.name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
-
     # ------------------------------------------------------------------------
     # Data
 
     @property
     def values(self) -> np.ndarray:
         return np.asarray(self)
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
-    def _shallow_copy(self, values=None, name: Label = no_default):
-        name = name if name is not no_default else self.name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -318,10 +301,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
-
-    @property
-    def _formatter_func(self):
-        return self.array._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -384,28 +363,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
 
-    def asof_locs(self, where, mask: np.ndarray) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
         """
-        where_idx = where
-        if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
-        elif not isinstance(where_idx, PeriodIndex):
+        if isinstance(where, DatetimeIndex):
+            where = PeriodIndex(where._values, freq=self.freq)
+        elif not isinstance(where, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
-        elif where_idx.freq != self.freq:
-            raise raise_on_incompatible(self, where_idx)
 
-        locs = self.asi8[mask].searchsorted(where_idx.asi8, side="right")
-
-        locs = np.where(locs > 0, locs - 1, 0)
-        result = np.arange(len(self))[mask].take(locs)
-
-        first = mask.argmax()
-        result[(locs == 0) & (where_idx.asi8 < self.asi8[first])] = -1
-
-        return result
+        return super().asof_locs(where, mask)
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True, how="start"):
@@ -685,7 +653,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return type(self)._simple_new(self._data[:0], name=self.name)
+
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            values = cast(PeriodArray, self._data[:0])
+            return type(self)._simple_new(values, name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)

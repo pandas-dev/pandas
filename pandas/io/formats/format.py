@@ -5,7 +5,6 @@ and latex files. This module also applies to display formatting.
 
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
-from datetime import tzinfo
 import decimal
 from functools import partial
 from io import StringIO
@@ -36,10 +35,10 @@ from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
+    ArrayLike,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
@@ -104,7 +103,7 @@ common_docstring = """
         index : bool, optional, default True
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
-            String representation of NAN to use.
+            String representation of ``NaN`` to use.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -112,7 +111,12 @@ common_docstring = """
             List/tuple must be of length equal to the number of columns.
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
-            floats. The result of this function must be a unicode string.
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+
+            .. versionchanged:: 1.2.0
+
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -633,20 +637,31 @@ class DataFrameFormatter:
 
     def _calc_max_rows_fitted(self) -> Optional[int]:
         """Number of rows with data fitting the screen."""
-        if not self._is_in_terminal():
-            return self.max_rows
-
-        _, height = get_terminal_size()
-        if self.max_rows == 0:
-            # rows available to fill with actual data
-            return height - self._get_number_of_auxillary_rows()
-
         max_rows: Optional[int]
-        if self._is_screen_short(height):
-            max_rows = height
+
+        if self._is_in_terminal():
+            _, height = get_terminal_size()
+            if self.max_rows == 0:
+                # rows available to fill with actual data
+                return height - self._get_number_of_auxillary_rows()
+
+            if self._is_screen_short(height):
+                max_rows = height
+            else:
+                max_rows = self.max_rows
         else:
             max_rows = self.max_rows
 
+        return self._adjust_max_rows(max_rows)
+
+    def _adjust_max_rows(self, max_rows: Optional[int]) -> Optional[int]:
+        """Adjust max_rows using display logic.
+
+        See description here:
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
+
+        GH #37359
+        """
         if max_rows:
             if (len(self.frame) > max_rows) and self.min_rows:
                 # if truncated, set max_rows showed to min_rows
@@ -1040,6 +1055,12 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.csvs import CSVFormatter
 
+        if path_or_buf is None:
+            created_buffer = True
+            path_or_buf = StringIO()
+        else:
+            created_buffer = False
+
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
             line_terminator=line_terminator,
@@ -1061,9 +1082,11 @@ class DataFrameRenderer:
         )
         csv_formatter.save()
 
-        if path_or_buf is None:
-            assert isinstance(csv_formatter.path_or_buf, StringIO)
-            return csv_formatter.path_or_buf.getvalue()
+        if created_buffer:
+            assert isinstance(path_or_buf, StringIO)
+            content = path_or_buf.getvalue()
+            path_or_buf.close()
+            return content
 
         return None
 
@@ -1330,7 +1353,16 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             def base_formatter(v):
                 assert float_format is not None  # for mypy
-                return float_format(value=v) if notna(v) else self.na_rep
+                # pandas\io\formats\format.py:1411: error: "str" not callable
+                # [operator]
+
+                # pandas\io\formats\format.py:1411: error: Unexpected keyword
+                # argument "value" for "__call__" of "EngFormatter"  [call-arg]
+                return (
+                    float_format(value=v)  # type: ignore[operator,call-arg]
+                    if notna(v)
+                    else self.na_rep
+                )
 
         else:
 
@@ -1364,8 +1396,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
+
+        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+            mask = isna(values)
+            formatted = np.array(
+                [
+                    formatter(val) if not m else na_rep
+                    for val, m in zip(values.ravel(), mask.ravel())
+                ]
+            ).reshape(values.shape)
+            return formatted
+
         if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
+            return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -1386,13 +1429,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             # separate the wheat from the chaff
             values = self.values
             is_complex = is_complex_dtype(values)
-            mask = isna(values)
-            values = np.array(values, dtype="object")
-            values[mask] = na_rep
-            imask = (~mask).ravel()
-            values.flat[imask] = np.array(
-                [formatter(val) for val in values.ravel()[imask]]
-            )
+            values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1454,10 +1491,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return formatted_values
 
     def _format_strings(self) -> List[str]:
-        # shortcut
-        if self.formatter is not None:
-            return [self.formatter(x) for x in self.values]
-
         return list(self.get_result_as_array())
 
 
@@ -1494,11 +1527,9 @@ class Datetime64Formatter(GenericArrayFormatter):
         if self.formatter is not None and callable(self.formatter):
             return [self.formatter(x) for x in values]
 
-        fmt_values = format_array_from_datetime(
-            values.asi8.ravel(),
-            format=get_format_datetime64_from_values(values, self.date_format),
-            na_rep=self.nat_rep,
-        ).reshape(values.shape)
+        fmt_values = values._data._format_native_types(
+            na_rep=self.nat_rep, date_format=self.date_format
+        )
         return fmt_values.tolist()
 
 
@@ -1618,29 +1649,20 @@ def is_dates_only(
     return False
 
 
-def _format_datetime64(
-    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
-) -> str:
-    if x is None or (is_scalar(x) and isna(x)):
+def _format_datetime64(x: Union[NaTType, Timestamp], nat_rep: str = "NaT") -> str:
+    if x is NaT:
         return nat_rep
-
-    if tz is not None or not isinstance(x, Timestamp):
-        if getattr(x, "tzinfo", None) is not None:
-            x = Timestamp(x).tz_convert(tz)
-        else:
-            x = Timestamp(x).tz_localize(tz)
 
     return str(x)
 
 
 def _format_datetime64_dateonly(
-    x: Union[NaTType, Timestamp], nat_rep: str = "NaT", date_format: None = None
+    x: Union[NaTType, Timestamp],
+    nat_rep: str = "NaT",
+    date_format: Optional[str] = None,
 ) -> str:
-    if x is None or (is_scalar(x) and isna(x)):
+    if x is NaT:
         return nat_rep
-
-    if not isinstance(x, Timestamp):
-        x = Timestamp(x)
 
     if date_format:
         return x.strftime(date_format)
@@ -1649,15 +1671,15 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: Optional[str] = None
 ) -> Callable:
 
     if is_dates_only:
-        return lambda x, tz=None: _format_datetime64_dateonly(
+        return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
     else:
-        return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
+        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
 def get_format_datetime64_from_values(

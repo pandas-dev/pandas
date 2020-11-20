@@ -11,7 +11,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Int64Index, Series, Timedelta, TimedeltaIndex, array
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    UInt64Index,
+    array,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -43,7 +53,7 @@ def adjust_negative_zero(zero, expected):
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
 ser_or_index: List[Any] = [Series, Index]
-lefts: List[Any] = [pd.RangeIndex(10, 40, 10)]
+lefts: List[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)
@@ -135,7 +145,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([1, 2, 3], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["10s", "40s", "90s"])
+        expected = TimedeltaIndex(["10s", "40s", "90s"])
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
 
@@ -155,7 +165,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([10, 40, 90], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["1s", "2s", "3s"])
+        expected = TimedeltaIndex(["1s", "2s", "3s"])
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
 
@@ -189,7 +199,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -244,10 +254,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timedelta(hours=31),
-            pd.Timedelta(hours=31).to_pytimedelta(),
-            pd.Timedelta(hours=31).to_timedelta64(),
-            pd.Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
+            Timedelta(hours=31),
+            Timedelta(hours=31).to_pytimedelta(),
+            Timedelta(hours=31).to_timedelta64(),
+            Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
             np.timedelta64("NaT"),
             np.timedelta64("NaT", "D"),
             pd.offsets.Minute(3),
@@ -364,7 +374,7 @@ class TestDivisionByZero:
     @pytest.mark.parametrize("op", [operator.truediv, operator.floordiv])
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
-        if isinstance(numeric_idx, pd.UInt64Index):
+        if isinstance(numeric_idx, UInt64Index):
             return
         idx = numeric_idx - 3
 
@@ -634,7 +644,7 @@ class TestMultiplicationDivision:
         result = idx * np.array(5, dtype="int64")
         tm.assert_index_equal(result, idx * 5)
 
-        arr_dtype = "uint64" if isinstance(idx, pd.UInt64Index) else "int64"
+        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
@@ -642,7 +652,7 @@ class TestMultiplicationDivision:
         idx = numeric_idx
         didx = idx * idx
 
-        arr_dtype = "uint64" if isinstance(idx, pd.UInt64Index) else "int64"
+        arr_dtype = "uint64" if isinstance(idx, UInt64Index) else "int64"
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
@@ -657,7 +667,7 @@ class TestMultiplicationDivision:
     def test_mul_index(self, numeric_idx):
         # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, pd.RangeIndex):
+        if not isinstance(idx, RangeIndex):
             result = idx * idx
             tm.assert_index_equal(result, idx ** 2)
 
@@ -680,7 +690,7 @@ class TestMultiplicationDivision:
         # test power calculations both ways, GH#14973
         box = box_with_array
         idx = numeric_idx
-        expected = pd.Float64Index(op(idx.values, 2.0))
+        expected = Float64Index(op(idx.values, 2.0))
 
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, box)
@@ -1040,74 +1050,70 @@ class TestAdditionSubtraction:
 class TestUFuncCompat:
     @pytest.mark.parametrize(
         "holder",
-        [pd.Int64Index, pd.UInt64Index, pd.Float64Index, pd.RangeIndex, Series],
+        [Int64Index, UInt64Index, Float64Index, RangeIndex, Series],
     )
     def test_ufunc_compat(self, holder):
         box = Series if holder is Series else Index
 
-        if holder is pd.RangeIndex:
-            idx = pd.RangeIndex(0, 5)
+        if holder is RangeIndex:
+            idx = RangeIndex(0, 5)
         else:
             idx = holder(np.arange(5, dtype="int64"))
         result = np.sin(idx)
         expected = box(np.sin(np.arange(5, dtype="int64")))
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "holder", [pd.Int64Index, pd.UInt64Index, pd.Float64Index, Series]
-    )
+    @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
     def test_ufunc_coercions(self, holder):
         idx = holder([1, 2, 3, 4, 5], name="x")
         box = Series if holder is Series else Index
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name="x")
+        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
+        exp = Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         # _evaluate_numeric_binop
         result = idx + 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([3.0, 4.0, 5.0, 6.0, 7.0], name="x")
+        exp = Float64Index([3.0, 4.0, 5.0, 6.0, 7.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([-1.0, 0.0, 1.0, 2.0, 3.0], name="x")
+        exp = Float64Index([-1.0, 0.0, 1.0, 2.0, 3.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([1.0, 2.0, 3.0, 4.0, 5.0], name="x")
+        exp = Float64Index([1.0, 2.0, 3.0, 4.0, 5.0], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
         assert result.dtype == "f8" and isinstance(result, box)
-        exp = pd.Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
+        exp = Float64Index([0.5, 1.0, 1.5, 2.0, 2.5], name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
-    @pytest.mark.parametrize(
-        "holder", [pd.Int64Index, pd.UInt64Index, pd.Float64Index, Series]
-    )
+    @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
     def test_ufunc_multiple_return_values(self, holder):
         obj = holder([1, 2, 3], name="x")
         box = Series if holder is Series else Index
 
         result = np.modf(obj)
         assert isinstance(result, tuple)
-        exp1 = pd.Float64Index([0.0, 0.0, 0.0], name="x")
-        exp2 = pd.Float64Index([1.0, 2.0, 3.0], name="x")
+        exp1 = Float64Index([0.0, 0.0, 0.0], name="x")
+        exp2 = Float64Index([1.0, 2.0, 3.0], name="x")
         tm.assert_equal(result[0], tm.box_expected(exp1, box))
         tm.assert_equal(result[1], tm.box_expected(exp2, box))
 
@@ -1173,12 +1179,12 @@ class TestNumericArithmeticUnsorted:
         for op in ops:
             for a, b in combinations(idxs, 2):
                 result = op(a, b)
-                expected = op(pd.Int64Index(a), pd.Int64Index(b))
+                expected = op(Int64Index(a), Int64Index(b))
                 tm.assert_index_equal(result, expected)
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
-                    expected = op(pd.Int64Index(idx), scalar)
+                    expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
 
     def test_binops(self):
@@ -1191,10 +1197,10 @@ class TestNumericArithmeticUnsorted:
         ]
         scalars = [-1, 1, 2]
         idxs = [
-            pd.RangeIndex(0, 10, 1),
-            pd.RangeIndex(0, 20, 2),
-            pd.RangeIndex(-10, 10, 2),
-            pd.RangeIndex(5, -5, -1),
+            RangeIndex(0, 10, 1),
+            RangeIndex(0, 20, 2),
+            RangeIndex(-10, 10, 2),
+            RangeIndex(5, -5, -1),
         ]
         self.check_binop(ops, scalars, idxs)
 
@@ -1203,7 +1209,7 @@ class TestNumericArithmeticUnsorted:
         # https://github.com/numpy/numpy/pull/8127
         ops = [pow]
         scalars = [1, 2]
-        idxs = [pd.RangeIndex(0, 10, 1), pd.RangeIndex(0, 20, 2)]
+        idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
         self.check_binop(ops, scalars, idxs)
 
     # TODO: mod, divmod?
@@ -1221,7 +1227,7 @@ class TestNumericArithmeticUnsorted:
     def test_arithmetic_with_frame_or_series(self, op):
         # check that we return NotImplemented when operating with Series
         # or DataFrame
-        index = pd.RangeIndex(5)
+        index = RangeIndex(5)
         other = Series(np.random.randn(5))
 
         expected = op(Series(index), other)
@@ -1237,26 +1243,26 @@ class TestNumericArithmeticUnsorted:
         # validate that we are handling the RangeIndex overrides to numeric ops
         # and returning RangeIndex where possible
 
-        idx = pd.RangeIndex(0, 10, 2)
+        idx = RangeIndex(0, 10, 2)
 
         result = idx * 2
-        expected = pd.RangeIndex(0, 20, 4)
+        expected = RangeIndex(0, 20, 4)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx + 2
-        expected = pd.RangeIndex(2, 12, 2)
+        expected = RangeIndex(2, 12, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx - 2
-        expected = pd.RangeIndex(-2, 8, 2)
+        expected = RangeIndex(-2, 8, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 2
-        expected = pd.RangeIndex(0, 5, 1).astype("float64")
+        expected = RangeIndex(0, 5, 1).astype("float64")
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 4
-        expected = pd.RangeIndex(0, 10, 2) / 4
+        expected = RangeIndex(0, 10, 2) / 4
         tm.assert_index_equal(result, expected, exact=True)
 
         result = idx // 1
@@ -1269,25 +1275,25 @@ class TestNumericArithmeticUnsorted:
         tm.assert_index_equal(result, expected, exact=True)
 
         # __pow__
-        idx = pd.RangeIndex(0, 1000, 2)
+        idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
         expected = idx._int64index ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
-            (pd.RangeIndex(0, 1000, 2), 2, pd.RangeIndex(0, 500, 1)),
-            (pd.RangeIndex(-99, -201, -3), -3, pd.RangeIndex(33, 67, 1)),
-            (pd.RangeIndex(0, 1000, 1), 2, pd.RangeIndex(0, 1000, 1)._int64index // 2),
+            (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
+            (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
+            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
             (
-                pd.RangeIndex(0, 100, 1),
+                RangeIndex(0, 100, 1),
                 2.0,
-                pd.RangeIndex(0, 100, 1)._int64index // 2.0,
+                RangeIndex(0, 100, 1)._int64index // 2.0,
             ),
-            (pd.RangeIndex(0), 50, pd.RangeIndex(0)),
-            (pd.RangeIndex(2, 4, 2), 3, pd.RangeIndex(0, 1, 1)),
-            (pd.RangeIndex(-5, -10, -6), 4, pd.RangeIndex(-2, -1, 1)),
-            (pd.RangeIndex(-100, -200, 3), 2, pd.RangeIndex(0)),
+            (RangeIndex(0), 50, RangeIndex(0)),
+            (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
+            (RangeIndex(-5, -10, -6), 4, RangeIndex(-2, -1, 1)),
+            (RangeIndex(-100, -200, 3), 2, RangeIndex(0)),
         ]
         for idx, div, expected in cases_exact:
             tm.assert_index_equal(idx // div, expected, exact=True)
