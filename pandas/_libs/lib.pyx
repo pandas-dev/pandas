@@ -36,6 +36,7 @@ from numpy cimport (
     float32_t,
     float64_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint64_t,
@@ -117,6 +118,8 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
 def is_scalar(val: object) -> bool:
     """
+    Return True if given object is scalar.
+
     Parameters
     ----------
     val : object
@@ -490,7 +493,7 @@ def has_infs_f8(const float64_t[:] arr) -> bool:
     return False
 
 
-def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         int k, vstart, vlast, v
@@ -584,14 +587,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
-        except TypeError as err:
-            # Avoid raising TypeError on tzawareness mismatch
-            # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are changed to match datetime, see GH#28507
-            if "tz-naive and tz-aware" in str(err):
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
                 return False
             raise
-
     return True
 
 
@@ -631,7 +636,7 @@ cpdef ndarray[object] ensure_string_array(
     ----------
     arr : array-like
         The values to be converted to str, if needed.
-    na_value : Any
+    na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
@@ -649,12 +654,22 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
 
+    if hasattr(arr, "to_numpy"):
+        arr = arr.to_numpy()
+    elif not isinstance(arr, np.ndarray):
+        arr = np.array(arr, dtype="object")
+
     result = np.asarray(arr, dtype="object")
+
     if copy and result is arr:
         result = result.copy()
 
     for i in range(n):
-        val = result[i]
+        val = arr[i]
+
+        if isinstance(val, str):
+            continue
+
         if not checknull(val):
             result[i] = str(val)
         else:
@@ -883,21 +898,28 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
         if lab != cur:
             if lab != -1:
-                tup = PyTuple_New(k)
-                for j in range(k):
-                    val = keys[j][sorted_labels[j][i - 1]]
-                    PyTuple_SET_ITEM(tup, j, val)
-                    Py_INCREF(val)
-
+                if k == 1:
+                    # When k = 1 we do not want to return a tuple as key
+                    tup = keys[0][sorted_labels[0][i - 1]]
+                else:
+                    tup = PyTuple_New(k)
+                    for j in range(k):
+                        val = keys[j][sorted_labels[j][i - 1]]
+                        PyTuple_SET_ITEM(tup, j, val)
+                        Py_INCREF(val)
                 result[tup] = index[start:i]
             start = i
         cur = lab
 
-    tup = PyTuple_New(k)
-    for j in range(k):
-        val = keys[j][sorted_labels[j][n - 1]]
-        PyTuple_SET_ITEM(tup, j, val)
-        Py_INCREF(val)
+    if k == 1:
+        # When k = 1 we do not want to return a tuple as key
+        tup = keys[0][sorted_labels[0][n - 1]]
+    else:
+        tup = PyTuple_New(k)
+        for j in range(k):
+            val = keys[j][sorted_labels[j][n - 1]]
+            PyTuple_SET_ITEM(tup, j, val)
+            Py_INCREF(val)
     result[tup] = index[start:]
 
     return result
@@ -907,6 +929,8 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
 def is_float(obj: object) -> bool:
     """
+    Return True if given object is float.
+
     Returns
     -------
     bool
@@ -916,6 +940,8 @@ def is_float(obj: object) -> bool:
 
 def is_integer(obj: object) -> bool:
     """
+    Return True if given object is integer.
+
     Returns
     -------
     bool
@@ -925,6 +951,8 @@ def is_integer(obj: object) -> bool:
 
 def is_bool(obj: object) -> bool:
     """
+    Return True if given object is boolean.
+
     Returns
     -------
     bool
@@ -934,6 +962,8 @@ def is_bool(obj: object) -> bool:
 
 def is_complex(obj: object) -> bool:
     """
+    Return True if given object is complex.
+
     Returns
     -------
     bool
@@ -951,7 +981,7 @@ cpdef bint is_interval(object obj):
 
 def is_period(val: object) -> bool:
     """
-    Return a boolean if this is a Period object.
+    Return True if given object is Period.
 
     Returns
     -------
@@ -1407,10 +1437,12 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "time"
 
     elif is_decimal(val):
-        return "decimal"
+        if is_decimal_array(values):
+            return "decimal"
 
     elif is_complex(val):
-        return "complex"
+        if is_complex_array(values):
+            return "complex"
 
     elif util.is_float_object(val):
         if is_float_array(values):
@@ -1692,6 +1724,34 @@ cdef class FloatValidator(Validator):
 cpdef bint is_float_array(ndarray values):
     cdef:
         FloatValidator validator = FloatValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class ComplexValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (
+            util.is_complex_object(value)
+            or (util.is_float_object(value) and is_nan(value))
+        )
+
+    cdef inline bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.complexfloating)
+
+
+cdef bint is_complex_array(ndarray values):
+    cdef:
+        ComplexValidator validator = ComplexValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class DecimalValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return is_decimal(value)
+
+
+cdef bint is_decimal_array(ndarray values):
+    cdef:
+        DecimalValidator validator = DecimalValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
@@ -1982,7 +2042,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
-        elif val is None:
+        elif val is None or val is C_NA:
             seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
@@ -2538,8 +2598,6 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     if n == 0:
         # kludge, for Series
         return np.empty(0, dtype='f8')
-
-    keys = getattr(keys, 'values', keys)
 
     for i in range(n):
         val = keys[i]

@@ -80,3 +80,22 @@ class TestSeriesIsIn:
 
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
+
+    def test_isin_read_only(self):
+        # https://github.com/pandas-dev/pandas/issues/37174
+        arr = np.array([1, 2, 3])
+        arr.setflags(write=False)
+        s = Series([1, 2, 3])
+        result = s.isin(arr)
+        expected = Series([True, True, True])
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.slow
+def test_isin_large_series_mixed_dtypes_and_nan():
+    # https://github.com/pandas-dev/pandas/issues/37094
+    # combination of object dtype for the values and > 1_000_000 elements
+    ser = Series([1, 2, np.nan] * 1_000_000)
+    result = ser.isin({"foo", "bar"})
+    expected = Series([False] * 3 * 1_000_000)
+    tm.assert_series_equal(result, expected)

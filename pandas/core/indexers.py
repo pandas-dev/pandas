@@ -114,7 +114,7 @@ def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
 # Indexer Validation
 
 
-def check_setitem_lengths(indexer, value, values) -> None:
+def check_setitem_lengths(indexer, value, values) -> bool:
     """
     Validate that value and indexer are the same length.
 
@@ -133,34 +133,46 @@ def check_setitem_lengths(indexer, value, values) -> None:
 
     Returns
     -------
-    None
+    bool
+        Whether this is an empty listlike setting which is a no-op.
 
     Raises
     ------
     ValueError
         When the indexer is an ndarray or list and the lengths don't match.
     """
-    # boolean with truth values == len of the value is ok too
+    no_op = False
+
     if isinstance(indexer, (np.ndarray, list)):
-        if is_list_like(value) and len(indexer) != len(value):
-            if not (
-                isinstance(indexer, np.ndarray)
-                and indexer.dtype == np.bool_
-                and len(indexer[indexer]) == len(value)
-            ):
-                raise ValueError(
-                    "cannot set using a list-like indexer "
-                    "with a different length than the value"
-                )
+        # We can ignore other listlikes because they are either
+        #  a) not necessarily 1-D indexers, e.g. tuple
+        #  b) boolean indexers e.g. BoolArray
+        if is_list_like(value):
+            if len(indexer) != len(value):
+                # boolean with truth values == len of the value is ok too
+                if not (
+                    isinstance(indexer, np.ndarray)
+                    and indexer.dtype == np.bool_
+                    and len(indexer[indexer]) == len(value)
+                ):
+                    raise ValueError(
+                        "cannot set using a list-like indexer "
+                        "with a different length than the value"
+                    )
+            if not len(indexer):
+                no_op = True
 
     elif isinstance(indexer, slice):
-        # slice
-        if is_list_like(value) and len(values):
+        if is_list_like(value):
             if len(value) != length_of_indexer(indexer, values):
                 raise ValueError(
                     "cannot set using a slice indexer with a "
                     "different length than the value"
                 )
+            if not len(value):
+                no_op = True
+
+    return no_op
 
 
 def validate_indices(indices: np.ndarray, n: int) -> None:

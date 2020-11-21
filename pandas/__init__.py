@@ -33,7 +33,7 @@ except ImportError as e:  # pragma: no cover
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --inplace --force' to build the C extensions first."
+        "'python setup.py build_ext --force' to build the C extensions first."
     ) from e
 
 from pandas._config import (
@@ -58,6 +58,8 @@ from pandas.core.api import (
     UInt16Dtype,
     UInt32Dtype,
     UInt64Dtype,
+    Float32Dtype,
+    Float64Dtype,
     CategoricalDtype,
     PeriodDtype,
     IntervalDtype,
