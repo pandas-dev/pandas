@@ -5,56 +5,32 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "ser1, ser2, expected_add, expected_sub, expected_mul",
+    "dtype1, dtype2, dtype_expected, dtype_mul",
     (
-        [
-            Series([1], dtype="Int64"),
-            Series([2], dtype="Int64"),
-            Series([3], dtype="Int64"),
-            Series([-1], dtype="Int64"),
-            Series([2], dtype="Int64"),
-        ],
-        [
-            Series([1], dtype="float"),
-            Series([2.0], dtype="float"),
-            Series([3.0], dtype="float"),
-            Series([-1.0], dtype="float"),
-            Series([2.0], dtype="float"),
-        ],
-        [
-            Series([1], dtype="Int64"),
-            Series([2.0], dtype="float"),
-            Series([3.0], dtype="float"),
-            Series([-1.0], dtype="float"),
-            Series([2], dtype="float"),
-        ],
-        [
-            Series([1.0], dtype="float"),
-            Series([2], dtype="Int64"),
-            Series([3.0], dtype="float"),
-            Series([-1.0], dtype="float"),
-            Series([2], dtype="float"),
-        ],
+        ["Int64"] * 4,
+        ["float"] * 4,
+        ["Int64"] + ["float"] * 3,
         pytest.param(
-            Series([1], dtype="Int64"),
-            Series([2.0], dtype="Float64"),
-            Series([3.0], dtype="Float64"),
-            Series([-1.0], dtype="Float64"),
-            Series([2], dtype="Float64"),
+            "Int64",
+            "Float64",
+            "Float64",
+            "Float64",
             marks=pytest.mark.xfail(reason="Not implemented yet"),
         ),
     ),
 )
-def test_series_inplace_ops(ser1, ser2, expected_add, expected_sub, expected_mul):
+def test_series_inplace_ops(dtype1, dtype2, dtype_expected, dtype_mul):
 
-    res = ser1.copy()
-    res += ser2
-    tm.assert_series_equal(res, expected_add)
+    ser1 = Series([1], dtype=dtype1)
+    ser2 = Series([2], dtype=dtype2)
+    ser1 += ser2
+    expected = Series([3], dtype=dtype_expected)
+    tm.assert_series_equal(ser1, expected)
 
-    res = ser1.copy()
-    res -= ser2
-    tm.assert_series_equal(res, expected_sub)
+    ser1 -= ser2
+    expected = Series([1], dtype=dtype_expected)
+    tm.assert_series_equal(ser1, expected)
 
-    res = ser1.copy()
-    res *= ser2
-    tm.assert_series_equal(res, expected_mul)
+    ser1 *= ser2
+    expected = Series([2], dtype=dtype_mul)
+    tm.assert_series_equal(ser1, expected)
