@@ -998,3 +998,10 @@ def test_period_dtype_compare_to_string():
     dtype = PeriodDtype(freq="M")
     assert (dtype == "period[M]") is True
     assert (dtype != "period[M]") is False
+
+
+def test_column_not_loses_categorical_when_using_loc():
+    # GH16360
+    df = pd.DataFrame({"A": [1]})
+    df.loc[:, "B"] = Categorical(["a"])
+    assert is_categorical_dtype(df["B"])
