@@ -13,6 +13,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
@@ -501,6 +502,13 @@ class _Concatenator:
                     # 1-ax to convert BlockManager axis to DataFrame axis
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
+                        # We have to remove the duplicates from obj_labels
+                        # in new labels to make them unique, otherwise we would
+                        # duplicate or duplicates again
+                        if not obj_labels.is_unique:
+                            new_labels = algos.make_duplicates_of_left_unique_in_right(
+                                np.asarray(obj_labels), np.asarray(new_labels)
+                            )
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
                 mgrs_indexers.append((obj._mgr, indexers))

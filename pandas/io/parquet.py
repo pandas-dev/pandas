@@ -8,8 +8,10 @@ from warnings import catch_warnings
 from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
-from pandas import DataFrame, get_option
+from pandas import DataFrame, MultiIndex, get_option
+from pandas.core import generic
 
 from pandas.io.common import IOHandles, get_handle, is_fsspec_url, stringify_path
 
@@ -89,9 +91,20 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-        # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "empty"}:
-            raise ValueError("parquet must have string column names")
+        # must have value column names for all index levels (strings only)
+        if isinstance(df.columns, MultiIndex):
+            if not all(
+                x.inferred_type in {"string", "empty"} for x in df.columns.levels
+            ):
+                raise ValueError(
+                    """
+                    parquet must have string column names for all values in
+                     each level of the MultiIndex
+                    """
+                )
+        else:
+            if df.columns.inferred_type not in {"string", "empty"}:
+                raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
@@ -269,6 +282,7 @@ class FastParquetImpl(BaseImpl):
         return result
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
     path: Optional[FilePathOrBuffer] = None,
@@ -295,12 +309,12 @@ def to_parquet(
 
         .. versionchanged:: 1.2.0
 
-    engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+    engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
@@ -320,13 +334,7 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
