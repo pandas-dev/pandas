@@ -423,10 +423,18 @@ def test_reduce_missing(skipna, dtype):
 
 
 def test_fillna_args():
-    arr = pd.array(["a", pd.NA], dtype="string")
-    arr.fillna(value="b")
+    # GH 37987
 
-    arr = pd.array(["a", "b"], dtype="string")
+    arr = pd.array(["a", pd.NA], dtype="string")
+
+    res = arr.fillna(value="b")
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = arr.fillna(value=np.str_("b"))
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
     msg = r"1 is not a valid fill value; must be a string"
     with pytest.raises(TypeError, match=msg):
         arr.fillna(value=1)
