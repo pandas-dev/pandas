@@ -422,6 +422,16 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+def test_fillna_args():
+    arr = pd.array(["a", pd.NA], dtype="string")
+    arr.fillna(value="b")
+
+    arr = pd.array(["a", "b"], dtype="string")
+    msg = r"1 is not a valid fill value; must be a string"
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna(value=1)
+
+
 @td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
