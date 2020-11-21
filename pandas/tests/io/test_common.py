@@ -2,10 +2,11 @@
 Tests for the pandas.io.common functionalities
 """
 import gzip
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,8 +17,6 @@ import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
-
-from unittest.mock import MagicMock, patch
 
 
 class CustomFSPath:
@@ -416,7 +415,7 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("relative/local/path")
 
 
-def test_plain_text_read_csv_http_custom_headers():
+def test_plain_text_read_csv_http_custom_headers(monkeypatch):
     true_df = pd.DataFrame({"column_name": ["column_value"]})
     df_csv_bytes = true_df.to_csv(index=False).encode("utf-8")
     headers = {
