@@ -3986,7 +3986,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self: _IndexT, joined: np.ndarray, other: _IndexT
+    ) -> _IndexT:
+        assert other.dtype == self.dtype
+
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
         else:
@@ -4188,7 +4192,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind) -> bool:
+    def is_type_compatible(self, kind: str_t) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """

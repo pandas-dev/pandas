@@ -249,7 +249,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self) -> np.ndarray:
-        return np.asarray(self)
+        return np.asarray(self, dtype=object)
 
     @property
     def _has_complex_internals(self) -> bool:
