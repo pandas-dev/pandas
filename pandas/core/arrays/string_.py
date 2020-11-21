@@ -283,7 +283,7 @@ class StringArray(PandasArray):
         super().__setitem__(key, value)
 
     def fillna(self, value=None, method=None, limit=None):
-        if not isinstance(value, str):
+        if not (isinstance(value, (str, np.str_)) or isna(value)):
             raise TypeError(f"{value} is not a valid fill value; must be a string")
         return super().fillna(value, method, limit)
 
