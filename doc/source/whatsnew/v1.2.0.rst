@@ -589,6 +589,7 @@ Interval
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dtypes (:issue:`34871`)
 - Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 - Bug in :meth:`IntervalIndex.putmask` with datetime-like dtype incorrectly casting to object dtype (:issue:`37968`)
+- Bug in :meth:`IntervalArray.astype` incorrectly dropping dtype information with a :class:`CategoricalDtype` object (:issue:`37984`)
 -
 
 Indexing
