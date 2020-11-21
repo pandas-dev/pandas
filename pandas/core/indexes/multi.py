@@ -3620,7 +3620,7 @@ class MultiIndex(Index):
             return self._shallow_copy()
         return self
 
-    def _validate_insert_value(self, item):
+    def _validate_fill_value(self, item):
         if not isinstance(item, tuple):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
@@ -3643,7 +3643,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        item = self._validate_insert_value(item)
+        item = self._validate_fill_value(item)
 
         new_levels = []
         new_codes = []
