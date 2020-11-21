@@ -1625,6 +1625,8 @@ functions - the following example shows reading a CSV file:
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
 
+.. versionadded:: 1.2.0
+
 A custom header can be sent alongside HTTP(s) requests by passing a dictionary
 of header key value mappings to the ``storage_options`` keyword argument as shown below:
 
