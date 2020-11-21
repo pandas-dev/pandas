@@ -1065,52 +1065,25 @@ class MultiIndex(Index):
 
     @property
     def _constructor(self):
-        return MultiIndex.from_tuples
+        return type(self).from_tuples
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self,
-        values=None,
-        name=lib.no_default,
-        levels=None,
-        codes=None,
-        sortorder=None,
-        names=lib.no_default,
-    ):
-        if names is not lib.no_default and name is not lib.no_default:
-            raise TypeError("Can only provide one of `names` and `name`")
-        elif names is lib.no_default:
-            names = name if name is not lib.no_default else self.names
+    def _shallow_copy(self, values=None, name=lib.no_default):
+        names = name if name is not lib.no_default else self.names
 
         if values is not None:
-            assert levels is None and codes is None
-            return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
+            return type(self).from_tuples(values, sortorder=None, names=names)
 
-        levels = levels if levels is not None else self.levels
-        codes = codes if codes is not None else self.codes
-
-        result = MultiIndex(
-            levels=levels,
-            codes=codes,
-            sortorder=sortorder,
+        result = type(self)(
+            levels=self.levels,
+            codes=self.codes,
+            sortorder=None,
             names=names,
             verify_integrity=False,
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
         return result
-
-    def symmetric_difference(self, other, result_name=None, sort=None):
-        # On equal symmetric_difference MultiIndexes the difference is empty.
-        # Therefore, an empty MultiIndex is returned GH13490
-        tups = Index.symmetric_difference(self, other, result_name, sort)
-        if len(tups) == 0:
-            return MultiIndex(
-                levels=[[] for _ in range(self.nlevels)],
-                codes=[[] for _ in range(self.nlevels)],
-                names=tups.name,
-            )
-        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
@@ -1177,12 +1150,18 @@ class MultiIndex(Index):
             if codes is None:
                 codes = deepcopy(self.codes)
 
-        new_index = self._shallow_copy(
+        levels = levels if levels is not None else self.levels
+        codes = codes if codes is not None else self.codes
+
+        new_index = type(self)(
             levels=levels,
             codes=codes,
-            names=names,
             sortorder=self.sortorder,
+            names=names,
+            verify_integrity=False,
         )
+        new_index._cache = self._cache.copy()
+        new_index._cache.pop("levels", None)  # GH32669
 
         if dtype:
             warnings.warn(
@@ -3611,6 +3590,18 @@ class MultiIndex(Index):
             result_names = get_unanimous_names(self, other)
 
         return other, result_names
+
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        # On equal symmetric_difference MultiIndexes the difference is empty.
+        # Therefore, an empty MultiIndex is returned GH13490
+        tups = Index.symmetric_difference(self, other, result_name, sort)
+        if len(tups) == 0:
+            return type(self)(
+                levels=[[] for _ in range(self.nlevels)],
+                codes=[[] for _ in range(self.nlevels)],
+                names=tups.name,
+            )
+        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
