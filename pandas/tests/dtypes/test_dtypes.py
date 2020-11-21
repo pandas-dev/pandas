@@ -578,6 +578,14 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
+    def test_closed_must_match(self):
+        # GH#37933
+        dtype = IntervalDtype(np.float64, "left")
+
+        msg = "dtype.closed and 'closed' do not match"
+        with pytest.raises(ValueError, match=msg):
+            IntervalDtype(dtype, closed="both")
+
     def test_construction_from_string(self, dtype):
         result = IntervalDtype("interval[int64]")
         assert is_dtype_equal(dtype, result)

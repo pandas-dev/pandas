@@ -1013,12 +1013,16 @@ class IntervalDtype(PandasExtensionDtype):
     )
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed=None):
+    def __new__(cls, subtype=None, closed: Optional[str_type] = None):
         from pandas.core.dtypes.common import is_string_dtype, pandas_dtype
 
         if isinstance(subtype, IntervalDtype):
+            if closed is not None and closed != subtype.closed:
+                raise ValueError(
+                    "dtype.closed and 'closed' do not match. "
+                    "Try IntervalDtype(dtype.subtype, closed) instead."
+                )
             return subtype
-            # TODO: what if closed is also passed?
         elif subtype is None:
             # we are called as an empty constructor
             # generally for pickle compat
