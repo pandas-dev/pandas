@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import (
@@ -143,14 +145,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> Union[int, np.datetime64, np.timedelta64]:
-        """
-        Box an integer unboxed via _unbox_scalar into the native type for
-        the underlying ndarray.
-        """
-        raise AbstractMethodError(cls)
-
     def _unbox_scalar(
         self, value: DTScalarOrNaT, setitem: bool = False
     ) -> Union[np.int64, np.datetime64, np.timedelta64]:
@@ -272,7 +266,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -383,7 +379,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ExtensionArray Interface
 
     @classmethod
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(
+        cls: Type[DatetimeLikeArrayT],
+        to_concat: Sequence[DatetimeLikeArrayT],
+        axis: int = 0,
+    ) -> DatetimeLikeArrayT:
         new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
@@ -431,7 +431,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
+            # for "object"  [call-arg]
+            other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -460,7 +462,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to an i8 representation,
-        raising ValueError if this is not possible.
+        raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -472,33 +474,27 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Raises
         ------
-        ValueError
+        TypeError
         """
-        msg = (
-            f"'fill_value' should be a {self._scalar_type}. "
-            f"Got '{str(fill_value)}'."
-        )
-        try:
-            return self._validate_scalar(fill_value)
-        except TypeError as err:
-            if "Cannot compare tz-naive and tz-aware" in str(err):
-                # tzawareness-compat
-                raise
-            raise ValueError(msg) from err
+        return self._validate_scalar(fill_value)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
+            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
+            # for "object"  [call-arg]
+            fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                new_fill = self._scalar_type(fill_value)
+                # pandas\core\arrays\datetimelike.py:753: error: Too many
+                # arguments for "object"  [call-arg]
+                new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
@@ -958,7 +954,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1561,6 +1557,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
     # Frequency Methods
+
+    def _maybe_clear_freq(self):
+        self._freq = None
 
     def _with_freq(self, freq):
         """
