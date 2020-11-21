@@ -857,19 +857,10 @@ class TestiLoc2:
         # GH#33198
         arr = np.random.randn(10 ** 2).reshape(5, 20).astype(np.float64)
         df = DataFrame(arr)
-        df.iloc[:, 10:] = df.iloc[:, 10:].astype(np.float32)
+        df.iloc[:, 11:] = df.iloc[:, 11:].astype(np.float32)
         result = df.dtypes.value_counts()
-        expected = Series([10, 10], index=[np.dtype("float32"), np.dtype("float64")])
+        expected = Series([11, 9], index=[np.dtype("float64"), np.dtype("float32")])
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("klass", [list, np.array])
-    def test_iloc_setitem_bool_indexer(self, klass):
-        # GH#36741
-        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
-        indexer = klass([True, False, False])
-        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
-        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
-        tm.assert_frame_equal(df, expected)
 
 
 class TestILocErrors:
