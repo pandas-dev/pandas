@@ -2018,8 +2018,8 @@ class TestLocSeries:
         assert result == expected
 
     @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-    def test_setitem_series_null_slice_different_dtypes(self, dtype):
-        # GH: 20635
+    def test_loc_setitem_series_null_slice_different_dtypes(self, dtype):
+        # GH#20635
         ser = Series(["3", "4"], name="A")
         ser.loc[:] = ser.astype("int64").astype(dtype)
         expected = Series([3, 4], name="A", dtype=dtype)
