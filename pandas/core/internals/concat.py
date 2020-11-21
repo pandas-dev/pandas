@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import DtypeObj
+from pandas._typing import DtypeObj, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -122,7 +122,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
         blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
-        if mgr._is_single_block:
+        if mgr.is_single_block:
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
@@ -182,7 +182,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
 
 
 class JoinUnit:
-    def __init__(self, block, shape, indexers=None):
+    def __init__(self, block, shape: Shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
         if indexers is None:
             indexers = {}
@@ -224,9 +224,7 @@ class JoinUnit:
         # a block is NOT null, chunks should help in such cases.  1000 value
         # was chosen rather arbitrarily.
         values = self.block.values
-        if self.block.is_categorical:
-            values_flat = values.categories
-        elif is_sparse(self.block.values.dtype):
+        if is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
             # TODO(EA2D): no need for special case with 2D EAs
@@ -236,7 +234,7 @@ class JoinUnit:
 
         return isna_all(values_flat)
 
-    def get_reindexed_values(self, empty_dtype, upcasted_na):
+    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na):
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
@@ -257,9 +255,8 @@ class JoinUnit:
                     empty_dtype
                 ):
                     if self.block is None:
-                        array = empty_dtype.construct_array_type()
                         # TODO(EA2D): special case unneeded with 2D EAs
-                        return array(
+                        return DatetimeArray(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
                 elif getattr(self.block, "is_categorical", False):

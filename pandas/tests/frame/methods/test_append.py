@@ -7,6 +7,18 @@ import pandas._testing as tm
 
 
 class TestDataFrameAppend:
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_append_multiindex(self, multiindex_dataframe_random_data, klass):
+        obj = multiindex_dataframe_random_data
+        if klass is Series:
+            obj = obj["A"]
+
+        a = obj[:5]
+        b = obj[5:]
+
+        result = a.append(b)
+        tm.assert_equal(result, obj)
+
     def test_append_empty_list(self):
         # GH 28769
         df = DataFrame()
@@ -177,9 +189,9 @@ class TestDataFrameAppend:
     def test_append_timestamps_aware_or_naive(self, tz_naive_fixture, timestamp):
         # GH 30238
         tz = tz_naive_fixture
-        df = pd.DataFrame([pd.Timestamp(timestamp, tz=tz)])
+        df = DataFrame([Timestamp(timestamp, tz=tz)])
         result = df.append(df.iloc[0]).iloc[-1]
-        expected = pd.Series(pd.Timestamp(timestamp, tz=tz), name=0)
+        expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -193,7 +205,7 @@ class TestDataFrameAppend:
         ],
     )
     def test_other_dtypes(self, data, dtype):
-        df = pd.DataFrame(data, dtype=dtype)
+        df = DataFrame(data, dtype=dtype)
         result = df.append(df.iloc[0]).iloc[-1]
-        expected = pd.Series(data, name=0, dtype=dtype)
+        expected = Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)

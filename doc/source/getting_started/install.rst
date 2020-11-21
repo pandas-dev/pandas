@@ -28,20 +28,20 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <https://www.numpy.org/>`__ and
-`SciPy <https://www.scipy.org/>`__ stack can be a little
+Installing pandas and the rest of the `NumPy <https://numpy.org/>`__ and
+`SciPy <https://scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
 The simplest way to install not only pandas, but Python and the most popular
-packages that make up the `SciPy <https://www.scipy.org/>`__ stack
-(`IPython <https://ipython.org/>`__, `NumPy <https://www.numpy.org/>`__,
+packages that make up the `SciPy <https://scipy.org/>`__ stack
+(`IPython <https://ipython.org/>`__, `NumPy <https://numpy.org/>`__,
 `Matplotlib <https://matplotlib.org/>`__, ...) is with
 `Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
-(Linux, Mac OS X, Windows) Python distribution for data analytics and
+(Linux, macOS, Windows) Python distribution for data analytics and
 scientific computing.
 
 After running the installer, the user will have access to pandas and the
-rest of the `SciPy <https://www.scipy.org/>`__ stack without needing to install
+rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
@@ -220,7 +220,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.16.5
+`NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
@@ -262,7 +262,7 @@ BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref
 Jinja2                    2.10               Conditional formatting with DataFrame.style
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
-PyTables                  3.4.4              HDF5-based reading / writing
+PyTables                  3.5.1              HDF5-based reading / writing
 SQLAlchemy                1.2.8              SQL support for databases other than sqlite
 SciPy                     1.12.0             Miscellaneous statistical functions
 xlsxwriter                1.0.2              Excel writing
@@ -280,7 +280,6 @@ psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.5.1              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.4.0              Amazon S3 access

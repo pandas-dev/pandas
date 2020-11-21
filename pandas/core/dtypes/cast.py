@@ -2,10 +2,12 @@
 Routines for casting.
 """
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     List,
     Optional,
     Sequence,
@@ -18,7 +20,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -31,7 +33,7 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -133,7 +135,31 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_downcast_to_dtype(result, dtype: Dtype):
+def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scalar:
+    """
+    Cast scalar to Timestamp or Timedelta if scalar is datetime-like
+    and dtype is not object.
+
+    Parameters
+    ----------
+    value : scalar
+    dtype : Dtype, optional
+
+    Returns
+    -------
+    scalar
+    """
+    if dtype == object:
+        pass
+    elif isinstance(value, (np.datetime64, datetime)):
+        value = tslibs.Timestamp(value)
+    elif isinstance(value, (np.timedelta64, timedelta)):
+        value = tslibs.Timedelta(value)
+
+    return value
+
+
+def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -169,12 +195,20 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
 
         dtype = np.dtype(dtype)
 
+    elif dtype.type is Period:
+        from pandas.core.arrays import PeriodArray
+
+        with suppress(TypeError):
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            return PeriodArray(result, freq=dtype.freq)
+
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
         return converted
 
     # a datetimelike
-    # GH12821, iNaT is casted to float
+    # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         if hasattr(dtype, "tz"):
             # not a numpy dtype
@@ -186,17 +220,6 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
                 result = result.tz_convert(dtype.tz)
         else:
             result = result.astype(dtype)
-
-    elif dtype.type is Period:
-        # TODO(DatetimeArray): merge with previous elif
-        from pandas.core.arrays import PeriodArray
-
-        try:
-            return PeriodArray(result, freq=dtype.freq)
-        except TypeError:
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-            pass
 
     return result
 
@@ -362,13 +385,17 @@ def maybe_cast_to_extension_array(
     ExtensionArray or obj
     """
     from pandas.core.arrays.string_ import StringArray
+    from pandas.core.arrays.string_arrow import ArrowStringArray
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be be converted to StringArrays, but we may not want to convert
-    if issubclass(cls, StringArray) and lib.infer_dtype(obj) != "string":
+    if (
+        issubclass(cls, (StringArray, ArrowStringArray))
+        and lib.infer_dtype(obj) != "string"
+    ):
         return obj
 
     try:
@@ -491,36 +518,22 @@ def maybe_casted_values(
     if codes is not None:
         mask: np.ndarray = codes == -1
 
-        # we can have situations where the whole mask is -1,
-        # meaning there is nothing found in codes, so make all nan's
         if mask.size > 0 and mask.all():
+            # we can have situations where the whole mask is -1,
+            # meaning there is nothing found in codes, so make all nan's
+
             dtype = index.dtype
             fill_value = na_value_for_dtype(dtype)
             values = construct_1d_arraylike_from_scalar(fill_value, len(mask), dtype)
+
         else:
             values = values.take(codes)
-
-            # TODO(https://github.com/pandas-dev/pandas/issues/24206)
-            # Push this into maybe_upcast_putmask?
-            # We can't pass EAs there right now. Looks a bit
-            # complicated.
-            # So we unbox the ndarray_values, op, re-box.
-            values_type = type(values)
-            values_dtype = values.dtype
-
-            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-
-            if isinstance(values, DatetimeLikeArrayMixin):
-                values = values._data  # TODO: can we de-kludge yet?
 
             if mask.any():
                 if isinstance(values, np.ndarray):
                     values, _ = maybe_upcast_putmask(values, mask, np.nan)
                 else:
                     values[mask] = np.nan
-
-            if issubclass(values_type, DatetimeLikeArrayMixin):
-                values = values_type(values, dtype=values_dtype)
 
     return values
 
@@ -805,6 +818,22 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
             dtype = IntervalDtype(subtype=subtype)
 
     return dtype, val
+
+
+def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
+    """
+    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
+
+    Parameters
+    ----------
+    d: dict-like object
+
+    Returns
+    -------
+    dict
+
+    """
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def infer_dtype_from_array(
@@ -1607,7 +1636,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
 
 
 def cast_scalar_to_array(
-    shape: Tuple, value: Scalar, dtype: Optional[DtypeObj] = None
+    shape: Shape, value: Scalar, dtype: Optional[DtypeObj] = None
 ) -> np.ndarray:
     """
     Create np.ndarray of specified shape and dtype, filled with values.
