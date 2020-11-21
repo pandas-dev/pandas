@@ -8,9 +8,16 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 # dtype, ttype, c_type
 dtypes = [('float64', 'float64', 'float64_t'),
+          ('float32', 'float32', 'float32_t'),
           ('uint64', 'uint64', 'uint64_t'),
+          ('uint32', 'uint32', 'uint32_t'),
+          ('uint16', 'uint16', 'uint16_t'),
+          ('uint8', 'uint8', 'uint8_t'),
           ('object', 'pymap', 'object'),
-          ('int64', 'int64', 'int64_t')]
+          ('int64', 'int64', 'int64_t'),
+          ('int32', 'int32', 'int32_t'),
+          ('int16', 'int16', 'int16_t'),
+          ('int8', 'int8', 'int8_t')]
 
 }}
 
@@ -54,7 +61,7 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         for i in range(n):
             val = values[i]
 
-            {{if dtype == 'float64'}}
+            {{if dtype == 'float64' or dtype == 'float32'}}
             if val == val or not dropna:
             {{else}}
             if True:
@@ -275,8 +282,15 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 
 # dtype, ctype, table_type, npy_dtype
 dtypes = [('float64', 'float64_t', 'float64', 'float64'),
+          ('float32', 'float32_t', 'float32', 'float32'),
           ('int64', 'int64_t', 'int64', 'int64'),
+          ('int32', 'int32_t', 'int32', 'int32'),
+          ('int16', 'int16_t', 'int16', 'int16'),
+          ('int8', 'int8_t', 'int8', 'int8'),
           ('uint64', 'uint64_t', 'uint64', 'uint64'),
+          ('uint32', 'uint32_t', 'uint32', 'uint32'),
+          ('uint16', 'uint16_t', 'uint16', 'uint16'),
+          ('uint8', 'uint8_t', 'uint8', 'uint8'),
           ('object', 'object', 'pymap', 'object_')]
 }}
 

@@ -122,14 +122,23 @@ typedef unsigned long khint32_t;
 #endif
 
 #if ULONG_MAX == ULLONG_MAX
-typedef unsigned long khuint64_t;
-typedef signed long khint64_t;
+typedef unsigned long khint64_t;
 #else
-typedef unsigned long long khuint64_t;
-typedef signed long long khint64_t;
+typedef unsigned long long khint64_t;
+#endif
+
+#if UINT_MAX == 0xffffu
+typedef unsigned int khint16_t;
+#elif USHRT_MAX == 0xffffu
+typedef unsigned short khint16_t;
+#endif
+
+#if UCHAR_MAX == 0xffu
+typedef unsigned char khint8_t;
 #endif
 
 typedef double khfloat64_t;
+typedef double khfloat32_t;
 
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
@@ -588,7 +597,17 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
   @param  khval_t  Type of values [type]
  */
+
+// we implicitly convert signed int to unsigned int, thus potential overflows
+// for operations (<<,*,+) don't trigger undefined behavior, also >>-operator
+// is implementation defined for signed ints if sign-bit is set.
+// because we never really "get" the keys, there will be no convertion from
+// unsigend int to (signed) int (which would be implementation defined behavior)
+// this holds also for 64-, 16- and 8-bit integers
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
+	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT(name, khval_t)								\
 	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
@@ -596,7 +615,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
  */
 #define KHASH_SET_INIT_UINT64(name)										\
-	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_SET_INIT_INT64(name)										\
 	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
@@ -607,10 +626,33 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_UINT64(name, khval_t)								\
-	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
 	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+
+/*! @function
+  @abstract     Instantiate a hash map containing 16bit-integer keys
+  @param  name  Name of the hash table [symbol]
+  @param  khval_t  Type of values [type]
+ */
+#define KHASH_MAP_INIT_INT16(name, khval_t)								\
+	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT16(name, khval_t)								\
+	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+/*! @function
+  @abstract     Instantiate a hash map containing 8bit-integer keys
+  @param  name  Name of the hash table [symbol]
+  @param  khval_t  Type of values [type]
+ */
+#define KHASH_MAP_INIT_INT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
 
 
 typedef const char *kh_cstr_t;
@@ -634,12 +676,23 @@ typedef const char *kh_cstr_t;
 #define kh_exist_float64(h, k) (kh_exist(h, k))
 #define kh_exist_uint64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
+#define kh_exist_float32(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
+#define kh_exist_uint32(h, k) (kh_exist(h, k))
+#define kh_exist_int16(h, k) (kh_exist(h, k))
+#define kh_exist_uint16(h, k) (kh_exist(h, k))
+#define kh_exist_int8(h, k) (kh_exist(h, k))
+#define kh_exist_uint8(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
+KHASH_MAP_INIT_UINT(uint32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
+KHASH_MAP_INIT_INT16(int16, size_t)
+KHASH_MAP_INIT_UINT16(uint16, size_t)
+KHASH_MAP_INIT_INT16(int8, size_t)
+KHASH_MAP_INIT_UINT16(uint8, size_t)
 
 
 #endif /* __AC_KHASH_H */

@@ -53,6 +53,7 @@ _pxi_dep_template = {
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
+        "_libs/khash_for_primitive_helper.pxi.in",
     ],
     "index": ["_libs/index_class_helper.pxi.in"],
     "sparse": ["_libs/sparse_op_helper.pxi.in"],
@@ -525,7 +526,10 @@ ext_data = {
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
+        "depends": (
+            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            + _pxi_dep["hashtable"]
+        ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
