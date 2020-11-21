@@ -825,7 +825,7 @@ class TestiLoc2:
         df = DataFrame(arr)
         df.iloc[:, 10:] = df.iloc[:, 10:].astype(np.float32)
         result = df.dtypes.value_counts()
-        expected = Series([10, 10], index=[np.float64, np.float32])
+        expected = Series([10, 10], index=[np.dtype("float32"), np.dtype("float64")])
         tm.assert_series_equal(result, expected)
 
 
