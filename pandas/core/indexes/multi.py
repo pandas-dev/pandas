@@ -3156,7 +3156,7 @@ class MultiIndex(Index):
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = (idxrs if indexers is None else indexers).union(
-                            idxrs
+                            idxrs, sort=False
                         )
                     except KeyError:
 
@@ -3241,6 +3241,9 @@ class MultiIndex(Index):
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
         for i, k in enumerate(seq):
+            if is_scalar(k):
+                # GH#34603 we want to treat a scalar the same as an all equal list
+                k = [k]
             if com.is_bool_indexer(k):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
