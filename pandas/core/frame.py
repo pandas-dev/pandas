@@ -223,7 +223,7 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
-    * cross: creates the karthesian product from both frames, preserves the order
+    * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
 
       .. versionadded:: 1.2.0

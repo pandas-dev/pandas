@@ -1219,7 +1219,7 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, _left, _right
+        self, left, right
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
@@ -1240,8 +1240,8 @@ class _MergeOperation:
         cross_col = f"_cross_{hashlib.md5().hexdigest()}"
         how = "inner"
         return (
-            _left.assign(**{cross_col: 1}),
-            _right.assign(**{cross_col: 1}),
+            left.assign(**{cross_col: 1}),
+            right.assign(**{cross_col: 1}),
             how,
             cross_col,
         )
