@@ -3111,19 +3111,26 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr: Optional[Index], indexer: Optional[Index]) -> Index:
+        def _update_indexer(
+            idxr: Optional[Index], indexer: Optional[Index], key
+        ) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer.intersection(idxr)
+            indexer_intersection = indexer.intersection(idxr)
+            if indexer_intersection.empty and not idxr.empty and not indexer.empty:
+                raise KeyError(key)
+            return indexer_intersection
 
         for i, k in enumerate(seq):
 
             if com.is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
-                indexer = _update_indexer(_convert_to_indexer(k), indexer=indexer)
+                indexer = _update_indexer(
+                    _convert_to_indexer(k), indexer=indexer, key=seq
+                )
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
@@ -3143,14 +3150,14 @@ class MultiIndex(Index):
                         continue
 
                 if indexers is not None:
-                    indexer = _update_indexer(indexers, indexer=indexer)
+                    indexer = _update_indexer(indexers, indexer=indexer, key=seq)
                 else:
                     # no matches we are done
                     return np.array([], dtype=np.int64)
 
             elif com.is_null_slice(k):
                 # empty slice
-                indexer = _update_indexer(None, indexer=indexer)
+                indexer = _update_indexer(None, indexer=indexer, key=seq)
 
             elif isinstance(k, slice):
 
@@ -3160,6 +3167,7 @@ class MultiIndex(Index):
                         self._get_level_indexer(k, level=i, indexer=indexer)
                     ),
                     indexer=indexer,
+                    key=seq,
                 )
             else:
                 # a single label
@@ -3168,6 +3176,7 @@ class MultiIndex(Index):
                         self.get_loc_level(k, level=i, drop_level=False)[0]
                     ),
                     indexer=indexer,
+                    key=seq,
                 )
 
         # empty indexer
