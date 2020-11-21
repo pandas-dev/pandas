@@ -163,7 +163,7 @@ def setop_check(method):
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   closed='right',
-                  dtype='interval[int64]')
+                  dtype='interval[int64, right]')
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalIndex.from_arrays`,
@@ -248,7 +248,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         )
@@ -274,7 +274,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         )
@@ -306,7 +306,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
                        closed='right',
-                       dtype='interval[int64]')
+                       dtype='interval[int64, right]')
         """
             ),
         )
@@ -319,19 +319,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(arr, name=name)
 
     # --------------------------------------------------------------------
-
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(
-        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
 
     @cache_readonly
     def _engine(self):
@@ -372,11 +359,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         Return the IntervalIndex's data as an IntervalArray.
         """
         return self._data
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
 
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
@@ -468,7 +450,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
               closed='right',
-              dtype='interval[int64]')
+              dtype='interval[int64, right]')
         >>> index.is_overlapping
         True
 
@@ -478,7 +460,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               closed='both',
-              dtype='interval[int64]')
+              dtype='interval[int64, both]')
         >>> index.is_overlapping
         True
 
@@ -488,7 +470,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               closed='left',
-              dtype='interval[int64]')
+              dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
         """
@@ -732,17 +714,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = self._engine.get_indexer(target_as_index.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
-            # (non-overlapping so get_loc guarantees scalar of KeyError)
-            indexer = []
-            for key in target_as_index:
-                try:
-                    loc = self.get_loc(key)
-                except KeyError:
-                    loc = -1
-                except InvalidIndexError as err:
-                    # i.e. non-scalar key
-                    raise TypeError(key) from err
-                indexer.append(loc)
+            return self._get_indexer_pointwise(target_as_index)[0]
 
         return ensure_platform_int(indexer)
 
@@ -766,24 +738,38 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             target_as_index, IntervalIndex
         ):
             # target_as_index might contain intervals: defer elementwise to get_loc
-            indexer, missing = [], []
-            for i, key in enumerate(target_as_index):
-                try:
-                    locs = self.get_loc(key)
-                    if isinstance(locs, slice):
-                        locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                    locs = np.array(locs, ndmin=1)
-                except KeyError:
-                    missing.append(i)
-                    locs = np.array([-1])
-                indexer.append(locs)
-            indexer = np.concatenate(indexer)
+            return self._get_indexer_pointwise(target_as_index)
+
         else:
             target_as_index = self._maybe_convert_i8(target_as_index)
             indexer, missing = self._engine.get_indexer_non_unique(
                 target_as_index.values
             )
 
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        pointwise implementation for get_indexer and get_indexer_non_unique.
+        """
+        indexer, missing = [], []
+        for i, key in enumerate(target):
+            try:
+                locs = self.get_loc(key)
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                locs = np.array(locs, ndmin=1)
+            except KeyError:
+                missing.append(i)
+                locs = np.array([-1])
+            except InvalidIndexError as err:
+                # i.e. non-scalar key
+                raise TypeError(key) from err
+
+            indexer.append(locs)
+
+        indexer = np.concatenate(indexer)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
@@ -854,6 +840,22 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def length(self):
         return Index(self._data.length, copy=False)
 
+    def putmask(self, mask, value):
+        arr = self._data.copy()
+        try:
+            value_left, value_right = arr._validate_setitem_value(value)
+        except (ValueError, TypeError):
+            return self.astype(object).putmask(mask, value)
+
+        if isinstance(self._data._left, np.ndarray):
+            np.putmask(arr._left, mask, value_left)
+            np.putmask(arr._right, mask, value_right)
+        else:
+            # TODO: special case not needed with __array_function__
+            arr._left.putmask(mask, value_left)
+            arr._right.putmask(mask, value_right)
+        return type(self)._simple_new(arr, name=self.name)
+
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
@@ -873,7 +875,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -895,7 +897,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -1139,7 +1141,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right', dtype='interval[int64]')
+                  closed='right', dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
 
@@ -1147,7 +1149,7 @@ def interval_range(
     ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  closed='right', dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1155,7 +1157,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-                  closed='right', dtype='interval[float64]')
+                  closed='right', dtype='interval[float64, right]')
 
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
@@ -1164,7 +1166,7 @@ def interval_range(
     ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  closed='right', dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -1172,14 +1174,14 @@ def interval_range(
     >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               closed='right',
-              dtype='interval[float64]')
+              dtype='interval[float64, right]')
 
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
-                  closed='both', dtype='interval[int64]')
+                  closed='both', dtype='interval[int64, both]')
     """
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)

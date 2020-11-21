@@ -720,8 +720,8 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "data,dtype",
         [
-            (pd.Period("2012-01", freq="M"), "period[M]"),
-            (pd.Period("2012-02-01", freq="D"), "period[D]"),
+            (Period("2012-01", freq="M"), "period[M]"),
+            (Period("2012-02-01", freq="D"), "period[D]"),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         ],
@@ -2577,7 +2577,7 @@ class TestDataFrameConstructors:
     def test_from_records_series_categorical_index(self):
         # GH 32805
         index = CategoricalIndex(
-            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)
@@ -2628,7 +2628,7 @@ class TestDataFrameConstructors:
         [
             Categorical(list("aabbc")),
             SparseArray([1, np.nan, np.nan, np.nan]),
-            IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            IntervalArray([Interval(0, 1), Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
     )
@@ -2648,12 +2648,10 @@ class TestDataFrameConstructors:
 
     def test_construct_with_two_categoricalindex_series(self):
         # GH 14600
-        s1 = Series(
-            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
-        )
+        s1 = Series([39, 6, 4], index=CategoricalIndex(["female", "male", "unknown"]))
         s2 = Series(
             [2, 152, 2, 242, 150],
-            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+            index=CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
@@ -2717,7 +2715,7 @@ class TestDataFrameConstructors:
             (["1", "2"]),
             (list(date_range("1/1/2011", periods=2, freq="H"))),
             (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
+            ([Interval(left=0, right=5)]),
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):

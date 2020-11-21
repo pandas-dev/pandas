@@ -415,6 +415,11 @@ class Index(IndexOpsMixin, PandasObject):
         ndarray
             An ndarray with int64 dtype.
         """
+        warnings.warn(
+            "Index.asi8 is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return None
 
     @classmethod
@@ -4339,17 +4344,18 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             converted = self._validate_fill_value(value)
-            np.putmask(values, mask, converted)
-            return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
+
+        np.putmask(values, mask, converted)
+        return self._shallow_copy(values)
 
     def equals(self, other: object) -> bool:
         """
@@ -4738,12 +4744,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        result = self.asi8
+        if needs_i8_conversion(self.dtype):
+            # TODO: these do not match the underlying EA argsort methods GH#37863
+            return self.asi8.argsort(*args, **kwargs)
 
-        if result is None:
-            result = np.array(self)
-
-        return result.argsort(*args, **kwargs)
+        # This works for either ndarray or EA, is overriden
+        #  by RangeIndex, MultIIndex
+        return self._data.argsort(*args, **kwargs)
 
     @final
     def get_value(self, series: "Series", key):

@@ -998,8 +998,8 @@ class IntervalDtype(PandasExtensionDtype):
 
     Examples
     --------
-    >>> pd.IntervalDtype(subtype='int64')
-    interval[int64]
+    >>> pd.IntervalDtype(subtype='int64', closed='both')
+    interval[int64, both]
     """
 
     name = "interval"
