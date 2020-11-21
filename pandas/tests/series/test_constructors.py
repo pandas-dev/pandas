@@ -1040,7 +1040,7 @@ class TestSeriesConstructors:
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
     def test_constructor_infer_period(self, data_constructor):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "D"), None]
+        data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
         expected = Series(period_array(data))
         tm.assert_series_equal(result, expected)
@@ -1057,7 +1057,7 @@ class TestSeriesConstructors:
         assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "A")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data
@@ -1539,7 +1539,7 @@ class TestSeriesConstructors:
         assert series.dtype == "Period[D]"
 
         series = Series(
-            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+            [Period("2011-01-01", freq="D"), Period("2011-02-01", freq="D")]
         )
         assert series.dtype == "Period[D]"
 

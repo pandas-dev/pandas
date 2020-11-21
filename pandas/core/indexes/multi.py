@@ -2156,6 +2156,10 @@ class MultiIndex(Index):
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
+        # If nan should be dropped it will equal -1 here. We have to check which values
+        # are not nan and equal -1, this means they are missing in the index
+        nan_codes = isna(codes)
+        values[(np.equal(nan_codes, False)) & (values == -1)] = -2
 
         mask = ~algos.isin(self.codes[i], values)
         if mask.all() and errors != "ignore":
@@ -3308,19 +3312,17 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
             return False
 
+        if len(self) != len(other):
+            return False
+
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-            elif len(self) != len(other):
-                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
-            return False
-
-        if len(self) != len(other):
             return False
 
         for i in range(self.nlevels):
@@ -3627,7 +3629,7 @@ class MultiIndex(Index):
             return self._shallow_copy()
         return self
 
-    def _validate_insert_value(self, item):
+    def _validate_fill_value(self, item):
         if not isinstance(item, tuple):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
@@ -3650,7 +3652,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        item = self._validate_insert_value(item)
+        item = self._validate_fill_value(item)
 
         new_levels = []
         new_codes = []

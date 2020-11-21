@@ -140,6 +140,16 @@ class TestSeriesPlots(TestPlotBase):
         assert xmax >= line[-1]
         self._check_ticks_props(ax, xrot=0)
 
+    def test_area_sharey_dont_overwrite(self):
+        # GH37942
+        fig, (ax1, ax2) = self.plt.subplots(1, 2, sharey=True)
+
+        abs(self.ts).plot(ax=ax1, kind="area")
+        abs(self.ts).plot(ax=ax2, kind="area")
+
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)
+
     def test_label(self):
         s = Series([1, 2])
         _, ax = self.plt.subplots()
@@ -983,3 +993,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.timedelta_range(start=0, periods=2, freq="D"),
+            [pd.Timedelta(days=1), pd.Timedelta(days=2)],
+        ],
+    )
+    def test_timedelta_index(self, index):
+        # GH37454
+        xlims = (3, 1)
+        ax = Series([1, 2], index=index).plot(xlim=(xlims))
+        assert ax.get_xlim() == (3, 1)
