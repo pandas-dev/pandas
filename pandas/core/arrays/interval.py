@@ -619,6 +619,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __le__(self, other):
         return self._cmp_method(other, operator.le)
 
+    def argsort(
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
+    ) -> np.ndarray:
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+
+        if ascending and kind == "quicksort" and na_position == "last":
+            return np.lexsort((self.right, self.left))
+
+        # TODO: other cases we can use lexsort for?  much more performant.
+        return super().argsort(
+            ascending=ascending, kind=kind, na_position=na_position, **kwargs
+        )
+
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
