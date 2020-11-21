@@ -447,7 +447,7 @@ def test_plain_text_read_csv_http_custom_headers():
                 "http://localhost:80/test.csv", storage_options=headers
             )
             assert dummy_request.called_with(headers=headers)
-            assert tm.assert_frame_equal(received_df, true_df)
+            tm.assert_frame_equal(received_df, true_df)
 
 
 def test_gzip_read_csv_http_custom_headers():
@@ -487,7 +487,7 @@ def test_gzip_read_csv_http_custom_headers():
                 "http://localhost:80/test.csv", storage_options=headers
             )
             assert dummy_request.called_with(headers=headers)
-            assert tm.assert_frame_equal(received_df, true_df)
+            tm.assert_frame_equal(received_df, true_df)
 
 
 def test_plain_text_read_json_http_custom_headers():
@@ -521,7 +521,7 @@ def test_plain_text_read_json_http_custom_headers():
                 "http://localhost:80/test.json", storage_options=headers
             )
             assert dummy_request.called_with(headers=headers)
-            assert tm.assert_frame_equal(received_df, true_df)
+            tm.assert_frame_equal(received_df, true_df)
 
 
 def test_gzip_read_json_http_custom_headers():
@@ -561,4 +561,4 @@ def test_gzip_read_json_http_custom_headers():
                 "http://localhost:80/test.json", storage_options=headers
             )
             assert dummy_request.called_with(headers=headers)
-            assert tm.assert_frame_equal(received_df, true_df)
+            tm.assert_frame_equal(received_df, true_df)
