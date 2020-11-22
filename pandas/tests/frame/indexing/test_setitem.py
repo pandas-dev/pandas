@@ -289,6 +289,21 @@ class TestDataFrameSetItem:
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
+    def test_setitem_complete_column_with_array(self):
+        # GH#37954
+        df = DataFrame({"a": ["one", "two", "three"], "b": [1, 2, 3]})
+        arr = np.array([[1, 1], [3, 1], [5, 1]])
+        df[["c", "d"]] = arr
+        expected = DataFrame(
+            {
+                "a": ["one", "two", "three"],
+                "b": [1, 2, 3],
+                "c": [1, 3, 5],
+                "d": [1, 1, 1],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_scalar_dtype_change(self):
         # GH#27583
         df = DataFrame({"a": [0.0], "b": [0.0]})
