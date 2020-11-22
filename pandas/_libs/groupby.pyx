@@ -892,7 +892,7 @@ def group_last(rank_t[:, :] out,
                int64_t[:] counts,
                ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
-               Py_ssize_t min_count=0):
+               Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -937,7 +937,7 @@ def group_last(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count:
+                if nobs[i, j] < min_count or nobs[i, j] == 0:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -959,7 +959,7 @@ def group_last(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] < min_count:
+                    if nobs[i, j] < min_count or nobs[i, j] == 0:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -985,7 +985,7 @@ def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels,
-              int64_t min_count=1, int64_t rank=1
+              int64_t min_count=-1, int64_t rank=1
               ):
     """
     Only aggregates on axis=0
@@ -1032,7 +1032,7 @@ def group_nth(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count:
+                if nobs[i, j] < min_count or nobs[i, j] == 0:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -1056,7 +1056,7 @@ def group_nth(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] < min_count:
+                    if nobs[i, j] < min_count or nobs[i, j] == 0:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -1282,7 +1282,7 @@ def group_max(groupby_t[:, :] out,
               int64_t[:] counts,
               ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
-              Py_ssize_t min_count=0):
+              Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -1334,10 +1334,8 @@ def group_max(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count:
+                if nobs[i, j] < min_count or nobs[i, j] == 0:
                     if groupby_t is uint64_t:
-                        with gil:
-                            print("test")
                         runtime_error = True
                         break
                     else:
@@ -1358,7 +1356,7 @@ def group_min(groupby_t[:, :] out,
               int64_t[:] counts,
               ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
-              Py_ssize_t min_count=0):
+              Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -1409,7 +1407,7 @@ def group_min(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count:
+                if nobs[i, j] < min_count or nobs[i, j] == 0:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
