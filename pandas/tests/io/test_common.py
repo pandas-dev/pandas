@@ -561,3 +561,149 @@ def test_gzip_read_json_http_custom_headers():
             )
             assert dummy_request.called_with(headers=headers)
             tm.assert_frame_equal(received_df, true_df)
+
+
+def test_read_parquet_http_no_storage_options():
+    true_df = pd.DataFrame({"column_name": ["column_value"]})
+    df_parquet_bytes = true_df.to_parquet(index=False)
+
+    class DummyResponse:
+        headers = {
+            "Content-Type": "application/octet-stream",
+        }
+
+        @staticmethod
+        def read():
+            return df_parquet_bytes
+
+        @staticmethod
+        def close():
+            pass
+
+    def dummy_response_getter(url):
+        return DummyResponse()
+
+    dummy_request = MagicMock()
+    with patch("urllib.request.Request", new=dummy_request):
+        with patch("urllib.request.urlopen", new=dummy_response_getter):
+            received_df = pd.read_parquet("http://localhost:80/test.parquet")
+            tm.assert_frame_equal(received_df, true_df)
+
+
+def test_read_parquet_http_with_storage_options():
+    true_df = pd.DataFrame({"column_name": ["column_value"]})
+    df_parquet_bytes = true_df.to_parquet(index=False)
+    headers = {
+        "User-Agent": "custom",
+        "Auth": "other_custom",
+    }
+
+    class DummyResponse:
+        headers = {
+            "Content-Type": "application/octet-stream",
+        }
+
+        @staticmethod
+        def read():
+            return df_parquet_bytes
+
+        @staticmethod
+        def close():
+            pass
+
+    def dummy_response_getter(url):
+        return DummyResponse()
+
+    dummy_request = MagicMock()
+    with patch("urllib.request.Request", new=dummy_request):
+        with patch("urllib.request.urlopen", new=dummy_response_getter):
+            received_df = pd.read_parquet(
+                "http://localhost:80/test.parquet", storage_options=headers
+            )
+            assert dummy_request.called_with(headers=headers)
+            tm.assert_frame_equal(received_df, true_df)
+
+
+def test_read_pickle_http_with_storage_options():
+    true_df = pd.DataFrame({"column_name": ["column_value"]})
+    bio = BytesIO()
+    true_df.to_pickle(bio)
+    df_pickle_bytes = bio.getvalue()
+    headers = {
+        "User-Agent": "custom",
+        "Auth": "other_custom",
+    }
+
+    class DummyResponse:
+        headers = {
+            "Content-Type": "application/octet-stream",
+        }
+
+        @staticmethod
+        def read():
+            return df_pickle_bytes
+
+        @staticmethod
+        def close():
+            pass
+
+    def dummy_response_getter(url):
+        return DummyResponse()
+
+    dummy_request = MagicMock()
+    with patch("urllib.request.Request", new=dummy_request):
+        with patch("urllib.request.urlopen", new=dummy_response_getter):
+            received_df = pd.read_pickle(
+                "http://localhost:80/test.pkl", storage_options=headers
+            )
+            assert dummy_request.called_with(headers=headers)
+            tm.assert_frame_equal(received_df, true_df)
+
+
+def test_read_stata_http_with_storage_options():
+    true_df = pd.DataFrame({"column_name": ["column_value"]})
+    bio = BytesIO()
+    true_df.to_stata(bio, write_index=False)
+    df_pickle_bytes = bio.getvalue()
+    headers = {
+        "User-Agent": "custom",
+        "Auth": "other_custom",
+    }
+
+    class DummyResponse:
+        headers = {
+            "Content-Type": "application/octet-stream",
+        }
+
+        @staticmethod
+        def read():
+            return df_pickle_bytes
+
+        @staticmethod
+        def close():
+            pass
+
+    def dummy_response_getter(url):
+        return DummyResponse()
+
+    dummy_request = MagicMock()
+    with patch("urllib.request.Request", new=dummy_request):
+        with patch("urllib.request.urlopen", new=dummy_response_getter):
+            received_df = pd.read_stata(
+                "http://localhost:80/test.dta", storage_options=headers
+            )
+            assert dummy_request.called_with(headers=headers)
+            tm.assert_frame_equal(received_df, true_df)
+
+
+def test_to_parquet_to_disk_with_storage_options():
+    headers = {
+        "User-Agent": "custom",
+        "Auth": "other_custom",
+    }
+
+    true_df = pd.DataFrame({"column_name": ["column_value"]})
+    with pytest.raises(ValueError):
+        df_parquet_bytes = true_df.to_parquet(
+            "/tmp/junk.parquet", storage_options=headers
+        )
