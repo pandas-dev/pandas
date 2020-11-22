@@ -2315,7 +2315,7 @@ class TestDiff:
 
 
 def test_resort_union_after_inputs():
-    # GH: 36299
+    # GH#36299
     union_values = np.array([1, 1, 2, 3, 3, 4])
     lvals = np.array([[3, 1, 4]])
     rvals = np.array([[2, 3, 1]])

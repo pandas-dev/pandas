@@ -118,7 +118,7 @@ def test_union_dtypes(left, right, expected):
     ],
 )
 def test_union_duplicate_index_subsets_of_each_other(cls):
-    # GH: 31326
+    # GH#31326
     a = cls([1, 2, 2, 3])
     b = cls([3, 3, 4])
     expected = cls([1, 2, 2, 3, 3, 4])
@@ -142,7 +142,7 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
     ],
 )
 def test_union_with_duplicate_index(cls):
-    # GH: 36289
+    # GH#36289
     idx1 = cls([1, 0, 0])
     idx2 = cls([0, 1])
     expected = cls([0, 0, 1])
@@ -155,6 +155,7 @@ def test_union_with_duplicate_index(cls):
 
 
 def test_union_duplicate_index_different_dtypes():
+    # GH#36289
     idx1 = Index([1, 2, 2, 3])
     idx2 = Index(["1", "0", "0"])
     expected = Index([1, 2, 2, 3, "1", "0", "0"])
