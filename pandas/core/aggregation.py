@@ -748,13 +748,14 @@ def agg_dict_like(
 
     from pandas.core.reshape.concat import concat
 
-    if selected_obj.ndim == 1:
+    ndim = selected_obj.ndim
+    if ndim == 1:
         # key only used for output
         colg = obj._gotitem(obj._selection, ndim=1)
         results = {key: colg.agg(how) for key, how in arg.items()}
     else:
         # key used for column selection and output
-        results = {key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()}
+        results = {key: obj._gotitem(key, ndim=ndim).agg(how) for key, how in arg.items()}
 
     # set the final keys
     keys = list(arg.keys())
