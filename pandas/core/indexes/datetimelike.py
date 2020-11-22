@@ -521,21 +521,41 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if level is not None:
             self._validate_index_level(level)
 
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
         if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if "mixed" in inferred:
+                        return self.astype(object).isin(values)
+                    return np.zeros(self.shape, dtype=bool)
+
             try:
                 values = type(self)(values)
             except ValueError:
                 return self.astype(object).isin(values)
 
+        try:
+            self._data._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
+
         return algorithms.isin(self.asi8, values.asi8)
-
-    @Appender(Index.where.__doc__)
-    def where(self, cond, other=None):
-        other = self._data._validate_setitem_value(other)
-
-        result = np.where(cond, self._data._ndarray, other)
-        arr = self._data._from_backing_data(result)
-        return type(self)._simple_new(arr, name=self.name)
 
     def shift(self, periods=1, freq=None):
         """

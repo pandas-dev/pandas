@@ -518,6 +518,8 @@ Categorical
 - :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
 - Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
+- Bug in :meth:`CatgoricalIndex.where` incorrectly setting non-category entries to ``np.nan`` instead of raising ``TypeError`` (:issue:`37977`)
+-
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -538,6 +540,9 @@ Datetimelike
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
 - Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 - Bug in :func:`to_datetime` with a read-only array incorrectly raising (:issue:`34857`)
+- Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` incorrectly casting integers to datetimes (:issue:`36621`)
+- Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
+- Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
 
 Timedelta
 ^^^^^^^^^
@@ -589,6 +594,7 @@ Interval
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dtypes (:issue:`34871`)
 - Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 - Bug in :meth:`IntervalIndex.putmask` with datetime-like dtype incorrectly casting to object dtype (:issue:`37968`)
+- Bug in :meth:`IntervalArray.astype` incorrectly dropping dtype information with a :class:`CategoricalDtype` object (:issue:`37984`)
 -
 
 Indexing
