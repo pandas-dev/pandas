@@ -218,7 +218,8 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string"]:
+        if inferred in ["mixed", "string", "mixed-integer"]:
+            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -424,6 +425,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = construct_1d_object_array_from_listlike(list(values))
         # TODO: could use ensure_arraylike here
 
+    comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
         # TODO(extension)
