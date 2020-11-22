@@ -331,6 +331,38 @@ class TestSlicing:
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
             nonmonotonic.loc[timestamp:]
 
+    @pytest.mark.parametrize("indexer_end", [None, "2020-01-02 23:59:59.999999999"])
+    def test_loc_getitem_partial_slice_non_monotonicity(self, indexer_end):
+        # GH#33146
+        df = DataFrame(
+            {"a": [1] * 5},
+            index=Index(
+                [
+                    Timestamp("2019-12-30"),
+                    Timestamp("2020-01-01"),
+                    Timestamp("2019-12-25"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                    Timestamp("2019-12-19"),
+                ]
+            ),
+        )
+        expected = DataFrame(
+            {"a": [1] * 2},
+            index=Index(
+                [
+                    Timestamp("2020-01-01"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                ]
+            ),
+        )
+        indexer = slice("2020-01-01", indexer_end)
+
+        result = df[indexer]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[indexer]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_datetime_length_one(self):
         # GH16071
         df = DataFrame(

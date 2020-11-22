@@ -775,42 +775,54 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(end, date) and not isinstance(end, datetime):
             end = datetime.combine(end, time(0, 0))
 
-        try:
-            return Index.slice_indexer(self, start, end, step, kind=kind)
-        except KeyError:
-            # For historical reasons DatetimeIndex by default supports
-            # value-based partial (aka string) slices on non-monotonic arrays,
-            # let's try that.
-            if (start is None or isinstance(start, str)) and (
-                end is None or isinstance(end, str)
-            ):
-                mask = np.array(True)
-                deprecation_mask = np.array(True)
-                if start is not None:
-                    start_casted = self._maybe_cast_slice_bound(start, "left", kind)
-                    mask = start_casted <= self
-                    deprecation_mask = start_casted == self
-
-                if end is not None:
-                    end_casted = self._maybe_cast_slice_bound(end, "right", kind)
-                    mask = (self <= end_casted) & mask
-                    deprecation_mask = (end_casted == self) | deprecation_mask
-
-                if not deprecation_mask.any():
-                    warnings.warn(
-                        "Value based partial slicing on non-monotonic DatetimeIndexes "
-                        "with non-existing keys is deprecated and will raise a "
-                        "KeyError in a future Version.",
-                        FutureWarning,
-                        stacklevel=5,
-                    )
-                indexer = mask.nonzero()[0][::step]
-                if len(indexer) == len(self):
-                    return slice(None)
+        # GH#33146 if start and end are combinations of str and None and Index is not
+        # monotonic, we can not use Index.slice_indexer because it does not honor the
+        # actual elements, is only searching for start and end
+        if not (
+            (
+                (start is None and isinstance(end, str))
+                or (end is None and isinstance(start, str))
+                or (isinstance(start, str) and isinstance(end, str))
+            )
+            and not self.is_monotonic_increasing
+        ):
+            try:
+                return Index.slice_indexer(self, start, end, step, kind=kind)
+            except KeyError:
+                # For historical reasons DatetimeIndex by default supports
+                # value-based partial (aka string) slices on non-monotonic arrays,
+                # let's try that.
+                if (start is None or isinstance(start, str)) and (
+                    end is None or isinstance(end, str)
+                ):
+                    pass
                 else:
-                    return indexer
-            else:
-                raise
+                    raise
+        mask = np.array(True)
+        deprecation_mask = np.array(True)
+        if start is not None:
+            start_casted = self._maybe_cast_slice_bound(start, "left", kind)
+            mask = start_casted <= self
+            deprecation_mask = start_casted == self
+
+        if end is not None:
+            end_casted = self._maybe_cast_slice_bound(end, "right", kind)
+            mask = (self <= end_casted) & mask
+            deprecation_mask = (end_casted == self) | deprecation_mask
+
+        if not deprecation_mask.any():
+            warnings.warn(
+                "Value based partial slicing on non-monotonic DatetimeIndexes "
+                "with non-existing keys is deprecated and will raise a "
+                "KeyError in a future Version.",
+                FutureWarning,
+                stacklevel=5,
+            )
+        indexer = mask.nonzero()[0][::step]
+        if len(indexer) == len(self):
+            return slice(None)
+        else:
+            return indexer
 
     # --------------------------------------------------------------------
 
