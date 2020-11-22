@@ -529,14 +529,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(Index.where.__doc__)
-    def where(self, cond, other=None):
-        other = self._data._validate_setitem_value(other)
-
-        result = np.where(cond, self._data._ndarray, other)
-        arr = self._data._from_backing_data(result)
-        return type(self)._simple_new(arr, name=self.name)
-
     def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.

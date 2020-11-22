@@ -290,6 +290,18 @@ class TestWhere:
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_where_non_categories(self):
+        ci = CategoricalIndex(["a", "b", "c", "d"])
+        mask = np.array([True, False, True, False])
+
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(ValueError, match=msg):
+            ci.where(mask, 2)
+
+        with pytest.raises(ValueError, match=msg):
+            # Test the Categorical method directly
+            ci._data.where(mask, 2)
+
 
 class TestContains:
     def test_contains(self):
