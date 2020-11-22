@@ -3018,7 +3018,7 @@ def _str_extract_noexpand(arr, pat, flags=0, default=None):
         else:
             dtype = _result_dtype(arr)
             result = DataFrame(
-                [groups_or_na(val, default) for val in arr],
+                [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
                 dtype=dtype,
