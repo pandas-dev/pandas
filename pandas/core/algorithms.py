@@ -430,6 +430,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
+    if needs_i8_conversion(comps):
+        # Dispatch to DatetimeLikeIndexMixin.isin
+        from pandas import Index
+
+        return Index(comps).isin(values)
+
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
