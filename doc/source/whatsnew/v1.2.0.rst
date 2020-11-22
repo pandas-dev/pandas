@@ -235,7 +235,6 @@ Other enhancements
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
--
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
@@ -253,6 +252,8 @@ Other enhancements
 - Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
 - Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
+- :meth:`Series.str.extract` accepts a default value argument (:issue:`38001`)
+
 
 .. ---------------------------------------------------------------------------
 
