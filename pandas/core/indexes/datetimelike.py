@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -10,7 +10,6 @@ from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -88,6 +87,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
+    _data_cls: Union[Type[DatetimeArray], Type[TimedeltaArray], Type[PeriodArray]]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
@@ -99,6 +99,25 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
     _hasnans = hasnans  # for index / array -agnostic code
+
+    @classmethod
+    def _simple_new(
+        cls,
+        values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
+        name: Label = None,
+    ):
+        assert isinstance(values, cls._data_cls), type(values)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._name = name
+        result._cache = {}
+
+        # For groupby perf. See note in indexes/base about _index_data
+        result._index_data = values._data
+
+        result._reset_identity()
+        return result
 
     @property
     def _is_all_dates(self) -> bool:
@@ -369,7 +388,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @property
     def _formatter_func(self):
-        raise AbstractMethodError(self)
+        return self._data._formatter()
 
     def _format_attrs(self):
         """
@@ -383,6 +402,36 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = repr(freq)
                 attrs.append(("freq", freq))
         return attrs
+
+    def _summary(self, name=None) -> str:
+        """
+        Return a summarized representation.
+
+        Parameters
+        ----------
+        name : str
+            Name to use in the summary representation.
+
+        Returns
+        -------
+        str
+            Summarized representation of the index.
+        """
+        formatter = self._formatter_func
+        if len(self) > 0:
+            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
+        else:
+            index_summary = ""
+
+        if name is None:
+            name = type(self).__name__
+        result = f"{name}: {len(self)} entries{index_summary}"
+        if self.freq:
+            result += f"\nFreq: {self.freqstr}"
+
+        # display as values, not quoted
+        result = result.replace("'", "")
+        return result
 
     # --------------------------------------------------------------------
     # Indexing Methods
@@ -472,51 +521,41 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if level is not None:
             self._validate_index_level(level)
 
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
         if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if "mixed" in inferred:
+                        return self.astype(object).isin(values)
+                    return np.zeros(self.shape, dtype=bool)
+
             try:
                 values = type(self)(values)
             except ValueError:
                 return self.astype(object).isin(values)
 
+        try:
+            self._data._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
+
         return algorithms.isin(self.asi8, values.asi8)
-
-    @Appender(Index.where.__doc__)
-    def where(self, cond, other=None):
-        other = self._data._validate_setitem_value(other)
-
-        result = np.where(cond, self._data._ndarray, other)
-        arr = self._data._from_backing_data(result)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def _summary(self, name=None) -> str:
-        """
-        Return a summarized representation.
-
-        Parameters
-        ----------
-        name : str
-            Name to use in the summary representation.
-
-        Returns
-        -------
-        str
-            Summarized representation of the index.
-        """
-        formatter = self._formatter_func
-        if len(self) > 0:
-            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
-        else:
-            index_summary = ""
-
-        if name is None:
-            name = type(self).__name__
-        result = f"{name}: {len(self)} entries{index_summary}"
-        if self.freq:
-            result += f"\nFreq: {self.freqstr}"
-
-        # display as values, not quoted
-        result = result.replace("'", "")
-        return result
 
     def shift(self, periods=1, freq=None):
         """
@@ -662,15 +701,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self.name)
 
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
+    @property
+    def _has_complex_internals(self) -> bool:
+        # used to avoid libreduction code paths, which raise or require conversion
+        return False
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -745,15 +779,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            # pandas\core\indexes\datetimelike.py:758: error: Unexpected
-            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
-            result = type(self)(
-                data=[], dtype=self.dtype, freq=self.freq  # type: ignore[call-arg]
-            )
+            result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            result = type(self)._simple_new(left_chunk)
+            # error: Argument 1 to "_simple_new" of "DatetimeIndexOpsMixin" has
+            # incompatible type "Union[ExtensionArray, Any]"; expected
+            # "Union[DatetimeArray, TimedeltaArray, PeriodArray]"  [arg-type]
+            result = type(self)._simple_new(left_chunk)  # type: ignore[arg-type]
 
         return self._wrap_setop_result(other, result)
 
