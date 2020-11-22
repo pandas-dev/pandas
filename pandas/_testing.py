@@ -749,19 +749,19 @@ def assert_index_equal(
     """
     __tracebackhide__ = True
 
-    def _check_types(l, r, obj="Index"):
+    def _check_types(left, right, obj="Index"):
         if exact:
-            assert_class_equal(l, r, exact=exact, obj=obj)
+            assert_class_equal(left, right, exact=exact, obj=obj)
 
             # Skip exact dtype checking when `check_categorical` is False
             if check_categorical:
-                assert_attr_equal("dtype", l, r, obj=obj)
+                assert_attr_equal("dtype", left, right, obj=obj)
 
             # allow string-like to have different inferred_types
-            if l.inferred_type in ("string"):
-                assert r.inferred_type in ("string")
+            if left.inferred_type in ("string"):
+                assert right.inferred_type in ("string")
             else:
-                assert_attr_equal("inferred_type", l, r, obj=obj)
+                assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -1147,9 +1147,9 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for l, r in zip(left, right):
+            for left, right in zip(left, right):
                 # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
+                if not array_equivalent(left, right, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size

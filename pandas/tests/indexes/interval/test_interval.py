@@ -54,7 +54,10 @@ class TestIntervalIndex:
 
         assert index.closed == closed
 
-        ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
+        ivs = [
+            Interval(left, right, closed)
+            for left, right in zip(range(10), range(1, 11))
+        ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
 
@@ -74,8 +77,8 @@ class TestIntervalIndex:
         assert index.closed == closed
 
         ivs = [
-            Interval(l, r, closed) if notna(l) else np.nan
-            for l, r in zip(expected_left, expected_right)
+            Interval(left, right, closed) if notna(left) else np.nan
+            for left, right in zip(expected_left, expected_right)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
