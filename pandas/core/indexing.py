@@ -1548,7 +1548,16 @@ class _iLocIndexer(_LocationIndexer):
                 blk = self.obj._mgr.blocks[0]
                 take_split_path = not blk._can_hold_element(val)
                 if not take_split_path:
-                    if is_scalar(value):
+                    if (
+                        isinstance(indexer, tuple)
+                        and is_integer(indexer[0])
+                        and is_integer(indexer[1])
+                        and not is_scalar(value)
+                    ):
+                        # GH#37749 this is for listlikes to be treated as scalars, can
+                        # not take split path here
+                        pass
+                    elif is_scalar(value):
                         dtype, _ = infer_dtype_from_scalar(value)
                         take_split_path = not is_dtype_equal(dtype, blk.dtype)
                     elif isinstance(value, ABCSeries):
