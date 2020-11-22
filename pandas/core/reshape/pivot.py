@@ -5,6 +5,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -746,10 +747,10 @@ def _get_names(arrs, names, prefix: str = "row"):
 
 def _build_names_mapper(
     rownames: List[str], colnames: List[str]
-) -> Tuple[Dict[str, str], List[str]]:
+) -> Tuple[Dict[str, str], List[str], Dict[str, str], List[str]]:
     def duplicates(names):
-        seen = set()
-        return {name for name in names if name not in seen and not seen.add(name)}
+        seen: Set = set()
+        return {name for name in names if name not in seen}
 
     shared_names = set(rownames).intersection(set(colnames))
     duplicates = duplicates(rownames) | duplicates(colnames) | shared_names
