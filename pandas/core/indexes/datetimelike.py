@@ -159,16 +159,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-
             should_try = False
+            inferrable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferrable
             elif is_categorical_dtype(other.dtype):
@@ -529,17 +521,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return np.zeros(self.shape, dtype=bool)
 
         if not isinstance(values, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
+                if inferred not in self._data._infer_matches:
                     if "mixed" in inferred:
                         return self.astype(object).isin(values)
                     return np.zeros(self.shape, dtype=bool)
@@ -705,6 +689,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return False
+
+    def is_type_compatible(self, kind: str) -> bool:
+        return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
     # Set Operation Methods
