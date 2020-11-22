@@ -141,20 +141,6 @@ ways for users to apply their own Numba-jitted functions where pandas accepts us
 and in groupby and window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled code.
 
-
-Documentation improvements
---------------------------
-
-We'd like to improve the content, structure, and presentation of the pandas documentation.
-Some specific goals include
-
-* Overhaul the HTML theme with a modern, responsive design (:issue:`15556`)
-* Improve the "Getting Started" documentation, designing and writing learning paths
-  for users different backgrounds (e.g. brand new to programming, familiar with
-  other languages like R, already familiar with Python).
-* Improve the overall organization of the documentation and specific subsections
-  of the documentation to make navigation and finding content easier.
-
 Performance monitoring
 ----------------------
 
@@ -203,3 +189,20 @@ should be notified of the proposal.
 When there's agreement that an implementation
 would be welcome, the roadmap should be updated to include the summary and a
 link to the discussion issue.
+
+Completed items
+---------------
+
+This section records now completed items from the pandas roadmap.
+
+Documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We improved the pandas documentation
+
+* The pandas community worked with others to build the `pydata-sphinx-theme`_,
+  which is now used for https://pandas.pydata.org/docs/ (:issue:`15556`).
+* :ref:`getting_started` contains a number of resources intended for new
+  pandas users coming from a variety of backgrounds (:issue:`26831`).
+
+.. _pydata-sphinx-theme: https://github.com/pandas-dev/pydata-sphinx-theme

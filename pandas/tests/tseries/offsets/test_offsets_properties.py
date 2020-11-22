@@ -12,6 +12,8 @@ import warnings
 from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
+import pytest
+import pytz
 
 import pandas as pd
 from pandas import Timestamp
@@ -84,13 +86,20 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
+@pytest.mark.arm_slow
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
-    compare = (dt + offset) - offset
+    try:
+        compare = (dt + offset) - offset
+    except pytz.NonExistentTimeError:
+        # dt + offset does not exist, assume(False) to indicate
+        #  to hypothesis that this is not a valid test case
+        assume(False)
+
     assert offset.is_on_offset(dt) == (compare == dt)
 
 

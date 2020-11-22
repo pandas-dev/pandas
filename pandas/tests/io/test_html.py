@@ -2,12 +2,12 @@ from functools import partial
 from importlib import reload
 from io import BytesIO, StringIO
 import os
+from pathlib import Path
 import re
 import threading
 from urllib.error import URLError
 
 import numpy as np
-from numpy.random import rand
 import pytest
 
 from pandas.compat import is_platform_windows
@@ -110,11 +110,11 @@ class TestReadHtml:
             tm.makeCustomDataframe(
                 4,
                 3,
-                data_gen_f=lambda *args: rand(),
+                data_gen_f=lambda *args: np.random.rand(),
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{0:.3f}".format)
+            .applymap("{:.3f}".format)
             .astype(float)
         )
         out = df.to_html()
@@ -123,7 +123,7 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
@@ -136,7 +136,7 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
+        url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
             url, match="First Federal Bank of Florida", attrs={"id": "table"}
         )
@@ -616,7 +616,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_gold_canyon(self):
         gc = "Gold Canyon"
-        with open(self.banklist_data, "r") as f:
+        with open(self.banklist_data) as f:
             raw_text = f.read()
 
         assert gc in raw_text
@@ -1234,3 +1234,11 @@ class TestReadHtml:
         while helper_thread1.is_alive() or helper_thread2.is_alive():
             pass
         assert None is helper_thread1.err is helper_thread2.err
+
+    def test_parse_path_object(self, datapath):
+        # GH 37705
+        file_path_string = datapath("io", "data", "html", "spam.html")
+        file_path = Path(file_path_string)
+        df1 = self.read_html(file_path_string)[0]
+        df2 = self.read_html(file_path)[0]
+        tm.assert_frame_equal(df1, df2)

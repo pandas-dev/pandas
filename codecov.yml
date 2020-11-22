@@ -1,7 +1,7 @@
 codecov:
   branch: master
 
-comment: off
+comment: false
 
 coverage:
   status:
@@ -11,3 +11,6 @@ coverage:
     patch:
       default:
         target: '50'
+
+github_checks:
+    annotations: false

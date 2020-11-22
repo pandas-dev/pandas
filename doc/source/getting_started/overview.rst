@@ -6,7 +6,7 @@
 Package overview
 ****************
 
-**pandas** is a `Python <https://www.python.org>`__ package providing fast,
+pandas is a `Python <https://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
 fundamental high-level building block for doing practical, **real-world** data
@@ -40,7 +40,7 @@ Here are just a few of the things that pandas does well:
     higher dimensional objects
   - Automatic and explicit **data alignment**: objects can be explicitly
     aligned to a set of labels, or the user can simply ignore the labels and
-    let `Series`, `DataFrame`, etc. automatically align the data for you in
+    let ``Series``, ``DataFrame``, etc. automatically align the data for you in
     computations
   - Powerful, flexible **group by** functionality to perform
     split-apply-combine operations on data sets, for both aggregating and
@@ -174,4 +174,3 @@ License
 -------
 
 .. literalinclude:: ../../../LICENSE
-

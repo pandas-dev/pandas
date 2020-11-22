@@ -13,6 +13,7 @@ import tarfile
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -577,7 +578,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1, "r") as f:
+    with open(csv1) as f:
         m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         parser.read_csv(m)
 
@@ -717,7 +718,10 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    if IS64:
+        assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    else:
+        assert df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 
