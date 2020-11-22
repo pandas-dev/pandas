@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Index, Series, concat
 import pandas._testing as tm
 
 
@@ -156,4 +156,25 @@ class TestDataFrameConcat:
         expected = DataFrame(
             np.array(["b", "b"]).reshape(1, 2), columns=["a", "a"]
         ).astype("category")
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_dataframe_keys_bug(self, sort):
+        t1 = DataFrame(
+            {"value": Series([1, 2, 3], index=Index(["a", "b", "c"], name="id"))}
+        )
+        t2 = DataFrame({"value": Series([7, 8], index=Index(["a", "b"], name="id"))})
+
+        # it works
+        result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
+        assert list(result.columns) == [("t1", "value"), ("t2", "value")]
+
+    def test_concat_duplicate_indexes(self):
+        # GH#36263 ValueError with non unique indexes
+        df1 = DataFrame([1, 2, 3, 4], index=[0, 1, 1, 4], columns=["a"])
+        df2 = DataFrame([6, 7, 8, 9], index=[0, 0, 1, 3], columns=["b"])
+        result = concat([df1, df2], axis=1)
+        expected = DataFrame(
+            {"a": [1, 1, 2, 3, np.nan, 4], "b": [6, 7, 8, 8, 9, np.nan]},
+            index=Index([0, 0, 1, 1, 3, 4]),
+        )
         tm.assert_frame_equal(result, expected)

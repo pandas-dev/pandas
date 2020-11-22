@@ -720,8 +720,8 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "data,dtype",
         [
-            (pd.Period("2012-01", freq="M"), "period[M]"),
-            (pd.Period("2012-02-01", freq="D"), "period[D]"),
+            (Period("2012-01", freq="M"), "period[M]"),
+            (Period("2012-02-01", freq="D"), "period[D]"),
             (Interval(left=0, right=5), IntervalDtype("int64")),
             (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
         ],
@@ -1003,6 +1003,21 @@ class TestDataFrameConstructors:
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
         assert df.values.dtype == expected
+
+    @pytest.mark.parametrize(
+        "data,input_dtype,expected_dtype",
+        (
+            ([True, False, None], "boolean", pd.BooleanDtype),
+            ([1.0, 2.0, None], "Float64", pd.Float64Dtype),
+            ([1, 2, None], "Int64", pd.Int64Dtype),
+            (["a", "b", "c"], "string", pd.StringDtype),
+        ),
+    )
+    def test_constructor_dtype_nullable_extension_arrays(
+        self, data, input_dtype, expected_dtype
+    ):
+        df = DataFrame({"a": data}, dtype=input_dtype)
+        assert df["a"].dtype == expected_dtype()
 
     def test_constructor_scalar_inference(self):
         data = {"int": 1, "bool": True, "float": 3.0, "complex": 4j, "object": "foo"}
@@ -2456,7 +2471,7 @@ class TestDataFrameConstructors:
 
         # tuples is in the order of the columns
         result = DataFrame.from_records(tuples)
-        tm.assert_index_equal(result.columns, pd.RangeIndex(8))
+        tm.assert_index_equal(result.columns, RangeIndex(8))
 
         # test exclude parameter & we are casting the results here (as we don't
         # have dtype info to recover)
@@ -2577,10 +2592,10 @@ class TestDataFrameConstructors:
     def test_from_records_series_categorical_index(self):
         # GH 32805
         index = CategoricalIndex(
-            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
-        frame = pd.DataFrame.from_records(series_of_dicts, index=index)
+        frame = DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
             {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
         )
@@ -2628,7 +2643,7 @@ class TestDataFrameConstructors:
         [
             Categorical(list("aabbc")),
             SparseArray([1, np.nan, np.nan, np.nan]),
-            IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            IntervalArray([Interval(0, 1), Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
     )
@@ -2648,12 +2663,10 @@ class TestDataFrameConstructors:
 
     def test_construct_with_two_categoricalindex_series(self):
         # GH 14600
-        s1 = Series(
-            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
-        )
+        s1 = Series([39, 6, 4], index=CategoricalIndex(["female", "male", "unknown"]))
         s2 = Series(
             [2, 152, 2, 242, 150],
-            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+            index=CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
@@ -2697,8 +2710,82 @@ class TestDataFrameConstructors:
         df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
+    def test_dataframe_constructor_infer_multiindex(self):
+        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+
+        multi = DataFrame(
+            np.random.randn(4, 4),
+            index=[np.array(x) for x in index_lists],
+        )
+        assert isinstance(multi.index, MultiIndex)
+        assert not isinstance(multi.columns, MultiIndex)
+
+        multi = DataFrame(np.random.randn(4, 4), columns=index_lists)
+        assert isinstance(multi.columns, MultiIndex)
+
+    @pytest.mark.parametrize(
+        "input_vals",
+        [
+            ([1, 2]),
+            (["1", "2"]),
+            (list(date_range("1/1/2011", periods=2, freq="H"))),
+            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            ([Interval(left=0, right=5)]),
+        ],
+    )
+    def test_constructor_list_str(self, input_vals, string_dtype):
+        # GH#16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        result = DataFrame({"A": input_vals}, dtype=string_dtype)
+        expected = DataFrame({"A": input_vals}).astype({"A": string_dtype})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_str_na(self, string_dtype):
+
+        result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
+        expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_construction_preserves_tzaware_dtypes(self, tz):
+        # after GH#7822
+        # these retain the timezones on dict construction
+        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
+        dr_tz = dr.tz_localize(tz)
+        df = DataFrame({"A": "foo", "B": dr_tz}, index=dr)
+        tz_expected = DatetimeTZDtype("ns", dr_tz.tzinfo)
+        assert df["B"].dtype == tz_expected
+
+        # GH#2810 (with timezones)
+        datetimes_naive = [ts.to_pydatetime() for ts in dr]
+        datetimes_with_tz = [ts.to_pydatetime() for ts in dr_tz]
+        df = DataFrame({"dr": dr})
+        df["dr_tz"] = dr_tz
+        df["datetimes_naive"] = datetimes_naive
+        df["datetimes_with_tz"] = datetimes_with_tz
+        result = df.dtypes
+        expected = Series(
+            [
+                np.dtype("datetime64[ns]"),
+                DatetimeTZDtype(tz=tz),
+                np.dtype("datetime64[ns]"),
+                DatetimeTZDtype(tz=tz),
+            ],
+            index=["dr", "dr_tz", "datetimes_naive", "datetimes_with_tz"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH#25843
+        tz = tz_aware_fixture
+        result = DataFrame({"d": [Timestamp("2019", tz=tz)]}, dtype="datetime64[ns]")
+        expected = DataFrame({"d": [Timestamp("2019")]})
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict(self):
 
         # 8260

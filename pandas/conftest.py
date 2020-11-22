@@ -290,6 +290,16 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
+
+
+@pytest.fixture(params=[pd.DataFrame, pd.Series])
+def frame_or_series(request):
+    """
+    Fixture to parametrize over DataFrame and Series.
+    """
+    return request.param
+
+
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )
@@ -386,13 +396,12 @@ def _create_multiindex():
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ["first", "second"]
-    mi = MultiIndex(
+    return MultiIndex(
         levels=[major_axis, minor_axis],
         codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False,
     )
-    return mi
 
 
 def _create_mi_with_dt64tz_level():
@@ -1130,6 +1139,26 @@ def any_nullable_int_dtype(request):
     * 'Int32'
     * 'UInt64'
     * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_numeric_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
