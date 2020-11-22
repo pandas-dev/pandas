@@ -638,12 +638,3 @@ def test_groupby_agg_err_catching(err_cls):
 
     result = df["decimals"].groupby(df["id1"]).agg(weird_func)
     tm.assert_series_equal(result, expected, check_names=False)
-
-
-@pytest.mark.parametrize("func", ["first", "last", "max", "min"])
-def test_min_count_implementation_min_max_first_last(func):
-    # GH#37821
-    df = DataFrame({"a": [1] * 3, "b": [1, np.nan, np.nan]})
-    result = getattr(df.groupby("a"), func)(min_count=2)
-    expected = DataFrame({"b": [np.nan]}, index=Index([1], name="a"))
-    tm.assert_frame_equal(result, expected)
