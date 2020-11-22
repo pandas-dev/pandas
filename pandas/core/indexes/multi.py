@@ -1065,52 +1065,25 @@ class MultiIndex(Index):
 
     @property
     def _constructor(self):
-        return MultiIndex.from_tuples
+        return type(self).from_tuples
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self,
-        values=None,
-        name=lib.no_default,
-        levels=None,
-        codes=None,
-        sortorder=None,
-        names=lib.no_default,
-    ):
-        if names is not lib.no_default and name is not lib.no_default:
-            raise TypeError("Can only provide one of `names` and `name`")
-        elif names is lib.no_default:
-            names = name if name is not lib.no_default else self.names
+    def _shallow_copy(self, values=None, name=lib.no_default):
+        names = name if name is not lib.no_default else self.names
 
         if values is not None:
-            assert levels is None and codes is None
-            return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
+            return type(self).from_tuples(values, sortorder=None, names=names)
 
-        levels = levels if levels is not None else self.levels
-        codes = codes if codes is not None else self.codes
-
-        result = MultiIndex(
-            levels=levels,
-            codes=codes,
-            sortorder=sortorder,
+        result = type(self)(
+            levels=self.levels,
+            codes=self.codes,
+            sortorder=None,
             names=names,
             verify_integrity=False,
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
         return result
-
-    def symmetric_difference(self, other, result_name=None, sort=None):
-        # On equal symmetric_difference MultiIndexes the difference is empty.
-        # Therefore, an empty MultiIndex is returned GH13490
-        tups = Index.symmetric_difference(self, other, result_name, sort)
-        if len(tups) == 0:
-            return MultiIndex(
-                levels=[[] for _ in range(self.nlevels)],
-                codes=[[] for _ in range(self.nlevels)],
-                names=tups.name,
-            )
-        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
@@ -1177,12 +1150,18 @@ class MultiIndex(Index):
             if codes is None:
                 codes = deepcopy(self.codes)
 
-        new_index = self._shallow_copy(
+        levels = levels if levels is not None else self.levels
+        codes = codes if codes is not None else self.codes
+
+        new_index = type(self)(
             levels=levels,
             codes=codes,
-            names=names,
             sortorder=self.sortorder,
+            names=names,
+            verify_integrity=False,
         )
+        new_index._cache = self._cache.copy()
+        new_index._cache.pop("levels", None)  # GH32669
 
         if dtype:
             warnings.warn(
@@ -1449,7 +1428,9 @@ class MultiIndex(Index):
                     raise TypeError(
                         f"{type(self).__name__}.name must be a hashable type"
                     )
-            self._names[lev] = name
+            # pandas\core\indexes\multi.py:1448: error: Cannot determine type
+            # of '__setitem__'  [has-type]
+            self._names[lev] = name  # type: ignore[has-type]
 
         # If .levels has been accessed, the names in our cache will be stale.
         self._reset_cache()
@@ -2154,6 +2135,10 @@ class MultiIndex(Index):
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
+        # If nan should be dropped it will equal -1 here. We have to check which values
+        # are not nan and equal -1, this means they are missing in the index
+        nan_codes = isna(codes)
+        values[(np.equal(nan_codes, False)) & (values == -1)] = -2
 
         mask = ~algos.isin(self.codes[i], values)
         if mask.all() and errors != "ignore":
@@ -3126,19 +3111,26 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr: Optional[Index], indexer: Optional[Index]) -> Index:
+        def _update_indexer(
+            idxr: Optional[Index], indexer: Optional[Index], key
+        ) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer.intersection(idxr)
+            indexer_intersection = indexer.intersection(idxr)
+            if indexer_intersection.empty and not idxr.empty and not indexer.empty:
+                raise KeyError(key)
+            return indexer_intersection
 
         for i, k in enumerate(seq):
 
             if com.is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
-                indexer = _update_indexer(_convert_to_indexer(k), indexer=indexer)
+                indexer = _update_indexer(
+                    _convert_to_indexer(k), indexer=indexer, key=seq
+                )
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
@@ -3158,14 +3150,14 @@ class MultiIndex(Index):
                         continue
 
                 if indexers is not None:
-                    indexer = _update_indexer(indexers, indexer=indexer)
+                    indexer = _update_indexer(indexers, indexer=indexer, key=seq)
                 else:
                     # no matches we are done
                     return np.array([], dtype=np.int64)
 
             elif com.is_null_slice(k):
                 # empty slice
-                indexer = _update_indexer(None, indexer=indexer)
+                indexer = _update_indexer(None, indexer=indexer, key=seq)
 
             elif isinstance(k, slice):
 
@@ -3175,6 +3167,7 @@ class MultiIndex(Index):
                         self._get_level_indexer(k, level=i, indexer=indexer)
                     ),
                     indexer=indexer,
+                    key=seq,
                 )
             else:
                 # a single label
@@ -3183,6 +3176,7 @@ class MultiIndex(Index):
                         self.get_loc_level(k, level=i, drop_level=False)[0]
                     ),
                     indexer=indexer,
+                    key=seq,
                 )
 
         # empty indexer
@@ -3306,19 +3300,17 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
             return False
 
+        if len(self) != len(other):
+            return False
+
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-            elif len(self) != len(other):
-                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
-            return False
-
-        if len(self) != len(other):
             return False
 
         for i in range(self.nlevels):
@@ -3506,8 +3498,13 @@ class MultiIndex(Index):
         if uniq_tuples is None:
             other_uniq = set(rvals)
             seen = set()
+            # pandas\core\indexes\multi.py:3503: error: "add" of "set" does not
+            # return a value  [func-returns-value]
             uniq_tuples = [
-                x for x in lvals if x in other_uniq and not (x in seen or seen.add(x))
+                x
+                for x in lvals
+                if x in other_uniq
+                and not (x in seen or seen.add(x))  # type: ignore[func-returns-value]
             ]
 
         if sort is None:
@@ -3603,6 +3600,18 @@ class MultiIndex(Index):
 
         return other, result_names
 
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        # On equal symmetric_difference MultiIndexes the difference is empty.
+        # Therefore, an empty MultiIndex is returned GH13490
+        tups = Index.symmetric_difference(self, other, result_name, sort)
+        if len(tups) == 0:
+            return type(self)(
+                levels=[[] for _ in range(self.nlevels)],
+                codes=[[] for _ in range(self.nlevels)],
+                names=tups.name,
+            )
+        return type(self).from_tuples(tups, names=tups.name)
+
     # --------------------------------------------------------------------
 
     @doc(Index.astype)
@@ -3620,7 +3629,7 @@ class MultiIndex(Index):
             return self._shallow_copy()
         return self
 
-    def _validate_insert_value(self, item):
+    def _validate_fill_value(self, item):
         if not isinstance(item, tuple):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
@@ -3643,7 +3652,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        item = self._validate_insert_value(item)
+        item = self._validate_fill_value(item)
 
         new_levels = []
         new_codes = []
@@ -3653,7 +3662,12 @@ class MultiIndex(Index):
                 # must insert at end otherwise you have to recompute all the
                 # other codes
                 lev_loc = len(level)
-                level = level.insert(lev_loc, k)
+                try:
+                    level = level.insert(lev_loc, k)
+                except TypeError:
+                    # TODO: Should this be done inside insert?
+                    # TODO: smarter casting rules?
+                    level = level.astype(object).insert(lev_loc, k)
             else:
                 lev_loc = level.get_loc(k)
 

@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -50,6 +50,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame")
@@ -965,7 +966,10 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        join_names = []
+        # pandas\core\reshape\merge.py:966: error: Need type annotation for
+        # 'join_names' (hint: "join_names: List[<type>] = ...")
+        # [var-annotated]
+        join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
 
@@ -1203,11 +1207,9 @@ class _MergeOperation:
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
             elif self.left_index:
-                if self.right_on is None:
-                    raise MergeError("Must pass right_on or right_index=True")
+                raise MergeError("Must pass right_on or right_index=True")
             elif self.right_index:
-                if self.left_on is None:
-                    raise MergeError("Must pass left_on or left_index=True")
+                raise MergeError("Must pass left_on or left_index=True")
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
@@ -1228,8 +1230,19 @@ class _MergeOperation:
                     'Can only pass argument "on" OR "left_on" '
                     'and "right_on", not a combination of both.'
                 )
+            if self.left_index or self.right_index:
+                raise MergeError(
+                    'Can only pass argument "on" OR "left_index" '
+                    'and "right_index", not a combination of both.'
+                )
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
+            if self.left_index:
+                raise MergeError(
+                    'Can only pass argument "left_on" OR "left_index" not both.'
+                )
+            if not self.right_index and self.right_on is None:
+                raise MergeError('Must pass "right_on" OR "right_index".')
             n = len(self.left_on)
             if self.right_index:
                 if len(self.left_on) != self.right.index.nlevels:
@@ -1239,6 +1252,12 @@ class _MergeOperation:
                     )
                 self.right_on = [None] * n
         elif self.right_on is not None:
+            if self.right_index:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
+            if not self.left_index and self.left_on is None:
+                raise MergeError('Must pass "left_on" OR "left_index".')
             n = len(self.right_on)
             if self.left_index:
                 if len(self.right_on) != self.left.index.nlevels:
@@ -1339,12 +1358,14 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
-    if how == "left":
+    if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,
         "left": libjoin.left_outer_join,
-        "right": _right_outer_join,
+        "right": lambda x, y, count, **kwargs: libjoin.left_outer_join(
+            y, x, count, **kwargs
+        )[::-1],
         "outer": libjoin.full_outer_join,
     }[how]
 
@@ -1864,11 +1885,6 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
     return left_ax, None, right_indexer
 
 
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
-    return left_indexer, right_indexer
-
-
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
 ) -> Tuple[np.ndarray, np.ndarray, int]:
@@ -1929,25 +1945,27 @@ def _factorize_keys(
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+        lk = cast("DatetimeArray", lk)._ndarray
+        rk = cast("DatetimeArray", rk)._ndarray
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
+        is_categorical_dtype(lk.dtype)
+        and is_categorical_dtype(rk.dtype)
+        and is_dtype_equal(lk.dtype, rk.dtype)
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
-        rk = lk._validate_listlike(rk)
+        rk = lk._encode_with_my_categories(rk)
 
         lk = ensure_int64(lk.codes)
-        rk = ensure_int64(rk)
+        rk = ensure_int64(rk.codes)
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         lk, _ = lk._values_for_factorize()
         rk, _ = rk._values_for_factorize()
 
-    if is_integer_dtype(lk) and is_integer_dtype(rk):
+    if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer

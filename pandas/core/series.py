@@ -67,7 +67,7 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core import algorithms, base, generic, missing, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
 from pandas.core.arrays import ExtensionArray
@@ -900,7 +900,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
 
-            except KeyError:
+            except (KeyError, TypeError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -964,7 +964,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("key of type tuple not found and not a MultiIndex")
+            raise KeyError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1015,12 +1015,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # positional setter
                 values[key] = value
             else:
-                # GH#12862 adding an new key to the Series
+                # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
         except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError(
+                raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
 
@@ -1428,6 +1428,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
+        storage_options=generic._shared_docs["storage_options"],
         examples=dedent(
             """
             Examples
@@ -1466,14 +1467,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Add index (row) labels.
 
             .. versionadded:: 1.1.0
-
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2813,7 +2807,8 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    @Appender(
+    @doc(
+        generic._shared_docs["compare"],
         """
 Returns
 -------
@@ -2873,9 +2868,9 @@ Keep all original rows and also all original values
 2    c     c
 3    d     b
 4    e     e
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: "Series",
@@ -4190,7 +4185,15 @@ Keep all original rows and also all original values
             )
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        *,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """
         Perform a reduction operation.
@@ -4549,6 +4552,31 @@ Keep all original rows and also all original values
             regex=regex,
             method=method,
         )
+
+    def _replace_single(self, to_replace, method, inplace, limit):
+        """
+        Replaces values in a Series using the fill method specified when no
+        replacement value is given in the replace method
+        """
+
+        orig_dtype = self.dtype
+        result = self if inplace else self.copy()
+        fill_f = missing.get_fill_func(method)
+
+        mask = missing.mask_missing(result.values, to_replace)
+        values = fill_f(result.values, limit=limit, mask=mask)
+
+        if values.dtype == orig_dtype and inplace:
+            return
+
+        result = self._constructor(values, index=self.index, dtype=self.dtype)
+        result = result.__finalize__(self)
+
+        if inplace:
+            self._update_inplace(result)
+            return
+
+        return result
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
