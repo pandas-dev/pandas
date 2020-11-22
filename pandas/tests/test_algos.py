@@ -1517,6 +1517,7 @@ class TestHashTable:
             (ht.StringHashTable, ht.ObjectVector, "object", True),
             (ht.Float64HashTable, ht.Float64Vector, "float64", False),
             (ht.Int64HashTable, ht.Int64Vector, "int64", False),
+            (ht.Int32HashTable, ht.Int32Vector, "int32", False),
             (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
         ],
     )
@@ -1640,6 +1641,7 @@ class TestHashTable:
             ht.StringHashTable,
             ht.Float64HashTable,
             ht.Int64HashTable,
+            ht.Int32HashTable,
             ht.UInt64HashTable,
         ],
     )
@@ -2356,3 +2358,15 @@ class TestDiff:
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
+
+
+@pytest.mark.parametrize(
+    "left_values", [[0, 1, 1, 4], [0, 1, 1, 4, 4], [0, 1, 1, 1, 4]]
+)
+def test_make_duplicates_of_left_unique_in_right(left_values):
+    # GH#36263
+    left = np.array(left_values)
+    right = np.array([0, 0, 1, 1, 4])
+    result = algos.make_duplicates_of_left_unique_in_right(left, right)
+    expected = np.array([0, 0, 1, 4])
+    tm.assert_numpy_array_equal(result, expected)

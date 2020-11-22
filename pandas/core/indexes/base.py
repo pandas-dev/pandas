@@ -3986,7 +3986,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self: _IndexT, joined: np.ndarray, other: _IndexT
+    ) -> _IndexT:
+        assert other.dtype == self.dtype
+
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
         else:
@@ -4188,7 +4192,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind) -> bool:
+    def is_type_compatible(self, kind: str_t) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """
@@ -4344,17 +4348,18 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             converted = self._validate_fill_value(value)
-            np.putmask(values, mask, converted)
-            return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
+
+        np.putmask(values, mask, converted)
+        return self._shallow_copy(values)
 
     def equals(self, other: object) -> bool:
         """
