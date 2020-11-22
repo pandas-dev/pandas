@@ -1632,3 +1632,12 @@ class TestDataFrameReplace:
         result = df1.replace(columns_values_map)
         expected = DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_multiple_bool_datetime_type_mismatch(self):
+        # See https://github.com/pandas-dev/pandas/pull/32542#discussion_r528338117
+        df = DataFrame({"A": [True, False, True], "B": [False, True, False]})
+
+        result = df.replace({"a string": "new value", True: False})
+        expected = DataFrame({"A": [False, False, False], "B": [False, False, False]})
+
+        tm.assert_frame_equal(result, expected)
