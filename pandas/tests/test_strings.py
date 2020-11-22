@@ -3676,7 +3676,7 @@ def test_str_extract_default_value_no_expand():
     # GH 38001
     df = DataFrame({"A": ["a84", "abcd", "99string", np.nan]})
     result = df["A"].str.extract(r"(\d+)", expand=False, default="missing")
-    expected = Series(["84", "missing", "99", np.nan])
+    expected = Series(["84", "missing", "99", np.nan], name='A')
     tm.assert_series_equal(result, expected)
 
 
