@@ -396,14 +396,12 @@ def extract_array(
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndexClass, ABCSeries)):
-        result = obj.array
-    else:
-        result = obj
+        obj = obj.array  # type: ignore[assignment]
 
-    if extract_numpy and isinstance(result, ABCPandasArray):
-        result = result.to_numpy()
+    if extract_numpy and isinstance(obj, ABCPandasArray):
+        obj = obj.to_numpy()
 
-    return result
+    return obj
 
 
 def sanitize_array(

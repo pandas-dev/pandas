@@ -104,12 +104,12 @@ def clean_column_name(name: "Label") -> "Label":
 
     Parameters
     ----------
-    name : Label
+    name : hashable
         Name to be cleaned.
 
     Returns
     -------
-    name : Label
+    name : hashable
         Returns the name after tokenizing and cleaning.
 
     Notes
