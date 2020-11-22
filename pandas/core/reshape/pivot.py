@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
@@ -597,8 +596,12 @@ def crosstab(
     colnames = _get_names(columns, colnames, prefix="col")
 
     # duplicate names mapped to unique names for pivot op
-    row_names_mapper, unique_row_names = _build_names_mapper(rownames, colnames, "row")
-    col_names_mapper, unique_col_names = _build_names_mapper(rownames, colnames, "col")
+    (
+        row_names_mapper,
+        unique_row_names,
+        col_names_mapper,
+        unique_col_names,
+    ) = _build_names_mapper(rownames, colnames)
 
     from pandas import DataFrame
 
@@ -742,56 +745,35 @@ def _get_names(arrs, names, prefix: str = "row"):
 
 
 def _build_names_mapper(
-    rownames: List[str], colnames: List[str], suffix: str
+    rownames: List[str], colnames: List[str]
 ) -> Tuple[Dict[str, str], List[str]]:
-    """
-    Given a list of row or column names, creates a mapper of unique names to
-    column/row names.
+    def get_duplicates(names):
+        seen = set()
+        return {name for name in names if name not in seen and not seen.add(name)}
 
-    Parameters
-    ----------
-    names : list
-        Names to be deduplicated.
-    shared_col_row_names : set or list
-        Values used both in rows and columns, so need additional deduplication.
-    suffix : str
-        Suffix to deduplicate values in shared_col_row_names
-
-    Returns
-    -------
-    names_mapper: dict
-        The keys are the unique names and the values are the original names.
-    unique_names: list
-        Unique names in the same order that names came in
-    """
     shared_col_row_names = set(rownames).intersection(set(colnames))
-    names = rownames if suffix == "row" else colnames
-    keys, counts = algos.value_counts_arraylike(names, dropna=False)
-    names_count = dict(zip(keys, counts))
+    duplicate_names = (
+        shared_col_row_names | get_duplicates(rownames) | get_duplicates(colnames)
+    )
 
-    names_mapper = {}
-    unique_names: List[str] = []
-    # We reverse the names so the numbers are in the order given by the user
-    for name in reversed(names):
-        mapped_name = name
-        name_count = names_count[name]
+    rownames_mapper = {
+        f"row_{i}": rowname
+        for i, rowname in enumerate(rownames)
+        if rowname in duplicate_names
+    }
+    unique_rownames = [
+        f"row_{i}" if rowname in duplicate_names else rowname
+        for i, rowname in enumerate(rownames)
+    ]
 
-        # Adds a number if name is duplicated within columns/rows
-        if name_count > 1:
-            mapped_name = "{mapped_name}_{name_count}".format(
-                mapped_name=mapped_name, name_count=name_count
-            )
-            names_count[name] -= 1
+    colnames_mapper = {
+        f"col_{i}": colname
+        for i, colname in enumerate(colnames)
+        if colname in duplicate_names
+    }
+    unique_colnames = [
+        f"col_{i}" if colname in duplicate_names else colname
+        for i, colname in enumerate(colnames)
+    ]
 
-        # Add suffix name if column is shared between column and rows
-        if name in shared_col_row_names:
-            mapped_name = "{mapped_name}_{suffix}".format(
-                mapped_name=mapped_name, suffix=suffix
-            )
-
-        names_mapper[mapped_name] = name
-
-        # Creates a list of the new names in the original order
-        unique_names.insert(0, mapped_name)
-
-    return names_mapper, unique_names
+    return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames
