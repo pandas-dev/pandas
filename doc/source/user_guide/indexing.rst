@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -327,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -509,11 +509,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -1157,6 +1157,40 @@ Mask
 
    s.mask(s >= 0)
    df.mask(df >= 0)
+
+.. _indexing.np_where:
+
+Setting with enlargement conditionally using :func:`numpy`
+----------------------------------------------------------
+
+An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
+Combined with setting a new column, you can use it to enlarge a dataframe where the
+values are determined conditionally.
+
+Consider you have two choices to choose from in the following dataframe. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
+   df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
+   df
+
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
+
+.. ipython:: python
+
+   conditions = [
+       (df['col2'] == 'Z') & (df['col1'] == 'A'),
+       (df['col2'] == 'Z') & (df['col1'] == 'B'),
+       (df['col1'] == 'B')
+   ]
+   choices = ['yellow', 'blue', 'purple']
+   df['color'] = np.select(conditions, choices, default='black')
+   df
 
 .. _indexing.query:
 
