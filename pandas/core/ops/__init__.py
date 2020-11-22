@@ -307,14 +307,13 @@ def should_reindex_frame_op(
     if not isinstance(right, ABCDataFrame):
         return False
 
-    if not left.columns.is_unique or not right.columns.is_unique:
-        return False
-
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
         cols = left.columns.intersection(right.columns)
 
-        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+        if len(cols) and not (
+            cols.equals(left.columns.unique()) and cols.equals(right.columns.unique())
+        ):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
