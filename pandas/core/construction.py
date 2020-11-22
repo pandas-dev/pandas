@@ -351,9 +351,7 @@ def array(
     return result
 
 
-def extract_array(
-    obj: AnyArrayLike, extract_numpy: bool = False
-) -> Union[ExtensionArray, np.ndarray]:
+def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayLike]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -396,7 +394,7 @@ def extract_array(
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndexClass, ABCSeries)):
-        obj = obj.array  # type: ignore[assignment]
+        obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
