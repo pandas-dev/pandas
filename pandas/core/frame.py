@@ -2950,7 +2950,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         # We are left with two options: a single key, and a collection of keys,
         # We interpret tuples as collections only for non-MultiIndex
-        is_single_key = (isinstance(key, tuple) or not is_list_like(key)) and self.columns.nlevels > 1
+        is_single_key = (
+            isinstance(key, tuple) or not is_list_like(key)
+        ) and self.columns.nlevels > 1
 
         if is_single_key:
             if self.columns.nlevels > 1:
