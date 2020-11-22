@@ -11,31 +11,18 @@ import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
 
-class Numeric(Base):
-    def test_where(self):
-        # Tested in numeric.test_indexing
-        pass
-
-    def test_can_hold_identifiers(self):
-        idx = self.create_index()
-        key = idx[0]
-        assert idx._can_hold_identifiers_and_holds_name(key) is False
-
-    def test_format(self):
-        # GH35439
-        idx = self.create_index()
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        assert idx.format() == expected
-
-    def test_numeric_compat(self):
-        pass  # override Base method
-
-    def test_explicit_conversions(self):
+class TestArithmetic:
+    @pytest.mark.parametrize(
+        "klass", [Float64Index, Int64Index, UInt64Index, RangeIndex]
+    )
+    def test_arithmetic_explicit_conversions(self, klass):
 
         # GH 8608
         # add/sub are overridden explicitly for Float/Int Index
-        idx = self._holder(np.arange(5, dtype="int64"))
+        if klass is RangeIndex:
+            idx = RangeIndex(5)
+        else:
+            idx = klass(np.arange(5, dtype="int64"))
 
         # float conversions
         arr = np.arange(5, dtype="int64") * 3.2
@@ -56,6 +43,8 @@ class Numeric(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
+
+class TestNumericIndex:
     def test_index_groupby(self):
         int_idx = Index(range(6))
         float_idx = Index(np.arange(0, 0.6, 0.1))
@@ -83,6 +72,27 @@ class Numeric(Base):
             ex_keys = [Timestamp("2011-11-01"), Timestamp("2011-12-01")]
             expected = {ex_keys[0]: idx[[0, 5]], ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
+
+
+class Numeric(Base):
+    def test_where(self):
+        # Tested in numeric.test_indexing
+        pass
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
+
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
+    def test_numeric_compat(self):
+        pass  # override Base method
 
     def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
@@ -625,7 +635,7 @@ def test_int_float_union_dtype(dtype):
 
 def test_range_float_union_dtype():
     # https://github.com/pandas-dev/pandas/issues/26778
-    index = pd.RangeIndex(start=0, stop=3)
+    index = RangeIndex(start=0, stop=3)
     other = Float64Index([0.5, 1.5])
     result = index.union(other)
     expected = Float64Index([0.0, 0.5, 1, 1.5, 2.0])

@@ -28,81 +28,6 @@ class TestCategoricalIndex(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
-    @pytest.mark.parametrize(
-        "func,op_name",
-        [
-            (lambda idx: idx - idx, "__sub__"),
-            (lambda idx: idx + idx, "__add__"),
-            (lambda idx: idx - ["a", "b"], "__sub__"),
-            (lambda idx: idx + ["a", "b"], "__add__"),
-            (lambda idx: ["a", "b"] - idx, "__rsub__"),
-            (lambda idx: ["a", "b"] + idx, "__radd__"),
-        ],
-    )
-    def test_disallow_addsub_ops(self, func, op_name):
-        # GH 10039
-        # set ops (+/-) raise TypeError
-        idx = Index(Categorical(["a", "b"]))
-        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
-        msg = "|".join(
-            [
-                f"cannot perform {op_name} with this index type: CategoricalIndex",
-                "can only concatenate list",
-                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            func(idx)
-
-    def test_method_delegation(self):
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.set_categories(list("cab"))
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("aabbca"), categories=list("cab"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.rename_categories(list("efg"))
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("ffggef"), categories=list("efg"))
-        )
-
-        # GH18862 (let rename_categories take callables)
-        result = ci.rename_categories(lambda x: x.upper())
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("AABBCA"), categories=list("CAB"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.add_categories(["d"])
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("aabbca"), categories=list("cabd"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.remove_categories(["c"])
-        tm.assert_index_equal(
-            result,
-            CategoricalIndex(list("aabb") + [np.nan] + ["a"], categories=list("ab")),
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.as_unordered()
-        tm.assert_index_equal(result, ci)
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.as_ordered()
-        tm.assert_index_equal(
-            result,
-            CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=True),
-        )
-
-        # invalid
-        msg = "cannot use inplace with CategoricalIndex"
-        with pytest.raises(ValueError, match=msg):
-            ci.set_categories(list("cab"), inplace=True)
-
     def test_append(self):
 
         ci = self.create_index()
@@ -498,3 +423,78 @@ class TestCategoricalIndex2:
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
+
+    @pytest.mark.parametrize(
+        "func,op_name",
+        [
+            (lambda idx: idx - idx, "__sub__"),
+            (lambda idx: idx + idx, "__add__"),
+            (lambda idx: idx - ["a", "b"], "__sub__"),
+            (lambda idx: idx + ["a", "b"], "__add__"),
+            (lambda idx: ["a", "b"] - idx, "__rsub__"),
+            (lambda idx: ["a", "b"] + idx, "__radd__"),
+        ],
+    )
+    def test_disallow_addsub_ops(self, func, op_name):
+        # GH 10039
+        # set ops (+/-) raise TypeError
+        idx = Index(Categorical(["a", "b"]))
+        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
+        msg = "|".join(
+            [
+                f"cannot perform {op_name} with this index type: CategoricalIndex",
+                "can only concatenate list",
+                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            func(idx)
+
+    def test_method_delegation(self):
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.set_categories(list("cab"))
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("aabbca"), categories=list("cab"))
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.rename_categories(list("efg"))
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("ffggef"), categories=list("efg"))
+        )
+
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("AABBCA"), categories=list("CAB"))
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.add_categories(["d"])
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("aabbca"), categories=list("cabd"))
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.remove_categories(["c"])
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("aabb") + [np.nan] + ["a"], categories=list("ab")),
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.as_unordered()
+        tm.assert_index_equal(result, ci)
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.as_ordered()
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=True),
+        )
+
+        # invalid
+        msg = "cannot use inplace with CategoricalIndex"
+        with pytest.raises(ValueError, match=msg):
+            ci.set_categories(list("cab"), inplace=True)
