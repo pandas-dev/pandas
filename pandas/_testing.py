@@ -1147,9 +1147,9 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for left, right in zip(left, right):
+            for left_arr, right_arr in zip(left, right):
                 # count up differences
-                if not array_equivalent(left, right, strict_nan=strict_nan):
+                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
