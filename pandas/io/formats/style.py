@@ -991,15 +991,7 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(
-        self,
-        table_styles: Union[
-            Dict[Union[str, Tuple], List[Dict[str, Union[str, List[Tuple[str, str]]]]]],
-            List[Dict[str, Union[str, List[Tuple[str, str]]]]],
-        ],
-        axis=0,
-        overwrite=True,
-    ) -> "Styler":
+    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> "Styler":
         """
         Set the table styles on a Styler.
 
