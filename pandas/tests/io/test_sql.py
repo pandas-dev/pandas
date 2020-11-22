@@ -205,30 +205,53 @@ SQL_STRINGS = {
                 SELECT * FROM iris
                 """
     },
-    "create_pkey_table": {
+    "create_single_pkey_table": {
         "sqlite": """CREATE TABLE pkey_table (
                 "a" Integer Primary Key,
-                "b" TEXT
+                "b" TEXT,
+                "c" TEXT
             )""",
         "mysql": """CREATE TABLE pkey_table (
                 `a` INTEGER,
                 `b` TEXT,
+                `c` TEXT
                 PRIMARY KEY (a)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
                 "a" INTEGER PRIMARY KEY,
-                "b" TEXT
+                "b" TEXT,
+                "c" TEXT
+            )""",
+    },
+    "create_comp_pkey_table": {
+        "sqlite": """CREATE TABLE pkey_table (
+                "a" Integer,
+                "b" TEXT,
+                "c" TEXT,
+                PRIMARY KEY ("a", "b")
+            )""",
+        "mysql": """CREATE TABLE pkey_table (
+                `a` INTEGER,
+                `b` TEXT,
+                `c` TEXT
+                PRIMARY KEY (a, b)
+            )""",
+        "postgresql": """CREATE TABLE pkey_table (
+                "a" INTEGER PRIMARY KEY,
+                "b" TEXT,
+                "c" TEXT,
+                PRIMARY KEY(a, b)
             )""",
     },
     "insert_pkey_table": {
-        "sqlite": """INSERT INTO pkey_table VALUES (?, ?)""",
-        "mysql": """INSERT INTO pkey_table VALUES (%s, %s)""",
-        "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
+        "sqlite": """INSERT INTO pkey_table VALUES (?, ?, ?)""",
+        "mysql": """INSERT INTO pkey_table VALUES (%s, %s, %s)""",
+        "postgresql": """INSERT INTO pkey_table VALUES (%s, %s, %s)""",
     },
     "read_pkey_table": {
-        "sqlite": """SELECT b FROM pkey_table WHERE A IN (?, ?)""",
-        "mysql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
-        "postgresql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
+        "sqlite": """SELECT c FROM pkey_table WHERE A IN (?, ?)""",
+        "mysql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
+        "postgresql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
     },
 }
 
@@ -334,11 +357,13 @@ class PandasSQLTest:
         assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
-    def _create_pkey_table(self):
+    def _create_pkey_table(self, pkey_type):
         self.drop_table("pkey_table")
-        self._get_exec().execute(SQL_STRINGS["create_pkey_table"][self.flavor])
+        self._get_exec().execute(
+            SQL_STRINGS[f"create_{pkey_type}_pkey_table"][self.flavor]
+        )
         ins = SQL_STRINGS["insert_pkey_table"][self.flavor]
-        data = [(1, "name1"), (2, "name2"), (3, "name3")]
+        data = [(1, "name1", "val1"), (2, "name2", "val2"), (3, "name3", "val3")]
         self._get_exec().execute(ins, data)
 
     def _load_test1_data(self):
@@ -438,8 +463,13 @@ class PandasSQLTest:
             )
 
     def _load_pkey_table_data(self):
-        columns = ["a", "b"]
-        data = [(1, "new_name1"), (2, "new_name2"), (4, "name4"), (5, "name5")]
+        columns = ["a", "b", "c"]
+        data = [
+            (1, "name1", "new_val1"),
+            (2, "name2", "new_val2"),
+            (4, "name4", "val4"),
+            (5, "name5", "val5"),
+        ]
 
         self.pkey_table_frame = DataFrame(data, columns=columns)
 
@@ -549,19 +579,21 @@ class PandasSQLTest:
         # Nuke table
         self.drop_table("test_frame1")
 
-    def _to_sql_on_conflict_update(self, method):
+    def _to_sql_on_conflict_update(self, method, pkey_type):
         """
-        Original table: 3 rows
-        pkey_table_frame: 4 rows (2 duplicate  keys)
-        Expected after upsert:
-            - table len = 5
-            - Original database values for rows with duplicate keys
-            - dataframe has all original values
+        GIVEN:
+        - Original database table: 3 rows
+        - new dataframe: 4 rows (2 duplicate keys)
+        WHEN:
+        - on conflict update insert
+        THEN:
+        - DB table len = 5
+        - Conflicting primary keys in DB updated
         """
         # Nuke
         self.drop_table("pkey_table")
         # Re-create original table
-        self._create_pkey_table()
+        self._create_pkey_table(pkey_type)
         # Original table exists and as 3 rows
         assert self.pandasSQL.has_table("pkey_table")
         assert self._count_rows("pkey_table") == 3
@@ -576,33 +608,46 @@ class PandasSQLTest:
         )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
-        # Check original DB values maintained for duplicate keys
+        # Check conflicting primary keys have been updated
+        # Get new values for conflicting keys
         duplicate_keys = [1, 2]
         duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        data_from_db = [val[0] for val in duplicate_val].sort()
-        expected = ["name1", "name2"].sort()
+        data_from_db = sorted(val[0] for val in duplicate_val)
+        # Expected values from pkey_table_frame
+        expected = sorted(["new_val1", "new_val2"])
         assert data_from_db == expected
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
         # Clean up
         self.drop_table("pkey_table")
 
-    def _to_sql_on_conflict_nothing(self, method):
+    def _to_sql_on_conflict_nothing(self, method, pkey_type):
         """
-        Original table: 3 rows
-        pkey_table_frame: 4 rows (2 duplicate keys)
-        Expected after upsert:
-            - table len = 5
-            - dataframe values for rows with duplicate keys
+        GIVEN:
+        - Original table: 3 rows
+        - new dataframe: 4 rows (2 duplicate keys)
+        WHEN:
+        - on conflict do nothing insert
+        THEN:
+        - database table len = 5
+        - conflicting keys in table not updated
         """
         # Nuke
         self.drop_table("pkey_table")
         # Re-create original table
-        self._create_pkey_table()
-        # Original table exists and as 3 rows
+        self._create_pkey_table(pkey_type)
+        # Original table exists and has 3 rows
         assert self.pandasSQL.has_table("pkey_table")
         assert self._count_rows("pkey_table") == 3
+        # Prepare SQL for reading duplicate keys
+        duplicate_keys = [1, 2]
+        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
+        #  get conflicting pkey values before insert
+        duplicate_val_before = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db_before = sorted(val[0] for val in duplicate_val_before)
         # Insert new dataframe
         self.pandasSQL.to_sql(
             self.pkey_table_frame,
@@ -614,17 +659,21 @@ class PandasSQLTest:
         )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
-        # Check original DB values maintained for duplicate keys
-        duplicate_keys = [1, 2]
-        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        data_from_db = [val[0] for val in duplicate_val].sort()
-        data_from_df = list(
+        # Get conflicting keys from DB after to_sql
+        duplicate_val_after = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db_after = sorted(val[0] for val in duplicate_val_after)
+        # Get data from incoming df
+        data_from_df = sorted(
             self.pkey_table_frame.loc[
-                self.pkey_table_frame["a"].isin(duplicate_keys), "b"
-            ]
-        ).sort()
-        assert data_from_db == data_from_df
+                self.pkey_table_frame["a"].isin(duplicate_keys), "c"
+            ].tolist()
+        )
+        # Check original DB values maintained for duplicate keys
+        assert data_from_db_before == data_from_db_after
+        # Check DB values not equal to new values
+        assert data_from_db_after != data_from_df
         # Clean up
         self.drop_table("pkey_table")
 
@@ -1424,12 +1473,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_method_callable()
 
     @pytest.mark.parametrize("method", [None, "multi"])
-    def test_to_sql_conflict_nothing(self, method):
-        self._to_sql_on_conflict_nothing(method)
+    @pytest.mark.parametrize("pkey_type", ["single", "comp"])
+    def test_to_sql_conflict_nothing(self, method, pkey_type):
+        self._to_sql_on_conflict_nothing(method, pkey_type)
 
     @pytest.mark.parametrize("method", [None, "multi"])
-    def test_to_sql_conflict_update(self, method):
-        self._to_sql_on_conflict_update(method)
+    @pytest.mark.parametrize("pkey_type", ["single", "comp"])
+    def test_to_sql_conflict_update(self, method, pkey_type):
+        self._to_sql_on_conflict_update(method, pkey_type)
 
     def test_create_table(self):
         temp_conn = self.connect()
