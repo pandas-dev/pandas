@@ -747,33 +747,25 @@ def _get_names(arrs, names, prefix: str = "row"):
 def _build_names_mapper(
     rownames: List[str], colnames: List[str]
 ) -> Tuple[Dict[str, str], List[str]]:
-    def get_duplicates(names):
+    def duplicates(names):
         seen = set()
         return {name for name in names if name not in seen and not seen.add(name)}
 
-    shared_col_row_names = set(rownames).intersection(set(colnames))
-    duplicate_names = (
-        shared_col_row_names | get_duplicates(rownames) | get_duplicates(colnames)
-    )
+    shared_names = set(rownames).intersection(set(colnames))
+    duplicates = duplicates(rownames) | duplicates(colnames) | shared_names
 
     rownames_mapper = {
-        f"row_{i}": rowname
-        for i, rowname in enumerate(rownames)
-        if rowname in duplicate_names
+        f"row_{i}": name for i, name in enumerate(rownames) if name in duplicates
     }
     unique_rownames = [
-        f"row_{i}" if rowname in duplicate_names else rowname
-        for i, rowname in enumerate(rownames)
+        f"row_{i}" if name in duplicates else name for i, name in enumerate(rownames)
     ]
 
     colnames_mapper = {
-        f"col_{i}": colname
-        for i, colname in enumerate(colnames)
-        if colname in duplicate_names
+        f"col_{i}": name for i, name in enumerate(colnames) if name in duplicates
     }
     unique_colnames = [
-        f"col_{i}" if colname in duplicate_names else colname
-        for i, colname in enumerate(colnames)
+        f"col_{i}" if name in duplicates else name for i, name in enumerate(colnames)
     ]
 
     return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames
