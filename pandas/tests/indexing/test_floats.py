@@ -349,7 +349,7 @@ class TestFloatIndexers:
                 with pytest.raises(TypeError, match=msg):
                     s[idx]
 
-    @pytest.mark.parametrize("l", [slice(2, 4.0), slice(2.0, 4), slice(2.0, 4.0)])
+    @pytest.mark.parametrize("idx", [slice(2, 4.0), slice(2.0, 4), slice(2.0, 4.0)])
     def test_integer_positional_indexing(self, idx):
         """make sure that we are raising on positional indexing
         w.r.t. an integer index
