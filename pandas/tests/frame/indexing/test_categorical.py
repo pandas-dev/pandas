@@ -386,3 +386,12 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
+
+
+def test_column_not_loses_categorical_when_using_loc():
+    # GH16360
+    result = DataFrame({"A": [1]})
+    result.loc[:, "B"] = Categorical(["b"])
+    expected = DataFrame({"A": [1], "B": ["b"]})
+    expected["B"] = expected["B"].astype("category")
+    tm.assert_frame_equal(result, expected)
