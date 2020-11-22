@@ -5,7 +5,6 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Set,
     Tuple,
     Union,
     cast,
@@ -597,15 +596,9 @@ def crosstab(
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")
 
-    # We create our own mapping of row and columns names
-    # to prevent issues with duplicate columns/row names. GH Issue: #22529
-    shared_col_row_names = set(rownames).intersection(set(colnames))
-    row_names_mapper, unique_row_names = _build_names_mapper(
-        rownames, shared_col_row_names, "row"
-    )
-    col_names_mapper, unique_col_names = _build_names_mapper(
-        colnames, shared_col_row_names, "col"
-    )
+    # duplicate names mapped to unique names for pivot op
+    row_names_mapper, unique_row_names = _build_names_mapper(rownames, colnames, "row")
+    col_names_mapper, unique_col_names = _build_names_mapper(rownames, colnames, "col")
 
     from pandas import DataFrame
 
@@ -749,7 +742,7 @@ def _get_names(arrs, names, prefix: str = "row"):
 
 
 def _build_names_mapper(
-    names: List[str], shared_col_row_names: Set[str], suffix: str
+    rownames: List[str], colnames: List[str], suffix: str
 ) -> Tuple[Dict[str, str], List[str]]:
     """
     Given a list of row or column names, creates a mapper of unique names to
@@ -771,6 +764,8 @@ def _build_names_mapper(
     unique_names: list
         Unique names in the same order that names came in
     """
+    shared_col_row_names = set(rownames).intersection(set(colnames))
+    names = rownames if suffix == "row" else colnames
     keys, counts = algos.value_counts_arraylike(names, dropna=False)
     names_count = dict(zip(keys, counts))
 
