@@ -367,7 +367,7 @@ ValueError: columns overlap but no suffix specified:
 >>> df1.merge(df2, how='left', on='a')
       a  b  c
 0   foo  1  3.0
-1   bar  2  np.nan
+1   bar  2  NaN
 
 >>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
 >>> df2 = pd.DataFrame({'right': [7, 8]})
