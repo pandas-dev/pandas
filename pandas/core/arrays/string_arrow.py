@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Sequence, Tuple, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -254,30 +255,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
+    @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
-        """Encode the extension array as an enumerated type.
-        Parameters
-        ----------
-        na_sentinel : int, default -1
-            Value to use in the `labels` array to indicate missing values.
-        Returns
-        -------
-        labels : ndarray
-            An integer NumPy array that's an indexer into the original
-            ExtensionArray.
-        uniques : ExtensionArray
-            An ExtensionArray containing the unique values of `self`.
-            .. note::
-               uniques will *not* contain an entry for the NA value of
-               the ExtensionArray if there are any missing values present
-               in `self`.
-        See Also
-        --------
-        pandas.factorize : Top-level factorize method that dispatches here.
-        Notes
-        -----
-        :meth:`pandas.factorize` offers a `sort` keyword as well.
-        """
         if pa.types.is_dictionary(self._data.type):
             raise NotImplementedError()
         elif self._data.num_chunks == 1:
