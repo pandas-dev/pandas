@@ -287,7 +287,6 @@ class Grouper:
         self.obj = None
         self.indexer = None
         self.binner = None
-        self.grouper_resorted = False
         self._grouper = None
         self._indexer = None
         self.dropna = dropna
@@ -355,7 +354,7 @@ class Grouper:
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
                 # before we call _grouper.take.
-                if self.grouper_resorted:
+                if self._indexer is not None:
                     assert self._indexer is not None
                     assert self._grouper is not None
                     reverse_indexer = self._indexer.argsort()
@@ -390,7 +389,6 @@ class Grouper:
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
-            self.grouper_resorted = True
 
         self.obj = obj
         self.grouper = ax
