@@ -430,6 +430,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
+    if needs_i8_conversion(comps):
+        # Dispatch to DatetimeLikeIndexMixin.isin
+        from pandas import Index
+
+        return Index(comps).isin(values)
+
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
@@ -2150,3 +2156,24 @@ def _sort_tuples(values: np.ndarray[tuple]):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def make_duplicates_of_left_unique_in_right(
+    left: np.ndarray, right: np.ndarray
+) -> np.ndarray:
+    """
+    If left has duplicates, which are also duplicated in right, this duplicated values
+    are dropped from right, meaning that every duplicate value from left exists only
+    once in right.
+
+    Parameters
+    ----------
+    left: ndarray
+    right: ndarray
+
+    Returns
+    -------
+    Duplicates of left are unique in right
+    """
+    left_duplicates = unique(left[duplicated(left)])
+    return right[~(duplicated(right) & isin(right, left_duplicates))]
