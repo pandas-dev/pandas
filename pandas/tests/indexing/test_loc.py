@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    Categorical,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -1284,6 +1285,14 @@ class TestLocSetitemWithExpansion:
 
             expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
             tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_categorical_column_retains_dtype(self):
+        # GH16360
+        result = DataFrame({"A": [1]})
+        result.loc[:, "B"] = Categorical(["b"])
+        expected = DataFrame({"A": [1], "B": ["b"]})
+        expected["B"] = expected["B"].astype("category")
+        tm.assert_frame_equal(result, expected)
 
 
 class TestLocCallable:
