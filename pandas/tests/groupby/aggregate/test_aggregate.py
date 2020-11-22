@@ -1160,14 +1160,11 @@ def test_agg_no_suffix_index():
 
 def test_named_agg_multiple_columns():
     # GH29268
-    df = DataFrame(np.random.rand(4, 4), columns=list("abcd"))
+    df = DataFrame({"a": [5, 7, 9, 11], "b": [8, 23, 5, 9]})
     df["group"] = [0, 0, 1, 1]
 
     result = df.groupby("group").agg(
         diff_a_b=(("a", "b"), lambda x: x["a"].max() - x["b"].max())
     )
-    expected = DataFrame(
-        {"diff_a_b": [0.05909000000000003, 0.23143599999999998]},
-        index=pd.Index([0, 1], name="group"),
-    )
+    expected = DataFrame({"diff_a_b": [16, 2]}, index=pd.Index([0, 1], name="group"))
     tm.assert_frame_equal(result, expected)
