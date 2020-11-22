@@ -1475,7 +1475,21 @@ class MultiIndex(Index):
         self._reset_cache()
 
     names = property(
-        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
+        fset=_set_names,
+        fget=_get_names,
+        doc="""
+        Names of levels in MultiIndex.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        >>> mi
+        MultiIndex([(1, 3, 5),
+                    (2, 4, 6)],
+                   names=['x', 'y', 'z'])
+        >>> mi.names
+        FrozenList(['x', 'y', 'z'])
+        """,
     )
 
     # --------------------------------------------------------------------
