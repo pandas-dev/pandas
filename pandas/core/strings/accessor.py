@@ -3063,7 +3063,9 @@ def str_extract(arr, pat, flags=0, expand=True, default=None):
         result = _str_extract_frame(arr._orig, pat, flags=flags, default=default)
         return result.__finalize__(arr._orig, method="str_extract")
     else:
-        result, name = _str_extract_noexpand(arr._orig, pat, flags=flags, default=default)
+        result, name = _str_extract_noexpand(
+            arr._orig, pat, flags=flags, default=default
+        )
         return arr._wrap_result(result, name=name, expand=expand)
 
 

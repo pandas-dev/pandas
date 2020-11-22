@@ -3674,15 +3674,15 @@ def test_str_get_stringarray_multiple_nans():
 
 def test_str_extract_default_value_no_expand():
     # GH 38001
-    df = DataFrame({'A': ['a84', 'abcd', '99string', np.nan]})
-    result = df['A'].str.extract(r'(\d+)', expand=False, default='missing')
-    expected = Series(['84', 'missing', '99', np.nan])
+    df = DataFrame({"A": ["a84", "abcd", "99string", np.nan]})
+    result = df["A"].str.extract(r"(\d+)", expand=False, default="missing")
+    expected = Series(["84", "missing", "99", np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_str_extract_default_value_with_expand():
     # GH 38001
-    df = DataFrame({'A': ['a84', 'abcd', '99string', np.nan]})
-    result = df['A'].str.extract(r'(\d+)', expand=True, default='missing')
-    expected = DataFrame({0: ['84', 'missing', '99', np.nan]})
+    df = DataFrame({"A": ["a84", "abcd", "99string", np.nan]})
+    result = df["A"].str.extract(r"(\d+)", expand=True, default="missing")
+    expected = DataFrame({0: ["84", "missing", "99", np.nan]})
     tm.assert_frame_equal(result, expected)
