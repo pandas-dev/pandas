@@ -226,7 +226,10 @@ to use this feature.
 Custom HTTP(s) headers when reading csv or json files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`read_csv` and :meth:`read_json` use the dictionary passed to ``storage_options`` to create custom HTTP(s) headers. (:issue:`36688`)
+When reading from a remote URL that is not handled by fsspec (ie. HTTP and
+HTTPS) the dictionary passed to ``storage_options`` will be used to create the
+headers included in the request.  This can be used to control the User-Agent
+header or send other custom headers (:issue:`36688`).
 For example:
 
 .. ipython:: python

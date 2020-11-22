@@ -386,6 +386,8 @@ _shared_docs[
     host, port, username, password, etc. If using a URL that will
     be parsed by ``fsspec``, e.g., starting "s3://", "gcs://" then see the
     fsspec and backend storage implementation docs for the set of
-    allowed keys and values. Otherwise if the remote URL is handled via urllib
-    this key and value mapping will be passed to the headers argument of the
-    urllib request."""
+    allowed keys and values. Otherwise, in ``read_*`` funtions only, the
+    remote URL is handled via urllib (eg. HTTP or HTTPS). When handled by
+    urllib this key value mapping will be passed to the headers
+    argument of the urllib request thereby allowing custom headers
+    such as setting the User-Agent."""
