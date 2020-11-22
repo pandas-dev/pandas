@@ -3003,7 +3003,6 @@ def _str_extract_noexpand(arr, pat, flags=0, default=None):
     result_dtype = _result_dtype(arr)
 
     if regex.groups == 1:
-        # result = np.array([groups_or_na(val, default)[0] for val in arr], dtype=object)
         result = [groups_or_na(val)[0] for val in arr]
         name = _get_single_group_name(regex)
         # not dispatching, so we have to reconstruct here.
