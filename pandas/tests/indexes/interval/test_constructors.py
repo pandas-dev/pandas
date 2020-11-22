@@ -29,7 +29,7 @@ def name(request):
     return request.param
 
 
-class Base:
+class ConstructorTests:
     """
     Common tests for all variations of IntervalIndex construction. Input data
     to be supplied in breaks format, then converted by the subclass method
@@ -182,7 +182,7 @@ class Base:
             constructor(**decreasing_kwargs)
 
 
-class TestFromArrays(Base):
+class TestFromArrays(ConstructorTests):
     """Tests specific to IntervalIndex.from_arrays"""
 
     @pytest.fixture
@@ -231,7 +231,7 @@ class TestFromArrays(Base):
         assert result.dtype.subtype == expected_subtype
 
 
-class TestFromBreaks(Base):
+class TestFromBreaks(ConstructorTests):
     """Tests specific to IntervalIndex.from_breaks"""
 
     @pytest.fixture
@@ -273,7 +273,7 @@ class TestFromBreaks(Base):
         assert not (right == 10000).any()
 
 
-class TestFromTuples(Base):
+class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
     @pytest.fixture
@@ -320,7 +320,7 @@ class TestFromTuples(Base):
         tm.assert_index_equal(idx_na_tuple, idx_na_element)
 
 
-class TestClassConstructors(Base):
+class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
     @pytest.fixture(

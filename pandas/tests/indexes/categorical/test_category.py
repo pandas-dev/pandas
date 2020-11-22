@@ -458,6 +458,24 @@ class TestCategoricalIndex(Base):
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
 
+    def test_reindex_base(self):
+        # See test_reindex.py
+        pass
+
+    def test_map_str(self):
+        # See test_map.py
+        pass
+
+
+class TestCategoricalIndex2:
+    # Tests that are not overriding a test in Base
+
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = CategoricalIndex(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected
+
     @pytest.mark.parametrize(
         "dtype, engine_type",
         [
@@ -480,17 +498,3 @@ class TestCategoricalIndex(Base):
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
-
-    def test_reindex_base(self):
-        # See test_reindex.py
-        pass
-
-    def test_map_str(self):
-        # See test_map.py
-        pass
-
-    def test_format_different_scalar_lengths(self):
-        # GH35439
-        idx = CategoricalIndex(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        assert idx.format() == expected
