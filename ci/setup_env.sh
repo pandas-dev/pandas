@@ -1,10 +1,5 @@
 #!/bin/bash -e
 
-if [ "$JOB" == "3.9-dev" ]; then
-    /bin/bash ci/build39.sh
-    exit 0
-fi
-
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -136,7 +131,7 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
-python setup.py build_ext -q -i -j2
+python setup.py build_ext -q -j2
 
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools

@@ -416,6 +416,11 @@ class Index(IndexOpsMixin, PandasObject):
         ndarray
             An ndarray with int64 dtype.
         """
+        warnings.warn(
+            "Index.asi8 is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return None
 
     @classmethod
@@ -2756,7 +2761,7 @@ class Index(IndexOpsMixin, PandasObject):
                         stacklevel=3,
                     )
 
-        return self._shallow_copy(result)
+        return result
 
     @final
     def _wrap_setop_result(self, other, result):
@@ -2764,6 +2769,8 @@ class Index(IndexOpsMixin, PandasObject):
             result, np.ndarray
         ):
             result = type(self._data)._simple_new(result, dtype=self.dtype)
+        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+            result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
@@ -2820,6 +2827,13 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype("O")
             return this.intersection(other, sort=sort)
 
+        result = self._intersection(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _intersection(self, other, sort=False):
+        """
+        intersection specialized to the case with matching dtypes.
+        """
         # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
         rvals = other._values
@@ -2830,7 +2844,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return self._wrap_setop_result(other, result)
+                return result
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2846,7 +2860,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is None:
             result = algos.safe_sort(result)
 
-        return self._wrap_setop_result(other, result)
+        return result
 
     def difference(self, other, sort=None):
         """
@@ -3185,7 +3199,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = engine_method(target_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
-        if tolerance is not None:
+        if tolerance is not None and len(self):
             indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
@@ -3230,12 +3244,21 @@ class Index(IndexOpsMixin, PandasObject):
         values that can be subtracted from each other (e.g., not strings or
         tuples).
         """
+        if not len(self):
+            return self._get_fill_indexer(target, "pad")
+
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
         target_values = target._values
-        left_distances = np.abs(self._values[left_indexer] - target_values)
-        right_distances = np.abs(self._values[right_indexer] - target_values)
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        left_distances = np.abs(
+            self._values[left_indexer] - target_values  # type: ignore[operator]
+        )
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        right_distances = np.abs(
+            self._values[right_indexer] - target_values  # type: ignore[operator]
+        )
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3254,7 +3277,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer: np.ndarray,
         tolerance,
     ) -> np.ndarray:
-        distance = abs(self._values[indexer] - target)
+        # error: Unsupported left operand type for - ("ExtensionArray")
+        distance = abs(self._values[indexer] - target)  # type: ignore[operator]
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
@@ -3458,6 +3482,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
+            values: Union[range, ExtensionArray, np.ndarray]
             if isinstance(self, ABCRangeIndex):
                 values = range(0)
             else:
@@ -3983,7 +4008,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self: _IndexT, joined: np.ndarray, other: _IndexT
+    ) -> _IndexT:
+        assert other.dtype == self.dtype
+
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
         else:
@@ -4185,7 +4214,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind) -> bool:
+    def is_type_compatible(self, kind: str_t) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """
@@ -4341,17 +4370,18 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             converted = self._validate_fill_value(value)
-            np.putmask(values, mask, converted)
-            return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
+
+        np.putmask(values, mask, converted)
+        return self._shallow_copy(values)
 
     def equals(self, other: object) -> bool:
         """
@@ -4550,8 +4580,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = np.arange(len(self))[mask].take(locs)
 
-        first = mask.argmax()
-        result[(locs == 0) & (where._values < self._values[first])] = -1
+        # TODO: overload return type of ExtensionArray.__getitem__
+        first_value = cast(Any, self._values[mask.argmax()])
+        result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
 
@@ -4739,12 +4770,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        result = self.asi8
+        if needs_i8_conversion(self.dtype):
+            # TODO: these do not match the underlying EA argsort methods GH#37863
+            return self.asi8.argsort(*args, **kwargs)
 
-        if result is None:
-            result = np.array(self)
-
-        return result.argsort(*args, **kwargs)
+        # This works for either ndarray or EA, is overriden
+        #  by RangeIndex, MultIIndex
+        return self._data.argsort(*args, **kwargs)
 
     @final
     def get_value(self, series: "Series", key):
