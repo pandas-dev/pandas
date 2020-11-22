@@ -17,7 +17,6 @@ from pandas import (
     date_range,
     option_context,
 )
-from pandas.conftest import datetime_frame, float_frame, int_frame
 
 
 @pytest.fixture
@@ -56,16 +55,16 @@ def test_info_categorical_column_smoke_test():
 
 
 @pytest.mark.parametrize(
-    "fixture_func",
+    "fixture_func_name",
     [
-        int_frame,
-        float_frame,
-        datetime_frame,
-        duplicate_columns_frame,
+        "int_frame",
+        "float_frame",
+        "datetime_frame",
+        "duplicate_columns_frame",
     ],
 )
-def test_info_smoke_test(fixture_func, request):
-    frame = request.getfixturevalue(fixture_func.__name__)
+def test_info_smoke_test(fixture_func_name, request):
+    frame = request.getfixturevalue(fixture_func_name)
     buf = StringIO()
     frame.info(buf=buf)
     result = buf.getvalue().splitlines()
