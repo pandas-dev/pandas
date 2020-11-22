@@ -2132,7 +2132,7 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def resort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
+def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
     """
     Elements from union_values are resorted after the ranking of the first occurrence in
     lvals and then rvals, if element is not in lvals. All occurrences of this element

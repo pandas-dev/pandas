@@ -2319,6 +2319,6 @@ def test_resort_union_after_inputs():
     union_values = np.array([1, 1, 2, 3, 3, 4])
     lvals = np.array([[3, 1, 4]])
     rvals = np.array([[2, 3, 1]])
-    result = algos.resort_union_after_inputs(union_values, lvals, rvals)
+    result = algos.re_sort_union_after_inputs(union_values, lvals, rvals)
     expected = np.array([3, 3, 1, 1, 4, 2])
     tm.assert_numpy_array_equal(result, expected)

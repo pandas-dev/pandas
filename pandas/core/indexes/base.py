@@ -2654,7 +2654,7 @@ class Index(IndexOpsMixin, PandasObject):
                 or not other.is_monotonic
                 or is_categorical_dtype(self)
             ):
-                result = algos.resort_union_after_inputs(result, lvals, rvals)
+                result = algos.re_sort_union_after_inputs(result, lvals, rvals)
 
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
             try:
