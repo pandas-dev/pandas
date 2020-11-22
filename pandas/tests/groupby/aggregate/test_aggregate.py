@@ -1156,3 +1156,18 @@ def test_agg_no_suffix_index():
     result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
     tm.assert_series_equal(result, expected)
+
+
+def test_named_agg_multiple_columns():
+    # GH29268
+    df = DataFrame(np.random.rand(4, 4), columns=list("abcd"))
+    df["group"] = [0, 0, 1, 1]
+
+    result = df.groupby("group").agg(
+        diff_a_b=(("a", "b"), lambda x: x["a"].max() - x["b"].max())
+    )
+    expected = DataFrame(
+        {"diff_a_b": [0.05909000000000003, 0.23143599999999998]},
+        index=pd.Index([0, 1], name="group"),
+    )
+    tm.assert_frame_equal(result, expected)

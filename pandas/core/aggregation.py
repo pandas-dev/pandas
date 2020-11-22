@@ -731,6 +731,8 @@ def agg_dict_like(
                     for c in k:
                         if c not in selected_obj.columns:
                             raise KeyError(f"Column '{c}' does not exist!")
+                else:
+                    raise KeyError(f"Column '{k}' does not exist!")
 
         arg = new_arg
 
