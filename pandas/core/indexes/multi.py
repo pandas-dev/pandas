@@ -893,6 +893,15 @@ class MultiIndex(Index):
     def nlevels(self) -> int:
         """
         Integer number of levels in this MultiIndex.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b'], ['c']])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
+        >>> mi.nlevels
+        3
         """
         return len(self._levels)
 
@@ -900,6 +909,15 @@ class MultiIndex(Index):
     def levshape(self):
         """
         A tuple with the length of each level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b'], ['c']])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
+        >>> mi.levshape
+        (1, 1, 1)
         """
         return tuple(len(x) for x in self.levels)
 
@@ -1701,6 +1719,32 @@ class MultiIndex(Index):
         --------
         DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
             tabular data.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a', 'b'], ['c', 'd']])
+        >>> mi
+        MultiIndex([('a', 'c'),
+                    ('b', 'd')],
+                   )
+
+        >>> df = mi.to_frame()
+        >>> df
+             0  1
+        a c  a  c
+        b d  b  d
+
+        >>> df = mi.to_frame(index=False)
+        >>> df
+           0  1
+        0  a  c
+        1  b  d
+
+        >>> df = mi.to_frame(name=['x', 'y'])
+        >>> df
+             x  y
+        a c  a  c
+        b d  b  d
         """
         from pandas import DataFrame
 
@@ -2238,6 +2282,24 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=['x', 'y'])
+        >>> mi
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.reorder_levels(order=[1, 0])
+        MultiIndex([(3, 1),
+                    (4, 2)],
+                   names=['y', 'x'])
+
+        >>> mi.reorder_levels(order=['y', 'x'])
+        MultiIndex([(3, 1),
+                    (4, 2)],
+                   names=['y', 'x'])
         """
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
@@ -2296,6 +2358,29 @@ class MultiIndex(Index):
             Resulting index.
         indexer : np.ndarray
             Indices of output values in original index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1], [0, 4]])
+        >>> mi
+        MultiIndex([(2, 0),
+                    (1, 4)],
+                   )
+
+        >>> mi.sortlevel()
+        (MultiIndex([(1, 4),
+                    (2, 0)],
+                   ), array([1, 0]))
+
+        >>> mi.sortlevel(1)
+        (MultiIndex([(2, 0),
+                    (1, 4)],
+                   ), array([0, 1]))
+
+        >>> mi.sortlevel(level=1, ascending=False)
+        (MultiIndex([(1, 4),
+                    (2, 0)],
+                   ), array([1, 0]))
         """
         if isinstance(level, (str, int)):
             level = [level]
