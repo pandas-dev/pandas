@@ -433,7 +433,7 @@ Indexing
 - Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
-- Bug in :meth:`Index.union` dropped duplicate Index values when Index was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
+- Bug in :meth:`Index.union` dropping duplicate Index values when Index was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`)
 
 Missing
 ^^^^^^^
