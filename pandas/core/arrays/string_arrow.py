@@ -257,10 +257,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
-        if pa.types.is_dictionary(self._data.type):
-            raise NotImplementedError()
-        elif self._data.num_chunks == 1:
-            # Dictionaryencode and do the same as above
+        if self._data.num_chunks == 1:
             encoded = self._data.chunk(0).dictionary_encode()
             indices = encoded.indices.to_pandas()
             if indices.dtype.kind == "f":
