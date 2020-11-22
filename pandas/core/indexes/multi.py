@@ -2376,26 +2376,31 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays([[2, 1], [0, 4]])
+        >>> mi = pd.MultiIndex.from_arrays([[0, 0], [2, 1]])
         >>> mi
-        MultiIndex([(2, 0),
-                    (1, 4)],
+        MultiIndex([(0, 2),
+                    (0, 1)],
                    )
 
         >>> mi.sortlevel()
-        (MultiIndex([(1, 4),
-                    (2, 0)],
+        (MultiIndex([(0, 1),
+                    (0, 2)],
                    ), array([1, 0]))
 
-        >>> mi.sortlevel(1)
-        (MultiIndex([(2, 0),
-                    (1, 4)],
+        >>> mi.sortlevel(sort_remaining=False)
+        (MultiIndex([(0, 2),
+                    (0, 1)],
                    ), array([0, 1]))
 
-        >>> mi.sortlevel(level=1, ascending=False)
-        (MultiIndex([(1, 4),
-                    (2, 0)],
+        >>> mi.sortlevel(1)
+        (MultiIndex([(0, 1),
+                    (0, 2)],
                    ), array([1, 0]))
+
+        >>> mi.sortlevel(1, ascending=False)
+        (MultiIndex([(0, 2),
+                    (0, 1)],
+                   ), array([0, 1]))
         """
         if isinstance(level, (str, int)):
             level = [level]
