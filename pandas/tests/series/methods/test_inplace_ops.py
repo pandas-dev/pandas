@@ -20,6 +20,7 @@ import pandas._testing as tm
     ),
 )
 def test_series_inplace_ops(dtype1, dtype2, dtype_expected, dtype_mul):
+    # GH 37910
 
     ser1 = Series([1], dtype=dtype1)
     ser2 = Series([2], dtype=dtype2)
