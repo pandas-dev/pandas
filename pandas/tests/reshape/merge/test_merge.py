@@ -2375,3 +2375,43 @@ def test_merge_cross_error_reporting(kwargs):
     )
     with pytest.raises(MergeError, match=msg):
         merge(left, right, how="cross", **kwargs)
+
+
+def test_merge_cross_mixed_dtypes():
+    # GH#5401
+    left = DataFrame(["a", "b", "c"], columns=["A"])
+    right = DataFrame(range(2), columns=["B"])
+    result = merge(left, right, how="cross")
+    expected = DataFrame({"A": ["a", "a", "b", "b", "c", "c"], "B": [0, 1, 0, 1, 0, 1]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_cross_more_than_one_column():
+    # GH#5401
+    left = DataFrame({"A": list("ab"), "B": [2, 1]})
+    right = DataFrame({"C": range(2), "D": range(4, 6)})
+    result = merge(left, right, how="cross")
+    expected = DataFrame(
+        {
+            "A": ["a", "a", "b", "b"],
+            "B": [2, 2, 1, 1],
+            "C": [0, 1, 0, 1],
+            "D": [4, 5, 4, 5],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_cross_null_values(nulls_fixture):
+    # GH#5401
+    left = DataFrame({"a": [1, nulls_fixture]})
+    right = DataFrame({"b": ["a", "b"], "c": [1.0, 2.0]})
+    result = merge(left, right, how="cross")
+    expected = DataFrame(
+        {
+            "a": [1, 1, nulls_fixture, nulls_fixture],
+            "b": ["a", "b", "a", "b"],
+            "c": [1.0, 2.0, 1.0, 2.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
