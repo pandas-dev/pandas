@@ -597,17 +597,17 @@ def crosstab(
 
     # duplicate names mapped to unique names for pivot op
     (
-        row_names_mapper,
-        unique_row_names,
-        col_names_mapper,
-        unique_col_names,
+        rownames_mapper,
+        unique_rownames,
+        colnames_mapper,
+        unique_colnames,
     ) = _build_names_mapper(rownames, colnames)
 
     from pandas import DataFrame
 
     data = {
-        **dict(zip(unique_row_names, index)),
-        **dict(zip(unique_col_names, columns)),
+        **dict(zip(unique_rownames, index)),
+        **dict(zip(unique_colnames, columns)),
     }
     df = DataFrame(data, index=common_idx)
     original_df_cols = df.columns
@@ -621,8 +621,8 @@ def crosstab(
 
     table = df.pivot_table(
         ["__dummy__"],
-        index=unique_row_names,
-        columns=unique_col_names,
+        index=unique_rownames,
+        columns=unique_colnames,
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
@@ -641,8 +641,8 @@ def crosstab(
             table, normalize=normalize, margins=margins, margins_name=margins_name
         )
 
-    table = table.rename_axis(index=row_names_mapper, axis=0)
-    table = table.rename_axis(columns=col_names_mapper, axis=1)
+    table = table.rename_axis(index=rownames_mapper, axis=0)
+    table = table.rename_axis(columns=colnames_mapper, axis=1)
 
     return table
 
