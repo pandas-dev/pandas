@@ -536,49 +536,27 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_duplicated_row_and_col_names(self):
-        # We test that duplicated row or column names do not produce issues
-        # GH Issue: #22529, GH#13279
+        # GH22529
 
-        # Same name in both rows and columns
         s1 = Series(range(3), name="foo")
-        s2 = s1 + 1
-        expected = crosstab(s1, s2.rename("bar")).rename_axis(
+        s2_foo = Series(range(1, 4), name="foo")
+        s2_bar = Series(range(1, 4), name="bar")
+        s3 = Series(range(3), name="waldo")
+
+        result = crosstab(s1, s2_foo)
+        expected = crosstab(s1, s2_bar).rename_axis(columns={"bar": "foo"}, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab([s1, s2_foo], s3)
+        expected = crosstab([s1, s2_bar], s3).rename_axis(index={"bar": "foo"}, axis=0)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab(s3, [s1, s2_foo])
+        expected = crosstab(s3, [s1, s2_bar]).rename_axis(
             columns={"bar": "foo"}, axis=1
         )
-        result = crosstab(s1, s2)
-        tm.assert_frame_equal(result, expected)
-        assert result.index.names == ["foo"]
-        assert result.columns.names == ["foo"]
-
-        # Row names duplicated
-        s1 = Series(range(3), name="foo")
-        s2 = s1 + 1
-        s3 = Series(range(3), name="bar_col")
-
-        expected = crosstab([s1, s2.rename("bar")], s3).rename_axis(
-            index={"bar": "foo"}, axis=0
-        )
-        result = crosstab([s1, s2], s3)
 
         tm.assert_frame_equal(result, expected)
-
-        assert result.index.names == ["foo", "foo"]
-        assert result.columns.names == ["bar_col"]
-
-        # Column names duplicated
-        s1 = Series(range(3), name="foo")
-        s2 = s1 + 1
-        s3 = Series(range(3), name="bar_row")
-
-        expected = crosstab(s3, [s1, s2.rename("bar")]).rename_axis(
-            columns={"bar": "foo"}, axis=1
-        )
-        result = crosstab(s3, [s1, s2])
-
-        tm.assert_frame_equal(result, expected)
-
-        assert result.index.names == ["bar_row"]
-        assert result.columns.names == ["foo", "foo"]
 
     @pytest.mark.parametrize("names", [["a", ("b", "c")], [("a", "b"), "c"]])
     def test_crosstab_tuple_name(self, names):
