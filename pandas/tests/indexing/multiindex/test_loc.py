@@ -640,3 +640,30 @@ def test_getitem_non_found_tuple():
     )
     with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
         df.loc[(2.0, 2.0, 3.0)]
+
+
+def test_loc_setitem_indexer_differently_ordered():
+    # GH#34603
+    mi = MultiIndex.from_product([["a", "b"], [0, 1]])
+    df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
+
+    indexer = ("a", [1, 0])
+    df.loc[indexer, :] = np.array([[9, 10], [11, 12]])
+    expected = DataFrame([[11, 12], [9, 10], [5, 6], [7, 8]], index=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_getitem_index_differently_ordered_slice_none():
+    # GH#31330
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6], [7, 8]],
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=["a", "b"],
+    )
+    result = df.loc[(slice(None), [2, 1]), :]
+    expected = DataFrame(
+        [[3, 4], [7, 8], [1, 2], [5, 6]],
+        index=[["a", "b", "a", "b"], [2, 2, 1, 1]],
+        columns=["a", "b"],
+    )
+    tm.assert_frame_equal(result, expected)
