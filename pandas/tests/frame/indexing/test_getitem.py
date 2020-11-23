@@ -7,11 +7,13 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     MultiIndex,
+    Series,
     Timestamp,
     get_dummies,
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import SparseArray
 
 
 class TestGetitem:
@@ -49,6 +51,33 @@ class TestGetitem:
         dummies = get_dummies(cats)
         result = dummies[list(dummies.columns)]
         tm.assert_frame_equal(result, expected)
+
+    def test_getitem_sparse_column_return_type_and_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/23559
+        data = SparseArray([0, 1])
+        df = DataFrame({"A": data})
+        expected = Series(data, name="A")
+        result = df["A"]
+        tm.assert_series_equal(result, expected)
+
+        # Also check iloc and loc while we're here
+        result = df.iloc[:, 0]
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc[:, "A"]
+        tm.assert_series_equal(result, expected)
+
+
+class TestGetitemListLike:
+    def test_getitem_list_missing_key(self):
+        # GH#13822, incorrect error string with non-unique columns when missing
+        # column is accessed
+        df = DataFrame({"x": [1.0], "y": [2.0], "z": [3.0]})
+        df.columns = ["x", "x", "z"]
+
+        # Check that we get the correct value in the KeyError
+        with pytest.raises(KeyError, match=r"\['y'\] not in index"):
+            df[["x", "y", "z"]]
 
 
 class TestGetitemCallable:

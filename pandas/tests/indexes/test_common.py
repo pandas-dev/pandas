@@ -13,7 +13,16 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    Int64Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -70,139 +79,6 @@ class TestCommon:
     def test_getitem_error(self, index, itm):
         with pytest.raises(IndexError):
             index[itm]
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_union(self, index, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_union_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # test copy.union(subset) - need sort for unicode and string
-        first = index.copy().set_names(fname)
-        second = index[1:].set_names(sname)
-        union = first.union(second).sort_values()
-        expected = index.set_names(expected_name).sort_values()
-        tm.assert_index_equal(union, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_intersect(self, index, fname, sname, expected_name):
-        # GH35847
-        # Test intersections with various name combinations
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.intersection(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test copy.intersection(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test empty.intersection(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test empty.intersection(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_intersect_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # test copy.intersection(subset) - need sort for unicode and string
-        first = index.copy().set_names(fname)
-        second = index[1:].set_names(sname)
-        intersect = first.intersection(second).sort_values()
-        expected = index[1:].set_names(expected_name).sort_values()
-        tm.assert_index_equal(intersect, expected)
 
     def test_to_flat_index(self, index):
         # 22866
@@ -328,13 +204,6 @@ class TestCommon:
             for i in [idx_nan, idx_unique_nan]:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
-
-    def test_mutability(self, index):
-        if not len(index):
-            pytest.skip("Skip check for empty Index")
-        msg = "Index does not support mutable operations"
-        with pytest.raises(TypeError, match=msg):
-            index[0] = index[0]
 
     def test_view(self, index):
         assert index.view().name == index.name
@@ -487,6 +356,18 @@ class TestCommon:
         # GH#19956 ravel returning ndarray is deprecated
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
+
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(
+            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
+        ):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
