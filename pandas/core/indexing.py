@@ -667,6 +667,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if k not in self.obj:
                     if value is None:
                         self.obj[k] = np.nan
+                    elif is_array_like(value) and value.ndim == 2:
+                        # GH#37964 have to select columnwise in case of array
+                        self.obj[k] = value[:, i]
                     elif is_list_like(value):
                         self.obj[k] = value[i]
                     else:
@@ -1821,7 +1824,7 @@ class _iLocIndexer(_LocationIndexer):
                 return
 
             indexer = maybe_convert_ix(*indexer)
-        if isinstance(value, ABCSeries) and name != "iloc" or isinstance(value, dict):
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
@@ -1859,6 +1862,7 @@ class _iLocIndexer(_LocationIndexer):
             if index.is_unique:
                 new_indexer = index.get_indexer([new_index[-1]])
                 if (new_indexer != -1).any():
+                    # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value

@@ -300,3 +300,43 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
         return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+
+    # ------------------------------------------------------------------------
+    # __array_function__ methods
+
+    def putmask(self, mask, value):
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        np.putmask(self._ndarray, mask, value)
+
+    def where(self, mask, value):
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        res_values = np.where(mask, self._ndarray, value)
+        return self._from_backing_data(res_values)
