@@ -27,7 +27,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.base import IndexOpsMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -217,10 +216,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             result._data._freq = freq
         return result
 
-    @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
-    def searchsorted(self, value, side="left", sorter=None):
-        return self._data.searchsorted(value, side=side, sorter=sorter)
-
     _can_hold_na = True
 
     _na_value = NaT
@@ -256,22 +251,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return self._na_value
 
         i8 = self.asi8
-        try:
-            # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[0] != iNaT:
-                    return self._data._box_func(i8[0])
 
-            if self.hasnans:
-                if skipna:
-                    min_stamp = self[~self._isnan].asi8.min()
-                else:
-                    return self._na_value
-            else:
-                min_stamp = i8.min()
-            return self._data._box_func(min_stamp)
-        except ValueError:
+        if len(i8) and self.is_monotonic_increasing:
+            # quick check
+            if i8[0] != iNaT:
+                return self._data._box_func(i8[0])
+
+        if self.hasnans:
+            if not skipna:
+                return self._na_value
+            i8 = i8[~self._isnan]
+
+        if not len(i8):
             return self._na_value
+
+        min_stamp = i8.min()
+        return self._data._box_func(min_stamp)
 
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -313,22 +308,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return self._na_value
 
         i8 = self.asi8
-        try:
-            # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[-1] != iNaT:
-                    return self._data._box_func(i8[-1])
 
-            if self.hasnans:
-                if skipna:
-                    max_stamp = self[~self._isnan].asi8.max()
-                else:
-                    return self._na_value
-            else:
-                max_stamp = i8.max()
-            return self._data._box_func(max_stamp)
-        except ValueError:
+        if len(i8) and self.is_monotonic:
+            # quick check
+            if i8[-1] != iNaT:
+                return self._data._box_func(i8[-1])
+
+        if self.hasnans:
+            if not skipna:
+                return self._na_value
+            i8 = i8[~self._isnan]
+
+        if not len(i8):
             return self._na_value
+
+        max_stamp = i8.max()
+        return self._data._box_func(max_stamp)
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -463,7 +458,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         vals = self._data._ndarray
         unbox = self._data._unbox
 
-        if self.is_monotonic:
+        if self.is_monotonic_increasing:
 
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
