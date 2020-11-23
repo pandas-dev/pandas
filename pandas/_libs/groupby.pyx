@@ -908,6 +908,7 @@ def group_last(rank_t[:, :] out,
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -937,7 +938,7 @@ def group_last(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count or nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -959,7 +960,7 @@ def group_last(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] < min_count or nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -1002,6 +1003,7 @@ def group_nth(rank_t[:, :] out,
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -1032,7 +1034,7 @@ def group_nth(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count or nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -1056,7 +1058,7 @@ def group_nth(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] < min_count or nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -1298,6 +1300,7 @@ def group_max(groupby_t[:, :] out,
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     maxx = np.empty_like(out)
@@ -1334,7 +1337,7 @@ def group_max(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count or nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
@@ -1372,6 +1375,7 @@ def group_min(groupby_t[:, :] out,
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     minx = np.empty_like(out)
@@ -1407,7 +1411,7 @@ def group_min(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] < min_count or nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
