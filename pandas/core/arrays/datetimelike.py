@@ -62,7 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
@@ -696,6 +696,55 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas import Index
 
         return Index(self).map(mapper).array
+
+    def isin(self, values) -> np.ndarray:
+        """
+        Compute boolean array of whether each value is found in the
+        passed set of values.
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        ndarray[bool]
+        """
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
+        if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if "mixed" in inferred:
+                        return isin(self.astype(object), values)
+                    return np.zeros(self.shape, dtype=bool)
+
+            try:
+                values = type(self)._from_sequence(values)
+            except ValueError:
+                return isin(self.astype(object), values)
+
+        try:
+            self._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
+
+        return isin(self.asi8, values.asi8)
 
     # ------------------------------------------------------------------
     # Null Handling
