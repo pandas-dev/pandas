@@ -594,6 +594,14 @@ def to_sql(
     ):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
+    if on_conflict:
+        # on_conflict argument is valid
+        if on_conflict not in ("do_update", "do_nothing"):
+            raise ValueError(f"'{on_conflict}' is not valid for on_conflict'")
+        # on_conflict only used with append
+        elif if_exists != "append":
+            raise ValueError("on_conflict can only be used with 'append' operations")
+
     pandas_sql = pandasSQL_builder(con, schema=schema)
 
     if isinstance(frame, Series):
