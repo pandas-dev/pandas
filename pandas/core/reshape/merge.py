@@ -1228,12 +1228,12 @@ class _MergeOperation:
 
         Parameters
         ----------
-        _left: DataFrame
-        _right DataFrame
+        left: DataFrame
+        right DataFrame
 
         Returns
         -------
-            a tuple (_left_df, _right_df, how, cross_col) representing the adjusted
+            a tuple (left, right, how, cross_col) representing the adjusted
             DataFrames with cross_col, the merge operation set to inner and the column
             to join over.
         """
