@@ -194,6 +194,11 @@ class TestDataFrameFormatting:
             check(True, False)
             check(False, False)
 
+        with tm.assert_produces_warning(FutureWarning):  # GH37999
+            buf = StringIO()
+            df.info(buf=buf, null_counts=True)
+            assert "non-null" in buf.getvalue()
+
     def test_repr_truncation(self):
         max_len = 20
         with option_context("display.max_colwidth", max_len):
