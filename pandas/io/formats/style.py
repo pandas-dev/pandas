@@ -565,7 +565,6 @@ class Styler:
         '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
         '  </tbody>'
         '</table>'
-
         """
         classes = classes.reindex_like(self.data)
 
