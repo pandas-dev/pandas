@@ -1028,10 +1028,15 @@ class Block(PandasObject):
         if lib.is_scalar(value) and isinstance(values, np.ndarray):
             value = convert_scalar_for_putitemlike(value, values.dtype)
 
-        if is_list_like(value) and len(value) == len(values):
-            values[mask] = value[mask]
+        if self.is_extension or self.is_object:
+            # GH#19266 using np.putmask gives unexpected results with listlike value
+            if is_list_like(value) and len(value) == len(values):
+                values[mask] = value[mask]
+            else:
+                values[mask] = value
         else:
-            values[mask] = value
+            # GH#37833 np.putmask is more performant than __setitem__
+            np.putmask(values, mask, value)
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
@@ -1423,6 +1428,7 @@ class Block(PandasObject):
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1,)))
             elif transpose and values.ndim == self.ndim - 1:
+                # TODO(EA2D): not neceesssary with 2D EAs
                 cond = cond.T
 
         if not hasattr(cond, "shape"):
@@ -2399,9 +2405,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
         return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
-
-        # allow filling with integers to be
-        # interpreted as nanoseconds
+        # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
+        #  raising here.
         if is_integer(value):
             # Deprecation GH#24694, GH#19233
             raise TypeError(

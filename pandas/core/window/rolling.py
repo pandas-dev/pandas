@@ -337,6 +337,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             )
         return window_func
 
+    @property
+    def _index_array(self):
+        # TODO: why do we get here with e.g. MultiIndex?
+        if needs_i8_conversion(self._on.dtype):
+            return self._on.asi8
+        return None
+
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -345,7 +352,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(
-                index_array=self._on.asi8, window_size=self.window
+                index_array=self._index_array, window_size=self.window
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -405,7 +412,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -417,9 +424,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        numba_cache_key : tuple
+            caching key to be used to store a compiled numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -456,8 +462,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = calc(values)
                     result = np.asarray(result)
 
-            if use_numba_cache:
-                NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
+            if numba_cache_key is not None:
+                NUMBA_FUNC_CACHE[numba_cache_key] = func
 
             return result
 
@@ -715,7 +721,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     )
 
 
-def _dispatch(name: str, *args, **kwargs):
+def dispatch(name: str, *args, **kwargs):
     """
     Dispatch to groupby apply.
     """
@@ -746,20 +752,20 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    corr = _dispatch("corr", other=None, pairwise=None)
-    cov = _dispatch("cov", other=None, pairwise=None)
+    corr = dispatch("corr", other=None, pairwise=None)
+    cov = dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,
         func: Callable[..., Any],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
-            use_numba_cache,
+            numba_cache_key,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex from tuples
@@ -1038,7 +1044,7 @@ class Window(BaseWindow):
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: Optional[str] = None,
-        use_numba_cache: bool = False,
+        numba_cache_key: Optional[Tuple[Callable, str]] = None,
         **kwargs,
     ):
         """
@@ -1050,9 +1056,8 @@ class Window(BaseWindow):
         ----------
         func : callable function to apply
         name : str,
-        use_numba_cache : bool
-            whether to cache a numba compiled function. Only available for numba
-            enabled methods (so far only apply)
+        use_numba_cache : tuple
+            unused
         **kwargs
             additional arguments for scipy windows if necessary
 
@@ -1292,10 +1297,12 @@ class RollingAndExpandingMixin(BaseWindow):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
+        numba_cache_key = None
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
+            numba_cache_key = (func, "rolling_apply")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1305,10 +1312,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            use_numba_cache=maybe_use_numba(engine),
-            original_func=func,
-            args=args,
-            kwargs=kwargs,
+            numba_cache_key=numba_cache_key,
         )
 
     def _generate_cython_apply_func(
@@ -2143,7 +2147,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
-        index_array = self._on.asi8
+        index_array = self._index_array
         window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)

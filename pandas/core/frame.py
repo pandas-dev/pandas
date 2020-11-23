@@ -118,7 +118,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import algorithms, common as com, nanops, ops
+from pandas.core import algorithms, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     aggregate,
@@ -2066,6 +2066,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls(mgr)
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
@@ -2118,7 +2119,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {114, 117, 118, 119, None}, default 114
+        version : {{114, 117, 118, 119, None}}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2147,23 +2148,17 @@ class DataFrame(NDFrame, OpsMixin):
         compression : str or dict, default 'infer'
             For on-the-fly compression of the output dta. If string, specifies
             compression mode. If dict, value at key 'method' specifies
-            compression mode. Compression mode must be one of {'infer', 'gzip',
-            'bz2', 'zip', 'xz', None}. If compression mode is 'infer' and
+            compression mode. Compression mode must be one of {{'infer', 'gzip',
+            'bz2', 'zip', 'xz', None}}. If compression mode is 'infer' and
             `fname` is path-like, then detect compression from the following
             extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-            compression). If dict and compression mode is one of {'zip',
-            'gzip', 'bz2'}, or inferred as one of the above, other entries
+            compression). If dict and compression mode is one of {{'zip',
+            'gzip', 'bz2'}}, or inferred as one of the above, other entries
             passed as additional compression options.
 
             .. versionadded:: 1.1.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2186,9 +2181,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+        >>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
         ...                               'parrot'],
-        ...                    'speed': [350, 18, 361, 15]})
+        ...                    'speed': [350, 18, 361, 15]}})
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         if version not in (114, 117, 118, 119, None):
@@ -2255,6 +2250,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
+        storage_options=_shared_docs["storage_options"],
         examples="""Examples
         --------
         >>> df = pd.DataFrame(
@@ -2307,6 +2303,7 @@ class DataFrame(NDFrame, OpsMixin):
             handles.handle.writelines(result)
         return None
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
@@ -2340,12 +2337,12 @@ class DataFrame(NDFrame, OpsMixin):
 
             Previously this was "fname"
 
-        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+        engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+        compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
@@ -2365,13 +2362,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 0.24.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2398,7 +2389,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame(data={{'col1': [1, 2], 'col2': [3, 4]}})
         >>> df.to_parquet('df.parquet.gzip',
         ...               compression='gzip')  # doctest: +SKIP
         >>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
@@ -4570,7 +4561,7 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
         inplace : bool, default False
-            Modify the DataFrame in place (do not create a new object).
+            If True, modifies the DataFrame in place (do not create a new object).
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
