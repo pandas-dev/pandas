@@ -156,7 +156,7 @@ typedef unsigned char khint8_t;
 #endif
 
 typedef double khfloat64_t;
-typedef double khfloat32_t;
+typedef float khfloat32_t;
 
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
@@ -709,8 +709,8 @@ KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
 KHASH_MAP_INIT_INT16(int16, size_t)
 KHASH_MAP_INIT_UINT16(uint16, size_t)
-KHASH_MAP_INIT_INT16(int8, size_t)
-KHASH_MAP_INIT_UINT16(uint8, size_t)
+KHASH_MAP_INIT_INT8(int8, size_t)
+KHASH_MAP_INIT_UINT8(uint8, size_t)
 
 
 #endif /* __AC_KHASH_H */
