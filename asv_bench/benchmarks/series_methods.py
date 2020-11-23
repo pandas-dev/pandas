@@ -2,7 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import NaT, Series, date_range
+from pandas import Categorical, NaT, Series, date_range
 
 from .pandas_vb_common import tm
 
@@ -34,6 +34,28 @@ class IsIn:
 
     def time_isin(self, dtypes):
         self.s.isin(self.values)
+
+
+class IsInDatetime64:
+    def setup(self):
+        dti = date_range(
+            start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
+        )
+        self.ser = Series(dti)
+        self.subset = self.ser._values[::3]
+        self.cat_subset = Categorical(self.subset)
+
+    def time_isin(self):
+        self.ser.isin(self.subset)
+
+    def time_isin_cat_values(self):
+        self.ser.isin(self.cat_subset)
+
+    def time_isin_mismatched_dtype(self):
+        self.ser.isin([1, 2])
+
+    def time_isin_empty(self):
+        self.ser.isin([])
 
 
 class IsInFloat64:
