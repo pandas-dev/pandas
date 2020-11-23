@@ -17,7 +17,7 @@ Fixed regressions
 - Regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
 - Fixed regression in :meth:`Series.groupby` raising when the :class:`Index` of the :class:`Series` had a tuple as its name (:issue:`37755`)
 - Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` for ``__setitem__`` when one-dimensional tuple was given to select from :class:`MultiIndex` (:issue:`37711`)
-- Fixed regression in inplace operations on :class:``ExtensionArray`` with NumPy array argument (:issue:`37910`)
+- Fixed regression in inplace operations on :class:`Series` with ``ExtensionDtype`` with NumPy dtyped operand (:issue:`37910`)
 
 .. ---------------------------------------------------------------------------
 
