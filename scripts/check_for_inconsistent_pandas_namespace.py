@@ -16,29 +16,18 @@ from typing import Optional, Sequence
 
 PATTERN = r"""
     (
-        (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
-        {class_name}\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
+        ([A-Z]\w+)\(        # match DataFrame but not pd.DataFrame or tm.makeDataFrame
         .*                  # match anything
-        pd\.{class_name}\(  # only match e.g. pd.DataFrame
+        pd\.\2\(            # only match e.g. pd.DataFrame
     )|
     (
-        pd\.{class_name}\(  # only match e.g. pd.DataFrame
+        pd\.([A-Z]\w+)\(    # only match e.g. pd.DataFrame
         .*                  # match anything
-        (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
-        {class_name}\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
+        \4\(                # match DataFrame but not pd.DataFrame or tm.makeDataFrame
     )
     """
-CLASS_NAMES = (
-    "Series",
-    "DataFrame",
-    "Index",
-    "MultiIndex",
-    "Timestamp",
-    "Timedelta",
-    "TimedeltaIndex",
-    "DatetimeIndex",
-    "Categorical",
-)
 ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
 
 
@@ -47,16 +36,22 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     parser.add_argument("paths", nargs="*", type=Path)
     args = parser.parse_args(argv)
 
-    for class_name in CLASS_NAMES:
-        pattern = re.compile(
-            PATTERN.format(class_name=class_name).encode(),
-            flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
-        )
-        for path in args.paths:
-            contents = path.read_bytes()
-            match = pattern.search(contents)
-            assert match is None, ERROR_MESSAGE.format(
-                class_name=class_name, path=str(path)
+    pattern = re.compile(
+        PATTERN.encode(),
+        flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
+    )
+    for path in args.paths:
+        contents = path.read_bytes()
+        match = pattern.search(contents)
+        if match is None:
+            continue
+        if match.group(2) is not None:
+            raise AssertionError(
+                ERROR_MESSAGE.format(class_name=match.group(2).decode(), path=str(path))
+            )
+        if match.group(4) is not None:
+            raise AssertionError(
+                ERROR_MESSAGE.format(class_name=match.group(4).decode(), path=str(path))
             )
 
 
