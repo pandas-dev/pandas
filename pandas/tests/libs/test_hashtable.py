@@ -1,9 +1,29 @@
+from contextlib import contextmanager
+import tracemalloc
+
 import numpy as np
 import pytest
 
 from pandas._libs import hashtable as ht
 
 import pandas._testing as tm
+
+
+@contextmanager
+def activated_tracemalloc():
+    tracemalloc.start()
+    try:
+        yield
+    finally:
+        tracemalloc.stop()
+
+
+def get_allocated_khash_memory():
+    snapshot = tracemalloc.take_snapshot()
+    snapshot = snapshot.filter_traces(
+        (tracemalloc.DomainFilter(True, ht.get_hashtable_trace_domain()),)
+    )
+    return sum(map(lambda x: x.size, snapshot.traces))
 
 
 @pytest.mark.parametrize(
@@ -100,6 +120,21 @@ class TestHashTable:
         keys = np.repeat(expected, 5)
         unique = table.unique(keys)
         tm.assert_numpy_array_equal(unique, expected)
+
+    def test_tracemalloc_works(self, table_type, dtype):
+        if dtype in (np.int8, np.uint8):
+            N = 256
+        else:
+            N = 30000
+        keys = np.arange(N).astype(dtype)
+        with activated_tracemalloc():
+            table = table_type()
+            table.map_locations(keys)
+            used = get_allocated_khash_memory()
+            my_size = table.sizeof()
+            assert used == my_size
+            del table
+            assert get_allocated_khash_memory() == 0
 
 
 @pytest.mark.parametrize(

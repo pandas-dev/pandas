@@ -115,6 +115,24 @@ int main() {
 #include "../inline_helper.h"
 
 
+// hooks for memory allocator, C-runtime allocator used per default
+#ifndef KHASH_MALLOC
+#define KHASH_MALLOC malloc
+#endif
+
+#ifndef KHASH_REALLOC
+#define KHASH_REALLOC realloc
+#endif
+
+#ifndef KHASH_CALLOC
+#define KHASH_CALLOC calloc
+#endif
+
+#ifndef KHASH_FREE
+#define KHASH_FREE free
+#endif
+
+
 #if UINT_MAX == 0xffffffffu
 typedef unsigned int khint32_t;
 #elif ULONG_MAX == 0xffffffffu
@@ -265,14 +283,14 @@ static const double __ac_HASH_UPPER = 0.77;
 		khval_t *vals;													\
 	} kh_##name##_t;													\
 	SCOPE kh_##name##_t *kh_init_##name(void) {								\
-		return (kh_##name##_t*)calloc(1, sizeof(kh_##name##_t));		\
+		return (kh_##name##_t*)KHASH_CALLOC(1, sizeof(kh_##name##_t));		\
 	}																	\
 	SCOPE void kh_destroy_##name(kh_##name##_t *h)						\
 	{																	\
 		if (h) {														\
-			free(h->keys); free(h->flags);								\
-			free(h->vals);												\
-			free(h);													\
+			KHASH_FREE(h->keys); KHASH_FREE(h->flags);								\
+			KHASH_FREE(h->vals);												\
+			KHASH_FREE(h);													\
 		}																\
 	}																	\
 	SCOPE void kh_clear_##name(kh_##name##_t *h)						\
@@ -305,11 +323,11 @@ static const double __ac_HASH_UPPER = 0.77;
 			if (new_n_buckets < 4) new_n_buckets = 4;					\
 			if (h->size >= (khint_t)(new_n_buckets * __ac_HASH_UPPER + 0.5)) j = 0;	/* requested size is too small */ \
 			else { /* hash table size to be changed (shrink or expand); rehash */ \
-				new_flags = (khint32_t*)malloc(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
+				new_flags = (khint32_t*)KHASH_MALLOC(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
 				memset(new_flags, 0xff, __ac_fsize(new_n_buckets) * sizeof(khint32_t)); \
 				if (h->n_buckets < new_n_buckets) {	/* expand */		\
-					h->keys = (khkey_t*)realloc(h->keys, new_n_buckets * sizeof(khkey_t)); \
-					if (kh_is_map) h->vals = (khval_t*)realloc(h->vals, new_n_buckets * sizeof(khval_t)); \
+					h->keys = (khkey_t*)KHASH_REALLOC(h->keys, new_n_buckets * sizeof(khkey_t)); \
+					if (kh_is_map) h->vals = (khval_t*)KHASH_REALLOC(h->vals, new_n_buckets * sizeof(khval_t)); \
 				} /* otherwise shrink */								\
 			}															\
 		}																\
@@ -342,10 +360,10 @@ static const double __ac_HASH_UPPER = 0.77;
 				}														\
 			}															\
 			if (h->n_buckets > new_n_buckets) { /* shrink the hash table */ \
-				h->keys = (khkey_t*)realloc(h->keys, new_n_buckets * sizeof(khkey_t)); \
-				if (kh_is_map) h->vals = (khval_t*)realloc(h->vals, new_n_buckets * sizeof(khval_t)); \
+				h->keys = (khkey_t*)KHASH_REALLOC(h->keys, new_n_buckets * sizeof(khkey_t)); \
+				if (kh_is_map) h->vals = (khval_t*)KHASH_REALLOC(h->vals, new_n_buckets * sizeof(khval_t)); \
 			}															\
-			free(h->flags); /* free the working space */				\
+			KHASH_FREE(h->flags); /* free the working space */				\
 			h->flags = new_flags;										\
 			h->n_buckets = new_n_buckets;								\
 			h->n_occupied = h->size;									\
