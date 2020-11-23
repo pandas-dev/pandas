@@ -729,9 +729,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
                 if inferred not in inferrable:
-                    if "mixed" in inferred:
+                    if inferred == "string":
+                        pass
+
+                    elif "mixed" in inferred:
                         return isin(self.astype(object), values)
-                    return np.zeros(self.shape, dtype=bool)
+                    else:
+                        return np.zeros(self.shape, dtype=bool)
 
             try:
                 values = type(self)._from_sequence(values)
