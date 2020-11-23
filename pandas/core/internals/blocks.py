@@ -125,6 +125,15 @@ class Block(PandasObject):
         return obj
 
     def __init__(self, values, placement, ndim: int):
+        """
+        Parameters
+        ----------
+        values : np.ndarray or ExtensionArray
+        placement : BlockPlacement (or castable)
+        ndim : int
+            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        """
+        # TODO(EA2D): ndim will be unnecessary with 2D EAs
         self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
