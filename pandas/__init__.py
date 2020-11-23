@@ -33,7 +33,7 @@ except ImportError as e:  # pragma: no cover
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --inplace --force' to build the C extensions first."
+        "'python setup.py build_ext --force' to build the C extensions first."
     ) from e
 
 from pandas._config import (
@@ -189,25 +189,10 @@ del get_versions, v
 
 
 # GH 27101
-# TODO: remove Panel compat in 1.0
 def __getattr__(name):
     import warnings
 
-    if name == "Panel":
-
-        warnings.warn(
-            "The Panel class is removed from pandas. Accessing it "
-            "from the top-level namespace will also be removed in the next version",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        class Panel:
-            pass
-
-        return Panel
-
-    elif name == "datetime":
+    if name == "datetime":
         warnings.warn(
             "The pandas.datetime class is deprecated "
             "and will be removed from pandas in a future version. "

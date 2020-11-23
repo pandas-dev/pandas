@@ -320,19 +320,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(
-        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     @cache_readonly
     def _engine(self):
         left = self._maybe_convert_i8(self.left)
@@ -373,11 +360,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         return self._data
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
@@ -391,9 +373,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values.dtype):
-            return self._shallow_copy(new_values)
-        return Index.astype(self, dtype, copy=copy)
+        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:
@@ -893,7 +873,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -915,7 +895,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -972,11 +952,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _format_space(self) -> str:
         space = " " * (len(type(self).__name__) + 1)
         return f"\n{space}"
-
-    # --------------------------------------------------------------------
-
-    def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.lexsort((self.right, self.left))
 
     # --------------------------------------------------------------------
     # Set Operations

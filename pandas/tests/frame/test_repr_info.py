@@ -23,6 +23,14 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
+    def test_repr_unicode_level_names(self, frame_or_series):
+        index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
+
+        obj = DataFrame(np.random.randn(2, 4), index=index)
+        if frame_or_series is Series:
+            obj = obj[0]
+        repr(obj)
+
     def test_assign_index_sequences(self):
         # GH#2200
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
