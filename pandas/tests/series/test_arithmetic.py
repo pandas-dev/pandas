@@ -836,9 +836,9 @@ class TestInplaceOperations:
     @pytest.mark.parametrize(
         "dtype1, dtype2, dtype_expected, dtype_mul",
         (
-            ["Int64"] * 4,
-            ["float"] * 4,
-            ["Int64"] + ["float"] * 3,
+            ("Int64", "Int64", "Int64", "Int64"),
+            ("float", "float", "float", "float"),
+            ("Int64", "float", "float", "float"),
             pytest.param(
                 "Int64",
                 "Float64",
