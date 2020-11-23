@@ -8842,12 +8842,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and left.index.tz != right.index.tz
             and join_index is not None
         ):
-            # GH#33671 ensure we don't change the index on
-            #  our original Series (NB: by default deep=False)
-            left = left.copy()
-            right = right.copy()
-            left.index = join_index
-            right.index = join_index
+            left, right = _set_join_index(left, right, join_index)
 
         return (
             left.__finalize__(self),
@@ -8936,12 +8931,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and left.index.tz != right.index.tz
             and join_index is not None
         ):
-            # GH#33671 ensure we don't change the index on
-            #  our original Series (NB: by default deep=False)
-            left = left.copy()
-            right = right.copy()
-            left.index = join_index
-            right.index = join_index
+            left, right = _set_join_index(left, right, join_index)
 
         return (
             left.__finalize__(self),
@@ -11353,6 +11343,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
     def last_valid_index(self):
         return self._find_valid_index("last")
+
+
+def _set_join_index(
+    left: Series, right: Series, join_index: Index
+) -> Tuple[Series, Series]:
+    # GH#33671 ensure we don't change the index on
+    # our original Series (NB: by default deep=False)
+    left = left.copy()
+    right = right.copy()
+    left.index = join_index
+    right.index = join_index
+    return left, right
 
 
 def _doc_parms(cls):
