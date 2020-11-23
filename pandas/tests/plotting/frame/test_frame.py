@@ -148,6 +148,23 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
+    def test_nullable_int_plot(self):
+        # GH 32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [7, 5, np.nan, 3, 2],
+                "C": pd.to_datetime(dates, format="%Y"),
+                "D": pd.to_datetime(dates, format="%Y", utc=True),
+            }
+        )
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].astype("Int64").plot, x="A", y="B")
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+        _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
+
     def test_integer_array_plot(self):
         # GH 25587
         arr = integer_array([1, 2, 3, 4], dtype="UInt32")
