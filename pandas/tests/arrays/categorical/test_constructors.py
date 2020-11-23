@@ -677,8 +677,15 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(cat.categories, idx)
 
         # overlapping
-        idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
+        idx = IntervalIndex([Interval(0, 2), Interval(0, 1)])
         cat = Categorical(idx, categories=idx)
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
+
+    def test_categorical_extension_array_nullable(self, nulls_fixture):
+        # GH:
+        arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
+        result = Categorical(arr)
+        expected = Categorical(Series([pd.NA, pd.NA], dtype="object"))
+        tm.assert_categorical_equal(result, expected)

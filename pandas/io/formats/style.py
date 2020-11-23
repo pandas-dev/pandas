@@ -1,7 +1,6 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
-
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -33,6 +32,7 @@ from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
+from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -204,7 +204,11 @@ class Styler:
         """
         return self.render()
 
-    @doc(NDFrame.to_excel, klass="Styler")
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=generic._shared_docs["storage_options"],
+    )
     def to_excel(
         self,
         excel_writer,
@@ -561,7 +565,6 @@ class Styler:
         '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
         '  </tbody>'
         '</table>'
-
         """
         classes = classes.reindex_like(self.data)
 

@@ -327,9 +327,9 @@ def test_loc_setitem_2d_to_1d_raises():
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "key of type tuple not found and not a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
