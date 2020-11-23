@@ -2490,12 +2490,10 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             values = self._values
 
-        if dropna:
-            try:
-                if self.hasnans:
-                    values = values[~isna(values)]
-            except NotImplementedError:
-                pass
+        if dropna and not isinstance(self, ABCMultiIndex):
+            # isna not defined for MultiIndex
+            if self.hasnans:
+                values = values[~isna(values)]
 
         return self._shallow_copy(values)
 
