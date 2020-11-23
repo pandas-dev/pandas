@@ -226,15 +226,12 @@ def test_astype_int():
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype", ["float", "float32", "Float32", "Float64", np.single, np.double]
-)
-def test_astype_float(dtype):
+def test_astype_float(any_float_allowed_nullable_dtype):
     # Don't compare arrays (37974)
     ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
 
-    result = ser.astype(dtype)
-    expected = pd.Series([1.1, np.nan, 3.3], dtype=dtype)
+    result = ser.astype(any_float_allowed_nullable_dtype)
+    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
     tm.assert_series_equal(result, expected)
 
 
