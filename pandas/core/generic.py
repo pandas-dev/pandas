@@ -11346,8 +11346,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
 
 def _set_join_index(
-    left: Series, right: Series, join_index: Index
-) -> Tuple[Series, Series]:
+    left: FrameOrSeries, right: FrameOrSeries, join_index: Index
+) -> Tuple[FrameOrSeries, FrameOrSeries]:
     # GH#33671 ensure we don't change the index on
     # our original Series (NB: by default deep=False)
     left = left.copy()
