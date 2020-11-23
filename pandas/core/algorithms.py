@@ -218,7 +218,8 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string"]:
+        if inferred in ["mixed", "string", "mixed-integer"]:
+            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -424,28 +425,36 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = construct_1d_object_array_from_listlike(list(values))
         # TODO: could use ensure_arraylike here
 
+    comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
+    if needs_i8_conversion(comps):
+        # Dispatch to DatetimeLikeIndexMixin.isin
+        from pandas import Index
+
+        return Index(comps).isin(values)
+
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
 
-    # faster for larger cases to use np.in1d
     f = htable.ismember_object
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1_000_000 and not is_object_dtype(comps):
+    # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
+    # in1d is faster for small sizes
+    if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps.dtype):
         try:
             values = values.astype("int64", copy=False)
             comps = comps.astype("int64", copy=False)
@@ -454,7 +463,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps.dtype):
         try:
             values = values.astype("float64", copy=False)
             comps = comps.astype("float64", copy=False)
@@ -2149,3 +2158,24 @@ def _sort_tuples(values: np.ndarray[tuple]):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def make_duplicates_of_left_unique_in_right(
+    left: np.ndarray, right: np.ndarray
+) -> np.ndarray:
+    """
+    If left has duplicates, which are also duplicated in right, this duplicated values
+    are dropped from right, meaning that every duplicate value from left exists only
+    once in right.
+
+    Parameters
+    ----------
+    left: ndarray
+    right: ndarray
+
+    Returns
+    -------
+    Duplicates of left are unique in right
+    """
+    left_duplicates = unique(left[duplicated(left)])
+    return right[~(duplicated(right) & isin(right, left_duplicates))]

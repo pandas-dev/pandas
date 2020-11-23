@@ -1222,6 +1222,40 @@ class TestLocWithMultiIndex:
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
+    def test_loc_getitem_sorted_index_level_with_duplicates(self):
+        # GH#4516 sorting a MultiIndex with duplicates and multiple dtypes
+        mi = MultiIndex.from_tuples(
+            [
+                ("foo", "bar"),
+                ("foo", "bar"),
+                ("bah", "bam"),
+                ("bah", "bam"),
+                ("foo", "bar"),
+                ("bah", "bam"),
+            ],
+            names=["A", "B"],
+        )
+        df = DataFrame(
+            [
+                [1.0, 1],
+                [2.0, 2],
+                [3.0, 3],
+                [4.0, 4],
+                [5.0, 5],
+                [6.0, 6],
+            ],
+            index=mi,
+            columns=["C", "D"],
+        )
+        df = df.sort_index(level=0)
+
+        expected = DataFrame(
+            [[1.0, 1], [2.0, 2], [5.0, 5]], columns=["C", "D"], index=mi.take([0, 1, 4])
+        )
+
+        result = df.loc[("foo", "bar")]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1564,6 +1598,23 @@ class TestLabelSlicing:
         expected = ser.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("start", ["2018", "2020"])
+    def test_loc_getitem_slice_unordered_dt_index(self, frame_or_series, start):
+        obj = frame_or_series(
+            [1, 2, 3],
+            index=[Timestamp("2016"), Timestamp("2019"), Timestamp("2017")],
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            obj.loc[start:"2022"]
+
+    @pytest.mark.parametrize("value", [1, 1.5])
+    def test_loc_getitem_slice_labels_int_in_object_index(self, frame_or_series, value):
+        # GH: 26491
+        obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        result = obj.loc[value:"third"]
+        expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        tm.assert_equal(result, expected)
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
@@ -1665,7 +1716,12 @@ class TestLocListlike:
         ser2 = ser[:-1]
         ci2 = ci[1:]
         # but if there are no NAs present, this should raise KeyError
-        msg = "a list-indexer must only include values that are in the categories"
+        msg = (
+            r"Passing list-likes to .loc or \[\] with any missing labels is no "
+            "longer supported. The following labels were missing: "
+            r"(Categorical)?Index\(\[nan\], .*\). "
+            "See https"
+        )
         with pytest.raises(KeyError, match=msg):
             ser2.loc[box(ci2)]
 
@@ -1985,12 +2041,3 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
-
-
-@pytest.mark.parametrize("value", [1, 1.5])
-def test_loc_int_in_object_index(frame_or_series, value):
-    # GH: 26491
-    obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    result = obj.loc[value:"third"]
-    expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    tm.assert_equal(result, expected)

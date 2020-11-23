@@ -1,7 +1,7 @@
 import operator
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -55,6 +55,8 @@ from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas import Index
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
+
+IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
 _interval_shared_docs = {}
 
@@ -617,6 +619,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __le__(self, other):
         return self._cmp_method(other, operator.le)
 
+    def argsort(
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
+    ) -> np.ndarray:
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+
+        if ascending and kind == "quicksort" and na_position == "last":
+            return np.lexsort((self.right, self.left))
+
+        # TODO: other cases we can use lexsort for?  much more performant.
+        return super().argsort(
+            ascending=ascending, kind=kind, na_position=na_position, **kwargs
+        )
+
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
@@ -700,7 +720,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             combined = _get_combined_data(new_left, new_right)
             return type(self)._simple_new(combined, closed=self.closed)
         elif is_categorical_dtype(dtype):
-            return Categorical(np.asarray(self))
+            return Categorical(np.asarray(self), dtype=dtype)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -722,7 +742,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(
+        cls: Type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
+    ) -> IntervalArrayT:
         """
         Concatenate multiple IntervalArray
 
@@ -745,7 +767,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         combined = _get_combined_data(left, right)  # TODO: 1-stage concat
         return cls._simple_new(combined, closed=closed)
 
-    def copy(self):
+    def copy(self: IntervalArrayT) -> IntervalArrayT:
         """
         Return a copy of the array.
 
@@ -1468,10 +1490,19 @@ def _get_combined_data(
             axis=1,
         )
     else:
-        left = cast(Union["DatetimeArray", "TimedeltaArray"], left)
-        right = cast(Union["DatetimeArray", "TimedeltaArray"], right)
-        combined = type(left)._concat_same_type(
-            [left.reshape(-1, 1), right.reshape(-1, 1)],
+        # error: Item "type" of "Union[Type[Index], Type[ExtensionArray]]" has
+        # no attribute "_concat_same_type"  [union-attr]
+
+        # error: Unexpected keyword argument "axis" for "_concat_same_type" of
+        # "ExtensionArray" [call-arg]
+
+        # error: Item "Index" of "Union[Index, ExtensionArray]" has no
+        # attribute "reshape" [union-attr]
+
+        # error: Item "ExtensionArray" of "Union[Index, ExtensionArray]" has no
+        # attribute "reshape" [union-attr]
+        combined = type(left)._concat_same_type(  # type: ignore[union-attr,call-arg]
+            [left.reshape(-1, 1), right.reshape(-1, 1)],  # type: ignore[union-attr]
             axis=1,
         )
     return combined

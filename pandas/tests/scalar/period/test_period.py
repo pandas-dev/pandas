@@ -491,7 +491,7 @@ class TestPeriodConstruction:
     def test_period_large_ordinal(self, hour):
         # Issue #36430
         # Integer overflow for Period over the maximum timestamp
-        p = pd.Period(ordinal=2562048 + hour, freq="1H")
+        p = Period(ordinal=2562048 + hour, freq="1H")
         assert p.hour == hour
 
 
@@ -652,7 +652,7 @@ class TestPeriodMethods:
         assert result == expected
 
     def test_to_timestamp_business_end(self):
-        per = pd.Period("1990-01-05", "B")  # Friday
+        per = Period("1990-01-05", "B")  # Friday
         result = per.to_timestamp("B", how="E")
 
         expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
