@@ -2925,7 +2925,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_hashable(key):
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
-                if self.columns.nlevels > 1:
+                if isinstance(self.columns, MultiIndex):
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
 
