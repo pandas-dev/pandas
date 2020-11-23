@@ -140,8 +140,11 @@ class TestFloatIndexers:
         expected = 3
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "idxr,getitem", [(lambda x: x.loc, False), (lambda x: x, True)]
+    )
     @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_scalar_integer(self, index_func, frame_or_series):
+    def test_scalar_integer(self, index_func, frame_or_series, idxr, getitem):
 
         # test how scalar float indexers work on int indexes
 
@@ -150,37 +153,39 @@ class TestFloatIndexers:
         obj = gen_obj(frame_or_series, i)
 
         # coerce to equal int
-        for idxr, getitem in [(lambda x: x.loc, False), (lambda x: x, True)]:
 
-            result = idxr(obj)[3.0]
-            self.check(result, obj, 3, getitem)
+        result = idxr(obj)[3.0]
+        self.check(result, obj, 3, getitem)
 
-        # coerce to equal int
-        for idxr, getitem in [(lambda x: x.loc, False), (lambda x: x, True)]:
+        if isinstance(obj, Series):
 
-            if isinstance(obj, Series):
+            def compare(x, y):
+                assert x == y
 
-                def compare(x, y):
-                    assert x == y
-
-                expected = 100
+            expected = 100
+        else:
+            compare = tm.assert_series_equal
+            if getitem:
+                expected = Series(100, index=range(len(obj)), name=3)
             else:
-                compare = tm.assert_series_equal
-                if getitem:
-                    expected = Series(100, index=range(len(obj)), name=3)
-                else:
-                    expected = Series(100.0, index=range(len(obj)), name=3)
+                expected = Series(100.0, index=range(len(obj)), name=3)
 
-            s2 = obj.copy()
-            idxr(s2)[3.0] = 100
+        s2 = obj.copy()
+        idxr(s2)[3.0] = 100
 
-            result = idxr(s2)[3.0]
-            compare(result, expected)
+        result = idxr(s2)[3.0]
+        compare(result, expected)
 
-            result = idxr(s2)[3]
-            compare(result, expected)
+        result = idxr(s2)[3]
+        compare(result, expected)
 
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
+    def test_scalar_integer_contains_float(self, index_func, frame_or_series):
         # contains
+        # integer index
+        index = index_func(5)
+        obj = gen_obj(frame_or_series, index)
+
         # coerce to equal int
         assert 3.0 in obj
 

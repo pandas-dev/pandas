@@ -1222,6 +1222,40 @@ class TestLocWithMultiIndex:
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
 
+    def test_loc_getitem_sorted_index_level_with_duplicates(self):
+        # GH#4516 sorting a MultiIndex with duplicates and multiple dtypes
+        mi = MultiIndex.from_tuples(
+            [
+                ("foo", "bar"),
+                ("foo", "bar"),
+                ("bah", "bam"),
+                ("bah", "bam"),
+                ("foo", "bar"),
+                ("bah", "bam"),
+            ],
+            names=["A", "B"],
+        )
+        df = DataFrame(
+            [
+                [1.0, 1],
+                [2.0, 2],
+                [3.0, 3],
+                [4.0, 4],
+                [5.0, 5],
+                [6.0, 6],
+            ],
+            index=mi,
+            columns=["C", "D"],
+        )
+        df = df.sort_index(level=0)
+
+        expected = DataFrame(
+            [[1.0, 1], [2.0, 2], [5.0, 5]], columns=["C", "D"], index=mi.take([0, 1, 4])
+        )
+
+        result = df.loc[("foo", "bar")]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1572,6 +1606,14 @@ class TestLabelSlicing:
         )
         with tm.assert_produces_warning(FutureWarning):
             obj.loc[start:"2022"]
+
+    @pytest.mark.parametrize("value", [1, 1.5])
+    def test_loc_getitem_slice_labels_int_in_object_index(self, frame_or_series, value):
+        # GH: 26491
+        obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        result = obj.loc[value:"third"]
+        expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        tm.assert_equal(result, expected)
 
 
 class TestLocBooleanMask:
@@ -1999,12 +2041,3 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
-
-
-@pytest.mark.parametrize("value", [1, 1.5])
-def test_loc_int_in_object_index(frame_or_series, value):
-    # GH: 26491
-    obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    result = obj.loc[value:"third"]
-    expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    tm.assert_equal(result, expected)
