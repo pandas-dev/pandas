@@ -815,7 +815,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
 
     def is_type_compatible(self, kind: str) -> bool:
-        return typ in [self.inferred_type, "datetime"]
+        return kind in [self.inferred_type, "datetime"]
 
     @property
     def inferred_type(self) -> str:
