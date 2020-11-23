@@ -669,6 +669,17 @@ class TestBlockManager:
             np.array([100.0, 200.0, 300.0]),
         )
 
+    def test_get_numeric_data_copy(self):
+        mgr = create_mgr(
+            "int: int; float: float; complex: complex;"
+            "str: object; bool: bool; obj: object; dt: datetime",
+            item_shape=(3,),
+        )
+        mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
+        numeric = mgr.get_numeric_data()
+        mgr_idx = mgr.items.get_loc("float")
+        num_idx = numeric.items.get_loc("float")
+
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iget(num_idx).internal_values()[:] = [1000.0, 2000.0, 3000.0]
@@ -700,7 +711,15 @@ class TestBlockManager:
             np.array([True, True, True]),
         )
 
-        # Check non-sharing
+    def test_get_bool_data_copy(self):
+        # GH#35417
+        mgr = create_mgr(
+            "int: int; float: float; complex: complex;"
+            "str: object; bool: bool; obj: object; dt: datetime",
+            item_shape=(3,),
+        )
+        mgr.iset(6, np.array([True, False, True], dtype=np.object_))
+
         bools2 = mgr.get_bool_data(copy=True)
         bools2.blocks[0].values[:] = [[False, True, False]]
         tm.assert_numpy_array_equal(

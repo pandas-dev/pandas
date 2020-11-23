@@ -413,9 +413,9 @@ But not others, like :class:`Int64Dtype`.
 In pandas 1.2.0, ``DataFrame.__setitem__`` consistently sets on a new array rather than
 mutating the existing array inplace.
 
-.. ipython:: python
-
 For NumPy's int64 dtype
+
+.. ipython:: python
 
    import pandas as pd
    import numpy as np
@@ -425,6 +425,8 @@ For NumPy's int64 dtype
    a  # not mutated
 
 For :class:`Int64Dtype`.
+
+.. ipython:: python
 
    import pandas as pd
    import numpy as np
