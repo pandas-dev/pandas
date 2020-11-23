@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, period_range
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -146,18 +146,7 @@ class TestScalar2:
         expected = Series([2.0, 2.0], index=["A", "A"], name=1)
         tm.assert_series_equal(df.iloc[1], expected)
 
-    # TODO: belongs somewhere else?
-    def test_getitem_list_missing_key(self):
-        # GH 13822, incorrect error string with non-unique columns when missing
-        # column is accessed
-        df = DataFrame({"x": [1.0], "y": [2.0], "z": [3.0]})
-        df.columns = ["x", "x", "z"]
-
-        # Check that we get the correct value in the KeyError
-        with pytest.raises(KeyError, match=r"\['y'\] not in index"):
-            df[["x", "y", "z"]]
-
-    def test_at_with_tz(self):
+    def test_at_getitem_dt64tz_values(self):
         # gh-15822
         df = DataFrame(
             {
@@ -177,14 +166,6 @@ class TestScalar2:
 
         result = df.at[0, "date"]
         assert result == expected
-
-    def test_series_set_tz_timestamp(self, tz_naive_fixture):
-        # GH 25506
-        ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
-        result = Series(ts)
-        result.at[1] = ts
-        expected = Series([ts, ts])
-        tm.assert_series_equal(result, expected)
 
     def test_mixed_index_at_iat_loc_iloc_series(self):
         # GH 19860
@@ -257,15 +238,6 @@ def test_iat_dont_wrap_object_datetimelike():
         assert result is ser2[1]
         assert isinstance(result, timedelta)
         assert not isinstance(result, Timedelta)
-
-
-def test_iat_series_with_period_index():
-    # GH 4390, iat incorrectly indexing
-    index = period_range("1/1/2001", periods=10)
-    ser = Series(np.random.randn(10), index=index)
-    expected = ser[index[0]]
-    result = ser.iat[0]
-    assert expected == result
 
 
 def test_at_with_tuple_index_get():

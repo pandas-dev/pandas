@@ -112,10 +112,12 @@ def is_bool_indexer(key: Any) -> bool:
             key = np.asarray(key)
 
             if not lib.is_bool_array(key):
-                if isna(key).any():
+                if lib.infer_dtype(key) == "boolean" and isna(key).any():
                     na_msg = (
                         "Cannot mask with non-boolean array containing NA / NaN values"
                     )
+                    # Don't raise on e.g. ["A", "B", np.nan], see
+                    #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
                 return False
             return True
