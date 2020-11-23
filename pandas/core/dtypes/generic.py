@@ -1,4 +1,5 @@
 """ define generic base classes for pandas objects """
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, Type, cast
 
@@ -59,15 +60,15 @@ ABCIndexClass = create_pandas_abc_type(
 )
 
 ABCNDFrame = cast(
-    "Type[NDFrame]",
+    Type[NDFrame],
     create_pandas_abc_type("ABCNDFrame", "_typ", ("series", "dataframe")),
 )
 ABCSeries = cast(
-    "Type[Series]",
+    Type[Series],
     create_pandas_abc_type("ABCSeries", "_typ", ("series",)),
 )
 ABCDataFrame = cast(
-    "Type[DataFrame]", create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+    Type[DataFrame], create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 )
 
 ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ", ("categorical"))

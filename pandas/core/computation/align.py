@@ -1,6 +1,7 @@
 """
 Core eval alignment algorithms.
 """
+from __future__ import annotations
 
 from functools import partial, wraps
 from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Type, Union
@@ -23,10 +24,10 @@ if TYPE_CHECKING:
 
 def _align_core_single_unary_op(
     term,
-) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, "Index"]]]:
+) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, Index]]]:
 
     typ: Union[partial, Type[FrameOrSeries]]
-    axes: Optional[Dict[str, "Index"]] = None
+    axes: Optional[Dict[str, Index]] = None
 
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
@@ -39,8 +40,8 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: Type[FrameOrSeries], new_axes: Sequence["Index"]
-) -> Dict[str, "Index"]:
+    typ: Type[FrameOrSeries], new_axes: Sequence[Index]
+) -> Dict[str, Index]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 
 
