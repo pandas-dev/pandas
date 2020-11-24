@@ -258,6 +258,12 @@ class TestRangeIndexSetOps:
         result = obj.difference(obj[-3:])
         tm.assert_index_equal(result, obj[:-3], exact=True)
 
+        result = obj[::-1].difference(obj[-3:])
+        tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
+
+        result = obj[::-1].difference(obj[-3:][::-1])
+        tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
+
         result = obj.difference(obj[2:6])
         expected = Int64Index([1, 2, 7, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
