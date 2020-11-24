@@ -129,6 +129,21 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
     @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        ser = Series(np.random.randint(1, 10))
+        ax = ser.hist(histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)
+
+    @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
     )
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
@@ -137,7 +152,8 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
-        axes = _check_plot_works(s.hist, legend=True, by=by)
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(s.hist, default_axes=True, legend=True, by=by)
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         self._check_legend_labels(axes, "a")
 
@@ -317,7 +333,8 @@ class TestDataFramePlots(TestPlotBase):
                 dtype=np.int64,
             )
         )
-        _check_plot_works(df.hist)
+        # Use default_axes=True when plotting method generate subplots itself
+        _check_plot_works(df.hist, default_axes=True)
         self.plt.tight_layout()
 
         tm.close()
@@ -330,8 +347,10 @@ class TestDataFramePlots(TestPlotBase):
                 "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
             }
         )
+        # Use default_axes=True when plotting method generate subplots itself
         axes = _check_plot_works(
             df.hist,
+            default_axes=True,
             filterwarnings="always",
             column="length",
             by="animal",
@@ -359,10 +378,30 @@ class TestDataFramePlots(TestPlotBase):
             index=["pig", "rabbit", "duck", "chicken", "horse"],
         )
 
-        axes = _check_plot_works(df.hist, column=column, layout=(1, 3))
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(
+            df.hist,
+            default_axes=True,
+            column=column,
+            layout=(1, 3),
+        )
         result = [axes[0, i].get_title() for i in range(3)]
-
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
+        ax = df.hist(histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -377,7 +416,15 @@ class TestDataFramePlots(TestPlotBase):
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
-        axes = _check_plot_works(df.hist, legend=True, by=by, column=column)
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(
+            df.hist,
+            default_axes=True,
+            legend=True,
+            by=by,
+            column=column,
+        )
+
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
@@ -594,3 +641,18 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         assert ax1._shared_y_axes.joined(ax1, ax2)
         assert ax2._shared_y_axes.joined(ax1, ax2)
+
+    @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
+        ax = df.hist(by="a", histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)

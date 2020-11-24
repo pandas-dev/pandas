@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta, tzinfo
-from typing import Optional, Union
+from typing import Optional, Union, cast
 import warnings
 
 import numpy as np
@@ -154,6 +154,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _scalar_type = Timestamp
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
+    _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
     _bool_ops = [
@@ -301,7 +302,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -444,9 +445,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         if not left_closed and len(index) and index[0] == start:
-            index = index[1:]
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            index = cast(DatetimeArray, index[1:])
         if not right_closed and len(index) and index[-1] == end:
-            index = index[:-1]
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            index = cast(DatetimeArray, index[:-1])
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index.asi8, freq=freq, dtype=dtype)
@@ -454,16 +457,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.datetime64:
-        return np.int64(value).view("M8[ns]")
-
-    def _unbox_scalar(self, value, setitem: bool = False):
+    def _unbox_scalar(self, value, setitem: bool = False) -> np.datetime64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
             self._check_compatible_with(value, setitem=setitem)
-        return value.value
+            return value.asm8
+        return np.datetime64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
@@ -476,9 +476,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # Stricter check for setitem vs comparison methods
             if not timezones.tz_compare(self.tz, other.tz):
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
-
-    def _maybe_clear_freq(self):
-        self._freq = None
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -566,7 +563,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         tstamp : Timestamp
         """
         if self.ndim > 1:
-            return (self[n] for n in range(len(self)))
+            for i in range(len(self)):
+                yield self[i]
         else:
             # convert in chunks of 10k for efficiency
             data = self.asi8
@@ -1970,7 +1968,13 @@ def sequence_to_dt64ns(
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
-            tz = _maybe_infer_tz(tz, inferred_tz)
+            if tz and inferred_tz:
+                #  two timezones: convert to intended from base UTC repr
+                data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
+                data = data.view(DT64NS_DTYPE)
+            elif inferred_tz:
+                tz = inferred_tz
+
         data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],

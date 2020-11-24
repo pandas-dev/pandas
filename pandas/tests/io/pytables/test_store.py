@@ -302,7 +302,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 df = DataFrame({"a": [1]})
 
-                with pd.HDFStore(path, mode="w") as hdf:
+                with HDFStore(path, mode="w") as hdf:
                     hdf.put(
                         "table",
                         df,
@@ -843,7 +843,7 @@ class TestHDFStore:
 
         # Check if file-defaults can be overridden on a per table basis
         with ensure_clean_path(setup_path) as tmpfile:
-            store = pd.HDFStore(tmpfile)
+            store = HDFStore(tmpfile)
             store.append("dfc", df, complevel=9, complib="blosc")
             store.append("df", df)
             store.close()
@@ -1253,16 +1253,31 @@ class TestHDFStore:
             store.append("df2", df[10:], dropna=False)
             tm.assert_frame_equal(store["df2"], df)
 
-        # Test to make sure defaults are to not drop.
-        # Corresponding to Issue 9382
+    def test_store_dropna(self, setup_path):
         df_with_missing = DataFrame(
-            {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+            {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
+            index=list("abc"),
+        )
+        df_without_missing = DataFrame(
+            {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
         )
 
+        # # Test to make sure defaults are to not drop.
+        # # Corresponding to Issue 9382
         with ensure_clean_path(setup_path) as path:
-            df_with_missing.to_hdf(path, "df_with_missing", format="table")
-            reloaded = read_hdf(path, "df_with_missing")
+            df_with_missing.to_hdf(path, "df", format="table")
+            reloaded = read_hdf(path, "df")
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_without_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
@@ -1283,7 +1298,7 @@ class TestHDFStore:
             df = DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            with pd.HDFStore(path, "r") as store:
+            with HDFStore(path, "r") as store:
 
                 with pytest.raises(KeyError, match="'No object named k2 in the file'"):
                     pd.read_hdf(store, "k2")
@@ -3920,11 +3935,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_pathlib(writer, reader)
@@ -3941,11 +3956,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_localpath(writer, reader)
@@ -4814,7 +4829,7 @@ class TestHDFStore:
 
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
     def test_read_py2_hdf_file_in_py3(self, datapath):
@@ -4852,7 +4867,7 @@ class TestHDFStore:
 
         df = DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 store.put("df", df, "t")
                 result = pd.read_hdf(store, "df", where=where)
                 tm.assert_frame_equal(result, df)

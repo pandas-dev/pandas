@@ -82,7 +82,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[values_block_1\] for \[tz\], "
+            r"existing_value \[dateutil/.*US/Eastern\] "
+            r"conflicts with new value \[dateutil/.*EET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -100,7 +106,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[B\] for \[tz\], "
+            r"existing_value \[dateutil/.*EET\] "
+            r"conflicts with new value \[dateutil/.*CET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
@@ -169,7 +181,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[values_block_1\] for \[tz\], "
+            r"existing_value \[US/Eastern\] conflicts with new value \[EET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -187,7 +204,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[B\] for \[tz\], "
+            r"existing_value \[EET\] conflicts with new value \[CET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
@@ -296,14 +318,41 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
-def test_timezones_fixed_format_frame_empty(setup_path, dtype):
+def test_timezones_fixed_format_frame_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
     with ensure_clean_store(setup_path) as store:
         s = Series(dtype=dtype)
         df = DataFrame({"A": s})
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)
+
+
+def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series([0], dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
+
+
+def test_timezones_fixed_format_series_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
 
 
 def test_fixed_offset_tz(setup_path):

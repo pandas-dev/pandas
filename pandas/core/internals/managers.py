@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCNDFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCNDFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
@@ -204,7 +204,7 @@ class BlockManager(PandasObject):
     __bool__ = __nonzero__
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return tuple(len(ax) for ax in self.axes)
 
     @property
@@ -278,14 +278,17 @@ class BlockManager(PandasObject):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs):
-            return make_block(values, placement=mgr_locs)
+        def unpickle_block(values, mgr_locs, ndim: int):
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
             self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
             )
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
@@ -638,9 +641,11 @@ class BlockManager(PandasObject):
             coerce=coerce,
         )
 
-    def replace(self, value, **kwargs) -> "BlockManager":
+    def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":
         assert np.ndim(value) == 0, value
-        return self.apply("replace", value=value, **kwargs)
+        return self.apply(
+            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+        )
 
     def replace_list(
         self: T,
@@ -708,13 +713,28 @@ class BlockManager(PandasObject):
 
     def get_bool_data(self, copy: bool = False) -> "BlockManager":
         """
+        Select blocks that are bool-dtype and columns from object-dtype blocks
+        that are all-bool.
+
         Parameters
         ----------
         copy : bool, default False
             Whether to copy the blocks
         """
-        self._consolidate_inplace()
-        return self._combine([b for b in self.blocks if b.is_bool], copy)
+
+        new_blocks = []
+
+        for blk in self.blocks:
+            if blk.dtype == bool:
+                new_blocks.append(blk)
+
+            elif blk.is_object:
+                nbs = blk._split()
+                for nb in nbs:
+                    if nb.is_bool:
+                        new_blocks.append(nb)
+
+        return self._combine(new_blocks, copy)
 
     def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
@@ -1412,7 +1432,7 @@ class BlockManager(PandasObject):
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = np.empty(block_shape, dtype=dtype)
         block_values.fill(fill_value)
-        return make_block(block_values, placement=placement)
+        return make_block(block_values, placement=placement, ndim=block_values.ndim)
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -1635,7 +1655,9 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
                 # is basically "all items", but if there're many, don't bother
                 # converting, it's an error anyway.
                 blocks = [
-                    make_block(values=blocks[0], placement=slice(0, len(axes[0])))
+                    make_block(
+                        values=blocks[0], placement=slice(0, len(axes[0])), ndim=2
+                    )
                 ]
 
         mgr = BlockManager(blocks, axes)
@@ -1655,8 +1677,11 @@ def create_block_manager_from_arrays(
     assert isinstance(axes, list)
     assert all(isinstance(x, Index) for x in axes)
 
+    # ensure we dont have any PandasArrays when we call get_block_type
+    # Note: just calling extract_array breaks tests that patch PandasArray._typ.
+    arrays = [x if not isinstance(x, ABCPandasArray) else x.to_numpy() for x in arrays]
     try:
-        blocks = form_blocks(arrays, names, axes)
+        blocks = _form_blocks(arrays, names, axes)
         mgr = BlockManager(blocks, axes)
         mgr._consolidate_inplace()
         return mgr
@@ -1688,7 +1713,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
 # -----------------------------------------------------------------------
 
 
-def form_blocks(arrays, names: Index, axes) -> List[Block]:
+def _form_blocks(arrays, names: Index, axes) -> List[Block]:
     # put "leftover" items in float bucket, where else?
     # generalize?
     items_dict: DefaultDict[str, List] = defaultdict(list)
@@ -1735,7 +1760,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=i)
+            make_block(array, klass=DatetimeTZBlock, placement=i, ndim=2)
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1750,15 +1775,14 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=i)
+            make_block(array, klass=CategoricalBlock, placement=i, ndim=2)
             for i, _, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
-
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=i)
+            make_block(array, klass=ExtensionBlock, placement=i, ndim=2)
             for i, _, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1766,7 +1790,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=i, ndim=2)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
@@ -1779,7 +1803,7 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
         block_values = np.empty(shape, dtype=object)
         block_values.fill(np.nan)
 
-        na_block = make_block(block_values, placement=extra_locs)
+        na_block = make_block(block_values, placement=extra_locs, ndim=2)
         blocks.append(na_block)
 
     return blocks
@@ -1796,7 +1820,7 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    block = make_block(values, placement=placement)
+    block = make_block(values, placement=placement, ndim=2)
     return [block]
 
 
@@ -1810,7 +1834,7 @@ def _multi_blockify(tuples, dtype=None):
 
         values, placement = _stack_arrays(list(tup_block), dtype)
 
-        block = make_block(values, placement=placement)
+        block = make_block(values, placement=placement, ndim=2)
         new_blocks.append(block)
 
     return new_blocks
@@ -1825,7 +1849,7 @@ def _stack_arrays(tuples, dtype):
         else:
             return np.asarray(x)
 
-    def _shape_compat(x):
+    def _shape_compat(x) -> Shape:
         if isinstance(x, ABCSeries):
             return (len(x),)
         else:
@@ -1901,7 +1925,7 @@ def _merge_blocks(
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 
-        return [make_block(new_values, placement=new_mgr_locs)]
+        return [make_block(new_values, placement=new_mgr_locs, ndim=2)]
 
     # can't consolidate --> no merge
     return blocks
