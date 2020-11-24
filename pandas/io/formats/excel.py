@@ -727,7 +727,7 @@ class ExcelFormatter:
                             val=values[i],
                             style=self.header_style,
                             mergestart=(
-                                self.rowcounter + i + spanval - 1
+                                self.rowcounter + i + span_val - 1
                                 if spans_multiple_cells
                                 else None
                             ),
