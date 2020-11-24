@@ -1,4 +1,11 @@
 """ define generic base classes for pandas objects """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Type, cast
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 
 # define abstract base classes to enable isinstance type checking on our
@@ -53,9 +60,17 @@ ABCIndexClass = create_pandas_abc_type(
     },
 )
 
-ABCNDFrame = create_pandas_abc_type("ABCNDFrame", "_typ", ("series", "dataframe"))
-ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
-ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+ABCNDFrame = cast(
+    "Type[NDFrame]",
+    create_pandas_abc_type("ABCNDFrame", "_typ", ("series", "dataframe")),
+)
+ABCSeries = cast(
+    "Type[Series]",
+    create_pandas_abc_type("ABCSeries", "_typ", ("series",)),
+)
+ABCDataFrame = cast(
+    "Type[DataFrame]", create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+)
 
 ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ", ("categorical"))
 ABCDatetimeArray = create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray"))

@@ -8,6 +8,8 @@ import token
 import tokenize
 from typing import Iterator, Tuple
 
+from pandas._typing import Label
+
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
 
@@ -91,7 +93,7 @@ def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: str) -> str:
+def clean_column_name(name: "Label") -> "Label":
     """
     Function to emulate the cleaning of a backtick quoted name.
 
@@ -102,12 +104,12 @@ def clean_column_name(name: str) -> str:
 
     Parameters
     ----------
-    name : str
+    name : hashable
         Name to be cleaned.
 
     Returns
     -------
-    name : str
+    name : hashable
         Returns the name after tokenizing and cleaning.
 
     Notes

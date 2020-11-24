@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series
+    from pandas import Categorical, DataFrame, Index, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -540,7 +540,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
