@@ -24,10 +24,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
-from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.base import IndexOpsMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -159,16 +157,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-
             should_try = False
+            inferrable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferrable
             elif is_categorical_dtype(other.dtype):
@@ -217,10 +207,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             result._data._freq = freq
         return result
 
-    @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
-    def searchsorted(self, value, side="left", sorter=None):
-        return self._data.searchsorted(value, side=side, sorter=sorter)
-
     _can_hold_na = True
 
     _na_value = NaT
@@ -256,22 +242,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return self._na_value
 
         i8 = self.asi8
-        try:
-            # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[0] != iNaT:
-                    return self._data._box_func(i8[0])
 
-            if self.hasnans:
-                if skipna:
-                    min_stamp = self[~self._isnan].asi8.min()
-                else:
-                    return self._na_value
-            else:
-                min_stamp = i8.min()
-            return self._data._box_func(min_stamp)
-        except ValueError:
+        if len(i8) and self.is_monotonic_increasing:
+            # quick check
+            if i8[0] != iNaT:
+                return self._data._box_func(i8[0])
+
+        if self.hasnans:
+            if not skipna:
+                return self._na_value
+            i8 = i8[~self._isnan]
+
+        if not len(i8):
             return self._na_value
+
+        min_stamp = i8.min()
+        return self._data._box_func(min_stamp)
 
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -313,22 +299,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return self._na_value
 
         i8 = self.asi8
-        try:
-            # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[-1] != iNaT:
-                    return self._data._box_func(i8[-1])
 
-            if self.hasnans:
-                if skipna:
-                    max_stamp = self[~self._isnan].asi8.max()
-                else:
-                    return self._na_value
-            else:
-                max_stamp = i8.max()
-            return self._data._box_func(max_stamp)
-        except ValueError:
+        if len(i8) and self.is_monotonic:
+            # quick check
+            if i8[-1] != iNaT:
+                return self._data._box_func(i8[-1])
+
+        if self.hasnans:
+            if not skipna:
+                return self._na_value
+            i8 = i8[~self._isnan]
+
+        if not len(i8):
             return self._na_value
+
+        max_stamp = i8.max()
+        return self._data._box_func(max_stamp)
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -463,7 +449,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         vals = self._data._ndarray
         unbox = self._data._unbox
 
-        if self.is_monotonic:
+        if self.is_monotonic_increasing:
 
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
@@ -504,58 +490,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
     __truediv__ = make_wrapped_arith_op("__truediv__")
     __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
-
-    def isin(self, values, level=None):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values.
-
-        Parameters
-        ----------
-        values : set or sequence of values
-
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
-        """
-        if level is not None:
-            self._validate_index_level(level)
-
-        if not hasattr(values, "dtype"):
-            values = np.asarray(values)
-
-        if values.dtype.kind in ["f", "i", "u", "c"]:
-            # TODO: de-duplicate with equals, validate_comparison_value
-            return np.zeros(self.shape, dtype=bool)
-
-        if not isinstance(values, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-            if values.dtype == object:
-                inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
-                    if "mixed" in inferred:
-                        return self.astype(object).isin(values)
-                    return np.zeros(self.shape, dtype=bool)
-
-            try:
-                values = type(self)(values)
-            except ValueError:
-                return self.astype(object).isin(values)
-
-        try:
-            self._data._check_compatible_with(values)
-        except (TypeError, ValueError):
-            # Includes tzawareness mismatch and IncompatibleFrequencyError
-            return np.zeros(self.shape, dtype=bool)
-
-        return algorithms.isin(self.asi8, values.asi8)
 
     def shift(self, periods=1, freq=None):
         """
@@ -705,6 +639,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return False
+
+    def is_type_compatible(self, kind: str) -> bool:
+        return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
     # Set Operation Methods

@@ -177,12 +177,6 @@ class TestDatetimeIndex:
         result = rng.groupby(rng.day)
         assert isinstance(list(result.values())[0][0], Timestamp)
 
-        idx = DatetimeIndex(["2000-01-03", "2000-01-01", "2000-01-02"])
-        assert not idx.equals(list(idx))
-
-        non_datetime = Index(list("abc"))
-        assert not idx.equals(list(non_datetime))
-
     def test_string_index_series_name_converted(self):
         # #1644
         df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))

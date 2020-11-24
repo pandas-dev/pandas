@@ -768,7 +768,7 @@ def test_timestamp_multiindex_indexer():
         [
             pd.date_range(
                 start="2019-01-02T00:15:33",
-                end="2019-01-05T02:15:33",
+                end="2019-01-05T03:15:33",
                 freq="H",
                 name="date",
             ),
@@ -817,8 +817,8 @@ def test_pyint_engine():
     # integers, rather than uint64.
     N = 5
     keys = [
-        tuple(l)
-        for l in [
+        tuple(arr)
+        for arr in [
             [0] * 10 * N,
             [1] * 10 * N,
             [2] * 10 * N,
