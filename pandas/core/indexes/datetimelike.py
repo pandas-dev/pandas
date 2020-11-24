@@ -546,10 +546,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
                 if (
-                    isinstance(loc, slice)
-                    and loc.step in (1, None)
-                    and (loc.start in (0, None) or loc.stop in (len(self), None))
+                    com.is_full_slice(loc, len(self)) or com.is_null_slice(loc)
                 ):
+                    breakpoint()
                     freq = self.freq
         return freq
 

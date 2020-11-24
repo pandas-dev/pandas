@@ -5833,10 +5833,11 @@ def trim_front(strings: List[str]) -> List[str]:
     """
     Trims zeros and decimal points.
     """
-    trimmed = strings
-    while trimmed and all(x.startswith(" ") for x in trimmed):
-        trimmed = [x[1:] for x in trimmed]
-    return trimmed
+    if not strings:
+        return strings
+    while all(x[0] == ' ' for x in strings):
+        strings = [x[1:] for x in strings]
+    return strings
 
 
 def _validate_join_method(method: str):
