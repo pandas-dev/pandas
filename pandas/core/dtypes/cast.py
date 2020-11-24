@@ -88,12 +88,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import (
-    is_valid_nat_for_dtype,
-    isna,
-    na_value_for_dtype,
-    notna,
-)
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -1697,11 +1692,10 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
-        elif dtype.kind in ["M", "m"] and is_valid_nat_for_dtype(value, dtype):
-            # GH36541: can't fill array directly with pd.NaT
-            # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
-            # ValueError: cannot convert float NaN to integer
-            value = np.datetime64("NaT")
+        elif dtype.kind in ["M", "m"]:
+            # GH36541: can't fill array directly with pd.NaT -> ValueError
+            # GH38032: filling in pd.Timedelta loses nanoseconds
+            value = convert_scalar_for_putitemlike(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
