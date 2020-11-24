@@ -243,7 +243,8 @@ def maybe_convert_index(ax: "Axes", data):
 
         if freq is None:
             # We only get here for DatetimeIndex
-            freq = data.index.inferred_freq
+            # error Item "DatetimeIndex" has no attribute "inferred_freq"
+            freq = data.index.inferred_freq  # type: ignore[union-attr]
             freq = to_offset(freq)
 
         if freq is None:

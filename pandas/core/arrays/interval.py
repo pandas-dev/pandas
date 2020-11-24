@@ -1455,7 +1455,7 @@ def _maybe_cast_inputs(
     elif isinstance(left, ABCDatetimeIndex) and not is_dtype_equal(
         left.dtype, right.dtype
     ):
-        left_arr = cast("DatetimeArray", left._data)
+        left_arr = left._data
         right_arr = cast("DatetimeArray", right._data)
         msg = (
             "left and right must have the same time zone, got "
