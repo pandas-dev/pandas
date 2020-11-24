@@ -411,6 +411,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 self.tz is None and other.tz is not None
             ):
                 raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
                 other = other.tz_convert("UTC")
