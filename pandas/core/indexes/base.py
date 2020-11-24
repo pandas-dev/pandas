@@ -5145,7 +5145,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self, values)
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
