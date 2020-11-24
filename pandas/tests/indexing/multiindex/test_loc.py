@@ -661,6 +661,15 @@ def test_getitem_non_found_tuple():
         df.loc[(2.0, 2.0, 3.0)]
 
 
+def test_get_loc_datetime_index():
+    # GH#24263
+    index = pd.date_range("2001-01-01", periods=100)
+    mi = MultiIndex.from_arrays([index])
+    # Check if get_loc matches for Index and MultiIndex
+    assert mi.get_loc("2001-01") == slice(0, 31, None)
+    assert index.get_loc("2001-01") == slice(0, 31, None)
+
+
 def test_loc_setitem_indexer_differently_ordered():
     # GH#34603
     mi = MultiIndex.from_product([["a", "b"], [0, 1]])
