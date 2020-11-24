@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
-from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
@@ -158,16 +157,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-
             should_try = False
+            inferrable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferrable
             elif is_categorical_dtype(other.dtype):
@@ -500,58 +491,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     __truediv__ = make_wrapped_arith_op("__truediv__")
     __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
-    def isin(self, values, level=None):
-        """
-        Compute boolean array of whether each index value is found in the
-        passed set of values.
-
-        Parameters
-        ----------
-        values : set or sequence of values
-
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
-        """
-        if level is not None:
-            self._validate_index_level(level)
-
-        if not hasattr(values, "dtype"):
-            values = np.asarray(values)
-
-        if values.dtype.kind in ["f", "i", "u", "c"]:
-            # TODO: de-duplicate with equals, validate_comparison_value
-            return np.zeros(self.shape, dtype=bool)
-
-        if not isinstance(values, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-            if values.dtype == object:
-                inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
-                    if "mixed" in inferred:
-                        return self.astype(object).isin(values)
-                    return np.zeros(self.shape, dtype=bool)
-
-            try:
-                values = type(self)(values)
-            except ValueError:
-                return self.astype(object).isin(values)
-
-        try:
-            self._data._check_compatible_with(values)
-        except (TypeError, ValueError):
-            # Includes tzawareness mismatch and IncompatibleFrequencyError
-            return np.zeros(self.shape, dtype=bool)
-
-        return algorithms.isin(self.asi8, values.asi8)
-
     def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
@@ -700,6 +639,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return False
+
+    def is_type_compatible(self, kind: str) -> bool:
+        return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
     # Set Operation Methods

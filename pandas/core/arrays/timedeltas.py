@@ -104,6 +104,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _scalar_type = Timedelta
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype = is_timedelta64_dtype
+    _infer_matches = ("timedelta", "timedelta64")
 
     __array_priority__ = 1000
     # define my properties & methods for delegation
