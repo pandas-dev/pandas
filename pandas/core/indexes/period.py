@@ -250,7 +250,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self) -> np.ndarray:
-        return np.asarray(self)
+        return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other):
         """

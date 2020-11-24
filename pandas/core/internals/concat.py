@@ -89,6 +89,7 @@ def concatenate_block_managers(
             b = make_block(
                 _concatenate_join_units(join_units, concat_axis, copy=copy),
                 placement=placement,
+                ndim=len(axes),
             )
         blocks.append(b)
 
