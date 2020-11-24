@@ -2192,7 +2192,9 @@ def test_merge_multiindex_columns():
     result = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf)))
 
     # Constructing the expected results
-    expected_labels = [l + l_suf for l in letters] + [l + r_suf for l in letters]
+    expected_labels = [letter + l_suf for letter in letters] + [
+        letter + r_suf for letter in letters
+    ]
     expected_index = pd.MultiIndex.from_product(
         [expected_labels, numbers], names=["outer", "inner"]
     )

@@ -339,8 +339,8 @@ class TestClassConstructors(Base):
             return {"data": breaks}
 
         ivs = [
-            Interval(l, r, closed) if notna(l) else l
-            for l, r in zip(breaks[:-1], breaks[1:])
+            Interval(left, right, closed) if notna(left) else left
+            for left, right in zip(breaks[:-1], breaks[1:])
         ]
 
         if isinstance(breaks, list):

@@ -817,8 +817,8 @@ def test_pyint_engine():
     # integers, rather than uint64.
     N = 5
     keys = [
-        tuple(l)
-        for l in [
+        tuple(arr)
+        for arr in [
             [0] * 10 * N,
             [1] * 10 * N,
             [2] * 10 * N,

@@ -776,8 +776,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "D"
 
     @pytest.mark.slow
     def test_mixed_freq_alignment(self):
@@ -803,8 +803,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(legend=True, ax=ax)
         high.plot(legend=True, ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "D"
         leg = ax.get_legend()
         assert len(leg.texts) == 2
         self.plt.close(ax.get_figure())
@@ -816,8 +816,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
         high.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "T"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "T"
 
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
@@ -882,8 +882,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
 
     @pytest.mark.slow
     def test_from_weekly_resampling(self):
@@ -900,9 +900,9 @@ class TestTSPlot(TestPlotBase):
             [1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549, 1553, 1558, 1562],
             dtype=np.float64,
         )
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-            xdata = l.get_xdata(orig=False)
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            xdata = line.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
             else:
@@ -1013,8 +1013,8 @@ class TestTSPlot(TestPlotBase):
         high.plot(ax=ax)
         low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "L"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "L"
         tm.close()
 
         # low to high
@@ -1022,8 +1022,8 @@ class TestTSPlot(TestPlotBase):
         low.plot(ax=ax)
         high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "L"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "L"
 
     @pytest.mark.slow
     def test_irreg_dtypes(self):
@@ -1154,12 +1154,12 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
         ax = high.plot(secondary_y=True, ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(line.get_xdata()).freq == "D"
         assert hasattr(ax, "left_ax")
         assert not hasattr(ax, "right_ax")
-        for l in ax.left_ax.get_lines():
-            assert PeriodIndex(l.get_xdata()).freq == "D"
+        for line in ax.left_ax.get_lines():
+            assert PeriodIndex(line.get_xdata()).freq == "D"
 
     @pytest.mark.slow
     def test_secondary_legend(self):
@@ -1259,9 +1259,9 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         xaxis = ax.get_xaxis()
-        for l in xaxis.get_ticklabels():
-            if len(l.get_text()) > 0:
-                assert l.get_rotation() == 30
+        for line in xaxis.get_ticklabels():
+            if len(line.get_text()) > 0:
+                assert line.get_rotation() == 30
 
     @pytest.mark.slow
     def test_ax_plot(self):

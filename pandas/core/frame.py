@@ -726,7 +726,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max(len(l) for l in value.split("\n"))
+        repr_width = max(len(line) for line in value.split("\n"))
 
         return repr_width < width
 
@@ -5962,13 +5962,16 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            arrays = [array_op(l, r) for l, r in zip(self._iter_column_arrays(), right)]
+            arrays = [
+                array_op(_left, _right)
+                for _left, _right in zip(self._iter_column_arrays(), right)
+            ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
 
-            arrays = [array_op(l, right) for l in self._iter_column_arrays()]
+            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             # Remaining cases have less-obvious dispatch rules

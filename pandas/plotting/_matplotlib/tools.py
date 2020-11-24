@@ -444,8 +444,8 @@ def get_all_lines(ax: "Axes") -> List["Line2D"]:
 
 def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
-    for l in lines:
-        x = l.get_xdata(orig=False)
+    for line in lines:
+        x = line.get_xdata(orig=False)
         left = min(np.nanmin(x), left)
         right = max(np.nanmax(x), right)
     return left, right

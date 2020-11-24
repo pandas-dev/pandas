@@ -4689,7 +4689,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
 
         # remove names for 'level_%d'
         df.index = df.index.set_names(
-            [None if self._re_levels.search(l) else l for l in df.index.names]
+            [None if self._re_levels.search(name) else name for name in df.index.names]
         )
 
         return df
