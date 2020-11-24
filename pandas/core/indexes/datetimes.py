@@ -814,9 +814,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def is_type_compatible(self, kind: str) -> bool:
-        return kind in [self.inferred_type, "datetime"]
-
     @property
     def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
