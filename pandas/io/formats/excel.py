@@ -429,7 +429,7 @@ class ExcelFormatter:
             Format string for floating point numbers
     cols : sequence, optional
         Columns to write
-    header : boolean or sequence of strings, default True
+    header : boolean or sequence of str, default True
         Write out column names. If a list of string is given it is
         assumed to be aliases for the column names
     index : boolean, default True
