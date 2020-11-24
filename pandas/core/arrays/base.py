@@ -6,13 +6,26 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+from __future__ import annotations
+
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Shape, TypeVar
+from pandas._typing import ArrayLike, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -243,8 +256,9 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(self, item):
-        # type (Any) -> Any
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
 
@@ -457,6 +471,7 @@ class ExtensionArray:
             NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -464,7 +479,11 @@ class ExtensionArray:
                 return self
             else:
                 return self.copy()
-        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+
+        # FIXME: Really hard-code here?
+        if isinstance(
+            dtype, (ArrowStringDtype, StringDtype)
+        ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
@@ -650,7 +669,7 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
         Shift values by desired number.
 
@@ -820,7 +839,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -929,7 +948,7 @@ class ExtensionArray:
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> "ExtensionArray":
+    ) -> ExtensionArray:
         """
         Take elements from an array.
 
@@ -1098,7 +1117,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes) -> "ExtensionArray":
+    def transpose(self, *axes) -> ExtensionArray:
         """
         Return a transposed view on this array.
 
@@ -1108,10 +1127,10 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self) -> "ExtensionArray":
+    def T(self) -> ExtensionArray:
         return self.transpose()
 
-    def ravel(self, order="C") -> "ExtensionArray":
+    def ravel(self, order="C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1132,8 +1151,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence["ExtensionArray"]
-    ) -> "ExtensionArray":
+        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+    ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
 

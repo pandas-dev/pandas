@@ -411,16 +411,14 @@ class TestPivotTable:
             },
             index=idx,
         )
-        res = df.pivot_table(
-            index=df.index.month, columns=pd.Grouper(key="dt", freq="M")
-        )
+        res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="M"))
         exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
         exp = DataFrame([3.25, 2.0], index=[1, 2], columns=exp_columns)
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
-            index=pd.Grouper(freq="A"), columns=pd.Grouper(key="dt", freq="M")
+            index=Grouper(freq="A"), columns=Grouper(key="dt", freq="M")
         )
         exp = DataFrame(
             [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
@@ -2055,8 +2053,8 @@ class TestPivotTable:
 
     def test_pivot_table_no_column_raises(self):
         # GH 10326
-        def agg(l):
-            return np.mean(l)
+        def agg(arr):
+            return np.mean(arr)
 
         foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):

@@ -1,4 +1,6 @@
-from typing import Any, Optional, Sequence, TypeVar
+from __future__ import annotations
+
+from typing import Any, Optional, Sequence, Type, TypeVar, Union
 
 import numpy as np
 
@@ -170,7 +172,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._concat_same_type)
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(
+        cls: Type[NDArrayBackedExtensionArrayT],
+        to_concat: Sequence[NDArrayBackedExtensionArrayT],
+        axis: int = 0,
+    ) -> NDArrayBackedExtensionArrayT:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
@@ -208,7 +214,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
+    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -292,3 +300,43 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
         return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+
+    # ------------------------------------------------------------------------
+    # __array_function__ methods
+
+    def putmask(self, mask, value):
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        np.putmask(self._ndarray, mask, value)
+
+    def where(self, mask, value):
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be cast to self.dtype.
+        """
+        value = self._validate_setitem_value(value)
+
+        res_values = np.where(mask, self._ndarray, value)
+        return self._from_backing_data(res_values)
