@@ -829,7 +829,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(l.is_floating for l in columns.levels)
+            restrict_formatting = any(level.is_floating for level in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):

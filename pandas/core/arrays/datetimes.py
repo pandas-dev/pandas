@@ -154,6 +154,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _scalar_type = Timestamp
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
+    _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
     _bool_ops = [

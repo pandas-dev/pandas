@@ -815,12 +815,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         columns = list("ABCDEFG")
 
-        def gen_test(l, l2):
+        def gen_test(length, l2):
             return pd.concat(
                 [
                     DataFrame(
-                        np.random.randn(l, len(columns)),
-                        index=np.arange(l),
+                        np.random.randn(length, len(columns)),
+                        index=np.arange(length),
                         columns=columns,
                     ),
                     DataFrame(
