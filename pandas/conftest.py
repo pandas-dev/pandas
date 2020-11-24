@@ -33,8 +33,10 @@ from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series
+from pandas import DataFrame, Interval, Period, Series, Timestamp
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -690,8 +692,17 @@ def float_frame():
 # ----------------------------------------------------------------
 # Scalars
 # ----------------------------------------------------------------
-@pytest.fixture(params=[Interval(0, 1), Period("2019Q1", freq="Q")])
-def ea_scalar(request):
+@pytest.fixture(
+    params=[
+        (Interval(0, 1), "interval[int64]"),
+        (Period("2019Q1", freq="Q"), "period[Q-DEC]"),
+        (
+            Timestamp("2011-01-01", tz="US/Eastern"),
+            DatetimeTZDtype(tz="US/Eastern"),
+        ),
+    ]
+)
+def ea_scalar_and_dtype(request):
     return request.param
 
 
