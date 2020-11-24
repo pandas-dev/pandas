@@ -122,4 +122,3 @@ Bug report function
    :toctree: api/
 
    show_versions
-

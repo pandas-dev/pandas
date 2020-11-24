@@ -6,6 +6,7 @@ from functools import wraps
 import gzip
 import operator
 import os
+import re
 from shutil import rmtree
 import string
 import tempfile
@@ -84,6 +85,7 @@ ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
@@ -115,14 +117,24 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("always", _testing_mode_warnings)
+        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "always", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("ignore", _testing_mode_warnings)
+        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 set_testing_mode()
@@ -239,16 +251,22 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, "rb")
     elif compression == "gzip":
-        f = gzip.open(path, "rb")
+        # pandas\_testing.py:243: error: Incompatible types in assignment
+        # (expression has type "IO[Any]", variable has type "BinaryIO")
+        f = gzip.open(path, "rb")  # type: ignore[assignment]
     elif compression == "bz2":
-        f = bz2.BZ2File(path, "rb")
+        # pandas\_testing.py:245: error: Incompatible types in assignment
+        # (expression has type "BZ2File", variable has type "BinaryIO")
+        f = bz2.BZ2File(path, "rb")  # type: ignore[assignment]
     elif compression == "xz":
         f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
-            f = zip_file.open(zip_names.pop())
+            # pandas\_testing.py:252: error: Incompatible types in assignment
+            # (expression has type "IO[bytes]", variable has type "BinaryIO")
+            f = zip_file.open(zip_names.pop())  # type: ignore[assignment]
         else:
             raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
     else:
@@ -284,9 +302,15 @@ def write_to_compressed(compression, path, data, dest="test"):
     if compression == "zip":
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        compress_method = gzip.GzipFile
+        # pandas\_testing.py:288: error: Incompatible types in assignment
+        # (expression has type "Type[GzipFile]", variable has type
+        # "Type[ZipFile]")
+        compress_method = gzip.GzipFile  # type: ignore[assignment]
     elif compression == "bz2":
-        compress_method = bz2.BZ2File
+        # pandas\_testing.py:290: error: Incompatible types in assignment
+        # (expression has type "Type[BZ2File]", variable has type
+        # "Type[ZipFile]")
+        compress_method = bz2.BZ2File  # type: ignore[assignment]
     elif compression == "xz":
         compress_method = get_lzma_file(lzma)
     else:
@@ -298,7 +322,10 @@ def write_to_compressed(compression, path, data, dest="test"):
         method = "writestr"
     else:
         mode = "wb"
-        args = (data,)
+        # pandas\_testing.py:302: error: Incompatible types in assignment
+        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
+        # Any]")
+        args = (data,)  # type: ignore[assignment]
         method = "write"
 
     with compress_method(path, mode=mode) as f:
@@ -665,6 +692,7 @@ def assert_index_equal(
     check_less_precise: Union[bool, int] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str = "Index",
@@ -694,6 +722,12 @@ def assert_index_equal(
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_order : bool, default True
+        Whether to compare the order of index entries as well as their values.
+        If True, both indexes must contain the same elements, in the same order.
+        If False, both indexes must contain the same elements, but in any order.
+
+        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -705,30 +739,36 @@ def assert_index_equal(
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_index_equal
+    >>> a = pd.Index([1, 2, 3])
+    >>> b = pd.Index([1, 2, 3])
+    >>> assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
-    def _check_types(l, r, obj="Index"):
+    def _check_types(left, right, obj="Index"):
         if exact:
-            assert_class_equal(l, r, exact=exact, obj=obj)
+            assert_class_equal(left, right, exact=exact, obj=obj)
 
             # Skip exact dtype checking when `check_categorical` is False
             if check_categorical:
-                assert_attr_equal("dtype", l, r, obj=obj)
+                assert_attr_equal("dtype", left, right, obj=obj)
 
             # allow string-like to have different inferred_types
-            if l.inferred_type in ("string"):
-                assert r.inferred_type in ("string")
+            if left.inferred_type in ("string"):
+                assert right.inferred_type in ("string")
             else:
-                assert_attr_equal("inferred_type", l, r, obj=obj)
+                assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
         filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
-        values = unique._shallow_copy(filled, name=index.names[level])
-        return values
+        return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -759,6 +799,11 @@ def assert_index_equal(
         msg2 = f"{len(left)}, {left}"
         msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
+
+    # If order doesn't matter then sort the index entries
+    if not check_order:
+        left = left.sort_values()
+        right = right.sort_values()
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -976,8 +1021,14 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
-    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
+    kwargs = {}
+    if left._left.dtype.kind in ["m", "M"]:
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -988,20 +1039,22 @@ def assert_period_array_equal(left, right, obj="PeriodArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
+def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
+def assert_timedelta_array_equal(left, right, obj="TimedeltaArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
@@ -1094,9 +1147,9 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for l, r in zip(left, right):
+            for left_arr, right_arr in zip(left, right):
                 # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
+                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
@@ -1159,6 +1212,13 @@ def assert_extension_array_equal(
     Missing values are checked separately from valid values.
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_extension_array_equal
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b, c = a.array, a.array
+    >>> assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
@@ -1288,6 +1348,13 @@ def assert_series_equal(
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_series_equal
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b = pd.Series([1, 2, 3, 4])
+    >>> assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -1572,9 +1639,6 @@ def assert_frame_equal(
             obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
-    if check_like:
-        left, right = left.reindex_like(right), right
-
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
@@ -1586,6 +1650,7 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.index",
@@ -1599,10 +1664,14 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.columns",
     )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # compare by blocks
     if by_blocks:
@@ -1861,8 +1930,7 @@ def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
-    return dr
+    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
@@ -1960,8 +2028,7 @@ def index_subclass_makers_generator():
         makeCategoricalIndex,
         makeMultiIndex,
     ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func
+    yield from make_index_funcs
 
 
 def all_timeseries_index_generator(k=10):
@@ -1975,7 +2042,8 @@ def all_timeseries_index_generator(k=10):
     """
     make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
     for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
+        # pandas\_testing.py:1986: error: Cannot call function of unknown type
+        yield make_index_func(k=k)  # type: ignore[operator]
 
 
 # make series
@@ -2109,7 +2177,8 @@ def makeCustomIndex(
         p=makePeriodIndex,
     ).get(idx_type)
     if idx_func:
-        idx = idx_func(nentries)
+        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -2137,7 +2206,8 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        cnt = Counter()
+        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
+        cnt = Counter()  # type: ignore[var-annotated]
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
@@ -2295,7 +2365,14 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "density"  [misc]
+
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "random_state"  [misc]
+    i, j = _create_missing_idx(  # type: ignore[misc]
+        *df.shape, density=density, random_state=random_state
+    )
     df.values[i, j] = np.nan
     return df
 
@@ -2320,7 +2397,10 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            args = []
+            # pandas\_testing.py:2331: error: Incompatible types in assignment
+            # (expression has type "List[<nothing>]", variable has type
+            # "Tuple[Any, ...]")
+            args = []  # type: ignore[assignment]
             return dec(f)
         else:
             return dec
@@ -2404,7 +2484,7 @@ def can_connect(url, error_classes=None):
 @optional_args
 def network(
     t,
-    url="http://www.google.com",
+    url="https://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
@@ -2428,7 +2508,7 @@ def network(
         The test requiring network connectivity.
     url : path
         The url to test via ``pandas.io.common.urlopen`` to check
-        for connectivity. Defaults to 'http://www.google.com'.
+        for connectivity. Defaults to 'https://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
     check_before_test : bool
@@ -2472,7 +2552,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @network("http://www.yahoo.com")
+        >>> @network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
@@ -2502,15 +2582,20 @@ def network(
 
     @wraps(t)
     def wrapper(*args, **kwargs):
-        if check_before_test and not raise_on_error:
-            if not can_connect(url, error_classes):
-                skip()
+        if (
+            check_before_test
+            and not raise_on_error
+            and not can_connect(url, error_classes)
+        ):
+            skip()
         try:
             return t(*args, **kwargs)
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(err.reason, "errno", None)
+                # pandas\_testing.py:2521: error: "Exception" has no attribute
+                # "reason"
+                errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
                 skip(f"Skipping test due to known errno and error {err}")
@@ -2538,10 +2623,11 @@ with_connectivity_check = network
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning=Warning,
+    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
     filter_level="always",
-    check_stacklevel=True,
-    raise_on_extra_warnings=True,
+    check_stacklevel: bool = True,
+    raise_on_extra_warnings: bool = True,
+    match: Optional[str] = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -2576,6 +2662,8 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
+    match : str, optional
+        Match warning message.
 
     Examples
     --------
@@ -2602,28 +2690,28 @@ def assert_produces_warning(
     with warnings.catch_warnings(record=True) as w:
 
         saw_warning = False
+        matched_message = False
+
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
         for actual_warning in w:
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
+            if not expected_warning:
+                continue
+
+            expected_warning = cast(Type[Warning], expected_warning)
+            if issubclass(actual_warning.category, expected_warning):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
                     actual_warning.category, (FutureWarning, DeprecationWarning)
                 ):
-                    from inspect import getframeinfo, stack
+                    _assert_raised_with_correct_stacklevel(actual_warning)
 
-                    caller = getframeinfo(stack()[2][0])
-                    msg = (
-                        "Warning not set with correct stacklevel. "
-                        f"File where warning is raised: {actual_warning.filename} != "
-                        f"{caller.filename}. Warning message: {actual_warning.message}"
-                    )
-                    assert actual_warning.filename == caller.filename, msg
+                if match is not None and re.search(match, str(actual_warning.message)):
+                    matched_message = True
+
             else:
                 extra_warnings.append(
                     (
@@ -2633,16 +2721,39 @@ def assert_produces_warning(
                         actual_warning.lineno,
                     )
                 )
+
         if expected_warning:
-            msg = (
-                f"Did not see expected warning of class "
-                f"{repr(expected_warning.__name__)}"
-            )
-            assert saw_warning, msg
+            expected_warning = cast(Type[Warning], expected_warning)
+            if not saw_warning:
+                raise AssertionError(
+                    f"Did not see expected warning of class "
+                    f"{repr(expected_warning.__name__)}"
+                )
+
+            if match and not matched_message:
+                raise AssertionError(
+                    f"Did not see warning {repr(expected_warning.__name__)} "
+                    f"matching {match}"
+                )
+
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
                 f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
+
+
+def _assert_raised_with_correct_stacklevel(
+    actual_warning: warnings.WarningMessage,
+) -> None:
+    from inspect import getframeinfo, stack
+
+    caller = getframeinfo(stack()[3][0])
+    msg = (
+        "Warning not set with correct stacklevel. "
+        f"File where warning is raised: {actual_warning.filename} != "
+        f"{caller.filename}. Warning message: {actual_warning.message}"
+    )
+    assert actual_warning.filename == caller.filename, msg
 
 
 class RNGContext:
@@ -2893,8 +3004,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
         Expected output of to_csv() in current OS.
     """
     sep = os.linesep
-    expected = sep.join(rows_list) + sep
-    return expected
+    return sep.join(rows_list) + sep
 
 
 def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
