@@ -2531,14 +2531,17 @@ class DataFrame(NDFrame, OpsMixin):
                 is used. By default, the setting in
                 ``pandas.options.display.max_info_columns`` is used."""
         ),
-        null_counts_sub=dedent(
+        show_counts_sub=dedent(
             """\
-            null_counts : bool, optional
+            show_counts : bool, optional
                 Whether to show the non-null counts. By default, this is shown
                 only if the DataFrame is smaller than
                 ``pandas.options.display.max_info_rows`` and
                 ``pandas.options.display.max_info_columns``. A value of True always
-                shows the counts, and False never shows the counts."""
+                shows the counts, and False never shows the counts.
+            null_counts : bool, optional
+                .. deprecated:: 1.2.0
+                    Use show_counts instead."""
         ),
         examples_sub=dedent(
             """\
