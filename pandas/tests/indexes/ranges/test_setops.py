@@ -247,16 +247,16 @@ class TestRangeIndexSetOps:
 
         result = obj.difference(obj)
         expected = RangeIndex.from_range(range(0), name="foo")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = obj.difference(expected.rename("bar"))
-        tm.assert_index_equal(result, obj.rename(None))
+        tm.assert_index_equal(result, obj.rename(None), exact=True)
 
         result = obj.difference(obj[:3])
-        tm.assert_index_equal(result, obj[3:])
+        tm.assert_index_equal(result, obj[3:], exact=True)
 
         result = obj.difference(obj[-3:])
-        tm.assert_index_equal(result, obj[:-3])
+        tm.assert_index_equal(result, obj[:-3], exact=True)
 
         result = obj.difference(obj[2:6])
         expected = Int64Index([1, 2, 7, 8, 9], name="foo")

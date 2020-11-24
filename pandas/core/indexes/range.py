@@ -664,9 +664,9 @@ class RangeIndex(Int64Index):
         if overlap[0] == first.start:
             # The difference is everything after the intersection
             new_rng = range(overlap[-1] + first.step, first.stop, first.step)
-        elif overlap[-1] == first.stop:
+        elif overlap[-1] == first[-1]:
             # The difference is everything before the intersection
-            new_rng = range(first.start, overlap[0] - first.step, first.step)
+            new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
             return super().difference(other, sort=sort)
