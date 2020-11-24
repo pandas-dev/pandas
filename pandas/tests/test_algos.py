@@ -311,7 +311,7 @@ class TestFactorize:
     def test_factorize_rangeindex(self, sort):
         # increasing -> sort doesn't matter
         ri = pd.RangeIndex.from_range(range(10))
-        expected = np.arange(10), ri
+        expected = np.arange(10, dtype=np.intp), ri
 
         result = algos.factorize(ri, sort=sort)
         tm.assert_numpy_array_equal(result[0], expected[0])
@@ -325,7 +325,7 @@ class TestFactorize:
     def test_factorize_rangeindex_decreasing(self, sort):
         # decreasing -> sort matters
         ri = pd.RangeIndex.from_range(range(10))
-        expected = np.arange(10), ri
+        expected = np.arange(10, dtype=np.intp), ri
 
         ri2 = ri[::-1]
         expected = expected[0], ri2
