@@ -101,6 +101,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         _generate_range
     """
 
+    # _infer_matches -> which infer_dtype strings are close enough to our own
+    _infer_matches: Tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
