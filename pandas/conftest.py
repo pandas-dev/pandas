@@ -33,7 +33,7 @@ from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
 
 import pandas as pd
 from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
@@ -694,8 +694,10 @@ def float_frame():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(0, 1), "interval[int64]"),
-        (Period("2019Q1", freq="Q"), "period[Q-DEC]"),
+        (Interval(left=0, right=5), IntervalDtype("int64")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        (Period("2012-01", freq="M"), "period[M]"),
+        (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
             DatetimeTZDtype(tz="US/Eastern"),
