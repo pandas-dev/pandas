@@ -461,7 +461,6 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    @doc(Int64Index.factorize)
     def factorize(
         self, sort: bool = False, na_sentinel: Optional[int] = -1
     ) -> Tuple[np.ndarray, "RangeIndex"]:
