@@ -3151,8 +3151,8 @@ class Index(IndexOpsMixin, PandasObject):
                 )
 
             indexer = self._engine.get_indexer(target._get_engine_target())
-        x = ensure_platform_int(indexer)
-        return x
+
+        return ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
@@ -4883,8 +4883,8 @@ class Index(IndexOpsMixin, PandasObject):
             tgt_values = np.asarray(target)
         else:
             tgt_values = target._get_engine_target()
-        engine = self._engine
-        indexer, missing = engine.get_indexer_non_unique(tgt_values)
+
+        indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), missing
 
     @final
