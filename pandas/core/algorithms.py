@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series
+    from pandas import Categorical, DataFrame, Index, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -433,10 +433,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         return cast("Categorical", comps).isin(values)
 
     if needs_i8_conversion(comps):
-        # Dispatch to DatetimeLikeIndexMixin.isin
-        from pandas import Index
-
-        return Index(comps).isin(values)
+        # Dispatch to DatetimeLikeArrayMixin.isin
+        return array(comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -542,7 +540,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
