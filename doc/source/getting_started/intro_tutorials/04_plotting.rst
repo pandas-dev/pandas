@@ -131,8 +131,8 @@ standard Python to get an overview of the available plot methods:
     ]
 
 .. note::
-    In many development environments as well as ipython and
-    jupyter notebook, use the TAB button to get an overview of the available
+    In many development environments as well as IPython and
+    Jupyter Notebook, use the TAB button to get an overview of the available
     methods, for example ``air_quality.plot.`` + TAB.
 
 One of the options is :meth:`DataFrame.plot.box`, which refers to a
