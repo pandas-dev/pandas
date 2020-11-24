@@ -717,21 +717,12 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
-    @pytest.mark.parametrize(
-        "data,dtype",
-        [
-            (Period("2012-01", freq="M"), "period[M]"),
-            (Period("2012-02-01", freq="D"), "period[D]"),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
-        ],
-    )
-    def test_constructor_period_dict_scalar(self, data, dtype):
-        # scalar periods
-        df = DataFrame({"a": data}, index=[0])
-        assert df["a"].dtype == dtype
+    def test_constructor_dict_extension_scalar(self, ea_scalar_and_dtype):
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+        df = DataFrame({"a": ea_scalar}, index=[0])
+        assert df["a"].dtype == ea_dtype
 
-        expected = DataFrame(index=[0], columns=["a"], data=data)
+        expected = DataFrame(index=[0], columns=["a"], data=ea_scalar)
 
         tm.assert_frame_equal(df, expected)
 
