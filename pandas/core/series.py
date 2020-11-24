@@ -2086,7 +2086,6 @@ Name: Max Speed, dtype: float64
                 i = delegate.argmin()
 
         else:
-            skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
             i = nanops.nanargmin(delegate, skipna=skipna)
             if i == -1:
                 return np.nan
