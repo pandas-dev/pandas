@@ -373,9 +373,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values.dtype):
-            return self._shallow_copy(new_values)
-        return Index.astype(self, dtype, copy=copy)
+        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:

@@ -232,6 +232,7 @@ Other enhancements
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
+- :meth:`Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
@@ -595,6 +596,7 @@ Interval
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dtypes (:issue:`34871`)
 - Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 - Bug in :meth:`IntervalIndex.putmask` with datetime-like dtype incorrectly casting to object dtype (:issue:`37968`)
+- Bug in :meth:`IntervalArray.astype` incorrectly dropping dtype information with a :class:`CategoricalDtype` object (:issue:`37984`)
 -
 
 Indexing
@@ -664,6 +666,7 @@ I/O
 - Parse missing values using :func:`read_json` with ``dtype=False`` to ``NaN`` instead of ``None`` (:issue:`28501`)
 - :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
+- Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 
 Period
 ^^^^^^
