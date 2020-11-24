@@ -660,6 +660,10 @@ class RangeIndex(Int64Index):
         if not isinstance(overlap, RangeIndex):
             # We wont end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
+        if overlap.step != first.step:
+            # In some cases we might be able to get a RangeIndex back,
+            #  but not worth the effort.
+            return super().difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection

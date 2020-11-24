@@ -268,6 +268,17 @@ class TestRangeIndexSetOps:
         expected = Int64Index([1, 2, 7, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
 
+    def test_difference_mismatched_step(self):
+        obj = RangeIndex.from_range(range(1, 10), name="foo")
+
+        result = obj.difference(obj[::2])
+        expected = obj[1::2]._int64index
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = obj.difference(obj[1::2])
+        expected = obj[::2]._int64index
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_symmetric_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
