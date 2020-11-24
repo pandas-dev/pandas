@@ -2077,13 +2077,15 @@ Name: Max Speed, dtype: float64
         nan
         """
         delegate = self._values
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # dispatch to ExtensionArray interface
-            i = delegate.argmin()
+            if not skipna and isna(delegate).any():
+                return np.nan
+            else:
+                i = delegate.argmin()
 
         else:
-            # dispatch to numpy arrays
             skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
             i = nanops.nanargmin(delegate, skipna=skipna)
             if i == -1:
@@ -2156,14 +2158,15 @@ Name: Max Speed, dtype: float64
         nan
         """
         delegate = self._values
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            # dispatch to ExtensionArray interface
-            i = delegate.argmax()
+            if not skipna and isna(delegate).any():
+                return np.nan
+            else:
+                i = delegate.argmax()
 
         else:
-            # dispatch to numpy arrays
-            skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
             i = nanops.nanargmax(delegate, skipna=skipna)
             if i == -1:
                 return np.nan
