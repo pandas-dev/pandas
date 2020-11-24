@@ -1980,7 +1980,7 @@ class MultiIndex(Index):
 
             if len(uniques) != len(lev) + has_na:
 
-                if -1 in level_codes and len(uniques) == len(lev):
+                if lev.isna().any() and len(uniques) == len(lev):
                     break
                 # We have unused levels
                 changed = True
