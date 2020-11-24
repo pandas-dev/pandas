@@ -687,3 +687,30 @@ class TestTimeSeriesArithmetic:
         result = series - offset
         expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
         tm.assert_series_equal(result, expected)
+
+
+class TestInplaceOperations:
+    @pytest.mark.parametrize(
+        "dtype1, dtype2, dtype_expected, dtype_mul",
+        (
+            ("Int64", "Int64", "Int64", "Int64"),
+            ("float", "float", "float", "float"),
+            ("Int64", "float", "float", "float"),
+        ),
+    )
+    def test_series_inplace_ops(self, dtype1, dtype2, dtype_expected, dtype_mul):
+        # GH 37910
+
+        ser1 = Series([1], dtype=dtype1)
+        ser2 = Series([2], dtype=dtype2)
+        ser1 += ser2
+        expected = Series([3], dtype=dtype_expected)
+        tm.assert_series_equal(ser1, expected)
+
+        ser1 -= ser2
+        expected = Series([1], dtype=dtype_expected)
+        tm.assert_series_equal(ser1, expected)
+
+        ser1 *= ser2
+        expected = Series([2], dtype=dtype_mul)
+        tm.assert_series_equal(ser1, expected)
