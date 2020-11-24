@@ -893,6 +893,15 @@ class MultiIndex(Index):
     def nlevels(self) -> int:
         """
         Integer number of levels in this MultiIndex.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b'], ['c']])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
+        >>> mi.nlevels
+        3
         """
         return len(self._levels)
 
@@ -900,6 +909,15 @@ class MultiIndex(Index):
     def levshape(self):
         """
         A tuple with the length of each level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a'], ['b'], ['c']])
+        >>> mi
+        MultiIndex([('a', 'b', 'c')],
+                   )
+        >>> mi.levshape
+        (1, 1, 1)
         """
         return tuple(len(x) for x in self.levels)
 
@@ -1045,7 +1063,7 @@ class MultiIndex(Index):
     def _engine(self):
         # Calculate the number of bits needed to represent labels in each
         # level, as log2 of their sizes (including -1 for NaN):
-        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
+        sizes = np.ceil(np.log2([len(level) + 1 for level in self.levels]))
 
         # Sum bit counts, starting from the _right_....
         lev_bits = np.cumsum(sizes[::-1])[::-1]
@@ -1199,10 +1217,10 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """ return a boolean if we need a qualified .info display """
 
-        def f(l):
-            return "mixed" in l or "string" in l or "unicode" in l
+        def f(level):
+            return "mixed" in level or "string" in level or "unicode" in level
 
-        return any(f(l) for l in self._inferred_type_levels)
+        return any(f(level) for level in self._inferred_type_levels)
 
     @doc(Index.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
@@ -1436,7 +1454,22 @@ class MultiIndex(Index):
         self._reset_cache()
 
     names = property(
-        fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
+        fset=_set_names,
+        fget=_get_names,
+        doc="""
+        Names of levels in MultiIndex.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays(
+        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        >>> mi
+        MultiIndex([(1, 3, 5),
+                    (2, 4, 6)],
+                   names=['x', 'y', 'z'])
+        >>> mi.names
+        FrozenList(['x', 'y', 'z'])
+        """,
     )
 
     # --------------------------------------------------------------------
@@ -1680,6 +1713,32 @@ class MultiIndex(Index):
         --------
         DataFrame : Two-dimensional, size-mutable, potentially heterogeneous
             tabular data.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([['a', 'b'], ['c', 'd']])
+        >>> mi
+        MultiIndex([('a', 'c'),
+                    ('b', 'd')],
+                   )
+
+        >>> df = mi.to_frame()
+        >>> df
+             0  1
+        a c  a  c
+        b d  b  d
+
+        >>> df = mi.to_frame(index=False)
+        >>> df
+           0  1
+        0  a  c
+        1  b  d
+
+        >>> df = mi.to_frame(name=['x', 'y'])
+        >>> df
+             x  y
+        a c  a  c
+        b d  b  d
         """
         from pandas import DataFrame
 
@@ -2217,6 +2276,24 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=['x', 'y'])
+        >>> mi
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.reorder_levels(order=[1, 0])
+        MultiIndex([(3, 1),
+                    (4, 2)],
+                   names=['y', 'x'])
+
+        >>> mi.reorder_levels(order=['y', 'x'])
+        MultiIndex([(3, 1),
+                    (4, 2)],
+                   names=['y', 'x'])
         """
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
@@ -2275,6 +2352,34 @@ class MultiIndex(Index):
             Resulting index.
         indexer : np.ndarray
             Indices of output values in original index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([[0, 0], [2, 1]])
+        >>> mi
+        MultiIndex([(0, 2),
+                    (0, 1)],
+                   )
+
+        >>> mi.sortlevel()
+        (MultiIndex([(0, 1),
+                    (0, 2)],
+                   ), array([1, 0]))
+
+        >>> mi.sortlevel(sort_remaining=False)
+        (MultiIndex([(0, 2),
+                    (0, 1)],
+                   ), array([0, 1]))
+
+        >>> mi.sortlevel(1)
+        (MultiIndex([(0, 1),
+                    (0, 2)],
+                   ), array([1, 0]))
+
+        >>> mi.sortlevel(1, ascending=False)
+        (MultiIndex([(0, 2),
+                    (0, 1)],
+                   ), array([0, 1]))
         """
         if isinstance(level, (str, int)):
             level = [level]
