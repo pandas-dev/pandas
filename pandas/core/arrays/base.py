@@ -8,7 +8,6 @@ An interface for extending pandas with custom arrays.
 """
 from __future__ import annotations
 
-import abc
 import operator
 from typing import (
     Any,
@@ -607,10 +606,6 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         return nargminmax(self, "argmax")
-
-    @abc.abstractmethod
-    def _validate_setitem_value(self, value):
-        pass
 
     def fillna(self, value=None, method=None, limit=None):
         """
