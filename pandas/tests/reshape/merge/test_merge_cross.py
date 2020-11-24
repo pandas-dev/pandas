@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 
 from pandas import DataFrame
@@ -93,3 +95,15 @@ def test_join_cross_error_reporting():
     )
     with pytest.raises(MergeError, match=msg):
         left.join(right, how="cross", on="a")
+
+
+def test_merge_cross_duplicate_on_column():
+    # GH#5401
+    left = DataFrame({"a": [1, 2], f"_cross_{hashlib.md5().hexdigest()}": [2, 3]})
+    right = DataFrame({"b": [3]})
+    msg = (
+        f"_cross_{hashlib.md5().hexdigest()} is the synthetic column to perform "
+        f"the cross merge. This column can not be an input column."
+    )
+    with pytest.raises(MergeError, match=msg):
+        merge(left, right, how="cross")

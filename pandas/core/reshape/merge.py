@@ -1238,6 +1238,11 @@ class _MergeOperation:
             to join over.
         """
         cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        if cross_col in left.columns or cross_col in right.columns:
+            raise MergeError(
+                f"{cross_col} is the synthetic column to perform the "
+                f"cross merge. This column can not be an input column."
+            )
         how = "inner"
         return (
             left.assign(**{cross_col: 1}),
