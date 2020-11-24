@@ -41,7 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import ops
 from pandas.core.algorithms import factorize_array, unique
@@ -360,7 +360,7 @@ class ExtensionArray:
         """
         # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
         # would raise a TypeError. The implementation below works around that.
-        if isna(item):
+        if is_valid_nat_for_dtype(item, self.dtype):
             return isna(self).any() if self._can_hold_na else False
         else:
             return (item == self).any()

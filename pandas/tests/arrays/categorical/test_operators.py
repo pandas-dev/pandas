@@ -401,14 +401,17 @@ class TestCategoricalOps:
         cat = Categorical(["a", "b"], ordered=ordered)
         assert "a" in cat
         assert "x" not in cat
+        assert np.nan not in cat
         assert pd.NA not in cat
 
         cat = Categorical([np.nan, "a"], ordered=ordered)
         assert "a" in cat
         assert "x" not in cat
+        assert np.nan in cat
         assert pd.NA in cat
 
         cat = cat[::-1]
         assert "a" in cat
         assert "x" not in cat
+        assert np.nan in cat
         assert pd.NA in cat
