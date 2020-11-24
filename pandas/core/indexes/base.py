@@ -1575,6 +1575,33 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays(
+        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        >>> mi
+        MultiIndex([(1, 3, 5),
+                    (2, 4, 6)],
+                   names=['x', 'y', 'z'])
+
+        >>> mi.droplevel()
+        MultiIndex([(3, 5),
+                    (4, 6)],
+                   names=['y', 'z'])
+
+        >>> mi.droplevel(2)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel('z')
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel(['x', 'y'])
+        Int64Index([5, 6], dtype='int64', name='z')
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -2490,12 +2517,10 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             values = self._values
 
-        if dropna:
-            try:
-                if self.hasnans:
-                    values = values[~isna(values)]
-            except NotImplementedError:
-                pass
+        if dropna and not isinstance(self, ABCMultiIndex):
+            # isna not defined for MultiIndex
+            if self.hasnans:
+                values = values[~isna(values)]
 
         return self._shallow_copy(values)
 
@@ -3986,7 +4011,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self: _IndexT, joined: np.ndarray, other: _IndexT
+    ) -> _IndexT:
+        assert other.dtype == self.dtype
+
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
         else:
@@ -4188,7 +4217,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind) -> bool:
+    def is_type_compatible(self, kind: str_t) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """
@@ -5116,7 +5145,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self, values)
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,

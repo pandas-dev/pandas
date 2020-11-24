@@ -1359,7 +1359,6 @@ class BarPlot(MPLPlot):
         self.bar_width = kwargs.pop("width", 0.5)
         pos = kwargs.pop("position", 0.5)
         kwargs.setdefault("align", "center")
-        self.tick_pos = np.arange(len(data))
 
         self.bottom = kwargs.pop("bottom", 0)
         self.left = kwargs.pop("left", 0)
@@ -1382,7 +1381,16 @@ class BarPlot(MPLPlot):
                 self.tickoffset = self.bar_width * pos
                 self.lim_offset = 0
 
-        self.ax_pos = self.tick_pos - self.tickoffset
+        if isinstance(self.data.index, ABCMultiIndex):
+            if kwargs["ax"] is not None and kwargs["ax"].has_data():
+                warnings.warn(
+                    "Redrawing a bar plot with a MultiIndex is not supported "
+                    + "and may lead to inconsistent label positions.",
+                    UserWarning,
+                )
+            self.ax_index = np.arange(len(data))
+        else:
+            self.ax_index = self.data.index
 
     def _args_adjust(self):
         if is_list_like(self.bottom):
@@ -1409,6 +1417,15 @@ class BarPlot(MPLPlot):
 
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
+
+            if self.orientation == "vertical":
+                ax.xaxis.update_units(self.ax_index)
+                self.tick_pos = ax.convert_xunits(self.ax_index).astype(np.int)
+            elif self.orientation == "horizontal":
+                ax.yaxis.update_units(self.ax_index)
+                self.tick_pos = ax.convert_yunits(self.ax_index).astype(np.int)
+            self.ax_pos = self.tick_pos - self.tickoffset
+
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
@@ -1480,8 +1497,8 @@ class BarPlot(MPLPlot):
             str_index = [pprint_thing(key) for key in range(data.shape[0])]
         name = self._get_index_name()
 
-        s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
-        e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+        s_edge = self.ax_pos.min() - 0.25 + self.lim_offset
+        e_edge = self.ax_pos.max() + 0.25 + self.bar_width + self.lim_offset
 
         self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
 
@@ -1563,7 +1580,7 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
+                blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
                 # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
                 # types in assignment (expression has type "None", variable has

@@ -229,9 +229,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     # -------------------------------------------------------------------
 
-    def is_type_compatible(self, typ) -> bool:
-        return typ == self.inferred_type or typ == "timedelta"
-
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
