@@ -325,47 +325,6 @@ class TestDatetimeIndexOps:
         assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
 
-    def test_equals(self):
-        # GH 13107
-        idx = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"])
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
-        assert idx.astype(object).equals(idx)
-        assert idx.astype(object).equals(idx.astype(object))
-        assert not idx.equals(list(idx))
-        assert not idx.equals(Series(idx))
-
-        idx2 = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"], tz="US/Pacific")
-        assert not idx.equals(idx2)
-        assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.astype(object))
-        assert not idx.astype(object).equals(idx2)
-        assert not idx.equals(list(idx2))
-        assert not idx.equals(Series(idx2))
-
-        # same internal, different tz
-        idx3 = DatetimeIndex(idx.asi8, tz="US/Pacific")
-        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-        assert not idx.equals(idx3)
-        assert not idx.equals(idx3.copy())
-        assert not idx.equals(idx3.astype(object))
-        assert not idx.astype(object).equals(idx3)
-        assert not idx.equals(list(idx3))
-        assert not idx.equals(Series(idx3))
-
-        # check that we do not raise when comparing with OutOfBounds objects
-        oob = Index([datetime(2500, 1, 1)] * 3, dtype=object)
-        assert not idx.equals(oob)
-        assert not idx2.equals(oob)
-        assert not idx3.equals(oob)
-
-        # check that we do not raise when comparing with OutOfBounds dt64
-        oob2 = oob.map(np.datetime64)
-        assert not idx.equals(oob2)
-        assert not idx2.equals(oob2)
-        assert not idx3.equals(oob2)
-
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
@@ -429,9 +388,6 @@ class TestBusinessDatetimeIndex:
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    def test_equals(self):
-        assert not self.rng.equals(list(self.rng))
-
     def test_identical(self):
         t1 = self.rng.copy()
         t2 = self.rng.copy()
@@ -465,6 +421,3 @@ class TestCustomDatetimeIndex:
         cp = self.rng.copy()
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
-
-    def test_equals(self):
-        assert not self.rng.equals(list(self.rng))

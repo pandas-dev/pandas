@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import numpy as np
 import pytest
 
@@ -227,37 +225,6 @@ class TestTimedeltaIndexOps:
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
-
-    def test_equals(self):
-        # GH 13107
-        idx = TimedeltaIndex(["1 days", "2 days", "NaT"])
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
-        assert idx.astype(object).equals(idx)
-        assert idx.astype(object).equals(idx.astype(object))
-        assert not idx.equals(list(idx))
-        assert not idx.equals(Series(idx))
-
-        idx2 = TimedeltaIndex(["2 days", "1 days", "NaT"])
-        assert not idx.equals(idx2)
-        assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.astype(object))
-        assert not idx.astype(object).equals(idx2)
-        assert not idx.astype(object).equals(idx2.astype(object))
-        assert not idx.equals(list(idx2))
-        assert not idx.equals(Series(idx2))
-
-        # Check that we dont raise OverflowError on comparisons outside the
-        #  implementation range
-        oob = pd.Index([timedelta(days=10 ** 6)] * 3, dtype=object)
-        assert not idx.equals(oob)
-        assert not idx2.equals(oob)
-
-        # FIXME: oob.apply(np.timedelta64) incorrectly overflows
-        oob2 = pd.Index([np.timedelta64(x) for x in oob], dtype=object)
-        assert not idx.equals(oob2)
-        assert not idx2.equals(oob2)
 
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
