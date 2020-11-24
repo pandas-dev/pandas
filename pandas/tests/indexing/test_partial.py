@@ -208,7 +208,7 @@ class TestPartialSetting:
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
             r"in the \[index\]\""
@@ -289,7 +289,7 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match="with any missing labels"):
             ser.loc[[2, 2, "x", 1]]
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
             r"name='idx'\)\] are in the \[index\]\""
