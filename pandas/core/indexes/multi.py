@@ -3075,8 +3075,10 @@ class MultiIndex(Index):
             # given the inputs and the codes/indexer, compute an indexer set
             # if we have a provided indexer, then this need not consider
             # the entire labels set
-
-            r = np.arange(start, stop, step)
+            if step is not None and step < 0:
+                r = np.arange(stop - 1, start - 1, step)
+            else:
+                r = np.arange(start, stop, step)
             if indexer is not None and len(indexer) != len(codes):
 
                 # we have an indexer which maps the locations in the labels
@@ -3339,6 +3341,8 @@ class MultiIndex(Index):
                         k_codes = k_codes[k_codes >= 0]  # Filter absent keys
                         # True if the given codes are not ordered
                         need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                elif isinstance(k, slice) and k.step is not None and k.step < 0:
+                    need_sort = True
             # Bail out if both index and seq are sorted
             if not need_sort:
                 return indexer
@@ -3362,6 +3366,11 @@ class MultiIndex(Index):
                 key_order_map[level_indexer] = np.arange(len(level_indexer))
 
                 new_order = key_order_map[self.codes[i][indexer]]
+            elif isinstance(k, slice) and k.step is not None and k.step < 0:
+                new_order = np.arange(n)[k][indexer]
+            elif isinstance(k, slice) and k.start is None and k.stop is None:
+                # slice(None) should not determine order GH#31330
+                new_order = np.ones((n,))[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
