@@ -36,7 +36,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Interval, Period, Series, Timestamp
+from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -700,6 +700,7 @@ def float_frame():
             Timestamp("2011-01-01", tz="US/Eastern"),
             DatetimeTZDtype(tz="US/Eastern"),
         ),
+        (Timedelta(seconds=500), "timedelta64[ns]"),
     ]
 )
 def ea_scalar_and_dtype(request):
