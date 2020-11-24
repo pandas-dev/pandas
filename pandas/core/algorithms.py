@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series
+    from pandas import Categorical, DataFrame, Index, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -218,7 +218,8 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string"]:
+        if inferred in ["mixed", "string", "mixed-integer"]:
+            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -424,11 +425,16 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = construct_1d_object_array_from_listlike(list(values))
         # TODO: could use ensure_arraylike here
 
+    comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
         return cast("Categorical", comps).isin(values)
+
+    if needs_i8_conversion(comps):
+        # Dispatch to DatetimeLikeArrayMixin.isin
+        return array(comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -534,7 +540,7 @@ def factorize(
     sort: bool = False,
     na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+) -> Tuple[np.ndarray, Union[np.ndarray, "Index"]]:
     """
     Encode the object as an enumerated type or categorical variable.
 
@@ -2150,3 +2156,24 @@ def _sort_tuples(values: np.ndarray[tuple]):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
+
+
+def make_duplicates_of_left_unique_in_right(
+    left: np.ndarray, right: np.ndarray
+) -> np.ndarray:
+    """
+    If left has duplicates, which are also duplicated in right, this duplicated values
+    are dropped from right, meaning that every duplicate value from left exists only
+    once in right.
+
+    Parameters
+    ----------
+    left: ndarray
+    right: ndarray
+
+    Returns
+    -------
+    Duplicates of left are unique in right
+    """
+    left_duplicates = unique(left[duplicated(left)])
+    return right[~(duplicated(right) & isin(right, left_duplicates))]

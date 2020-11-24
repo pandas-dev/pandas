@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 import pandas._testing as tm
 
 
@@ -25,6 +25,16 @@ class TestAtSetItem:
         assert ser.iat[0] == 11
         ser.at[1] = 22
         assert ser.iat[3] == 22
+
+
+class TestAtSetItemWithExpansion:
+    def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
+        # GH#25506
+        ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
+        result = Series(ts)
+        result.at[1] = ts
+        expected = Series([ts, ts])
+        tm.assert_series_equal(result, expected)
 
 
 class TestAtWithDuplicates:

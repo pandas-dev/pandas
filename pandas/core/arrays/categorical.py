@@ -10,6 +10,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
+from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
@@ -402,20 +403,42 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             If copy is set to False and dtype is categorical, the original
             object is returned.
         """
-        if is_categorical_dtype(dtype):
+        if self.dtype is dtype:
+            result = self.copy() if copy else self
+
+        elif is_categorical_dtype(dtype):
             dtype = cast(Union[str, CategoricalDtype], dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
-            result = self.copy() if copy else self
-            if dtype == self.dtype:
-                return result
-            return result._set_dtype(dtype)
-        if is_extension_array_dtype(dtype):
-            return array(self, dtype=dtype, copy=copy)
-        if is_integer_dtype(dtype) and self.isna().any():
+            self = self.copy() if copy else self
+            result = self._set_dtype(dtype)
+
+        # TODO: consolidate with ndarray case?
+        elif is_extension_array_dtype(dtype):
+            result = array(self, dtype=dtype, copy=copy)
+
+        elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
-        return np.array(self, dtype=dtype, copy=copy)
+
+        elif len(self.codes) == 0 or len(self.categories) == 0:
+            result = np.array(self, dtype=dtype, copy=copy)
+
+        else:
+            # GH8628 (PERF): astype category codes instead of astyping array
+            try:
+                astyped_cats = self.categories.astype(dtype=dtype, copy=copy)
+            except (
+                TypeError,  # downstream error msg for CategoricalIndex is misleading
+                ValueError,
+            ):
+                msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
+                raise ValueError(msg)
+
+            astyped_cats = extract_array(astyped_cats, extract_numpy=True)
+            result = take_1d(astyped_cats, libalgos.ensure_platform_int(self._codes))
+
+        return result
 
     @cache_readonly
     def itemsize(self) -> int:
@@ -1046,7 +1069,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_categories, ordered=self.ordered, rename=False, inplace=inplace
         )
 
-    def remove_unused_categories(self, inplace=False):
+    def remove_unused_categories(self, inplace=no_default):
         """
         Remove categories which are not used.
 
@@ -1055,6 +1078,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace : bool, default False
            Whether or not to drop unused categories inplace or return a copy of
            this categorical with unused categories dropped.
+
+           .. deprecated:: 1.2.0
 
         Returns
         -------
@@ -1069,6 +1094,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         set_categories : Set the categories to the specified ones.
         """
+        if inplace is not no_default:
+            warn(
+                "The `inplace` parameter in pandas.Categorical."
+                "remove_unused_categories is deprecated and "
+                "will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
         idx, inv = np.unique(cat._codes, return_inverse=True)
