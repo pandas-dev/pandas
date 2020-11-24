@@ -85,7 +85,7 @@ class TestIndexSetOps:
         result = idx.union(idx[:1], sort=False)
         tm.assert_index_equal(result, idx)
 
-    @pytest.mark.xfail(reason="Not implemented")
+    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_union_sort_other_incomparable_true(self):
         # TODO decide on True behaviour
         # sort=True
@@ -93,7 +93,7 @@ class TestIndexSetOps:
         with pytest.raises(TypeError, match=".*"):
             idx.union(idx[:1], sort=True)
 
-    @pytest.mark.xfail(reason="Not implemented")
+    @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_intersection_equal_sort_true(self):
         # TODO decide on True behaviour
         idx = Index(["c", "a", "b"])
