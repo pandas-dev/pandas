@@ -1338,7 +1338,7 @@ class TestAsOfMerge:
                 "abc": [2.46] * 4 + [2.19],
                 "xyz": [np.nan, 0.9, 0.8, 0.7, 0.6],
             },
-            index=pd.Index([0, 1, 2, 3, 4]),
+            index=Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
 
