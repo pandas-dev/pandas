@@ -29,6 +29,7 @@ def get_allocated_khash_memory():
 @pytest.mark.parametrize(
     "table_type, dtype",
     [
+        (ht.PyObjectHashTable, np.object_),
         (ht.Int64HashTable, np.int64),
         (ht.UInt64HashTable, np.uint64),
         (ht.Float64HashTable, np.float64),
@@ -73,13 +74,15 @@ class TestHashTable:
         assert str(index + 2) in str(excinfo.value)
 
     def test_map(self, table_type, dtype):
-        N = 77
-        table = table_type()
-        keys = np.arange(N).astype(dtype)
-        vals = np.arange(N).astype(np.int64) + N
-        table.map(keys, vals)
-        for i in range(N):
-            assert table.get_item(keys[i]) == i + N
+        # PyObjectHashTable has no map-method
+        if table_type != ht.PyObjectHashTable:
+            N = 77
+            table = table_type()
+            keys = np.arange(N).astype(dtype)
+            vals = np.arange(N).astype(np.int64) + N
+            table.map(keys, vals)
+            for i in range(N):
+                assert table.get_item(keys[i]) == i + N
 
     def test_map_locations(self, table_type, dtype):
         N = 8
@@ -192,6 +195,7 @@ def get_ht_function(fun_name, type_suffix):
 @pytest.mark.parametrize(
     "dtype, type_suffix",
     [
+        (np.object_, "object"),
         (np.int64, "int64"),
         (np.uint64, "uint64"),
         (np.float64, "float64"),
