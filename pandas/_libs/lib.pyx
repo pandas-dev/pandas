@@ -1273,6 +1273,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - time
     - period
     - mixed
+    - unknown-array
 
     Raises
     ------
@@ -1285,6 +1286,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'unknown-array' is the catchall for something that *is* an array (has
+      a dtype attribute), but has a dtype unknown to pandas (e.g. external
+      extension array)
 
     Examples
     --------
@@ -1356,6 +1360,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             inferred = _try_infer_map(value.dtype)
             if inferred is not None:
                 return inferred
+            return "unknown-array"
 
         # Unwrap Series/Index
         values = np.asarray(value)

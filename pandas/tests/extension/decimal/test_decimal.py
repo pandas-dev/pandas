@@ -118,10 +118,10 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype(self, data, data_missing, skipna):
-        # here overriding base test to ensure we fall back to inferring the
-        # array elements for external EAs (which here are recognized as decimals)
-        assert pd.api.types.infer_dtype(data, skipna=skipna) == "decimal"
-        assert pd.api.types.infer_dtype(data_missing, skipna=skipna) == "decimal"
+        # here overriding base test to ensure we fall back to return
+        # "unknown-array" for an EA pandas doesn't know
+        assert pd.api.types.infer_dtype(data, skipna=skipna) == "unknown-array"
+        assert pd.api.types.infer_dtype(data_missing, skipna=skipna) == "unknown-array"
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):

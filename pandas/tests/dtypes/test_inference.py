@@ -897,8 +897,8 @@ class TestTypeInference:
         # https://github.com/pandas-dev/pandas/issues/23553
         values = klass(
             [
-                pd.Period("2011-01-01", freq="D"),
-                pd.Period("2011-01-02", freq="D"),
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="D"),
                 pd.NaT,
             ]
         )
