@@ -1063,7 +1063,7 @@ class MultiIndex(Index):
     def _engine(self):
         # Calculate the number of bits needed to represent labels in each
         # level, as log2 of their sizes (including -1 for NaN):
-        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
+        sizes = np.ceil(np.log2([len(level) + 1 for level in self.levels]))
 
         # Sum bit counts, starting from the _right_....
         lev_bits = np.cumsum(sizes[::-1])[::-1]
@@ -1217,10 +1217,10 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """ return a boolean if we need a qualified .info display """
 
-        def f(l):
-            return "mixed" in l or "string" in l or "unicode" in l
+        def f(level):
+            return "mixed" in level or "string" in level or "unicode" in level
 
-        return any(f(l) for l in self._inferred_type_levels)
+        return any(f(level) for level in self._inferred_type_levels)
 
     @doc(Index.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
