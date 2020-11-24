@@ -95,12 +95,11 @@ class TestSeriesConstructors:
         assert float(Series([1.0])) == 1.0
         assert int(Series([1.0])) == 1
 
-    @pytest.mark.parametrize("scalar", (Interval(0, 1), Period("2019Q1", freq="Q")))
-    def test_scalar_extension_dtype(self, scalar):
+    def test_scalar_extension_dtype(self, ea_scalar):
         # GH 28401
 
-        ser = Series(scalar, index=range(3))
-        expected = Series([scalar] * 3)
+        ser = Series(ea_scalar, index=range(3))
+        expected = Series([ea_scalar] * 3)
         tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):

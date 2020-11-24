@@ -34,7 +34,7 @@ from pytz import FixedOffset, utc
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Interval, Period, Series
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -685,6 +685,14 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+# ----------------------------------------------------------------
+# Scalars
+# ----------------------------------------------------------------
+@pytest.fixture(params=[Interval(0, 1), Period("2019Q1", freq="Q")])
+def ea_scalar(request):
+    return request.param
 
 
 # ----------------------------------------------------------------
