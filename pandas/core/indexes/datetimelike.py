@@ -628,7 +628,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return com.asarray_tuplesafe(keyarr)
 
 
-class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
+class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex

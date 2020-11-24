@@ -430,6 +430,12 @@ class PyTablesExprVisitor(BaseExprVisitor):
         except AttributeError:
             pass
 
+        if isinstance(slobj, Term) and slobj.type is int:
+            # Avoid IndexError: only integers, slices (`:`), ellipsis (`...`),
+            #  numpy.newaxis (`None`) and integer or boolean arrays are valid
+            #  indices
+            slobj = slobj.value
+
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:
