@@ -1,10 +1,9 @@
-.. currentmodule:: pandas 
 .. _compare_with_excel:
 
 .. ipython:: python
     :suppress:
 
-    import pandas as pd 
+    import pandas as pd
     import random
     pd.options.display.max_rows=15
 
@@ -18,7 +17,7 @@ Fill Handle
 ~~~~~~~~~~~
 
 Create a series of numbers following a set pattern in a certain set of cells. In
-Excel this would be done by shift+drag after entering the first number or by 
+Excel this would be done by shift+drag after entering the first number or by
 entering the first two or three values and then dragging.
 
 This can be achieved by creating a series and assigning it to the desired cells.
@@ -36,7 +35,7 @@ This can be achieved by creating a series and assigning it to the desired cells.
 Filters
 ~~~~~~~
 
-Filters can be achieved by using slicing. 
+Filters can be achieved by using slicing.
 
 The examples filter by 0 on column AAA, and also show how to filter by multiple
 values.
@@ -51,7 +50,7 @@ values.
 Drop Duplicates
 ~~~~~~~~~~~~~~~
 
-Another commonly used function is Drop Duplicates. This is directly supported in 
+Another commonly used function is Drop Duplicates. This is directly supported in
 pandas.
 
 .. ipython:: python
@@ -66,17 +65,17 @@ pandas.
 Pivot Table
 ~~~~~~~~~~~
 
-This can be achieved by using ``pandas.pivot_table`` for examples and reference, 
-please see `pandas.pivot_table <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.pivot_table.html>`__ 
+This can be achieved by using ``pandas.pivot_table`` for examples and reference,
+please see `pandas.pivot_table <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.pivot_table.html>`__
 
 
 Formulae
 ~~~~~~~~
 
-Let's create a new column "girls_count" and try to compute the number of boys in 
-each class. 
+Let's create a new column "girls_count" and try to compute the number of boys in
+each class.
 
-.. ipython:: python 
+.. ipython:: python
 
     df["girls_count"]  = [21, 12, 21, 31, 23, 17]; df
 
@@ -105,7 +104,7 @@ VLOOKUP
 Adding a row
 ~~~~~~~~~~~~
 
-To appended a row, we can just assign values to an index using ``iloc``. 
+To appended a row, we can just assign values to an index using ``iloc``.
 
 NOTE: If the index already exists, the values in that index will be over written.
 
@@ -117,5 +116,5 @@ NOTE: If the index already exists, the values in that index will be over written
 Search and Replace
 ~~~~~~~~~~~~~~~~~~
 
-The ``replace`` method that comes associated with the ``DataFrame`` object can perform 
+The ``replace`` method that comes associated with the ``DataFrame`` object can perform
 this function. Please see `pandas.DataFrame.replace <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.replace.html>`__ for examples.
