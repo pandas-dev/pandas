@@ -528,14 +528,14 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
 
 def test_contains():
     # GH-xxxxx
-    arr = pd.array(np.array(["a", "b"], dtype="string"))
+    arr = pd.array(["a", "b"], dtype="string")
 
     assert "a" in arr
     assert "x" not in arr
     assert np.nan not in arr
     assert pd.NA not in arr
 
-    arr = pd.arrays.StringArray(np.array(["a", pd.NA]))
+    arr = pd.array(["a", pd.NA], dtype="string")
     assert "a" in arr
     assert "x" not in arr
     assert np.nan in arr
