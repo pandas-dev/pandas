@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -11266,7 +11267,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and is_dtype_equal(result.dtype, self.dtype)
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
             return self
