@@ -435,8 +435,8 @@ def test_fillna_args():
     expected = pd.array(["a", "b"], dtype="string")
     tm.assert_extension_array_equal(res, expected)
 
-    msg = r"1 is not a valid fill value; must be a string"
-    with pytest.raises(TypeError, match=msg):
+    msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(ValueError, match=msg):
         arr.fillna(value=1)
 
 

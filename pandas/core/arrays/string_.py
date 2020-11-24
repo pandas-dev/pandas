@@ -254,19 +254,8 @@ class StringArray(PandasArray):
         arr[mask] = -1
         return arr, -1
 
-    def __setitem__(self, key, value):
-        value = extract_array(value, extract_numpy=True)
-        if isinstance(value, type(self)):
-            # extract_array doesn't extract PandasArray subclasses
-            value = value._ndarray
-
-        key = check_array_indexer(self, key)
-        scalar_key = lib.is_scalar(key)
+    def _validate_setitem_value(self, value):
         scalar_value = lib.is_scalar(value)
-        if scalar_key and not scalar_value:
-            raise ValueError("setting an array element with a sequence.")
-
-        # validate new items
         if scalar_value:
             if isna(value):
                 value = StringDtype.na_value
@@ -279,14 +268,27 @@ class StringArray(PandasArray):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
                 raise ValueError("Must provide strings.")
+        return value
+
+    def __setitem__(self, key, value):
+        value = extract_array(value, extract_numpy=True)
+        if isinstance(value, type(self)):
+            # extract_array doesn't extract PandasArray subclasses
+            value = value._ndarray
+
+        key = check_array_indexer(self, key)
+        scalar_key = lib.is_scalar(key)
+        scalar_value = lib.is_scalar(value)
+        if scalar_key and not scalar_value:
+            raise ValueError("setting an array element with a sequence.")
+
+        value = self._validate_setitem_value(value)
 
         super().__setitem__(key, value)
 
     def fillna(self, value=None, method=None, limit=None):
-        if value is not None and not (
-            isinstance(value, str) or is_string_dtype(value) or isna(value)
-        ):
-            raise TypeError(f"{value} is not a valid fill value; must be a string")
+        if value is not None:
+            value = self._validate_setitem_value(value)
         return super().fillna(value, method, limit)
 
     def astype(self, dtype, copy=True):
