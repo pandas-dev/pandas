@@ -512,7 +512,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -522,7 +522,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -533,7 +533,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
-            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
