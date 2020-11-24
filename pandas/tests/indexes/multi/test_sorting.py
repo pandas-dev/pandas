@@ -271,3 +271,21 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_not_remove_nan():
+    # GH 37510
+    df1 = DataFrame({"id1": [1, 2, 3, 4],
+                     "id2": [3, 4, 1, 2],
+                     "id3": [1, 1, 1, 1],
+                     "x": [1, 2, 3, 4]})
+    df1.set_index(["id1", "id2", "id3"], inplace=True)
+
+    new_levels = ["n1", "n2", "n3", None]
+    df1.index = df1.index.set_levels(levels=new_levels, level="id1", inplace=True)
+    df1.index = df1.index.set_levels(levels=new_levels, level="id2", inplace=True)
+
+    result = df1.unstack("id3")[("x", 1)].sort_index().index
+    expected = df1.droplevel(2, 0).sort_index().index
+
+    assert result.equals(expected)
