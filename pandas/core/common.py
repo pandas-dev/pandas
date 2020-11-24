@@ -302,10 +302,6 @@ def is_full_slice(obj, line) -> bool:
     )
 
 
-def is_null_slice(obj) -> bool:
-    return isinstance(obj, slice) and obj.start is None and obj.stop is None and obj.step is None
-
-
 def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, "__name__"):

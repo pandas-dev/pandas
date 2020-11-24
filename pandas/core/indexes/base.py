@@ -5835,7 +5835,7 @@ def trim_front(strings: List[str]) -> List[str]:
     """
     if not strings:
         return strings
-    while all(x[0] == ' ' for x in strings):
+    while all(x[0] == " " for x in strings):
         strings = [x[1:] for x in strings]
     return strings
 
