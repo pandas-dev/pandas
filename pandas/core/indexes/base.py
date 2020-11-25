@@ -4896,6 +4896,14 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
+
+        if target.is_boolean() and self.is_numeric():
+            # Treat boolean labels passed to a numeric index as not found. Without
+            # this fix False and True would be treated as 0 and 1 respectively.
+            # (GH #16877)
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
