@@ -36,14 +36,15 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert scalar in data
 
         na_value = data.dtype.na_value
-        other_na_value_types = {None, np.nan, pd.NA, pd.NaT}.difference({na_value})
 
         if data.isna().any():
             assert na_value in data
         else:
             assert na_value not in data
 
-        for na_value_type in other_na_value_types:
+        for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
+            if na_value_type is na_value:
+                continue
             assert na_value_type not in data
 
     def test_memory_usage(self, data):
