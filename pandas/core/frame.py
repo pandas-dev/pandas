@@ -3214,7 +3214,7 @@ class DataFrame(NDFrame, OpsMixin):
             series._values[loc] = value
             # Note: trying to use series._set_value breaks tests in
             #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
