@@ -177,9 +177,9 @@ class TestDataFrameFormatting:
         df = DataFrame(1, columns=range(10), index=range(10))
         df.iloc[1, 1] = np.nan
 
-        def check(null_counts, result):
+        def check(show_counts, result):
             buf = StringIO()
-            df.info(buf=buf, null_counts=null_counts)
+            df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
 
         with option_context(
@@ -193,6 +193,18 @@ class TestDataFrameFormatting:
             check(None, False)
             check(True, False)
             check(False, False)
+
+        # GH37999
+        with tm.assert_produces_warning(
+            FutureWarning, match="null_counts is deprecated.+"
+        ):
+            buf = StringIO()
+            df.info(buf=buf, null_counts=True)
+            assert "non-null" in buf.getvalue()
+
+        # GH37999
+        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
+            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -1681,7 +1693,7 @@ c  10  11  12  13  14\
     def test_to_string_line_width(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
-        assert max(len(l) for l in s.split("\n")) == 80
+        assert max(len(line) for line in s.split("\n")) == 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
