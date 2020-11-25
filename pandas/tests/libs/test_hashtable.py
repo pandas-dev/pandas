@@ -139,6 +139,15 @@ class TestHashTable:
             del table
             assert get_allocated_khash_memory() == 0
 
+    def test_tracemalloc_for_empty(self, table_type, dtype):
+        with activated_tracemalloc():
+            table = table_type()
+            used = get_allocated_khash_memory()
+            my_size = table.sizeof()
+            assert used == my_size
+            del table
+            assert get_allocated_khash_memory() == 0
+
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
@@ -146,6 +155,16 @@ def test_tracemalloc_works_for_StringHashTable():
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
+        used = get_allocated_khash_memory()
+        my_size = table.sizeof()
+        assert used == my_size
+        del table
+        assert get_allocated_khash_memory() == 0
+
+
+def test_tracemalloc_for_empty_StringHashTable():
+    with activated_tracemalloc():
+        table = ht.StringHashTable()
         used = get_allocated_khash_memory()
         my_size = table.sizeof()
         assert used == my_size
