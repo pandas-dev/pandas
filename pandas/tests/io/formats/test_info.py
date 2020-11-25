@@ -161,7 +161,7 @@ def test_info_verbose_with_counts_spacing(
     """Test header column, spacer, first line and last line in verbose mode."""
     frame = DataFrame(np.random.randn(3, size))
     buf = StringIO()
-    frame.info(verbose=True, null_counts=True, buf=buf)
+    frame.info(verbose=True, show_counts=True, buf=buf)
     all_lines = buf.getvalue().splitlines()
     # Here table would contain only header, separator and table lines
     # dframe repr, index summary, memory usage and dtypes are excluded
@@ -480,7 +480,7 @@ def test_info_int_columns():
     # GH#37245
     df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
     buf = StringIO()
-    df.info(null_counts=True, buf=buf)
+    df.info(show_counts=True, buf=buf)
     result = buf.getvalue()
     expected = textwrap.dedent(
         """\
