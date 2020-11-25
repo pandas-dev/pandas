@@ -72,7 +72,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
         if with_indexers:
             # dtype should be timedelta64[ns] for TimedeltaIndex
             #  and datetime64[ns] for DatetimeIndex
-            dtype = left.dtype.base
+            dtype = cast(np.dtype, left.dtype).base
 
             join_index, left_indexer, right_indexer = results
             join_index = join_index.view(dtype)
