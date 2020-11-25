@@ -254,22 +254,6 @@ class StringArray(PandasArray):
         arr[mask] = -1
         return arr, -1
 
-    def _validate_setitem_value(self, value):
-        scalar_value = lib.is_scalar(value)
-        if scalar_value:
-            if isna(value):
-                value = StringDtype.na_value
-            elif not isinstance(value, str):
-                raise ValueError(
-                    f"Cannot set non-string value '{value}' into a StringArray."
-                )
-        else:
-            if not is_array_like(value):
-                value = np.asarray(value, dtype=object)
-            if len(value) and not lib.is_string_array(value, skipna=True):
-                raise ValueError("Must provide strings.")
-        return value
-
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
@@ -282,13 +266,23 @@ class StringArray(PandasArray):
         if scalar_key and not scalar_value:
             raise ValueError("setting an array element with a sequence.")
 
-        value = self._validate_setitem_value(value)
+        # validate new items
+        if scalar_value:
+            if isna(value):
+                value = StringDtype.na_value
+            elif not isinstance(value, str):
+                raise ValueError(
+                    f"Cannot set non-string value '{value}' into a StringArray."
+                )
+        else:
+            if not is_array_like(value):
+                value = np.asarray(value, dtype=object)
+            if len(value) and not lib.is_string_array(value, skipna=True):
+                raise ValueError("Must provide strings.")
 
         super().__setitem__(key, value)
 
     def fillna(self, value=None, method=None, limit=None):
-        if value is not None:
-            value = self._validate_setitem_value(value)
         return super().fillna(value, method, limit)
 
     def astype(self, dtype, copy=True):
