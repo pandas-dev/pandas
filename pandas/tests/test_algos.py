@@ -1751,11 +1751,13 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self):
+    def test_basic(self, writable):
         exp = np.array([1, 2], dtype=np.float64)
 
         for dtype in np.typecodes["AllInteger"]:
-            s = Series([1, 100], dtype=dtype)
+            data = np.array([1, 100], dtype=dtype)
+            data.setflags(write=writable)
+            s = Series(data)
             tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_uint64_overflow(self):

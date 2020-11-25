@@ -1454,7 +1454,10 @@ class MultiIndex(Index):
         return if the index is monotonic increasing (only equal or
         increasing) values.
         """
-        if all(x.is_monotonic for x in self.levels):
+        if any(-1 in code for code in self.codes):
+            return False
+
+        if all(level.is_monotonic for level in self.levels):
             # If each level is sorted, we can operate on the codes directly. GH27495
             return libalgos.is_lexsorted(
                 [x.astype("int64", copy=False) for x in self.codes]
@@ -2685,7 +2688,7 @@ class MultiIndex(Index):
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
+            if not isinstance(loc, np.ndarray) or loc.dtype != np.intp:
                 return loc
 
             loc = lib.maybe_indices_to_slice(loc, len(self))
@@ -2732,7 +2735,7 @@ class MultiIndex(Index):
             stacklevel=10,
         )
 
-        loc = np.arange(start, stop, dtype="int64")
+        loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
             mask = self.codes[i][loc] == self._get_loc_single_level_index(

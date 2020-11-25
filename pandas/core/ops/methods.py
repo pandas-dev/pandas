@@ -3,6 +3,7 @@ Functions to generate methods and pin them to the appropriate classes.
 """
 import operator
 
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.ops.roperator import (
@@ -93,8 +94,19 @@ def add_special_arithmetic_methods(cls):
 
         def f(self, other):
             result = method(self, other)
+
+            if (
+                self.ndim == 1
+                and result._indexed_same(self)
+                and is_dtype_equal(result.dtype, self.dtype)
+            ):
+                # GH#36498 this inplace op can _actually_ be inplace.
+                self._values[:] = result._values
+                return self
+
             # Delete cacher
             self._reset_cacher()
+
             # this makes sure that we are aligned like the input
             # we are updating inplace so we want to ignore is_copy
             self._update_inplace(

@@ -51,6 +51,15 @@ def test_groupby_preserves_subclass(obj, groupby_func):
         tm.assert_series_equal(result1, result2)
 
 
+def test_groupby_preserves_metadata():
+    # GH-37343
+    custom_df = tm.SubclassedDataFrame({"a": [1, 2, 3], "b": [1, 1, 2], "c": [7, 8, 9]})
+    assert "testattr" in custom_df._metadata
+    custom_df.testattr = "hello"
+    for _, group_df in custom_df.groupby("c"):
+        assert group_df.testattr == "hello"
+
+
 @pytest.mark.parametrize(
     "obj", [DataFrame, tm.SubclassedDataFrame],
 )

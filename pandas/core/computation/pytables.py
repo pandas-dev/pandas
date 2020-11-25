@@ -426,6 +426,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
         except AttributeError:
             pass
 
+        if isinstance(slobj, Term):
+            # In py39 np.ndarray lookups with Term containing int raise
+            slobj = slobj.value
+
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:

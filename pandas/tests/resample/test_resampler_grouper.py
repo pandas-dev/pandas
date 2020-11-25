@@ -6,7 +6,7 @@ import pytest
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, compat
+from pandas import DataFrame, Series, Timestamp
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -317,7 +317,6 @@ def test_resample_groupby_with_label():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(not compat.IS64, reason="GH-35148")
 def test_consistency_with_window():
 
     # consistent return values with window
@@ -346,3 +345,18 @@ def test_median_duplicate_columns():
     result = df.resample("5s").median()
     expected.columns = result.columns
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_to_one_column_of_df():
+    # GH: 36951
+    df = pd.DataFrame(
+        {"col": range(10), "col1": range(10, 20)},
+        index=pd.date_range("2012-01-01", periods=10, freq="20min"),
+    )
+    result = df.resample("H").apply(lambda group: group.col.sum())
+    expected = pd.Series(
+        [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
+    )
+    tm.assert_series_equal(result, expected)
+    result = df.resample("H").apply(lambda group: group["col"].sum())
+    tm.assert_series_equal(result, expected)

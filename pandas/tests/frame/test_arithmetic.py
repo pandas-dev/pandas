@@ -1566,3 +1566,16 @@ def test_arith_reindex_with_duplicates():
     result = df1 + df2
     expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_inplace_arithmetic_series_update():
+    # https://github.com/pandas-dev/pandas/issues/36373
+    df = DataFrame({"A": [1, 2, 3]})
+    series = df["A"]
+    vals = series._values
+
+    series += 1
+    assert series._values is vals
+
+    expected = DataFrame({"A": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)

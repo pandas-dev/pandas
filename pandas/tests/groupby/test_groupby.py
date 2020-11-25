@@ -1255,8 +1255,8 @@ def test_groupby_nat_exclude():
     assert grouped.ngroups == 2
 
     expected = {
-        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.int64),
-        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.int64),
+        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.intp),
+        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.intp),
     }
 
     for k in grouped.indices:
@@ -2055,3 +2055,13 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_groupby_series_with_tuple_name():
+    # GH 37755
+    ser = Series([1, 2, 3, 4], index=[1, 1, 2, 2], name=("a", "a"))
+    ser.index.name = ("b", "b")
+    result = ser.groupby(level=0).last()
+    expected = Series([2, 4], index=[1, 2], name=("a", "a"))
+    expected.index.name = ("b", "b")
+    tm.assert_series_equal(result, expected)

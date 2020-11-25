@@ -1,0 +1,41 @@
+.. _whatsnew_115:
+
+What's new in 1.1.5 (??)
+------------------------
+
+These are the changes in pandas 1.1.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
+- Fixed regression in :meth:`Series.groupby` raising when the :class:`Index` of the :class:`Series` had a tuple as its name (:issue:`37755`)
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` for ``__setitem__`` when one-dimensional tuple was given to select from :class:`MultiIndex` (:issue:`37711`)
+- Fixed regression in inplace operations on :class:`Series` with ``ExtensionDtype`` with NumPy dtyped operand (:issue:`37910`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in metadata propagation for ``groupby`` iterator (:issue:`37343`)
+- Bug in indexing on a :class:`Series` with ``CategoricalDtype`` after unpickling (:issue:`37631`)
+- Bug in :class:`RollingGroupby` with the resulting :class:`MultiIndex` when grouping by a label that is in the index (:issue:`37641`)
+- Bug in pytables methods in python 3.9 (:issue:`38041`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.4..v1.1.5|HEAD
