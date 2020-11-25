@@ -288,6 +288,23 @@ class TestMultiIndexLoc:
 
         tm.assert_series_equal(result, expected)
 
+    def test_multiindex_loc_one_dimensional_tuple(self, frame_or_series):
+        # GH#37711
+        mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
+        obj = frame_or_series([1, 2], index=mi)
+        obj.loc[("a",)] = 0
+        expected = frame_or_series([0, 2], index=mi)
+        tm.assert_equal(obj, expected)
+
+    @pytest.mark.parametrize("indexer", [("a",), ("a")])
+    def test_multiindex_one_dimensional_tuple_columns(self, indexer):
+        # GH#37711
+        mi = MultiIndex.from_tuples([("a", "A"), ("b", "A")])
+        obj = DataFrame([1, 2], index=mi)
+        obj.loc[indexer, :] = 0
+        expected = DataFrame([0, 2], index=mi)
+        tm.assert_frame_equal(obj, expected)
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
@@ -591,6 +608,25 @@ class TestKeyErrorsWithMultiIndex:
         with pytest.raises(KeyError, match=r"\(0, 3\)"):
             ser.loc[0, 3]
 
+    def test_missing_key_combination(self):
+        # GH: 19556
+        mi = MultiIndex.from_arrays(
+            [
+                np.array(["a", "a", "b", "b"]),
+                np.array(["1", "2", "2", "3"]),
+                np.array(["c", "d", "c", "d"]),
+            ],
+            names=["one", "two", "three"],
+        )
+        df = DataFrame(np.random.rand(4, 3), index=mi)
+        msg = r"\('b', '1', slice\(None, None, None\)\)"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[("b", "1", slice(None)), :]
+        with pytest.raises(KeyError, match=msg):
+            df.index.get_locs(("b", "1", slice(None)))
+        with pytest.raises(KeyError, match=r"\('b', '1'\)"):
+            df.loc[("b", "1"), :]
+
 
 def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
     df = multiindex_year_month_day_dataframe_random_data
@@ -623,3 +659,12 @@ def test_getitem_non_found_tuple():
     )
     with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
         df.loc[(2.0, 2.0, 3.0)]
+
+
+def test_get_loc_datetime_index():
+    # GH#24263
+    index = pd.date_range("2001-01-01", periods=100)
+    mi = MultiIndex.from_arrays([index])
+    # Check if get_loc matches for Index and MultiIndex
+    assert mi.get_loc("2001-01") == slice(0, 31, None)
+    assert index.get_loc("2001-01") == slice(0, 31, None)

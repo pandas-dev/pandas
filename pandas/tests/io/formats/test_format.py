@@ -1681,7 +1681,7 @@ c  10  11  12  13  14\
     def test_to_string_line_width(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
-        assert max(len(l) for l in s.split("\n")) == 80
+        assert max(len(line) for line in s.split("\n")) == 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -2028,6 +2028,35 @@ c  10  11  12  13  14\
             "3  2013-04           2011-04  d"
         )
         assert str(df) == exp
+
+    @pytest.mark.parametrize(
+        "length, max_rows, min_rows, expected",
+        [
+            (10, 10, 10, 10),
+            (10, 10, None, 10),
+            (10, 8, None, 8),
+            (20, 30, 10, 30),  # max_rows > len(frame), hence max_rows
+            (50, 30, 10, 10),  # max_rows < len(frame), hence min_rows
+            (100, 60, 10, 10),  # same
+            (60, 60, 10, 60),  # edge case
+            (61, 60, 10, 10),  # edge case
+        ],
+    )
+    def test_max_rows_fitted(self, length, min_rows, max_rows, expected):
+        """Check that display logic is correct.
+
+        GH #37359
+
+        See description here:
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
+        """
+        formatter = fmt.DataFrameFormatter(
+            DataFrame(np.random.rand(length, 3)),
+            max_rows=max_rows,
+            min_rows=min_rows,
+        )
+        result = formatter.max_rows_fitted
+        assert result == expected
 
 
 def gen_series_formatting():
