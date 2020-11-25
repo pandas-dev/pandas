@@ -159,7 +159,7 @@ from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_handle
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import BaseInfo, DataFrameInfo
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2520,119 +2520,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     # ----------------------------------------------------------------------
-    @Substitution(
-        klass="DataFrame",
-        type_sub=" and columns",
-        max_cols_sub=dedent(
-            """\
-            max_cols : int, optional
-                When to switch from the verbose to the truncated output. If the
-                DataFrame has more than `max_cols` columns, the truncated output
-                is used. By default, the setting in
-                ``pandas.options.display.max_info_columns`` is used."""
-        ),
-        null_counts_sub=dedent(
-            """\
-            null_counts : bool, optional
-                Whether to show the non-null counts. By default, this is shown
-                only if the DataFrame is smaller than
-                ``pandas.options.display.max_info_rows`` and
-                ``pandas.options.display.max_info_columns``. A value of True always
-                shows the counts, and False never shows the counts."""
-        ),
-        examples_sub=dedent(
-            """\
-            >>> int_values = [1, 2, 3, 4, 5]
-            >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-            >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-            >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
-            ...                   "float_col": float_values})
-            >>> df
-                int_col text_col  float_col
-            0        1    alpha       0.00
-            1        2     beta       0.25
-            2        3    gamma       0.50
-            3        4    delta       0.75
-            4        5  epsilon       1.00
-
-            Prints information of all columns:
-
-            >>> df.info(verbose=True)
-            <class 'pandas.core.frame.DataFrame'>
-            RangeIndex: 5 entries, 0 to 4
-            Data columns (total 3 columns):
-             #   Column     Non-Null Count  Dtype
-            ---  ------     --------------  -----
-             0   int_col    5 non-null      int64
-             1   text_col   5 non-null      object
-             2   float_col  5 non-null      float64
-            dtypes: float64(1), int64(1), object(1)
-            memory usage: 248.0+ bytes
-
-            Prints a summary of columns count and its dtypes but not per column
-            information:
-
-            >>> df.info(verbose=False)
-            <class 'pandas.core.frame.DataFrame'>
-            RangeIndex: 5 entries, 0 to 4
-            Columns: 3 entries, int_col to float_col
-            dtypes: float64(1), int64(1), object(1)
-            memory usage: 248.0+ bytes
-
-            Pipe output of DataFrame.info to buffer instead of sys.stdout, get
-            buffer content and writes to a text file:
-
-            >>> import io
-            >>> buffer = io.StringIO()
-            >>> df.info(buf=buffer)
-            >>> s = buffer.getvalue()
-            >>> with open("df_info.txt", "w",
-            ...           encoding="utf-8") as f:  # doctest: +SKIP
-            ...     f.write(s)
-            260
-
-            The `memory_usage` parameter allows deep introspection mode, specially
-            useful for big DataFrames and fine-tune memory optimization:
-
-            >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-            >>> df = pd.DataFrame({
-            ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-            ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-            ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
-            ... })
-            >>> df.info()
-            <class 'pandas.core.frame.DataFrame'>
-            RangeIndex: 1000000 entries, 0 to 999999
-            Data columns (total 3 columns):
-             #   Column    Non-Null Count    Dtype
-            ---  ------    --------------    -----
-             0   column_1  1000000 non-null  object
-             1   column_2  1000000 non-null  object
-             2   column_3  1000000 non-null  object
-            dtypes: object(3)
-            memory usage: 22.9+ MB
-
-            >>> df.info(memory_usage='deep')
-            <class 'pandas.core.frame.DataFrame'>
-            RangeIndex: 1000000 entries, 0 to 999999
-            Data columns (total 3 columns):
-             #   Column    Non-Null Count    Dtype
-            ---  ------    --------------    -----
-             0   column_1  1000000 non-null  object
-             1   column_2  1000000 non-null  object
-             2   column_3  1000000 non-null  object
-            dtypes: object(3)
-            memory usage: 165.9 MB"""
-        ),
-        see_also_sub=dedent(
-            """\
-            DataFrame.describe: Generate descriptive statistics of DataFrame
-                columns.
-            DataFrame.memory_usage: Memory usage of DataFrame columns."""
-        ),
-        version_added_sub="",
-    )
-    @doc(BaseInfo.render)
+    @doc(DataFrameInfo.render)
     def info(
         self,
         verbose: Optional[bool] = None,
