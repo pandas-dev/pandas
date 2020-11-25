@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 from pandas import (
     Categorical,
     Interval,
+    NaT,
     Period,
     Series,
     Timedelta,
@@ -188,11 +189,31 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
         (Period("2011-01-01", freq="D"), object),
     ],
 )
-def test_cast_scalar_to_array(obj, dtype):
-    shape = (3, 2)
-
+@pytest.mark.parametrize("shape", [(), (5,), (3, 2)])
+def test_cast_scalar_to_array(obj, dtype, shape):
     exp = np.empty(shape, dtype=dtype)
     exp.fill(obj)
 
     arr = cast_scalar_to_array(shape, obj, dtype=dtype)
     tm.assert_numpy_array_equal(arr, exp)
+
+
+@pytest.mark.parametrize(
+    "obj_in,dtype_in,obj_out,dtype_out",
+    [
+        (NaT, "datetime64[ns]", np.datetime64("NaT"), "datetime64[ns]"),
+        (Timestamp(1), "datetime64[ns]", 1, "datetime64[ns]"),
+        (Timedelta(1), "timedelta64[ns]", 1, "timedelta64[ns]"),
+        (np.nan, np.int64, np.nan, np.float64),
+        ("hello", "U", "hello", object),
+        ("hello", "S", "hello", object),
+    ],
+)
+@pytest.mark.parametrize("shape", [(), (5,), (3, 2)])
+def test_cast_scalar_to_array_conversion_needed(
+    obj_in, dtype_in, obj_out, dtype_out, shape
+):
+    tm.assert_numpy_array_equal(
+        cast_scalar_to_array(shape, obj_in, dtype_in),
+        np.full(shape, fill_value=obj_out, dtype=dtype_out),
+    )
