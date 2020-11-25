@@ -478,7 +478,7 @@ Aggregation
 
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data. These operations are similar to the
-:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
+:ref:`aggregating API <basics.aggregate>`, :ref:`window API <window.overview>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the
@@ -523,6 +523,15 @@ index are the group names and whose values are the sizes of each group.
 .. ipython:: python
 
    grouped.describe()
+
+Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts unique values.
+
+.. ipython:: python
+
+   ll = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
+   df4 = pd.DataFrame(ll, columns=["A", "B"])
+   df4
+   df4.groupby("A")["B"].nunique()
 
 .. note::
 
