@@ -47,7 +47,7 @@ Fixed regressions
 
 .. ---------------------------------------------------------------------------
 
-Indexing with Nullable Boolean Arrays
+Indexing with nullable boolean arrays
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Previously indexing with a nullable Boolean array containing ``NA`` would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)

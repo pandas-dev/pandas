@@ -6,7 +6,7 @@ from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import (
-    check_kwargs_and_nopython,
+    NUMBA_FUNC_CACHE,
     get_jit_arguments,
     jit_user_function,
 )
@@ -42,14 +42,14 @@ def generate_numba_apply_func(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    check_kwargs_and_nopython(kwargs, nopython)
+    cache_key = (func, "rolling_apply")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-
     numba = import_optional_dependency("numba")
-
     if parallel:
         loop_range = numba.prange
     else:
@@ -57,7 +57,7 @@ def generate_numba_apply_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in loop_range(len(result)):
@@ -72,3 +72,92 @@ def generate_numba_apply_func(
         return result
 
     return roll_apply
+
+
+def generate_numba_groupby_ewma_func(
+    engine_kwargs: Optional[Dict[str, bool]],
+    com: float,
+    adjust: bool,
+    ignore_na: bool,
+):
+    """
+    Generate a numba jitted groupby ewma function specified by values
+    from engine_kwargs.
+
+    Parameters
+    ----------
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+    com : float
+    adjust : bool
+    ignore_na : bool
+
+    Returns
+    -------
+    Numba function
+    """
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+
+    cache_key = (lambda x: x, "groupby_ewma")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
+
+    numba = import_optional_dependency("numba")
+    if parallel:
+        loop_range = numba.prange
+    else:
+        loop_range = range
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def groupby_ewma(
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+    ) -> np.ndarray:
+        result = np.empty(len(values))
+        alpha = 1.0 / (1.0 + com)
+        for i in loop_range(len(begin)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop]
+            sub_result = np.empty(len(window))
+
+            old_wt_factor = 1.0 - alpha
+            new_wt = 1.0 if adjust else alpha
+
+            weighted_avg = window[0]
+            nobs = int(not np.isnan(weighted_avg))
+            sub_result[0] = weighted_avg if nobs >= minimum_periods else np.nan
+            old_wt = 1.0
+
+            for j in range(1, len(window)):
+                cur = window[j]
+                is_observation = not np.isnan(cur)
+                nobs += is_observation
+                if not np.isnan(weighted_avg):
+
+                    if is_observation or not ignore_na:
+
+                        old_wt *= old_wt_factor
+                        if is_observation:
+
+                            # avoid numerical errors on constant series
+                            if weighted_avg != cur:
+                                weighted_avg = (
+                                    (old_wt * weighted_avg) + (new_wt * cur)
+                                ) / (old_wt + new_wt)
+                            if adjust:
+                                old_wt += new_wt
+                            else:
+                                old_wt = 1.0
+                elif is_observation:
+                    weighted_avg = cur
+
+                sub_result[j] = weighted_avg if nobs >= minimum_periods else np.nan
+
+            result[start:stop] = sub_result
+
+        return result
+
+    return groupby_ewma

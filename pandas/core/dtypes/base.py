@@ -12,19 +12,18 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.arrays import ExtensionArray
 
 
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
 
-    .. versionadded:: 0.23.0
-
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    extensions.register_extension_dtype: Register an ExtensionType
+        with pandas as class decorator.
+    extensions.ExtensionArray: Abstract base class for custom 1-D array types.
 
     Notes
     -----

@@ -24,5 +24,11 @@ class Pickle(BaseIO):
     def time_write_pickle(self):
         self.df.to_pickle(self.fname)
 
+    def peakmem_read_pickle(self):
+        read_pickle(self.fname)
+
+    def peakmem_write_pickle(self):
+        self.df.to_pickle(self.fname)
+
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

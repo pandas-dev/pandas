@@ -358,6 +358,26 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class FillNA:
+    def setup(self):
+        N = 100
+        self.df = DataFrame(
+            {"group": [1] * N + [2] * N, "value": [np.nan, 1.0] * N}
+        ).set_index("group")
+
+    def time_df_ffill(self):
+        self.df.groupby("group").fillna(method="ffill")
+
+    def time_df_bfill(self):
+        self.df.groupby("group").fillna(method="bfill")
+
+    def time_srs_ffill(self):
+        self.df.groupby("group")["value"].fillna(method="ffill")
+
+    def time_srs_bfill(self):
+        self.df.groupby("group")["value"].fillna(method="bfill")
+
+
 class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
@@ -627,33 +647,42 @@ class TransformNaN:
 
 
 class TransformEngine:
-    def setup(self):
+
+    param_names = ["parallel"]
+    params = [[True, False]]
+
+    def setup(self, parallel):
         N = 10 ** 3
         data = DataFrame(
             {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
             columns=[0, 1],
         )
+        self.parallel = parallel
         self.grouper = data.groupby(0)
 
-    def time_series_numba(self):
+    def time_series_numba(self, parallel):
         def function(values, index):
             return values * 5
 
-        self.grouper[1].transform(function, engine="numba")
+        self.grouper[1].transform(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
 
-    def time_series_cython(self):
+    def time_series_cython(self, parallel):
         def function(values):
             return values * 5
 
         self.grouper[1].transform(function, engine="cython")
 
-    def time_dataframe_numba(self):
+    def time_dataframe_numba(self, parallel):
         def function(values, index):
             return values * 5
 
-        self.grouper.transform(function, engine="numba")
+        self.grouper.transform(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
 
-    def time_dataframe_cython(self):
+    def time_dataframe_cython(self, parallel):
         def function(values):
             return values * 5
 
@@ -661,15 +690,20 @@ class TransformEngine:
 
 
 class AggEngine:
-    def setup(self):
+
+    param_names = ["parallel"]
+    params = [[True, False]]
+
+    def setup(self, parallel):
         N = 10 ** 3
         data = DataFrame(
             {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N},
             columns=[0, 1],
         )
+        self.parallel = parallel
         self.grouper = data.groupby(0)
 
-    def time_series_numba(self):
+    def time_series_numba(self, parallel):
         def function(values, index):
             total = 0
             for i, value in enumerate(values):
@@ -679,9 +713,11 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper[1].agg(function, engine="numba")
+        self.grouper[1].agg(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
 
-    def time_series_cython(self):
+    def time_series_cython(self, parallel):
         def function(values):
             total = 0
             for i, value in enumerate(values):
@@ -693,7 +729,7 @@ class AggEngine:
 
         self.grouper[1].agg(function, engine="cython")
 
-    def time_dataframe_numba(self):
+    def time_dataframe_numba(self, parallel):
         def function(values, index):
             total = 0
             for i, value in enumerate(values):
@@ -703,9 +739,11 @@ class AggEngine:
                     total += value * 2
             return total
 
-        self.grouper.agg(function, engine="numba")
+        self.grouper.agg(
+            function, engine="numba", engine_kwargs={"parallel": self.parallel}
+        )
 
-    def time_dataframe_cython(self):
+    def time_dataframe_cython(self, parallel):
         def function(values):
             total = 0
             for i, value in enumerate(values):

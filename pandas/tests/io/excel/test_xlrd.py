@@ -44,7 +44,7 @@ def test_read_xlrd_book(read_ext, frame):
 )
 def test_excel_table_sheet_by_index(datapath, read_ext):
     path = datapath("io", "data", "excel", f"test1{read_ext}")
-    with pd.ExcelFile(path, engine="xlrd") as excel:
+    with ExcelFile(path, engine="xlrd") as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, sheet_name="asdf")
 

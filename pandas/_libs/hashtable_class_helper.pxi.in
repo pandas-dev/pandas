@@ -5,6 +5,35 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
+{{py:
+
+# name
+cimported_types = ['float32',
+                   'float64',
+                   'int8',
+                   'int16',
+                   'int32',
+                   'int64',
+                   'pymap',
+                   'str',
+                   'strbox',
+                   'uint8',
+                   'uint16',
+                   'uint32',
+                   'uint64']
+}}
+
+{{for name in cimported_types}}
+from pandas._libs.khash cimport (
+    kh_destroy_{{name}},
+    kh_exist_{{name}},
+    kh_get_{{name}},
+    kh_init_{{name}},
+    kh_put_{{name}},
+    kh_resize_{{name}},
+)
+{{endfor}}
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -20,9 +49,16 @@ from pandas._libs.missing cimport C_NA
 # for uniques in hashtables)
 
 dtypes = [('Float64', 'float64', 'float64_t'),
+          ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('Int8', 'int8', 'int8_t'),
           ('String', 'string', 'char *'),
-          ('UInt64', 'uint64', 'uint64_t')]
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('UInt8', 'uint8', 'uint8_t')]
 }}
 
 {{for name, dtype, c_type in dtypes}}
@@ -49,8 +85,15 @@ cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
 
 ctypedef fused vector_data:
     Int64VectorData
+    Int32VectorData
+    Int16VectorData
+    Int8VectorData
     UInt64VectorData
+    UInt32VectorData
+    UInt16VectorData
+    UInt8VectorData
     Float64VectorData
+    Float32VectorData
     StringVectorData
 
 cdef inline bint needs_resize(vector_data *data) nogil:
@@ -65,7 +108,14 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 # name, dtype, c_type
 dtypes = [('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t'),
-          ('Int64', 'int64', 'int64_t')]
+          ('Int64', 'int64', 'int64_t'),
+          ('Float32', 'float32', 'float32_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('UInt8', 'uint8', 'uint8_t'),
+          ('Int8', 'int8', 'int8_t')]
 
 }}
 
@@ -253,22 +303,29 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'np.nan'),
-          ('UInt64', 'uint64', False, 0),
-          ('Int64', 'int64', False, 'NPY_NAT')]
+# name, dtype, float_group
+dtypes = [('Float64', 'float64', True),
+          ('UInt64', 'uint64', False),
+          ('Int64', 'int64', False),
+          ('Float32', 'float32', True),
+          ('UInt32', 'uint32', False),
+          ('Int32', 'int32', False),
+          ('UInt16', 'uint16', False),
+          ('Int16', 'int16', False),
+          ('UInt8', 'uint8', False),
+          ('Int8', 'int8', False)]
 
 }}
 
 
-{{for name, dtype, float_group, default_na_value in dtypes}}
+{{for name, dtype, float_group in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
         if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
+            size_hint = min(size_hint, SIZE_HINT_LIMIT)
             kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self) -> int:
@@ -347,7 +404,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{dtype}}_t val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         with nogil:
             for i in range(n):
@@ -430,7 +487,7 @@ cdef class {{name}}HashTable(HashTable):
             # which is only used if it's *specified*.
             na_value2 = <{{dtype}}_t>na_value
         else:
-            na_value2 = {{default_na_value}}
+            na_value2 = 0
 
         with nogil:
             for i in range(n):
@@ -551,7 +608,7 @@ cdef class {{name}}HashTable(HashTable):
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
             {{dtype}}_t val
@@ -559,7 +616,7 @@ cdef class {{name}}HashTable(HashTable):
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
 
-        labels = np.empty(n, dtype=np.int64)
+        labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
 
         with nogil:
@@ -603,7 +660,7 @@ cdef class StringHashTable(HashTable):
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
+            size_hint = min(size_hint, SIZE_HINT_LIMIT)
             kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
@@ -648,8 +705,8 @@ cdef class StringHashTable(HashTable):
     def get_indexer(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*>labels.data
+            ndarray[intp_t] labels = np.empty(n, dtype=np.intp)
+            intp_t *resbuf = <intp_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
@@ -680,7 +737,7 @@ cdef class StringHashTable(HashTable):
             object val
             const char *v
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -916,7 +973,7 @@ cdef class PyObjectHashTable(HashTable):
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
         if size_hint is not None:
-            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
+            size_hint = min(size_hint, SIZE_HINT_LIMIT)
             kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
@@ -986,7 +1043,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         for i in range(n):
             val = values[i]

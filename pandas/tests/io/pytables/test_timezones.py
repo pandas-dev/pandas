@@ -82,7 +82,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[values_block_1\] for \[tz\], "
+            r"existing_value \[dateutil/.*US/Eastern\] "
+            r"conflicts with new value \[dateutil/.*EET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -100,7 +106,13 @@ def test_append_with_timezones_dateutil(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[B\] for \[tz\], "
+            r"existing_value \[dateutil/.*EET\] "
+            r"conflicts with new value \[dateutil/.*CET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
@@ -110,7 +122,7 @@ def test_append_with_timezones_dateutil(setup_path):
         dti = dti._with_freq(None)  # freq doesnt round-trip
 
         # GH 4098 example
-        df = DataFrame(dict(A=Series(range(3), index=dti,)))
+        df = DataFrame(dict(A=Series(range(3), index=dti)))
 
         _maybe_remove(store, "df")
         store.put("df", df)
@@ -169,7 +181,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[values_block_1\] for \[tz\], "
+            r"existing_value \[US/Eastern\] conflicts with new value \[EET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
         # this is ok
@@ -187,7 +204,12 @@ def test_append_with_timezones_pytz(setup_path):
             ),
             index=range(5),
         )
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid info for \[B\] for \[tz\], "
+            r"existing_value \[EET\] conflicts with new value \[CET\]"
+        )
+        with pytest.raises(ValueError, match=msg):
             store.append("df_tz", df)
 
     # as index
@@ -197,7 +219,7 @@ def test_append_with_timezones_pytz(setup_path):
         dti = dti._with_freq(None)  # freq doesnt round-trip
 
         # GH 4098 example
-        df = DataFrame(dict(A=Series(range(3), index=dti,)))
+        df = DataFrame(dict(A=Series(range(3), index=dti)))
 
         _maybe_remove(store, "df")
         store.put("df", df)
@@ -208,6 +230,31 @@ def test_append_with_timezones_pytz(setup_path):
         store.append("df", df)
         result = store.select("df")
         tm.assert_frame_equal(result, df)
+
+
+def test_roundtrip_tz_aware_index(setup_path):
+    # GH 17618
+    time = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    df = DataFrame(data=[0], index=[time])
+
+    with ensure_clean_store(setup_path) as store:
+        store.put("frame", df, format="fixed")
+        recons = store["frame"]
+        tm.assert_frame_equal(recons, df)
+        assert recons.index[0].value == 946706400000000000
+
+
+def test_store_index_name_with_tz(setup_path):
+    # GH 13884
+    df = DataFrame({"A": [1, 2]})
+    df.index = DatetimeIndex([1234567890123456787, 1234567890123456788])
+    df.index = df.index.tz_localize("UTC")
+    df.index.name = "foo"
+
+    with ensure_clean_store(setup_path) as store:
+        store.put("frame", df, format="table")
+        recons = store["frame"]
+        tm.assert_frame_equal(recons, df)
 
 
 def test_tseries_select_index_column(setup_path):
@@ -243,7 +290,7 @@ def test_tseries_select_index_column(setup_path):
         assert rng.tz == result.dt.tz
 
 
-def test_timezones_fixed(setup_path):
+def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
 
         # index
@@ -269,6 +316,43 @@ def test_timezones_fixed(setup_path):
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)
+
+
+def test_timezones_fixed_format_frame_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        df = DataFrame({"A": s})
+        store["df"] = df
+        result = store["df"]
+        tm.assert_frame_equal(result, df)
+
+
+def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series([0], dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
+
+
+def test_timezones_fixed_format_series_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
 
 
 def test_fixed_offset_tz(setup_path):
@@ -352,7 +436,7 @@ def test_read_with_where_tz_aware_index(setup_path):
     periods = 10
     dts = pd.date_range("20151201", periods=periods, freq="D", tz="UTC")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
-    expected = pd.DataFrame({"MYCOL": 0}, index=mi)
+    expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
     with ensure_clean_path(setup_path) as path:
@@ -367,7 +451,7 @@ def test_py2_created_with_datetimez(datapath, setup_path):
     # Python 3.
     #
     # GH26443
-    index = [pd.Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
+    index = [Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
     expected = DataFrame({"data": 123}, index=index)
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
