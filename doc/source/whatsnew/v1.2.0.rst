@@ -232,6 +232,7 @@ Other enhancements
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
+- :meth:`Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
@@ -619,6 +620,7 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
 - Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
+- Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
 - Bug on inserting a boolean label into a :class:`DataFrame` with a numeric :class:`Index` columns incorrectly casting to integer (:issue:`36319`)
 
 Missing
