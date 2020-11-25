@@ -1063,7 +1063,7 @@ class MultiIndex(Index):
     def _engine(self):
         # Calculate the number of bits needed to represent labels in each
         # level, as log2 of their sizes (including -1 for NaN):
-        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
+        sizes = np.ceil(np.log2([len(level) + 1 for level in self.levels]))
 
         # Sum bit counts, starting from the _right_....
         lev_bits = np.cumsum(sizes[::-1])[::-1]
@@ -1217,10 +1217,10 @@ class MultiIndex(Index):
     def _is_memory_usage_qualified(self) -> bool:
         """ return a boolean if we need a qualified .info display """
 
-        def f(l):
-            return "mixed" in l or "string" in l or "unicode" in l
+        def f(level):
+            return "mixed" in level or "string" in level or "unicode" in level
 
-        return any(f(l) for l in self._inferred_type_levels)
+        return any(f(level) for level in self._inferred_type_levels)
 
     @doc(Index.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
@@ -2764,9 +2764,17 @@ class MultiIndex(Index):
                 return start + section.searchsorted(loc, side=side)
 
             idx = self._get_loc_single_level_index(lev, lab)
-            if k < n - 1:
+            if isinstance(idx, slice) and k < n - 1:
+                # Get start and end value from slice, necessary when a non-integer
+                # interval is given as input GH#37707
+                start = idx.start
+                end = idx.stop
+            elif k < n - 1:
                 end = start + section.searchsorted(idx, side="right")
                 start = start + section.searchsorted(idx, side="left")
+            elif isinstance(idx, slice):
+                idx = idx.start
+                return start + section.searchsorted(idx, side=side)
             else:
                 return start + section.searchsorted(idx, side=side)
 
@@ -3102,6 +3110,8 @@ class MultiIndex(Index):
                     start = 0
                 if key.stop is not None:
                     stop = level_index.get_loc(key.stop)
+                elif isinstance(start, slice):
+                    stop = len(level_index)
                 else:
                     stop = len(level_index) - 1
                 step = key.step
@@ -3136,22 +3146,27 @@ class MultiIndex(Index):
 
         else:
 
-            code = self._get_loc_single_level_index(level_index, key)
+            idx = self._get_loc_single_level_index(level_index, key)
 
             if level > 0 or self.lexsort_depth == 0:
                 # Desired level is not sorted
-                locs = np.array(level_codes == code, dtype=bool, copy=False)
+                locs = np.array(level_codes == idx, dtype=bool, copy=False)
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
 
-            i = level_codes.searchsorted(code, side="left")
-            j = level_codes.searchsorted(code, side="right")
-            if i == j:
+            if isinstance(idx, slice):
+                start = idx.start
+                end = idx.stop
+            else:
+                start = level_codes.searchsorted(idx, side="left")
+                end = level_codes.searchsorted(idx, side="right")
+
+            if start == end:
                 # The label is present in self.levels[level] but unused:
                 raise KeyError(key)
-            return slice(i, j)
+            return slice(start, end)
 
     def get_locs(self, seq):
         """
@@ -3247,7 +3262,7 @@ class MultiIndex(Index):
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = (idxrs if indexers is None else indexers).union(
-                            idxrs
+                            idxrs, sort=False
                         )
                     except KeyError:
 
@@ -3334,6 +3349,9 @@ class MultiIndex(Index):
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
         for i, k in enumerate(seq):
+            if is_scalar(k):
+                # GH#34603 we want to treat a scalar the same as an all equal list
+                k = [k]
             if com.is_bool_indexer(k):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
@@ -3347,6 +3365,9 @@ class MultiIndex(Index):
                 key_order_map[level_indexer] = np.arange(len(level_indexer))
 
                 new_order = key_order_map[self.codes[i][indexer]]
+            elif isinstance(k, slice) and k.start is None and k.stop is None:
+                # slice(None) should not determine order GH#31330
+                new_order = np.ones((n,))[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]

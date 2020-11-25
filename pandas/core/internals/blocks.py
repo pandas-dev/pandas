@@ -124,7 +124,16 @@ class Block(PandasObject):
         obj._mgr_locs = placement
         return obj
 
-    def __init__(self, values, placement, ndim=None):
+    def __init__(self, values, placement, ndim: int):
+        """
+        Parameters
+        ----------
+        values : np.ndarray or ExtensionArray
+        placement : BlockPlacement (or castable)
+        ndim : int
+            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        """
+        # TODO(EA2D): ndim will be unnecessary with 2D EAs
         self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
@@ -1646,7 +1655,7 @@ class ExtensionBlock(Block):
 
     values: ExtensionArray
 
-    def __init__(self, values, placement, ndim=None):
+    def __init__(self, values, placement, ndim: int):
         """
         Initialize a non-consolidatable block.
 
@@ -2172,7 +2181,9 @@ class DatetimeLikeBlockMixin(Block):
         values = self.array_values().reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
-        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
+        return [
+            TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer, ndim=self.ndim)
+        ]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
@@ -2623,6 +2634,7 @@ def get_block_type(values, dtype=None):
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
     elif is_extension_array_dtype(values.dtype):
+        # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
