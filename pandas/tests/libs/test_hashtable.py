@@ -151,7 +151,7 @@ class TestHashTable:
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
