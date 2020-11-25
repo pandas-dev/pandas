@@ -430,10 +430,8 @@ class PyTablesExprVisitor(BaseExprVisitor):
         except AttributeError:
             pass
 
-        if isinstance(slobj, Term) and slobj.type is int:
-            # Avoid IndexError: only integers, slices (`:`), ellipsis (`...`),
-            #  numpy.newaxis (`None`) and integer or boolean arrays are valid
-            #  indices
+        if isinstance(slobj, Term):
+            # In py39 np.ndarray lookups with Term containing int raise
             slobj = slobj.value
 
         try:
