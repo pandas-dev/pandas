@@ -304,6 +304,48 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
+    def __array_function__(self, func, types, args, kwargs):
+
+        if not args:
+            # I dont think this is possible is it?
+            raise NotImplementedError
+
+        if args[0] is self:
+
+            if func in [np.delete, np.repeat, np.atleast_2d]:
+                res_data = func(self._ndarray, *args[1:], **kwargs)
+                return self._from_backing_data(res_data)
+
+            # TODO: do we need to convert args to kwargs to ensure nv checks
+            #  are correct?
+            if func is np.amin:
+                return self.min(*args[1:], **kwargs)
+            if func is np.amax:
+                return self.max(*args[1:], **kwargs)
+
+            if func is np.sum:
+                # Need to do explicitly otherise np.sum(TimedeltaArray)
+                #  doesnt wrap in Timedelta.
+                return self.sum(*args[1:], **kwargs)
+
+            if func is np.argsort:
+                if len(args) > 1:
+                    # try to make sure that we are passing kwargs along correclty
+                    raise NotImplementedError
+                return self.argsort(*args[1:], **kwargs)
+
+        if not any(x is self for x in args):
+            # e.g. np.conatenate we get args[0] is a tuple containing self
+            largs = list(args)
+            for i, arg in enumerate(largs):
+                if isinstance(arg, (list, tuple)):
+                    arg = type(arg)(x if x is not self else np.asarray(x) for x in arg)
+                    largs[i] = arg
+            args = tuple(largs)
+
+        args = [x if x is not self else np.asarray(x) for x in args]
+        return func(*args, **kwargs)
+
     def putmask(self, mask, value):
         """
         Analogue to np.putmask(self, mask, value)
