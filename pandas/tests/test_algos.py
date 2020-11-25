@@ -842,6 +842,27 @@ class TestIsin:
         expected = np.array([True, True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype1", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    @pytest.mark.parametrize("dtype", ["i8", "f8", "u8"])
+    def test_isin_datetimelike_values_numeric_comps(self, dtype, dtype1):
+        # Anything but object and we get all-False shortcut
+
+        dta = date_range("2013-01-01", periods=3)._values
+        if dtype1 == "period[D]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.to_period("D")
+        elif dtype1 == "M8[ns, UTC]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.tz_localize("UTC")
+        else:
+            arr = Series(dta.view("i8")).view(dtype1)._values
+
+        comps = arr.view("i8").astype(dtype)
+
+        result = algos.isin(comps, arr)
+        expected = np.zeros(comps.shape, dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_large(self):
         s = date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
@@ -1517,6 +1538,7 @@ class TestHashTable:
             (ht.StringHashTable, ht.ObjectVector, "object", True),
             (ht.Float64HashTable, ht.Float64Vector, "float64", False),
             (ht.Int64HashTable, ht.Int64Vector, "int64", False),
+            (ht.Int32HashTable, ht.Int32Vector, "int32", False),
             (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
         ],
     )
@@ -1640,6 +1662,7 @@ class TestHashTable:
             ht.StringHashTable,
             ht.Float64HashTable,
             ht.Int64HashTable,
+            ht.Int32HashTable,
             ht.UInt64HashTable,
         ],
     )
@@ -2356,3 +2379,15 @@ class TestDiff:
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
+
+
+@pytest.mark.parametrize(
+    "left_values", [[0, 1, 1, 4], [0, 1, 1, 4, 4], [0, 1, 1, 1, 4]]
+)
+def test_make_duplicates_of_left_unique_in_right(left_values):
+    # GH#36263
+    left = np.array(left_values)
+    right = np.array([0, 0, 1, 1, 4])
+    result = algos.make_duplicates_of_left_unique_in_right(left, right)
+    expected = np.array([0, 0, 1, 4])
+    tm.assert_numpy_array_equal(result, expected)
