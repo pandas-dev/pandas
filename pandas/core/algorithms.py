@@ -49,7 +49,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
-    ABCIndex,
     ABCIndexClass,
     ABCMultiIndex,
     ABCSeries,
@@ -421,7 +420,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+    if not isinstance(
+        values, (ABCIndexClass, ABCSeries, ABCExtensionArray, np.ndarray)
+    ):
         values = construct_1d_object_array_from_listlike(list(values))
         # TODO: could use ensure_arraylike here
 
