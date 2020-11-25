@@ -21,10 +21,6 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            pytest.mark.filterwarnings(
-                'ignore:The Excel reader engine "xlrd" is deprecated,'
-            ),
         ],
     ),
     pytest.param(
@@ -984,10 +980,7 @@ class TestReaders:
         expected = Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
-    def test_deprecated_kwargs(self, engine, read_ext):
-        if engine == "xlrd":
-            pytest.skip("Use of xlrd engine produces a FutureWarning as well")
-
+    def test_deprecated_kwargs(self, read_ext):
         with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 

@@ -1197,9 +1197,6 @@ class TestExcelWriter:
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
 
-    @pytest.mark.filterwarnings(
-        'ignore:The Excel reader engine "xlrd" is deprecated:FutureWarning'
-    )
     def test_bytes_io(self, engine):
         # see gh-7074
         bio = BytesIO()

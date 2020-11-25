@@ -102,10 +102,15 @@ engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
     Engine compatibility :
-    - "xlrd" supports most old/new Excel file formats.
+    - "xlrd" supports most old/new Excel file formats but is no longer maintained.
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
+
+    .. deprecated:: 1.2.0
+        The default value ``None`` is deprecated and will be changed to ``"openpyxl"``
+        in a future version. Not specifying an engine will raise a FutureWarning.
+
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -881,10 +886,15 @@ class ExcelFile:
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
         default ``xlrd`` for .xls* files, ``odf`` for .ods files.
         Engine compatibility :
-        - ``xlrd`` supports most old/new Excel file formats.
+        - ``xlrd`` supports most old/new Excel file formats but is no longer maintained.
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
+
+        .. deprecated:: 1.2.0
+            The default value ``None`` is deprecated and will be changed to
+            ``"openpyxl"`` in a future version. Not specifying an engine will
+            raise a FutureWarning.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -902,26 +912,21 @@ class ExcelFile:
     def __init__(
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
-        ext = None
-        if not isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
-            ext = os.path.splitext(str(path_or_buffer))[-1][1:]
-
         if engine is None:
+            warnings.warn(
+                "The default argument engine=None is deprecated. "
+                "Specify the engine argument to suppress this warning.",
+                FutureWarning,
+                stacklevel=4,
+            )
             engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
-                if ext == "ods":
+                ext = os.path.splitext(str(path_or_buffer))[-1]
+                if ext == ".ods":
                     engine = "odf"
-
-        elif engine == "xlrd" and ext in ("xlsx", "xlsm"):
-            warnings.warn(
-                'The Excel reader engine "xlrd" is deprecated, use "openpyxl" instead. '
-                'Specify engine="openpyxl" to suppress this warning.',
-                FutureWarning,
-                stacklevel=2,
-            )
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
