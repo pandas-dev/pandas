@@ -194,10 +194,17 @@ class TestDataFrameFormatting:
             check(True, False)
             check(False, False)
 
-        with tm.assert_produces_warning(FutureWarning):  # GH37999
+        # GH37999
+        with tm.assert_produces_warning(
+            FutureWarning, match="null_counts is deprecated.+"
+        ):
             buf = StringIO()
             df.info(buf=buf, null_counts=True)
             assert "non-null" in buf.getvalue()
+
+        # GH37999
+        with pytest.raises(ValueError, match="null_counts used with show_counts"):
+            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20

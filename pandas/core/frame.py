@@ -2645,7 +2645,9 @@ class DataFrame(NDFrame, OpsMixin):
         show_counts: Optional[bool] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        if null_counts is not None and show_counts is None:
+        if null_counts is not None:
+            if show_counts is not None:
+                raise ValueError("null_counts used with show_counts")
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
