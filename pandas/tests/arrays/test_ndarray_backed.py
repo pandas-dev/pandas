@@ -5,9 +5,16 @@ Tests for EA subclasses subclassing NDArrayBackedExtensionArray
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import IS_NEP18_ACTIVE
+
 from pandas import date_range
 import pandas._testing as tm
 from pandas.core.arrays import Categorical, PandasArray
+
+pytestmark = pytest.mark.skipif(
+    not IS_NEP18_ACTIVE,
+    reason="__array_function__ is not enabled by default until numpy 1.17",
+)
 
 
 class ArrayFunctionTests:

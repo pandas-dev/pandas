@@ -62,9 +62,25 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     return np.array(arr, *args, **kwargs)
 
 
+def _is_nep18_active():
+    # copied from dask.array.utils
+
+    class A:
+        def __array_function__(self, *args, **kwargs):
+            return True
+
+    try:
+        return np.concatenate([A()])
+    except ValueError:
+        return False
+
+
+IS_NEP18_ACTIVE = _is_nep18_active()
+
 __all__ = [
     "np",
     "_np_version",
     "np_version_under1p17",
     "is_numpy_dev",
+    "IS_NEP18_ACTIVE",
 ]
