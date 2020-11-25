@@ -2532,14 +2532,17 @@ class DataFrame(NDFrame, OpsMixin):
                 is used. By default, the setting in
                 ``pandas.options.display.max_info_columns`` is used."""
         ),
-        null_counts_sub=dedent(
+        show_counts_sub=dedent(
             """\
-            null_counts : bool, optional
+            show_counts : bool, optional
                 Whether to show the non-null counts. By default, this is shown
                 only if the DataFrame is smaller than
                 ``pandas.options.display.max_info_rows`` and
                 ``pandas.options.display.max_info_columns``. A value of True always
-                shows the counts, and False never shows the counts."""
+                shows the counts, and False never shows the counts.
+            null_counts : bool, optional
+                .. deprecated:: 1.2.0
+                    Use show_counts instead."""
         ),
         examples_sub=dedent(
             """\
@@ -2640,8 +2643,18 @@ class DataFrame(NDFrame, OpsMixin):
         buf: Optional[IO[str]] = None,
         max_cols: Optional[int] = None,
         memory_usage: Optional[Union[bool, str]] = None,
+        show_counts: Optional[bool] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
+        if null_counts is not None:
+            if show_counts is not None:
+                raise ValueError("null_counts used with show_counts. Use show_counts.")
+            warnings.warn(
+                "null_counts is deprecated. Use show_counts instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            show_counts = null_counts
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
@@ -2650,7 +2663,7 @@ class DataFrame(NDFrame, OpsMixin):
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
-            show_counts=null_counts,
+            show_counts=show_counts,
         )
 
     def memory_usage(self, index=True, deep=False) -> Series:

@@ -203,7 +203,7 @@ class BaseInfo(ABC):
             consume the same memory amount for corresponding dtypes. With deep
             memory introspection, a real memory usage calculation is performed
             at the cost of computational resources.
-        %(null_counts_sub)s
+        %(show_counts_sub)s
 
         Returns
         -------
