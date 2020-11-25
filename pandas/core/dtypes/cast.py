@@ -1654,12 +1654,28 @@ def cast_scalar_to_array(
 
     """
     if dtype is None:
-        dtype, fill_value = infer_dtype_from_scalar(value)
+        dtype, value = infer_dtype_from_scalar(value)
     else:
-        fill_value = value
+        if shape and is_integer_dtype(dtype) and isna(value):
+            # coerce if we have nan for an integer dtype
+            dtype = np.dtype("float64")
+        elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
+            # we need to coerce to object dtype to avoid
+            # to allow numpy to take our string as a scalar value
+            dtype = np.dtype("object")
+            if not isna(value):
+                value = ensure_str(value)
+        elif dtype.kind in ["M", "m"]:
+            # GH38032: filling in Timedelta/Timestamp drops nanoseconds
+            if isinstance(value, (Timedelta, Timestamp)):
+                value = value.to_numpy()
+            # GH36541: filling datetime-like array directly with pd.NaT
+            # raises ValueError: cannot convert float NaN to integer
+            elif is_valid_nat_for_dtype(value, dtype):
+                value = np.datetime64("NaT")
 
     values = np.empty(shape, dtype=dtype)
-    values.fill(fill_value)
+    values.fill(value)
 
     return values
 
@@ -1687,27 +1703,7 @@ def construct_1d_arraylike_from_scalar(
         subarr = cls._from_sequence([value] * length, dtype=dtype)
 
     else:
-
-        if length and is_integer_dtype(dtype) and isna(value):
-            # coerce if we have nan for an integer dtype
-            dtype = np.dtype("float64")
-        elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
-            # we need to coerce to object dtype to avoid
-            # to allow numpy to take our string as a scalar value
-            dtype = np.dtype("object")
-            if not isna(value):
-                value = ensure_str(value)
-        elif dtype.kind in ["M", "m"]:
-            # GH38032: filling in Timedelta/Timestamp drops nanoseconds
-            if isinstance(value, (Timedelta, Timestamp)):
-                value = value.to_numpy()
-            # GH36541: filling datetime-like array directly with pd.NaT
-            # raises ValueError: cannot convert float NaN to integer
-            elif is_valid_nat_for_dtype(value, dtype):
-                value = np.datetime64("NaT")
-
-        subarr = np.empty(length, dtype=dtype)
-        subarr.fill(value)
+        subarr = cast_scalar_to_array(length, value, dtype)
 
     return subarr
 
