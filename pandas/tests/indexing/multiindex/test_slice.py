@@ -746,7 +746,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_slice_negative_stepsize(self):
-        # GH#
+        # GH#38071
         mi = MultiIndex.from_product([["a", "b"], [0, 1]])
         df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
         result = df.loc[("a", slice(None, None, -1)), :]
