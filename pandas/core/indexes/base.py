@@ -1575,6 +1575,33 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays(
+        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        >>> mi
+        MultiIndex([(1, 3, 5),
+                    (2, 4, 6)],
+                   names=['x', 'y', 'z'])
+
+        >>> mi.droplevel()
+        MultiIndex([(3, 5),
+                    (4, 6)],
+                   names=['y', 'z'])
+
+        >>> mi.droplevel(2)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel('z')
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel(['x', 'y'])
+        Int64Index([5, 6], dtype='int64', name='z')
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -2490,12 +2517,10 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             values = self._values
 
-        if dropna:
-            try:
-                if self.hasnans:
-                    values = values[~isna(values)]
-            except NotImplementedError:
-                pass
+        if dropna and not isinstance(self, ABCMultiIndex):
+            # isna not defined for MultiIndex
+            if self.hasnans:
+                values = values[~isna(values)]
 
         return self._shallow_copy(values)
 
@@ -5120,7 +5145,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self, values)
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
