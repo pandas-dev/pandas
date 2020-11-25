@@ -982,7 +982,11 @@ def assert_categorical_equal(
     _check_isinstance(left, right, Categorical)
 
     if check_category_order:
-        assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
+        # TODO: might be able to get exact=True if Categorical(RangeIndex)
+        #  preserved RangeIndex categories
+        assert_index_equal(
+            left.categories, right.categories, obj=f"{obj}.categories", exact="equiv"
+        )
         assert_numpy_array_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )

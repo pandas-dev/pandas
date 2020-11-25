@@ -27,7 +27,7 @@ class TestRangeIndexConstructors:
         assert isinstance(result, RangeIndex)
         assert result.name is name
         assert result._range == range(start, stop, step)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_constructor_invalid_args(self):
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
@@ -146,7 +146,7 @@ class TestRangeIndexConstructors:
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         assert index.values.dtype == np.int64
-        tm.assert_index_equal(index, Index(arr))
+        tm.assert_index_equal(index, Index(arr), exact="equiv")
 
         # non-int raise Exception
         with pytest.raises(TypeError, match=r"Wrong type \<class 'str'\>"):

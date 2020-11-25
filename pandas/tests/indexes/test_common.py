@@ -141,7 +141,8 @@ class TestCommon:
         expected = index.drop_duplicates()
         for level in 0, index.name, None:
             result = index.unique(level=level)
-            tm.assert_index_equal(result, expected)
+            # TODO: make exact=True by making RangeIndex.unique return RangeIndex
+            tm.assert_index_equal(result, expected, exact="equiv")
 
         msg = "Too many levels: Index has only 1 level, not 4"
         with pytest.raises(IndexError, match=msg):

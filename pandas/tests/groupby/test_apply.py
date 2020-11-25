@@ -387,7 +387,7 @@ def test_apply_frame_not_as_index_column_name(df):
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
     # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
-    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_index_equal(result.index, expected.index, exact="equiv")
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
