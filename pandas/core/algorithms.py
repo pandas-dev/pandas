@@ -425,6 +425,9 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     ):
         values = construct_1d_object_array_from_listlike(list(values))
         # TODO: could use ensure_arraylike here
+    elif isinstance(values, ABCMultiIndex):
+        # Avoid raising in extract_array
+        values = np.array(values)
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
