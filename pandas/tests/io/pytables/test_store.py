@@ -4500,7 +4500,7 @@ class TestHDFStore:
 
             # Appending must have the same categories
             df3 = df.copy()
-            df3["s"].cat.remove_unused_categories(inplace=True)
+            df3["s"] = df3["s"].cat.remove_unused_categories()
 
             with pytest.raises(ValueError):
                 store.append("df3", df3)
