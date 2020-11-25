@@ -480,7 +480,7 @@ Deprecations
 - The ``how`` keyword in :meth:`PeriodIndex.astype` is deprecated and will be removed in a future version, use ``index.to_timestamp(how=how)`` instead (:issue:`37982`)
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
-- The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and will be removed in a future version (:issue:`37999`)
+- The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and replaced by ``show_counts``. It will be removed in a future version (:issue:`37999`)
 
 .. ---------------------------------------------------------------------------
 

@@ -203,7 +203,7 @@ class TestDataFrameFormatting:
             assert "non-null" in buf.getvalue()
 
         # GH37999
-        with pytest.raises(ValueError, match="null_counts used with show_counts"):
+        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
             df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
