@@ -96,6 +96,17 @@ class TestGetitemCallable:
         expected = float_frame.iloc[[0, 2], :]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_multiindex_columns_one_level(self):
+        # GH#29749
+        df = DataFrame([[1, 2]], columns=[["a", "b"]])
+        expected = DataFrame([1], columns=[["a"]])
+
+        result = df["a"]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[:, "a"]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemBooleanMask:
     def test_getitem_bool_mask_categorical_index(self):
