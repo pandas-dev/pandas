@@ -305,12 +305,29 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # __array_function__ methods
 
     def __array_function__(self, func, types, args, kwargs):
+        for x in types:
+            if not issubclass(x, (np.ndarray, NDArrayBackedExtensionArray)):
+                return NotImplemented
 
         if not args:
-            # I dont think this is possible is it?
-            raise NotImplementedError
+            # TODO: if this fails, are we bound for a RecursionError?
+            for key, value in kwargs.items():
+                if value is self:
+                    # See if we can treat self as the first arg
+                    import inspect
 
-        if args[0] is self:
+                    sig = inspect.signature(func)
+                    params = sig.parameters
+                    first_argname = next(iter(params))
+                    if first_argname == key:
+                        args = (value,)
+                        del kwargs[key]
+                        break
+                    else:
+                        kwargs[key] = np.asarray(self)
+                        break
+
+        if args and args[0] is self:
 
             if func in [np.delete, np.repeat, np.atleast_2d]:
                 res_data = func(self._ndarray, *args[1:], **kwargs)
