@@ -27,8 +27,24 @@ if _nlv < Version(_min_numpy_ver):
     )
 
 
+def _is_nep18_active():
+    # copied from dask.array.utils
+
+    class A:
+        def __array_function__(self, *args, **kwargs):
+            return True
+
+    try:
+        return np.concatenate([A()])
+    except ValueError:
+        return False
+
+
+IS_NEP18_ACTIVE = _is_nep18_active()
+
 __all__ = [
     "np",
     "_np_version",
     "is_numpy_dev",
+    "IS_NEP18_ACTIVE",
 ]

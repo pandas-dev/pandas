@@ -4,6 +4,8 @@ Tests for subclasses of NDArrayBackedExtensionArray
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import IS_NEP18_ACTIVE
+
 from pandas import (
     CategoricalIndex,
     date_range,
@@ -75,6 +77,12 @@ class TestEmpty:
         assert isinstance(result, PandasArray)
         assert result.dtype == dtype
         assert result.shape == shape
+
+
+pytestmark = pytest.mark.skipif(
+    not IS_NEP18_ACTIVE,
+    reason="__array_function__ is not enabled by default until numpy 1.17",
+)
 
 
 class ArrayFunctionTests:
