@@ -58,15 +58,11 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
             left, (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin)
         ):
             left = left.view("i8")
-        else:
-            raise TypeError(type(left))
         if isinstance(
             right,
             (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin),
         ):
             right = right.view("i8")
-        else:
-            raise TypeError(type(right))
 
         results = joinf(left, right)
         if with_indexers:
