@@ -4691,7 +4691,7 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
         """
-        result = algorithms.isin(self, values)
+        result = algorithms.isin(self._values, values)
         return self._constructor(result, index=self.index).__finalize__(
             self, method="isin"
         )

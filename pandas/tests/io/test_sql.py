@@ -2425,8 +2425,8 @@ class TestXSQLite(SQLiteMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 
@@ -2706,8 +2706,8 @@ class TestXMySQL(MySQLMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 
