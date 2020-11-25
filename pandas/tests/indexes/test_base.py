@@ -1496,11 +1496,13 @@ class TestIndex(Base):
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
-    def test_drop_with_duplicates_in_index(self):
+    def test_drop_with_duplicates_in_index(self, index):
         # GH38051
-        index = Index([0, 1, 0, 1])
-        result = index.drop(0)
-        expected = Index([1, 1])
+        if len(index) == 0:
+            return
+        expected = index.drop(index[0]).repeat(2)
+        index = index.repeat(2)
+        result = index.drop(index[0])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
