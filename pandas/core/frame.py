@@ -434,6 +434,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
+    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
 
     @property
     def _constructor(self) -> Type[DataFrame]:
