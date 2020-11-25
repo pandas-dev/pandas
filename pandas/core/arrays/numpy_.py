@@ -161,7 +161,8 @@ class PandasArray(
                 f"'values' must be a NumPy array, not {type(values).__name__}"
             )
 
-        if values.ndim != 1:
+        if values.ndim == 0:
+            # Technically we support 2, but do not advertise that fact.
             raise ValueError("PandasArray must be 1-dimensional.")
 
         if copy:
