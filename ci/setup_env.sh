@@ -57,7 +57,7 @@ which conda
 echo
 echo "update conda"
 conda config --set ssl_verify false
-conda config --set always_yes true --set changeps1 false
+conda config --set quiet true --set always_yes true --set changeps1 false
 conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
@@ -99,9 +99,8 @@ conda list
 conda remove --all -q -y -n pandas-dev
 
 echo
-conda config --set channel_priority strict
-echo "conda env create --file=${ENV_FILE}"
-conda env create --file="${ENV_FILE}"
+echo "conda env create -q --file=${ENV_FILE}"
+time conda env create -q --file="${ENV_FILE}"
 
 
 if [[ "$BITS32" == "yes" ]]; then
