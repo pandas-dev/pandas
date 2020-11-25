@@ -29,14 +29,6 @@ matrix:
   fast_finish: true
 
   include:
-    # In allowed failures
-    - dist: bionic
-      python: 3.9-dev
-      env:
-        - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
-    - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
-
     - env:
         - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
 
@@ -92,7 +84,7 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
-  - if [ "$JOB" != "3.9-dev" ]; then source activate pandas-dev; fi
+  - source activate pandas-dev
   - ci/run_tests.sh
 
 after_script:
