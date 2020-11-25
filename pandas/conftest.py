@@ -703,6 +703,7 @@ def float_frame():
             DatetimeTZDtype(tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
+        (Timedelta(nanoseconds=1), "timedelta64[ns]"),  # GH38032
     ]
 )
 def ea_scalar_and_dtype(request):
