@@ -87,7 +87,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import indexing, missing, nanops
+from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -1926,6 +1926,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._constructor(result, **d).__finalize__(
             self, method="__array_wrap__"
         )
+
+    def __array_ufunc__(
+        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+    ):
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
