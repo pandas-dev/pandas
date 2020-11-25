@@ -1656,7 +1656,11 @@ def cast_scalar_to_array(
     if dtype is None:
         dtype, value = infer_dtype_from_scalar(value)
     else:
-        if shape and is_integer_dtype(dtype) and isna(value):
+        if not isinstance(dtype, np.dtype):
+            dtype = np.dtype(dtype)
+        not_empty = shape if is_integer(shape) else (not shape or any(shape))
+
+        if not_empty and is_integer_dtype(dtype) and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
         elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
@@ -1701,7 +1705,6 @@ def construct_1d_arraylike_from_scalar(
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()
         subarr = cls._from_sequence([value] * length, dtype=dtype)
-
     else:
         subarr = cast_scalar_to_array(length, value, dtype)
 
