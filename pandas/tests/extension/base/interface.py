@@ -29,6 +29,23 @@ class BaseInterfaceTests(BaseExtensionTests):
         # GH-20761
         assert data._can_hold_na is True
 
+    def test_contains(self, data):
+        # GH-37867
+        scalar = data[~data.isna()][0]
+
+        assert scalar in data
+
+        na_value = data.dtype.na_value
+        other_na_value_types = {np.nan, pd.NA, pd.NaT}.difference({na_value})
+        if data.isna().any():
+            assert na_value in data
+            for na_value_type in other_na_value_types:
+                assert na_value_type not in data
+        else:
+            assert na_value not in data
+            for na_value_type in other_na_value_types:
+                assert na_value_type not in data
+
     def test_memory_usage(self, data):
         s = pd.Series(data)
         result = s.memory_usage(index=False)

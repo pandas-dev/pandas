@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -360,8 +361,10 @@ class ExtensionArray:
         """
         # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
         # would raise a TypeError. The implementation below works around that.
-        if is_valid_nat_for_dtype(item, self.dtype):
+        if item is self.dtype.na_value:
             return isna(self).any() if self._can_hold_na else False
+        elif is_scalar(item) and isna(item):
+            return False
         else:
             return (item == self).any()
 
