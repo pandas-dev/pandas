@@ -50,7 +50,6 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
@@ -791,22 +790,28 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             # Our result will have still kept the column in the result
             result = result.drop(columns=column_keys, errors="ignore")
 
-        result_index_data = []
-        for key, values in self._groupby.grouper.indices.items():
-            for value in values:
-                data = [
-                    *com.maybe_make_list(key),
-                    *com.maybe_make_list(
-                        grouped_object_index[value]
-                        if grouped_object_index is not None
-                        else []
-                    ),
-                ]
-                result_index_data.append(tuple(data))
+        codes = self._groupby.grouper.codes
+        levels = self._groupby.grouper.levels
 
-        result_index = MultiIndex.from_tuples(
-            result_index_data, names=result_index_names
+        group_indices = self._groupby.grouper.indices.values()
+        if group_indices:
+            indexer = np.concatenate(list(self._groupby.grouper.indices.values()))
+        else:
+            indexer = np.array([], dtype=np.intp)
+        codes = [c.take(indexer) for c in codes]
+
+        if grouped_object_index is not None:
+            if isinstance(grouped_object_index, MultiIndex):
+                idx = grouped_object_index.take(indexer)
+            else:
+                idx = MultiIndex.from_arrays([grouped_object_index.take(indexer)])
+            codes.extend(list(idx.codes))
+            levels.extend(list(idx.levels))
+
+        result_index = MultiIndex(
+            levels, codes, names=result_index_names, verify_integrity=False
         )
+
         result.index = result_index
         return result
 
