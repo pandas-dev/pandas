@@ -150,6 +150,13 @@ class OpsMixin:
 
 
 def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+    """
+    Compatibility with numpy ufuncs.
+
+    See also
+    --------
+    numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
+    """
     from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
 
