@@ -121,3 +121,14 @@ class TestIndexRendering:
             result = repr(Index(np.arange(1000)))
             assert len(result) < 200
             assert "..." in result
+
+    def test_index_repr_bool_nan(self):
+        # GH32146
+        arr = Index([True, False, np.nan], dtype=object)
+        exp1 = arr.format()
+        out1 = ["True", "False", "NaN"]
+        assert out1 == exp1
+
+        exp2 = repr(arr)
+        out2 = "Index([True, False, nan], dtype='object')"
+        assert out2 == exp2
