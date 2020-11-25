@@ -422,6 +422,11 @@ class Index(IndexOpsMixin, PandasObject):
         ndarray
             An ndarray with int64 dtype.
         """
+        warnings.warn(
+            "Index.asi8 is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return None
 
     @classmethod
@@ -1578,6 +1583,33 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index or MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays(
+        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        >>> mi
+        MultiIndex([(1, 3, 5),
+                    (2, 4, 6)],
+                   names=['x', 'y', 'z'])
+
+        >>> mi.droplevel()
+        MultiIndex([(3, 5),
+                    (4, 6)],
+                   names=['y', 'z'])
+
+        >>> mi.droplevel(2)
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel('z')
+        MultiIndex([(1, 3),
+                    (2, 4)],
+                   names=['x', 'y'])
+
+        >>> mi.droplevel(['x', 'y'])
+        Int64Index([5, 6], dtype='int64', name='z')
         """
         if not isinstance(level, (tuple, list)):
             level = [level]
@@ -2493,12 +2525,10 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             values = self._values
 
-        if dropna:
-            try:
-                if self.hasnans:
-                    values = values[~isna(values)]
-            except NotImplementedError:
-                pass
+        if dropna and not isinstance(self, ABCMultiIndex):
+            # isna not defined for MultiIndex
+            if self.hasnans:
+                values = values[~isna(values)]
 
         return self._shallow_copy(values)
 
@@ -2742,7 +2772,7 @@ class Index(IndexOpsMixin, PandasObject):
                         stacklevel=3,
                     )
 
-        return self._shallow_copy(result)
+        return result
 
     @final
     def _wrap_setop_result(self, other, result):
@@ -2750,6 +2780,8 @@ class Index(IndexOpsMixin, PandasObject):
             result, np.ndarray
         ):
             result = type(self._data)._simple_new(result, dtype=self.dtype)
+        elif is_categorical_dtype(self.dtype) and isinstance(result, np.ndarray):
+            result = Categorical(result, dtype=self.dtype)
 
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
@@ -3987,7 +4019,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self: _IndexT, joined: np.ndarray, other: _IndexT
+    ) -> _IndexT:
+        assert other.dtype == self.dtype
+
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
         else:
@@ -4189,7 +4225,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_object()
 
-    def is_type_compatible(self, kind) -> bool:
+    def is_type_compatible(self, kind: str_t) -> bool:
         """
         Whether the index type is compatible with the provided type.
         """
@@ -4345,17 +4381,18 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             converted = self._validate_fill_value(value)
-            np.putmask(values, mask, converted)
-            return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
                 raise err
 
             # coerces to object
             return self.astype(object).putmask(mask, value)
+
+        np.putmask(values, mask, converted)
+        return self._shallow_copy(values)
 
     def equals(self, other: object) -> bool:
         """
@@ -4744,12 +4781,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        result = self.asi8
+        if needs_i8_conversion(self.dtype):
+            # TODO: these do not match the underlying EA argsort methods GH#37863
+            return self.asi8.argsort(*args, **kwargs)
 
-        if result is None:
-            result = np.array(self)
-
-        return result.argsort(*args, **kwargs)
+        # This works for either ndarray or EA, is overriden
+        #  by RangeIndex, MultIIndex
+        return self._data.argsort(*args, **kwargs)
 
     @final
     def get_value(self, series: "Series", key):
@@ -5115,7 +5153,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self, values)
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
