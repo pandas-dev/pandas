@@ -667,6 +667,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 if k not in self.obj:
                     if value is None:
                         self.obj[k] = np.nan
+                    elif is_array_like(value) and value.ndim == 2:
+                        # GH#37964 have to select columnwise in case of array
+                        self.obj[k] = value[:, i]
                     elif is_list_like(value):
                         self.obj[k] = value[i]
                     else:
@@ -2004,7 +2007,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: ABCDataFrame):
+    def _align_frame(self, indexer, df: "DataFrame"):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):

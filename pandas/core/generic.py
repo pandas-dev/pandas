@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -511,7 +512,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -521,7 +522,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -532,7 +533,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
-            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
@@ -11266,7 +11266,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and is_dtype_equal(result.dtype, self.dtype)
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
             return self
@@ -11830,7 +11834,7 @@ DataFrame.all : Return whether all elements are True over requested axis.
 _any_desc = """\
 Return whether any element is True, potentially over an axis.
 
-Returns False unless there at least one element within a series or
+Returns False unless there is at least one element within a series or
 along a Dataframe axis that is True or equivalent (e.g. non-zero or
 non-empty)."""
 
