@@ -36,7 +36,7 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert scalar in data
 
         na_value = data.dtype.na_value
-        other_na_value_types = {np.nan, pd.NA, pd.NaT}.difference({na_value})
+        other_na_value_types = {None, np.nan, pd.NA, pd.NaT}.difference({na_value})
         if data.isna().any():
             assert na_value in data
             for na_value_type in other_na_value_types:
