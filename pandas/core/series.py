@@ -2076,19 +2076,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        delegate = self._values
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-
-        if isinstance(delegate, ExtensionArray):
-            if not skipna and isna(delegate).any():
-                return np.nan
-            else:
-                i = delegate.argmin()
-
-        else:
-            i = nanops.nanargmin(delegate, skipna=skipna)
-            if i == -1:
-                return np.nan
+        i = self.argmin(axis=None, skipna=skipna, *args, **kwargs)
+        if i == -1:
+            return np.nan
         return self.index[i]
 
     def idxmax(self, axis=0, skipna=True, *args, **kwargs):
@@ -2156,19 +2146,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        delegate = self._values
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-
-        if isinstance(delegate, ExtensionArray):
-            if not skipna and isna(delegate).any():
-                return np.nan
-            else:
-                i = delegate.argmax()
-
-        else:
-            i = nanops.nanargmax(delegate, skipna=skipna)
-            if i == -1:
-                return np.nan
+        i = self.argmax(axis=None, skipna=skipna, *args, **kwargs)
+        if i == -1:
+            return np.nan
         return self.index[i]
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":

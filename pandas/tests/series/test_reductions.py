@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from datetime import datetime
 
 import pandas as pd
 from pandas import MultiIndex, Series
@@ -116,21 +117,49 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_idxmax_idxmin_with_nullable_integer_dtype():
-    ser = Series([1, 2, 3], dtype="Int64")
-    assert ser.idxmax() == 2
-    assert ser.idxmin() == 0
+@pytest.mark.parametrize('dtype', ['Int64', 'Float64'])
+@pytest.mark.parametrize(
+    "op_name, skipna, expected",
+    [
+        ('idxmax', True, 'b'),
+        ('idxmin', True, 'a'),
+        ('argmax', True, 1),
+        ('argmin', True, 0),
+        ('idxmax', False, np.nan),
+        ('idxmin', False, np.nan),
+        ('argmax', False, -1),
+        ('argmin', False, -1)
+    ]
+)
+def test_argminmax_idxminmax(dtype, op_name, skipna, expected):
+    ser = Series([1, 2, None], index=['a', 'b', 'c'], dtype=dtype)
+    result = getattr(ser, op_name)(skipna=skipna)
+    if pd.isna(expected):
+        assert np.isnan(result)
+    else:
+        assert result == expected
 
 
-def test_argmax_argmin_with_nullable_integer_dtype():
-    ser = Series([1, 2, 3], dtype="Int64")
-    assert ser.argmax() == 2
-    assert ser.argmin() == 0
-
-
-def test_with_nullable_float_dtype():
-    ser = Series([1, 2, 3], dtype="Float64")
-    assert ser.idxmax() == 2
-    assert ser.idxmin() == 0
-    assert ser.argmax() == 2
-    assert ser.argmin() == 0
+@pytest.mark.parametrize(
+    "op_name, skipna, expected",
+    [
+        ('idxmax', True, 'b'),
+        ('idxmin', True, 'a'),
+        ('argmax', True, 1),
+        ('argmin', True, 0),
+        ('idxmax', False, np.nan),
+        ('idxmin', False, np.nan),
+        ('argmax', False, -1),
+        ('argmin', False, -1)
+    ]
+)
+def test_argminmax_idxminmax_with_datetime64_dtype(op_name, skipna, expected):
+    ser = Series(
+        [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
+        index=['a', 'b', 'c']
+    )
+    result = getattr(ser, op_name)(skipna=skipna)
+    if pd.isna(expected):
+        assert np.isnan(result)
+    else:
+        assert result == expected
