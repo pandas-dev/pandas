@@ -660,54 +660,6 @@ class TestIndex(Base):
         intersect = first.intersection(second, sort=sort)
         assert intersect.name == expected_name
 
-    @pytest.mark.parametrize(
-        "index2,keeps_name",
-        [
-            (Index([4, 7, 6, 5, 3], name="index"), True),
-            (Index([4, 7, 6, 5, 3], name="other"), False),
-        ],
-    )
-    def test_intersection_monotonic(self, index2, keeps_name, sort):
-        index1 = Index([5, 3, 2, 4, 1], name="index")
-        expected = Index([5, 3, 4])
-
-        if keeps_name:
-            expected.name = "index"
-
-        result = index1.intersection(index2, sort=sort)
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "index2,expected_arr",
-        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B", "A"])],
-    )
-    def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
-        # non-monotonic non-unique
-        index1 = Index(["A", "B", "A", "C"])
-        expected = Index(expected_arr, dtype="object")
-        result = index1.intersection(index2, sort=sort)
-        if sort is None:
-            expected = expected.sort_values()
-        tm.assert_index_equal(result, expected)
-
-    def test_intersect_str_dates(self, sort):
-        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
-
-        i1 = Index(dt_dates, dtype=object)
-        i2 = Index(["aa"], dtype=object)
-        result = i2.intersection(i1, sort=sort)
-
-        assert len(result) == 0
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_intersection_equal_sort_true(self):
-        # TODO decide on True behaviour
-        idx = Index(["c", "a", "b"])
-        sorted_ = Index(["a", "b", "c"])
-        tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
-
     def test_chained_union(self, sort):
         # Chained unions handles names correctly
         i1 = Index([1, 2], name="i1")
@@ -734,32 +686,6 @@ class TestIndex(Base):
         if sort is None:
             tm.assert_index_equal(union, everything.sort_values())
         assert tm.equalContents(union, everything)
-
-    @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
-    def test_union_sort_other_special(self, slice_):
-        # https://github.com/pandas-dev/pandas/issues/24959
-
-        idx = Index([1, 0, 2])
-        # default, sort=None
-        other = idx[slice_]
-        tm.assert_index_equal(idx.union(other), idx)
-        tm.assert_index_equal(other.union(idx), idx)
-
-        # sort=False
-        tm.assert_index_equal(idx.union(other, sort=False), idx)
-
-    @pytest.mark.xfail(reason="Not implemented")
-    @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
-    def test_union_sort_special_true(self, slice_):
-        # TODO decide on True behaviour
-        # sort=True
-        idx = Index([1, 0, 2])
-        # default, sort=None
-        other = idx[slice_]
-
-        result = idx.union(other, sort=True)
-        expected = Index([0, 1, 2])
-        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -791,28 +717,6 @@ class TestIndex(Base):
         union = Index([]).union(first, sort=sort)
         assert (union is first) is (not sort)
 
-    @pytest.mark.parametrize("first_list", [list("ba"), list()])
-    @pytest.mark.parametrize("second_list", [list("ab"), list()])
-    @pytest.mark.parametrize(
-        "first_name, second_name, expected_name",
-        [("A", "B", None), (None, "B", None), ("A", None, None)],
-    )
-    def test_union_name_preservation(
-        self, first_list, second_list, first_name, second_name, expected_name, sort
-    ):
-        first = Index(first_list, name=first_name)
-        second = Index(second_list, name=second_name)
-        union = first.union(second, sort=sort)
-
-        vals = set(first_list).union(second_list)
-
-        if sort is None and len(first_list) > 0 and len(second_list) > 0:
-            expected = Index(sorted(vals), name=expected_name)
-            tm.assert_index_equal(union, expected)
-        else:
-            expected = Index(vals, name=expected_name)
-            assert tm.equalContents(union, expected)
-
     def test_union_dt_as_obj(self, sort):
         # TODO: Replace with fixturesult
         index = self.create_index()
@@ -820,10 +724,7 @@ class TestIndex(Base):
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
-        if date_index.dtype == np.object_:
-            appended = np.append(index, date_index)
-        else:
-            appended = np.append(index, date_index.astype("O"))
+        appended = np.append(index, date_index.astype("O"))
 
         assert tm.equalContents(first_cat, appended)
         assert tm.equalContents(second_cat, index)
@@ -1595,55 +1496,6 @@ class TestIndex(Base):
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
-
-    @pytest.mark.parametrize(
-        "method,expected,sort",
-        [
-            (
-                "intersection",
-                np.array(
-                    [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
-                    dtype=[("num", int), ("let", "a1")],
-                ),
-                False,
-            ),
-            (
-                "intersection",
-                np.array(
-                    [(1, "A"), (1, "B"), (2, "A"), (2, "B")],
-                    dtype=[("num", int), ("let", "a1")],
-                ),
-                None,
-            ),
-            (
-                "union",
-                np.array(
-                    [(1, "A"), (1, "B"), (1, "C"), (2, "A"), (2, "B"), (2, "C")],
-                    dtype=[("num", int), ("let", "a1")],
-                ),
-                None,
-            ),
-        ],
-    )
-    def test_tuple_union_bug(self, method, expected, sort):
-        index1 = Index(
-            np.array(
-                [(1, "A"), (2, "A"), (1, "B"), (2, "B")],
-                dtype=[("num", int), ("let", "a1")],
-            )
-        )
-        index2 = Index(
-            np.array(
-                [(1, "A"), (2, "A"), (1, "B"), (2, "B"), (1, "C"), (2, "C")],
-                dtype=[("num", int), ("let", "a1")],
-            )
-        )
-
-        result = getattr(index1, method)(index2, sort=sort)
-        assert result.ndim == 1
-
-        expected = Index(expected)
-        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "attr",
