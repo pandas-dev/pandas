@@ -282,9 +282,6 @@ class StringArray(PandasArray):
 
         super().__setitem__(key, value)
 
-    def fillna(self, value=None, method=None, limit=None):
-        return super().fillna(value, method, limit)
-
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, StringDtype):
