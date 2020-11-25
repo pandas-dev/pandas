@@ -237,6 +237,8 @@ Other enhancements
 - :meth:`.Rolling.mean` and :meth:`.Rolling.sum` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`.DatetimeIndex.searchsorted`, :meth:`.TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
+- Calling a NumPy ufunc on a ``DataFrame`` with extension types now preserves the extension types when possible (:issue:`23743`).
+- Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
 - Added :meth:`.Rolling.sem` and :meth:`Expanding.sem` to compute the standard error of the mean (:issue:`26476`)
@@ -468,12 +470,13 @@ Deprecations
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
 - The default value of ``regex`` for :meth:`Series.str.replace` will change from ``True`` to ``False`` in a future release. In addition, single character regular expressions will *not* be treated as literal strings when ``regex=True`` is set. (:issue:`24804`)
 - Deprecated automatic alignment on comparison operations between :class:`DataFrame` and :class:`Series`, do ``frame, ser = frame.align(ser, axis=1, copy=False)`` before e.g. ``frame == ser`` (:issue:`28759`)
-- :meth:`.Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
-- Deprecated slice-indexing on timezone-aware :class:`.DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
-- :meth:`Index.ravel` returning an ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
-- Deprecated use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
-- :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching Series behavior.  Use the named set methods instead (:issue:`36758`)
-- :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated and will be removed in a future version (:issue:`37545`)
+- :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
+- Using "outer" ufuncs on DataFrames to return 4d ndarray is now deprecated. Convert to an ndarray first (:issue:`23743`)
+- Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
+- :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
+- Deprecate use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
+- :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
+- :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 - :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
 - Partial slicing on unordered :class:`.DatetimeIndex` objects with keys that are not in the index is deprecated and will be removed in a future version (:issue:`18531`)
 - The ``how`` keyword in :meth:`PeriodIndex.astype` is deprecated and will be removed in a future version, use ``index.to_timestamp(how=how)`` instead (:issue:`37982`)
@@ -619,6 +622,9 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
 - Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
+- Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
+- Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 
 Missing
 ^^^^^^^
@@ -749,6 +755,7 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising an ``AssertionError`` instead of a ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
+- Fixed metadata propagation in :meth:`Series.abs` and ufuncs called on Series and DataFrames (:issue:`28283`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly casting from ``PeriodDtype`` to object dtype (:issue:`34871`)
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
