@@ -68,7 +68,7 @@ _shared_docs: Dict[str, str] = {}
 # dtype access    #
 # --------------- #
 def _ensure_data(
-    values, dtype: Optional[DtypeObj] = None
+    values: ArrayLike, dtype: Optional[DtypeObj] = None
 ) -> Tuple[np.ndarray, DtypeObj]:
     """
     routine to ensure that our data is of the correct
@@ -93,6 +93,12 @@ def _ensure_data(
     values : ndarray
     pandas_dtype : np.dtype or ExtensionDtype
     """
+
+    if dtype is not None:
+        # We only have non-None dtype when called from `isin`, and
+        #  both Datetimelike and Categorical dispatch before getting here.
+        assert not needs_i8_conversion(dtype)
+        assert not is_categorical_dtype(dtype)
 
     if not isinstance(values, ABCMultiIndex):
         # extract_array would raise
@@ -130,21 +136,20 @@ def _ensure_data(
         return ensure_object(values), np.dtype("object")
 
     # datetimelike
-    vals_dtype = getattr(values, "dtype", None)
-    if needs_i8_conversion(vals_dtype) or needs_i8_conversion(dtype):
-        if is_period_dtype(vals_dtype) or is_period_dtype(dtype):
+    if needs_i8_conversion(values.dtype) or needs_i8_conversion(dtype):
+        if is_period_dtype(values.dtype) or is_period_dtype(dtype):
             from pandas import PeriodIndex
 
-            values = PeriodIndex(values)
+            values = PeriodIndex(values)._data
             dtype = values.dtype
-        elif is_timedelta64_dtype(vals_dtype) or is_timedelta64_dtype(dtype):
+        elif is_timedelta64_dtype(values.dtype) or is_timedelta64_dtype(dtype):
             from pandas import TimedeltaIndex
 
-            values = TimedeltaIndex(values)
+            values = TimedeltaIndex(values)._data
             dtype = values.dtype
         else:
             # Datetime
-            if values.ndim > 1 and is_datetime64_ns_dtype(vals_dtype):
+            if values.ndim > 1 and is_datetime64_ns_dtype(values.dtype):
                 # Avoid calling the DatetimeIndex constructor as it is 1D only
                 # Note: this is reached by DataFrame.rank calls GH#27027
                 # TODO(EA2D): special case not needed with 2D EAs
@@ -154,12 +159,12 @@ def _ensure_data(
 
             from pandas import DatetimeIndex
 
-            values = DatetimeIndex(values)
+            values = DatetimeIndex(values)._data
             dtype = values.dtype
 
         return values.asi8, dtype
 
-    elif is_categorical_dtype(vals_dtype) and (
+    elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
         values = values.codes
@@ -236,11 +241,11 @@ _hashtables = {
 }
 
 
-def _get_hashtable_algo(values):
+def _get_hashtable_algo(values: np.ndarray):
     """
     Parameters
     ----------
-    values : arraylike
+    values : np.ndarray
 
     Returns
     -------
@@ -254,15 +259,15 @@ def _get_hashtable_algo(values):
     return htable, values
 
 
-def _get_values_for_rank(values):
+def _get_values_for_rank(values: ArrayLike):
     if is_categorical_dtype(values):
-        values = values._values_for_rank()
+        values = cast("Categorical", values)._values_for_rank()
 
     values, _ = _ensure_data(values)
     return values
 
 
-def get_data_algo(values):
+def get_data_algo(values: ArrayLike):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -431,14 +436,17 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_categorical_dtype(comps):
+    if is_categorical_dtype(comps.dtype):
         # TODO(extension)
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
-    if needs_i8_conversion(comps):
+    if needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
         return array(comps).isin(values)
+    elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
+        # e.g. comps are integers and values are datetime64s
+        return np.zeros(comps.shape, dtype=bool)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -478,7 +486,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
+    values: np.ndarray, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -842,7 +850,7 @@ def value_counts_arraylike(values, dropna: bool):
     return keys, counts
 
 
-def duplicated(values, keep="first") -> np.ndarray:
+def duplicated(values: ArrayLike, keep: str = "first") -> np.ndarray:
     """
     Return boolean ndarray denoting duplicate values.
 
