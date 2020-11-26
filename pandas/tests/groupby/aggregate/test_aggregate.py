@@ -348,7 +348,7 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = dict([["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]])
+        d = {"C": np.mean, "D": {"foo": np.mean, "bar": np.std}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
@@ -1047,7 +1047,7 @@ def test_groupby_get_by_index():
     # GH 33439
     df = DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
-    expected = DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    expected = DataFrame({"A": ["S", "W"], "B": [1.0, 2.0]}).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
 
 

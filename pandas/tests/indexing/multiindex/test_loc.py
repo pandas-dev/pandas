@@ -608,6 +608,25 @@ class TestKeyErrorsWithMultiIndex:
         with pytest.raises(KeyError, match=r"\(0, 3\)"):
             ser.loc[0, 3]
 
+    def test_missing_key_combination(self):
+        # GH: 19556
+        mi = MultiIndex.from_arrays(
+            [
+                np.array(["a", "a", "b", "b"]),
+                np.array(["1", "2", "2", "3"]),
+                np.array(["c", "d", "c", "d"]),
+            ],
+            names=["one", "two", "three"],
+        )
+        df = DataFrame(np.random.rand(4, 3), index=mi)
+        msg = r"\('b', '1', slice\(None, None, None\)\)"
+        with pytest.raises(KeyError, match=msg):
+            df.loc[("b", "1", slice(None)), :]
+        with pytest.raises(KeyError, match=msg):
+            df.index.get_locs(("b", "1", slice(None)))
+        with pytest.raises(KeyError, match=r"\('b', '1'\)"):
+            df.loc[("b", "1"), :]
+
 
 def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
     df = multiindex_year_month_day_dataframe_random_data
@@ -640,3 +659,39 @@ def test_getitem_non_found_tuple():
     )
     with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
         df.loc[(2.0, 2.0, 3.0)]
+
+
+def test_get_loc_datetime_index():
+    # GH#24263
+    index = pd.date_range("2001-01-01", periods=100)
+    mi = MultiIndex.from_arrays([index])
+    # Check if get_loc matches for Index and MultiIndex
+    assert mi.get_loc("2001-01") == slice(0, 31, None)
+    assert index.get_loc("2001-01") == slice(0, 31, None)
+
+
+def test_loc_setitem_indexer_differently_ordered():
+    # GH#34603
+    mi = MultiIndex.from_product([["a", "b"], [0, 1]])
+    df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
+
+    indexer = ("a", [1, 0])
+    df.loc[indexer, :] = np.array([[9, 10], [11, 12]])
+    expected = DataFrame([[11, 12], [9, 10], [5, 6], [7, 8]], index=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_getitem_index_differently_ordered_slice_none():
+    # GH#31330
+    df = DataFrame(
+        [[1, 2], [3, 4], [5, 6], [7, 8]],
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=["a", "b"],
+    )
+    result = df.loc[(slice(None), [2, 1]), :]
+    expected = DataFrame(
+        [[3, 4], [7, 8], [1, 2], [5, 6]],
+        index=[["a", "b", "a", "b"], [2, 2, 1, 1]],
+        columns=["a", "b"],
+    )
+    tm.assert_frame_equal(result, expected)

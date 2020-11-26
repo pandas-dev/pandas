@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Any, cast
+import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj
@@ -64,7 +65,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
+class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
 
@@ -249,12 +250,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self) -> np.ndarray:
-        return np.asarray(self)
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
+        return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -306,10 +302,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object)._values
-
-    @property
-    def _formatter_func(self):
-        return self._data._formatter(boxed=False)
 
     # ------------------------------------------------------------------------
     # Indexing
@@ -385,15 +377,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return super().asof_locs(where, mask)
 
     @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True, how="start"):
+    def astype(self, dtype, copy: bool = True, how=lib.no_default):
         dtype = pandas_dtype(dtype)
+
+        if how is not lib.no_default:
+            # GH#37982
+            warnings.warn(
+                "The 'how' keyword in PeriodIndex.astype is deprecated and "
+                "will be removed in a future version. "
+                "Use index.to_timestamp(how=how) instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            how = "start"
 
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-specific, isn't part of the EA interface.
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp(how=how).tz_localize(tz)
 
-        # TODO: should probably raise on `how` here, so we don't ignore it.
         return super().astype(dtype, copy=copy)
 
     @property
@@ -433,8 +436,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             )
 
         # _assert_can_do_setop ensures we have matching dtype
-        result = Int64Index.join(
-            self,
+        result = super().join(
             other,
             how=how,
             level=level,

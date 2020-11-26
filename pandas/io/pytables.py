@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_string_dtype,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -4689,7 +4690,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
 
         # remove names for 'level_%d'
         df.index = df.index.set_names(
-            [None if self._re_levels.search(l) else l for l in df.index.names]
+            [None if self._re_levels.search(name) else name for name in df.index.names]
         )
 
         return df
@@ -4771,7 +4772,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index):
+    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
