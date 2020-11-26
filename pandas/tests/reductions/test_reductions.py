@@ -1342,3 +1342,14 @@ class TestSeriesMode:
             result = result.sort_values().reset_index(drop=True)
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected",
+        [
+            ([0, 1j, 1, 1, 1 + 1j, 1 + 2j], Series([1], dtype=np.complex128)),
+            ([1 + 1j, 2j, 1 + 1j], Series([1 + 1j], dtype=np.complex128)),
+        ],
+    )
+    def test_unimode(self, array, expected):
+        result = Series(array).mode()
+        tm.assert_series_equal(result, expected)

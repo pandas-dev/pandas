@@ -5,7 +5,7 @@ import pytest
 
 from pandas._libs import hashtable
 
-from pandas import DatetimeIndex, MultiIndex
+from pandas import DatetimeIndex, MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -303,3 +303,17 @@ def test_duplicated_drop_duplicates():
     assert duplicated.dtype == bool
     expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
     tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
+
+
+@pytest.mark.parametrize(
+        "array,expected",
+        [
+            (
+                [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
+                Series([False, False, True, False, False, False, True], dtype=bool),
+            )
+        ],
+    )
+def test_duplicated_series_complex_numbers(array, expected):
+    result = Series(array, dtype=np.complex64).duplicated()
+    tm.assert_series_equal(result, expected)

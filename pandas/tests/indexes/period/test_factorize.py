@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas import PeriodIndex
+from pandas import PeriodIndex, factorize
 import pandas._testing as tm
 
 
@@ -35,3 +35,13 @@ class TestFactorize:
         arr, idx = idx2.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
+
+    def test_factorize_complex(self):
+        array = [1, 2, 2 + 1j]
+        labels, uniques = factorize(array)
+
+        expected_labels = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+
+        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=np.complex64)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)

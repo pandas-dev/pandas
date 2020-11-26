@@ -2156,3 +2156,28 @@ def test_groupby_series_with_tuple_name():
     expected = Series([2, 4], index=[1, 2], name=("a", "a"))
     expected.index.name = ("b", "b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+        "frame,expected",
+        [
+            (
+                DataFrame([{"a": 1, "b": 1 + 1j}, {"a": 1, "b": 1 + 2j}]),
+                DataFrame(
+                    np.array([1, 1], dtype=np.int64),
+                    index=Index([(1 + 1j), (1 + 2j)], dtype="object", name="b"),
+                    columns=Index(["a"], dtype="object"),
+                ),
+            )
+        ],
+)
+def test_groupby(frame, expected):
+    result = frame.groupby("b", sort=False).count()
+    tm.assert_frame_equal(result, expected)
+
+    # sorting of the index should fail since complex numbers are unordered
+    with pytest.raises(
+        TypeError,
+        match="'<' not supported between instances of 'complex' and 'complex'",
+    ):
+        frame.groupby("b", sort=True).count()
