@@ -300,3 +300,10 @@ def test_multiindex_at_set():
     assert series.at[1, 3] == 5
     series.loc[1, 3] = 6
     assert series.loc[1, 3] == 6
+
+
+def test_at_get_multiindex_one_level():
+    # GH#38053
+    s2 = Series((0, 1), index=[[False, True]])
+    result = s2.at[False]
+    assert result == 0
