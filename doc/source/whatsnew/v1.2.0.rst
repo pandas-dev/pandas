@@ -730,6 +730,8 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`concat` and :class:`DataFrame` constructor where input index names are not preserved in some cases (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
+- Bug in :meth:`DataFrame.stack` where an empty DataFrame.stack would raise an error (:issue:`36113`). Now returning an empty Series with empty MultiIndex.
+- Bug in :meth:`Series.unstack`. Now a Series with single level of Index trying to unstack would raise a ValueError. (:issue:`36113`)
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was a dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns are both multiindexed (:issue:`36360`)

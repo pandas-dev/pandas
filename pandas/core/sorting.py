@@ -610,7 +610,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

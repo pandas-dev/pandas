@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -2102,7 +2100,6 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot("a", "b", "c")
 
-    @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")
