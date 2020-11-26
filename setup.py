@@ -409,15 +409,15 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
+extra_compile_args = []
+extra_link_args = []
 if is_platform_windows():
-    extra_compile_args = []
-    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    extra_compile_args = ["-Werror"]
-    extra_link_args = []
+    if os.environ.get("PANDAS_CI", "0") == "1":
+        extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
 
