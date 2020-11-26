@@ -1649,7 +1649,8 @@ class _iLocIndexer(_LocationIndexer):
             value = self._align_series(indexer, value)
 
         # Ensure we have something we can iterate over
-        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+        info_axis = indexer[1]
+        ilocs = self._ensure_iterable_column_indexer(info_axis)
 
         pi = indexer[0]
         lplane_indexer = length_of_indexer(pi, self.obj.index)
@@ -1673,6 +1674,12 @@ class _iLocIndexer(_LocationIndexer):
                 # We are trying to set N values into M entries of a single
                 #  column, which is invalid for N != M
                 # Exclude zero-len for e.g. boolean masking that is all-false
+
+                if len(value) == 1 and not is_integer(info_axis):
+                    # This is a case like df.iloc[:3, [1]] = [0]
+                    #  where we treat as df.iloc[:3, 1] = 0
+                    return self._setitem_with_indexer((pi, info_axis[0]), value[0])
+
                 raise ValueError(
                     "Must have equal len keys and value "
                     "when setting with an iterable"
