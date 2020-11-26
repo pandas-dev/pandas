@@ -21,6 +21,7 @@ Fixed regressions
 - Fixed regression in metadata propagation for ``groupby`` iterator (:issue:`37343`)
 - Fixed regression in indexing on a :class:`Series` with ``CategoricalDtype`` after unpickling (:issue:`37631`)
 - Fixed regression in ``df.groupby(..).rolling(..)`` with the resulting :class:`MultiIndex` when grouping by a label that is in the index (:issue:`37641`)
+- Fixed regression in :meth:`DataFrame.fillna` not filling ``NaN`` after other operations such as :meth:`DataFrame.pivot` (:issue:`36495`).
 
 .. ---------------------------------------------------------------------------
 
