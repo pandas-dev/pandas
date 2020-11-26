@@ -202,7 +202,7 @@ class TestSelectDtypes:
         # GH20839
         df = DataFrame(
             {
-                "a": ["abc"],
+                "a": ['a', 'b', 'c'],
                 "b": list(range(1, 4)),
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
