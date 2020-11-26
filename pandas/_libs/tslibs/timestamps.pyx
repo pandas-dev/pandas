@@ -580,6 +580,11 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.day_name()
         'Saturday'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.day_name()
+        nan
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -601,6 +606,11 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.month_name()
         'March'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.month_name()
+        nan
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -839,6 +849,11 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
         >>> ts.to_pydatetime()
         datetime.datetime(2020, 3, 14, 15, 32, 52, 192548)
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_pydatetime()
+        NaT
         """
         if self.nanosecond != 0 and warn:
             warnings.warn("Discarding nonzero nanoseconds in conversion",
@@ -877,6 +892,11 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.to_numpy()
         numpy.datetime64('2020-03-14T15:32:52.192548651')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.to_numpy()
+        numpy.datetime64('NaT')
         """
         return self.to_datetime64()
 
@@ -1033,6 +1053,11 @@ class Timestamp(_Timestamp):
         --------
         >>> pd.Timestamp.now()
         Timestamp('2020-11-16 22:06:16.378782')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.now()
+        NaT
         """
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
@@ -1056,6 +1081,11 @@ class Timestamp(_Timestamp):
         --------
         >>> pd.Timestamp.today()
         Timestamp('2020-11-16 22:37:39.969883')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.today()
+        NaT
         """
         return cls.now(tz)
 
@@ -1391,6 +1421,11 @@ timedelta}, default 'raise'
 
         >>> ts.round(freq='1H30T')
         Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.round()
+        NaT
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1462,6 +1497,11 @@ timedelta}, default 'raise'
 
         >>> ts.floor(freq='1H30T')
         Timestamp('2020-03-14 15:00:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.floor()
+        NaT
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1531,6 +1571,11 @@ timedelta}, default 'raise'
 
         >>> ts.ceil(freq='1H30T')
         Timestamp('2020-03-14 16:30:00')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.ceil()
+        NaT
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
@@ -1626,7 +1671,12 @@ default 'raise'
         Add 'Europe/Stockholm' as timezone:
 
         >>> ts.tz_localize(tz='Europe/Stockholm')
-        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm')
+        Timestamp('2020-03-14 15:32:52.192548651+0100', tz='Europe/Stockholm'
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_localize()
+        NaT
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
@@ -1688,6 +1738,16 @@ default 'raise'
 
         >>> ts.tz_convert(tz='Asia/Tokyo')
         Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Can also use ``astimezone``:
+
+        >>> ts.astimezone(tz='Asia/Tokyo')
+        Timestamp('2020-03-15 00:32:52.192548651+0900', tz='Asia/Tokyo')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.tz_convert(tz='Asia/Tokyo')
+        NaT
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
@@ -1751,6 +1811,11 @@ default 'raise'
         >>> import pytz
         >>> ts.replace(tzinfo=pytz.timezone('US/Pacific'))
         Timestamp('2020-03-14 15:32:52.192548651-0700', tz='US/Pacific')
+
+        Analogous for ``pd.NaT``:
+
+        >>> pd.NaT.replace(tzinfo=pytz.timezone('US/Pacific'))
+        NaT
         """
 
         cdef:
