@@ -2793,7 +2793,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5216
+        5244
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],

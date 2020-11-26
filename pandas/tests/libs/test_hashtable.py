@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+import tracemalloc
+
 import numpy as np
 import pytest
 
@@ -6,9 +9,27 @@ from pandas._libs import hashtable as ht
 import pandas._testing as tm
 
 
+@contextmanager
+def activated_tracemalloc():
+    tracemalloc.start()
+    try:
+        yield
+    finally:
+        tracemalloc.stop()
+
+
+def get_allocated_khash_memory():
+    snapshot = tracemalloc.take_snapshot()
+    snapshot = snapshot.filter_traces(
+        (tracemalloc.DomainFilter(True, ht.get_hashtable_trace_domain()),)
+    )
+    return sum(map(lambda x: x.size, snapshot.traces))
+
+
 @pytest.mark.parametrize(
     "table_type, dtype",
     [
+        (ht.PyObjectHashTable, np.object_),
         (ht.Int64HashTable, np.int64),
         (ht.UInt64HashTable, np.uint64),
         (ht.Float64HashTable, np.float64),
@@ -53,13 +74,15 @@ class TestHashTable:
         assert str(index + 2) in str(excinfo.value)
 
     def test_map(self, table_type, dtype):
-        N = 77
-        table = table_type()
-        keys = np.arange(N).astype(dtype)
-        vals = np.arange(N).astype(np.int64) + N
-        table.map(keys, vals)
-        for i in range(N):
-            assert table.get_item(keys[i]) == i + N
+        # PyObjectHashTable has no map-method
+        if table_type != ht.PyObjectHashTable:
+            N = 77
+            table = table_type()
+            keys = np.arange(N).astype(dtype)
+            vals = np.arange(N).astype(np.int64) + N
+            table.map(keys, vals)
+            for i in range(N):
+                assert table.get_item(keys[i]) == i + N
 
     def test_map_locations(self, table_type, dtype):
         N = 8
@@ -100,6 +123,53 @@ class TestHashTable:
         keys = np.repeat(expected, 5)
         unique = table.unique(keys)
         tm.assert_numpy_array_equal(unique, expected)
+
+    def test_tracemalloc_works(self, table_type, dtype):
+        if dtype in (np.int8, np.uint8):
+            N = 256
+        else:
+            N = 30000
+        keys = np.arange(N).astype(dtype)
+        with activated_tracemalloc():
+            table = table_type()
+            table.map_locations(keys)
+            used = get_allocated_khash_memory()
+            my_size = table.sizeof()
+            assert used == my_size
+            del table
+            assert get_allocated_khash_memory() == 0
+
+    def test_tracemalloc_for_empty(self, table_type, dtype):
+        with activated_tracemalloc():
+            table = table_type()
+            used = get_allocated_khash_memory()
+            my_size = table.sizeof()
+            assert used == my_size
+            del table
+            assert get_allocated_khash_memory() == 0
+
+
+def test_tracemalloc_works_for_StringHashTable():
+    N = 1000
+    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    with activated_tracemalloc():
+        table = ht.StringHashTable()
+        table.map_locations(keys)
+        used = get_allocated_khash_memory()
+        my_size = table.sizeof()
+        assert used == my_size
+        del table
+        assert get_allocated_khash_memory() == 0
+
+
+def test_tracemalloc_for_empty_StringHashTable():
+    with activated_tracemalloc():
+        table = ht.StringHashTable()
+        used = get_allocated_khash_memory()
+        my_size = table.sizeof()
+        assert used == my_size
+        del table
+        assert get_allocated_khash_memory() == 0
 
 
 @pytest.mark.parametrize(
@@ -157,6 +227,7 @@ def get_ht_function(fun_name, type_suffix):
 @pytest.mark.parametrize(
     "dtype, type_suffix",
     [
+        (np.object_, "object"),
         (np.int64, "int64"),
         (np.uint64, "uint64"),
         (np.float64, "float64"),
