@@ -7,7 +7,7 @@ import gzip
 from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
 import mmap
 import os
-import pathlib
+from os import PathLike
 from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, cast
 from urllib.parse import (
     urljoin,
@@ -187,7 +187,7 @@ def stringify_path(
         # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
         # attribute "__fspath__"  [union-attr]
         filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
-    elif isinstance(filepath_or_buffer, pathlib.Path):
+    elif isinstance(filepath_or_buffer, PathLike):
         filepath_or_buffer = str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
 
