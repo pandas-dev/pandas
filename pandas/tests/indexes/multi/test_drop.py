@@ -149,7 +149,7 @@ def test_drop_with_nan_in_index(nulls_fixture):
         mi.drop(pd.Timestamp("2001"), level="date")
 
 
-def test_single_level_drop():
+def test_single_level_drop_partially_missing_elements():
     # GH 37820
 
     mi = MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
