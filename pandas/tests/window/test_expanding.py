@@ -3,8 +3,7 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, DatetimeIndex, Series
 import pandas._testing as tm
 from pandas.core.window import Expanding
 
@@ -82,8 +81,8 @@ def test_empty_df_expanding(expander):
 
     # Verifies that datetime and integer expanding windows can be applied
     # to empty DataFrames with datetime index
-    expected = DataFrame(index=pd.DatetimeIndex([]))
-    result = DataFrame(index=pd.DatetimeIndex([])).expanding(expander).sum()
+    expected = DataFrame(index=DatetimeIndex([]))
+    result = DataFrame(index=DatetimeIndex([])).expanding(expander).sum()
     tm.assert_frame_equal(result, expected)
 
 
