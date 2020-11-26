@@ -639,10 +639,6 @@ class BaseGrouper:
 
         try:
             return self._aggregate_series_fast(obj, func)
-        except AssertionError:
-            # in some cases (eg GH-36003) an internal AssertionError can be
-            # raised if libreduction cannot handle this case
-            pass
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
                 # raised in libreduction
