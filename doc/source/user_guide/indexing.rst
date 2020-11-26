@@ -594,6 +594,10 @@ If you wish to get the 0th and the 2nd elements from the index in the 'A' column
 
 .. ipython:: python
 
+  dfd = pd.DataFrame({'A': [1, 2, 3],
+                      'B': [4, 5, 6]},
+                     index=list('abc'))
+  dfd
   dfd.loc[dfd.index[[0, 2]], 'A']
 
 This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
