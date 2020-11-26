@@ -625,6 +625,7 @@ Indexing
 - Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 - Bug in :meth:`DataFrame.reindex` raising ``IndexingError`` wrongly for empty DataFrame with ``tolerance`` not None or ``method="nearest"`` (:issue:`27315`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
+- Bug on inserting a boolean label into a :class:`DataFrame` with a numeric :class:`Index` columns incorrectly casting to integer (:issue:`36319`)
 - Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
