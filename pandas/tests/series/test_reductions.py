@@ -118,7 +118,6 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-@pytest.mark.parametrize('dtype', ['Int64', 'Float64'])
 @pytest.mark.parametrize(
     "op_name, skipna, expected",
     [
@@ -132,8 +131,8 @@ def test_validate_stat_keepdims():
         ('argmin', False, -1),
     ],
 )
-def test_argminmax_idxminmax(dtype, op_name, skipna, expected):
-    ser = Series([1, 2, None], index=['a', 'b', 'c'], dtype=dtype)
+def test_argminmax_idxminmax(any_numeric_dtype, op_name, skipna, expected):
+    ser = Series([1, 2, None], index=['a', 'b', 'c'], dtype=any_numeric_dtype)
     result = getattr(ser, op_name)(skipna=skipna)
     if pd.isna(expected):
         assert np.isnan(result)
