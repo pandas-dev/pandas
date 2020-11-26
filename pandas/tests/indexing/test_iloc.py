@@ -566,7 +566,9 @@ class TestiLoc2:
         expected = DataFrame({"A": [0, 1, 10, 12, 4], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({"A": ["abcde"], "B": np.arange(5, 10, dtype="int64")})
+        df = DataFrame(
+            {"A": ["a", "b", "c", "d", "e"], "B": np.arange(5, 10, dtype="int64")}
+        )
         df.iloc[2:4] = [["x", 11], ["y", 13]]
         expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
