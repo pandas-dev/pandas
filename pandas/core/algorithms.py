@@ -685,7 +685,7 @@ def factorize(
 
     if isinstance(values, ABCRangeIndex):
         return values.factorize(sort=sort)
-    if is_extension_array_dtype(values.dtype):
+    elif is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
