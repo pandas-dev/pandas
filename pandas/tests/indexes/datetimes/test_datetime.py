@@ -68,7 +68,7 @@ class TestDatetimeIndex:
         step = 24 * 3600
 
         for n in ns:
-            idx = pd.date_range("2014-11-26", periods=n, freq="S")
+            idx = date_range("2014-11-26", periods=n, freq="S")
             ts = pd.Series(np.random.randn(n), index=idx)
             i = np.arange(start, n, step)
 
@@ -89,10 +89,10 @@ class TestDatetimeIndex:
         # overflow.
         periods = np.int_(1000)
 
-        idx1 = pd.date_range(start="2000", periods=periods, freq="S")
+        idx1 = date_range(start="2000", periods=periods, freq="S")
         assert len(idx1) == periods
 
-        idx2 = pd.date_range(end="2000", periods=periods, freq="S")
+        idx2 = date_range(end="2000", periods=periods, freq="S")
         assert len(idx2) == periods
 
     def test_nat(self):
@@ -251,7 +251,7 @@ class TestDatetimeIndex:
         index = DatetimeIndex(dt, freq=freq, name="time")
         self.assert_index_parameters(index)
 
-        new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
+        new_index = date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
 
     def test_factorize(self):
@@ -304,7 +304,7 @@ class TestDatetimeIndex:
     def test_factorize_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH#13750
-        base = pd.date_range("2016-11-05", freq="H", periods=100, tz=tz)
+        base = date_range("2016-11-05", freq="H", periods=100, tz=tz)
         idx = base.repeat(5)
 
         exp_arr = np.arange(100, dtype=np.intp).repeat(5)
@@ -317,14 +317,14 @@ class TestDatetimeIndex:
 
     def test_factorize_dst(self):
         # GH 13750
-        idx = pd.date_range("2016-11-06", freq="H", periods=12, tz="US/Eastern")
+        idx = date_range("2016-11-06", freq="H", periods=12, tz="US/Eastern")
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
 
-        idx = pd.date_range("2016-06-13", freq="H", periods=12, tz="US/Eastern")
+        idx = date_range("2016-06-13", freq="H", periods=12, tz="US/Eastern")
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
@@ -350,7 +350,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        idx = pd.date_range("2000", periods=2)
+        idx = date_range("2000", periods=2)
         # M8[ns] by default
         result = np.asarray(idx)
 
@@ -365,7 +365,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        idx = pd.date_range("2000", periods=2, tz=tz)
+        idx = date_range("2000", periods=2, tz=tz)
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(idx, dtype="datetime64[ns]")
 
@@ -393,7 +393,7 @@ class TestDatetimeIndex:
 
     def test_split_non_utc(self):
         # GH 14042
-        indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
+        indices = date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
         result = np.split(indices, indices_or_sections=[])[0]
         expected = indices._with_freq(None)
         tm.assert_index_equal(result, expected)
