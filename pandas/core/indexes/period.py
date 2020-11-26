@@ -65,7 +65,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
+class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
 
@@ -436,8 +436,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             )
 
         # _assert_can_do_setop ensures we have matching dtype
-        result = Int64Index.join(
-            self,
+        result = super().join(
             other,
             how=how,
             level=level,
