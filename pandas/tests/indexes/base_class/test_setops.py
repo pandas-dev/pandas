@@ -223,8 +223,8 @@ class TestIndexSetOps:
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("first_list", [list("ba"), list()])
-    @pytest.mark.parametrize("second_list", [list("ab"), list()])
+    @pytest.mark.parametrize("first_list", [["b", "a"], []])
+    @pytest.mark.parametrize("second_list", [["a", "b"], []])
     @pytest.mark.parametrize(
         "first_name, second_name, expected_name",
         [("A", "B", None), (None, "B", None), ("A", None, None)],
