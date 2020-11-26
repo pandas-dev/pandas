@@ -458,7 +458,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
     if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
-        # If the the values include nan we need to check for nan explicitly
+        # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
@@ -1563,7 +1563,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
         * True: negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
-          other negative values raise a ``ValueError``.
+          negative values raise a ``ValueError``.
 
     fill_value : any, optional
         Fill value to use for NA-indices when `allow_fill` is True.
