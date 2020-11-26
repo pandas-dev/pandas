@@ -1498,8 +1498,8 @@ class TestIndex(Base):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
             return
-        expected = index.drop(index[0]).repeat(2)
-        index = index.repeat(2)
+        index = index.unique().repeat(2)
+        expected = index[2:]
         result = index.drop(index[0])
         tm.assert_index_equal(result, expected)
 
