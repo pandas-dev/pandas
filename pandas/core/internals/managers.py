@@ -1550,7 +1550,7 @@ class SingleBlockManager(BlockManager):
             )
 
         self.axes = [axis]
-        self.blocks = tuple([block])
+        self.blocks = (block,)
 
     @classmethod
     def from_blocks(

@@ -72,7 +72,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("freq", ["H", "12H", "2D", "W"])
     @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
-    @pytest.mark.parametrize("kwargs", [dict(on="date"), dict(level="d")])
+    @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
     def test_selection(self, index, freq, kind, kwargs):
         # This is a bug, these should be implemented
         # GH 14008

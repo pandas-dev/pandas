@@ -78,7 +78,7 @@ class TestPeriodIndex:
         # GH#5407
         idx = make_range(start="2013/10/01", freq="D", periods=10)
 
-        df = DataFrame(dict(units=[100 + i for i in range(10)]), index=idx)
+        df = DataFrame({"units": [100 + i for i in range(10)]}, index=idx)
         empty = DataFrame(index=type(idx)([], freq="D"), columns=["units"])
         empty["units"] = empty["units"].astype("int64")
 

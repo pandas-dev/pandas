@@ -34,7 +34,7 @@ class TestDatetimeIndexOps:
                 getattr(datetime_series, op)
 
         # attribute access should still work!
-        s = Series(dict(year=2000, month=1, day=10))
+        s = Series({"year": 2000, "month": 1, "day": 10})
         assert s.year == 2000
         assert s.month == 1
         assert s.day == 10

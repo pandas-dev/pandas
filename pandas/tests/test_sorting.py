@@ -270,12 +270,24 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(k + tuple([lv, rv]))
+                vals.append(
+                    k
+                    + (
+                        lv,
+                        rv,
+                    )
+                )
 
         for k, rval in rdict.items():
             if k not in ldict:
                 for rv in rval:
-                    vals.append(k + tuple([np.nan, rv]))
+                    vals.append(
+                        k
+                        + (
+                            np.nan,
+                            rv,
+                        )
+                    )
 
         def align(df):
             df = df.sort_values(df.columns.tolist())

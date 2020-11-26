@@ -109,7 +109,7 @@ class TestToIterable:
         s = typ([1], dtype=dtype)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
-            rdtype = tuple([rdtype])
+            rdtype = (rdtype,)
         assert result in rdtype
 
     @pytest.mark.parametrize(
