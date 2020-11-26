@@ -181,7 +181,7 @@ class TestDataFrameConstructors:
             for d, a in zip(dtypes, arrays):
                 assert a.dtype == d
             if ad is None:
-                ad = dict()
+                ad = {}
             ad.update({d: a for d, a in zip(dtypes, arrays)})
             return DataFrame(ad)
 
@@ -197,7 +197,7 @@ class TestDataFrameConstructors:
         _check_mixed_dtypes(df)
 
         # add lots of types
-        df = _make_mixed_dtypes_df("float", dict(A=1, B="foo", C="bar"))
+        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
         _check_mixed_dtypes(df)
 
         # GH 622
@@ -356,8 +356,8 @@ class TestDataFrameConstructors:
 
         # GH 14381
         # Dict with None value
-        frame_none = DataFrame(dict(a=None), index=[0])
-        frame_none_list = DataFrame(dict(a=[None]), index=[0])
+        frame_none = DataFrame({"a": None}, index=[0])
+        frame_none_list = DataFrame({"a": [None]}, index=[0])
         assert frame_none._get_value(0, "a") is None
         assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
@@ -717,21 +717,12 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
-    @pytest.mark.parametrize(
-        "data,dtype",
-        [
-            (pd.Period("2012-01", freq="M"), "period[M]"),
-            (pd.Period("2012-02-01", freq="D"), "period[D]"),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
-        ],
-    )
-    def test_constructor_period_dict_scalar(self, data, dtype):
-        # scalar periods
-        df = DataFrame({"a": data}, index=[0])
-        assert df["a"].dtype == dtype
+    def test_constructor_dict_extension_scalar(self, ea_scalar_and_dtype):
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+        df = DataFrame({"a": ea_scalar}, index=[0])
+        assert df["a"].dtype == ea_dtype
 
-        expected = DataFrame(index=[0], columns=["a"], data=data)
+        expected = DataFrame(index=[0], columns=["a"], data=ea_scalar)
 
         tm.assert_frame_equal(df, expected)
 
@@ -1003,6 +994,21 @@ class TestDataFrameConstructors:
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
         assert df.values.dtype == expected
+
+    @pytest.mark.parametrize(
+        "data,input_dtype,expected_dtype",
+        (
+            ([True, False, None], "boolean", pd.BooleanDtype),
+            ([1.0, 2.0, None], "Float64", pd.Float64Dtype),
+            ([1, 2, None], "Int64", pd.Int64Dtype),
+            (["a", "b", "c"], "string", pd.StringDtype),
+        ),
+    )
+    def test_constructor_dtype_nullable_extension_arrays(
+        self, data, input_dtype, expected_dtype
+    ):
+        df = DataFrame({"a": data}, dtype=input_dtype)
+        assert df["a"].dtype == expected_dtype()
 
     def test_constructor_scalar_inference(self):
         data = {"int": 1, "bool": True, "float": 3.0, "complex": 4j, "object": "foo"}
@@ -1534,14 +1540,12 @@ class TestDataFrameConstructors:
         msg = "cannot use columns parameter with orient='columns'"
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]),
+                {"A": [1, 2], "B": [4, 5]},
                 orient="columns",
                 columns=["one", "two"],
             )
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
-            )
+            DataFrame.from_dict({"A": [1, 2], "B": [4, 5]}, columns=["one", "two"])
 
     @pytest.mark.parametrize(
         "data_dict, keys, orient",
@@ -1584,7 +1588,7 @@ class TestDataFrameConstructors:
         arr = np.random.randn(10)
         s = Series(arr, name="x")
         df = DataFrame(s)
-        expected = DataFrame(dict(x=s))
+        expected = DataFrame({"x": s})
         tm.assert_frame_equal(df, expected)
 
         s = Series(arr, index=range(3, 13))
@@ -2577,7 +2581,7 @@ class TestDataFrameConstructors:
     def test_from_records_series_categorical_index(self):
         # GH 32805
         index = CategoricalIndex(
-            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+            [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)
@@ -2628,7 +2632,7 @@ class TestDataFrameConstructors:
         [
             Categorical(list("aabbc")),
             SparseArray([1, np.nan, np.nan, np.nan]),
-            IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            IntervalArray([Interval(0, 1), Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
     )
@@ -2648,12 +2652,10 @@ class TestDataFrameConstructors:
 
     def test_construct_with_two_categoricalindex_series(self):
         # GH 14600
-        s1 = Series(
-            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
-        )
+        s1 = Series([39, 6, 4], index=CategoricalIndex(["female", "male", "unknown"]))
         s2 = Series(
             [2, 152, 2, 242, 150],
-            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+            index=CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
@@ -2717,7 +2719,7 @@ class TestDataFrameConstructors:
             (["1", "2"]),
             (list(date_range("1/1/2011", periods=2, freq="H"))),
             (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
+            ([Interval(left=0, right=5)]),
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):

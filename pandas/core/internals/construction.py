@@ -225,7 +225,8 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
             # TODO: What about re-joining object columns?
             block_values = [
-                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))
+                make_block(dvals_list[n], placement=[n], ndim=2)
+                for n in range(len(dvals_list))
             ]
 
         else:
@@ -369,7 +370,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes = []
+        indexes: List[Union[List[Label], Index]] = []
 
         have_raw_arrays = False
         have_series = False

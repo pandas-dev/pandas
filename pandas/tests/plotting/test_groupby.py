@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, is_platform_windows
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series
@@ -15,7 +15,7 @@ from pandas.tests.plotting.common import TestPlotBase
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.xfail(
-        is_platform_windows() and not PY38,
+        is_platform_windows(),
         reason="Looks like LinePlot._is_ts_plot is wrong",
         strict=False,
     )

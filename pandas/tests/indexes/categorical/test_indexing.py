@@ -238,16 +238,14 @@ class TestGetIndexer:
             r1 = idx1.get_indexer(idx2)
             tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
-        msg = (
-            "method='pad' and method='backfill' not implemented yet for "
-            "CategoricalIndex"
-        )
+        msg = "method pad not yet implemented for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="pad")
+        msg = "method backfill not yet implemented for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="backfill")
 
-        msg = "method='nearest' not implemented yet for CategoricalIndex"
+        msg = "method nearest not yet implemented for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="nearest")
 
@@ -291,6 +289,18 @@ class TestWhere:
         expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
+
+    def test_where_non_categories(self):
+        ci = CategoricalIndex(["a", "b", "c", "d"])
+        mask = np.array([True, False, True, False])
+
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(ValueError, match=msg):
+            ci.where(mask, 2)
+
+        with pytest.raises(ValueError, match=msg):
+            # Test the Categorical method directly
+            ci._data.where(mask, 2)
 
 
 class TestContains:
