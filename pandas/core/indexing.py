@@ -2199,9 +2199,10 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
             try:
                 res = idx._get_string_slice(key)
                 warnings.warn(
-                    "Indexing on datetimelike rows with `frame[string]` is "
-                    "deprecated and will be removed in a future version. "
-                    "Use `frame.loc[string]` instead.",
+                    "Indexing a DataFrame with a datetimelike index using a single "
+                    "string to slice the rows, like `frame[string]`, is deprecated "
+                    "and will be removed in a future version. Use `frame.loc[string]` "
+                    "instead.",
                     FutureWarning,
                     stacklevel=3,
                 )
