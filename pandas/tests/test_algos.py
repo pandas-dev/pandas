@@ -307,6 +307,39 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex(self, sort):
+        # increasing -> sort doesn't matter
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        result = algos.factorize(ri, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex_decreasing(self, sort):
+        # decreasing -> sort matters
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        ri2 = ri[::-1]
+        expected = expected[0], ri2
+        if sort:
+            expected = expected[0][::-1], expected[1][::-1]
+
+        result = algos.factorize(ri2, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri2.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.

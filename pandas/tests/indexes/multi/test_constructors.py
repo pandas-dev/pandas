@@ -477,6 +477,14 @@ def test_from_product_datetimeindex():
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 
+def test_from_product_rangeindex():
+    # RangeIndex is preserved by factorize, so preserved in levels
+    rng = Index(range(5))
+    other = ["a", "b"]
+    mi = MultiIndex.from_product([rng, other])
+    tm.assert_index_equal(mi._levels[0], rng, exact=True)
+
+
 @pytest.mark.parametrize("ordered", [False, True])
 @pytest.mark.parametrize("f", [lambda x: x, lambda x: Series(x), lambda x: x.values])
 def test_from_product_index_series_categorical(ordered, f):

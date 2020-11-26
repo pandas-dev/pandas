@@ -51,6 +51,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -682,7 +683,9 @@ def factorize(
         na_sentinel = -1
         dropna = False
 
-    if is_extension_array_dtype(values.dtype):
+    if isinstance(values, ABCRangeIndex):
+        return values.factorize(sort=sort)
+    elif is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
