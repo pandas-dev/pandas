@@ -438,7 +438,7 @@ class TestMerge:
 
         exp_in = DataFrame(
             columns=["a", "b", "c", "x", "y", "z"],
-            index=pd.Index([], dtype=object),
+            index=Index([], dtype=object),
             dtype=object,
         )
 
