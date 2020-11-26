@@ -29,42 +29,30 @@ class BaseInterfaceTests(BaseExtensionTests):
         # GH-20761
         assert data._can_hold_na is True
 
-    def test_contains(self, data):
+    def test_contains(self, data, data_missing):
         # GH-37867
+        # Tests for membership checks. Membership checks for nan-likes is tricky and
+        # the settled on rule is: `nan_like in arr` is True if nan_like is
+        # arr.dtype.na_value and arr.isna().any() is True. Else the check returns False.
 
-        data = data[~data.isna()]
+        for this_data in [data, data_missing]:
+            scalar = this_data[~this_data.isna()][0]
 
-        scalar = data[0]
+            assert scalar in this_data
+            assert "124jhujbhjhb5" not in data
 
-        assert scalar in data
-        assert "124jhujbhjhb5" not in data
+            na_value = this_data.dtype.na_value
 
-        na_value = data.dtype.na_value
+            if this_data.isna().any():
+                assert na_value in this_data
+            else:
+                assert na_value not in this_data
 
-        assert na_value not in data
-
-        for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
-            assert na_value_type not in data
-
-    def test_contains_nan(self, data_missing):
-        # GH-37867
-        data = data_missing
-
-        scalar = data[~data.isna()][0]
-
-        assert scalar in data
-
-        na_value = data.dtype.na_value
-
-        if data.isna().any():
-            assert na_value in data
-        else:
-            assert na_value not in data
-
-        for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
-            if na_value_type is na_value:
-                continue
-            assert na_value_type not in data
+            # this_data can never contain other nan-likes than na_value
+            for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
+                if na_value_type is na_value:
+                    continue
+                assert na_value_type not in this_data
 
     def test_memory_usage(self, data):
         s = pd.Series(data)

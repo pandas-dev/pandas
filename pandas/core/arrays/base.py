@@ -362,7 +362,7 @@ class ExtensionArray:
         # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
         # would raise a TypeError. The implementation below works around that.
         if item is self.dtype.na_value:
-            return isna(self).any() if self._can_hold_na else False
+            return self.isna().any() if self._can_hold_na else False
         elif is_scalar(item) and isna(item):
             return False
         else:
