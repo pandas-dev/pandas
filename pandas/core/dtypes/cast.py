@@ -391,7 +391,7 @@ def maybe_cast_to_extension_array(
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
-    # Everything can be be converted to StringArrays, but we may not want to convert
+    # Everything can be converted to StringArrays, but we may not want to convert
     if (
         issubclass(cls, (StringArray, ArrowStringArray))
         and lib.infer_dtype(obj) != "string"
@@ -1200,7 +1200,7 @@ def soft_convert_objects(
     elif conversion_count > 1 and coerce:
         raise ValueError(
             "Only one of 'datetime', 'numeric' or "
-            "'timedelta' can be True when when coerce=True."
+            "'timedelta' can be True when coerce=True."
         )
 
     if not is_object_dtype(values.dtype):

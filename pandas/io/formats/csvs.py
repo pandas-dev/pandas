@@ -144,7 +144,7 @@ class CSVFormatter:
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
+        # and make sure cols is just a list of labels
         new_cols = self.obj.columns
         if isinstance(new_cols, ABCIndexClass):
             return new_cols._format_native_types(**self._number_format)

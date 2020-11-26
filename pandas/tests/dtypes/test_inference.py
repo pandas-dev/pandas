@@ -126,7 +126,7 @@ def test_is_list_like_disallow_sets(maybe_list_like):
 
 def test_is_list_like_recursion():
     # GH 33721
-    # interpreter would crash with with SIGABRT
+    # interpreter would crash with SIGABRT
     def foo():
         inference.is_list_like([])
         foo()

@@ -1541,7 +1541,7 @@ def get_cmdclass(cmdclass=None):
         # of Versioneer. A's setup.py imports A's Versioneer, leaving it in
         # sys.modules by the time B's setup.py is executed, causing B to run
         # with the wrong versioneer. Setuptools wraps the sub-dep builds in a
-        # sandbox that restores sys.modules to it's pre-build state, so the
+        # sandbox that restores sys.modules to its pre-build state, so the
         # parent is protected against the child's "import versioneer". By
         # removing ourselves from sys.modules here, before the child build
         # happens, we protect the child from the parent's versioneer too.

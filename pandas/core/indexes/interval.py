@@ -479,7 +479,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
-        Interval-like requires conversion if it's endpoints are one of the
+        Interval-like requires conversion if its endpoints are one of the
         aforementioned types.
 
         Assumes that any list-like data has already been cast to an Index.
@@ -501,7 +501,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _maybe_convert_i8(self, key):
         """
-        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        Maybe convert a given key to its equivalent i8 value(s). Used as a
         preprocessing step prior to IntervalTree queries (self._engine), which
         expects numeric data.
 
@@ -540,7 +540,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
             if key.hasnans:
-                # convert NaT from it's i8 value to np.nan so it's not viewed
+                # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
                 key_i8 = key_i8.where(~key._isnan)
 

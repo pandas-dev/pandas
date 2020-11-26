@@ -47,7 +47,7 @@ class PandasExtensionDtype(ExtensionDtype):
     type: Any
     kind: Any
     # The Any type annotations above are here only because mypy seems to have a
-    # problem dealing with with multiple inheritance from PandasExtensionDtype
+    # problem dealing with multiple inheritance from PandasExtensionDtype
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
     subdtype = None

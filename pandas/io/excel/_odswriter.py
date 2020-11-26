@@ -182,7 +182,7 @@ class ODSWriter(ExcelWriter):
         Returns
         -------
         style_key : str
-            Unique style key for for later reference in sheet
+            Unique style key for later reference in sheet
         """
         from odf.style import (
             ParagraphProperties,

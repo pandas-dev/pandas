@@ -1768,7 +1768,7 @@ def box_expected(expected, box_cls, transpose=True):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
         if transpose:
-            # for vector operations, we we need a DataFrame to be a single-row,
+            # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
             #  vectors of the same length.
             expected = expected.T

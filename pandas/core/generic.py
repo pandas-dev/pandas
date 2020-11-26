@@ -1114,7 +1114,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In this case, the parameter ``copy`` is ignored.
 
         The second calling convention will modify the names of the
-        the corresponding index if mapper is a list or a scalar.
+        corresponding index if mapper is a list or a scalar.
         However, if mapper is dict-like or a function, it will use the
         deprecated behavior of modifying the axis *labels*.
 
@@ -2722,7 +2722,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
@@ -5490,7 +5490,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
-        If info_axis is a MultiIndex, it's first level values are used.
+        If info_axis is a MultiIndex, its first level values are used.
         """
         additions = super()._dir_additions()
         if self._info_axis._can_hold_strings:

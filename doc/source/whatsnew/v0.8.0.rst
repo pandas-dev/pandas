@@ -81,7 +81,7 @@ Time Series changes and improvements
   timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time
   zone set will be localized to local time. Time zone conversions are therefore
   essentially free. User needs to know very little about pytz library now; only
-  time zone names as as strings are required. Time zone-aware timestamps are
+  time zone names as strings are required. Time zone-aware timestamps are
   equal if and only if their UTC timestamps match. Operations between time
   zone-aware time series with different time zones will result in a UTC-indexed
   time series.
