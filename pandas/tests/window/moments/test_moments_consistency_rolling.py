@@ -2,7 +2,6 @@ from datetime import datetime
 import warnings
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -10,9 +9,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
-from pandas.core.window.common import _flex_binary_moment
+from pandas.core.window.common import flex_binary_moment
 from pandas.tests.window.common import (
-    check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -35,7 +33,7 @@ def _rolling_consistency_cases():
 # binary moments
 def test_rolling_cov(series):
     A = series
-    B = A + randn(len(A))
+    B = A + np.random.randn(len(A))
 
     result = A.rolling(window=50, min_periods=25).cov(B)
     tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
@@ -43,7 +41,7 @@ def test_rolling_cov(series):
 
 def test_rolling_corr(series):
     A = series
-    B = A + randn(len(A))
+    B = A + np.random.randn(len(A))
 
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
@@ -60,7 +58,12 @@ def test_rolling_corr(series):
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_rolling_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "rolling", func, window=10, min_periods=5)
+    result = getattr(frame.rolling(window=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("method", ["corr", "cov"])
@@ -139,8 +142,8 @@ def test_rolling_apply_consistency(
 @pytest.mark.parametrize("window", range(7))
 def test_rolling_corr_with_zero_variance(window):
     # GH 18430
-    s = pd.Series(np.zeros(20))
-    other = pd.Series(np.arange(20))
+    s = Series(np.zeros(20))
+    other = Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
 
@@ -150,7 +153,7 @@ def test_flex_binary_moment():
     # don't blow the stack
     msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
     with pytest.raises(TypeError, match=msg):
-        _flex_binary_moment(5, 6, None)
+        flex_binary_moment(5, 6, None)
 
 
 def test_corr_sanity():
@@ -452,7 +455,7 @@ def test_moment_functions_zero_length():
     df2_expected = df2
 
     functions = [
-        lambda x: x.rolling(window=10).count(),
+        lambda x: x.rolling(window=10, min_periods=0).count(),
         lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).max(),

@@ -21,7 +21,7 @@ KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
 KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
 KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
     header = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
 
     if with_header:
@@ -207,3 +207,18 @@ I2,1,3
 
     result = parser.read_csv(StringIO(data), index_col="I11", header=0)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.slow
+def test_index_col_large_csv(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/37094
+    parser = all_parsers
+
+    N = 1_000_001
+    df = DataFrame({"a": range(N), "b": np.random.randn(N)})
+
+    with tm.ensure_clean() as path:
+        df.to_csv(path, index=False)
+        result = parser.read_csv(path, index_col=[0])
+
+    tm.assert_frame_equal(result, df.set_index("a"))

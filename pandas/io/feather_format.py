@@ -1,14 +1,21 @@
 """ feather-format compat """
 
-from pandas._typing import StorageOptions
+from typing import AnyStr
+
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 
 
-def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kwargs):
+def to_feather(
+    df: DataFrame,
+    path: FilePathOrBuffer[AnyStr],
+    storage_options: StorageOptions = None,
+    **kwargs,
+):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -33,8 +40,6 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
-
-    ioargs = get_filepath_or_buffer(path, mode="wb", storage_options=storage_options)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -72,11 +77,10 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     if df.columns.inferred_type not in valid_types:
         raise ValueError("feather must have string column names")
 
-    feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    with get_handle(
+        path, "wb", storage_options=storage_options, is_text=False
+    ) as handles:
+        feather.write_feather(df, handles.handle, **kwargs)
 
 
 def read_feather(
@@ -97,7 +101,7 @@ def read_feather(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     columns : sequence, default None
         If not provided, all columns are read.
@@ -124,15 +128,10 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    ioargs = get_filepath_or_buffer(path, storage_options=storage_options)
+    with get_handle(
+        path, "rb", storage_options=storage_options, is_text=False
+    ) as handles:
 
-    df = feather.read_feather(
-        ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
-    )
-
-    # s3fs only validates the credentials when the file is closed.
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
-
-    return df
+        return feather.read_feather(
+            handles.handle, columns=columns, use_threads=bool(use_threads)
+        )

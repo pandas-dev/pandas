@@ -12,16 +12,14 @@ from pandas._typing import ArrayLike, Scalar
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_numeric_v_string_like,
+    is_re,
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
 
 
 def compare_or_regex_search(
-    a: ArrayLike,
-    b: Union[Scalar, Pattern],
-    regex: bool = False,
-    mask: Optional[ArrayLike] = None,
+    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: ArrayLike
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -33,8 +31,8 @@ def compare_or_regex_search(
     ----------
     a : array_like
     b : scalar or regex pattern
-    regex : bool, default False
-    mask : array_like or None (default)
+    regex : bool
+    mask : array_like
 
     Returns
     -------
@@ -68,8 +66,6 @@ def compare_or_regex_search(
         )
 
     # GH#32621 use mask to avoid comparing to NAs
-    if mask is None and isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
-        mask = np.reshape(~(isna(a)), a.shape)
     if isinstance(a, np.ndarray):
         a = a[mask]
 
@@ -93,3 +89,45 @@ def compare_or_regex_search(
 
     _check_comparison_types(result, a, b)
     return result
+
+
+def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.ndarray]):
+    """
+    Parameters
+    ----------
+    values : ArrayLike
+        Object dtype.
+    rx : re.Pattern
+    value : Any
+    mask : np.ndarray[bool], optional
+
+    Notes
+    -----
+    Alters values in-place.
+    """
+
+    # deal with replacing values with objects (strings) that match but
+    # whose replacement is not a string (numeric, nan, object)
+    if isna(value) or not isinstance(value, str):
+
+        def re_replacer(s):
+            if is_re(rx) and isinstance(s, str):
+                return value if rx.search(s) is not None else s
+            else:
+                return s
+
+    else:
+        # value is guaranteed to be a string here, s can be either a string
+        # or null if it's null it gets returned
+        def re_replacer(s):
+            if is_re(rx) and isinstance(s, str):
+                return rx.sub(value, s)
+            else:
+                return s
+
+    f = np.vectorize(re_replacer, otypes=[values.dtype])
+
+    if mask is None:
+        values[:] = f(values)
+    else:
+        values[mask] = f(values[mask])

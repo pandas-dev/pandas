@@ -138,7 +138,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
-    kh_resize_{{ttype}}(table, min(n, _SIZE_HINT_LIMIT))
+    kh_resize_{{ttype}}(table, min(n, SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
@@ -208,7 +208,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{c_type}}[:] arr, {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an

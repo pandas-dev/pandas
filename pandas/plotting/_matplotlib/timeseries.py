@@ -26,7 +26,7 @@ from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superp
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from pandas import Index, Series  # noqa:F401
+    from pandas import Index, Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
