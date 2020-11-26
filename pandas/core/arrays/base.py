@@ -359,6 +359,7 @@ class ExtensionArray:
         """
         Return for `item in self`.
         """
+        # GH37867
         # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
         # would raise a TypeError. The implementation below works around that.
         if item is self.dtype.na_value:

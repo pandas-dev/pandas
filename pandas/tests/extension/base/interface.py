@@ -39,7 +39,6 @@ class BaseInterfaceTests(BaseExtensionTests):
             scalar = this_data[~this_data.isna()][0]
 
             assert scalar in this_data
-            assert "124jhujbhjhb5" not in data
 
             na_value = this_data.dtype.na_value
 
