@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 import pandas as pd
 from pandas import (
     Categorical,
