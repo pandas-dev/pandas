@@ -591,12 +591,17 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self):
+    def argmin(self, skipna: bool = True) -> int:
         """
         Return the index of minimum value.
 
         In case of multiple occurrences of the minimum value, the index
         corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values when showing the result.
 
         Returns
         -------
@@ -606,14 +611,22 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
-        return nargminmax(self, "argmin")
+        if not skipna and self.isna().any():
+            return -1
+        else:
+            return nargminmax(self, "argmin")
 
-    def argmax(self):
+    def argmax(self, skipna: bool = True) -> int:
         """
         Return the index of maximum value.
 
         In case of multiple occurrences of the maximum value, the index
         corresponding to the first occurrence is returned.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values when showing the result.
 
         Returns
         -------
@@ -623,7 +636,10 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
-        return nargminmax(self, "argmax")
+        if not skipna and self.isna().any():
+            return -1
+        else:
+            return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
         """

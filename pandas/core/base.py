@@ -720,10 +720,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and isna(delegate).any():
-                return -1
-            else:
-                return delegate.argmax()
+            return delegate.argmax(skipna)
         else:
             return nanops.nanargmax(delegate, skipna=skipna)
 
@@ -778,10 +775,7 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and isna(delegate).any():
-                return -1
-            else:
-                return delegate.argmin()
+            return delegate.argmin(skipna)
         else:
             return nanops.nanargmin(delegate, skipna=skipna)
 
