@@ -202,8 +202,8 @@ class TestSelectDtypes:
         # GH20839
         df = DataFrame(
             {
-                "a": ['a', 'b', 'c'],
-                "b": list(range(1, 4)),
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
                 "c": np.arange(3, 6).astype("u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
