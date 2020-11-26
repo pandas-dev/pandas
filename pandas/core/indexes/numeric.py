@@ -122,6 +122,12 @@ class NumericIndex(Index):
             raise TypeError
         elif isinstance(value, str) or lib.is_complex(value):
             raise TypeError
+        elif is_scalar(value) and isna(value):
+            if is_valid_nat_for_dtype(value, self.dtype):
+                value = self._na_value
+            else:
+                # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
+                raise TypeError
 
         return value
 
@@ -160,13 +166,10 @@ class NumericIndex(Index):
 
     @doc(Index.insert)
     def insert(self, loc: int, item):
-        # treat NA values as nans:
-        if is_scalar(item) and isna(item):
-            if is_valid_nat_for_dtype(item, self.dtype):
-                item = self._na_value
-            else:
-                # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
-                return self.astype(object).insert(loc, item)
+        try:
+            item = self._validate_fill_value(item)
+        except TypeError:
+            return self.astype(object).insert(loc, item)
 
         return super().insert(loc, item)
 
