@@ -318,31 +318,6 @@ class TestRangeIndex(Numeric):
         idx = RangeIndex(1, 2, name="asdf")
         assert idx.name == idx[1:].name
 
-    def test_explicit_conversions(self):
-
-        # GH 8608
-        # add/sub are overridden explicitly for Float/Int Index
-        idx = RangeIndex(5)
-
-        # float conversions
-        arr = np.arange(5, dtype="int64") * 3.2
-        expected = Float64Index(arr)
-        fidx = idx * 3.2
-        tm.assert_index_equal(fidx, expected)
-        fidx = 3.2 * idx
-        tm.assert_index_equal(fidx, expected)
-
-        # interops with numpy arrays
-        expected = Float64Index(arr)
-        a = np.zeros(5, dtype="float64")
-        result = fidx - a
-        tm.assert_index_equal(result, expected)
-
-        expected = Float64Index(-arr)
-        a = np.zeros(5, dtype="float64")
-        result = a - fidx
-        tm.assert_index_equal(result, expected)
-
     def test_has_duplicates(self, index):
         assert index.is_unique
         assert not index.has_duplicates

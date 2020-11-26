@@ -15,7 +15,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-class Base:
+class AstypeTests:
     """Tests common to IntervalIndex with any subtype"""
 
     def test_astype_idempotent(self, index):
@@ -72,7 +72,7 @@ class Base:
             index.astype("fake_dtype")
 
 
-class TestIntSubtype(Base):
+class TestIntSubtype(AstypeTests):
     """Tests specific to IntervalIndex with integer-like subtype"""
 
     indexes = [
@@ -124,7 +124,7 @@ class TestIntSubtype(Base):
             index.astype(dtype)
 
 
-class TestFloatSubtype(Base):
+class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
@@ -179,7 +179,7 @@ class TestFloatSubtype(Base):
             index.astype(dtype)
 
 
-class TestDatetimelikeSubtype(Base):
+class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [
