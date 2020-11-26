@@ -1234,14 +1234,25 @@ class TestIndex(Base):
                 ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
             )
 
-    @pytest.mark.parametrize("idx_class", [Int64Index, RangeIndex, Float64Index])
-    def test_get_indexer_numeric_index_boolean_target(self, idx_class):
+    @pytest.mark.parametrize(
+        "idx_class", [Int64Index, RangeIndex, Float64Index, UInt64Index]
+    )
+    @pytest.mark.parametrize("method", ["get_indexer", "get_indexer_non_unique"])
+    def test_get_indexer_numeric_index_boolean_target(self, method, idx_class):
         # GH 16877
 
         numeric_index = idx_class(RangeIndex(4))
-        result = numeric_index.get_indexer([True, False, True])
+        other = Index([True, False, True])
+
+        result = getattr(numeric_index, method)(other)
         expected = np.array([-1, -1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
+        if method == "get_indexer":
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            expected = np.array([-1, -1, -1, -1], dtype=np.intp)
+
+            tm.assert_numpy_array_equal(result[0], expected)
+            tm.assert_numpy_array_equal(result[1], expected)
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
