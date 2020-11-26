@@ -201,9 +201,11 @@ def test_cast_scalar_to_array(obj, dtype, shape):
 @pytest.mark.parametrize(
     "obj_in,dtype_in,obj_out,dtype_out",
     [
+        (NaT, "timedelta64[ns]", np.timedelta64("NaT"), "timedelta64[ns]"),
+        (Timedelta(1), "timedelta64[ns]", 1, "timedelta64[ns]"),
         (NaT, "datetime64[ns]", np.datetime64("NaT"), "datetime64[ns]"),
         (Timestamp(1), "datetime64[ns]", 1, "datetime64[ns]"),
-        (Timedelta(1), "timedelta64[ns]", 1, "timedelta64[ns]"),
+        (Timestamp(1, tz="US/Eastern"), "datetime64[ns]", 1, "datetime64[ns]"),
         (np.nan, np.int64, np.nan, np.float64),
         ("hello", "U", "hello", object),
         ("hello", "S", "hello", object),
@@ -213,7 +215,6 @@ def test_cast_scalar_to_array(obj, dtype, shape):
 def test_cast_scalar_to_array_conversion_needed(
     obj_in, dtype_in, obj_out, dtype_out, shape
 ):
-    tm.assert_numpy_array_equal(
-        cast_scalar_to_array(shape, obj_in, dtype_in),
-        np.full(shape, fill_value=obj_out, dtype=dtype_out),
-    )
+    result = cast_scalar_to_array(shape, obj_in, dtype=dtype_in)
+    expected = np.full(shape, obj_out, dtype=dtype_out)
+    tm.assert_numpy_array_equal(result, expected)
