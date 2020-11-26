@@ -121,18 +121,18 @@ def test_validate_stat_keepdims():
 @pytest.mark.parametrize(
     "op_name, skipna, expected",
     [
-        ('idxmax', True, 'b'),
-        ('idxmin', True, 'a'),
-        ('argmax', True, 1),
-        ('argmin', True, 0),
-        ('idxmax', False, np.nan),
-        ('idxmin', False, np.nan),
-        ('argmax', False, -1),
-        ('argmin', False, -1),
+        ("idxmax", True, "b"),
+        ("idxmin", True, "a"),
+        ("argmax", True, 1),
+        ("argmin", True, 0),
+        ("idxmax", False, np.nan),
+        ("idxmin", False, np.nan),
+        ("argmax", False, -1),
+        ("argmin", False, -1),
     ],
 )
 def test_argminmax_idxminmax(any_numeric_dtype, op_name, skipna, expected):
-    ser = Series([1, 2, None], index=['a', 'b', 'c'], dtype=any_numeric_dtype)
+    ser = Series([1, 2, None], index=["a", "b", "c"], dtype=any_numeric_dtype)
     result = getattr(ser, op_name)(skipna=skipna)
     if pd.isna(expected):
         assert np.isnan(result)
@@ -143,19 +143,19 @@ def test_argminmax_idxminmax(any_numeric_dtype, op_name, skipna, expected):
 @pytest.mark.parametrize(
     "op_name, skipna, expected",
     [
-        ('idxmax', True, 'b'),
-        ('idxmin', True, 'a'),
-        ('argmax', True, 1),
-        ('argmin', True, 0),
-        ('idxmax', False, np.nan),
-        ('idxmin', False, np.nan),
-        ('argmax', False, -1),
-        ('argmin', False, -1),
+        ("idxmax", True, "b"),
+        ("idxmin", True, "a"),
+        ("argmax", True, 1),
+        ("argmin", True, 0),
+        ("idxmax", False, np.nan),
+        ("idxmin", False, np.nan),
+        ("argmax", False, -1),
+        ("argmin", False, -1),
     ],
 )
 def test_argminmax_idxminmax_with_datetime64_dtype(op_name, skipna, expected):
     ser = Series(
-        [datetime(2020, 1, 1), datetime(2020, 1, 2), None], index=['a', 'b', 'c']
+        [datetime(2020, 1, 1), datetime(2020, 1, 2), None], index=["a", "b", "c"]
     )
     result = getattr(ser, op_name)(skipna=skipna)
     if pd.isna(expected):
