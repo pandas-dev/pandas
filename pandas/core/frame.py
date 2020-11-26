@@ -159,7 +159,7 @@ from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_handle
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import DataFrameInfo
+from pandas.io.formats.info import BaseInfo, DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -205,12 +205,14 @@ Merge DataFrame or named Series objects with a database-style join.
 The join is done on columns or indexes. If joining columns on
 columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
 on indexes or indexes on a column or columns, the index will be passed on.
+When performing a cross merge, no column specifications to merge on are
+allowed.
 
 Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -221,6 +223,11 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
+    * cross: creates the cartesian product from both frames, preserves the order
+      of the left keys.
+
+      .. versionadded:: 1.2.0
+
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -341,6 +348,44 @@ Traceback (most recent call last):
 ...
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
+
+>>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
+>>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
+>>> df1
+      a  b
+0   foo  1
+1   bar  2
+>>> df2
+      a  c
+0   foo  3
+1   baz  4
+
+>>> df1.merge(df2, how='inner', on='a')
+      a  b  c
+0   foo  1  3
+
+>>> df1.merge(df2, how='left', on='a')
+      a  b  c
+0   foo  1  3.0
+1   bar  2  NaN
+
+>>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right': [7, 8]})
+>>> df1
+    left
+0   foo
+1   bar
+>>> df2
+    right
+0   7
+1   8
+
+>>> df1.merge(df2, how='cross')
+   left  right
+0   foo      7
+1   foo      8
+2   bar      7
+3   bar      8
 """
 
 
@@ -434,6 +479,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
+    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
 
     @property
     def _constructor(self) -> Type[DataFrame]:
@@ -726,7 +772,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max(len(l) for l in value.split("\n"))
+        repr_width = max(len(line) for line in value.split("\n"))
 
         return repr_width < width
 
@@ -2523,16 +2569,28 @@ class DataFrame(NDFrame, OpsMixin):
     @Substitution(
         klass="DataFrame",
         type_sub=" and columns",
-        max_cols_sub=(
-            """max_cols : int, optional
+        max_cols_sub=dedent(
+            """\
+            max_cols : int, optional
                 When to switch from the verbose to the truncated output. If the
                 DataFrame has more than `max_cols` columns, the truncated output
                 is used. By default, the setting in
-                ``pandas.options.display.max_info_columns`` is used.
-            """
+                ``pandas.options.display.max_info_columns`` is used."""
         ),
-        examples_sub=(
-            """
+        show_counts_sub=dedent(
+            """\
+            show_counts : bool, optional
+                Whether to show the non-null counts. By default, this is shown
+                only if the DataFrame is smaller than
+                ``pandas.options.display.max_info_rows`` and
+                ``pandas.options.display.max_info_columns``. A value of True always
+                shows the counts, and False never shows the counts.
+            null_counts : bool, optional
+                .. deprecated:: 1.2.0
+                    Use show_counts instead."""
+        ),
+        examples_sub=dedent(
+            """\
             >>> int_values = [1, 2, 3, 4, 5]
             >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
             >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -2615,31 +2673,42 @@ class DataFrame(NDFrame, OpsMixin):
             dtypes: object(3)
             memory usage: 165.9 MB"""
         ),
-        see_also_sub=(
-            """
+        see_also_sub=dedent(
+            """\
             DataFrame.describe: Generate descriptive statistics of DataFrame
                 columns.
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
+        version_added_sub="",
     )
-    @doc(DataFrameInfo.to_buffer)
+    @doc(BaseInfo.render)
     def info(
         self,
         verbose: Optional[bool] = None,
         buf: Optional[IO[str]] = None,
         max_cols: Optional[int] = None,
         memory_usage: Optional[Union[bool, str]] = None,
+        show_counts: Optional[bool] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
+        if null_counts is not None:
+            if show_counts is not None:
+                raise ValueError("null_counts used with show_counts. Use show_counts.")
+            warnings.warn(
+                "null_counts is deprecated. Use show_counts instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            show_counts = null_counts
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
         )
-        info.to_buffer(
+        info.render(
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
-            show_counts=null_counts,
+            show_counts=show_counts,
         )
 
     def memory_usage(self, index=True, deep=False) -> Series:
@@ -2925,7 +2994,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_hashable(key):
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
-                if self.columns.nlevels > 1:
+                if isinstance(self.columns, MultiIndex):
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
 
@@ -5962,13 +6031,16 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            arrays = [array_op(l, r) for l, r in zip(self._iter_column_arrays(), right)]
+            arrays = [
+                array_op(_left, _right)
+                for _left, _right in zip(self._iter_column_arrays(), right)
+            ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
 
-            arrays = [array_op(l, right) for l in self._iter_column_arrays()]
+            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             # Remaining cases have less-obvious dispatch rules
@@ -8056,6 +8128,15 @@ NaN 12.3   33.0
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
+            if how == "cross":
+                return merge(
+                    self,
+                    other,
+                    how=how,
+                    on=on,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort,
+                )
             return merge(
                 self,
                 other,

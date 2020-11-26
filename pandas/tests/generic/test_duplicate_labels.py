@@ -37,8 +37,8 @@ class TestPreserves:
             operator.methodcaller("add", 1),
             operator.methodcaller("rename", str.upper),
             operator.methodcaller("rename", "name"),
-            pytest.param(operator.methodcaller("abs"), marks=not_implemented),
-            # TODO: test np.abs
+            operator.methodcaller("abs"),
+            np.abs,
         ],
     )
     def test_preserved_series(self, func):
