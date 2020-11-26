@@ -1370,7 +1370,7 @@ class TestMerge:
                 "key": Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
-            index=pd.Categorical(["a", "a", "b", "c"]),
+            index=Categorical(["a", "a", "b", "c"]),
         )
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
