@@ -336,14 +336,17 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             # TODO: do we need to convert args to kwargs to ensure nv checks
             #  are correct?
             if func is np.amin:
-                return self.min(*args[1:], **kwargs)
+                # error: "NDArrayBackedExtensionArray" has no attribute "min"
+                return self.min(*args[1:], **kwargs)  # type:ignore[attr-defined]
             if func is np.amax:
-                return self.max(*args[1:], **kwargs)
+                # error: "NDArrayBackedExtensionArray" has no attribute "max"
+                return self.max(*args[1:], **kwargs)  # type:ignore[attr-defined]
 
             if func is np.sum:
                 # Need to do explicitly otherise np.sum(TimedeltaArray)
                 #  doesnt wrap in Timedelta.
-                return self.sum(*args[1:], **kwargs)
+                # error: "NDArrayBackedExtensionArray" has no attribute "sum"
+                return self.sum(*args[1:], **kwargs)  # type:ignore[attr-defined]
 
             if func is np.argsort:
                 if len(args) > 1:
