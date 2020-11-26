@@ -1315,7 +1315,7 @@ The recommended methods of indexing are:
 - ``.loc`` if you want to *label* index
 - ``.iloc`` if you want to *positionally* index.
 
-Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code :ref:`here <indexing.deprecate_ix>`.
+Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code `here <https://pandas.pydata.org/pandas-docs/version/1.0/user_guide/indexing.html#ix-indexer-is-deprecated>`__.
 
 
 .. ipython:: python

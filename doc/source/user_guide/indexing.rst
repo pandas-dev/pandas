@@ -584,48 +584,20 @@ without using a temporary variable.
    (bb.groupby(['year', 'team']).sum()
       .loc[lambda df: df['r'] > 100])
 
-.. _indexing.deprecate_ix:
 
-IX indexer is deprecated
-------------------------
+.. _combining_positional_and_label_based_indexing:
 
-.. warning::
+Combining positional and label-based indexing
+---------------------------------------------
 
-   .. versionchanged:: 1.0.0
-
-   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
-
-``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
-to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
-bit of user confusion over the years.
-
-The recommended methods of indexing are:
-
-* ``.loc`` if you want to *label* index.
-* ``.iloc`` if you want to *positionally* index.
+If you wish to get the 0th and the 2nd elements from the index in the 'A' column, you can do:
 
 .. ipython:: python
 
   dfd = pd.DataFrame({'A': [1, 2, 3],
                       'B': [4, 5, 6]},
                      index=list('abc'))
-
   dfd
-
-Previous behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
-
-.. code-block:: ipython
-
-  In [3]: dfd.ix[[0, 2], 'A']
-  Out[3]:
-  a    1
-  c    3
-  Name: A, dtype: int64
-
-Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
-
-.. ipython:: python
-
   dfd.loc[dfd.index[[0, 2]], 'A']
 
 This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
