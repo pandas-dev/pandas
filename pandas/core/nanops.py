@@ -1646,7 +1646,7 @@ def nanpercentile(
             interpolation=interpolation,
         )
 
-        # Note: we have to do do `astype` and not view because in general we
+        # Note: we have to do `astype` and not view because in general we
         #  have float result at this point, not i8
         return result.astype(values.dtype)
 
