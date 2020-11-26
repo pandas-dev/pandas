@@ -1496,7 +1496,7 @@ class TestIndex(Base):
 
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
-        if len(index) == 0:
+        if len(index) == 0 or isinstance(index, MultiIndex):
             return
         expected = index.drop(index[0]).repeat(2)
         index = index.repeat(2)
