@@ -2369,9 +2369,9 @@ def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
     [(Index(["a", "b"]), "left", ["a", "b"]), (Index([0, 1]), "right", ["a", "c"])],
 )
 def test_left_index_true_left_and_righ_join_target_index(index, how, values):
-    left = pd.DataFrame(index=["a", "b"])
-    right = pd.DataFrame({"x": ["a", "c"]})
+    left = DataFrame(index=["a", "b"])
+    right = DataFrame({"x": ["a", "c"]})
 
-    result = pd.merge(left, right, left_index=True, right_on="x", how=how)
-    expected = pd.DataFrame({"x": values}, index=index)
+    result = merge(left, right, left_index=True, right_on="x", how=how)
+    expected = DataFrame({"x": values}, index=index)
     tm.assert_frame_equal(result, expected)
