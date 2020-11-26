@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List
+from typing import Any, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -460,6 +460,16 @@ class RangeIndex(Int64Index):
             return np.arange(len(self))
         else:
             return np.arange(len(self) - 1, -1, -1)
+
+    def factorize(
+        self, sort: bool = False, na_sentinel: Optional[int] = -1
+    ) -> Tuple[np.ndarray, "RangeIndex"]:
+        codes = np.arange(len(self), dtype=np.intp)
+        uniques = self
+        if sort and self.step < 0:
+            codes = codes[::-1]
+            uniques = uniques[::-1]
+        return codes, uniques
 
     def equals(self, other: object) -> bool:
         """
