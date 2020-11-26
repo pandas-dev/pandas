@@ -3433,11 +3433,11 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @final
-    def _invalid_indexer(self, form: str_t, key):
+    def _invalid_indexer(self, form: str_t, key) -> TypeError:
         """
         Consistent invalid indexer message.
         """
-        raise TypeError(
+        return TypeError(
             f"cannot do {form} indexing on {type(self).__name__} with these "
             f"indexers [{key}] of type {type(key).__name__}"
         )
@@ -5238,7 +5238,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_integer(key):
             pass
         else:
-            self._invalid_indexer(form, key)
+            raise self._invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t, kind):
         """
@@ -5267,7 +5267,7 @@ class Index(IndexOpsMixin, PandasObject):
         # datetimelike Indexes
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self.values:
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return label
 
