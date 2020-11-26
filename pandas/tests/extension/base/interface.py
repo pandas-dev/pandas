@@ -31,6 +31,25 @@ class BaseInterfaceTests(BaseExtensionTests):
 
     def test_contains(self, data):
         # GH-37867
+
+        data = data[~data.isna()]
+
+        scalar = data[0]
+
+        assert scalar in data
+        assert "124jhujbhjhb5" not in data
+
+        na_value = data.dtype.na_value
+
+        assert na_value not in data
+
+        for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
+            assert na_value_type not in data
+
+    def test_contains_nan(self, data_missing):
+        # GH-37867
+        data = data_missing
+
         scalar = data[~data.isna()][0]
 
         assert scalar in data
