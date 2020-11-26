@@ -2382,6 +2382,24 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
+    def _check_ndim(self, values, ndim):
+        """
+        ndim inference and validation.
+
+        This is overriden by the DatetimeTZBlock to check the case of 2D
+        data (values.ndim == 2), which should only be allowed if ndim is
+        also 2.
+        """
+        if ndim is None:
+            ndim = values.ndim
+
+        if values.ndim > ndim:
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
+        return ndim
+
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
