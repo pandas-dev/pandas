@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -79,8 +80,9 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 _common_see_also = """
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Apply a function %(name)s to a Series.
+        DataFrame.%(name)s : Apply a function %(name)s
+            to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
@@ -318,9 +320,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.aggregate
-%(klass)s.transform
+%(klass)s.groupby.apply : Apply function func group-wise
+    and combine the results together.
+%(klass)s.groupby.aggregate : Aggregate using one or more
+    operations over the specified axis.
+%(klass)s.transform : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -427,9 +432,12 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply
-{klass}.groupby.transform
-{klass}.aggregate
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Aggregate using one or more
+    operations over the specified axis.
+{klass}.aggregate : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -993,7 +1001,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output)
@@ -1076,7 +1084,7 @@ b  2""",
                 output[key] = maybe_cast_result(result, obj, how=how)
                 idx += 1
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
@@ -1174,7 +1182,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
-        if len(output) == 0:
+        if not output:
             return self._python_apply_general(f, self._selected_obj)
 
         if self.grouper._filter_empty_groups:
@@ -1592,10 +1600,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             cols = result.columns.get_indexer_for(
                 result.columns.difference(self.exclusions).unique()
             )
-            # TODO(GH-22046) - setting with iloc broken if labels are not unique
-            # .values to remove labels
-            result.iloc[:, cols] = (
-                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
+                self.count().iloc[:, cols]
             )
         return result
 
@@ -1663,10 +1669,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[0]
+                return arr[0]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(first, axis=axis)
@@ -1687,10 +1693,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[-1]
+                return arr[-1]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(last, axis=axis)
@@ -1851,6 +1857,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return ExpandingGroupby(self, *args, **kwargs)
 
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
+    def ewm(self, *args, **kwargs):
+        """
+        Return an ewm grouper, providing ewm functionality per group.
+        """
+        from pandas.core.window import ExponentialMovingWindowGroupby
+
+        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
+
     def _fill(self, direction, limit=None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
@@ -1871,8 +1887,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        pad
-        backfill
+        pad : Returns Series with minimum number of char in object.
+        backfill : Backward fill the missing values in the dataset.
         """
         # Need int value for Cython
         if limit is None:
@@ -1906,10 +1922,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.pad
-        DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.pad: Returns Series with minimum number of char in object.
+        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
@@ -1932,10 +1948,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill :  Backward fill the missing values in the dataset.
+        DataFrame.backfill:  Backward fill the missing values in the dataset.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 
@@ -2166,6 +2182,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
                 vals = np.asarray(vals).astype(float)
+            elif is_timedelta64_dtype(vals.dtype):
+                inference = "timedelta64[ns]"
+                vals = np.asarray(vals).astype(float)
 
             return vals, inference
 
@@ -2354,7 +2373,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         dtype: int64
         """
         with group_selection_context(self):
-            index = self._selected_obj.index
+            index = self._selected_obj._get_axis(self.axis)
             cumcounts = self._cumcount_array(ascending=ascending)
             return self._obj_1d_constructor(cumcounts, index)
 
@@ -2539,9 +2558,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
-        if post_processing:
-            if not callable(post_processing):
-                raise ValueError("'post_processing' must be a callable!")
+        if post_processing and not callable(post_processing):
+            raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
                 raise ValueError("'pre_processing' must be a callable!")
@@ -2620,7 +2638,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
-        if len(output) == 0 and error_msg != "":
+        if not output and error_msg != "":
             raise TypeError(error_msg)
 
         if aggregate:
@@ -2696,8 +2714,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             fill_method = "pad"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
+        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
         return (filled / shifted) - 1
 
     @Substitution(name="groupby")
@@ -2732,7 +2750,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
-        return self._selected_obj[mask]
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
 
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
@@ -2766,7 +2787,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
-        return self._selected_obj[mask]
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
 
     def _reindex_output(
         self, output: OutputFrameOrSeries, fill_value: Scalar = np.NaN

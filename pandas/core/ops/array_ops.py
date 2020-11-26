@@ -5,13 +5,13 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Tuple
+from typing import Any
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Shape
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.ops import missing
@@ -40,13 +40,11 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # Note: these checks can be for ABCIndex and not ABCIndexClass
-        #  because that is the only object-dtype class.
+    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
-        if isinstance(y, (ABCSeries, ABCIndex)):
+        if isinstance(y, (ABCSeries, ABCIndexClass)):
             y = y._values
 
         if x.shape != y.shape:
@@ -427,7 +425,7 @@ def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
     return obj
 
 
-def _maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.

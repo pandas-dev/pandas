@@ -330,8 +330,8 @@ class TestConcatenate:
         # #1649
         df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
 
-        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
-        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        result = concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
+        expected = concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         tm.assert_frame_equal(result, expected)
 
         result = concat(
@@ -441,9 +441,7 @@ class TestConcatenate:
         expected = pd.concat(
             [Series(range(3)), Series(range(4))], keys=["First", "Another"]
         )
-        result = pd.concat(
-            dict([("First", Series(range(3))), ("Another", Series(range(4)))])
-        )
+        result = pd.concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
 
@@ -514,7 +512,7 @@ def test_duplicate_keys(keys):
     s2 = Series([10, 11, 12], name="d")
     result = concat([df, s1, s2], axis=1, keys=keys)
     expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]
-    expected_columns = pd.MultiIndex.from_tuples(
+    expected_columns = MultiIndex.from_tuples(
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "c"), (keys[2], "d")]
     )
     expected = DataFrame(expected_values, columns=expected_columns)

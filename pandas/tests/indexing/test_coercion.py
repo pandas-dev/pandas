@@ -29,11 +29,21 @@ def check_comprehensiveness(request):
             klass in x.name and dtype in x.name and method in x.name for x in cls_funcs
         )
 
-    for combo in combos:
-        if not has_test(combo):
-            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
+    opts = request.config.option
+    if opts.lf or opts.keyword:
+        # If we are running with "last-failed" or -k foo, we expect to only
+        #  run a subset of tests.
+        yield
 
-    yield
+    else:
+
+        for combo in combos:
+            if not has_test(combo):
+                raise AssertionError(
+                    f"test method is not defined: {cls.__name__}, {combo}"
+                )
+
+        yield
 
 
 class CoercionBase:
@@ -383,7 +393,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1, np.int64),
             (1.1, 1.1, np.float64),
-            (False, 0, np.int64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -399,7 +409,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1.0, np.float64),
             (1.1, 1.1, np.float64),
-            (False, 0.0, np.float64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -770,7 +780,7 @@ class TestWhereCoercion(CoercionBase):
         result = tdi.where(cond, value)
         tm.assert_index_equal(result, expected)
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Timedelta', 'NaT', or array of thos"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             tdi.where(cond, np.datetime64("NaT", "ns"))
@@ -794,11 +804,12 @@ class TestWhereCoercion(CoercionBase):
         tm.assert_index_equal(result, expected)
 
         # Passing a mismatched scalar
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Period', 'NaT', or array of those"
         with pytest.raises(TypeError, match=msg):
             pi.where(cond, pd.Timedelta(days=4))
 
-        with pytest.raises(TypeError, match=msg):
+        msg = r"Input has different freq=D from PeriodArray\(freq=Q-DEC\)"
+        with pytest.raises(ValueError, match=msg):
             pi.where(cond, pd.Period("2020-04-21", "D"))
 
 

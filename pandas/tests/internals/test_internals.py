@@ -8,7 +8,7 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
@@ -264,6 +264,25 @@ class TestBlock:
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
 
+    def test_split(self):
+        # GH#37799
+        values = np.random.randn(3, 4)
+        blk = make_block(values, placement=[3, 1, 6], ndim=2)
+        result = blk._split()
+
+        # check that we get views, not copies
+        values[:] = -9999
+        assert (blk.values == -9999).all()
+
+        assert len(result) == 3
+        expected = [
+            make_block(values[[0]], placement=[3], ndim=2),
+            make_block(values[[1]], placement=[1], ndim=2),
+            make_block(values[[2]], placement=[6], ndim=2),
+        ]
+        for res, exp in zip(result, expected):
+            assert_block_equal(res, exp)
+
 
 class TestBlockManager:
     def test_attrs(self):
@@ -323,7 +342,9 @@ class TestBlockManager:
     def test_iget(self):
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
-        block = make_block(values=values.copy(), placement=np.arange(3))
+        block = make_block(
+            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+        )
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
@@ -667,7 +688,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool"]))
+        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -922,6 +943,13 @@ class TestBlockPlacement:
         with pytest.raises(ValueError, match=msg):
             BlockPlacement(slc)
 
+    def test_slice_canonize_negative_stop(self):
+        # GH#37524 negative stop is OK with negative step and positive start
+        slc = slice(3, -1, -2)
+
+        bp = BlockPlacement(slc)
+        assert bp.indexer == slice(3, None, -2)
+
     @pytest.mark.parametrize(
         "slc",
         [
@@ -1072,7 +1100,7 @@ class TestCanHoldElement:
 
 class TestShouldStore:
     def test_should_store_categorical(self):
-        cat = pd.Categorical(["A", "B", "C"])
+        cat = Categorical(["A", "B", "C"])
         df = DataFrame(cat)
         blk = df._mgr.blocks[0]
 
@@ -1114,7 +1142,7 @@ def test_validate_ndim():
 def test_block_shape():
     idx = Index([0, 1, 2, 3, 4])
     a = Series([1, 2, 3]).reindex(idx)
-    b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
+    b = Series(Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
@@ -1124,39 +1152,19 @@ def test_make_block_no_pandas_array():
     arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
-    result = make_block(arr, slice(len(arr)))
+    result = make_block(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # PandasArray, PandasDtype
-    result = make_block(arr, slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # ndarray, PandasDtype
-    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
-
-
-def test_missing_unicode_key():
-    df = DataFrame({"a": [1]})
-    with pytest.raises(KeyError, match="\u05d0"):
-        df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
-
-
-def test_set_change_dtype_slice():
-    # GH#8850
-    cols = MultiIndex.from_tuples([("1st", "a"), ("2nd", "b"), ("3rd", "c")])
-    df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
-    df["2nd"] = df["2nd"] * 2.0
-
-    blocks = df._to_dict_of_blocks()
-    assert sorted(blocks.keys()) == ["float64", "int64"]
-    tm.assert_frame_equal(
-        blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
-    )
-    tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
 
 
 def test_single_block_manager_fastpath_deprecated():

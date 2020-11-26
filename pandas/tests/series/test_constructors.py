@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
+from dateutil.tz import tzoffset
 import numpy as np
 import numpy.ma as ma
 import pytest
@@ -8,12 +9,7 @@ import pytest
 from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -26,6 +22,7 @@ from pandas import (
     MultiIndex,
     NaT,
     Period,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -70,7 +67,7 @@ class TestSeriesConstructors:
     def test_invalid_dtype(self):
         # GH15520
         msg = "not understood"
-        invalid_list = [pd.Timestamp, "pd.Timestamp", list]
+        invalid_list = [Timestamp, "Timestamp", list]
         for dtype in invalid_list:
             with pytest.raises(TypeError, match=msg):
                 Series([], name="time", dtype=dtype)
@@ -92,6 +89,17 @@ class TestSeriesConstructors:
         # Coercion
         assert float(Series([1.0])) == 1.0
         assert int(Series([1.0])) == 1
+
+    def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
+        # GH 28401
+
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+
+        ser = Series(ea_scalar, index=range(3))
+        expected = Series([ea_scalar] * 3, dtype=ea_dtype)
+
+        assert ser.dtype == ea_dtype
+        tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -266,7 +274,7 @@ class TestSeriesConstructors:
             (["1", "2"]),
             (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
             (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
+            ([Interval(left=0, right=5)]),
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
@@ -309,17 +317,17 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = pd.Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
         # can cast to a new dtype
-        result = Series(pd.Categorical([1, 2, 3]), dtype="int64")
+        result = Series(Categorical([1, 2, 3]), dtype="int64")
         expected = Series([1, 2, 3], dtype="int64")
         tm.assert_series_equal(result, expected)
 
         # GH12574
-        cat = Series(pd.Categorical([1, 2, 3]), dtype="category")
+        cat = Series(Categorical([1, 2, 3]), dtype="category")
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
         s = Series([1, 2, 3], dtype="category")
@@ -452,7 +460,7 @@ class TestSeriesConstructors:
 
     def test_unordered_compare_equal(self):
         left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
-        right = Series(pd.Categorical(["a", "b", np.nan], categories=["a", "b"]))
+        right = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
         tm.assert_series_equal(left, right)
 
     def test_constructor_maskedarray(self):
@@ -556,7 +564,7 @@ class TestSeriesConstructors:
             [1, 2, 3],
             (1, 2, 3),
             list(range(3)),
-            pd.Categorical(["a", "b", "a"]),
+            Categorical(["a", "b", "a"]),
             (i for i in range(3)),
             map(lambda x: x, range(3)),
         ],
@@ -623,7 +631,7 @@ class TestSeriesConstructors:
             pd.period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
-            pd.RangeIndex(0, 3),
+            RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -939,8 +947,8 @@ class TestSeriesConstructors:
         # inference
         s = Series(
             [
-                pd.Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                pd.Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
             ]
         )
         assert s.dtype == "datetime64[ns, US/Pacific]"
@@ -948,8 +956,8 @@ class TestSeriesConstructors:
 
         s = Series(
             [
-                pd.Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                pd.Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
             ]
         )
         assert s.dtype == "object"
@@ -978,7 +986,7 @@ class TestSeriesConstructors:
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype="datetime64[ns, CET]")
-        expected = Series(pd.Timestamp(arg)).dt.tz_localize("CET")
+        expected = Series(Timestamp(arg)).dt.tz_localize("CET")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64_bigendian(self):
@@ -1003,7 +1011,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [pd.Interval(0, 1), pd.Interval(0, 2), None]
+        data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64]"
@@ -1014,7 +1022,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_interval_mixed_closed(self, data_constructor):
         # GH 23563: mixed closed results in object dtype (not interval dtype)
-        data = [pd.Interval(0, 1, closed="both"), pd.Interval(0, 2, closed="neither")]
+        data = [Interval(0, 1, closed="both"), Interval(0, 2, closed="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
         assert result.tolist() == data
@@ -1038,14 +1046,24 @@ class TestSeriesConstructors:
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
     def test_constructor_infer_period(self, data_constructor):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "D"), None]
+        data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
         expected = Series(period_array(data))
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
+    def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+
+        val = series[3]
+        assert isna(val)
+
+        series[2] = val
+        assert isna(series[2])
+
     def test_constructor_period_incompatible_frequency(self):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "A")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data
@@ -1062,6 +1080,11 @@ class TestSeriesConstructors:
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
+
+        result = Series(d)
+        expected = Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
+
         result = Series(d, index=["b", "c", "d", "a"])
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
@@ -1090,23 +1113,13 @@ class TestSeriesConstructors:
         expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "data,dtype",
-        [
-            (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (
-                Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
-            ),
-        ],
-    )
-    def test_constructor_dict_extension(self, data, dtype):
-        d = {"a": data}
+    def test_constructor_dict_extension(self, ea_scalar_and_dtype):
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+        d = {"a": ea_scalar}
         result = Series(d, index=["a"])
-        expected = Series(data, index=["a"], dtype=dtype)
+        expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
 
-        assert result.dtype == dtype
+        assert result.dtype == ea_dtype
 
         tm.assert_series_equal(result, expected)
 
@@ -1522,9 +1535,80 @@ class TestSeriesConstructors:
         assert series.dtype == "Period[D]"
 
         series = Series(
-            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+            [Period("2011-01-01", freq="D"), Period("2011-02-01", freq="D")]
         )
         assert series.dtype == "Period[D]"
+
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
+        series = Series(data)
+        expected = Series(dict(data.items()))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_ordereddict(self):
+        # GH3283
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
+
+        series = Series(data)
+        expected = Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
+
+        # Test with subclass
+        class A(OrderedDict):
+            pass
+
+        series = Series(A(data))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_dict_multiindex(self):
+        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
+        _d = sorted(d.items())
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
+        )
+        tm.assert_series_equal(result, expected)
+
+        d["z"] = 111.0
+        _d.insert(0, ("z", d["z"]))
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
+        )
+        result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = Series(
+            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
+        )
+
+        result = Series(
+            data={
+                pd.to_timedelta(0, unit="s"): "A",
+                pd.to_timedelta(10, unit="s"): "B",
+                pd.to_timedelta(20, unit="s"): "C",
+            },
+            index=pd.to_timedelta([0, 10, 20], unit="s"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_infer_index_tz(self):
+        values = [188.5, 328.25]
+        tzinfo = tzoffset(None, 7200)
+        index = [
+            datetime(2012, 5, 11, 11, tzinfo=tzinfo),
+            datetime(2012, 5, 11, 12, tzinfo=tzinfo),
+        ]
+        series = Series(data=values, index=index)
+
+        assert series.index.tz == tzinfo
+
+        # it works! GH#2443
+        repr(series.index[0])
 
 
 class TestSeriesConstructorIndexCoercion:

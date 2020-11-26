@@ -178,7 +178,7 @@ class TestPeriodIndexOps:
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
 
-        result = pidx.sort_values()
+        result = pidx.sort_values(na_position="first")
         expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
         tm.assert_index_equal(result, expected)
         assert result.freq == "D"
@@ -247,7 +247,7 @@ class TestPeriodIndexOps:
         )
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
-            ordered = idx.sort_values()
+            ordered = idx.sort_values(na_position="first")
             tm.assert_index_equal(ordered, expected)
             assert ordered.freq == "D"
 
@@ -255,7 +255,7 @@ class TestPeriodIndexOps:
             tm.assert_index_equal(ordered, expected[::-1])
             assert ordered.freq == "D"
 
-            ordered, indexer = idx.sort_values(return_indexer=True)
+            ordered, indexer = idx.sort_values(return_indexer=True, na_position="first")
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
@@ -265,59 +265,27 @@ class TestPeriodIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0])
+            exp = np.array([2, 1, 3, 0, 4])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
     def test_nat(self):
-        assert pd.PeriodIndex._na_value is NaT
-        assert pd.PeriodIndex([], freq="M")._na_value is NaT
+        assert PeriodIndex._na_value is NaT
+        assert PeriodIndex([], freq="M")._na_value is NaT
 
-        idx = pd.PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
-        idx = pd.PeriodIndex(["2011-01-01", "NaT"], freq="D")
+        idx = PeriodIndex(["2011-01-01", "NaT"], freq="D")
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
         assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([1], dtype=np.intp))
-
-    @pytest.mark.parametrize("freq", ["D", "M"])
-    def test_equals(self, freq):
-        # GH#13107
-        idx = pd.PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq=freq)
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
-        assert idx.astype(object).equals(idx)
-        assert idx.astype(object).equals(idx.astype(object))
-        assert not idx.equals(list(idx))
-        assert not idx.equals(Series(idx))
-
-        idx2 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
-        assert not idx.equals(idx2)
-        assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.astype(object))
-        assert not idx.astype(object).equals(idx2)
-        assert not idx.equals(list(idx2))
-        assert not idx.equals(Series(idx2))
-
-        # same internal, different tz
-        idx3 = pd.PeriodIndex._simple_new(
-            idx._values._simple_new(idx._values.asi8, freq="H")
-        )
-        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-        assert not idx.equals(idx3)
-        assert not idx.equals(idx3.copy())
-        assert not idx.equals(idx3.astype(object))
-        assert not idx.astype(object).equals(idx3)
-        assert not idx.equals(list(idx3))
-        assert not idx.equals(Series(idx3))
 
     def test_freq_setter_deprecated(self):
         # GH 20678
@@ -332,12 +300,8 @@ class TestPeriodIndexOps:
             idx.freq = pd.offsets.Day()
 
 
-@pytest.mark.xfail(reason="Datetime-like sort_values currently unstable (GH 35922)")
 def test_order_stability_compat():
-    # GH 35584. The new implementation of sort_values for Index.sort_values
-    # is stable when sorting in descending order. Datetime-like sort_values
-    # currently aren't stable. xfail should be removed after
-    # the implementations' behavior is synchronized (xref GH 35922)
+    # GH 35922. sort_values is stable both for normal and datetime-like Index
     pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
     iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)

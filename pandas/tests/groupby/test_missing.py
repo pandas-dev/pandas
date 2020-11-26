@@ -11,11 +11,11 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
     # GH: 29764 groupby loses index sometimes
     df = DataFrame(
         [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
-        columns=pd.Index(["type", "a", "b"], name="idx"),
+        columns=Index(["type", "a", "b"], name="idx"),
     )
     df_grouped = df.groupby(["type"])[["a", "b"]]
     result = getattr(df_grouped, func)().columns
-    expected = pd.Index(["a", "b"], name="idx")
+    expected = Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
 
 
@@ -115,4 +115,14 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     ridx = expected_rows.get((method, dropna, has_nan_group))
     expected = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("min_count, value", [(2, np.nan), (-1, 1.0)])
+@pytest.mark.parametrize("func", ["first", "last", "max", "min"])
+def test_min_count(func, min_count, value):
+    # GH#37821
+    df = DataFrame({"a": [1] * 3, "b": [1, np.nan, np.nan], "c": [np.nan] * 3})
+    result = getattr(df.groupby("a"), func)(min_count=min_count)
+    expected = DataFrame({"b": [value], "c": [np.nan]}, index=Index([1], name="a"))
     tm.assert_frame_equal(result, expected)
