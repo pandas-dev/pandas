@@ -422,6 +422,24 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+def test_fillna_args():
+    # GH 37987
+
+    arr = pd.array(["a", pd.NA], dtype="string")
+
+    res = arr.fillna(value="b")
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = arr.fillna(value=np.str_("b"))
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(ValueError, match=msg):
+        arr.fillna(value=1)
+
+
 @td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
