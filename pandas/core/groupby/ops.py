@@ -603,7 +603,7 @@ class BaseGrouper:
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
-            agg_func(result, counts, values, comp_ids, rank=1)
+            agg_func(result, counts, values, comp_ids, min_count, rank=1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
