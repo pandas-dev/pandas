@@ -1,6 +1,7 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
-from datetime import datetime
 
 import pandas as pd
 from pandas import MultiIndex, Series
@@ -128,8 +129,8 @@ def test_validate_stat_keepdims():
         ('idxmax', False, np.nan),
         ('idxmin', False, np.nan),
         ('argmax', False, -1),
-        ('argmin', False, -1)
-    ]
+        ('argmin', False, -1),
+    ],
 )
 def test_argminmax_idxminmax(dtype, op_name, skipna, expected):
     ser = Series([1, 2, None], index=['a', 'b', 'c'], dtype=dtype)
@@ -150,13 +151,12 @@ def test_argminmax_idxminmax(dtype, op_name, skipna, expected):
         ('idxmax', False, np.nan),
         ('idxmin', False, np.nan),
         ('argmax', False, -1),
-        ('argmin', False, -1)
-    ]
+        ('argmin', False, -1),
+    ],
 )
 def test_argminmax_idxminmax_with_datetime64_dtype(op_name, skipna, expected):
     ser = Series(
-        [datetime(2020, 1, 1), datetime(2020, 1, 2), None],
-        index=['a', 'b', 'c']
+        [datetime(2020, 1, 1), datetime(2020, 1, 2), None], index=['a', 'b', 'c']
     )
     result = getattr(ser, op_name)(skipna=skipna)
     if pd.isna(expected):
