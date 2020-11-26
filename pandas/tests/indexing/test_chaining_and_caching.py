@@ -303,7 +303,7 @@ class TestChaining:
                 "A": date_range("20130101", periods=5),
                 "B": np.random.randn(5),
                 "C": np.arange(5, dtype="int64"),
-                "D": ["abcde"],
+                "D": ["a", "b", "c", "d", "e"],
             }
         )
 
