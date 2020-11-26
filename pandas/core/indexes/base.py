@@ -1486,7 +1486,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sortlevel(self, level=None, ascending=True, sort_remaining=None):
         """
-        For internal compatibility with with the Index API.
+        For internal compatibility with the Index API.
 
         Sort the Index. This is for compat with MultiIndex
 
@@ -4451,7 +4451,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        # If other is a subclass of self and defines it's own equals method, we
+        # If other is a subclass of self and defines its own equals method, we
         # dispatch to the subclass method. For instance for a MultiIndex,
         # a d-level MultiIndex can equal d-tuple Index.
         # Note: All EA-backed Index subclasses override equals
