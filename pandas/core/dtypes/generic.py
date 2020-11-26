@@ -23,7 +23,6 @@ def create_pandas_abc_type(name, attr, comp):
     return meta(name, tuple(), dct)
 
 
-ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index",))
 ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
 ABCUInt64Index = create_pandas_abc_type("ABCUInt64Index", "_typ", ("uint64index",))
 ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",))
