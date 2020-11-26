@@ -190,8 +190,8 @@ def test_from_arrays_tuples(idx):
 
 
 def test_from_arrays_index_series_datetimetz():
-    idx1 = pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = pd.date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo")
+    idx1 = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
+    idx2 = date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo")
     result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
@@ -232,8 +232,8 @@ def test_from_arrays_index_series_period():
 
 
 def test_from_arrays_index_datetimelike_mixed():
-    idx1 = pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
-    idx2 = pd.date_range("2015-01-01 10:00", freq="H", periods=3)
+    idx1 = date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
+    idx2 = date_range("2015-01-01 10:00", freq="H", periods=3)
     idx3 = pd.timedelta_range("1 days", freq="D", periods=3)
     idx4 = pd.period_range("2011-01-01", freq="D", periods=3)
 
@@ -675,7 +675,7 @@ def test_from_frame_dtype_fidelity():
     # GH 22420
     df = pd.DataFrame(
         {
-            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "dates": date_range("19910905", periods=6, tz="US/Eastern"),
             "a": [1, 1, 1, 2, 2, 2],
             "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
             "c": ["x", "x", "y", "z", "x", "y"],
@@ -685,7 +685,7 @@ def test_from_frame_dtype_fidelity():
 
     expected_mi = MultiIndex.from_arrays(
         [
-            pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            date_range("19910905", periods=6, tz="US/Eastern"),
             [1, 1, 1, 2, 2, 2],
             pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
             ["x", "x", "y", "z", "x", "y"],
@@ -762,7 +762,7 @@ def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
         ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
-    idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+    idx2 = date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])
 
     expected1 = pd.DatetimeIndex(

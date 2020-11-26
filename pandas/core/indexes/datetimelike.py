@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -53,16 +53,22 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     # error: 'staticmethod' used with a non-method
     @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
-        if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
+        # Note: these only get called with left.dtype == right.dtype
+        if isinstance(
+            left, (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin)
+        ):
             left = left.view("i8")
-        if isinstance(right, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
+        if isinstance(
+            right,
+            (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin),
+        ):
             right = right.view("i8")
 
         results = joinf(left, right)
         if with_indexers:
             # dtype should be timedelta64[ns] for TimedeltaIndex
             #  and datetime64[ns] for DatetimeIndex
-            dtype = left.dtype.base
+            dtype = cast(np.dtype, left.dtype).base
 
             join_index, left_indexer, right_indexer = results
             join_index = join_index.view(dtype)
@@ -157,16 +163,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            inferrable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
-            ]
-
             should_try = False
+            inferrable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferrable
             elif is_categorical_dtype(other.dtype):
@@ -647,6 +645,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return False
+
+    def is_type_compatible(self, kind: str) -> bool:
+        return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
     # Set Operation Methods

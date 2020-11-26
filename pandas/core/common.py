@@ -24,12 +24,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -105,7 +100,7 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndexClass)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
@@ -471,8 +466,11 @@ def convert_to_list_like(
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
     """
-    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        return values
+    if isinstance(
+        values, (list, np.ndarray, ABCIndexClass, ABCSeries, ABCExtensionArray)
+    ):
+        # np.ndarray resolving as Any gives a false positive
+        return values  # type: ignore[return-value]
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 
