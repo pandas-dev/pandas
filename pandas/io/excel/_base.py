@@ -917,7 +917,7 @@ class ExcelFile:
                 "The default argument engine=None is deprecated. "
                 "Specify the engine argument to suppress this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=2,
             )
             engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
