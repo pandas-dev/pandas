@@ -253,7 +253,7 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace({}))
 
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = pd.Series([])

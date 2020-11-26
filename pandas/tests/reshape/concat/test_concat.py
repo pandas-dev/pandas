@@ -330,8 +330,8 @@ class TestConcatenate:
         # #1649
         df0 = DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
 
-        result = concat(dict(a=None, b=df0, c=df0[:2], d=df0[:1], e=df0))
-        expected = concat(dict(b=df0, c=df0[:2], d=df0[:1], e=df0))
+        result = concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
+        expected = concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         tm.assert_frame_equal(result, expected)
 
         result = concat(
@@ -441,9 +441,7 @@ class TestConcatenate:
         expected = pd.concat(
             [Series(range(3)), Series(range(4))], keys=["First", "Another"]
         )
-        result = pd.concat(
-            dict([("First", Series(range(3))), ("Another", Series(range(4)))])
-        )
+        result = pd.concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
 
 
