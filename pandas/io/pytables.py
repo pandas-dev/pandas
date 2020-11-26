@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_string_dtype,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -4771,7 +4772,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index):
+    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.
