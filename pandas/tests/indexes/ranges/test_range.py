@@ -394,38 +394,38 @@ class TestRangeIndex(Numeric):
         # positive slice values
         index_slice = index[7:10:2]
         expected = Index(np.array([14, 18]), name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         # negative slice values
         index_slice = index[-1:-5:-2]
         expected = Index(np.array([18, 14]), name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         # stop overshoot
         index_slice = index[2:100:4]
         expected = Index(np.array([4, 12]), name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         # reverse
         index_slice = index[::-1]
         expected = Index(index.values[::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         index_slice = index[-8::-1]
         expected = Index(np.array([4, 2, 0]), name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         index_slice = index[-40::-1]
         expected = Index(np.array([], dtype=np.int64), name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         index_slice = index[40::-1]
         expected = Index(index.values[40::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
         index_slice = index[10::-1]
         expected = Index(index.values[::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected, exact="equiv")
+        tm.assert_index_equal(index_slice, expected)
 
     @pytest.mark.parametrize("step", set(range(-5, 6)) - {0})
     def test_len_specialised(self, step):

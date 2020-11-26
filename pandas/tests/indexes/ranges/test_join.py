@@ -28,7 +28,7 @@ class TestJoin:
 
         assert isinstance(res, Int64Index)
         assert not isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres, exact="equiv")
+        tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -41,7 +41,7 @@ class TestJoin:
 
         assert isinstance(res, Int64Index)
         assert not isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres, exact="equiv")
+        tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -63,7 +63,7 @@ class TestJoin:
         eridx = np.array([9, 7], dtype=np.intp)
 
         assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres, exact="equiv")
+        tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -73,7 +73,7 @@ class TestJoin:
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
         assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres, exact="equiv")
+        tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 

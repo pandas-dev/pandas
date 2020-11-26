@@ -45,10 +45,7 @@ class TestPairwise:
         # in a non-monotonic way, so compare accordingly
         result = f(pairwise_frames)
         tm.assert_index_equal(
-            result.index.levels[0],
-            pairwise_frames.index,
-            check_names=False,
-            exact="equiv",
+            result.index.levels[0], pairwise_frames.index, check_names=False
         )
         tm.assert_numpy_array_equal(
             safe_sort(result.index.levels[1]),
@@ -106,10 +103,7 @@ class TestPairwise:
         # DataFrame with another DataFrame, pairwise=True
         result = f(pairwise_frames, pairwise_other_frame)
         tm.assert_index_equal(
-            result.index.levels[0],
-            pairwise_frames.index,
-            check_names=False,
-            exact="equiv",
+            result.index.levels[0], pairwise_frames.index, check_names=False
         )
         tm.assert_numpy_array_equal(
             safe_sort(result.index.levels[1]),

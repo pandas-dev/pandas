@@ -26,28 +26,28 @@ class TestRangeIndexSetOps:
         other = RangeIndex(1, 6)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         # reversed (GH 17296)
         result = other.intersection(index, sort=sort)
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
         other = RangeIndex(5, -4, -1)
         expected = first.astype(int).intersection(other.astype(int), sort=sort)
         result = first.intersection(other, sort=sort).astype(int)
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         # reversed
         result = other.intersection(first, sort=sort).astype(int)
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5)
 
@@ -238,7 +238,7 @@ class TestRangeIndexSetOps:
         res2 = idx2.union(idx1, sort=None)
         res3 = idx1._int64index.union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
-        tm.assert_index_equal(res3, expected_sorted, exact="equiv")
+        tm.assert_index_equal(res3, expected_sorted)
 
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may

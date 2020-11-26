@@ -658,7 +658,7 @@ class Base:
 
         result = index.map(lambda x: x)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -683,7 +683,7 @@ class Base:
 
         result = index.map(identity)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, expected)
 
         # empty mappable
         expected = Index([np.nan] * len(index))

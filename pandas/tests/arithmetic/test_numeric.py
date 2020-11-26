@@ -1185,7 +1185,7 @@ class TestNumericArithmeticUnsorted:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected, exact="equiv")
+                    tm.assert_index_equal(result, expected)
 
     def test_binops(self):
         ops = [
