@@ -1021,7 +1021,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _getitem_iterable(self, key, axis: int):
         """
-        Index current object with an an iterable collection of keys.
+        Index current object with an iterable collection of keys.
 
         Parameters
         ----------
@@ -1934,7 +1934,7 @@ class _iLocIndexer(_LocationIndexer):
         to the locations selected by `indexer`
         """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
 
         if isinstance(indexer, tuple):
 
@@ -2007,7 +2007,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: ABCDataFrame):
+    def _align_frame(self, indexer, df: "DataFrame"):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -2073,7 +2073,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 
             # we could have a convertible item here (e.g. Timestamp)
             if not is_list_like_indexer(key):
-                key = tuple([key])
+                key = (key,)
             else:
                 raise ValueError("Invalid call for scalar access (getting)!")
 
@@ -2199,9 +2199,10 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
             try:
                 res = idx._get_string_slice(key)
                 warnings.warn(
-                    "Indexing on datetimelike rows with `frame[string]` is "
-                    "deprecated and will be removed in a future version. "
-                    "Use `frame.loc[string]` instead.",
+                    "Indexing a DataFrame with a datetimelike index using a single "
+                    "string to slice the rows, like `frame[string]`, is deprecated "
+                    "and will be removed in a future version. Use `frame.loc[string]` "
+                    "instead.",
                     FutureWarning,
                     stacklevel=3,
                 )
