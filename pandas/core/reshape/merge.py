@@ -438,8 +438,8 @@ def merge_asof(
     >>> pd.merge_asof(left, right, left_index=True, right_index=True)
        left_val  right_val
     1         a          1
-    5         b          3
-    10        c          7
+    3         b          3
+    7         c          7
 
     Here is a real-world times-series example
 
