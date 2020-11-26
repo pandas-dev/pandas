@@ -118,29 +118,15 @@ class TestMergeOrdered:
 
     def test_list_type_by(self):
         # GH 35269
-        left = DataFrame(
-            {
-                "G": ["g", "g"],
-                "H": ["h", "h"],
-                "T": [1, 3]
-            }
-        )
-
-        right = DataFrame(
-            {
-                "T": [2],
-                "E": [1]
-            }
-        )
-
+        left = DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]})
+        right = DataFrame({"T": [2], "E": [1]})
         result = merge_ordered(left, right, on=["T"], left_by=["G", "H"])
-
         expected = DataFrame(
             {
-                "G": ["g", "g", "g"],
-                "H": ["h", "h", "h"],
+                "G": ["g"] * 3,
+                "H": ["h"] * 3,
                 "T": [1, 2, 3],
-                "E": [np.nan, 1.0, np.nan]
+                "E": [np.nan, 1.0, np.nan],
             }
         )
 
