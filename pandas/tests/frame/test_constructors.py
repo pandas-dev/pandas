@@ -352,7 +352,7 @@ class TestDataFrameConstructors:
 
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
-        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
+        tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
         # GH 14381
         # Dict with None value
@@ -802,14 +802,14 @@ class TestDataFrameConstructors:
 
         # automatic labeling
         frame = DataFrame(mat)
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, index=[1, 2])
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, columns=["A", "B", "C"])
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))

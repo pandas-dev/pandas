@@ -504,7 +504,7 @@ class TestJoin:
 
         # smoke test
         joined = left.join(right, on="key", sort=False)
-        tm.assert_index_equal(joined.index, Index(list(range(4))))
+        tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index

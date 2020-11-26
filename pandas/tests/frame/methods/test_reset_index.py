@@ -130,7 +130,7 @@ class TestResetIndex:
         float_frame.index.name = "index"
         deleveled = float_frame.reset_index()
         tm.assert_series_equal(deleveled["index"], Series(float_frame.index))
-        tm.assert_index_equal(deleveled.index, Index(np.arange(len(deleveled))))
+        tm.assert_index_equal(deleveled.index, Index(range(len(deleveled))), exact=True)
 
         # preserve column names
         float_frame.columns.name = "columns"

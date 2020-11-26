@@ -556,7 +556,7 @@ class TestSeriesConstructors:
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        tm.assert_index_equal(s.index, Index(np.arange(3)))
+        tm.assert_index_equal(s.index, Index(range(3)), exact=True)
 
     @pytest.mark.parametrize(
         "input",
