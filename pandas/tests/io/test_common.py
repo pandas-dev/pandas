@@ -106,20 +106,19 @@ bar2,12,13,14,15
         assert compression == expected
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
-    def test_get_filepath_or_buffer_with_path(self, path_type):
+    def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         filename = path_type("~/sometest")
-        ioargs = icom.get_filepath_or_buffer(filename)
-        assert ioargs.filepath_or_buffer != filename
-        assert os.path.isabs(ioargs.filepath_or_buffer)
-        assert os.path.expanduser(filename) == ioargs.filepath_or_buffer
-        assert not ioargs.should_close
+        with icom.get_handle(filename, "w") as handles:
+            assert os.path.isabs(handles.handle.name)
+            assert os.path.expanduser(filename) == handles.handle.name
 
-    def test_get_filepath_or_buffer_with_buffer(self):
+    def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
-        ioargs = icom.get_filepath_or_buffer(input_buffer)
-        assert ioargs.filepath_or_buffer == input_buffer
-        assert not ioargs.should_close
+        with icom.get_handle(input_buffer, "r") as handles:
+            assert handles.handle == input_buffer
+        assert not input_buffer.closed
+        input_buffer.close()
 
     def test_iterator(self):
         reader = pd.read_csv(StringIO(self.data1), chunksize=1)
@@ -244,11 +243,6 @@ bar2,12,13,14,15
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
-    )
-    @pytest.mark.filterwarnings(
-        "ignore:This method will be removed in future versions.  "
-        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
-        ":PendingDeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)

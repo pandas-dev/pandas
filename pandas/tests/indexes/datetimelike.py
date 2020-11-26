@@ -1,4 +1,5 @@
 """ generic datetimelike tests """
+
 import numpy as np
 import pytest
 
@@ -31,6 +32,11 @@ class DatetimeLike(Base):
 
         idx = self.create_index()
         tm.assert_index_equal(idx, idx.shift(0))
+
+    def test_shift_empty(self):
+        # GH#14811
+        idx = self.create_index()[:0]
+        tm.assert_index_equal(idx, idx.shift(1))
 
     def test_str(self):
 
@@ -103,3 +109,23 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_where_cast_str(self):
+        index = self.create_index()
+
+        mask = np.ones(len(index), dtype=bool)
+        mask[-1] = False
+
+        result = index.where(mask, str(index[0]))
+        expected = index.where(mask, index[0])
+        tm.assert_index_equal(result, expected)
+
+        result = index.where(mask, [str(index[0])])
+        tm.assert_index_equal(result, expected)
+
+        msg = "value should be a '.*', 'NaT', or array of those"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, "foo")
+
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, ["foo"])

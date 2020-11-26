@@ -1,9 +1,5 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, concat
@@ -240,30 +236,6 @@ def test_count_nonnumeric_types():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_scipy
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-def test_window_with_args():
-    # make sure that we are aggregating window functions correctly with arg
-    r = Series(np.random.randn(100)).rolling(
-        window=10, min_periods=1, win_type="gaussian"
-    )
-    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
-    expected.columns = ["<lambda>", "<lambda>"]
-    result = r.aggregate([lambda x: x.mean(std=10), lambda x: x.mean(std=0.01)])
-    tm.assert_frame_equal(result, expected)
-
-    def a(x):
-        return x.mean(std=10)
-
-    def b(x):
-        return x.mean(std=0.01)
-
-    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
-    expected.columns = ["a", "b"]
-    result = r.aggregate([a, b])
-    tm.assert_frame_equal(result, expected)
-
-
 def test_preserve_metadata():
     # GH 10565
     s = Series(np.arange(100), name="foo")
@@ -307,7 +279,7 @@ def test_preserve_metadata():
 )
 def test_multiple_agg_funcs(func, window_size, expected_vals):
     # GH 15072
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             ["A", 10, 20],
             ["A", 20, 30],
@@ -333,10 +305,8 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     columns = pd.MultiIndex.from_tuples(
         [("low", "mean"), ("low", "max"), ("high", "mean"), ("high", "min")]
     )
-    expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+    expected = DataFrame(expected_vals, index=index, columns=columns)
 
-    result = window.agg(
-        OrderedDict((("low", ["mean", "max"]), ("high", ["mean", "min"])))
-    )
+    result = window.agg(dict((("low", ["mean", "max"]), ("high", ["mean", "min"]))))
 
     tm.assert_frame_equal(result, expected)

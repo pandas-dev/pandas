@@ -46,7 +46,7 @@ Different choices for indexing
 ------------------------------
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. Pandas now supports three types
+support more explicit location based indexing. pandas now supports three types
 of multi-axis indexing.
 
 * ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -315,7 +315,7 @@ Selection by label
 
    .. versionchanged:: 1.0.0
 
-   Pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
+   pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
    missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
@@ -327,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -422,6 +422,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
+
 .. _indexing.integer:
 
 Selection by position
@@ -433,7 +444,7 @@ Selection by position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -498,11 +509,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -933,6 +944,24 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
    df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
 
+.. warning::
+
+   ``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``,
+   an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok.
+   The boolean indexer is an array. But ``df.iloc[s, 1]`` would raise ``ValueError``.
+
+   .. ipython:: python
+
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                        index=list('abc'),
+                        columns=['A', 'B'])
+      s = (df['A'] > 2)
+      s
+
+      df.loc[s, 'B']
+
+      df.iloc[s.values, 1]
+
 .. _indexing.basics.indexing_isin:
 
 Indexing with isin
@@ -1128,6 +1157,40 @@ Mask
 
    s.mask(s >= 0)
    df.mask(df >= 0)
+
+.. _indexing.np_where:
+
+Setting with enlargement conditionally using :func:`numpy`
+----------------------------------------------------------
+
+An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
+Combined with setting a new column, you can use it to enlarge a dataframe where the
+values are determined conditionally.
+
+Consider you have two choices to choose from in the following dataframe. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
+   df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
+   df
+
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
+
+.. ipython:: python
+
+   conditions = [
+       (df['col2'] == 'Z') & (df['col1'] == 'A'),
+       (df['col2'] == 'Z') & (df['col1'] == 'B'),
+       (df['col1'] == 'B')
+   ]
+   choices = ['yellow', 'blue', 'purple']
+   df['color'] = np.select(conditions, choices, default='black')
+   df
 
 .. _indexing.query:
 
@@ -1576,19 +1639,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1598,7 +1658,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1613,7 +1672,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 
@@ -1812,7 +1871,7 @@ about!
 
 Sometimes a ``SettingWithCopy`` warning will arise at times when there's no
 obvious chained indexing going on. **These** are the bugs that
-``SettingWithCopy`` is designed to catch! Pandas is probably trying to warn you
+``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you
 that you've done this:
 
 .. code-block:: python
@@ -1835,7 +1894,7 @@ When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or
 a copy of the slice.
 
-Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
 slice is frequently not intentional, but a mistake caused by chained indexing
 returning a copy where a slice was expected.
 
