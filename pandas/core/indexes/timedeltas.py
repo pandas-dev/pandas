@@ -158,15 +158,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return cls._simple_new(tdarr, name=name)
 
     # -------------------------------------------------------------------
-    # Rendering Methods
-
-    @property
-    def _formatter_func(self):
-        from pandas.io.formats.format import get_format_timedelta64
-
-        return get_format_timedelta64(self, box=True)
-
-    # -------------------------------------------------------------------
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True):
@@ -237,9 +228,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return label
 
     # -------------------------------------------------------------------
-
-    def is_type_compatible(self, typ) -> bool:
-        return typ == self.inferred_type or typ == "timedelta"
 
     @property
     def inferred_type(self) -> str:

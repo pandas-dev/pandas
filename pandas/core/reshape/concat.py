@@ -3,16 +3,27 @@ Concat routines.
 """
 
 from collections import abc
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Type, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
@@ -295,7 +306,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+        objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -366,7 +377,7 @@ class _Concatenator:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample = None
+        sample: Optional["NDFrame"] = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -436,6 +447,8 @@ class _Concatenator:
                     # to line up
                     if self._is_frame and axis == 1:
                         name = 0
+                    # mypy needs to know sample is not an NDFrame
+                    sample = cast("FrameOrSeriesUnion", sample)
                     obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)
@@ -501,6 +514,13 @@ class _Concatenator:
                     # 1-ax to convert BlockManager axis to DataFrame axis
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
+                        # We have to remove the duplicates from obj_labels
+                        # in new labels to make them unique, otherwise we would
+                        # duplicate or duplicates again
+                        if not obj_labels.is_unique:
+                            new_labels = algos.make_duplicates_of_left_unique_in_right(
+                                np.asarray(obj_labels), np.asarray(new_labels)
+                            )
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
 
                 mgrs_indexers.append((obj._mgr, indexers))

@@ -1,5 +1,6 @@
 import operator
 from typing import Any
+import warnings
 
 import numpy as np
 
@@ -26,7 +27,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 
@@ -121,7 +121,7 @@ class NumericIndex(Index):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
-        if isinstance(value, str):
+        elif isinstance(value, str) or lib.is_complex(value):
             raise TypeError
 
         return value
@@ -266,6 +266,11 @@ class IntegerIndex(NumericIndex):
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
+        warnings.warn(
+            "Index.asi8 is deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self._values.view(self._default_dtype)
 
 
@@ -427,12 +432,6 @@ class Float64Index(NumericIndex):
     @cache_readonly
     def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
-
-    @doc(Index.isin)
-    def isin(self, values, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-        return algorithms.isin(np.array(self), values)
 
     def _can_union_without_object_cast(self, other) -> bool:
         # See GH#26778, further casting may occur in NumericIndex._union
