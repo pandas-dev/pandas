@@ -901,10 +901,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values(self, indexer):
         try:
             return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self)
-        except ValueError:
+        except (ValueError, AssertionError):
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
-            return self._values[indexer]
+            # the asarray is needed to avoid returning a 2D DatetimeArray
+            return np.asarray(self._values[indexer])
 
     def _get_value(self, label, takeable: bool = False):
         """

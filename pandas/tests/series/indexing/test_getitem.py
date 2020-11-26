@@ -389,10 +389,19 @@ def test_getitem_generator(string_series):
     tm.assert_series_equal(result2, expected)
 
 
-def test_getitem_ndim_deprecated():
-    s = Series([0, 1])
+@pytest.mark.parametrize(
+    "series",
+    [
+        Series([0, 1]),
+        Series(date_range("2012-01-01", periods=2)),
+        Series(date_range("2012-01-01", periods=2, tz="CET")),
+    ],
+)
+def test_getitem_ndim_deprecated(series):
     with tm.assert_produces_warning(FutureWarning):
-        s[:, None]
+        res = series[:, None]
+
+    assert isinstance(res, np.ndarray)
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
