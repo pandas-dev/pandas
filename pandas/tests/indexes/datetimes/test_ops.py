@@ -34,7 +34,7 @@ class TestDatetimeIndexOps:
                 getattr(datetime_series, op)
 
         # attribute access should still work!
-        s = Series(dict(year=2000, month=1, day=10))
+        s = Series({"year": 2000, "month": 1, "day": 10})
         assert s.year == 2000
         assert s.month == 1
         assert s.day == 10
@@ -50,7 +50,7 @@ class TestDatetimeIndexOps:
         assert result.freq is None
         assert len(result) == 5 * len(rng)
 
-        index = pd.date_range("2001-01-01", periods=2, freq="D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="D", tz=tz)
         exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-02", "2001-01-02"], tz=tz
         )
@@ -58,7 +58,7 @@ class TestDatetimeIndexOps:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-        index = pd.date_range("2001-01-01", periods=2, freq="2D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="2D", tz=tz)
         exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-03", "2001-01-03"], tz=tz
         )
@@ -90,7 +90,7 @@ class TestDatetimeIndexOps:
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
-        rng = pd.date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz)
 
         expected_rng = DatetimeIndex(
             [
@@ -128,17 +128,17 @@ class TestDatetimeIndexOps:
         if freq == "A" and not IS64 and isinstance(tz, tzlocal):
             pytest.xfail(reason="OverflowError inside tzlocal past 2038")
 
-        idx = pd.date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
+        idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
         assert idx.resolution == expected
 
     def test_value_counts_unique(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 7735
-        idx = pd.date_range("2011-01-01 09:00", freq="H", periods=10)
+        idx = date_range("2011-01-01 09:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = DatetimeIndex(np.repeat(idx.values, range(1, len(idx) + 1)), tz=tz)
 
-        exp_idx = pd.date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
+        exp_idx = date_range("2011-01-01 18:00", freq="-1H", periods=10, tz=tz)
         expected = Series(range(10, 0, -1), index=exp_idx, dtype="int64")
         expected.index = expected.index._with_freq(None)
 
@@ -146,7 +146,7 @@ class TestDatetimeIndexOps:
 
             tm.assert_series_equal(obj.value_counts(), expected)
 
-        expected = pd.date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
+        expected = date_range("2011-01-01 09:00", freq="H", periods=10, tz=tz)
         expected = expected._with_freq(None)
         tm.assert_index_equal(idx.unique(), expected)
 
@@ -261,7 +261,7 @@ class TestDatetimeIndexOps:
 
     def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -287,7 +287,7 @@ class TestDatetimeIndexOps:
     )
     def test_drop_duplicates(self, freq_sample, keep, expected, index):
         # to check Index/Series compat
-        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
+        idx = date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         idx = idx.append(idx[:5])
 
         tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
@@ -301,7 +301,7 @@ class TestDatetimeIndexOps:
 
     def test_infer_freq(self, freq_sample):
         # GH 11018
-        idx = pd.date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
+        idx = date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
         result = DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
@@ -361,7 +361,7 @@ class TestDatetimeIndexOps:
         # Setting the freq for one DatetimeIndex shouldn't alter the freq
         #  for another that views the same data
 
-        dti = pd.date_range("2016-01-01", periods=5)
+        dti = date_range("2016-01-01", periods=5)
         dta = dti._data
 
         dti2 = DatetimeIndex(dta)._with_freq(None)

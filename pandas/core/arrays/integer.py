@@ -183,7 +183,7 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
-    # if values is integer numpy array, preserve it's dtype
+    # if values is integer numpy array, preserve its dtype
     if dtype is None and hasattr(values, "dtype"):
         if is_integer_dtype(values.dtype):
             dtype = values.dtype
