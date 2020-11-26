@@ -96,7 +96,7 @@ class TestSeriesStatReductions:
             string_series_[5:15] = np.NaN
 
             # mean, idxmax, idxmin, min, and max are valid for dates
-            if name not in ["max", "min", "mean"]:
+            if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(pd.date_range("1/1/2001", periods=10))
                 with pytest.raises(TypeError):
                     f(ds)

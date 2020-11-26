@@ -5,7 +5,7 @@ import pytest
 from pandas.compat._optional import VERSIONS
 
 import pandas as pd
-from pandas.core.computation.engines import _engines
+from pandas.core.computation.engines import ENGINES
 import pandas.core.computation.expr as expr
 
 
@@ -26,8 +26,8 @@ def test_compat():
         pytest.skip("not testing numexpr version compat")
 
 
-@pytest.mark.parametrize("engine", _engines)
-@pytest.mark.parametrize("parser", expr._parsers)
+@pytest.mark.parametrize("engine", ENGINES)
+@pytest.mark.parametrize("parser", expr.PARSERS)
 def test_invalid_numexpr_version(engine, parser):
     def testit():
         a, b = 1, 2  # noqa

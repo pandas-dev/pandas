@@ -4,9 +4,9 @@ _shared_docs: Dict[str, str] = dict()
 
 _shared_docs[
     "aggregate"
-] = """\
+] = """
 Aggregate using one or more operations over the specified axis.
-{versionadded}
+
 Parameters
 ----------
 func : function, str, list or dict
@@ -46,17 +46,17 @@ A passed user-defined-function will be passed a Series for evaluation.
 
 _shared_docs[
     "compare"
-] = """\
-Compare to another %(klass)s and show the differences.
+] = """
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
@@ -75,7 +75,7 @@ keep_equal : bool, default False
 
 _shared_docs[
     "groupby"
-] = """\
+] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -91,7 +91,7 @@ by : mapping, function, label, or list of labels
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
     aligned; see ``.align()`` method). If an ndarray is passed, the
-    values are used as-is determine the groups. A label or list of
+    values are used as-is to determine the groups. A label or list of
     labels may be passed to group by the columns in ``self``. Notice
     that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
@@ -119,8 +119,6 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
-
-    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
@@ -146,7 +144,7 @@ See the `user guide
 
 _shared_docs[
     "melt"
-] = """\
+] = """
 Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
 This function is useful to massage a DataFrame into a format where one
@@ -154,7 +152,7 @@ or more columns are identifier variables (`id_vars`), while all other
 columns, considered measured variables (`value_vars`), are "unpivoted" to
 the row axis, leaving just two non-identifier columns, 'variable' and
 'value'.
-%(versionadded)s
+
 Parameters
 ----------
 id_vars : tuple, list, or ndarray, optional
@@ -257,3 +255,136 @@ If you have multi-index columns:
 1      b          B          E      3
 2      c          B          E      5
 """
+
+_shared_docs[
+    "transform"
+] = """
+Call ``func`` on self producing a {klass} with transformed values.
+
+Produced {klass} will have same axis length as self.
+
+Parameters
+----------
+func : function, str, list-like or dict-like
+    Function to use for transforming the data. If a function, must either
+    work when passed a {klass} or when passed to {klass}.apply. If func
+    is both list-like and dict-like, dict-like behavior takes precedence.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+    - dict-like of axis labels -> functions, function names or list-like of such.
+{axis}
+*args
+    Positional arguments to pass to `func`.
+**kwargs
+    Keyword arguments to pass to `func`.
+
+Returns
+-------
+{klass}
+    A {klass} that must have the same length as self.
+
+Raises
+------
+ValueError : If the returned {klass} has a different length than self.
+
+See Also
+--------
+{klass}.agg : Only perform aggregating type operations.
+{klass}.apply : Invoke function on a {klass}.
+
+Examples
+--------
+>>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
+>>> df
+   A  B
+0  0  1
+1  1  2
+2  2  3
+>>> df.transform(lambda x: x + 1)
+   A  B
+0  1  2
+1  2  3
+2  3  4
+
+Even though the resulting {klass} must have the same length as the
+input {klass}, it is possible to provide several input functions:
+
+>>> s = pd.Series(range(3))
+>>> s
+0    0
+1    1
+2    2
+dtype: int64
+>>> s.transform([np.sqrt, np.exp])
+       sqrt        exp
+0  0.000000   1.000000
+1  1.000000   2.718282
+2  1.414214   7.389056
+
+You can call transform on a GroupBy object:
+
+>>> df = pd.DataFrame({{
+...     "Date": [
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05",
+...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05"],
+...     "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+... }})
+>>> df
+         Date  Data
+0  2015-05-08     5
+1  2015-05-07     8
+2  2015-05-06     6
+3  2015-05-05     1
+4  2015-05-08    50
+5  2015-05-07   100
+6  2015-05-06    60
+7  2015-05-05   120
+>>> df.groupby('Date')['Data'].transform('sum')
+0     55
+1    108
+2     66
+3    121
+4     55
+5    108
+6     66
+7    121
+Name: Data, dtype: int64
+
+>>> df = pd.DataFrame({{
+...     "c": [1, 1, 1, 2, 2, 2, 2],
+...     "type": ["m", "n", "o", "m", "m", "n", "n"]
+... }})
+>>> df
+   c type
+0  1    m
+1  1    n
+2  1    o
+3  2    m
+4  2    m
+5  2    n
+6  2    n
+>>> df['size'] = df.groupby('c')['type'].transform(len)
+>>> df
+   c type size
+0  1    m    3
+1  1    n    3
+2  1    o    3
+3  2    m    4
+4  2    m    4
+5  2    n    4
+6  2    n    4
+"""
+
+_shared_docs[
+    "storage_options"
+] = """storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a non-fsspec URL.
+    See the fsspec and backend storage implementation docs for the set of
+    allowed keys and values."""

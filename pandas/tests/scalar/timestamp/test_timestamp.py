@@ -26,6 +26,7 @@ class TestTimestampProperties:
         ts = Timestamp("2017-10-01", freq="B")
         control = Timestamp("2017-10-01")
         assert ts.dayofweek == 6
+        assert ts.day_of_week == 6
         assert not ts.is_month_start  # not a weekday
         assert not ts.is_quarter_start  # not a weekday
         # Control case: non-business is month/qtr start
@@ -35,6 +36,7 @@ class TestTimestampProperties:
         ts = Timestamp("2017-09-30", freq="B")
         control = Timestamp("2017-09-30")
         assert ts.dayofweek == 5
+        assert ts.day_of_week == 5
         assert not ts.is_month_end  # not a weekday
         assert not ts.is_quarter_end  # not a weekday
         # Control case: non-business is month/qtr start
@@ -61,8 +63,10 @@ class TestTimestampProperties:
         check(ts.microsecond, 100)
         check(ts.nanosecond, 1)
         check(ts.dayofweek, 6)
+        check(ts.day_of_week, 6)
         check(ts.quarter, 2)
         check(ts.dayofyear, 130)
+        check(ts.day_of_year, 130)
         check(ts.week, 19)
         check(ts.daysinmonth, 31)
         check(ts.daysinmonth, 31)
@@ -81,8 +85,10 @@ class TestTimestampProperties:
         check(ts.microsecond, 0)
         check(ts.nanosecond, 0)
         check(ts.dayofweek, 2)
+        check(ts.day_of_week, 2)
         check(ts.quarter, 4)
         check(ts.dayofyear, 365)
+        check(ts.day_of_year, 365)
         check(ts.week, 1)
         check(ts.daysinmonth, 31)
 
@@ -303,24 +309,27 @@ class TestTimestamp:
         "value, check_kwargs",
         [
             [946688461000000000, {}],
-            [946688461000000000 / 1000, dict(unit="us")],
-            [946688461000000000 / 1_000_000, dict(unit="ms")],
-            [946688461000000000 / 1_000_000_000, dict(unit="s")],
-            [10957, dict(unit="D", h=0)],
+            [946688461000000000 / 1000, {"unit": "us"}],
+            [946688461000000000 / 1_000_000, {"unit": "ms"}],
+            [946688461000000000 / 1_000_000_000, {"unit": "s"}],
+            [10957, {"unit": "D", "h": 0}],
             [
                 (946688461000000000 + 500000) / 1000000000,
-                dict(unit="s", us=499, ns=964),
+                {"unit": "s", "us": 499, "ns": 964},
             ],
-            [(946688461000000000 + 500000000) / 1000000000, dict(unit="s", us=500000)],
-            [(946688461000000000 + 500000) / 1000000, dict(unit="ms", us=500)],
-            [(946688461000000000 + 500000) / 1000, dict(unit="us", us=500)],
-            [(946688461000000000 + 500000000) / 1000000, dict(unit="ms", us=500000)],
-            [946688461000000000 / 1000.0 + 5, dict(unit="us", us=5)],
-            [946688461000000000 / 1000.0 + 5000, dict(unit="us", us=5000)],
-            [946688461000000000 / 1000000.0 + 0.5, dict(unit="ms", us=500)],
-            [946688461000000000 / 1000000.0 + 0.005, dict(unit="ms", us=5, ns=5)],
-            [946688461000000000 / 1000000000.0 + 0.5, dict(unit="s", us=500000)],
-            [10957 + 0.5, dict(unit="D", h=12)],
+            [
+                (946688461000000000 + 500000000) / 1000000000,
+                {"unit": "s", "us": 500000},
+            ],
+            [(946688461000000000 + 500000) / 1000000, {"unit": "ms", "us": 500}],
+            [(946688461000000000 + 500000) / 1000, {"unit": "us", "us": 500}],
+            [(946688461000000000 + 500000000) / 1000000, {"unit": "ms", "us": 500000}],
+            [946688461000000000 / 1000.0 + 5, {"unit": "us", "us": 5}],
+            [946688461000000000 / 1000.0 + 5000, {"unit": "us", "us": 5000}],
+            [946688461000000000 / 1000000.0 + 0.5, {"unit": "ms", "us": 500}],
+            [946688461000000000 / 1000000.0 + 0.005, {"unit": "ms", "us": 5, "ns": 5}],
+            [946688461000000000 / 1000000000.0 + 0.5, {"unit": "s", "us": 500000}],
+            [10957 + 0.5, {"unit": "D", "h": 12}],
         ],
     )
     def test_unit(self, value, check_kwargs):

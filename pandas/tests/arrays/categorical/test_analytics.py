@@ -113,6 +113,8 @@ class TestCategoricalAnalytics:
             f"the '{kwarg}' parameter is not supported in the pandas implementation "
             f"of {method}"
         )
+        if kwarg == "axis":
+            msg = r"`axis` must be fewer than the number of dimensions \(1\)"
         kwargs = {kwarg: 42}
         method = getattr(np, method)
         with pytest.raises(ValueError, match=msg):
@@ -355,14 +357,9 @@ class TestCategoricalAnalytics:
             cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.remove_unused_categories(inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.remove_unused_categories(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             cat.sort_values(inplace=value)
-
-    def test_isna(self):
-        exp = np.array([False, False, True])
-        c = Categorical(["a", "b", np.nan])
-        res = c.isna()
-
-        tm.assert_numpy_array_equal(res, exp)
