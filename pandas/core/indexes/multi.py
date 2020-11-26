@@ -2143,7 +2143,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples
+            Must be a list of tuples when level is not specified
         level : int or level name, default None
         errors : str, default 'raise'
 
@@ -2198,10 +2198,13 @@ class MultiIndex(Index):
         # are not nan and equal -1, this means they are missing in the index
         nan_codes = isna(codes)
         values[(np.equal(nan_codes, False)) & (values == -1)] = -2
+        if index.shape[0] == self.shape[0]:
+            values[np.equal(nan_codes, True)] = -2
 
+        not_found = codes[values == -2]
+        if len(not_found) != 0 and errors != "ignore":
+            raise KeyError(f"labels {not_found} not found in level")
         mask = ~algos.isin(self.codes[i], values)
-        if mask.all() and errors != "ignore":
-            raise KeyError(f"labels {codes} not found in level")
 
         return self[mask]
 
@@ -2311,7 +2314,7 @@ class MultiIndex(Index):
 
     def _get_codes_for_sorting(self):
         """
-        we categorizing our codes by using the
+        we are categorizing our codes by using the
         available categories (all, not just observed)
         excluding any missing ones (-1); this is in preparation
         for sorting, where we need to disambiguate that -1 is not

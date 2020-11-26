@@ -1615,7 +1615,7 @@ def test_groupby_multiindex_not_lexsorted():
 
 def test_index_label_overlaps_location():
     # checking we don't have any label/location confusion in the
-    # the wake of GH5375
+    # wake of GH5375
     df = DataFrame(list("ABCDE"), index=[2, 0, 2, 1, 1])
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)

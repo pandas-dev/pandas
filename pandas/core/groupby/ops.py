@@ -148,7 +148,7 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
 
-        __finalize__ has not been called for the the subsetted objects returned.
+        __finalize__ has not been called for the subsetted objects returned.
         """
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
