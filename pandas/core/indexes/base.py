@@ -4938,6 +4938,25 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _get_indexer_non_comparable(self, target, method, unique: bool = True):
+        """
+        If we have non-comparable dtypes, there will never be any matches.
+
+        For get_indexer calls with a method, this is an _inequality_ check
+        which raises TypeError.
+        """
+        if method is not None:
+            other = self._get_other_deep(target)
+            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
+
+        no_matches = -1 * np.ones(target.shape, dtype=np.intp)
+        if unique:
+            # This is for get_indexer
+            return no_matches
+        else:
+            # This is for get_indexer_non_unique
+            return no_matches, no_matches
+
     @property
     def _index_as_unique(self):
         """
@@ -4972,6 +4991,22 @@ class Index(IndexOpsMixin, PandasObject):
             other, self = other._maybe_promote(self)
 
         return self, other
+
+    def _get_other_deep(self, other: "Index") -> "Index":
+        dtype = other.dtype
+        if is_categorical_dtype(dtype):
+            # If there is ever a SparseIndex, this could get dispatched
+            #  here too.
+            return dtype.categories
+        return other
+
+    def _should_compare(self, other: "Index") -> bool:
+        """
+        Check if `self == other` can ever have non-False entries.
+        """
+        other = self._get_other_deep(other)
+        dtype = other.dtype
+        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
