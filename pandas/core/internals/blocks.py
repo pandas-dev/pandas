@@ -2401,6 +2401,10 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         This is overriden by the DatetimeTZBlock to check the case of 2D
         data (values.ndim == 2), which should only be allowed if ndim is
         also 2.
+        The case of 1D array is still allowed with both ndim of 1 or 2, as
+        if the case for other EAs. Therefore, we are only checking
+        `values.ndim > ndim` instead of `values.ndim != ndim` as for
+        consolidated blocks.
         """
         if ndim is None:
             ndim = values.ndim
