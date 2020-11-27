@@ -622,6 +622,7 @@ Indexing
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when the index was of ``object`` dtype and the given numeric label was in the index (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from a :class:`MultiIndex` (:issue:`27104`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
+- Bug in :meth:`DataFrame.loc.__setitem__` expanding an empty :class:`DataFrame` with mixed dtypes (:issue:`37932`)
 - Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 - Bug in :meth:`DataFrame.reindex` raising ``IndexingError`` wrongly for empty DataFrame with ``tolerance`` not None or ``method="nearest"`` (:issue:`27315`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
