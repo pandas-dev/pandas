@@ -8,7 +8,34 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 {{py:
 
 # name
-cimported_types = ['float32',
+complex_types = ['complex64',
+                 'complex128']
+}}
+
+{{for name in complex_types}}
+cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
+    cdef kh{{name}}_t res
+    res.real = val.real
+    res.imag = val.imag
+    return res
+
+cdef {{name}}_t to_{{name}}(kh{{name}}_t val) nogil:
+    cdef {{name}}_t res
+    res.real = val.real
+    res.imag = val.imag
+    return res
+
+cdef bint is_nan_kh{{name}}_t(kh{{name}}_t val) nogil:
+    return val.real != val.real or val.imag != val.imag
+{{endfor}}
+
+
+{{py:
+
+# name
+cimported_types = ['complex64',
+                   'complex128',
+                   'float32',
                    'float64',
                    'int8',
                    'int16',
@@ -48,7 +75,9 @@ from pandas._libs.missing cimport C_NA
 # but is included for completeness (rather ObjectVector is used
 # for uniques in hashtables)
 
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
           ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Int32', 'int32', 'int32_t'),
@@ -94,6 +123,8 @@ ctypedef fused vector_data:
     UInt8VectorData
     Float64VectorData
     Float32VectorData
+    Complex128VectorData
+    Complex64VectorData
     StringVectorData
 
 cdef inline bint needs_resize(vector_data *data) nogil:
@@ -106,7 +137,9 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 {{py:
 
 # name, dtype, c_type
-dtypes = [('Float64', 'float64', 'float64_t'),
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
+          ('Complex64', 'complex64', 'khcomplex64_t'),
+          ('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Float32', 'float32', 'float32_t'),
@@ -303,22 +336,24 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, c_type, float_group
-dtypes = [('Float64', 'float64', 'float64_t', True),
-          ('UInt64', 'uint64', 'uint64_t', False),
-          ('Int64', 'int64', 'int64_t', False),
-          ('Float32', 'float32', 'float32_t', True),
-          ('UInt32', 'uint32', 'uint32_t', False),
-          ('Int32', 'int32', 'int32_t', False),
-          ('UInt16', 'uint16', 'uint16_t', False),
-          ('Int16', 'int16', 'int16_t', False),
-          ('UInt8', 'uint8', 'uint8_t', False),
-          ('Int8', 'int8', 'int8_t', False)]
+# name, dtype, c_type, float_group, complex_group
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t', True, True),
+          ('Float64', 'float64', 'float64_t', True, False),
+          ('UInt64', 'uint64', 'uint64_t', False, False),
+          ('Int64', 'int64', 'int64_t', False, False),
+          ('Complex64', 'complex64', 'khcomplex64_t', True, True),
+          ('Float32', 'float32', 'float32_t', True, False),
+          ('UInt32', 'uint32', 'uint32_t', False, False),
+          ('Int32', 'int32', 'int32_t', False, False),
+          ('UInt16', 'uint16', 'uint16_t', False, False),
+          ('Int16', 'int16', 'int16_t', False, False),
+          ('UInt8', 'uint8', 'uint8_t', False, False),
+          ('Int8', 'int8', 'int8_t', False, False)]
 
 }}
 
 
-{{for name, dtype, c_type, float_group in dtypes}}
+{{for name, dtype, c_type, float_group, complex_group in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -339,7 +374,13 @@ cdef class {{name}}HashTable(HashTable):
     def __contains__(self, object key):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, key)
+            {{c_type}} ckey
+        {{if complex_group}}
+        ckey = to_{{c_type}}(key)
+        {{else}}
+        ckey = key
+        {{endif}}
+        k = kh_get_{{dtype}}(self.table, ckey)
         return k != self.table.n_buckets
 
     def sizeof(self, deep=False):
@@ -353,7 +394,13 @@ cdef class {{name}}HashTable(HashTable):
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
             khiter_t k
-        k = kh_get_{{dtype}}(self.table, val)
+            {{c_type}} cval
+        {{if complex_group}}
+        cval = to_{{c_type}}(val)
+        {{else}}
+        cval = val
+        {{endif}}
+        k = kh_get_{{dtype}}(self.table, cval)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -363,8 +410,13 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-
-        k = kh_put_{{dtype}}(self.table, key, &ret)
+            {{c_type}} ckey
+        {{if complex_group}}
+        ckey = to_{{c_type}}(key)
+        {{else}}
+        ckey = key
+        {{endif}}
+        k = kh_put_{{dtype}}(self.table, ckey, &ret)
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
         else:
@@ -486,9 +538,17 @@ cdef class {{name}}HashTable(HashTable):
             # We use None, to make it optional, which requires `object` type
             # for the parameter. To please the compiler, we use na_value2,
             # which is only used if it's *specified*.
-            na_value2 = <{{dtype}}_t>na_value
+            {{if complex_group}}
+            na_value2 = to_{{c_type}}(na_value)
+            {{else}}
+            na_value2 = na_value
+            {{endif}}       
         else:
+            {{if complex_group}}
+            na_value2 = to_{{c_type}}(0)
+            {{else}}
             na_value2 = 0
+            {{endif}}   
 
         with nogil:
             for i in range(n):
@@ -499,10 +559,14 @@ cdef class {{name}}HashTable(HashTable):
                         labels[i] = na_sentinel
                         continue
                 elif ignore_na and (
-                {{if not name.lower().startswith(("uint", "int"))}}
-                val != val or
-                {{endif}}
+                {{if complex_group}}
+                not is_nan_{{c_type}}(val) or 
+                (use_na_value and are_equal_{{c_type}}(val,na_value2))
+                {{elif float_group}}
+                val != val or (use_na_value and val == na_value2)
+                {{else}}
                 (use_na_value and val == na_value2)
+                {{endif}}             
                 ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
@@ -625,7 +689,12 @@ cdef class {{name}}HashTable(HashTable):
                 val = values[i]
 
                 # specific for groupby
-                {{if dtype != 'uint64'}}
+                {{if dtype == 'complex64' or dtype== 'complex128'}}
+                # TODO: what should be done here?
+                if val.real < 0:
+                    labels[i] = -1
+                    continue
+                {{elif dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
