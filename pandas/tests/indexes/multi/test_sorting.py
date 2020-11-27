@@ -289,6 +289,11 @@ def test_remove_unused_levels_with_missing():
     df1.index = df1.index.set_levels(levels=new_levels, level="L2")
 
     result = df1.unstack("L3")[("x", 1)].sort_index().index
-    expected = df1.droplevel(2, 0).sort_index().index
+    expected_index = Index(
+        [
+            ("n1", "n3"), ("n2", np.nan), ("n3", "n1"), ( np.nan, "n2")
+        ],
+        names=["L1", "L2"]
+    )
 
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.index, expected_index)

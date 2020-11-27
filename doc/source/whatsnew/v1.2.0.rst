@@ -689,7 +689,6 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
 - Bug in :meth:`MultiIndex.drop` does not raise if labels are partially found (:issue:`37820`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
-- Bug in :meth:`MultiIndex.remove_unused_levels` was dropping missing values when levels contain ``NaN`` set by ``set_levels`` (:issue:`37510`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
 - Bug in :meth:`Series.at` returning :class:`Series` with one element instead of scalar when index is a :class:`MultiIndex` with one level (:issue:`38053`)
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
@@ -830,6 +829,7 @@ Reshaping
 - Bug in :func:`merge_ordered` returned wrong join result when length of ``left_by`` or ``right_by`` equals to the rows of ``left`` or ``right`` (:issue:`38166`)
 - Bug in :func:`merge_ordered` didn't raise when elements in ``left_by`` or ``right_by`` not exist in ``left`` columns or ``right`` columns (:issue:`38167`)
 - Bug in :func:`DataFrame.drop_duplicates` not validating bool dtype for ``ignore_index`` keyword (:issue:`38274`)
+- Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
 
 Sparse
 ^^^^^^
