@@ -83,7 +83,7 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp
+    origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp \
     or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin
         must match the timezone of the index.

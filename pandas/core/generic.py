@@ -7952,7 +7952,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         on=None,
         level=None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        backward: Optional[bool] = None,
+        backward: Optional[bool_t] = None,
         offset: Optional[TimedeltaConvertibleTypes] = None,
     ) -> Resampler:
         """
@@ -8008,7 +8008,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp
+        origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp \
         or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
