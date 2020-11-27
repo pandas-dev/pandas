@@ -6,7 +6,7 @@ Version 0.16.2 (June 12, 2015)
 {{ header }}
 
 
-This is a minor bug-fix release from 0.16.1 and includes a a large number of
+This is a minor bug-fix release from 0.16.1 and includes a large number of
 bug fixes along some new features (:meth:`~DataFrame.pipe` method), enhancements, and performance improvements.
 
 We recommend that all users upgrade to this version.

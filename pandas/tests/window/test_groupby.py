@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, to_datetime
 import pandas._testing as tm
+from pandas.api.indexers import BaseIndexer
 from pandas.core.groupby.groupby import get_groupby
 
 
@@ -133,7 +133,7 @@ class TestRolling:
         df = DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
         g = df.groupby("A")
 
-        mi = pd.MultiIndex.from_tuples(
+        mi = MultiIndex.from_tuples(
             [("bar", 3), ("bar", 4), ("bar", 5), ("foo", 0), ("foo", 1), ("foo", 2)]
         )
 
@@ -162,9 +162,7 @@ class TestRolling:
         result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
-            index=pd.MultiIndex.from_tuples(
-                ((1, 0), (1, 1), (1, 2)), names=["id", None]
-            ),
+            index=MultiIndex.from_tuples(((1, 0), (1, 1), (1, 2)), names=["id", None]),
             name="value",
         )
         tm.assert_series_equal(result, expected)
@@ -175,7 +173,7 @@ class TestRolling:
         result = series.groupby(series).rolling(center=True, window=3).mean()
         expected = Series(
             [np.nan] * 5,
-            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3), (5, 4))),
+            index=MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3), (5, 4))),
         )
         tm.assert_series_equal(result, expected)
 
@@ -183,7 +181,7 @@ class TestRolling:
         result = series.groupby(series).rolling(center=True, window=3).mean()
         expected = Series(
             [np.nan] * 4,
-            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3))),
+            index=MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3))),
         )
         tm.assert_series_equal(result, expected)
 
@@ -191,7 +189,7 @@ class TestRolling:
         result = df.groupby("a").rolling(center=True, window=3).mean()
         expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, 9, np.nan],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 (
                     ("a", 0),
                     ("a", 1),
@@ -215,7 +213,7 @@ class TestRolling:
         result = df.groupby("a").rolling(center=True, window=3).mean()
         expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, np.nan],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 (
                     ("a", 0),
                     ("a", 1),
@@ -238,7 +236,7 @@ class TestRolling:
         # GH 37141
         df = DataFrame(
             data={
-                "Date": pd.date_range("2020-01-01", "2020-01-10"),
+                "Date": date_range("2020-01-01", "2020-01-10"),
                 "gb": ["group_1"] * 6 + ["group_2"] * 4,
                 "value": range(10),
             }
@@ -251,18 +249,18 @@ class TestRolling:
         expected = Series(
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
             name="value",
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 (
-                    ("group_1", pd.Timestamp("2020-01-01")),
-                    ("group_1", pd.Timestamp("2020-01-02")),
-                    ("group_1", pd.Timestamp("2020-01-03")),
-                    ("group_1", pd.Timestamp("2020-01-04")),
-                    ("group_1", pd.Timestamp("2020-01-05")),
-                    ("group_1", pd.Timestamp("2020-01-06")),
-                    ("group_2", pd.Timestamp("2020-01-07")),
-                    ("group_2", pd.Timestamp("2020-01-08")),
-                    ("group_2", pd.Timestamp("2020-01-09")),
-                    ("group_2", pd.Timestamp("2020-01-10")),
+                    ("group_1", Timestamp("2020-01-01")),
+                    ("group_1", Timestamp("2020-01-02")),
+                    ("group_1", Timestamp("2020-01-03")),
+                    ("group_1", Timestamp("2020-01-04")),
+                    ("group_1", Timestamp("2020-01-05")),
+                    ("group_1", Timestamp("2020-01-06")),
+                    ("group_2", Timestamp("2020-01-07")),
+                    ("group_2", Timestamp("2020-01-08")),
+                    ("group_2", Timestamp("2020-01-09")),
+                    ("group_2", Timestamp("2020-01-10")),
                 ),
                 names=["gb", "Date"],
             ),
@@ -305,7 +303,7 @@ class TestRolling:
         expected = DataFrame(
             [np.nan, np.nan, 2.0, np.nan],
             columns=["b"],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
             ),
         )
@@ -314,7 +312,7 @@ class TestRolling:
         result = df.groupby("a")["b"].rolling(2).max()
         expected = Series(
             [np.nan, np.nan, 2.0, np.nan],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
             ),
             name="b",
@@ -323,7 +321,7 @@ class TestRolling:
 
     def test_groupby_rolling_custom_indexer(self):
         # GH 35557
-        class SimpleIndexer(pd.api.indexers.BaseIndexer):
+        class SimpleIndexer(BaseIndexer):
             def get_window_bounds(
                 self, num_values=0, min_periods=None, center=None, closed=None
             ):
@@ -351,7 +349,7 @@ class TestRolling:
                 "column1": range(6),
                 "column2": range(6),
                 "group": 3 * ["A", "B"],
-                "date": [pd.Timestamp("2019-01-01")] * 6,
+                "date": [Timestamp("2019-01-01")] * 6,
             }
         )
         result = (
@@ -359,9 +357,9 @@ class TestRolling:
         )
         expected = Series(
             [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=pd.MultiIndex.from_tuples(
-                [("A", pd.Timestamp("2019-01-01"))] * 3
-                + [("B", pd.Timestamp("2019-01-01"))] * 3,
+            index=MultiIndex.from_tuples(
+                [("A", Timestamp("2019-01-01"))] * 3
+                + [("B", Timestamp("2019-01-01"))] * 3,
                 names=["group", "date"],
             ),
             name="column1",
@@ -375,7 +373,7 @@ class TestRolling:
                 "column1": range(6),
                 "column2": range(6),
                 "group": 3 * ["A", "B"],
-                "date": [pd.Timestamp("2019-01-01")] * 6,
+                "date": [Timestamp("2019-01-01")] * 6,
             }
         )
 
@@ -386,9 +384,9 @@ class TestRolling:
         )
         expected = Series(
             [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=pd.MultiIndex.from_tuples(
-                [("A", pd.Timestamp("2019-01-01"))] * 3
-                + [("B", pd.Timestamp("2019-01-01"))] * 3,
+            index=MultiIndex.from_tuples(
+                [("A", Timestamp("2019-01-01"))] * 3
+                + [("B", Timestamp("2019-01-01"))] * 3,
                 names=["group", "date"],
             ),
             name="column1",
@@ -400,7 +398,7 @@ class TestRolling:
         # GH: #36018 nlevels of MultiIndex changed
         ds = Series(
             [1, 2, 2],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [("a", "x"), ("a", "y"), ("c", "z")], names=["1", "2"]
             ),
             name="a",
@@ -409,7 +407,7 @@ class TestRolling:
         result = getattr(ds.groupby(ds).rolling(2), func)()
         expected = Series(
             [np.nan, np.nan, 2.0],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [(1, "a", "x"), (2, "a", "y"), (2, "c", "z")], names=["a", "1", "2"]
             ),
             name="a",
@@ -420,23 +418,23 @@ class TestRolling:
         # GH 36197
         expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
-        expected.index = pd.MultiIndex.from_tuples([], names=["s1", None])
+        expected.index = MultiIndex.from_tuples([], names=["s1", None])
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
-        expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        expected.index = MultiIndex.from_tuples([], names=["s1", "s2", None])
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_string_index(self):
         # GH: 36727
         df = DataFrame(
             [
-                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
-                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
-                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9)],
-                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9)],
-                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9)],
+                ["A", "group_1", Timestamp(2019, 1, 1, 9)],
+                ["B", "group_1", Timestamp(2019, 1, 2, 9)],
+                ["Z", "group_2", Timestamp(2019, 1, 3, 9)],
+                ["H", "group_1", Timestamp(2019, 1, 6, 9)],
+                ["E", "group_2", Timestamp(2019, 1, 20, 9)],
             ],
             columns=["index", "group", "eventTime"],
         ).set_index("index")
@@ -447,11 +445,11 @@ class TestRolling:
         result = rolling_groups.apply(lambda df: df.shape[0])
         expected = DataFrame(
             [
-                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
-                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
-                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
-                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
-                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
+                ["A", "group_1", Timestamp(2019, 1, 1, 9), 1.0],
+                ["B", "group_1", Timestamp(2019, 1, 2, 9), 2.0],
+                ["H", "group_1", Timestamp(2019, 1, 6, 9), 3.0],
+                ["Z", "group_2", Timestamp(2019, 1, 3, 9), 1.0],
+                ["E", "group_2", Timestamp(2019, 1, 20, 9), 1.0],
             ],
             columns=["index", "group", "eventTime", "count_to_date"],
         ).set_index(["group", "index"])
@@ -468,7 +466,7 @@ class TestRolling:
         expected = DataFrame(
             np.array([[2.0, 2.0], [1.0, 1.0]]),
             columns=["foo", "bar"],
-            index=pd.MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
+            index=MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -479,7 +477,7 @@ class TestRolling:
                 "column1": range(6),
                 "column2": range(6),
                 "group": 3 * ["A", "B"],
-                "date": pd.date_range(end="20190101", periods=6),
+                "date": date_range(end="20190101", periods=6),
             }
         )
         result = (
@@ -490,14 +488,14 @@ class TestRolling:
         expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
             name="column1",
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [
-                    ("A", pd.Timestamp("2018-12-27")),
-                    ("A", pd.Timestamp("2018-12-29")),
-                    ("A", pd.Timestamp("2018-12-31")),
-                    ("B", pd.Timestamp("2018-12-28")),
-                    ("B", pd.Timestamp("2018-12-30")),
-                    ("B", pd.Timestamp("2019-01-01")),
+                    ("A", Timestamp("2018-12-27")),
+                    ("A", Timestamp("2018-12-29")),
+                    ("A", Timestamp("2018-12-31")),
+                    ("B", Timestamp("2018-12-28")),
+                    ("B", Timestamp("2018-12-30")),
+                    ("B", Timestamp("2019-01-01")),
                 ],
                 names=["group", "date"],
             ),
@@ -516,7 +514,7 @@ class TestRolling:
         result = getattr(df.groupby("a"), func)(**kwargs).sem()
         expected = DataFrame(
             {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
             ),
         )
@@ -529,7 +527,7 @@ class TestRolling:
         # GH: 34617
         df = DataFrame(
             {
-                "a": pd.to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
+                "a": to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
                 "b": [1, 2, 3],
                 "c": [1, 1, 1],
             }

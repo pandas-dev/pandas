@@ -1588,7 +1588,7 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
+                blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
                 # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
                 # types in assignment (expression has type "None", variable has
