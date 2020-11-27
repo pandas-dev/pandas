@@ -1418,8 +1418,9 @@ class TimeGrouper(Grouper):
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day', 'end', 'end_day' "
-                    f"or should be a Timestamp convertible type. Got '{origin}' "
+                    "'origin' should be equal to 'epoch', 'start', 'start_day',"
+                    " 'end', 'end_day' or should be a Timestamp convertible"
+                    f" type. Got '{origin}' "
                     "instead."
                 ) from e
 
@@ -1431,7 +1432,8 @@ class TimeGrouper(Grouper):
         elif backward:
             if origin in ("start", "start_day"):
                 raise ValueError(
-                    f"`start` or `start_day` origin isn't allowed when `backward` is True"
+                    f"`start` or `start_day` origin isn't allowed when "
+                    "`backward` is True"
                 )
             self.backward = backward
         else:
