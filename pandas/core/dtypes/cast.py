@@ -20,7 +20,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs
+from pandas._libs import lib, missing as libmissing, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -584,6 +584,9 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
         elif is_integer(fill_value) or (is_float(fill_value) and not isna(fill_value)):
             dtype = np.dtype(np.object_)
+        elif is_valid_nat_for_dtype(fill_value, dtype):
+            # e.g. pd.NA, which is not accepted by Timestamp constructor
+            fill_value = np.datetime64("NaT", "ns")
         else:
             try:
                 fill_value = Timestamp(fill_value).to_datetime64()
@@ -597,6 +600,9 @@ def maybe_promote(dtype, fill_value=np.nan):
         ):
             # TODO: What about str that can be a timedelta?
             dtype = np.dtype(np.object_)
+        elif is_valid_nat_for_dtype(fill_value, dtype):
+            # e.g pd.NA, which is not accepted by the  Timedelta constructor
+            fill_value = np.timedelta64("NaT", "ns")
         else:
             try:
                 fv = Timedelta(fill_value)
@@ -670,7 +676,7 @@ def maybe_promote(dtype, fill_value=np.nan):
                 # e.g. mst is np.complex128 and dtype is np.complex64
                 dtype = mst
 
-    elif fill_value is None:
+    elif fill_value is None or fill_value is libmissing.NA:
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
         elif is_integer_dtype(dtype):
@@ -680,7 +686,8 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = dtype.type("NaT", "ns")
         else:
             dtype = np.dtype(np.object_)
-            fill_value = np.nan
+            if fill_value is not libmissing.NA:
+                fill_value = np.nan
     else:
         dtype = np.dtype(np.object_)
 

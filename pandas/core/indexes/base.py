@@ -34,6 +34,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
+    maybe_promote,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -4162,24 +4163,6 @@ class Index(IndexOpsMixin, PandasObject):
             "to explicitly cast to a numeric type"
         )
 
-    @final
-    def _coerce_scalar_to_index(self, item):
-        """
-        We need to coerce a scalar to a compat for our index type.
-
-        Parameters
-        ----------
-        item : scalar item to coerce
-        """
-        dtype = self.dtype
-
-        if self._is_numeric_dtype and isna(item):
-            # We can't coerce to the numeric dtype of "self" (unless
-            # it's float) if there are NaN values in our output.
-            dtype = None
-
-        return Index([item], dtype=dtype, **self._get_attributes_dict())
-
     def _to_safe_for_reshape(self):
         """
         Convert to object if we are a categorical.
@@ -5490,8 +5473,22 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
+
+        try:
+            item = self._validate_fill_value(item)
+        except TypeError:
+            if is_scalar(item):
+                dtype, item = maybe_promote(self.dtype, item)
+            else:
+                # maybe_promote would raise ValueError
+                dtype = np.dtype(object)
+
+            return self.astype(dtype).insert(loc, item)
+
         arr = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._values
+
+        # Use Index constructor to ensure we get tuples cast correctly.
+        item = Index([item], dtype=self.dtype)._values
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return Index(idx, name=self.name)
 
