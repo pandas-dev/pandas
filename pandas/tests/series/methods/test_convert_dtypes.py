@@ -145,21 +145,17 @@ class TestSeriesConvertDtypes:
 
         result = series.convert_dtypes(*params)
 
-        params = dict(
-            zip(
-                [
-                    "infer_objects",
-                    "convert_string",
-                    "convert_integer",
-                    "convert_boolean",
-                ],
-                params,
-            )
-        )
+        param_names = [
+            "infer_objects",
+            "convert_string",
+            "convert_integer",
+            "convert_boolean",
+        ]
+        params_dict = dict(zip(param_names, params))
 
         expected_dtype = expected_default
         for (key, val), dtype in expected_other.items():
-            if params[key] is val:
+            if params_dict[key] is val:
                 expected_dtype = dtype
 
         expected = pd.Series(data, dtype=expected_dtype)
