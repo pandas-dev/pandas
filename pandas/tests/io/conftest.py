@@ -51,7 +51,7 @@ def s3_base(worker_id):
     pytest.importorskip("boto3")
     requests = pytest.importorskip("requests")
     # GH 38090: Suppress http logs in tests
-    logging.getLogger("urllib3").propagate = False
+    logging.getLogger("botocore").propagate = False
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
