@@ -1277,7 +1277,7 @@ class TestTSPlot(TestPlotBase):
         values1 = np.arange(10.0, 11.0, 0.5)
         values2 = np.arange(11.0, 12.0, 0.5)
 
-        kw = dict(fmt="-", lw=4)
+        kw = {"fmt": "-", "lw": 4}
 
         _, ax = self.plt.subplots()
         ax.plot_date([x.toordinal() for x in dates], values1, **kw)
