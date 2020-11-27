@@ -625,9 +625,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
-
         res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
 
         i8self = Int64Index._simple_new(self.asi8)
         i8other = Int64Index._simple_new(other.asi8)
