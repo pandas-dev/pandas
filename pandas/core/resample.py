@@ -1438,7 +1438,7 @@ class TimeGrouper(Grouper):
             if origin in ("end", "end_day"):
                 raise ValueError(
                     f"`end` or `end_day` origin isn't allowed when `backward` is False"
-                    )
+                )
             self.backward = backward
 
         try:

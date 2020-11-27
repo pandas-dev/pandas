@@ -613,8 +613,121 @@ def test_resample_agg_readonly():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_end_origin():
+def test_backward_resample():
     # GH#37804
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
+
+    # test consistency of backward and origin
+    msg = "`start` or `start_day` origin isn't allowed when `backward` is True"
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("1min", origin="start", backward=True)
+    msg = "`end` or `end_day` origin isn't allowed when `backward` is False"
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("1min", origin="end", backward=False)
+
+    # test end origin
+    res = ts.resample("17min", origin="end").sum().astype("int64")
+    data = [0, 18, 27, 63]
+    expected = Series(
+        data,
+        index=date_range(
+            end="20001002 00:26:00",
+            freq="17min",
+            periods=4,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    # test end_day origin
+    # 12 == 24 * 60 - 84 * 17 <= 26 (last value) <= 24 * 60 - 83 * 17 == 29
+    res = ts.resample("17min", origin="end_day").sum().astype("int64")
+    data = [3, 15, 45, 45]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:29:00",
+            freq="17min",
+            periods=4,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    # test datetime origin with backward resample
+    res = ts.resample(
+              "17min",
+              origin="2000-10-02 00:40:00",
+              backward=True,
+          ).sum().astype("int64")
+    data = [0, 9, 36, 39, 24]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:40:00",
+            freq="17min",
+            periods=5,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    res = ts.resample(
+              "17min",
+              origin="2000-10-02 01:05:00",
+              backward=True,
+          ).sum().astype("int64")
+    data = [3, 15, 45, 45]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:31:00",
+            freq="17min",
+            periods=4,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    # test right and left close
+    res = ts.resample(
+              "17min",
+              origin="end",
+              closed="right",
+          ).sum().astype("int64")
+    data = [0, 18, 27, 63]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:26:00 ",
+            freq="17min",
+            periods=4,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    res = ts.resample(
+              "17min",
+              origin="end",
+              closed="left",
+          ).sum().astype("int64")
+    data = [0, 18, 27, 39, 24]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:43:00",
+            freq="17min",
+            periods=5,
+        )
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    # original test case
     idx = date_range("20200101 8:26:35", "20200101 9:31:58", freq="77s")
     data = np.ones(len(idx))
     s = Series(data, index=idx)
