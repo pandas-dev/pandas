@@ -710,11 +710,15 @@ def test_backward_resample():
 
     tm.assert_series_equal(res, expected)
 
-    res = ts.resample(
-        "17min",
-        origin="end",
-        closed="left",
-    ).sum().astype("int64")
+    res = (
+        ts.resample(
+            "17min",
+            origin="end",
+            closed="left",
+        )
+        .sum()
+        .astype("int64")
+    )
     data = [0, 18, 27, 39, 24]
     expected = Series(
         data,
