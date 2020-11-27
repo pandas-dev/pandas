@@ -1600,10 +1600,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             cols = result.columns.get_indexer_for(
                 result.columns.difference(self.exclusions).unique()
             )
-            # TODO(GH-22046) - setting with iloc broken if labels are not unique
-            # .values to remove labels
-            result.iloc[:, cols] = (
-                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
+                self.count().iloc[:, cols]
             )
         return result
 

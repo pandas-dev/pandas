@@ -430,25 +430,6 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
 
-    def test_read_only_source(self):
-        # GH 10043
-        rw_array = np.eye(10)
-        rw_df = DataFrame(rw_array)
-
-        ro_array = np.eye(10)
-        ro_array.setflags(write=False)
-        ro_df = DataFrame(ro_array)
-
-        tm.assert_frame_equal(rw_df.iloc[[1, 2, 3]], ro_df.iloc[[1, 2, 3]])
-        tm.assert_frame_equal(rw_df.iloc[[1]], ro_df.iloc[[1]])
-        tm.assert_series_equal(rw_df.iloc[1], ro_df.iloc[1])
-        tm.assert_frame_equal(rw_df.iloc[1:3], ro_df.iloc[1:3])
-
-        tm.assert_frame_equal(rw_df.loc[[1, 2, 3]], ro_df.loc[[1, 2, 3]])
-        tm.assert_frame_equal(rw_df.loc[[1]], ro_df.loc[[1]])
-        tm.assert_series_equal(rw_df.loc[1], ro_df.loc[1])
-        tm.assert_frame_equal(rw_df.loc[1:3], ro_df.loc[1:3])
-
     def test_loc_slice(self):
         # GH9748
         with pytest.raises(KeyError, match="1"):
