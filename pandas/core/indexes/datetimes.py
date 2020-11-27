@@ -565,10 +565,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "hour",
             "minute",
             "second",
-            "minute",
-            "second",
+            "millisecond",
             "microsecond",
+            "nanosecond"
         }
+        
         if reso.attrname not in valid_resos:
             raise KeyError
 
