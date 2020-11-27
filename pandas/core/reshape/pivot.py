@@ -764,13 +764,13 @@ def _build_names_mapper(
     -------
     Tuple(Dict[str, str], List[str], Dict[str, str], List[str])
 
-    rownames_mapper:
+    rownames_mapper: dict[str, str]
         a dictionary with new row names as keys and original rownames as values
-    unique_rownames:
+    unique_rownames: list[str]
         a list of rownames with duplicate names replaced by dummy names
-    colnames_mapper:
+    colnames_mapper: dict[str, str]
         a dictionary with new column names as keys and original column names as values
-    unique_colnames:
+    unique_colnames: list[str]
         a list of column names with duplicate names replaced by dummy names
 
     """
