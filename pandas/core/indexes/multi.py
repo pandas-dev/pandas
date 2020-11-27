@@ -2143,7 +2143,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples
+            Must be a list of tuples when level is not specified
         level : int or level name, default None
         errors : str, default 'raise'
 
@@ -2198,10 +2198,13 @@ class MultiIndex(Index):
         # are not nan and equal -1, this means they are missing in the index
         nan_codes = isna(codes)
         values[(np.equal(nan_codes, False)) & (values == -1)] = -2
+        if index.shape[0] == self.shape[0]:
+            values[np.equal(nan_codes, True)] = -2
 
+        not_found = codes[values == -2]
+        if len(not_found) != 0 and errors != "ignore":
+            raise KeyError(f"labels {not_found} not found in level")
         mask = ~algos.isin(self.codes[i], values)
-        if mask.all() and errors != "ignore":
-            raise KeyError(f"labels {codes} not found in level")
 
         return self[mask]
 
@@ -2311,7 +2314,7 @@ class MultiIndex(Index):
 
     def _get_codes_for_sorting(self):
         """
-        we categorizing our codes by using the
+        we are categorizing our codes by using the
         available categories (all, not just observed)
         excluding any missing ones (-1); this is in preparation
         for sorting, where we need to disambiguate that -1 is not
@@ -3262,7 +3265,7 @@ class MultiIndex(Index):
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = (idxrs if indexers is None else indexers).union(
-                            idxrs
+                            idxrs, sort=False
                         )
                     except KeyError:
 
@@ -3349,6 +3352,9 @@ class MultiIndex(Index):
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
         for i, k in enumerate(seq):
+            if is_scalar(k):
+                # GH#34603 we want to treat a scalar the same as an all equal list
+                k = [k]
             if com.is_bool_indexer(k):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
@@ -3362,6 +3368,9 @@ class MultiIndex(Index):
                 key_order_map[level_indexer] = np.arange(len(level_indexer))
 
                 new_order = key_order_map[self.codes[i][indexer]]
+            elif isinstance(k, slice) and k.start is None and k.stop is None:
+                # slice(None) should not determine order GH#31330
+                new_order = np.ones((n,))[indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
