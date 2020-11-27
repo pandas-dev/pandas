@@ -27,6 +27,8 @@ from pandas.io.excel._util import (
 )
 from pandas.io.parsers import TextParser
 
+from pandas.compat import PY39
+
 _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
@@ -102,6 +104,7 @@ engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
     Engine compatibility :
+    
     - "xlrd" supports most old/new Excel file formats but is no longer maintained.
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
@@ -913,20 +916,37 @@ class ExcelFile:
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            warnings.warn(
-                "The default argument engine=None is deprecated. "
-                "Specify the engine argument to suppress this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            engine = "xlrd"
+            # xlrd doesn't support py39
+            engine = "openpyxl" if PY39 else "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+                ext = None
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
                 ext = os.path.splitext(str(path_or_buffer))[-1]
                 if ext == ".ods":
                     engine = "odf"
+
+            if engine == "xlrd" and ext != ".xls" and not PY39:
+                import inspect
+                caller = inspect.stack()[1]
+                if (
+                    caller.filename.endswith("pandas/io/excel/_base.py")
+                    and caller.function == "read_excel"
+                ):
+                    stacklevel = 4
+                else:
+                    stacklevel = 2
+                warnings.warn(
+                    "The default argument engine=None is deprecated. Using None "
+                    "defaults to the xlrd engine which is no longer maintained. "
+                    "The default value will be 'openpyxl' in a future version of "
+                    "pandas, although xlrd will continue to be allowed for the "
+                    "indefinite future. Either install openpyxl and specify it as "
+                    "the engine or specify 'xlrd' to suppress this warning.",
+                    DeprecationWarning,
+                    stacklevel=stacklevel,
+                )
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 

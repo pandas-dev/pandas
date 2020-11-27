@@ -156,7 +156,7 @@ The equivalent read function :meth:`~DataFrame.read_excel` will reload the data 
 
 .. ipython:: python
 
-    titanic = pd.read_excel("titanic.xlsx", sheet_name="passengers")
+    titanic = pd.read_excel("titanic.xlsx", sheet_name="passengers", engine="openpyxl")
 
 .. ipython:: python
 
