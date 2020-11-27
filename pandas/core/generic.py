@@ -7973,8 +7973,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
-            'BA', 'BQ', and 'W' which all have a default of 'right'.
+            for all frequency offsets with forward resampling except for 'M',
+            'A', 'Q', 'BM', 'BA', 'BQ', and 'W' which all have a default of
+            'right'. When `Backward` set to be True, default is 'right'.
         label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -8007,7 +8008,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
@@ -8017,6 +8018,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'start_day': `origin` is the first day at midnight of the timeseries
 
             .. versionadded:: 1.1.0
+
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.2.0
+
+        backward : bool, default is None
+            Resample on the given `origin` from a backward direction. True when
+            `origin` is 'end' or 'end_day'. False when `origin` is 'start' or
+            'start_day'. Optional when using datetime `origin` , and default
+            False. The resample result for a specified datetime stands for the
+            group from time substract the given `freq` to time with a right
+            `closed` setting by default.
+
+            .. versionadded:: 1.2.0
 
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
@@ -8296,6 +8312,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
         Freq: 17T, dtype: int64
+
+        If you want to take the last timestamp as `origin` with a backward resample:
+
+        >>> ts.index.max()
+        Timestamp('2000-10-02 00:26:00', freq='7T')
+        >>> ts.groupby(pd.Grouper(freq='17min', origin='end')).sum()
+        2000-10-01 23:35:00     0
+        2000-10-01 23:52:00    18
+        2000-10-02 00:09:00    27
+        2000-10-02 00:26:00    63
+        Freq: 17T, dtype: int32
+
+        You can also specify the backward origin:
+
+        >>> ts.groupby(pd.Grouper(freq='17min',
+                                  origin='2000-10-02 00:30:00',
+                                  backward=True)).sum()
+        2000-10-01 23:39:00     3
+        2000-10-01 23:56:00    15
+        2000-10-02 00:13:00    45
+        2000-10-02 00:30:00    45
+        Freq: 17T, dtype: int32
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
         in this example it is equivalent to have `base=2`:

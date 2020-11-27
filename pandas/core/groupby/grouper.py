@@ -83,9 +83,9 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
-        The timestamp on which to adjust the grouping. The timezone of origin must
-        match the timezone of the index.
+    origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp or str, default 'start_day'
+        The timestamp on which to adjust the grouping. The timezone of origin
+        must match the timezone of the index.
         If a timestamp is not used, these values are also supported:
 
         - 'epoch': `origin` is 1970-01-01
@@ -93,6 +93,21 @@ class Grouper:
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
         .. versionadded:: 1.1.0
+
+        - 'end': `origin` is the last value of the timeseries
+        - 'end_day': `origin` is the ceiling midnight of the last day
+
+        .. versionadded:: 1.2.0
+
+    backward : bool, default is None
+        Resample on the given `origin` from a backward direction. True when
+        `origin` is 'end' or 'end_day'. False when `origin` is 'start' or
+        'start_day'. Optional when using datetime `origin` , and default
+        False. The resample result for a specified datetime stands for the
+        group from time substract the given `freq` to time with a right
+        `closed` setting by default.
+
+        .. versionadded:: 1.2.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -199,6 +214,15 @@ class Grouper:
     2000-10-01 23:58:00    45
     2000-10-02 00:15:00    45
     Freq: 17T, dtype: int64
+
+    If you want to take the last timestamp as `origin` with a backward resample:
+
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='end')).sum()
+    2000-10-01 23:39:00    0
+    2000-10-01 23:56:00    0
+    2000-10-02 00:13:00    3
+    2000-10-02 00:30:00    6
+    Freq: 17T, dtype: int32
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:

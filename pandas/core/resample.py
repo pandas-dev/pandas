@@ -1430,11 +1430,15 @@ class TimeGrouper(Grouper):
                 self.backward = False
         elif backward:
             if origin in ("start", "start_day"):
-                raise ValueError(f"`start` or `start_day` origin isn't allowed when `backward` is True")
+                raise ValueError(
+                    f"`start` or `start_day` origin isn't allowed when `backward` is True"
+                )
             self.backward = backward
         else:
             if origin in ("end", "end_day"):
-                raise ValueError(f"`end` or `end_day` origin isn't allowed when `backward` is False")
+                raise ValueError(
+                    f"`end` or `end_day` origin isn't allowed when `backward` is False"
+                    )
             self.backward = backward
 
         try:
@@ -1785,7 +1789,13 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, backward=backward, offset=offset
+            first,
+            last,
+            freq,
+            closed=closed,
+            origin=origin,
+            backward=backward,
+            offset=offset,
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1847,7 +1857,13 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, backward=backward, offset=offset
+        first,
+        last,
+        freq,
+        closed=closed,
+        origin=origin,
+        backward=backward,
+        offset=offset,
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
@@ -1873,7 +1889,7 @@ def _adjust_dates_anchored(
             if origin == "end":
                 origin = last
             elif origin == "end_day":
-                origin = last.ceil('D')
+                origin = last.ceil("D")
             sub_freq_times = (origin.value - first.value) // freq.nanos
             if closed == "left":
                 sub_freq_times += 1
