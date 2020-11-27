@@ -748,6 +748,33 @@ def _get_names(arrs, names, prefix: str = "row"):
 def _build_names_mapper(
     rownames: List[str], colnames: List[str]
 ) -> Tuple[Dict[str, str], List[str], Dict[str, str], List[str]]:
+    """
+    Given the names of a DataFrame's rows and columns, returns a set of unique row
+    and column names and mappers that convert to original names.
+
+    A row or column name is replaced if it is duplicate among the rows of the inputs,
+    among the columns of the inputs or between the rows and the columns.
+
+    Paramters
+    ---------
+    rownames: list[str]
+    colnames: list[str]
+
+    Returns
+    -------
+    Tuple(Dict[str, str], List[str], Dict[str, str], List[str])
+
+    rownames_mapper:
+        a dictionary with new row names as keys and original rownames as values
+    unique_rownames:
+        a list of rownames with duplicate names replaced by dummy names
+    colnames_mapper:
+        a dictionary with new column names as keys and original column names as values
+    unique_colnames:
+        a list of column names with duplicate names replaced by dummy names
+
+    """
+
     def get_duplicates(names):
         seen: Set = set()
         return {name for name in names if name not in seen}
