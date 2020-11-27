@@ -300,7 +300,7 @@ def validate_take_with_convert(convert, args, kwargs):
     return convert
 
 
-TRANSPOSE_DEFAULTS = {"axis": None}
+TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
 )
