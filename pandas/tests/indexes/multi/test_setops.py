@@ -392,7 +392,7 @@ def test_setops_disallow_true(method):
     ],
 )
 def test_intersect_with_duplicates(tuples, exp_tuples):
-    # GH: 36915
+    # GH#36915
     left = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
     right = pd.MultiIndex.from_tuples(
         [("val1", "test1"), ("val1", "test1"), ("val2", "test2")],
