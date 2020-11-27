@@ -37,7 +37,6 @@ def create_pandas_abc_type(name, attr, comp):
     return meta(name, tuple(), dct)
 
 
-ABCIndex = cast("Type[Index]", create_pandas_abc_type("ABCIndex", "_typ", ("index",)))
 ABCInt64Index = cast(
     "Type[Int64Index]",
     create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",)),
