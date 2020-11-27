@@ -652,7 +652,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if is_object_dtype(other.dtype):
             return self.astype("O").intersection(other, sort=sort)
 
-        elif not is_dtype_equal(self.dtype, other.dtype):
+        elif not self._is_comparable_dtype(other.dtype):
             # We can infer that the intersection is empty.
             # assert_can_do_setop ensures that this is not just a mismatched freq
             this = self[:0].astype("O")

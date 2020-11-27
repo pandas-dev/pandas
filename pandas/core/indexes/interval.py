@@ -126,8 +126,9 @@ def setop_check(method):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if op_name == "intersection" and self.equals(other):
-            return self._get_reconciled_name_object(other)
+        if op_name == "intersection":
+            if self.equals(other):
+                return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
             result = getattr(self.astype(object), op_name)(other)
