@@ -9,7 +9,6 @@ if TYPE_CHECKING:
         DataFrame,
         DatetimeIndex,
         Float64Index,
-        Index,
         Int64Index,
         IntervalIndex,
         MultiIndex,

@@ -168,7 +168,8 @@ def _ensure_data(
     elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
-        values = values.codes
+        # error: "ExtensionArray" has no attribute "codes"
+        values = values.codes  # type: ignore[attr-defined]
         dtype = pandas_dtype("category")
 
         # we are actually coercing to int64
