@@ -903,7 +903,7 @@ class Styler:
         Set the table attributes.
 
         These are the items that show up in the opening ``<table>`` tag
-        in addition to to automatic (by default) id.
+        in addition to automatic (by default) id.
 
         Parameters
         ----------

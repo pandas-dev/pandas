@@ -252,6 +252,7 @@ Other enhancements
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 - :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
+- Add support for ``min_count`` keyword for :meth:`DataFrame.groupby` and :meth:`DataFrame.resample` for functions ``min``, ``max``, ``first`` and ``last`` (:issue:`37821`, :issue:`37768`)
 - Improve error reporting for :meth:`DataFrame.merge` when invalid merge column definitions were given (:issue:`16228`)
 - Improve numerical stability for :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`Expanding.skew` and :meth:`Expanding.kurt` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`.DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
@@ -466,7 +467,9 @@ Deprecations
 - Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
 - :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
 - The method :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
-- Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
+- Deprecated indexing :class:`DataFrame` rows with a single datetime-like string as ``df[string]``
+  (given the ambiguity whether it is indexing the rows or selecting a column), use
+  ``df.loc[string]`` instead (:issue:`36179`)
 - Deprecated casting an object-dtype index of ``datetime`` objects to :class:`.DatetimeIndex` in the :class:`Series` constructor (:issue:`23598`)
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
 - The default value of ``regex`` for :meth:`Series.str.replace` will change from ``True`` to ``False`` in a future release. In addition, single character regular expressions will *not* be treated as literal strings when ``regex=True`` is set. (:issue:`24804`)
@@ -622,7 +625,9 @@ Indexing
 - Bug in :meth:`DataFrame.xs` ignored ``droplevel=False`` for columns (:issue:`19056`)
 - Bug in :meth:`DataFrame.reindex` raising ``IndexingError`` wrongly for empty DataFrame with ``tolerance`` not None or ``method="nearest"`` (:issue:`27315`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using listlike indexer that contains elements that are in the index's ``categories`` but not in the index itself failing to raise ``KeyError`` (:issue:`37901`)
+- Bug on inserting a boolean label into a :class:`DataFrame` with a numeric :class:`Index` columns incorrectly casting to integer (:issue:`36319`)
 - Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` aligning objects in ``__setitem__`` (:issue:`22046`)
+- Bug in :meth:`MultiIndex.drop` does not raise if labels are partially found (:issue:`37820`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
@@ -727,6 +732,8 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`concat` and :class:`DataFrame` constructor where input index names are not preserved in some cases (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
+- Bug in :meth:`DataFrame.stack` where an empty DataFrame.stack would raise an error (:issue:`36113`). Now returning an empty Series with empty MultiIndex.
+- Bug in :meth:`Series.unstack`. Now a Series with single level of Index trying to unstack would raise a ValueError. (:issue:`36113`)
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was a dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns are both multiindexed (:issue:`36360`)
@@ -766,6 +773,7 @@ Other
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
+- Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
 
 .. ---------------------------------------------------------------------------
 

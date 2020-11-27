@@ -136,7 +136,7 @@ Enhancements
 
 - Added ability to export Categorical data to Stata (:issue:`8633`).  See :ref:`here <io.stata-categorical>` for limitations of categorical variables exported to Stata data files.
 - Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
-- Added ability to export Categorical data to to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas.
+- Added ability to export Categorical data to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas.
 - Added support for ``searchsorted()`` on ``Categorical`` class (:issue:`8420`).
 
 Other enhancements:

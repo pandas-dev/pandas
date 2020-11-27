@@ -717,7 +717,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-            parsed, reso = parsing.parse_time_string(label, freq)
+            try:
+                parsed, reso = parsing.parse_time_string(label, freq)
+            except parsing.DateParseError as err:
+                raise self._invalid_indexer("slice", label) from err
+
             reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
@@ -732,7 +736,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(label, (self._data._recognized_scalars, date)):
             self._deprecate_mismatched_indexing(label)
         else:
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
 
