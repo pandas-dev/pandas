@@ -8323,7 +8323,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-01 23:52:00    18
         2000-10-02 00:09:00    27
         2000-10-02 00:26:00    63
-        Freq: 17T, dtype: int32
+        Freq: 17T, dtype: int64
 
         You can also specify the backward origin:
 

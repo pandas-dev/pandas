@@ -219,11 +219,11 @@ class Grouper:
     If you want to take the last timestamp as `origin` with a backward resample:
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='end')).sum()
-    2000-10-01 23:39:00    0
-    2000-10-01 23:56:00    0
-    2000-10-02 00:13:00    3
-    2000-10-02 00:30:00    6
-    Freq: 17T, dtype: int32
+    2000-10-01 23:35:00     0
+    2000-10-01 23:52:00    18
+    2000-10-02 00:09:00    27
+    2000-10-02 00:26:00    63
+    Freq: 17T, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
