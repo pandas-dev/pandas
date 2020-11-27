@@ -637,7 +637,7 @@ def test_backward_resample():
             end="20001002 00:26:00",
             freq="17min",
             periods=4,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
@@ -652,7 +652,7 @@ def test_backward_resample():
             end="2000-10-02 00:29:00",
             freq="17min",
             periods=4,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
@@ -670,7 +670,7 @@ def test_backward_resample():
             end="2000-10-02 00:40:00",
             freq="17min",
             periods=5,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
@@ -687,7 +687,7 @@ def test_backward_resample():
             end="2000-10-02 00:31:00",
             freq="17min",
             periods=4,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
@@ -705,7 +705,7 @@ def test_backward_resample():
             end="2000-10-02 00:26:00 ",
             freq="17min",
             periods=4,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
@@ -722,7 +722,7 @@ def test_backward_resample():
             end="2000-10-02 00:43:00",
             freq="17min",
             periods=5,
-        )
+        ),
     )
 
     tm.assert_series_equal(res, expected)
