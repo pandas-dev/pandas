@@ -58,9 +58,17 @@ test_cases = [
         [10, np.nan, 20],
         np.dtype("float"),
         "Int64",
-        {("convert_integer", False): np.dtype("float")},
+        {
+            ("convert_integer", False): "Float64",
+            ("convert_integer", False, "convert_floating", False): np.dtype("float"),
+        },
     ),
-    ([np.nan, 100.5, 200], np.dtype("float"), np.dtype("float"), {}),
+    (
+        [np.nan, 100.5, 200],
+        np.dtype("float"),
+        "Float64",
+        {("convert_floating", False): np.dtype("float")},
+    ),
     (
         [3, 4, 5],
         "Int8",
@@ -90,15 +98,19 @@ test_cases = [
         object,
         "Int64",
         {
-            ("convert_integer", False): np.dtype("float"),
+            ("convert_integer", False): "Float64",
+            ("convert_integer", False, "convert_floating", False): np.dtype("float"),
             ("infer_objects", False): np.dtype("object"),
         },
     ),
     (
         [1, 2.5],
         object,
-        np.dtype("float"),
-        {("infer_objects", False): np.dtype("object")},
+        "Float64",
+        {
+            ("convert_floating", False): np.dtype("float"),
+            ("infer_objects", False): np.dtype("object"),
+        },
     ),
     (["a", "b"], pd.CategoricalDtype(), pd.CategoricalDtype(), {}),
     (
@@ -134,7 +146,7 @@ class TestSeriesConvertDtypes:
         "data, maindtype, expected_default, expected_other",
         test_cases,
     )
-    @pytest.mark.parametrize("params", product(*[(True, False)] * 4))
+    @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
     def test_convert_dtypes(
         self, data, maindtype, params, expected_default, expected_other
     ):
@@ -150,12 +162,13 @@ class TestSeriesConvertDtypes:
             "convert_string",
             "convert_integer",
             "convert_boolean",
+            "convert_floating",
         ]
         params_dict = dict(zip(param_names, params))
 
         expected_dtype = expected_default
-        for (key, val), dtype in expected_other.items():
-            if params_dict[key] is val:
+        for spec, dtype in expected_other.items():
+            if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
                 expected_dtype = dtype
 
         expected = pd.Series(data, dtype=expected_dtype)
