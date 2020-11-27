@@ -1,6 +1,7 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
+import datetime
 import functools
 from functools import partial
 
@@ -1088,4 +1089,22 @@ def test_agg_no_suffix_index():
     # test Series case
     result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
+    tm.assert_series_equal(result, expected)
+
+
+def test_aggregate_datetime_objects():
+    # https://github.com/pandas-dev/pandas/issues/36003
+    # ensure we don't raise an error but keep object dtype for out-of-bounds
+    # datetimes
+    df = DataFrame(
+        {
+            "A": ["X", "Y"],
+            "B": [
+                datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
+                datetime.datetime(3005, 1, 1, 10, 30, 23, 540000),
+            ],
+        }
+    )
+    result = df.groupby("A").B.max()
+    expected = df.set_index("A")["B"]
     tm.assert_series_equal(result, expected)
