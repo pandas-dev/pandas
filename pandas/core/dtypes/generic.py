@@ -1,4 +1,11 @@
 """ define generic base classes for pandas objects """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Type, cast
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 
 # define abstract base classes to enable isinstance type checking on our
@@ -7,7 +14,7 @@ def create_pandas_abc_type(name, attr, comp):
 
     # https://github.com/python/mypy/issues/1006
     # error: 'classmethod' used with a non-method
-    @classmethod  # type: ignore
+    @classmethod  # type: ignore[misc]
     def _check(cls, inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
@@ -16,7 +23,6 @@ def create_pandas_abc_type(name, attr, comp):
     return meta(name, tuple(), dct)
 
 
-ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index",))
 ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
 ABCUInt64Index = create_pandas_abc_type("ABCUInt64Index", "_typ", ("uint64index",))
 ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",))
@@ -53,8 +59,17 @@ ABCIndexClass = create_pandas_abc_type(
     },
 )
 
-ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
-ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+ABCNDFrame = cast(
+    "Type[NDFrame]",
+    create_pandas_abc_type("ABCNDFrame", "_typ", ("series", "dataframe")),
+)
+ABCSeries = cast(
+    "Type[Series]",
+    create_pandas_abc_type("ABCSeries", "_typ", ("series",)),
+)
+ABCDataFrame = cast(
+    "Type[DataFrame]", create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
+)
 
 ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ", ("categorical"))
 ABCDatetimeArray = create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray"))

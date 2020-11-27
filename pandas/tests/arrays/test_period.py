@@ -5,7 +5,8 @@ from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.dtypes import PeriodDtype, registry
+from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -112,7 +113,8 @@ def test_take_raises():
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr.take([0, -1], allow_fill=True, fill_value=pd.Period("2000", freq="W"))
 
-    with pytest.raises(ValueError, match="foo"):
+    msg = "value should be a 'Period' or 'NaT'. Got 'str' instead"
+    with pytest.raises(TypeError, match=msg):
         arr.take([0, -1], allow_fill=True, fill_value="foo")
 
 
@@ -358,6 +360,7 @@ def test_arrow_extension_type():
 )
 def test_arrow_array(data, freq):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
@@ -383,6 +386,7 @@ def test_arrow_array(data, freq):
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
@@ -398,6 +402,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 def test_arrow_table_roundtrip():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")

@@ -6,9 +6,9 @@ import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -49,8 +49,6 @@ class TestPeriodConstruction:
         i1 = Period("1982", freq="min")
         i2 = Period("1982", freq="MIN")
         assert i1 == i2
-        i2 = Period("1982", freq=("Min", 1))
-        assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
         i2 = Period("3/1/2005", freq="D")
@@ -80,6 +78,10 @@ class TestPeriodConstruction:
         msg = "Invalid frequency: X"
         with pytest.raises(ValueError, match=msg):
             Period("2007-1-1", freq="X")
+
+        # GH#34703 tuple freq disallowed
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("1982", freq=("Min", 1))
 
     def test_construction_bday(self):
 
@@ -485,6 +487,13 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
+    @pytest.mark.parametrize("hour", range(24))
+    def test_period_large_ordinal(self, hour):
+        # Issue #36430
+        # Integer overflow for Period over the maximum timestamp
+        p = Period(ordinal=2562048 + hour, freq="1H")
+        assert p.hour == hour
+
 
 class TestPeriodMethods:
     def test_round_trip(self):
@@ -643,10 +652,10 @@ class TestPeriodMethods:
         assert result == expected
 
     def test_to_timestamp_business_end(self):
-        per = pd.Period("1990-01-05", "B")  # Friday
+        per = Period("1990-01-05", "B")  # Friday
         result = per.to_timestamp("B", how="E")
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -768,6 +777,35 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
+    def _period_constructor(bound, offset):
+        return Period(
+            year=bound.year,
+            month=bound.month,
+            day=bound.day,
+            hour=bound.hour,
+            minute=bound.minute,
+            second=bound.second + offset,
+            freq="us",
+        )
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_outter_bounds_start_and_end_time(self, bound, offset, period_property):
+        # GH #13346
+        period = TestPeriodProperties._period_constructor(bound, offset)
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+            getattr(period, period_property)
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_inner_bounds_start_and_end_time(self, bound, offset, period_property):
+        # GH #13346
+        period = TestPeriodProperties._period_constructor(bound, -offset)
+        expected = period.to_timestamp().round(freq="S")
+        assert getattr(period, period_property).round(freq="S") == expected
+        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
+        assert getattr(period, period_property).floor("S") == expected
+
     def test_start_time(self):
         freq_lst = ["A", "Q", "M", "D", "H", "T", "S"]
         xp = datetime(2012, 1, 1)
@@ -828,7 +866,7 @@ class TestPeriodProperties:
         per = Period("1990-01-05", "B")
         result = per.end_time
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     def test_anchor_week_end_time(self):
@@ -1516,3 +1554,9 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_invalid_frequency_error_message():
+    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="WOM-1MON")

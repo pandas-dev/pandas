@@ -65,9 +65,11 @@ class TestAssign:
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
         # non-keyword argument
-        with pytest.raises(TypeError):
+        msg = r"assign\(\) takes 1 positional argument but 2 were given"
+        with pytest.raises(TypeError, match=msg):
             df.assign(lambda x: x.A)
-        with pytest.raises(AttributeError):
+        msg = "'DataFrame' object has no attribute 'C'"
+        with pytest.raises(AttributeError, match=msg):
             df.assign(C=df.A, D=df.A + df.C)
 
     def test_assign_dependent(self):

@@ -145,7 +145,8 @@ def test_empty_dtypes(check_dtype):
         tm.assert_frame_equal(df1, df2, **kwargs)
 
 
-def test_frame_equal_index_mismatch(obj_fixture):
+@pytest.mark.parametrize("check_like", [True, False])
+def test_frame_equal_index_mismatch(check_like, obj_fixture):
     msg = f"""{obj_fixture}\\.index are different
 
 {obj_fixture}\\.index values are different \\(33\\.33333 %\\)
@@ -156,10 +157,11 @@ def test_frame_equal_index_mismatch(obj_fixture):
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, obj=obj_fixture)
+        tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
 
 
-def test_frame_equal_columns_mismatch(obj_fixture):
+@pytest.mark.parametrize("check_like", [True, False])
+def test_frame_equal_columns_mismatch(check_like, obj_fixture):
     msg = f"""{obj_fixture}\\.columns are different
 
 {obj_fixture}\\.columns values are different \\(50\\.0 %\\)
@@ -170,7 +172,7 @@ def test_frame_equal_columns_mismatch(obj_fixture):
     df2 = DataFrame({"A": [1, 2, 3], "b": [4, 5, 6]}, index=["a", "b", "c"])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, obj=obj_fixture)
+        tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
@@ -260,3 +262,26 @@ def test_assert_frame_equal_interval_dtype_mismatch():
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(left, right, check_dtype=True)
+
+
+@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
+def test_assert_frame_equal_ignore_extension_dtype_mismatch(right_dtype):
+    # https://github.com/pandas-dev/pandas/issues/35715
+    left = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    right = DataFrame({"a": [1, 2, 3]}, dtype=right_dtype)
+    tm.assert_frame_equal(left, right, check_dtype=False)
+
+
+def test_allows_duplicate_labels():
+    left = DataFrame()
+    right = DataFrame().set_flags(allows_duplicate_labels=False)
+    tm.assert_frame_equal(left, left)
+    tm.assert_frame_equal(right, right)
+    tm.assert_frame_equal(left, right, check_flags=False)
+    tm.assert_frame_equal(right, left, check_flags=False)
+
+    with pytest.raises(AssertionError, match="<Flags"):
+        tm.assert_frame_equal(left, right)
+
+    with pytest.raises(AssertionError, match="<Flags"):
+        tm.assert_frame_equal(left, right)

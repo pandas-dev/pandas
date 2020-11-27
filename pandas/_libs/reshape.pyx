@@ -16,7 +16,9 @@ from numpy cimport (
 )
 
 import numpy as np
+
 cimport numpy as cnp
+
 cnp.import_array()
 
 from pandas._libs.lib cimport c_is_list_like
@@ -122,7 +124,8 @@ def explode(ndarray[object] values):
     counts = np.zeros(n, dtype='int64')
     for i in range(n):
         v = values[i]
-        if c_is_list_like(v, False):
+
+        if c_is_list_like(v, True):
             if len(v):
                 counts[i] += len(v)
             else:
@@ -136,8 +139,9 @@ def explode(ndarray[object] values):
     for i in range(n):
         v = values[i]
 
-        if c_is_list_like(v, False):
+        if c_is_list_like(v, True):
             if len(v):
+                v = list(v)
                 for j in range(len(v)):
                     result[count] = v[j]
                     count += 1

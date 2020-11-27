@@ -75,6 +75,38 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
+        # GH 24382
+
+        # data_for_sorting -> [B, C, A] with A < B < C
+        assert data_for_sorting.argmax() == 1
+        assert data_for_sorting.argmin() == 2
+
+        # with repeated values -> first occurence
+        data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
+        assert data.argmax() == 3
+        assert data.argmin() == 0
+
+        # with missing values
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        assert data_missing_for_sorting.argmax() == 0
+        assert data_missing_for_sorting.argmin() == 2
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_empty_array(self, method, data):
+        # GH 24382
+        err_msg = "attempt to get"
+        with pytest.raises(ValueError, match=err_msg):
+            getattr(data[:0], method)()
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        # all missing with skipna=True is the same as emtpy
+        err_msg = "attempt to get"
+        data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
+        with pytest.raises(ValueError, match=err_msg):
+            getattr(data_na, method)()
+
     @pytest.mark.parametrize(
         "na_position, expected",
         [
@@ -93,7 +125,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
-            expected = expected[::-1]
+            # GH 35922. Expect stable sort
+            if ser.nunique() == 2:
+                expected = ser.iloc[[0, 1, 2]]
+            else:
+                expected = ser.iloc[[1, 0, 2]]
 
         self.assert_series_equal(result, expected)
 
@@ -411,7 +447,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "'axis"),
+            (2, dict(axis=1), ValueError, "axis"),
             (-1, dict(), ValueError, "negative"),
             ([1, 2], dict(), ValueError, "shape"),
             (2, dict(foo="bar"), TypeError, "'foo'"),

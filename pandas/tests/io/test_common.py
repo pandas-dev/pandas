@@ -87,7 +87,17 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize(
         "extension,expected",
-        [("", None), (".gz", "gzip"), (".bz2", "bz2"), (".zip", "zip"), (".xz", "xz")],
+        [
+            ("", None),
+            (".gz", "gzip"),
+            (".bz2", "bz2"),
+            (".zip", "zip"),
+            (".xz", "xz"),
+            (".GZ", "gzip"),
+            (".BZ2", "bz2"),
+            (".ZIP", "zip"),
+            (".XZ", "xz"),
+        ],
     )
     @pytest.mark.parametrize("path_type", path_types)
     def test_infer_compression_from_path(self, extension, expected, path_type):
@@ -95,21 +105,20 @@ bar2,12,13,14,15
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
 
-    def test_get_filepath_or_buffer_with_path(self):
-        filename = "~/sometest"
-        filepath_or_buffer, _, _, should_close = icom.get_filepath_or_buffer(filename)
-        assert filepath_or_buffer != filename
-        assert os.path.isabs(filepath_or_buffer)
-        assert os.path.expanduser(filename) == filepath_or_buffer
-        assert not should_close
+    @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
+    def test_get_handle_with_path(self, path_type):
+        # ignore LocalPath: it creates strange paths: /absolute/~/sometest
+        filename = path_type("~/sometest")
+        with icom.get_handle(filename, "w") as handles:
+            assert os.path.isabs(handles.handle.name)
+            assert os.path.expanduser(filename) == handles.handle.name
 
-    def test_get_filepath_or_buffer_with_buffer(self):
+    def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _, _, should_close = icom.get_filepath_or_buffer(
-            input_buffer
-        )
-        assert filepath_or_buffer == input_buffer
-        assert not should_close
+        with icom.get_handle(input_buffer, "r") as handles:
+            assert handles.handle == input_buffer
+        assert not input_buffer.closed
+        input_buffer.close()
 
     def test_iterator(self):
         reader = pd.read_csv(StringIO(self.data1), chunksize=1)
@@ -235,11 +244,6 @@ bar2,12,13,14,15
             ),
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:This method will be removed in future versions.  "
-        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
-        ":PendingDeprecationWarning"
-    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -329,7 +333,7 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._MMapWrapper(non_file)
 
-        target = open(mmap_file, "r")
+        target = open(mmap_file)
         target.close()
 
         msg = "I/O operation on closed file"
@@ -337,7 +341,7 @@ class TestMMapWrapper:
             icom._MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
-        with open(mmap_file, "r") as target:
+        with open(mmap_file) as target:
             wrapper = icom._MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
@@ -350,7 +354,7 @@ class TestMMapWrapper:
         assert not hasattr(wrapper, "foo")
 
     def test_next(self, mmap_file):
-        with open(mmap_file, "r") as target:
+        with open(mmap_file) as target:
             wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 
@@ -367,3 +371,43 @@ class TestMMapWrapper:
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
+
+    def test_binary_mode(self):
+        """
+        'encoding' shouldn't be passed to 'open' in binary mode.
+
+        GH 35058
+        """
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path, mode="w+b")
+            tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-32"])
+    @pytest.mark.parametrize("compression_", ["bz2", "xz"])
+    def test_warning_missing_utf_bom(self, encoding, compression_):
+        """
+        bz2 and xz do not write the byte order mark (BOM) for utf-16/32.
+
+        https://stackoverflow.com/questions/55171439
+
+        GH 35681
+        """
+        df = tm.makeDataFrame()
+        with tm.ensure_clean() as path:
+            with tm.assert_produces_warning(UnicodeWarning):
+                df.to_csv(path, compression=compression_, encoding=encoding)
+
+            # reading should fail (otherwise we wouldn't need the warning)
+            with pytest.raises(Exception):
+                pd.read_csv(path, compression=compression_, encoding=encoding)
+
+
+def test_is_fsspec_url():
+    assert icom.is_fsspec_url("gcs://pandas/somethingelse.com")
+    assert icom.is_fsspec_url("gs://pandas/somethingelse.com")
+    # the following is the only remote URL that is handled without fsspec
+    assert not icom.is_fsspec_url("http://pandas/somethingelse.com")
+    assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
+    assert not icom.is_fsspec_url("/local/path")
+    assert not icom.is_fsspec_url("relative/local/path")

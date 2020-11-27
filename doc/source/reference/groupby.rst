@@ -116,6 +116,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.quantile
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
+   DataFrameGroupBy.sample
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
@@ -127,6 +128,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
 .. autosummary::
    :toctree: api/
 
+   SeriesGroupBy.hist
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
    SeriesGroupBy.nunique

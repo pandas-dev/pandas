@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -30,7 +30,8 @@ def test_groupby(idx):
     tm.assert_dict_equal(groups, exp)
 
 
-def test_truncate():
+def test_truncate_multiindex():
+    # GH 34564 for MultiIndex level names check
     major_axis = Index(list(range(4)))
     minor_axis = Index(list(range(2)))
 
@@ -38,19 +39,24 @@ def test_truncate():
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(
-        levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=["L1", "L2"],
     )
 
     result = index.truncate(before=1)
     assert "foo" not in result.levels[0]
     assert 1 in result.levels[0]
+    assert index.names == result.names
 
     result = index.truncate(after=1)
     assert 2 not in result.levels[0]
     assert 1 in result.levels[0]
+    assert index.names == result.names
 
     result = index.truncate(before=1, after=2)
     assert len(result.levels[0]) == 2
+    assert index.names == result.names
 
     msg = "after < before"
     with pytest.raises(ValueError, match=msg):
@@ -121,9 +127,9 @@ def test_append_mixed_dtypes():
             [1, 2, 3, "x", "y", "z"],
             [1.1, np.nan, 3.3, "x", "y", "z"],
             ["a", "b", "c", "x", "y", "z"],
-            dti.append(pd.Index(["x", "y", "z"])),
-            dti_tz.append(pd.Index(["x", "y", "z"])),
-            pi.append(pd.Index(["x", "y", "z"])),
+            dti.append(Index(["x", "y", "z"])),
+            dti_tz.append(Index(["x", "y", "z"])),
+            pi.append(Index(["x", "y", "z"])),
         ]
     )
     tm.assert_index_equal(res, exp)
@@ -197,7 +203,7 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = pd.Index([np.nan] * len(idx))
+    expected = Index([np.nan] * len(idx))
     result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
@@ -234,7 +240,7 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if _np_version_under1p17:
+    if np_version_under1p17:
         expected_exception = AttributeError
         msg = f"'tuple' object has no attribute '{func.__name__}'"
     else:

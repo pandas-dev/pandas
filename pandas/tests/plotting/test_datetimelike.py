@@ -6,18 +6,17 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna
+from pandas import DataFrame, Index, NaT, Series, isna, to_datetime
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset, WeekOfMonth
+from pandas.tseries.offsets import WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -292,9 +291,16 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         df2 = df.copy()
         df2.index = df.index.astype(object)
-        df2.plot(ax=ax)
-        diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
-        assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # This warning will be emitted
+            # pandas/core/frame.py:3216:
+            # FutureWarning: Automatically casting object-dtype Index of datetimes
+            # to DatetimeIndex is deprecated and will be removed in a future version.
+            # Explicitly cast to DatetimeIndex instead.
+            # return klass(values, index=self.index, name=name, fastpath=True)
+            df2.plot(ax=ax)
+            diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
+            assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
 
     def test_irregular_datetime64_repr_bug(self):
         ser = tm.makeTimeSeries()
@@ -332,7 +338,7 @@ class TestTSPlot(TestPlotBase):
         bts = tm.makeTimeSeries(5).asfreq(freq)
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
-        assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].toordinal()
+
         idx = ax.get_lines()[0].get_xdata()
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
@@ -770,8 +776,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "D"
 
     @pytest.mark.slow
     def test_mixed_freq_alignment(self):
@@ -797,8 +803,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(legend=True, ax=ax)
         high.plot(legend=True, ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "D"
         leg = ax.get_legend()
         assert len(leg.texts) == 2
         self.plt.close(ax.get_figure())
@@ -810,8 +816,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
         high.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "T"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "T"
 
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
@@ -876,8 +882,8 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         high.plot(ax=ax)
         low.plot(ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
 
     @pytest.mark.slow
     def test_from_weekly_resampling(self):
@@ -894,9 +900,9 @@ class TestTSPlot(TestPlotBase):
             [1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544, 1549, 1553, 1558, 1562],
             dtype=np.float64,
         )
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-            xdata = l.get_xdata(orig=False)
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            xdata = line.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
             else:
@@ -1007,8 +1013,8 @@ class TestTSPlot(TestPlotBase):
         high.plot(ax=ax)
         low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "L"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "L"
         tm.close()
 
         # low to high
@@ -1016,8 +1022,8 @@ class TestTSPlot(TestPlotBase):
         low.plot(ax=ax)
         high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
-        for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq == "L"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "L"
 
     @pytest.mark.slow
     def test_irreg_dtypes(self):
@@ -1029,9 +1035,16 @@ class TestTSPlot(TestPlotBase):
         # np.datetime64
         idx = date_range("1/1/2000", periods=10)
         idx = idx[[0, 2, 5, 9]].astype(object)
-        df = DataFrame(np.random.randn(len(idx), 3), idx)
-        _, ax = self.plt.subplots()
-        _check_plot_works(df.plot, ax=ax)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # This warning will be emitted
+            # pandas/core/frame.py:3216:
+            # FutureWarning: Automatically casting object-dtype Index of datetimes
+            # to DatetimeIndex is deprecated and will be removed in a future version.
+            # Explicitly cast to DatetimeIndex instead.
+            # return klass(values, index=self.index, name=name, fastpath=True)
+            df = DataFrame(np.random.randn(len(idx), 3), idx)
+            _, ax = self.plt.subplots()
+            _check_plot_works(df.plot, ax=ax)
 
     @pytest.mark.slow
     def test_time(self):
@@ -1141,12 +1154,12 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         low.plot(ax=ax)
         ax = high.plot(secondary_y=True, ax=ax)
-        for l in ax.get_lines():
-            assert PeriodIndex(l.get_xdata()).freq == "D"
+        for line in ax.get_lines():
+            assert PeriodIndex(line.get_xdata()).freq == "D"
         assert hasattr(ax, "left_ax")
         assert not hasattr(ax, "right_ax")
-        for l in ax.left_ax.get_lines():
-            assert PeriodIndex(l.get_xdata()).freq == "D"
+        for line in ax.left_ax.get_lines():
+            assert PeriodIndex(line.get_xdata()).freq == "D"
 
     @pytest.mark.slow
     def test_secondary_legend(self):
@@ -1246,9 +1259,9 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         xaxis = ax.get_xaxis()
-        for l in xaxis.get_ticklabels():
-            if len(l.get_text()) > 0:
-                assert l.get_rotation() == 30
+        for line in xaxis.get_ticklabels():
+            if len(line.get_text()) > 0:
+                assert line.get_rotation() == 30
 
     @pytest.mark.slow
     def test_ax_plot(self):
@@ -1280,6 +1293,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_irregular_ts_shared_ax_xlim(self):
         # GH 2960
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1290,8 +1305,8 @@ class TestTSPlot(TestPlotBase):
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     @pytest.mark.slow
     def test_secondary_y_non_ts_xlim(self):
@@ -1346,6 +1361,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_secondary_y_irregular_ts_xlim(self):
         # GH 3490 - irregular-timeseries with secondary y
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1357,8 +1374,8 @@ class TestTSPlot(TestPlotBase):
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -1491,6 +1508,32 @@ class TestTSPlot(TestPlotBase):
             expected = "2017-12-12"
         assert label.get_text() == expected
 
+    def test_check_xticks_rot(self):
+        # https://github.com/pandas-dev/pandas/issues/29460
+        # regular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-03"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=0)
+
+        # irregular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-04"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=30)
+
+        # use timeseries index or not
+        axes = df.set_index("x").plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.set_index("x").plot(y="y", use_index=False)
+        self._check_ticks_props(axes, xrot=0)
+
+        # separate subplots
+        axes = df.plot(x="x", y="y", subplots=True, sharex=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.plot(x="x", y="y", subplots=True, sharex=False)
+        self._check_ticks_props(axes, xrot=0)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
@@ -1509,7 +1552,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ax = kwargs.pop("ax", plt.gca())
         if series is not None:
             dfreq = series.index.freq
-            if isinstance(dfreq, DateOffset):
+            if isinstance(dfreq, BaseOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
                 assert ax.freq == dfreq

@@ -8,7 +8,16 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import (
+    DataFrame,
+    Grouper,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    read_csv,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
@@ -16,7 +25,7 @@ import pandas.core.common as com
 
 def test_repr():
     # GH18203
-    result = repr(pd.Grouper(key="A", level="B"))
+    result = repr(Grouper(key="A", level="B"))
     expected = "Grouper(key='A', level='B', axis=0, sort=False)"
     assert result == expected
 
@@ -248,9 +257,9 @@ def test_len():
     assert len(grouped) == expected
 
     # issue 11016
-    df = pd.DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
-    assert len(df.groupby(("a"))) == 0
-    assert len(df.groupby(("b"))) == 3
+    df = DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
+    assert len(df.groupby("a")) == 0
+    assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 3
 
 
@@ -368,6 +377,7 @@ def test_attr_wrapper(ts):
     # get attribute
     result = grouped.dtype
     expected = grouped.agg(lambda x: x.dtype)
+    tm.assert_series_equal(result, expected)
 
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
@@ -593,16 +603,24 @@ def test_groupby_multiple_columns(df, op):
 
 def test_as_index_select_column():
     # GH 5764
-    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     result = df.groupby("A", as_index=False)["B"].get_group(1)
-    expected = pd.Series([2, 4], name="B")
+    expected = Series([2, 4], name="B")
     tm.assert_series_equal(result, expected)
 
     result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
-    expected = pd.Series(
-        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    expected = Series(
+        [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_as_index_select_column_sum_empty_df():
+    # GH 35246
+    df = DataFrame(columns=["A", "B", "C"])
+    left = df.groupby(by="A", as_index=False)["B"].sum()
+    assert type(left) is DataFrame
+    assert left.to_dict() == {"A": {}, "B": {}}
 
 
 def test_groupby_as_index_agg(df):
@@ -668,11 +686,14 @@ def test_ops_not_as_index(reduction_func):
     if reduction_func in ("corrwith",):
         pytest.skip("Test not applicable")
 
-    if reduction_func in ("nth", "ngroup", "size",):
+    if reduction_func in ("nth", "ngroup"):
         pytest.skip("Skip until behavior is determined (GH #5755)")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
+    expected = getattr(df.groupby("a"), reduction_func)()
+    if reduction_func == "size":
+        expected = expected.rename("size")
+    expected = expected.reset_index()
 
     g = df.groupby("a", as_index=False)
 
@@ -1172,6 +1193,18 @@ def test_groupby_dtype_inference_empty():
     tm.assert_frame_equal(result, expected, by_blocks=True)
 
 
+def test_groupby_unit64_float_conversion():
+    #  GH: 30859 groupby converts unit64 to floats sometimes
+    df = DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
+    result = df.groupby(["first", "second"])["value"].max()
+    expected = Series(
+        [16148277970000000000],
+        MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_list_infer_array_like(df):
     result = df.groupby(list(df["A"])).mean()
     expected = df.groupby(df["A"]).mean()
@@ -1191,10 +1224,10 @@ def test_groupby_keys_same_size_as_index():
     # GH 11185
     freq = "s"
     index = pd.date_range(
-        start=pd.Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
+        start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
     )
-    df = pd.DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
-    result = df.groupby([pd.Grouper(level=0, freq=freq), "metric"]).mean()
+    df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
+    result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
     expected = df.set_index([df.index, "metric"])
 
     tm.assert_frame_equal(result, expected)
@@ -1203,35 +1236,35 @@ def test_groupby_keys_same_size_as_index():
 def test_groupby_one_row():
     # GH 11741
     msg = r"^'Z'$"
-    df1 = pd.DataFrame(np.random.randn(1, 4), columns=list("ABCD"))
+    df1 = DataFrame(np.random.randn(1, 4), columns=list("ABCD"))
     with pytest.raises(KeyError, match=msg):
         df1.groupby("Z")
-    df2 = pd.DataFrame(np.random.randn(2, 4), columns=list("ABCD"))
+    df2 = DataFrame(np.random.randn(2, 4), columns=list("ABCD"))
     with pytest.raises(KeyError, match=msg):
         df2.groupby("Z")
 
 
 def test_groupby_nat_exclude():
     # GH 6992
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "values": np.random.randn(8),
             "dt": [
                 np.nan,
-                pd.Timestamp("2013-01-01"),
+                Timestamp("2013-01-01"),
                 np.nan,
-                pd.Timestamp("2013-02-01"),
+                Timestamp("2013-02-01"),
                 np.nan,
-                pd.Timestamp("2013-02-01"),
+                Timestamp("2013-02-01"),
                 np.nan,
-                pd.Timestamp("2013-01-01"),
+                Timestamp("2013-01-01"),
             ],
             "str": [np.nan, "a", np.nan, "a", np.nan, "a", np.nan, "b"],
         }
     )
     grouped = df.groupby("dt")
 
-    expected = [pd.Index([1, 7]), pd.Index([3, 5])]
+    expected = [Index([1, 7]), Index([3, 5])]
     keys = sorted(grouped.groups.keys())
     assert len(keys) == 2
     for k, e in zip(keys, expected):
@@ -1244,8 +1277,8 @@ def test_groupby_nat_exclude():
     assert grouped.ngroups == 2
 
     expected = {
-        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.int64),
-        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.int64),
+        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.intp),
+        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.intp),
     }
 
     for k in grouped.indices:
@@ -1272,6 +1305,13 @@ def test_groupby_nat_exclude():
             grouped.get_group(np.nan)
         with pytest.raises(KeyError, match=r"^NaT$"):
             grouped.get_group(pd.NaT)
+
+
+def test_groupby_two_group_keys_all_nan():
+    # GH #36842: Grouping over two group keys shouldn't raise an error
+    df = DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
+    result = df.groupby(["a", "b"]).indices
+    assert result == {}
 
 
 def test_groupby_2d_malformed():
@@ -1430,7 +1470,7 @@ def test_set_group_name(df, grouper):
 
 def test_group_name_available_in_inference_pass():
     # gh-15062
-    df = pd.DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
+    df = DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
 
     names = []
 
@@ -1480,7 +1520,7 @@ def test_groupby_reindex_inside_function():
     ind = date_range(start="2012/1/1", freq="5min", periods=periods)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)
 
-    def agg_before(hour, func, fix=False):
+    def agg_before(func, fix=False):
         """
         Run an aggregate func on the subset of data.
         """
@@ -1495,13 +1535,9 @@ def test_groupby_reindex_inside_function():
 
         return _func
 
-    def afunc(data):
-        d = data.select(lambda x: x.hour < 11).dropna()
-        return np.max(d)
-
     grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
-    closure_bad = grouped.agg({"high": agg_before(11, np.max)})
-    closure_good = grouped.agg({"high": agg_before(11, np.max, True)})
+    closure_bad = grouped.agg({"high": agg_before(np.max)})
+    closure_good = grouped.agg({"high": agg_before(np.max, True)})
 
     tm.assert_frame_equal(closure_bad, closure_good)
 
@@ -1579,7 +1615,7 @@ def test_groupby_multiindex_not_lexsorted():
 
 def test_index_label_overlaps_location():
     # checking we don't have any label/location confusion in the
-    # the wake of GH5375
+    # wake of GH5375
     df = DataFrame(list("ABCDE"), index=[2, 0, 2, 1, 1])
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)
@@ -1704,7 +1740,7 @@ def test_group_shift_with_fill_value():
 
 def test_group_shift_lose_timezone():
     # GH 30134
-    now_dt = pd.Timestamp.utcnow()
+    now_dt = Timestamp.utcnow()
     df = DataFrame({"a": [1, 1], "date": now_dt})
     result = df.groupby("a").shift(0).iloc[0]
     expected = Series({"date": now_dt}, name=result.name)
@@ -1713,7 +1749,7 @@ def test_group_shift_lose_timezone():
 
 def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
@@ -1742,7 +1778,7 @@ def test_empty_dataframe_groupby():
 
 def test_tuple_as_grouping():
     # https://github.com/pandas-dev/pandas/issues/18314
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             ("a", "b"): [1, 1, 1, 1],
             "a": [2, 2, 2, 2],
@@ -1755,30 +1791,28 @@ def test_tuple_as_grouping():
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
-    expected = pd.Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    expected = Series([4], name="c", index=Index([1], name=("a", "b")))
     tm.assert_series_equal(result, expected)
 
 
 def test_tuple_correct_keyerror():
     # https://github.com/pandas-dev/pandas/issues/18798
-    df = pd.DataFrame(
-        1, index=range(3), columns=pd.MultiIndex.from_product([[1, 2], [3, 4]])
-    )
+    df = DataFrame(1, index=range(3), columns=MultiIndex.from_product([[1, 2], [3, 4]]))
     with pytest.raises(KeyError, match=r"^\(7, 8\)$"):
         df.groupby((7, 8)).mean()
 
 
 def test_groupby_agg_ohlc_non_first():
     # GH 21716
-    df = pd.DataFrame(
+    df = DataFrame(
         [[1], [1]],
         columns=["foo"],
         index=pd.date_range("2018-01-01", periods=2, freq="D"),
     )
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]],
-        columns=pd.MultiIndex.from_tuples(
+        columns=MultiIndex.from_tuples(
             (
                 ("foo", "sum", "foo"),
                 ("foo", "ohlc", "open"),
@@ -1790,7 +1824,7 @@ def test_groupby_agg_ohlc_non_first():
         index=pd.date_range("2018-01-01", periods=2, freq="D"),
     )
 
-    result = df.groupby(pd.Grouper(freq="D")).agg(["sum", "ohlc"])
+    result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
 
     tm.assert_frame_equal(result, expected)
 
@@ -1803,11 +1837,11 @@ def test_groupby_multiindex_nat():
         (datetime(2012, 1, 2), "b"),
         (datetime(2012, 1, 3), "a"),
     ]
-    mi = pd.MultiIndex.from_tuples(values, names=["date", None])
-    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+    mi = MultiIndex.from_tuples(values, names=["date", None])
+    ser = Series([3, 2, 2.5, 4], index=mi)
 
     result = ser.groupby(level=1).mean()
-    expected = pd.Series([3.0, 2.5], index=["a", "b"])
+    expected = Series([3.0, 2.5], index=["a", "b"])
     tm.assert_series_equal(result, expected)
 
 
@@ -1824,14 +1858,14 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     # GH 25704
     index_array = [["x", "x"], ["a", "b"], ["k", "k"]]
     index_names = ["first", "second", "third"]
-    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
-    s = pd.Series(data=[1, 2], index=ri)
+    ri = MultiIndex.from_arrays(index_array, names=index_names)
+    s = Series(data=[1, 2], index=ri)
     result = s.groupby(["first", "third"]).sum()
 
     index_array = [["x"], ["k"]]
     index_names = ["first", "third"]
-    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
-    expected = pd.Series([3], index=ei)
+    ei = MultiIndex.from_arrays(index_array, names=index_names)
+    expected = Series([3], index=ei)
 
     tm.assert_series_equal(result, expected)
 
@@ -1839,13 +1873,13 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
 def test_groupby_groups_in_BaseGrouper():
     # GH 26326
     # Test if DataFrame grouped with a pandas.Grouper has correct groups
-    mi = pd.MultiIndex.from_product([["A", "B"], ["C", "D"]], names=["alpha", "beta"])
-    df = pd.DataFrame({"foo": [1, 2, 1, 2], "bar": [1, 2, 3, 4]}, index=mi)
-    result = df.groupby([pd.Grouper(level="alpha"), "beta"])
+    mi = MultiIndex.from_product([["A", "B"], ["C", "D"]], names=["alpha", "beta"])
+    df = DataFrame({"foo": [1, 2, 1, 2], "bar": [1, 2, 3, 4]}, index=mi)
+    result = df.groupby([Grouper(level="alpha"), "beta"])
     expected = df.groupby(["alpha", "beta"])
     assert result.groups == expected.groups
 
-    result = df.groupby(["beta", pd.Grouper(level="alpha")])
+    result = df.groupby(["beta", Grouper(level="alpha")])
     expected = df.groupby(["beta", "alpha"])
     assert result.groups == expected.groups
 
@@ -1853,7 +1887,7 @@ def test_groupby_groups_in_BaseGrouper():
 @pytest.mark.parametrize("group_name", ["x", ["x"]])
 def test_groupby_axis_1(group_name):
     # GH 27614
-    df = pd.DataFrame(
+    df = DataFrame(
         np.arange(12).reshape(3, 4), index=[0, 1, 0], columns=[10, 20, 10, 20]
     )
     df.index.name = "y"
@@ -1865,8 +1899,8 @@ def test_groupby_axis_1(group_name):
 
     # test on MI column
     iterables = [["bar", "baz", "foo"], ["one", "two"]]
-    mi = pd.MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
-    df = pd.DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
+    mi = MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
+    df = DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
     results = df.groupby(group_name, axis=1).sum()
     expected = df.T.groupby(group_name).sum().T
     tm.assert_frame_equal(results, expected)
@@ -1938,37 +1972,30 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
-
-
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
-    df = pd.DataFrame({"g": [None], "x": 1})
+    df = DataFrame({"g": [None], "x": 1})
     actual = df.groupby("g")["x"].transform("sum")
-    expected = pd.Series([np.nan], name="x")
+    expected = Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
 
 
 def test_groupby_duplicate_index():
     # GH#29189 the groupby call here used to raise
-    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
     gb = ser.groupby(level=0)
 
     result = gb.mean()
-    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
+    expected = Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_bool_aggs_dup_column_labels(bool_agg_func):
     # 21668
-    df = pd.DataFrame([[True, True]], columns=["a", "a"])
+    df = DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
     result = getattr(grp_by, bool_agg_func)()
 
@@ -1977,13 +2004,14 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 
 @pytest.mark.parametrize(
-    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+    "idx", [Index(["a", "a"]), MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
 
-    df = pd.DataFrame([[1, 1]], columns=idx)
+    df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
     args = []
@@ -1992,7 +2020,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
     elif groupby_func == "corrwith":
         args.append(df)
     elif groupby_func == "tshift":
-        df.index = [pd.Timestamp("today")]
+        df.index = [Timestamp("today")]
         args.extend([1, "D"])
 
     result = getattr(grp_by, groupby_func)(*args)
@@ -2003,7 +2031,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
 def test_groupby_crash_on_nunique(axis):
     # Fix following 30253
-    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+    df = DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
 
     axis_number = df._get_axis_number(axis)
     if not axis_number:
@@ -2011,7 +2039,7 @@ def test_groupby_crash_on_nunique(axis):
 
     result = df.groupby(axis=axis_number, level=0).nunique()
 
-    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    expected = DataFrame({"A": [1, 2], "D": [1, 1]})
     if not axis_number:
         expected = expected.T
 
@@ -2020,7 +2048,7 @@ def test_groupby_crash_on_nunique(axis):
 
 def test_groupby_list_level():
     # GH 9790
-    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    expected = DataFrame(np.arange(0, 9).reshape(3, 3))
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
 
@@ -2034,7 +2062,7 @@ def test_groupby_list_level():
 )
 def test_groups_repr_truncates(max_seq_items, expected):
     # GH 1135
-    df = pd.DataFrame(np.random.randn(5, 1))
+    df = DataFrame(np.random.randn(5, 1))
     df["a"] = df.index
 
     with pd.option_context("display.max_seq_items", max_seq_items):
@@ -2043,3 +2071,97 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_group_on_two_row_multiindex_returns_one_tuple_key():
+    # GH 18451
+    df = DataFrame([{"a": 1, "b": 2, "c": 99}, {"a": 1, "b": 2, "c": 88}])
+    df = df.set_index(["a", "b"])
+
+    grp = df.groupby(["a", "b"])
+    result = grp.indices
+    expected = {(1, 2): np.array([0, 1], dtype=np.int64)}
+
+    assert len(result) == 1
+    key = (1, 2)
+    assert (result[key] == expected[key]).all()
+
+
+@pytest.mark.parametrize(
+    "klass, attr, value",
+    [
+        (DataFrame, "level", "a"),
+        (DataFrame, "as_index", False),
+        (DataFrame, "sort", False),
+        (DataFrame, "group_keys", False),
+        (DataFrame, "squeeze", True),
+        (DataFrame, "observed", True),
+        (DataFrame, "dropna", False),
+        pytest.param(
+            Series,
+            "axis",
+            1,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Attribute currently not passed on to series"
+            ),
+        ),
+        (Series, "level", "a"),
+        (Series, "as_index", False),
+        (Series, "sort", False),
+        (Series, "group_keys", False),
+        (Series, "squeeze", True),
+        (Series, "observed", True),
+        (Series, "dropna", False),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
+)
+def test_subsetting_columns_keeps_attrs(klass, attr, value):
+    # GH 9959 - When subsetting columns, don't drop attributes
+    df = DataFrame({"a": [1], "b": [2], "c": [3]})
+    if attr != "axis":
+        df = df.set_index("a")
+
+    expected = df.groupby("a", **{attr: value})
+    result = expected[["b"]] if klass is DataFrame else expected["b"]
+    assert getattr(result, attr) == getattr(expected, attr)
+
+
+def test_subsetting_columns_axis_1():
+    # GH 37725
+    g = DataFrame({"A": [1], "B": [2], "C": [3]}).groupby([0, 0, 1], axis=1)
+    match = "Cannot subset columns when using axis=1"
+    with pytest.raises(ValueError, match=match):
+        g[["A", "B"]].sum()
+
+
+@pytest.mark.parametrize("func", ["sum", "any", "shift"])
+def test_groupby_column_index_name_lost(func):
+    # GH: 29764 groupby loses index sometimes
+    expected = Index(["a"], name="idx")
+    df = DataFrame([[1]], columns=expected)
+    df_grouped = df.groupby([1])
+    result = getattr(df_grouped, func)().columns
+    tm.assert_index_equal(result, expected)
+
+
+def test_groupby_duplicate_columns():
+    # GH: 31735
+    df = DataFrame(
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_series_with_tuple_name():
+    # GH 37755
+    ser = Series([1, 2, 3, 4], index=[1, 1, 2, 2], name=("a", "a"))
+    ser.index.name = ("b", "b")
+    result = ser.groupby(level=0).last()
+    expected = Series([2, 4], index=[1, 2], name=("a", "a"))
+    expected.index.name = ("b", "b")
+    tm.assert_series_equal(result, expected)
