@@ -59,7 +59,7 @@ test_cases = [
         np.dtype("float"),
         "Int64",
         {
-            ("convert_integer", False): "Float64",
+            ("convert_integer", False, "convert_floating", True): "Float64",
             ("convert_integer", False, "convert_floating", False): np.dtype("float"),
         },
     ),

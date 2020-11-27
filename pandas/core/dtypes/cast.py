@@ -1278,7 +1278,9 @@ def convert_dtypes(
         new dtype
     """
     is_extension = is_extension_array_dtype(input_array.dtype)
-    if (convert_string or convert_integer or convert_boolean) and not is_extension:
+    if (
+        convert_string or convert_integer or convert_boolean or convert_floating
+    ) and not is_extension:
         try:
             inferred_dtype = lib.infer_dtype(input_array)
         except ValueError:
@@ -1310,9 +1312,14 @@ def convert_dtypes(
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
                 input_array.dtype
             ):
-                arr = input_array[notna(input_array)]
-                if (arr.astype(int) == arr).all():
-                    inferred_dtype = "Int64"
+                # if we could also convert to integer, check if all floats
+                # are actually integers
+                if convert_integer:
+                    arr = input_array[notna(input_array)]
+                    if (arr.astype(int) == arr).all():
+                        inferred_dtype = "Int64"
+                    else:
+                        inferred_dtype = "Float64"
                 else:
                     inferred_dtype = "Float64"
         else:
