@@ -627,7 +627,6 @@ MultiIndex
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 - Bug in :meth:`DataFrame.combine_first` when used with :class:`MultiIndex` containing string and ``NaN`` values raises ``TypeError`` (:issue:`36562`)
 - Bug in :meth:`MultiIndex.drop` dropped ``NaN`` values when non existing key was given as input (:issue:`18853`)
-- Bug in :meth:`MultiIndex.intersection` returning duplicates when at least one of the indexes had duplicates (:issue:`36915`)
 
 I/O
 ^^^
