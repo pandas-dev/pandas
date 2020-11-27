@@ -3484,6 +3484,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if axis == 1:
             return self[key]
 
+        self._consolidate_inplace()
+
         index = self.index
         if isinstance(index, MultiIndex):
             loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
@@ -6011,6 +6013,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
 
+        self._consolidate_inplace()
+
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
@@ -6448,6 +6452,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
+
+        self._consolidate_inplace()
 
         if value is None:
             # passing a single value that is scalar like
