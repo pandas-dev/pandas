@@ -33,6 +33,14 @@ Bug fixes
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_115.other:
+
+Other
+~~~~~
+- Only set ``-Werror`` as a compiler flag in the CI jobs (:issue:`33315`, :issue:`33314`)
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_115.contributors:
 
 Contributors
