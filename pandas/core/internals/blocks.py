@@ -861,7 +861,15 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
-        src_len = len(src_list) - 1
+        # Exclude anything that we know we won't contain
+        pairs = [
+            (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
+        ]
+        if not len(pairs):
+            # shortcut, nothing to replace
+            return [self] if inplace else [self.copy()]
+
+        src_len = len(pairs) - 1
 
         def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
             """
@@ -874,15 +882,19 @@ class Block(PandasObject):
             s = maybe_box_datetimelike(s)
             return compare_or_regex_search(self.values, s, regex, mask)
 
-        # Calculate the mask once, prior to the call of comp
-        # in order to avoid repeating the same computations
-        mask = ~isna(self.values)
+        if self.is_object:
+            # Calculate the mask once, prior to the call of comp
+            # in order to avoid repeating the same computations
+            mask = ~isna(self.values)
+            masks = [comp(s[0], mask, regex) for s in pairs]
+        else:
+            # GH#38086 faster if we know we dont need to check for regex
+            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
 
-        masks = [comp(s, mask, regex) for s in src_list]
         masks = [_extract_bool_array(x) for x in masks]
 
         rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(zip(src_list, dest_list)):
+        for i, (src, dest) in enumerate(pairs):
             new_rb: List["Block"] = []
             for blk in rb:
                 m = masks[i]
@@ -1037,7 +1049,7 @@ class Block(PandasObject):
         if lib.is_scalar(value) and isinstance(values, np.ndarray):
             value = convert_scalar_for_putitemlike(value, values.dtype)
 
-        if self.is_extension or self.is_object:
+        if self.is_extension or (self.is_object and not lib.is_scalar(value)):
             # GH#19266 using np.putmask gives unexpected results with listlike value
             if is_list_like(value) and len(value) == len(values):
                 values[mask] = value[mask]
