@@ -24,6 +24,7 @@ from pandas import (
     Period,
     RangeIndex,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -1318,6 +1319,21 @@ class TestSeriesConstructors:
         assert s.dtype == "timedelta64[ns]"
         s = Series([pd.NaT, np.nan, "1 Day"])
         assert s.dtype == "timedelta64[ns]"
+
+    @pytest.mark.parametrize(
+        "value,dtype",
+        [
+            (Timedelta(1), "timedelta64[ns]"),
+            (Timedelta(1, tz="Pacific/Eastern"), "timedelta64[ns]"),
+            (Timestamp(1), "datetime64[ns]"),
+        ],
+    )
+    def test_constructor_timelike_nanoseconds(self, value, dtype):
+        # GH38032
+        ser = Series(value, index=[0], dtype=dtype)
+        result = ser[0]
+        expected = value
+        assert result == expected
 
     # GH 16406
     def test_constructor_mixed_tz(self):

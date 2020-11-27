@@ -1677,7 +1677,9 @@ def cast_scalar_to_array(
             # GH36541: filling datetime-like array directly with pd.NaT
             # raises ValueError: cannot convert float NaN to integer
             elif is_valid_nat_for_dtype(value, dtype):
-                value = np.datetime64("NaT")
+                value = (
+                    np.datetime64("NaT") if dtype.kind == "M" else np.timedelta64("NaT")
+                )
 
     values = np.empty(shape, dtype=dtype)
     values.fill(value)
