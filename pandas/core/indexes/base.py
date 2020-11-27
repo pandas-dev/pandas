@@ -4955,7 +4955,8 @@ class Index(IndexOpsMixin, PandasObject):
             return no_matches
         else:
             # This is for get_indexer_non_unique
-            return no_matches, no_matches
+            missing = np.arange(len(target), dtype=np.intp)
+            return no_matches, missing
 
     @property
     def _index_as_unique(self):
