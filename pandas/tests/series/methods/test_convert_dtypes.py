@@ -94,6 +94,12 @@ test_cases = [
         {("convert_integer", False): np.dtype("i1")},
     ),
     (
+        [1.2, 1.3],
+        np.dtype("float32"),
+        "Float32",
+        {("convert_floating", False): np.dtype("float32")},
+    ),
+    (
         [1, 2.0],
         object,
         "Int64",

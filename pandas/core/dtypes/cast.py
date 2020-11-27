@@ -1315,6 +1315,11 @@ def convert_dtypes(
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
                 input_array.dtype
             ):
+                from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+
+                inferred_float_dtype = FLOAT_STR_TO_DTYPE.get(
+                    input_array.dtype.name, "Float64"
+                )
                 # if we could also convert to integer, check if all floats
                 # are actually integers
                 if convert_integer:
@@ -1322,9 +1327,9 @@ def convert_dtypes(
                     if (arr.astype(int) == arr).all():
                         inferred_dtype = "Int64"
                     else:
-                        inferred_dtype = "Float64"
+                        inferred_dtype = inferred_float_dtype
                 else:
-                    inferred_dtype = "Float64"
+                    inferred_dtype = inferred_float_dtype
         else:
             if is_float_dtype(inferred_dtype):
                 inferred_dtype = input_array.dtype
