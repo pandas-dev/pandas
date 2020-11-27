@@ -3598,13 +3598,12 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        return self._intersection(other, sort=sort).rename(result_names)
+        return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
         other, result_names = self._convert_can_do_setop(other)
@@ -3723,11 +3722,12 @@ class MultiIndex(Index):
                     levels=[[]] * self.nlevels,
                     codes=[[]] * self.nlevels,
                     verify_integrity=False,
+                    names=self.names,
                 )
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
-                    other = MultiIndex.from_tuples(other)
+                    other = MultiIndex.from_tuples(other, names=self.names)
                 except TypeError as err:
                     raise TypeError(msg) from err
         else:
