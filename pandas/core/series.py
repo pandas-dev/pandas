@@ -82,7 +82,11 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
+from pandas.core.indexers import (
+    deprecate_ndim_indexing,
+    is_list_like_indexer,
+    unpack_1tuple,
+)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
@@ -922,6 +926,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if takeable:
             return self._values[label]
 
+        if isinstance(self.index, MultiIndex) and not is_list_like_indexer(label):
+            label = (label,)
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
         return self.index._get_values_for_loc(self, loc, label)
