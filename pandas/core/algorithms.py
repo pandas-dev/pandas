@@ -1804,7 +1804,7 @@ def take_2d_multi(arr, indexer, fill_value=np.nan):
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None):
+def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1853,7 +1853,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 
     if (
         isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr)
+        and is_integer_dtype(arr.dtype)
         and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be
