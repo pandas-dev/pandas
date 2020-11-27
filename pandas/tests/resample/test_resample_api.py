@@ -658,11 +658,15 @@ def test_backward_resample():
     tm.assert_series_equal(res, expected)
 
     # test datetime origin with backward resample
-    res = ts.resample(
-        "17min",
-        origin="2000-10-02 00:40:00",
-        backward=True,
-    ).sum().astype("int64")
+    res = (
+        ts.resample(
+            "17min",
+            origin="2000-10-02 00:40:00",
+            backward=True,
+        )
+        .sum()
+        .astype("int64")
+    )
     data = [0, 9, 36, 39, 24]
     expected = Series(
         data,
@@ -675,11 +679,15 @@ def test_backward_resample():
 
     tm.assert_series_equal(res, expected)
 
-    res = ts.resample(
-        "17min",
-        origin="2000-10-02 01:05:00",
-        backward=True,
-    ).sum().astype("int64")
+    res = (
+        ts.resample(
+            "17min",
+            origin="2000-10-02 01:05:00",
+            backward=True,
+        )
+        .sum()
+        .astype("int64")
+    )
     data = [3, 15, 45, 45]
     expected = Series(
         data,
