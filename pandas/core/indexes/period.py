@@ -625,8 +625,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
         other = ensure_index(other)
+
+        res_name = get_op_result_name(self, other)
 
         i8self = Int64Index._simple_new(self.asi8)
         i8other = Int64Index._simple_new(other.asi8)
@@ -639,12 +640,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        elif is_object_dtype(other.dtype):
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+
+        if is_object_dtype(other.dtype):
             return self.astype("O").intersection(other, sort=sort)
 
         elif not is_dtype_equal(self.dtype, other.dtype):

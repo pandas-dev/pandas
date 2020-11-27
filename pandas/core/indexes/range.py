@@ -504,12 +504,19 @@ class RangeIndex(Int64Index):
         intersection : Index
         """
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+
         if not isinstance(other, RangeIndex):
-            return super().intersection(other, sort=sort)
+            result = super()._intersection(other, sort=sort)
+            return self._wrap_setop_result(other, result)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)

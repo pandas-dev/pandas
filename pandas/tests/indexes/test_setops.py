@@ -378,6 +378,20 @@ class TestSetOps:
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
+    def test_intersection_name_retention_with_nameless(self, index):
+        if isinstance(index, MultiIndex):
+            index = index.rename(list(range(index.nlevels)))
+        else:
+            index = index.rename("foo")
+
+        other = np.asarray(index)
+
+        result = index.intersection(other)
+        assert result.name == index.name
+
+        result = index.intersection(other[:0])
+        assert result.name == index.name
+
     def test_difference_preserves_type_empty(self, index, sort):
         # GH#20040
         # If taking difference of a set and itself, it
