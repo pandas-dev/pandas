@@ -27,9 +27,9 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
         #  has one
-        tdi = pd.timedelta_range("1 second", periods=10 ** 7, freq="1s")
+        tdi = timedelta_range("1 second", periods=10 ** 7, freq="1s")
 
-        result = pd.TimedeltaIndex(tdi, freq="infer")
+        result = TimedeltaIndex(tdi, freq="infer")
         assert result.freq == tdi.freq
 
         # check that inferred_freq was not called by checking that the
@@ -40,7 +40,7 @@ class TestTimedeltaIndex:
         # GH#23539
         # fast-path for invalidating a frequency if the passed data already
         #  has one and it does not match the `freq` input
-        tdi = pd.timedelta_range("1 second", periods=100, freq="1s")
+        tdi = timedelta_range("1 second", periods=100, freq="1s")
 
         msg = (
             "Inferred frequency .* from passed values does "
@@ -89,7 +89,7 @@ class TestTimedeltaIndex:
 
         # NaNs get converted to NaT
         tdi = TimedeltaIndex([2.0, np.nan])
-        expected = TimedeltaIndex([pd.Timedelta(nanoseconds=2), pd.NaT])
+        expected = TimedeltaIndex([Timedelta(nanoseconds=2), pd.NaT])
         tm.assert_index_equal(tdi, expected)
 
     def test_float64_unit_conversion(self):
@@ -99,13 +99,13 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(tdi, expected)
 
     def test_construction_base_constructor(self):
-        arr = [pd.Timedelta("1 days"), pd.NaT, pd.Timedelta("3 days")]
-        tm.assert_index_equal(pd.Index(arr), pd.TimedeltaIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.TimedeltaIndex(np.array(arr)))
+        arr = [Timedelta("1 days"), pd.NaT, Timedelta("3 days")]
+        tm.assert_index_equal(pd.Index(arr), TimedeltaIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)), TimedeltaIndex(np.array(arr)))
 
-        arr = [np.nan, pd.NaT, pd.Timedelta("1 days")]
-        tm.assert_index_equal(pd.Index(arr), pd.TimedeltaIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.TimedeltaIndex(np.array(arr)))
+        arr = [np.nan, pd.NaT, Timedelta("1 days")]
+        tm.assert_index_equal(pd.Index(arr), TimedeltaIndex(arr))
+        tm.assert_index_equal(pd.Index(np.array(arr)), TimedeltaIndex(np.array(arr)))
 
     def test_constructor(self):
         expected = TimedeltaIndex(
@@ -218,7 +218,7 @@ class TestTimedeltaIndex:
 
         msg = "with no precision is not allowed"
         with pytest.raises(ValueError, match=msg):
-            pd.TimedeltaIndex(["2000"], dtype="timedelta64")
+            TimedeltaIndex(["2000"], dtype="timedelta64")
 
         with pytest.raises(ValueError, match=msg):
             pd.Index(["2000"], dtype="timedelta64")
@@ -226,7 +226,7 @@ class TestTimedeltaIndex:
     def test_constructor_wrong_precision_raises(self):
         msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
         with pytest.raises(ValueError, match=msg):
-            pd.TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+            TimedeltaIndex(["2000"], dtype="timedelta64[us]")
 
     def test_explicit_none_freq(self):
         # Explicitly passing freq=None is respected
@@ -238,3 +238,15 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
+
+    def test_from_categorical(self):
+        tdi = timedelta_range(1, periods=5)
+
+        cat = pd.Categorical(tdi)
+
+        result = TimedeltaIndex(cat)
+        tm.assert_index_equal(result, tdi)
+
+        ci = pd.CategoricalIndex(tdi)
+        result = TimedeltaIndex(ci)
+        tm.assert_index_equal(result, tdi)

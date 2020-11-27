@@ -38,7 +38,7 @@ Enhancements
 Optional integer NA support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
 
 .. note::
 
@@ -384,7 +384,7 @@ Other enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`DataFrame.to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.8.0
+  reflect changes from the `pandas-gbq library version 0.8.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
   Adds a ``credentials`` argument, which enables the use of any kind of
   `google-auth credentials
@@ -432,7 +432,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.24.0 includes a number of API breaking changes.
+pandas 0.24.0 includes a number of API breaking changes.
 
 
 .. _whatsnew_0240.api_breaking.deps:
@@ -1217,7 +1217,7 @@ Extension type changes
 
 **Equality and hashability**
 
-Pandas now requires that extension dtypes be hashable (i.e. the respective
+pandas now requires that extension dtypes be hashable (i.e. the respective
 ``ExtensionDtype`` objects; hashability is not a requirement for the values
 of the corresponding ``ExtensionArray``). The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
@@ -1622,7 +1622,7 @@ Timedelta
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype division by ``Timedelta``-like scalar incorrectly returning ``timedelta64[ns]`` dtype instead of ``float64`` dtype (:issue:`20088`, :issue:`22163`)
 - Bug in adding a :class:`Index` with object dtype to a :class:`Series` with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`22390`)
 - Bug in multiplying a :class:`Series` with numeric dtype against a ``timedelta`` object (:issue:`22390`)
-- Bug in :class:`Series` with numeric dtype when adding or subtracting an an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
+- Bug in :class:`Series` with numeric dtype when adding or subtracting an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
@@ -1868,7 +1868,7 @@ Reshaping
 - :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
 - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
-- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
@@ -1925,7 +1925,7 @@ Build changes
 Other
 ^^^^^
 
-- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before pandas. (:issue:`24113`)
 
 
 .. _whatsnew_0.24.0.contributors:

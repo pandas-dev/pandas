@@ -14,8 +14,7 @@ import pandas._testing as tm
         (["Int8", "Int16"], "Int16"),
         (["UInt8", "Int8"], "Int16"),
         (["Int32", "UInt32"], "Int64"),
-        # this still gives object (awaiting float extension dtype)
-        (["Int64", "UInt64"], "object"),
+        (["Int64", "UInt64"], "Float64"),
         (["Int64", "boolean"], "Int64"),
         (["UInt8", "boolean"], "UInt8"),
     ],
@@ -47,8 +46,7 @@ def test_concat_series(to_concat_dtypes, result_dtype):
         (["Int8", "int16"], "Int16"),
         (["UInt8", "int8"], "Int16"),
         (["Int32", "uint32"], "Int64"),
-        # this still gives object (awaiting float extension dtype)
-        (["Int64", "uint64"], "object"),
+        (["Int64", "uint64"], "Float64"),
         (["Int64", "bool"], "Int64"),
         (["UInt8", "bool"], "UInt8"),
     ],
