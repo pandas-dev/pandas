@@ -1656,6 +1656,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 codes = codes[::-1]
                 uniques = uniques[::-1]
             return codes, uniques
+        # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(na_sentinel=na_sentinel)
 
 
