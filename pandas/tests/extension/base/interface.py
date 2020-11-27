@@ -35,23 +35,24 @@ class BaseInterfaceTests(BaseExtensionTests):
         # the settled on rule is: `nan_like in arr` is True if nan_like is
         # arr.dtype.na_value and arr.isna().any() is True. Else the check returns False.
 
-        for this_data in [data, data_missing]:
-            scalar = this_data[~this_data.isna()][0]
+        na_value = data.dtype.na_value
+        # ensure data without missing values
+        data = data[~data.isna()]
 
-            assert scalar in this_data
+        # first elements are non-missing
+        assert data[0] in data
+        assert data_missing[0] in data_missing
 
-            na_value = this_data.dtype.na_value
+        # check the presence of na_value
+        assert na_value in data_missing
+        assert na_value not in data
 
-            if this_data.isna().any():
-                assert na_value in this_data
-            else:
-                assert na_value not in this_data
-
-            # this_data can never contain other nan-likes than na_value
-            for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
-                if na_value_type is na_value:
-                    continue
-                assert na_value_type not in this_data
+        # the data can never contain other nan-likes than na_value
+        for na_value_type in {None, np.nan, pd.NA, pd.NaT}:
+            if na_value_type is na_value:
+                continue
+            assert na_value_type not in data
+            assert na_value_type not in data_missing
 
     def test_memory_usage(self, data):
         s = pd.Series(data)
