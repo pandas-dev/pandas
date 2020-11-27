@@ -124,13 +124,13 @@ class TestMergeOrdered:
         result2 = pd.merge_ordered(left, right, on="T", left_by=["G", "H"])
 
         expected = pd.DataFrame(
-                    {
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                    }
-                )
+            {
+                "G": ["g"] * 3,
+                "H": ["h"] * 3,
+                "T": [1, 2, 3],
+                "E": [np.nan, 1.0, np.nan],
+            }
+        )
 
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
@@ -138,12 +138,12 @@ class TestMergeOrdered:
         result3 = pd.merge_ordered(right, left, on=["T"], right_by=["G", "H"])
 
         expected = pd.DataFrame(
-                    {
-                        "T": [1, 2, 3],
-                        "E": [np.nan, 1.0, np.nan],
-                        "G": ["g"] * 3,
-                        "H": ["h"] * 3,
-                    }
-                )
+            {
+                "T": [1, 2, 3],
+                "E": [np.nan, 1.0, np.nan],
+                "G": ["g"] * 3,
+                "H": ["h"] * 3,
+            }
+        )
 
         tm.assert_frame_equal(result3, expected)
