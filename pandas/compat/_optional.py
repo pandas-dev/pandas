@@ -18,19 +18,31 @@ VERSIONS = {
     "openpyxl": "2.5.7",
     "pandas_gbq": "0.12.0",
     "pyarrow": "0.15.0",
-    "pytables": "3.4.4",
     "pytest": "5.0.1",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
     "scipy": "1.2.0",
     "sqlalchemy": "1.2.8",
-    "tables": "3.4.4",
+    "tables": "3.5.1",
     "tabulate": "0.8.3",
-    "xarray": "0.12.0",
+    "xarray": "0.12.3",
     "xlrd": "1.2.0",
     "xlwt": "1.3.0",
     "xlsxwriter": "1.0.2",
     "numba": "0.46.0",
+}
+
+# A mapping from import name to package name (on PyPI) for packages where
+# these two names are different.
+
+INSTALL_MAPPING = {
+    "bs4": "beautifulsoup4",
+    "bottleneck": "Bottleneck",
+    "lxml.etree": "lxml",
+    "odf": "odfpy",
+    "pandas_gbq": "pandas-gbq",
+    "sqlalchemy": "SQLAlchemy",
+    "jinja2": "Jinja2",
 }
 
 
@@ -82,9 +94,13 @@ def import_optional_dependency(
         is False, or when the package's version is too old and `on_version`
         is ``'warn'``.
     """
+
+    package_name = INSTALL_MAPPING.get(name)
+    install_name = package_name if package_name is not None else name
+
     msg = (
-        f"Missing optional dependency '{name}'. {extra} "
-        f"Use pip or conda to install {name}."
+        f"Missing optional dependency '{install_name}'. {extra} "
+        f"Use pip or conda to install {install_name}."
     )
     try:
         module = importlib.import_module(name)

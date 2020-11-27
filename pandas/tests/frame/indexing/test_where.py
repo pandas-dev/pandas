@@ -399,7 +399,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
-        df = pd.DataFrame(columns=["a"])
+        df = DataFrame(columns=["a"])
         cond = df
         assert (cond.dtypes == object).all()
 
@@ -642,3 +642,14 @@ class TestDataFrameIndexingWhere:
         expected = Series(A, name="A")
 
         tm.assert_series_equal(result, expected)
+
+    def test_where_categorical_filtering(self):
+        # GH#22609 Verify filtering operations on DataFrames with categorical Series
+        df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df["b"].astype("category")
+
+        result = df.where(df["a"] > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)

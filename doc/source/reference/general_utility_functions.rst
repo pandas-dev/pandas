@@ -37,6 +37,7 @@ Exceptions and warnings
 
    errors.AccessorRegistrationWarning
    errors.DtypeWarning
+   errors.DuplicateLabelError
    errors.EmptyDataError
    errors.InvalidIndexError
    errors.MergeError
@@ -121,4 +122,3 @@ Bug report function
    :toctree: api/
 
    show_versions
-

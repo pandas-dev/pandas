@@ -1,17 +1,33 @@
 """ test positional based indexing with iloc """
 
 from datetime import datetime
+import re
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series, concat, date_range, isna
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    concat,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
+
+# We pass through the error message from numpy
+_slice_iloc_msg = re.escape(
+    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+    "and integer or boolean arrays are valid indices"
+)
 
 
 class TestiLoc(Base):
@@ -50,13 +66,13 @@ class TestiLoc2:
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
-        index = pd.Index([1, 2, 1])
-        ser = pd.Series(range(3), index=index)
+        index = Index([1, 2, 1])
+        ser = Series(range(3), index=index)
 
         assert ser.iloc._is_scalar_access((1,))
 
         df = ser.to_frame()
-        assert df.iloc._is_scalar_access((1, 0,))
+        assert df.iloc._is_scalar_access((1, 0))
 
     def test_iloc_exceeds_bounds(self):
 
@@ -195,7 +211,7 @@ class TestiLoc2:
         # GH 21867
         array_with_neg_numbers = np.array([1, 2, -1])
         array_copy = array_with_neg_numbers.copy()
-        df = pd.DataFrame(
+        df = DataFrame(
             {"A": [100, 101, 102], "B": [103, 104, 105], "C": [106, 107, 108]},
             index=[1, 2, 3],
         )
@@ -337,7 +353,7 @@ class TestiLoc2:
         tm.assert_series_equal(s, expected)
 
         s = s_orig.copy()
-        s.iloc[pd.Index([1, 2])] = [-1, -2]
+        s.iloc[Index([1, 2])] = [-1, -2]
         tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
@@ -367,6 +383,20 @@ class TestiLoc2:
         # reversed x 2
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
+        # Same as the "assign back to self" check in test_iloc_setitem_dups
+        #  but on a DataFrame with multiple blocks
+        df = DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
+
+        df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
+        assert len(df._mgr.blocks) == 2
+        expected = df.copy()
+
+        # assign back to self
+        df.iloc[[0, 1], [0, 1]] = df.iloc[[0, 1], [0, 1]]
+
         tm.assert_frame_equal(df, expected)
 
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
@@ -530,15 +560,17 @@ class TestiLoc2:
         # GH 7551
         # list-of-list is set incorrectly in mixed vs. single dtyped frames
         df = DataFrame(
-            dict(A=np.arange(5, dtype="int64"), B=np.arange(5, 10, dtype="int64"))
+            {"A": np.arange(5, dtype="int64"), "B": np.arange(5, 10, dtype="int64")}
         )
         df.iloc[2:4] = [[10, 11], [12, 13]]
-        expected = DataFrame(dict(A=[0, 1, 10, 12, 4], B=[5, 6, 11, 13, 9]))
+        expected = DataFrame({"A": [0, 1, 10, 12, 4], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(dict(A=list("abcde"), B=np.arange(5, 10, dtype="int64")))
+        df = DataFrame(
+            {"A": ["a", "b", "c", "d", "e"], "B": np.arange(5, 10, dtype="int64")}
+        )
         df.iloc[2:4] = [["x", 11], ["y", 13]]
-        expected = DataFrame(dict(A=["a", "b", "x", "y", "e"], B=[5, 6, 11, 13, 9]))
+        expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
@@ -548,7 +580,7 @@ class TestiLoc2:
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -601,7 +633,6 @@ class TestiLoc2:
         # UserWarnings from reindex of a boolean mask
         with catch_warnings(record=True):
             simplefilter("ignore", UserWarning)
-            result = dict()
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
@@ -616,7 +647,10 @@ class TestiLoc2:
                     except (ValueError, IndexingError, NotImplementedError) as e:
                         ans = str(e)
 
-                    key = tuple([idx, method])
+                    key = (
+                        idx,
+                        method,
+                    )
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
@@ -685,7 +719,7 @@ class TestiLoc2:
         # GH24919
         df = DataFrame([[1, 2], [3, 4]])
         result = df.iloc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):
@@ -697,13 +731,13 @@ class TestiLoc2:
     @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
-        cat = pd.Categorical(["A", "B", "C"])
-        df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
+        cat = Categorical(["A", "B", "C"])
+        df = DataFrame({1: cat, 2: [1, 2, 3]})
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
 
-        expected = pd.Categorical(["C", "B", "A"])
+        expected = Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -725,13 +759,146 @@ class TestiLoc2:
         expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH#29521
+        df = DataFrame({"x": Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_getitem_categorical_values(self):
+        # GH#14580
+        # test iloc() on Series with Categorical data
+
+        ser = Series([1, 2, 3]).astype("category")
+
+        # get slice
+        result = ser.iloc[0:2]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = ser.iloc[[0, 1]]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = ser.iloc[[True, False, False]]
+        expected = Series([1]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [None, NaT, np.nan])
+    def test_iloc_setitem_td64_values_cast_na(self, value):
+        # GH#18586
+        series = Series([0, 1, 2], dtype="timedelta64[ns]")
+        series.iloc[0] = value
+        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
+        tm.assert_series_equal(series, expected)
+
+    def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
+        idx = Index([])
+        obj = DataFrame(np.random.randn(len(idx), len(idx)), index=idx, columns=idx)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
+
+    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x.iloc])
+    def test_iloc_getitem_read_only_values(self, indexer):
+        # GH#10043 this is fundamentally a test for iloc, but test loc while
+        #  we're here
+        rw_array = np.eye(10)
+        rw_df = DataFrame(rw_array)
+
+        ro_array = np.eye(10)
+        ro_array.setflags(write=False)
+        ro_df = DataFrame(ro_array)
+
+        tm.assert_frame_equal(indexer(rw_df)[[1, 2, 3]], indexer(ro_df)[[1, 2, 3]])
+        tm.assert_frame_equal(indexer(rw_df)[[1]], indexer(ro_df)[[1]])
+        tm.assert_series_equal(indexer(rw_df)[1], indexer(ro_df)[1])
+        tm.assert_frame_equal(indexer(rw_df)[1:3], indexer(ro_df)[1:3])
+
+    def test_iloc_getitem_readonly_key(self):
+        # GH#17192 iloc with read-only array raising TypeError
+        df = DataFrame({"data": np.ones(100, dtype="float64")})
+        indices = np.array([1, 3, 6])
+        indices.flags.writeable = False
+
+        result = df.iloc[indices]
+        expected = df.loc[[1, 3, 6]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df["data"].iloc[indices]
+        expected = df["data"].loc[[1, 3, 6]]
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_assign_series_to_df_cell(self):
+        # GH 37593
+        df = DataFrame(columns=["a"], index=[0])
+        df.iloc[0, 0] = Series([1, 2, 3])
+        expected = DataFrame({"a": [Series([1, 2, 3])]}, columns=["a"], index=[0])
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("klass", [list, np.array])
+    def test_iloc_setitem_bool_indexer(self, klass):
+        # GH#36741
+        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
+        indexer = klass([True, False, False])
+        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
+        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", [[1], slice(1, 2)])
+    def test_iloc_setitem_pure_position_based(self, indexer):
+        # GH#22046
+        df1 = DataFrame({"a2": [11, 12, 13], "b2": [14, 15, 16]})
+        df2 = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df2.iloc[:, indexer] = df1.iloc[:, [0]]
+        expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
+        tm.assert_frame_equal(df2, expected)
+
+    def test_iloc_setitem_dictionary_value(self):
+        # GH#37728
+        df = DataFrame({"x": [1, 2], "y": [2, 2]})
+        rhs = {"x": 9, "y": 99}
+        df.iloc[1] = rhs
+        expected = DataFrame({"x": [1, 9], "y": [2, 99]})
+        tm.assert_frame_equal(df, expected)
+
+
+class TestILocErrors:
+    # NB: this test should work for _any_ Series we can pass as
+    #  series_with_simple_index
+    def test_iloc_float_raises(self, series_with_simple_index, frame_or_series):
+        # GH#4892
+        # float_indexers should raise exceptions
+        # on appropriate Index types & accessors
+        # this duplicates the code below
+        # but is specifically testing for the error
+        # message
+
+        obj = series_with_simple_index
+        if frame_or_series is DataFrame:
+            obj = obj.to_frame()
+
+        msg = "Cannot index by location index with a non-integer key"
+        with pytest.raises(TypeError, match=msg):
+            obj.iloc[3.0]
+
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
+            obj.iloc[3.0] = 0
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
         # GH#15686, duplicate columns and mixed dtype
-        df1 = pd.DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
-        df2 = pd.DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
-        df = pd.concat([df1, df2], axis=1)
+        df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
+        df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
+        df = concat([df1, df2], axis=1)
         df.iloc[0, 0] = -1
 
         assert df.iloc[0, 0] == -1
@@ -740,16 +907,138 @@ class TestILocSetItemDuplicateColumns:
 
     def test_iloc_setitem_list_duplicate_columns(self):
         # GH#22036 setting with same-sized list
-        df = pd.DataFrame([[0, "str", "str2"]], columns=["a", "b", "b"])
+        df = DataFrame([[0, "str", "str2"]], columns=["a", "b", "b"])
 
         df.iloc[:, 2] = ["str3"]
 
-        expected = pd.DataFrame([[0, "str", "str3"]], columns=["a", "b", "b"])
+        expected = DataFrame([[0, "str", "str3"]], columns=["a", "b", "b"])
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_series_duplicate_columns(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.arange(8, dtype=np.int64).reshape(2, 4), columns=["A", "B", "A", "B"]
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+
+class TestILocCallable:
+    def test_frame_iloc_getitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.iloc[lambda x: [1, 3]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3]])
+
+        res = df.iloc[lambda x: [1, 3], :]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], :])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        # mixture
+        res = df.iloc[[1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[[1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        res = df.iloc[lambda x: [1, 3], 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+    def test_frame_iloc_setitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.copy()
+        res.iloc[lambda x: [1, 3]] = 0
+        exp = df.copy()
+        exp.iloc[[1, 3]] = 0
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], :] = -1
+        exp = df.copy()
+        exp.iloc[[1, 3], :] = -1
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: 0] = 5
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: [0]] = 25
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = 25
+        tm.assert_frame_equal(res, exp)
+
+        # mixture
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: 0] = -3
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = -3
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: [0]] = -5
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = -5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], 0] = 10
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 10
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], [0]] = [-5, -5]
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = [-5, -5]
+        tm.assert_frame_equal(res, exp)
+
+
+class TestILocSeries:
+    def test_iloc(self):
+        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+
+        for i in range(len(ser)):
+            result = ser.iloc[i]
+            exp = ser[ser.index[i]]
+            tm.assert_almost_equal(result, exp)
+
+        # pass a slice
+        result = ser.iloc[slice(1, 3)]
+        expected = ser.loc[2:4]
+        tm.assert_series_equal(result, expected)
+
+        # test slice is a view
+        result[:] = 0
+        assert (ser[1:3] == 0).all()
+
+        # list of integers
+        result = ser.iloc[[0, 2, 3, 4, 5]]
+        expected = ser.reindex(ser.index[[0, 2, 3, 4, 5]])
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_getitem_nonunique(self):
+        ser = Series([0, 1, 2], index=[0, 1, 0])
+        assert ser.iloc[2] == 2
+
+    def test_iloc_setitem_pure_position_based(self):
+        # GH#22046
+        ser1 = Series([1, 2, 3])
+        ser2 = Series([4, 5, 6], index=[1, 0, 2])
+        ser1.iloc[1:3] = ser2.iloc[1:3]
+        expected = Series([1, 5, 6])
+        tm.assert_series_equal(ser1, expected)

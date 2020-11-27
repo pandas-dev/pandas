@@ -65,7 +65,7 @@ class TestGetItem:
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
-        tdi = pd.timedelta_range(0, periods=10)
+        tdi = timedelta_range(0, periods=10)
         with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
@@ -150,16 +150,17 @@ class TestWhere:
 
         i2 = Index([pd.NaT, pd.NaT] + tdi[2:].tolist())
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        msg = "value should be a 'Timedelta', 'NaT', or array of those"
+        with pytest.raises(TypeError, match=msg):
             tdi.where(notna(i2), i2.asi8)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             tdi.where(notna(i2), i2 + pd.Timestamp.now())
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             tdi.where(notna(i2), (i2 + pd.Timestamp.now()).to_period("D"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             # non-matching scalar
             tdi.where(notna(i2), pd.Timestamp.now())
 
@@ -167,7 +168,7 @@ class TestWhere:
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
         cond = np.array([True, False, False])
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Timedelta', 'NaT', or array of those"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             tdi.where(cond, np.datetime64("NaT", "ns"))
