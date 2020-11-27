@@ -157,11 +157,10 @@ class StringMethods(NoNewAttributesMixin):
         array = data.array
         self._array = array
 
+        self._index = self._name = None
         if isinstance(data, ABCSeries):
             self._index = data.index
             self._name = data.name
-        else:
-            self._index = self._name = None
 
         # ._values.categories works for both Series/Index
         self._parent = data._values.categories if self._is_categorical else data

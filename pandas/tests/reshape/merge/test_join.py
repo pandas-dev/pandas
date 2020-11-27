@@ -504,7 +504,7 @@ class TestJoin:
 
         # smoke test
         joined = left.join(right, on="key", sort=False)
-        tm.assert_index_equal(joined.index, Index(list(range(4))))
+        tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -802,4 +802,16 @@ def test_join_inner_multiindex_deterministic_order():
         {"e": [5], "f": [6]},
         index=MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("input_col", "output_cols"), [("b", ["a", "b"]), ("a", ["a_x", "a_y"])]
+)
+def test_join_cross(input_col, output_cols):
+    # GH#5401
+    left = DataFrame({"a": [1, 3]})
+    right = DataFrame({input_col: [3, 4]})
+    result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
+    expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
     tm.assert_frame_equal(result, expected)

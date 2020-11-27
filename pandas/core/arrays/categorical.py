@@ -77,7 +77,7 @@ def _cat_compare_op(op):
                     "Unordered Categoricals can only compare equality or not"
                 )
         if isinstance(other, Categorical):
-            # Two Categoricals can only be be compared if the categories are
+            # Two Categoricals can only be compared if the categories are
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' are the same."
@@ -1956,6 +1956,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         min : the minimum of this `Categorical`
         """
+        nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_min((), kwargs)
         self.check_for_ordered("min")
 
@@ -1992,6 +1993,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         max : the maximum of this `Categorical`
         """
+        nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_max((), kwargs)
         self.check_for_ordered("max")
 
