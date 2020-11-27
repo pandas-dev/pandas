@@ -1785,3 +1785,16 @@ def test_resample_calendar_day_with_dst(
         1.0, pd.date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "first", "last"])
+def test_resample_aggregate_functions_min_count(func):
+    # GH#37768
+    index = date_range(start="2020", freq="M", periods=3)
+    ser = Series([1, np.nan, np.nan], index)
+    result = getattr(ser.resample("Q"), func)(min_count=2)
+    expected = Series(
+        [np.nan],
+        index=DatetimeIndex(["2020-03-31"], dtype="datetime64[ns]", freq="Q-DEC"),
+    )
+    tm.assert_series_equal(result, expected)

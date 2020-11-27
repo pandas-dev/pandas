@@ -201,16 +201,14 @@ class TestSelectDtypes:
     def test_select_dtypes_duplicate_columns(self):
         # GH20839
         df = DataFrame(
-            dict(
-                [
-                    ("a", list("abc")),
-                    ("b", list(range(1, 4))),
-                    ("c", np.arange(3, 6).astype("u1")),
-                    ("d", np.arange(4.0, 7.0, dtype="float64")),
-                    ("e", [True, False, True]),
-                    ("f", pd.date_range("now", periods=3).values),
-                ]
-            )
+            {
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
+                "c": np.arange(3, 6).astype("u1"),
+                "d": np.arange(4.0, 7.0, dtype="float64"),
+                "e": [True, False, True],
+                "f": pd.date_range("now", periods=3).values,
+            }
         )
         df.columns = ["a", "a", "b", "b", "b", "c"]
 
@@ -268,10 +266,10 @@ class TestSelectDtypes:
     def test_select_dtypes_datetime_with_tz(self):
 
         df2 = DataFrame(
-            dict(
-                A=Timestamp("20130102", tz="US/Eastern"),
-                B=Timestamp("20130603", tz="CET"),
-            ),
+            {
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+            },
             index=range(5),
         )
         df3 = pd.concat([df2.A.to_frame(), df2.B.to_frame()], axis=1)

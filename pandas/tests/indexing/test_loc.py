@@ -183,17 +183,26 @@ class TestLoc2:
             }
         ).set_index("me")
 
-        indexer = tuple(["r", ["bar", "bar2"]])
+        indexer = (
+            "r",
+            ["bar", "bar2"],
+        )
         df = df_orig.copy()
         df.loc[indexer] *= 2.0
         tm.assert_series_equal(df.loc[indexer], 2.0 * df_orig.loc[indexer])
 
-        indexer = tuple(["r", "bar"])
+        indexer = (
+            "r",
+            "bar",
+        )
         df = df_orig.copy()
         df.loc[indexer] *= 2.0
         assert df.loc[indexer] == 2.0 * df_orig.loc[indexer]
 
-        indexer = tuple(["t", ["bar", "bar2"]])
+        indexer = (
+            "t",
+            ["bar", "bar2"],
+        )
         df = df_orig.copy()
         df.loc[indexer] *= 2.0
         tm.assert_frame_equal(df.loc[indexer], 2.0 * df_orig.loc[indexer])
@@ -563,7 +572,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # setting issue
         df = DataFrame(index=[3, 5, 4], columns=["A"])
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame(dict(A=Series([1, 2, 3], index=[4, 3, 5]))).reindex(
+        expected = DataFrame({"A": Series([1, 2, 3], index=[4, 3, 5])}).reindex(
             index=[3, 5, 4]
         )
         tm.assert_frame_equal(df, expected)
@@ -585,7 +594,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[keys2, "B"] = val2
 
         expected = DataFrame(
-            dict(A=Series(val1, index=keys1), B=Series(val2, index=keys2))
+            {"A": Series(val1, index=keys1), "B": Series(val2, index=keys2)}
         ).reindex(index=index)
         tm.assert_frame_equal(df, expected)
 
