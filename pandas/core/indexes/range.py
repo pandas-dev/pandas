@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List
+from typing import Any, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -461,6 +461,16 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
+    def factorize(
+        self, sort: bool = False, na_sentinel: Optional[int] = -1
+    ) -> Tuple[np.ndarray, "RangeIndex"]:
+        codes = np.arange(len(self), dtype=np.intp)
+        uniques = self
+        if sort and self.step < 0:
+            codes = codes[::-1]
+            uniques = uniques[::-1]
+        return codes, uniques
+
     def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
@@ -660,13 +670,17 @@ class RangeIndex(Int64Index):
         if not isinstance(overlap, RangeIndex):
             # We wont end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
+        if overlap.step != first.step:
+            # In some cases we might be able to get a RangeIndex back,
+            #  but not worth the effort.
+            return super().difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection
             new_rng = range(overlap[-1] + first.step, first.stop, first.step)
-        elif overlap[-1] == first.stop:
+        elif overlap[-1] == first[-1]:
             # The difference is everything before the intersection
-            new_rng = range(first.start, overlap[0] - first.step, first.step)
+            new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
             return super().difference(other, sort=sort)
