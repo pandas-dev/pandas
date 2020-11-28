@@ -571,8 +571,8 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-@pytest.mark.parametrize("fill_value", [None, np.nan, NaT, pd.NA])
-def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, fill_value):
+def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fixture):
+    fill_value = nulls_fixture
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     if is_integer_dtype(dtype) and fill_value is not NaT:

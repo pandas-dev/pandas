@@ -115,7 +115,8 @@ class NumericIndex(Index):
 
     def _validate_fill_value(self, value):
         """
-        Convert value to be insertable to ndarray.
+        Check if the value can be inserted into our array without casting,
+        and convert it to an appropriate native type if necessary.
         """
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object

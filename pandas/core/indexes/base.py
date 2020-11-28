@@ -4171,8 +4171,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _validate_fill_value(self, value):
         """
-        Check if the value can be inserted into our array, and convert
-        it to an appropriate native type if necessary.
+        Check if the value can be inserted into our array without casting,
+        and convert it to an appropriate native type if necessary.
         """
         return value
 
