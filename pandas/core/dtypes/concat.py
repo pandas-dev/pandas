@@ -7,10 +7,7 @@ import numpy as np
 
 from pandas._typing import ArrayLike, DtypeObj
 
-from pandas.core.dtypes.cast import (
-    convert_dtypes,
-    find_common_type
-)
+from pandas.core.dtypes.cast import convert_dtypes, find_common_type
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
