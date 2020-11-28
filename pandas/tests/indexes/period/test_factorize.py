@@ -43,5 +43,5 @@ class TestFactorize:
         expected_labels = np.array([0, 1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(labels, expected_labels)
 
-        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=np.complex64)
+        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)

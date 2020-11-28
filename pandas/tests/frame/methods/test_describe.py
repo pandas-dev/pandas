@@ -117,7 +117,7 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_categorical_column(self):
         # GH#26397
-        # Ensure the index of an an empty categorical DataFrame column
+        # Ensure the index of an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
         df = DataFrame({"empty_col": Categorical([])})
         result = df.describe()
