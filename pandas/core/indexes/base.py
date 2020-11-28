@@ -29,6 +29,7 @@ from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Time
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
+from pandas.core.dtypes.inference import is_dict_like
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -1319,11 +1320,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        names : label or list of label
+        names : label or list of label or dict-like for MultiIndex
             Name(s) to set.
         level : int, label or list of int or label, optional
-            If the index is a MultiIndex, level(s) to set (None for all
-            levels). Otherwise level must be None.
+            If the index is a MultiIndex and names is not dict-like, level(s) to set
+            (None for all levels). Otherwise level must be None.
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
@@ -1366,6 +1367,12 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
+        >>> idx.set_names({'species': 'snake'})
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
+                   names=['snake', 'year'])
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1376,6 +1383,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
+        if is_dict_like(names) and not isinstance(self, ABCMultiIndex):
+            raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
+
+        if is_dict_like(names) and level is not None:
+            raise TypeError("Can not pass level when passing dict-like as `names`.")
+
         if not is_list_like(names):
             names = [names]
         if level is not None and not is_list_like(level):
@@ -1385,6 +1398,12 @@ class Index(IndexOpsMixin, PandasObject):
             idx = self
         else:
             idx = self._shallow_copy()
+
+        if isinstance(self, ABCMultiIndex) and is_dict_like(names):
+            level = Index(self.names).get_indexer_for(names)
+            level = level[level>-1]
+            names = [names[key] for key in np.array(self.names)[level]]
+
         idx._set_names(names, level=level)
         if not inplace:
             return idx

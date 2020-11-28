@@ -148,3 +148,36 @@ def test_setting_names_from_levels_raises():
     assert pd.Index._no_setting_name is False
     assert pd.Int64Index._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
+
+
+@pytest.mark.parametrize("func", ["rename", "set_names"])
+@pytest.mark.parametrize(
+    "rename_dict, exp_names",
+    [
+        ({"x": "z"}, ["z", "y", "z"]),
+        ({"x": "z", "y": "x"}, ["z", "x", "z"]),
+        ({"y": "z"}, ["x", "z", "x"]),
+        ({}, ["x", "y", "x"]),
+        ({"z": "a"}, ["x", "y", "x"]),
+        ({"y": "z", "a": "b"}, ["x", "z", "x"])
+    ])
+def test_name_mi_with_dict_like(func, rename_dict, exp_names):
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'x'])
+    result = getattr(mi, func)(rename_dict)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4], [5, 6]], names=exp_names)
+    tm.assert_index_equal(result, expected)
+
+
+def test_name_with_dict_like_raising():
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=['x', 'y'])
+
+    msg = "Can not pass level when passing dict-like as `names`."
+    with pytest.raises(TypeError, match=msg):
+        mi.set_names({"x": "z"}, level=[0, 1])
+
+    ix = pd.Index([1, 2])
+    msg = "Can only pass dict-like as `names` for MultiIndex."
+    with pytest.raises(TypeError, match=msg):
+        ix.set_names({"x": "z"})
