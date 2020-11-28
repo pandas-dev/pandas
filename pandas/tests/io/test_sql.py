@@ -233,7 +233,7 @@ SQL_STRINGS = {
         "mysql": """CREATE TABLE pkey_table (
                 `a` INTEGER,
                 `b` TEXT,
-                `c` TEXT
+                `c` TEXT,
                 PRIMARY KEY (a, b)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
