@@ -69,7 +69,7 @@ class TestTimedeltaIndexOps:
 
     def test_unknown_attribute(self):
         # see gh-9680
-        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        tdi = timedelta_range(start=0, periods=10, freq="1s")
         ts = Series(np.random.normal(size=10), index=tdi)
         assert "foo" not in ts.__dict__.keys()
         msg = "'Series' object has no attribute 'foo'"
@@ -138,7 +138,7 @@ class TestTimedeltaIndexOps:
 
     def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
+        idx = timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -164,7 +164,7 @@ class TestTimedeltaIndexOps:
     )
     def test_drop_duplicates(self, freq_sample, keep, expected, index):
         # to check Index/Series compat
-        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
+        idx = timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
         idx = idx.append(idx[:5])
 
         tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
@@ -178,13 +178,13 @@ class TestTimedeltaIndexOps:
 
     def test_infer_freq(self, freq_sample):
         # GH#11018
-        idx = pd.timedelta_range("1", freq=freq_sample, periods=10)
+        idx = timedelta_range("1", freq=freq_sample, periods=10)
         result = TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
     def test_repeat(self):
-        index = pd.timedelta_range("1 days", periods=2, freq="D")
+        index = timedelta_range("1 days", periods=2, freq="D")
         exp = TimedeltaIndex(["1 days", "1 days", "2 days", "2 days"])
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)

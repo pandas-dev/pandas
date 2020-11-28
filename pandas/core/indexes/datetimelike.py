@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -53,16 +53,22 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     # error: 'staticmethod' used with a non-method
     @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
-        if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
+        # Note: these only get called with left.dtype == right.dtype
+        if isinstance(
+            left, (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin)
+        ):
             left = left.view("i8")
-        if isinstance(right, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
+        if isinstance(
+            right,
+            (np.ndarray, DatetimeIndexOpsMixin, ABCSeries, DatetimeLikeArrayMixin),
+        ):
             right = right.view("i8")
 
         results = joinf(left, right)
         if with_indexers:
             # dtype should be timedelta64[ns] for TimedeltaIndex
             #  and datetime64[ns] for DatetimeIndex
-            dtype = left.dtype.base
+            dtype = cast(np.dtype, left.dtype).base
 
             join_index, left_indexer, right_indexer = results
             join_index = join_index.view(dtype)
@@ -194,7 +200,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))

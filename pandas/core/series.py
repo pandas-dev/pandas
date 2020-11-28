@@ -368,7 +368,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = na_value_for_dtype(dtype)
             keys = index
         else:
-            keys, values = tuple([]), []
+            keys, values = tuple(), []
 
         # Input is now list-like, so rely on "standard" construction:
 

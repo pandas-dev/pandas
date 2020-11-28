@@ -27,7 +27,7 @@ from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_n
 import pandas.core.missing as missing
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
+_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
