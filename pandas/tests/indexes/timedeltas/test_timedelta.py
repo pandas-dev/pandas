@@ -83,7 +83,7 @@ class TestTimedeltaIndex(DatetimeLike):
         assert idx.freq == exp_idx.freq
 
     def test_factorize_preserves_freq(self):
-        # GH#33836 freq should be preserved
+        # GH#38120 freq should be preserved
         idx3 = timedelta_range("1 day", periods=4, freq="s")
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()

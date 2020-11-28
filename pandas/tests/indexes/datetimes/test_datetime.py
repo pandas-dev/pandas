@@ -300,7 +300,7 @@ class TestDatetimeIndex:
         assert idx.freq == exp_idx.freq
 
     def test_factorize_preserves_freq(self):
-        # GH#33836 freq should be preserved
+        # GH#38120 freq should be preserved
         idx3 = date_range("2000-01", periods=4, freq="M", tz="Asia/Tokyo")
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
 
