@@ -2982,7 +2982,7 @@ For example, to read in a ``MultiIndex`` index without names:
        index=pd.MultiIndex.from_product([["a", "b"], ["c", "d"]]),
    )
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 If the index has level names, they will parsed as well, using the same
@@ -2992,7 +2992,7 @@ parameters.
 
    df.index = df.index.set_names(["lvl1", "lvl2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
    df
 
 
@@ -3003,7 +3003,9 @@ should be passed to ``index_col`` and ``header``:
 
    df.columns = pd.MultiIndex.from_product([["a"], ["b", "d"]], names=["c1", "c2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1])
+   df = pd.read_excel(
+       "path_to_file.xlsx", index_col=[0, 1], header=[0, 1], engine="openpyxl"
+   )
    df
 
 .. ipython:: python

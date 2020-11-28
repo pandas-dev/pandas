@@ -981,9 +981,7 @@ class TestReaders:
         tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
         pd.read_excel("test1" + read_ext)

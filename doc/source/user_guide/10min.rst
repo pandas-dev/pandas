@@ -808,7 +808,9 @@ Reading from an excel file.
 
 .. ipython:: python
 
-   pd.read_excel("foo.xlsx", "Sheet1", index_col=None, na_values=["NA"])
+   pd.read_excel(
+       "foo.xlsx", "Sheet1", index_col=None, na_values=["NA"], engine="openpyxl"
+   )
 
 .. ipython:: python
    :suppress:

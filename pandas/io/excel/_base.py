@@ -10,6 +10,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -26,8 +27,6 @@ from pandas.io.excel._util import (
     pop_header_name,
 )
 from pandas.io.parsers import TextParser
-
-from pandas.compat import PY39
 
 _read_excel_doc = (
     """
@@ -104,15 +103,16 @@ engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
     Engine compatibility :
-    
-    - "xlrd" supports most old/new Excel file formats but is no longer maintained.
+
+    - "xlrd" supports most old/new Excel file formats but is no longer maintained
+      and not supported with Python >= 3.9.
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
     .. deprecated:: 1.2.0
         The default value ``None`` is deprecated and will be changed to ``"openpyxl"``
-        in a future version. Not specifying an engine will raise a FutureWarning.
+        in a future version. Not specifying an engine will raise a DeprecationWarning.
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -889,7 +889,9 @@ class ExcelFile:
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
         default ``xlrd`` for .xls* files, ``odf`` for .ods files.
         Engine compatibility :
-        - ``xlrd`` supports most old/new Excel file formats but is no longer maintained.
+
+        - ``xlrd`` supports most old/new Excel file formats but is no longer maintained
+          and is not supported with Python >= 3.9.
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
@@ -897,7 +899,7 @@ class ExcelFile:
         .. deprecated:: 1.2.0
             The default value ``None`` is deprecated and will be changed to
             ``"openpyxl"`` in a future version. Not specifying an engine will
-            raise a FutureWarning.
+            raise a DeprecationWarning.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -916,8 +918,9 @@ class ExcelFile:
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            # xlrd doesn't support py39
-            engine = "openpyxl" if PY39 else "xlrd"
+            engine = "xlrd"
+
+            # Determine ext and use odf for ods stream/file
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 ext = None
                 if _is_ods_stream(path_or_buffer):
@@ -927,8 +930,21 @@ class ExcelFile:
                 if ext == ".ods":
                     engine = "odf"
 
-            if engine == "xlrd" and ext != ".xls" and not PY39:
+            # GH 35029 - Default to openpyxl if xlrd is not installed for non-xls
+            if (
+                engine == "xlrd"
+                and ext != ".xls"
+                and import_optional_dependency(
+                    "xlrd", raise_on_missing=False, on_version="ignore"
+                )
+                is None
+            ):
+                engine = "openpyxl"
+
+            # GH 35029 - Don't warn with xls files as only xlrd can read them
+            if engine == "xlrd" and ext != ".xls":
                 import inspect
+
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith("pandas/io/excel/_base.py")
@@ -939,7 +955,8 @@ class ExcelFile:
                     stacklevel = 2
                 warnings.warn(
                     "The default argument engine=None is deprecated. Using None "
-                    "defaults to the xlrd engine which is no longer maintained. "
+                    "defaults to the xlrd engine which is no longer maintained, "
+                    "and is not supported when using pandas with python >= 3.9. "
                     "The default value will be 'openpyxl' in a future version of "
                     "pandas, although xlrd will continue to be allowed for the "
                     "indefinite future. Either install openpyxl and specify it as "
