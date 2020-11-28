@@ -292,7 +292,7 @@ def test_remove_unused_levels_with_missing():
     expected = MultiIndex(
         levels=[["n1", "n2", "n3", None], ["n1", "n2", "n3", None]],
         codes=[[0, 1, 2, 3], [2, 3, 0, 1]],
-        names=["L1", "L2"]
+        names=["L1", "L2"],
     )
 
     tm.assert_index_equal(result.index, expected)
