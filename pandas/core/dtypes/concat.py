@@ -152,7 +152,7 @@ def concat_compat(to_concat, axis: int = 0):
             return np.concatenate(to_concat)
 
     elif _contains_datetime or "timedelta" in typs:
-        return _concat_datetime(to_concat, axis=axis, typs=typs)
+        return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
