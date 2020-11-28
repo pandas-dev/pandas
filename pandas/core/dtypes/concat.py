@@ -18,7 +18,7 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSe
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array, wrap_if_datetimelike
+from pandas.core.construction import array, ensure_wrapped_if_datetimelike
 
 
 def _get_dtype_kinds(arrays) -> Set[str]:
@@ -360,13 +360,13 @@ def _concat_datetime(to_concat, axis=0):
     -------
     a single array, preserving the combined dtypes
     """
-    to_concat = [wrap_if_datetimelike(x) for x in to_concat]
+    to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
 
     single_dtype = len({x.dtype for x in to_concat}) == 1
 
     # multiple types, need to coerce to object
     if not single_dtype:
-        # wrap_if_datetimelike ensures that astype(object) wraps
+        # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
         #  in Timestamp/Timedelta
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
