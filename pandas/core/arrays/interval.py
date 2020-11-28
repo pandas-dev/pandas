@@ -44,7 +44,7 @@ from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.construction import array, extract_array
+from pandas.core.construction import array, extract_array, wrap_datetimelike
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
@@ -251,11 +251,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError(msg)
 
         # For dt64/td64 we want DatetimeArray/TimedeltaArray instead of ndarray
-        from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
-
-        left = maybe_upcast_datetimelike_array(left)
+        left = wrap_datetimelike(left)
         left = extract_array(left, extract_numpy=True)
-        right = maybe_upcast_datetimelike_array(right)
+        right = wrap_datetimelike(right)
         right = extract_array(right, extract_numpy=True)
 
         lbase = getattr(left, "_ndarray", left).base
