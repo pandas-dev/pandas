@@ -613,14 +613,14 @@ def test_resample_agg_readonly():
     tm.assert_series_equal(result, expected)
 
 
-def test_backward_resample():
-    # GH#37804
+# test data for backward resample GH#37804
+start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+rng = date_range(start, end, freq="7min")
+ts = Series(np.arange(len(rng)) * 3, index=rng)
 
-    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
-    rng = date_range(start, end, freq="7min")
-    ts = Series(np.arange(len(rng)) * 3, index=rng)
 
-    # test consistency of backward and origin
+def test_backward_origin_consistency():
+
     msg = "`start` or `start_day` origin isn't allowed when `backward` is True"
     with pytest.raises(ValueError, match=msg):
         ts.resample("1min", origin="start", backward=True)
@@ -628,7 +628,9 @@ def test_backward_resample():
     with pytest.raises(ValueError, match=msg):
         ts.resample("1min", origin="end", backward=False)
 
-    # test end origin
+
+def test_end_origin():
+
     res = ts.resample("17min", origin="end").sum().astype("int64")
     data = [0, 18, 27, 63]
     expected = Series(
@@ -642,7 +644,21 @@ def test_backward_resample():
 
     tm.assert_series_equal(res, expected)
 
-    # test end_day origin
+    # an extra test case
+    idx = date_range("20200101 8:26:35", "20200101 9:31:58", freq="77s")
+    data = np.ones(len(idx))
+    s = Series(data, index=idx)
+    result = s.resample("7min", origin="end", closed="right").sum()
+
+    exp_idx = date_range("2020-01-01 08:27:45", "2020-01-01 09:30:45", freq="7T")
+    exp_data = [1.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0]
+    expected = Series(exp_data, index=exp_idx)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_end_day_origin():
+
     # 12 == 24 * 60 - 84 * 17 <= 26 (last value) <= 24 * 60 - 83 * 17 == 29
     res = ts.resample("17min", origin="end_day").sum().astype("int64")
     data = [3, 15, 45, 45]
@@ -657,7 +673,9 @@ def test_backward_resample():
 
     tm.assert_series_equal(res, expected)
 
-    # test datetime origin with backward resample
+
+def test_backward_resample_with_datetime_origin():
+
     res = (
         ts.resample(
             "17min",
@@ -700,7 +718,9 @@ def test_backward_resample():
 
     tm.assert_series_equal(res, expected)
 
-    # test right and left close
+
+def test_left_and_right_close_in_backward_resample():
+
     res = (
         ts.resample(
             "17min",
@@ -742,15 +762,3 @@ def test_backward_resample():
     )
 
     tm.assert_series_equal(res, expected)
-
-    # original test case
-    idx = date_range("20200101 8:26:35", "20200101 9:31:58", freq="77s")
-    data = np.ones(len(idx))
-    s = Series(data, index=idx)
-    result = s.resample("7min", origin="end", closed="right").sum()
-
-    exp_idx = date_range("2020-01-01 08:27:45", "2020-01-01 09:30:45", freq="7T")
-    exp_data = [1.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0]
-    expected = Series(exp_data, index=exp_idx)
-
-    tm.assert_series_equal(result, expected)

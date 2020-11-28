@@ -8328,8 +8328,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         You can also specify the backward origin:
 
         >>> ts.groupby(pd.Grouper(freq='17min',
-                                  origin='2000-10-02 00:30:00',
-                                  backward=True)).sum()
+        ...                       origin='2000-10-02 00:30:00',
+        ...                       backward=True)).sum()
         2000-10-01 23:39:00     3
         2000-10-01 23:56:00    15
         2000-10-02 00:13:00    45
