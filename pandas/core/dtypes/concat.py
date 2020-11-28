@@ -147,10 +147,6 @@ def concat_compat(to_concat, axis: int = 0):
         # for axis=0
         if not single_dtype:
             conv_types = [convert_dtypes(x) for x in to_concat]
-            for i in range(len(to_concat)):
-                if conv_types[i] == "string":
-                    conv_types[i] = np.dtype(str)
-                to_concat[i] = maybe_downcast_to_dtype(to_concat[i], conv_types[i])
             target_dtype = find_common_type(conv_types)
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
