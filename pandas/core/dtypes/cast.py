@@ -1603,10 +1603,8 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     # If set of dtypes contains only categoricals (with the exception of strings)
     # then the common dtype will be the categorical (in case it's the only one)
     is_cat_or_str = lambda x: is_categorical_dtype(x) or is_string_dtype(x)
-    if all(is_cat_or_str(t) for t in types) and not any(
-        is_object_dtype(t) for t in types
-    ):
-        # Return union of the categorical dtypes?
+    if all(is_cat_or_str(t) for t in types):
+        # Should we extend this to use the union of categorical dtypes?
         cat_dtypes = []
         for t in types:
             if is_categorical_dtype(t):

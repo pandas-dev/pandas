@@ -1860,9 +1860,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
-        from pandas.core.dtypes.cast import find_common_type
-
-        from pandas import DataFrame, Series
+        from pandas import Series
 
         # reindex the axis to the new value
         # and set inplace
@@ -1914,18 +1912,7 @@ class _iLocIndexer(_LocationIndexer):
                     if len(value) != len(self.obj.columns):
                         raise ValueError("cannot set a row with mismatched columns")
 
-                if len(set(self.obj.dtypes)) > 1:
-                    value = list(value)
-                    for i in range(len(self.obj.columns)):
-                        dtype = find_common_type([self.obj.dtypes[i], type(value[i])])
-                        value[i] = Series(data=[value[i]], dtype=dtype)
-                    value = DataFrame(dict(zip(self.obj.columns, value)))
-                    value.index = [indexer]
-                else:
-                    dtype = find_common_type([self.obj.dtypes[0], type(value)])
-                    value = Series(
-                        value, index=self.obj.columns, name=indexer, dtype=dtype
-                    )
+                value = Series(value, index=self.obj.columns, name=indexer)
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
