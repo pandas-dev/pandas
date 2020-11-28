@@ -1410,8 +1410,13 @@ class Index(IndexOpsMixin, PandasObject):
             idx = self._shallow_copy()
 
         if isinstance(self, ABCMultiIndex) and is_dict_like(names):
-            level = [i for i, name in enumerate(self.names) if name in names.keys()]
-            names = [names[key] for key in np.array(self.names)[level]]
+            # Transform dict to list of new names and corresponding levels
+            level, names_adjusted = [], []
+            for i, name in enumerate(self.names):
+                if name in names.keys():
+                    level.append(i)
+                    names_adjusted.append(names[name])
+            names = names_adjusted
 
         idx._set_names(names, level=level)
         if not inplace:
