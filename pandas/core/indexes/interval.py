@@ -122,6 +122,7 @@ def setop_check(method):
 
     @wraps(method)
     def wrapped(self, other, sort=False):
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -130,14 +131,6 @@ def setop_check(method):
             if op_name in ("difference",):
                 result = result.astype(self.dtype)
             return result
-
-        if self._is_non_comparable_own_type(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
 
         return method(self, other, sort)
 
@@ -956,11 +949,27 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
+    def _assert_can_do_setop(self, other):
+        super()._assert_can_do_setop(other)
+
+        if isinstance(other, IntervalIndex) and self._is_non_comparable_own_type(other):
+            # GH#19016: ensure set op will not return a prohibited dtype
+            raise TypeError(
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side "
+                "and have compatible dtypes"
+            )
+
     @Appender(Index.intersection.__doc__)
     @setop_check
-    def intersection(
-        self, other: "IntervalIndex", sort: bool = False
-    ) -> "IntervalIndex":
+    def intersection(self, other, sort=False) -> Index:
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if not isinstance(other, IntervalIndex):
+            return self.astype(object).intersection(other)
+
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
