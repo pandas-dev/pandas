@@ -2127,16 +2127,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def unique(self):
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
-        unique. Unused categories are NOT returned.
+        unique.
 
-        - unordered category: values and categories are sorted by appearance
-          order.
-        - ordered category: values are sorted by appearance order, categories
-          keeps existing order.
+        .. versionchanged:: 1.2.0
+
+            Previously unused categories were dropped.
 
         Returns
         -------
-        unique values : ``Categorical``
+        Categorical
 
         See Also
         --------
@@ -2146,23 +2145,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        An unordered Categorical will return categories in the
-        order of appearance.
-
         >>> pd.Categorical(list("baabc")).unique()
         ['b', 'a', 'c']
-        Categories (3, object): ['b', 'a', 'c']
-
-        >>> pd.Categorical(list("baabc"), categories=list("abc")).unique()
-        ['b', 'a', 'c']
-        Categories (3, object): ['b', 'a', 'c']
-
-        An ordered Categorical preserves the category ordering.
-
-        >>> pd.Categorical(
-        ...     list("baabc"), categories=list("abc"), ordered=True
-        ... ).unique()
-        ['b', 'a', 'c']
+        Categories (3, object): ['a', 'b', 'c']
+        >>> pd.Categorical(list("baab"), categories=list("abc"), ordered=True).unique()
+        ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
         # unlike np.unique, unique1d does not sort
