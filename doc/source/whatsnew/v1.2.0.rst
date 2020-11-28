@@ -730,6 +730,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
+- Bug in :meth:`DataFrame.crosstab` was returning incorrect results on inputs with duplicate row names, duplicate column names or duplicate names between row and column labels (:issue:`22529`)
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`concat` and :class:`DataFrame` constructor where input index names are not preserved in some cases (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)

@@ -5,6 +5,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -578,29 +579,37 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-    index = com.maybe_make_list(index)
-    columns = com.maybe_make_list(columns)
-
-    rownames = _get_names(index, rownames, prefix="row")
-    colnames = _get_names(columns, colnames, prefix="col")
-
-    common_idx = None
-    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
-    if pass_objs:
-        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
-
-    data: Dict = {}
-    data.update(zip(rownames, index))
-    data.update(zip(colnames, columns))
-
     if values is None and aggfunc is not None:
         raise ValueError("aggfunc cannot be used without values.")
 
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
+
+    common_idx = None
+    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    if pass_objs:
+        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
+
+    rownames = _get_names(index, rownames, prefix="row")
+    colnames = _get_names(columns, colnames, prefix="col")
+
+    # duplicate names mapped to unique names for pivot op
+    (
+        rownames_mapper,
+        unique_rownames,
+        colnames_mapper,
+        unique_colnames,
+    ) = _build_names_mapper(rownames, colnames)
+
     from pandas import DataFrame
 
+    data = {
+        **dict(zip(unique_rownames, index)),
+        **dict(zip(unique_colnames, columns)),
+    }
     df = DataFrame(data, index=common_idx)
     original_df_cols = df.columns
 
@@ -613,8 +622,8 @@ def crosstab(
 
     table = df.pivot_table(
         ["__dummy__"],
-        index=rownames,
-        columns=colnames,
+        index=unique_rownames,
+        columns=unique_colnames,
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
@@ -632,6 +641,9 @@ def crosstab(
         table = _normalize(
             table, normalize=normalize, margins=margins, margins_name=margins_name
         )
+
+    table = table.rename_axis(index=rownames_mapper, axis=0)
+    table = table.rename_axis(columns=colnames_mapper, axis=1)
 
     return table
 
@@ -731,3 +743,57 @@ def _get_names(arrs, names, prefix: str = "row"):
             names = list(names)
 
     return names
+
+
+def _build_names_mapper(
+    rownames: List[str], colnames: List[str]
+) -> Tuple[Dict[str, str], List[str], Dict[str, str], List[str]]:
+    """
+    Given the names of a DataFrame's rows and columns, returns a set of unique row
+    and column names and mappers that convert to original names.
+
+    A row or column name is replaced if it is duplicate among the rows of the inputs,
+    among the columns of the inputs or between the rows and the columns.
+
+    Paramters
+    ---------
+    rownames: list[str]
+    colnames: list[str]
+
+    Returns
+    -------
+    Tuple(Dict[str, str], List[str], Dict[str, str], List[str])
+
+    rownames_mapper: dict[str, str]
+        a dictionary with new row names as keys and original rownames as values
+    unique_rownames: list[str]
+        a list of rownames with duplicate names replaced by dummy names
+    colnames_mapper: dict[str, str]
+        a dictionary with new column names as keys and original column names as values
+    unique_colnames: list[str]
+        a list of column names with duplicate names replaced by dummy names
+
+    """
+
+    def get_duplicates(names):
+        seen: Set = set()
+        return {name for name in names if name not in seen}
+
+    shared_names = set(rownames).intersection(set(colnames))
+    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+
+    rownames_mapper = {
+        f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names
+    }
+    unique_rownames = [
+        f"row_{i}" if name in dup_names else name for i, name in enumerate(rownames)
+    ]
+
+    colnames_mapper = {
+        f"col_{i}": name for i, name in enumerate(colnames) if name in dup_names
+    }
+    unique_colnames = [
+        f"col_{i}" if name in dup_names else name for i, name in enumerate(colnames)
+    ]
+
+    return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames
