@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
+_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 
 # --- Period index sketch
 

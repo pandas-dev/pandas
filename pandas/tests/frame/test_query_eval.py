@@ -127,7 +127,7 @@ class TestDataFrameEval:
     def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
-        df = DataFrame(dict(A=np.random.randn(25000)))
+        df = DataFrame({"A": np.random.randn(25000)})
         df.iloc[0:5] = np.nan
         expected = 1 - np.isnan(df.iloc[0:25])
         result = (1 - np.isnan(df)).iloc[0:25]

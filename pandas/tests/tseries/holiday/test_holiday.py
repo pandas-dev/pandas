@@ -210,16 +210,16 @@ def test_argument_types(transform):
 @pytest.mark.parametrize(
     "name,kwargs",
     [
-        ("One-Time", dict(year=2012, month=5, day=28)),
+        ("One-Time", {"year": 2012, "month": 5, "day": 28}),
         (
             "Range",
-            dict(
-                month=5,
-                day=28,
-                start_date=datetime(2012, 1, 1),
-                end_date=datetime(2012, 12, 31),
-                offset=DateOffset(weekday=MO(1)),
-            ),
+            {
+                "month": 5,
+                "day": 28,
+                "start_date": datetime(2012, 1, 1),
+                "end_date": datetime(2012, 12, 31),
+                "offset": DateOffset(weekday=MO(1)),
+            },
         ),
     ],
 )

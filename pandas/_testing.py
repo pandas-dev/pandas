@@ -2167,15 +2167,15 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = dict(
-        i=makeIntIndex,
-        f=makeFloatIndex,
-        s=makeStringIndex,
-        u=makeUnicodeIndex,
-        dt=makeDateIndex,
-        td=makeTimedeltaIndex,
-        p=makePeriodIndex,
-    ).get(idx_type)
+    idx_func = {
+        "i": makeIntIndex,
+        "f": makeFloatIndex,
+        "s": makeStringIndex,
+        "u": makeUnicodeIndex,
+        "dt": makeDateIndex,
+        "td": makeTimedeltaIndex,
+        "p": makePeriodIndex,
+    }.get(idx_type)
     if idx_func:
         # pandas\_testing.py:2120: error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]

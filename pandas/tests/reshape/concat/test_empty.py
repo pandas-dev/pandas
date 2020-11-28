@@ -26,7 +26,7 @@ class TestEmptyConcat:
         # empty as first element with time series
         # GH3259
         df = DataFrame(
-            dict(A=range(10000)), index=date_range("20130101", periods=10000, freq="s")
+            {"A": range(10000)}, index=date_range("20130101", periods=10000, freq="s")
         )
         empty = DataFrame()
         result = concat([df, empty], axis=1)

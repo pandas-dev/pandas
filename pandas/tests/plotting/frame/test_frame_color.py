@@ -551,9 +551,12 @@ class TestDataFrameColor(TestPlotBase):
         _check_colors(bp, default_colors[0], default_colors[0], default_colors[2])
         tm.close()
 
-        dict_colors = dict(
-            boxes="#572923", whiskers="#982042", medians="#804823", caps="#123456"
-        )
+        dict_colors = {
+            "boxes": "#572923",
+            "whiskers": "#982042",
+            "medians": "#804823",
+            "caps": "#123456",
+        }
         bp = df.plot.box(color=dict_colors, sym="r+", return_type="dict")
         _check_colors(
             bp,
@@ -566,7 +569,7 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
         # partial colors
-        dict_colors = dict(whiskers="c", medians="m")
+        dict_colors = {"whiskers": "c", "medians": "m"}
         bp = df.plot.box(color=dict_colors, return_type="dict")
         _check_colors(bp, default_colors[0], "c", "m")
         tm.close()
@@ -594,7 +597,7 @@ class TestDataFrameColor(TestPlotBase):
 
         with pytest.raises(ValueError):
             # Color contains invalid key results in ValueError
-            df.plot.box(color=dict(boxes="red", xxxx="blue"))
+            df.plot.box(color={"boxes": "red", "xxxx": "blue"})
 
     def test_default_color_cycle(self):
         import cycler

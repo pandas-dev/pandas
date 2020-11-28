@@ -267,7 +267,7 @@ class BlockManager(PandasObject):
             "0.14.1": {
                 "axes": axes_array,
                 "blocks": [
-                    dict(values=b.values, mgr_locs=b.mgr_locs.indexer)
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
                     for b in self.blocks
                 ],
             }

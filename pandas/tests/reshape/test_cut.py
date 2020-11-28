@@ -377,10 +377,10 @@ def test_series_ret_bins():
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        (dict(duplicates="drop"), None),
-        (dict(), "Bin edges must be unique"),
-        (dict(duplicates="raise"), "Bin edges must be unique"),
-        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
+        ({"duplicates": "drop"}, None),
+        ({}, "Bin edges must be unique"),
+        ({"duplicates": "raise"}, "Bin edges must be unique"),
+        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_cut_duplicates_bin(kwargs, msg):

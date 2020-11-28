@@ -250,7 +250,7 @@ class TestDataFrameNonuniqueIndexes:
 
         # operations
         for op in ["__add__", "__mul__", "__sub__", "__truediv__"]:
-            df = DataFrame(dict(A=np.arange(10), B=np.random.rand(10)))
+            df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
             expected = getattr(df, op)(df)
             expected.columns = ["A", "A"]
             df.columns = ["A", "A"]

@@ -157,7 +157,7 @@ def test_quantile_raises():
 
 def test_quantile_out_of_bounds_q_raises():
     # https://github.com/pandas-dev/pandas/issues/27470
-    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    df = DataFrame({"a": [0, 0, 0, 1, 1, 1], "b": range(6)})
     g = df.groupby([0, 0, 0, 1, 1, 1])
     with pytest.raises(ValueError, match="Got '50.0' instead"):
         g.quantile(50)
@@ -169,7 +169,7 @@ def test_quantile_out_of_bounds_q_raises():
 def test_quantile_missing_group_values_no_segfaults():
     # GH 28662
     data = np.array([1.0, np.nan, 1.0])
-    df = DataFrame(dict(key=data, val=range(3)))
+    df = DataFrame({"key": data, "val": range(3)})
 
     # Random segfaults; would have been guaranteed in loop
     grp = df.groupby("key")

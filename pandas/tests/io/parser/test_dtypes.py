@@ -495,7 +495,7 @@ def test_dtype_with_converters(all_parsers):
         (np.float64, DataFrame(columns=["a", "b"], dtype=np.float64)),
         ("category", DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[])),
         (
-            dict(a="category", b="category"),
+            {"a": "category", "b": "category"},
             DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
         ),
         ("datetime64[ns]", DataFrame(columns=["a", "b"], dtype="datetime64[ns]")),
@@ -510,7 +510,7 @@ def test_dtype_with_converters(all_parsers):
             ),
         ),
         (
-            dict(a=np.int64, b=np.int32),
+            {"a": np.int64, "b": np.int32},
             DataFrame(
                 {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
                 index=[],

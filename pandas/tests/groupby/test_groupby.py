@@ -149,11 +149,11 @@ def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
     df = DataFrame(
-        dict(
-            A=["Tiger", "Tiger", "Tiger", "Lamb", "Lamb", "Pony", "Pony"],
-            B=Series(np.arange(7), dtype="int64"),
-            C=date_range("20130101", periods=7),
-        )
+        {
+            "A": ["Tiger", "Tiger", "Tiger", "Lamb", "Lamb", "Pony", "Pony"],
+            "B": Series(np.arange(7), dtype="int64"),
+            "C": date_range("20130101", periods=7),
+        }
     )
 
     def f(grp):
@@ -257,7 +257,7 @@ def test_len():
     assert len(grouped) == expected
 
     # issue 11016
-    df = DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
+    df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
     assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 3

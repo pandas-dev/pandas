@@ -37,7 +37,7 @@ def nontemporal_method(request):
     separately from these non-temporal methods.
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -67,7 +67,7 @@ def interp_methods_ind(request):
     'values' as a parameterization
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 

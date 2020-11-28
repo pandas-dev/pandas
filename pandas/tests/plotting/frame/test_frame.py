@@ -662,12 +662,12 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatterplot_object_data(self):
         # GH 18755
-        df = DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
+        df = DataFrame({"a": ["A", "B", "C"], "b": [2, 3, 4]})
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
-        df = DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
+        df = DataFrame({"a": ["A", "B", "C"], "b": ["a", "b", "c"]})
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
@@ -1266,7 +1266,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_specified_props_kwd_plot_box(self, props, expected):
         # GH 30346
         df = DataFrame({k: np.random.random(100) for k in "ABC"})
-        kwd = {props: dict(color="C1")}
+        kwd = {props: {"color": "C1"}}
         result = df.plot.box(return_type="dict", **kwd)
 
         assert result[expected][0].get_color() == "C1"
@@ -2022,7 +2022,7 @@ class TestDataFramePlots(TestPlotBase):
         fontsize = 20
         sy = ["C", "D"]
 
-        kwargs = dict(secondary_y=sy, fontsize=fontsize, mark_right=True)
+        kwargs = {"secondary_y": sy, "fontsize": fontsize, "mark_right": True}
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax, ylabelsize=fontsize)
 

@@ -43,7 +43,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs: Dict[str, str] = dict()
+_shared_docs_kwargs: Dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):

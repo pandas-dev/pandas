@@ -1,6 +1,6 @@
 from typing import Dict
 
-_shared_docs: Dict[str, str] = dict()
+_shared_docs: Dict[str, str] = {}
 
 _shared_docs[
     "aggregate"
