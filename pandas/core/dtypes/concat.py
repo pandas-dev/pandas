@@ -9,8 +9,7 @@ from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
-    find_common_type,
-    maybe_downcast_to_dtype,
+    find_common_type
 )
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
