@@ -524,19 +524,3 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     result = arr.to_numpy(na_value=na_value)
     expected = np.array(["a", na_value, "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
-
-
-def test_contains():
-    # GH-37867
-    arr = pd.array(["a", "b"], dtype="string")
-
-    assert "a" in arr
-    assert "x" not in arr
-    assert np.nan not in arr
-    assert pd.NA not in arr
-
-    arr = pd.array(["a", pd.NA], dtype="string")
-    assert "a" in arr
-    assert "x" not in arr
-    assert np.nan not in arr
-    assert pd.NA in arr
