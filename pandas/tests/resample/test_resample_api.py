@@ -613,13 +613,11 @@ def test_resample_agg_readonly():
     tm.assert_series_equal(result, expected)
 
 
-# test data for backward resample GH#37804
-start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
-rng = date_range(start, end, freq="7min")
-ts = Series(np.arange(len(rng)) * 3, index=rng)
-
-
 def test_backward_origin_consistency():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
 
     msg = "`start` or `start_day` origin isn't allowed when `backward` is True"
     with pytest.raises(ValueError, match=msg):
@@ -630,6 +628,10 @@ def test_backward_origin_consistency():
 
 
 def test_end_origin():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
 
     res = ts.resample("17min", origin="end").sum().astype("int64")
     data = [0, 18, 27, 63]
@@ -659,6 +661,10 @@ def test_end_origin():
 
 def test_end_day_origin():
 
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
+
     # 12 == 24 * 60 - 84 * 17 <= 26 (last value) <= 24 * 60 - 83 * 17 == 29
     res = ts.resample("17min", origin="end_day").sum().astype("int64")
     data = [3, 15, 45, 45]
@@ -675,6 +681,10 @@ def test_end_day_origin():
 
 
 def test_backward_resample_with_datetime_origin():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
 
     res = (
         ts.resample(
@@ -720,6 +730,10 @@ def test_backward_resample_with_datetime_origin():
 
 
 def test_left_and_right_close_in_backward_resample():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
 
     res = (
         ts.resample(
