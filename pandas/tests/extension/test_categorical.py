@@ -109,9 +109,8 @@ class TestInterface(base.BaseInterfaceTests):
             if na_value_type is na_value:
                 continue
 
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                assert na_value_type not in data
-                assert na_value_type in data_missing
+            assert na_value_type not in data
+            assert na_value_type in data_missing
 
 
 class TestConstructors(base.BaseConstructorsTests):

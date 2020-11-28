@@ -52,13 +52,6 @@ class PandasDtype(ExtensionDtype):
         return self._dtype
 
     @property
-    def na_value(self) -> object:
-        if issubclass(self.type, np.floating):
-            return self.type("nan")
-        else:
-            return super().na_value
-
-    @property
     def name(self) -> str:
         """
         A bit-width name for this data-type.
