@@ -1320,11 +1320,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
+
         names : label or list of label or dict-like for MultiIndex
             Name(s) to set.
+
+            .. versionchanged:: 1.2.0
+
         level : int, label or list of int or label, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
+
+            .. versionchanged:: 1.2.0
+
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
@@ -1367,6 +1374,9 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
+
+        When renaming levels through a dictionary no level can't be passed.
+
         >>> idx.set_names({'kind': 'snake'})
         MultiIndex([('python', 2018),
                     ('python', 2019),
