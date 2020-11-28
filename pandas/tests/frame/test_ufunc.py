@@ -7,7 +7,7 @@ import pandas._testing as tm
 dtypes = [
     "int64",
     "Int64",
-    dict(A="int64", B="Int64"),
+    {"A": "int64", "B": "Int64"},
 ]
 
 

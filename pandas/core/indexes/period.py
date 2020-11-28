@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
+_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 
 # --- Period index sketch
 
@@ -578,10 +578,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
                 # string cannot be parsed as datetime-like
-                # TODO: we need tests for this case
-                raise KeyError(label) from err
+                raise self._invalid_indexer("slice", label) from err
         elif is_integer(label) or is_float(label):
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return label
 

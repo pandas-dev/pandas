@@ -1649,7 +1649,8 @@ class _iLocIndexer(_LocationIndexer):
             value = self._align_series(indexer, value)
 
         # Ensure we have something we can iterate over
-        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+        info_axis = indexer[1]
+        ilocs = self._ensure_iterable_column_indexer(info_axis)
 
         pi = indexer[0]
         lplane_indexer = length_of_indexer(pi, self.obj.index)
@@ -1673,6 +1674,12 @@ class _iLocIndexer(_LocationIndexer):
                 # We are trying to set N values into M entries of a single
                 #  column, which is invalid for N != M
                 # Exclude zero-len for e.g. boolean masking that is all-false
+
+                if len(value) == 1 and not is_integer(info_axis):
+                    # This is a case like df.iloc[:3, [1]] = [0]
+                    #  where we treat as df.iloc[:3, 1] = 0
+                    return self._setitem_with_indexer((pi, info_axis[0]), value[0])
+
                 raise ValueError(
                     "Must have equal len keys and value "
                     "when setting with an iterable"
@@ -1686,6 +1693,14 @@ class _iLocIndexer(_LocationIndexer):
                 # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, pi)
+
+            elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
+                # This is a setitem-with-expansion, see
+                #  test_loc_setitem_empty_append_expands_rows_mixed_dtype
+                # e.g. df = DataFrame(columns=["x", "y"])
+                #  df["x"] = df["x"].astype(np.int64)
+                #  df.loc[:, "x"] = [1, 2, 3]
+                self._setitem_single_column(ilocs[0], value, pi)
 
             else:
                 raise ValueError(
