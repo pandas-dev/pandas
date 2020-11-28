@@ -134,9 +134,9 @@ class Block(PandasObject):
             1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
         """
         # TODO(EA2D): ndim will be unnecessary with 2D EAs
-        self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
+        self.ndim = self._check_ndim(values, ndim)
 
         if self._validate_ndim and self.ndim and len(self.mgr_locs) != len(self.values):
             raise ValueError(
@@ -184,7 +184,19 @@ class Block(PandasObject):
         ValueError : the number of dimensions do not match
         """
         if ndim is None:
-            ndim = values.ndim
+            warnings.warn(
+                "Accepting ndim=None in the Block constructor is deprecated, "
+                "this will raise in a future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
+            if self.is_extension:
+                if len(self.mgr_locs) != 1:
+                    ndim = 1
+                else:
+                    ndim = 2
+            else:
+                ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
             raise ValueError(
