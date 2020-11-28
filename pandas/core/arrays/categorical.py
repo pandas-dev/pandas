@@ -2035,15 +2035,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
+    def unique(self, remove_unused_categories: bool = True) -> "Categorical":
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
-        unique. Unused categories are NOT returned.
+        unique. By default, unused categories are NOT returned.
 
         - unordered category: values and categories are sorted by appearance
           order.
         - ordered category: values are sorted by appearance order, categories
           keeps existing order.
+
+        Parameters
+        ----------
+        remove_unused_categories : bool, default True
+            If True, unused categories are not returned.
+            If False, the input dtype is returned unchanged.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -2075,13 +2083,24 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ... ).unique()
         ['b', 'a', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
+
+        By default, unused categories are removed, but this can be changed:
+
+        >>> cat = pd.Categorical(list("baab"), categories=list("abc"), ordered=True)
+        >>> cat.unique()
+        ['b', 'a']
+        Categories (2, object): ['a' < 'b']
+        >>> cat.unique(remove_unused_categories=False)
+        ['b', 'a']
+        Categories (3, object): ['a' < 'b' < 'c']
         """
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
-        cat = self.copy()
 
-        # keep nan in codes
-        cat._codes = unique_codes
+        cat = self._constructor(unique_codes, dtype=self.dtype, fastpath=True)
+
+        if not remove_unused_categories:
+            return cat
 
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]

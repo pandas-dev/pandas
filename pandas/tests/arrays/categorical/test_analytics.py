@@ -6,7 +6,7 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, NaT, Series, date_range
+from pandas import Categorical, CategoricalDtype, Index, NaT, Series, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 
@@ -241,6 +241,25 @@ class TestCategoricalAnalytics:
         res = cat.unique()
         exp_cat = Categorical(["b", np.nan, "a"], categories=["a", "b"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
+
+    @pytest.mark.parametrize("values, expected", [
+        [list("abc"), list("abc")],
+        [list("bac"), list("bac")],
+        [list("ab"), list("ab")],
+        [list("bc"), list("bc")],
+        [list("aabbcc"), list("abc")],
+        [list("aabb"), list("ab")],
+        [[np.nan, "a", "b"], [np.nan, "a", "b"]],
+        [["a", "b", np.nan], ["a", "b", np.nan]],
+        [["a", "b", "a", "b", np.nan], ["a", "b", np.nan]],
+    ])
+    def test_unique_keep_unused_categories(self, values, expected, ordered):
+        # GHxxxxx
+        dtype = CategoricalDtype(list("abc"), ordered=ordered)
+        result = Categorical(values, dtype=dtype).unique(remove_unused_categories=False)
+        expected = Categorical(expected, dtype=dtype)
+
+        tm.assert_categorical_equal(result, expected)
 
     def test_unique_index_series(self):
         c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1])
