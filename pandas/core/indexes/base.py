@@ -29,7 +29,6 @@ from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Time
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.inference import is_dict_like
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -74,6 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
+from pandas.core.dtypes.inference import is_dict_like
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import missing, ops
