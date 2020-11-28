@@ -539,7 +539,9 @@ def _should_reindex_frame_op(
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
         cols = left.columns.intersection(right.columns)
-        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+        if not (
+            cols.equals(left.columns.unique()) and cols.equals(right.columns.unique())
+        ):
             return True
 
     return False

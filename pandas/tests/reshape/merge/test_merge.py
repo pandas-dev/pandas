@@ -742,7 +742,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo', 'foo'\], dtype='object'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
