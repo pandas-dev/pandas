@@ -2864,7 +2864,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.safe_sort(result)
 
         # Intersection has to be unique
-        assert np.array_equal(algos.unique(result), result)
+        assert algos.unique(result).shape == result.shape
 
         return result
 
