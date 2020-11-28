@@ -75,6 +75,8 @@ def recode_for_groupby(
 
     # sort=False should order groups in as-encountered order (GH-8868)
     cat = c.unique()
+
+    # See GH-38140 for block below
     # exclude nan from indexer for categories
     take_codes = cat.codes[cat.codes != -1]
     if cat.ordered:

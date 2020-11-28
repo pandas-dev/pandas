@@ -2131,7 +2131,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         .. versionchanged:: 1.2.0
 
-            Previously unused categories were dropped.
+            Previously, unused categories were dropped from the new categories.
 
         Returns
         -------
