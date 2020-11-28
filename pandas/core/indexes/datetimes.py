@@ -818,6 +818,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
+    def _convert_listlike_indexer(self, key):
+        if not isinstance(key, list):
+            # There are no slices for arrays or indexes, so we can dispatch back
+            return super()._convert_listlike_indexer(key)
+
+        new_indexer = []
+        indexes = list(range(len(self)))
+        try:
+            for k in key:
+                indexer = indexes[self.get_loc(k)]
+                if not isinstance(indexer, list):
+                    indexer = [indexer]
+                new_indexer.extend(indexer)
+        except KeyError:
+            # Dispatch to base method for handling of KeyErrors
+            return super()._convert_listlike_indexer(key)
+        return np.array(new_indexer), key
+
     @property
     def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
