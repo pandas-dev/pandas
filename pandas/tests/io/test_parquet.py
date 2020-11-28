@@ -1030,3 +1030,11 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
+
+    def test_use_nullable_dtypes_not_supported(self, fp):
+        df = pd.DataFrame({"a": [1, 2]})
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path)
+            with pytest.raises(ValueError, match="not supported for the fastparquet"):
+                read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
