@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Set, Union
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import DtypeObj
+from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -15,57 +15,45 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_integer_dtype,
     is_numeric_v_string_like,
-    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
 
 
-def mask_missing(arr, values_to_mask):
+def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
+
+    Parameters
+    ----------
+    arr : ArrayLike
+    values_to_mask: list, tuple, or scalar
+
+    Returns
+    -------
+    np.ndarray[bool]
     """
+    # When called from Block.replace/replace_list, values_to_mask is a scalar
+    #  known to be holdable by arr.
+    # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
-
-    try:
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
-
-    except Exception:
-        values_to_mask = np.array(values_to_mask, dtype=object)
+    values_to_mask = np.array(values_to_mask, dtype=dtype)
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
-    mask = None
+    # GH 21977
+    mask = np.zeros(arr.shape, dtype=bool)
     for x in nonna:
-        if mask is None:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask = False
-            else:
-                mask = arr == x
-
-            # if x is a string and arr is not, then we get False and we must
-            # expand the mask to size arr.shape
-            if is_scalar(mask):
-                mask = np.zeros(arr.shape, dtype=bool)
+        if is_numeric_v_string_like(arr, x):
+            # GH#29553 prevent numpy deprecation warnings
+            pass
         else:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask |= False
-            else:
-                mask |= arr == x
+            mask |= arr == x
 
     if na_mask.any():
-        if mask is None:
-            mask = isna(arr)
-        else:
-            mask |= isna(arr)
-
-    # GH 21977
-    if mask is None:
-        mask = np.zeros(arr.shape, dtype=bool)
+        mask |= isna(arr)
 
     return mask
 
