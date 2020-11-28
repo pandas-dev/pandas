@@ -12,6 +12,8 @@ from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
+pytestmark = pytest.mark.slow
+
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
@@ -98,7 +100,6 @@ class TestDataFrameColor(TestPlotBase):
         assert all(i.get_linestyle() == "--" for i in ax.lines)
         assert all(i.get_marker() == "d" for i in ax.lines)
 
-    @pytest.mark.slow
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
 
@@ -152,7 +153,6 @@ class TestDataFrameColor(TestPlotBase):
         ]
         assert result == expected
 
-    @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
         # interfere with x-axis label and ticklabels with
@@ -175,7 +175,6 @@ class TestDataFrameColor(TestPlotBase):
             ax1.xaxis.get_label().get_visible() == ax2.xaxis.get_label().get_visible()
         )
 
-    @pytest.mark.slow
     def test_if_hexbin_xaxis_label_is_visible(self):
         # addressing issue #10678, to ensure colobar does not
         # interfere with x-axis label and ticklabels with
@@ -188,7 +187,6 @@ class TestDataFrameColor(TestPlotBase):
         assert all(vis.get_visible() for vis in ax.xaxis.get_majorticklabels())
         assert ax.xaxis.get_label().get_visible()
 
-    @pytest.mark.slow
     def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
         import matplotlib.pyplot as plt
 
@@ -250,7 +248,6 @@ class TestDataFrameColor(TestPlotBase):
         assert ax.collections[0].cmap.name == "cividis"
         assert ax.collections[1].cmap.name == "magma"
 
-    @pytest.mark.slow
     def test_line_colors(self):
         from matplotlib import cm
 
@@ -295,13 +292,11 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
-    @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
         DataFrame(np.random.rand(10, 2)).plot(color=colors)
         assert len(colors) == 3
 
-    @pytest.mark.slow
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
         from matplotlib import cm
@@ -370,7 +365,6 @@ class TestDataFrameColor(TestPlotBase):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
-    @pytest.mark.slow
     def test_area_colors(self):
         from matplotlib import cm
         from matplotlib.collections import PolyCollection
@@ -415,7 +409,6 @@ class TestDataFrameColor(TestPlotBase):
         for h in handles:
             assert h.get_alpha() == 0.5
 
-    @pytest.mark.slow
     def test_hist_colors(self):
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
@@ -450,7 +443,6 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::10], facecolors=["green"] * 5)
         tm.close()
 
-    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors(self):
         from matplotlib import cm
@@ -471,7 +463,6 @@ class TestDataFrameColor(TestPlotBase):
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         self._check_colors(ax.get_lines(), linecolors=rgba_colors)
 
-    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
         from matplotlib import cm
@@ -528,7 +519,6 @@ class TestDataFrameColor(TestPlotBase):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
-    @pytest.mark.slow
     def test_boxplot_colors(self):
         def _check_colors(bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=None):
             # TODO: outside this func?
@@ -612,13 +602,11 @@ class TestDataFrameColor(TestPlotBase):
         expected = self._unpack_cycler(plt.rcParams)[:3]
         self._check_colors(ax.get_lines(), linecolors=expected)
 
-    @pytest.mark.slow
     def test_no_color_bar(self):
         df = self.hexbin_df
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
-    @pytest.mark.slow
     def test_mixing_cmap_and_colormap_raises(self):
         df = self.hexbin_df
         msg = "Only specify one of `cmap` and `colormap`"

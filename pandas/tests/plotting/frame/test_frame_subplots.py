@@ -15,6 +15,8 @@ from pandas.tests.plotting.common import TestPlotBase
 
 from pandas.io.formats.printing import pprint_thing
 
+pytestmark = pytest.mark.slow
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlotsSubplots(TestPlotBase):
@@ -33,7 +35,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             }
         )
 
-    @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -72,7 +73,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
-    @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
         df = DataFrame(np.random.rand(10, 3), index=idx)
@@ -190,7 +190,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             == testdata["datetime_mixed_tz"].values
         ).all()
 
-    @pytest.mark.slow
     def test_subplots_layout_multi_column(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
@@ -224,7 +223,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(-1, -1))
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs, expected_axes_num, expected_layout, expected_shape",
         [
@@ -246,7 +244,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         )
         assert axes.shape == expected_shape
 
-    @pytest.mark.slow
     def test_subplots_warnings(self):
         # GH 9464
         with tm.assert_produces_warning(None):
@@ -258,7 +255,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             )
             df.plot(subplots=True, layout=(3, 2))
 
-    @pytest.mark.slow
     def test_subplots_multiple_axes(self):
         # GH 5353, 6970, GH 7069
         fig, axes = self.plt.subplots(2, 3)
@@ -358,7 +354,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         for ax in axes.ravel():
             self._check_visible(ax.get_yticklabels(), visible=True)
 
-    @pytest.mark.slow
     def test_subplots_dup_columns(self):
         # GH 10962
         df = DataFrame(np.random.rand(5, 5), columns=list("aaaaa"))
@@ -380,7 +375,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert len(ax.lines) == 0
         assert len(ax.right_ax.lines) == 5
 
-    @pytest.mark.slow
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
@@ -391,7 +385,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ax = df.plot.bar(grid=True, log=True)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
-    @pytest.mark.slow
     def test_bar_log_subplots(self):
         expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
 
@@ -402,7 +395,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
         tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
-    @pytest.mark.slow
     def test_boxplot_subplots_return_type(self):
         df = self.hist_df
 
@@ -422,7 +414,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
                 check_ax_title=False,
             )
 
-    @pytest.mark.slow
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
         import matplotlib.pyplot as plt
@@ -513,7 +504,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
@@ -552,7 +542,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
         self._check_bar_alignment(df, **kwargs)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
@@ -568,7 +557,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame(np.random.randn(5))
         self._check_bar_alignment(df, **kwargs)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "kwargs",
         [
@@ -584,7 +572,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         df = DataFrame(np.random.randn(5, 5))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
-    @pytest.mark.slow
     def test_bar_barwidth_position_int(self):
         # GH 12979
         df = DataFrame(np.random.randn(5, 5))

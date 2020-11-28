@@ -1,3 +1,5 @@
+""" Test cases for .boxplot method """
+
 import itertools
 import string
 
@@ -12,12 +14,11 @@ from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 import pandas.plotting as plotting
 
-""" Test cases for .boxplot method """
+pytestmark = pytest.mark.slow
 
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-    @pytest.mark.slow
     def test_boxplot_legacy1(self):
         df = DataFrame(
             np.random.randn(6, 4),
@@ -42,7 +43,6 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by="indic", notch=1)
 
-    @pytest.mark.slow
     def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
@@ -77,13 +77,11 @@ class TestDataFramePlots(TestPlotBase):
         lines = list(itertools.chain.from_iterable(d.values()))
         assert len(ax.get_lines()) == len(lines)
 
-    @pytest.mark.slow
     def test_boxplot_return_type_none(self):
         # GH 12216; return_type=None & by=None -> axes
         result = self.hist_df.boxplot()
         assert isinstance(result, self.plt.Axes)
 
-    @pytest.mark.slow
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
@@ -111,7 +109,6 @@ class TestDataFramePlots(TestPlotBase):
             result = df.boxplot(return_type="both")
         self._check_box_return_type(result, "both")
 
-    @pytest.mark.slow
     def test_boxplot_axis_limits(self):
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
@@ -138,13 +135,11 @@ class TestDataFramePlots(TestPlotBase):
         assert age_ax._sharey == height_ax
         assert dummy_ax._sharey is None
 
-    @pytest.mark.slow
     def test_boxplot_empty_column(self):
         df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type="axes")
 
-    @pytest.mark.slow
     def test_figsize(self):
         df = DataFrame(np.random.rand(10, 5), columns=["A", "B", "C", "D", "E"])
         result = df.boxplot(return_type="axes", figsize=(12, 8))
@@ -220,7 +215,6 @@ class TestDataFramePlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
-    @pytest.mark.slow
     def test_boxplot_legacy1(self):
         grouped = self.hist_df.groupby(by="gender")
         with tm.assert_produces_warning(UserWarning):
@@ -229,7 +223,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    @pytest.mark.slow
     def test_boxplot_legacy2(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
@@ -241,7 +234,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    @pytest.mark.slow
     def test_boxplot_legacy3(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
@@ -252,7 +244,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    @pytest.mark.slow
     def test_grouped_plot_fignums(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
@@ -276,7 +267,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby("gender").hist()
         tm.close()
 
-    @pytest.mark.slow
     def test_grouped_box_return_type(self):
         df = self.hist_df
 
@@ -311,7 +301,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             returned = df2.boxplot(by="category", return_type=t)
             self._check_box_return_type(returned, t, expected_keys=columns2)
 
-    @pytest.mark.slow
     def test_grouped_box_layout(self):
         df = self.hist_df
 
@@ -405,7 +394,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         self._check_axes_shape(self.plt.gcf().axes, axes_num=3, layout=(1, 3))
 
-    @pytest.mark.slow
     def test_grouped_box_multiple_axes(self):
         # GH 6970, GH 7069
         df = self.hist_df
