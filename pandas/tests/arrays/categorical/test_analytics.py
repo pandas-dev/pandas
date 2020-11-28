@@ -242,19 +242,22 @@ class TestCategoricalAnalytics:
         exp_cat = Categorical(["b", np.nan, "a"], categories=["a", "b"], ordered=True)
         tm.assert_categorical_equal(res, exp_cat)
 
-    @pytest.mark.parametrize("values, expected", [
-        [list("abc"), list("abc")],
-        [list("bac"), list("bac")],
-        [list("ab"), list("ab")],
-        [list("bc"), list("bc")],
-        [list("aabbcc"), list("abc")],
-        [list("aabb"), list("ab")],
-        [[np.nan, "a", "b"], [np.nan, "a", "b"]],
-        [["a", "b", np.nan], ["a", "b", np.nan]],
-        [["a", "b", "a", "b", np.nan], ["a", "b", np.nan]],
-    ])
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            [list("abc"), list("abc")],
+            [list("bac"), list("bac")],
+            [list("ab"), list("ab")],
+            [list("bc"), list("bc")],
+            [list("aabbcc"), list("abc")],
+            [list("aabb"), list("ab")],
+            [[np.nan, "a", "b"], [np.nan, "a", "b"]],
+            [["a", "b", np.nan], ["a", "b", np.nan]],
+            [["a", "b", "a", "b", np.nan], ["a", "b", np.nan]],
+        ],
+    )
     def test_unique_keep_unused_categories(self, values, expected, ordered):
-        # GHxxxxx
+        # GH38135
         dtype = CategoricalDtype(list("abc"), ordered=ordered)
         result = Categorical(values, dtype=dtype).unique(remove_unused_categories=False)
         expected = Categorical(expected, dtype=dtype)
