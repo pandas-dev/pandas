@@ -120,7 +120,7 @@ def test_frame_equal_shape_mismatch(df1, df2, obj_fixture):
     ],
 )
 def test_frame_equal_index_dtype_mismatch(df1, df2, msg, check_index_type):
-    kwargs = dict(check_index_type=check_index_type)
+    kwargs = {"check_index_type": check_index_type}
 
     if check_index_type:
         with pytest.raises(AssertionError, match=msg):
@@ -134,7 +134,7 @@ def test_empty_dtypes(check_dtype):
     df1 = DataFrame(columns=columns)
     df2 = DataFrame(columns=columns)
 
-    kwargs = dict(check_dtype=check_dtype)
+    kwargs = {"check_dtype": check_dtype}
     df1["col1"] = df1["col1"].astype("int64")
 
     if check_dtype:

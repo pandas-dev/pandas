@@ -667,7 +667,9 @@ def test_underlying_data_conversion():
     df
     df["val"].update(s)
 
-    expected = DataFrame(dict(a=[1, 2, 3], b=[1, 2, 3], c=[1, 2, 3], val=[0, 1, 0]))
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+    )
     return_value = expected.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     tm.assert_frame_equal(df, expected)
@@ -690,11 +692,11 @@ def test_underlying_data_conversion():
     pd.set_option("chained_assignment", "raise")
 
     # GH 3217
-    df = DataFrame(dict(a=[1, 3], b=[np.nan, 2]))
+    df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
     df["c"] = np.nan
     df["c"].update(Series(["foo"], index=[0]))
 
-    expected = DataFrame(dict(a=[1, 3], b=[np.nan, 2], c=["foo", np.nan]))
+    expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
     tm.assert_frame_equal(df, expected)
 
 

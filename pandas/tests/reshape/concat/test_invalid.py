@@ -12,7 +12,7 @@ class TestInvalidConcat:
 
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
-        for obj in [1, dict(), [1, 2], (1, 2)]:
+        for obj in [1, {}, [1, 2], (1, 2)]:
 
             msg = (
                 f"cannot concatenate object of type '{type(obj)}'; "
