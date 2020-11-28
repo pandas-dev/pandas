@@ -1888,31 +1888,39 @@ Those two examples are equivalent for this time series:
 
 Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
 
+.. _timeseries.backward-resample:
+
 Backward resample
 ~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.2.0
 
-``origin`` can not only make a foreward resample, namely grouping from the starting point with the given ``freq`` , but is also able to implement the backward resample. This method allows users to control bins of the grouping from the given origin with a backward direction. (:issue:`37804`)
+``origin`` can not only make a foreward resample, namely grouping from the starting point with the given ``freq``, but is also able to implement the backward resample. This method allows users to control bins of the grouping from the given origin with a backward direction. (:issue:`37804`)
 
 .. ipython:: python
 
    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
-   rng = date_range(start, end, freq="7min")
-   ts = Series(np.arange(len(rng)) * 3, index=rng)
+   rng = pd.date_range(start, end, freq="7min")
+   ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
 
-Setting ``offset='end'`` means using the max ``Timestamp`` as the ``origin`` with ``backward=True`` .
+Setting ``offset='end'`` means using the max ``Timestamp`` as the ``origin`` with ``backward=True``.
 
    ts.index.max()
    ts.resample("17min", origin="end").sum()
 
-Setting ``offset='end'`` means using the ceiling midnight of the max ``Timestamp`` as the ``origin`` with ``backward=True`` .
+The forward resample output stands for the grouping result from current datetimeindex to the next one with ``closed=left`` by default. In contrast, the backward resample output stands for the grouping result from former datetimeindex to the current one with ``closed=right`` by default. If you want to change this, ``closed=left`` is available.
 
 .. ipython:: python
 
-   ts.resample("17min", origin="end").sum()
+   ts.resample("17min", closed="left", origin="end").sum()
 
-If you want to make the backward resample from a Timestamp-like ``origin`` , ``backward=True`` should be set.
+Setting ``offset='end_day'`` means using the ceiling midnight of the max ``Timestamp`` as the ``origin`` with ``backward=True``.
+
+.. ipython:: python
+
+   ts.resample("17min", origin="end_day").sum()
+
+If you want to make the backward resample from a Timestamp-like ``origin``, ``backward=True`` should be set.
 
 .. ipython:: python
 
@@ -1925,12 +1933,6 @@ You can implement ``offset='end_day'`` in the following method equivalently.
    end_day_origin = ts.index.max().ceil("D")
    end_day_origin
    ts.resample("17min", origin=end_day_origin, backward=True).sum()
-
-By defualt, backward resample uses ``closed=right`` while ``closed=left`` is also available.
-
-.. ipython:: python
-
-   ts.resample("17min", closed="left", origin="end").sum()
 
 .. _timeseries.periods:
 
