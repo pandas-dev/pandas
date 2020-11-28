@@ -203,7 +203,7 @@ class TestPreserves:
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]).set_flags(
                     allows_duplicate_labels=False
                 ),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -213,7 +213,7 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -221,7 +221,7 @@ class TestPreserves:
             (
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 True,
             ),
         ],
