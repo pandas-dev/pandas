@@ -144,6 +144,10 @@ class Block(PandasObject):
                 f"placement implies {len(self.mgr_locs)}"
             )
 
+        if self.is_extension and self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(EA2D): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
+
     def _maybe_coerce_values(self, values):
         """
         Ensure we have correctly-typed values.
@@ -1666,33 +1670,6 @@ class ExtensionBlock(Block):
     is_extension = True
 
     values: ExtensionArray
-
-    def __init__(self, values, placement, ndim: int):
-        """
-        Initialize a non-consolidatable block.
-
-        'ndim' may be inferred from 'placement'.
-
-        This will call continue to call __init__ for the other base
-        classes mixed in with this Mixin.
-        """
-
-        # Placement must be converted to BlockPlacement so that we can check
-        # its length
-        if not isinstance(placement, libinternals.BlockPlacement):
-            placement = libinternals.BlockPlacement(placement)
-
-        # Maybe infer ndim from placement
-        if ndim is None:
-            if len(placement) != 1:
-                ndim = 1
-            else:
-                ndim = 2
-        super().__init__(values, placement, ndim=ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(EA2D): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
