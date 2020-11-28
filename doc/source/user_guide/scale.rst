@@ -80,6 +80,7 @@ Option 1 loads in all the data and then filters to what we need.
 Option 2 only loads the columns we request.
 
 .. ipython:: python
+   :okwarning:
 
    pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
