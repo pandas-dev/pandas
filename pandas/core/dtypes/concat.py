@@ -152,7 +152,7 @@ def concat_compat(to_concat, axis: int = 0):
             return np.concatenate(to_concat)
 
     elif _contains_datetime or "timedelta" in typs:
-        return _concat_datetime(to_concat, axis=axis, typs=typs)
+        return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -346,7 +346,7 @@ def _concatenate_2d(to_concat, axis: int):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0, typs=None):
+def _concat_datetime(to_concat, axis=0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype
@@ -355,15 +355,11 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     ----------
     to_concat : array of arrays
     axis : axis to provide concatenation
-    typs : set of to_concat dtypes
 
     Returns
     -------
     a single array, preserving the combined dtypes
     """
-    if typs is None:
-        typs = _get_dtype_kinds(to_concat)
-
     to_concat = [_wrap_datetimelike(x) for x in to_concat]
     single_dtype = len({x.dtype for x in to_concat}) == 1
 

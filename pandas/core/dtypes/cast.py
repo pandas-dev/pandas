@@ -317,10 +317,7 @@ def maybe_cast_result(result, obj: "Series", numeric_only: bool = False, how: st
     result : array-like
         result maybe casted to the dtype.
     """
-    if obj.ndim > 1:
-        dtype = obj._values.dtype
-    else:
-        dtype = obj.dtype
+    dtype = obj.dtype
     dtype = maybe_cast_result_dtype(dtype, how)
 
     if not is_scalar(result):
@@ -452,12 +449,9 @@ def maybe_upcast_putmask(
         #   NaN -> NaT
         #   integer or integer array -> date-like array
         if result.dtype.kind in ["m", "M"]:
-            if is_scalar(other):
-                if isna(other):
-                    other = result.dtype.type("nat")
-                elif is_integer(other):
-                    other = np.array(other, dtype=result.dtype)
-            elif is_integer_dtype(other):
+            if isna(other):
+                other = result.dtype.type("nat")
+            elif is_integer(other):
                 other = np.array(other, dtype=result.dtype)
 
         def changeit():
@@ -510,9 +504,8 @@ def maybe_casted_values(
     """
 
     values = index._values
-    if not isinstance(index, (ABCPeriodIndex, ABCDatetimeIndex)):
-        if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+    if values.dtype == np.object_:
+        values = lib.maybe_convert_objects(values)
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
@@ -1357,9 +1350,6 @@ def maybe_infer_to_datetimelike(
         value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
     ):
         return value
-    elif isinstance(value, ABCSeries):
-        if isinstance(value._values, ABCDatetimeIndex):
-            return value._values
 
     v = value
 
@@ -1451,9 +1441,6 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
     from pandas.core.tools.timedeltas import to_timedelta
 
     if dtype is not None:
-        if isinstance(dtype, str):
-            dtype = np.dtype(dtype)
-
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
         is_timedelta64 = is_timedelta64_dtype(dtype)
@@ -1466,18 +1453,21 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                 f"Please pass in '{dtype.name}[ns]' instead."
             )
 
-            if is_datetime64 and not is_dtype_equal(
-                getattr(dtype, "subtype", dtype), DT64NS_DTYPE
-            ):
+            if is_datetime64:
+                # unpack e.g. SparseDtype
+                dtype = getattr(dtype, "subtype", dtype)
+                if not is_dtype_equal(dtype, DT64NS_DTYPE):
 
-                # pandas supports dtype whose granularity is less than [ns]
-                # e.g., [ps], [fs], [as]
-                if dtype <= np.dtype("M8[ns]"):
-                    if dtype.name == "datetime64":
-                        raise ValueError(msg)
-                    dtype = DT64NS_DTYPE
-                else:
-                    raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
+                    # pandas supports dtype whose granularity is less than [ns]
+                    # e.g., [ps], [fs], [as]
+                    if dtype <= np.dtype("M8[ns]"):
+                        if dtype.name == "datetime64":
+                            raise ValueError(msg)
+                        dtype = DT64NS_DTYPE
+                    else:
+                        raise TypeError(
+                            f"cannot convert datetimelike to dtype [{dtype}]"
+                        )
             elif is_datetime64tz:
 
                 # our NaT doesn't support tz's
