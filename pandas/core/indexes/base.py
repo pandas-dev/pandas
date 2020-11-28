@@ -1367,7 +1367,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
-        >>> idx.set_names({'species': 'snake'})
+        >>> idx.set_names({'kind': 'snake'})
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
