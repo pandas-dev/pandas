@@ -12,13 +12,13 @@ if TYPE_CHECKING:
         Int64Index,
         IntervalIndex,
         MultiIndex,
-        NDFrame,
         PeriodIndex,
         RangeIndex,
         Series,
         TimedeltaIndex,
         UInt64Index,
     )
+    from pandas.core.generic import NDFrame
 
 
 # define abstract base classes to enable isinstance type checking on our

@@ -227,6 +227,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
+    inferred_freq: Optional[str]
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
