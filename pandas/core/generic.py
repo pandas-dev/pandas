@@ -8334,7 +8334,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-01 23:56:00    15
         2000-10-02 00:13:00    45
         2000-10-02 00:30:00    45
-        Freq: 17T, dtype: int32
+        Freq: 17T, dtype: int64
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
         in this example it is equivalent to have `base=2`:
