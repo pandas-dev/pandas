@@ -504,9 +504,8 @@ def maybe_casted_values(
     """
 
     values = index._values
-    if not isinstance(index, (ABCPeriodIndex, ABCDatetimeIndex)):
-        if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+    if values.dtype == np.object_:
+        values = lib.maybe_convert_objects(values)
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
