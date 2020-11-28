@@ -191,7 +191,7 @@ class TestCategoricalAnalytics:
             ser.searchsorted(["bread", "cucumber"])
 
     def test_unique(self, ordered):
-        # GHXXXXX
+        # GH38140
         dtype = CategoricalDtype(["a", "b", "c"], ordered=ordered)
 
         # categories are reordered based on value when ordered=False
@@ -215,7 +215,7 @@ class TestCategoricalAnalytics:
         tm.assert_categorical_equal(res, exp_cat)
 
     def test_unique_index_series(self, ordered):
-        # GHXXXXX
+        # GH38140
         dtype = CategoricalDtype([3, 2, 1], ordered=ordered)
 
         c = Categorical([3, 1, 2, 2, 1], dtype=dtype)
