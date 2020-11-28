@@ -1273,7 +1273,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
-        # we need to ensure __array__ get's all the way to an
+        # we need to ensure __array__ gets all the way to an
         # ndarray.
         return np.asarray(ret)
 
