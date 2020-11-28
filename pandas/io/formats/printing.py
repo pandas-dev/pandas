@@ -206,7 +206,7 @@ def pprint_thing(
                 translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
-            escape_chars = escape_chars or tuple()
+            escape_chars = escape_chars or ()
 
         result = str(thing)
         for c in escape_chars:
