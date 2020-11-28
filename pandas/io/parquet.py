@@ -189,7 +189,7 @@ class PyArrowImpl(BaseImpl):
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if LooseVersion(self.api.__version__) > "0.15.1.dev":
+            if LooseVersion(self.api.__version__) >= "0.16":
                 import pandas as pd
 
                 mapping = {

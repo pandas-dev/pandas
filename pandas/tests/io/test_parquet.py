@@ -828,7 +828,7 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    @td.skip_if_no("pyarrow", min_version="0.16")
     def test_use_nullable_dtypes(self, pa):
         import pyarrow.parquet as pq
 
