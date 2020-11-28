@@ -295,4 +295,4 @@ def test_remove_unused_levels_with_missing():
         names=["L1", "L2"],
     )
 
-    tm.assert_index_equal(result.index, expected)
+    tm.assert_index_equal(result, expected)
