@@ -1745,8 +1745,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Returns True if `key` is in this Categorical.
         """
+        # in pandas 2.0, remove this method.
+
         # if key is a NaN, check if any NaN is in self.
         if is_valid_nat_for_dtype(key, self.categories.dtype):
+            if key is not self.dtype.na_value and not isinstance(key, self.dtype.type):
+                warn(f"Membership check with {key} will return False in the future. "
+                     f"Consider using {self.dtype.na_value} instead",
+                     FutureWarning,
+                     stacklevel=2,
+                     )
             return self.isna().any()
 
         return contains(self, key, container=self._codes)

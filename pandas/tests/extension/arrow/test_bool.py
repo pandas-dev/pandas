@@ -50,6 +50,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()
 
+    @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
+    def test_contains(self, data, data_missing):
+        super().test_contains(data, data_missing)
+
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_dtype(self, data):
