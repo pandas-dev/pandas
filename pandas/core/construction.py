@@ -402,7 +402,7 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
     return obj
 
 
-def wrap_datetimelike(arr):
+def wrap_if_datetimelike(arr):
     """
     Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
     """

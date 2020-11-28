@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.construction import wrap_datetimelike
+from pandas.core.construction import wrap_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -176,8 +176,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
-    lvalues = wrap_datetimelike(left)
-    rvalues = wrap_datetimelike(right)
+    lvalues = wrap_if_datetimelike(left)
+    rvalues = wrap_if_datetimelike(right)
     rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
@@ -207,7 +207,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     ndarray or ExtensionArray
     """
     # NB: We assume extract_array has already been called on left and right
-    lvalues = wrap_datetimelike(left)
+    lvalues = wrap_if_datetimelike(left)
     rvalues = right
 
     rvalues = lib.item_from_zerodim(rvalues)
@@ -332,7 +332,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
-    lvalues = wrap_datetimelike(left)
+    lvalues = wrap_if_datetimelike(left)
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
