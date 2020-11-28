@@ -168,6 +168,7 @@ def _ensure_data(
     elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
+        values = cast("Categorical", values)
         values = values.codes
         dtype = pandas_dtype("category")
 

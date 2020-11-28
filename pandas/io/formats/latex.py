@@ -153,11 +153,11 @@ class RowStringConverter(ABC):
                         break
                 return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
-            out = (pad_empties(i) for i in out)
+            gen = (pad_empties(i) for i in out)
 
             # Add empty spaces for each column level
             clevels = self.frame.columns.nlevels
-            out = [[" " * len(i[-1])] * clevels + i for i in out]
+            out = [[" " * len(i[-1])] * clevels + i for i in gen]
 
             # Add the column names to the last index column
             cnames = self.frame.columns.names
