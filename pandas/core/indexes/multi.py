@@ -2527,7 +2527,8 @@ class MultiIndex(Index):
         if is_scalar(loc):
             return new_values
 
-        if len(new_values) == 1:
+        if len(new_values) == 1 and not self.nlevels > 1:
+            # If more than one level left, we can not return a scalar
             return new_values[0]
 
         new_index = self[loc]
