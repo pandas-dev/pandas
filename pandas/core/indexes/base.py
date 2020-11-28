@@ -2847,8 +2847,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                result = algos.unique1d(result)
-                return result
+                return algos.unique1d(result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2863,6 +2862,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if sort is None:
             result = algos.safe_sort(result)
+
+        # Intersection has to be unique
+        assert np.array_equal(algos.unique(result), result)
 
         return result
 
