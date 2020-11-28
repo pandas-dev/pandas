@@ -120,7 +120,7 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
-    # if values is floating numpy array, preserve it's dtype
+    # if values is floating numpy array, preserve its dtype
     if dtype is None and hasattr(values, "dtype"):
         if is_float_dtype(values.dtype):
             dtype = values.dtype
@@ -275,16 +275,18 @@ class FloatingArray(BaseMaskedArray):
         super().__init__(values, mask, copy=copy)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "FloatingArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "FloatingArray":
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return FloatingArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "FloatingArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 

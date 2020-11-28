@@ -345,10 +345,16 @@ class TestPandasContainer:
             convert_axes=convert_axes,
             dtype=dtype,
         )
-        if not dtype:  # TODO: Special case for object data; maybe a bug?
-            assert result.iloc[0, 2] is None
-        else:
-            assert np.isnan(result.iloc[0, 2])
+        assert np.isnan(result.iloc[0, 2])
+
+    @pytest.mark.parametrize("dtype", [True, False])
+    def test_frame_read_json_dtype_missing_value(self, orient, dtype):
+        # GH28501 Parse missing values using read_json with dtype=False
+        # to NaN instead of None
+        result = read_json("[null]", dtype=dtype)
+        expected = DataFrame([np.nan])
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("inf", [np.inf, np.NINF])
     @pytest.mark.parametrize("dtype", [True, False])
@@ -373,7 +379,7 @@ class TestPandasContainer:
         ],
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
-        df = DataFrame([dict(a_float=value)])
+        df = DataFrame([{"a_float": value}])
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
@@ -436,7 +442,7 @@ class TestPandasContainer:
     def test_v12_compat(self, datapath):
         dti = pd.date_range("2000-01-03", "2000-01-07")
         # freq doesnt roundtrip
-        dti = pd.DatetimeIndex(np.asarray(dti), freq=None)
+        dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -466,11 +472,11 @@ class TestPandasContainer:
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
         # freq doesnt round-trip
-        index = pd.DatetimeIndex(list(index), freq=None)
+        index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            dict(
-                float_1=[
+            {
+                "float_1": [
                     -0.92077639,
                     0.77434435,
                     1.25234727,
@@ -482,7 +488,7 @@ class TestPandasContainer:
                     0.95748401,
                     -1.02970536,
                 ],
-                int_1=[
+                "int_1": [
                     19680418,
                     75337055,
                     99973684,
@@ -494,7 +500,7 @@ class TestPandasContainer:
                     41903419,
                     16008365,
                 ],
-                str_1=[
+                "str_1": [
                     "78c608f1",
                     "64a99743",
                     "13d2ff52",
@@ -506,7 +512,7 @@ class TestPandasContainer:
                     "7a669144",
                     "8d64d068",
                 ],
-                float_2=[
+                "float_2": [
                     -0.0428278,
                     -1.80872357,
                     3.36042349,
@@ -518,7 +524,7 @@ class TestPandasContainer:
                     -0.03030452,
                     1.43366348,
                 ],
-                str_2=[
+                "str_2": [
                     "14f04af9",
                     "d085da90",
                     "4bcfac83",
@@ -530,7 +536,7 @@ class TestPandasContainer:
                     "1f6a09ba",
                     "4bfc4d87",
                 ],
-                int_2=[
+                "int_2": [
                     86967717,
                     98098830,
                     51927505,
@@ -542,7 +548,7 @@ class TestPandasContainer:
                     24867120,
                     76131025,
                 ],
-            ),
+            },
             index=index,
         )
 
@@ -1189,7 +1195,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
 
         assert dumps(tz_range, iso_dates=True) == exp
-        dti = pd.DatetimeIndex(tz_range)
+        dti = DatetimeIndex(tz_range)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)

@@ -245,7 +245,7 @@ class TestDataFrameReshape:
 
         # Fill with non-category results in a ValueError
         msg = r"'fill_value=d' is not present in"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
         # Fill with category value replaces missing values as expected
@@ -336,19 +336,19 @@ class TestDataFrameReshape:
     def test_unstack_preserve_dtypes(self):
         # Checks fix for #11847
         df = DataFrame(
-            dict(
-                state=["IL", "MI", "NC"],
-                index=["a", "b", "c"],
-                some_categories=Series(["a", "b", "c"]).astype("category"),
-                A=np.random.rand(3),
-                B=1,
-                C="foo",
-                D=pd.Timestamp("20010102"),
-                E=Series([1.0, 50.0, 100.0]).astype("float32"),
-                F=Series([3.0, 4.0, 5.0]).astype("float64"),
-                G=False,
-                H=Series([1, 200, 923442], dtype="int8"),
-            )
+            {
+                "state": ["IL", "MI", "NC"],
+                "index": ["a", "b", "c"],
+                "some_categories": Series(["a", "b", "c"]).astype("category"),
+                "A": np.random.rand(3),
+                "B": 1,
+                "C": "foo",
+                "D": pd.Timestamp("20010102"),
+                "E": Series([1.0, 50.0, 100.0]).astype("float32"),
+                "F": Series([3.0, 4.0, 5.0]).astype("float64"),
+                "G": False,
+                "H": Series([1, 200, 923442], dtype="int8"),
+            }
         )
 
         def unstack_and_compare(df, column_name):
@@ -1175,6 +1175,32 @@ def test_stack_timezone_aware_values():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dropna", [True, False])
+def test_stack_empty_frame(dropna):
+    # GH 36113
+    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    result = DataFrame(dtype=np.float64).stack(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize("fill_value", [None, 0])
+def test_stack_unstack_empty_frame(dropna, fill_value):
+    # GH 36113
+    result = (
+        DataFrame(dtype=np.int64).stack(dropna=dropna).unstack(fill_value=fill_value)
+    )
+    expected = DataFrame(dtype=np.int64)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_single_index_series():
+    # GH 36113
+    msg = r"index must be a MultiIndex to unstack.*"
+    with pytest.raises(ValueError, match=msg):
+        Series(dtype=np.int64).unstack()
+
+
 def test_unstacking_multi_index_df():
     # see gh-30740
     df = DataFrame(
@@ -1663,7 +1689,7 @@ Thur,Lunch,Yes,51.51,17"""
         name = (["a"] * 3) + (["b"] * 3)
         date = pd.to_datetime(["2013-01-03", "2013-01-04", "2013-01-05"] * 2)
         var1 = np.random.randint(0, 100, 6)
-        df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
+        df = DataFrame({"ID": id_col, "NAME": name, "DATE": date, "VAR1": var1})
 
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"

@@ -157,7 +157,7 @@ def test_quantile_raises():
 
 def test_quantile_out_of_bounds_q_raises():
     # https://github.com/pandas-dev/pandas/issues/27470
-    df = DataFrame(dict(a=[0, 0, 0, 1, 1, 1], b=range(6)))
+    df = DataFrame({"a": [0, 0, 0, 1, 1, 1], "b": range(6)})
     g = df.groupby([0, 0, 0, 1, 1, 1])
     with pytest.raises(ValueError, match="Got '50.0' instead"):
         g.quantile(50)
@@ -169,7 +169,7 @@ def test_quantile_out_of_bounds_q_raises():
 def test_quantile_missing_group_values_no_segfaults():
     # GH 28662
     data = np.array([1.0, np.nan, 1.0])
-    df = DataFrame(dict(key=data, val=range(3)))
+    df = DataFrame({"key": data, "val": range(3)})
 
     # Random segfaults; would have been guaranteed in loop
     grp = df.groupby("key")
@@ -194,7 +194,7 @@ def test_quantile_missing_group_values_correct_results(
     df = DataFrame({"key": key, "val": val})
 
     expected = DataFrame(
-        expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
+        expected_val, index=Index(expected_key, name="key"), columns=["val"]
     )
 
     grp = df.groupby("key")
@@ -223,7 +223,7 @@ def test_groupby_quantile_nullable_array(values, q):
         idx = pd.MultiIndex.from_product((["x", "y"], q), names=["a", None])
         true_quantiles = [0.0, 0.5, 1.0]
     else:
-        idx = pd.Index(["x", "y"], name="a")
+        idx = Index(["x", "y"], name="a")
         true_quantiles = [0.5]
 
     expected = pd.Series(true_quantiles * 2, index=idx, name="b")
@@ -251,6 +251,6 @@ def test_groupby_timedelta_quantile():
                 pd.Timedelta("0 days 00:00:02.990000"),
             ]
         },
-        index=pd.Index([1, 2], name="group"),
+        index=Index([1, 2], name="group"),
     )
     tm.assert_frame_equal(result, expected)

@@ -14,6 +14,7 @@ from pandas._typing import Axis, DtypeObj, Label, Scalar
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
+    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -224,7 +225,8 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
             # TODO: What about re-joining object columns?
             block_values = [
-                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))
+                make_block(dvals_list[n], placement=[n], ndim=2)
+                for n in range(len(dvals_list))
             ]
 
         else:
@@ -346,7 +348,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     oindex = index.astype("O")
 
                 if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
-                    val = com.dict_compat(val)
+                    val = dict_compat(val)
                 else:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
@@ -368,7 +370,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes = []
+        indexes: List[Union[List[Label], Index]] = []
 
         have_raw_arrays = False
         have_series = False

@@ -183,7 +183,7 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
-    # if values is integer numpy array, preserve it's dtype
+    # if values is integer numpy array, preserve its dtype
     if dtype is None and hasattr(values, "dtype"):
         if is_integer_dtype(values.dtype):
             dtype = values.dtype
@@ -358,15 +358,17 @@ class IntegerArray(BaseMaskedArray):
         return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 

@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Union
+from typing import Any, Callable, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -22,6 +22,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -55,8 +56,9 @@ import pandas.io.formats.printing as printing
 # ----------------------------------------------------------------------------
 # Array
 
+SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
-_sparray_doc_kwargs = dict(klass="SparseArray")
+_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: "SparseArray") -> np.ndarray:
@@ -396,8 +398,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> "SparseArray":
+        cls: Type[SparseArrayT],
+        sparse_array: np.ndarray,
+        sparse_index: SparseIndex,
+        dtype: SparseDtype,
+    ) -> SparseArrayT:
         new = object.__new__(cls)
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -483,7 +488,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -805,10 +810,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, allow_fill=False, fill_value=None) -> "SparseArray":
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> "SparseArray":
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -936,12 +941,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
-    def copy(self):
+    def copy(self: SparseArrayT) -> SparseArrayT:
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(
+        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
+    ) -> SparseArrayT:
         fill_value = to_concat[0].fill_value
 
         values = []
@@ -1155,7 +1162,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:

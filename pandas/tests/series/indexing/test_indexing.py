@@ -327,9 +327,9 @@ def test_loc_setitem_2d_to_1d_raises():
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "key of type tuple not found and not a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
@@ -487,7 +487,7 @@ def test_categorical_assigning_ops():
 
 def test_getitem_categorical_str():
     # GH#31765
-    ser = Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
+    ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
@@ -667,7 +667,9 @@ def test_underlying_data_conversion():
     df
     df["val"].update(s)
 
-    expected = DataFrame(dict(a=[1, 2, 3], b=[1, 2, 3], c=[1, 2, 3], val=[0, 1, 0]))
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+    )
     return_value = expected.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     tm.assert_frame_equal(df, expected)
@@ -690,11 +692,11 @@ def test_underlying_data_conversion():
     pd.set_option("chained_assignment", "raise")
 
     # GH 3217
-    df = DataFrame(dict(a=[1, 3], b=[np.nan, 2]))
+    df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
     df["c"] = np.nan
     df["c"].update(Series(["foo"], index=[0]))
 
-    expected = DataFrame(dict(a=[1, 3], b=[np.nan, 2], c=["foo", np.nan]))
+    expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
     tm.assert_frame_equal(df, expected)
 
 

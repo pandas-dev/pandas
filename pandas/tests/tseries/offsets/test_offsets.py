@@ -1,6 +1,7 @@
 from datetime import date, datetime, time as dt_time, timedelta
 from typing import Dict, List, Optional, Tuple, Type
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -14,6 +15,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
@@ -129,6 +131,8 @@ class Base:
         tz = tz_naive_fixture
         if self._offset is None:
             return
+        if isinstance(tz, tzlocal) and not IS64:
+            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -4187,8 +4191,8 @@ class TestDST:
 
     # test both basic names and dateutil timezones
     timezone_utc_offsets = {
-        "US/Eastern": dict(utc_offset_daylight=-4, utc_offset_standard=-5),
-        "dateutil/US/Pacific": dict(utc_offset_daylight=-7, utc_offset_standard=-8),
+        "US/Eastern": {"utc_offset_daylight": -4, "utc_offset_standard": -5},
+        "dateutil/US/Pacific": {"utc_offset_daylight": -7, "utc_offset_standard": -8},
     }
     valid_date_offsets_singular = [
         "weekday",

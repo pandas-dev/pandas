@@ -84,6 +84,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
+    maybe_box_datetimelike,
     maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
@@ -113,12 +114,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import algorithms, common as com, nanops, ops
+from pandas.core import algorithms, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import (
     aggregate,
@@ -157,9 +157,9 @@ from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import DataFrameInfo
+from pandas.io.formats.info import BaseInfo, DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -205,12 +205,14 @@ Merge DataFrame or named Series objects with a database-style join.
 The join is done on columns or indexes. If joining columns on
 columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
 on indexes or indexes on a column or columns, the index will be passed on.
+When performing a cross merge, no column specifications to merge on are
+allowed.
 
 Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -221,6 +223,11 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
+    * cross: creates the cartesian product from both frames, preserves the order
+      of the left keys.
+
+      .. versionadded:: 1.2.0
+
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -341,6 +348,44 @@ Traceback (most recent call last):
 ...
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
+
+>>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
+>>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
+>>> df1
+      a  b
+0   foo  1
+1   bar  2
+>>> df2
+      a  c
+0   foo  3
+1   baz  4
+
+>>> df1.merge(df2, how='inner', on='a')
+      a  b  c
+0   foo  1  3
+
+>>> df1.merge(df2, how='left', on='a')
+      a  b  c
+0   foo  1  3.0
+1   bar  2  NaN
+
+>>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right': [7, 8]})
+>>> df1
+    left
+0   foo
+1   bar
+>>> df2
+    right
+0   7
+1   8
+
+>>> df1.merge(df2, how='cross')
+   left  right
+0   foo      7
+1   foo      8
+2   bar      7
+3   bar      8
 """
 
 
@@ -434,6 +479,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
+    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
 
     @property
     def _constructor(self) -> Type[DataFrame]:
@@ -726,7 +772,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         d.to_string(buf=buf)
         value = buf.getvalue()
-        repr_width = max(len(l) for l in value.split("\n"))
+        repr_width = max(len(line) for line in value.split("\n"))
 
         return repr_width < width
 
@@ -1538,7 +1584,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_datetimelike, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1546,7 +1592,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1555,7 +1601,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
 
@@ -2066,6 +2112,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls(mgr)
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
@@ -2118,7 +2165,7 @@ class DataFrame(NDFrame, OpsMixin):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {114, 117, 118, 119, None}, default 114
+        version : {{114, 117, 118, 119, None}}, default 114
             Version to use in the output dta file. Set to None to let pandas
             decide between 118 or 119 formats depending on the number of
             columns in the frame. Version 114 can be read by Stata 10 and
@@ -2129,6 +2176,11 @@ class DataFrame(NDFrame, OpsMixin):
             with lengths up to 2,000,000 characters. Versions 118 and 119
             support Unicode characters, and version 119 supports more than
             32,767 variables.
+
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
 
             .. versionchanged:: 1.0.0
 
@@ -2142,23 +2194,17 @@ class DataFrame(NDFrame, OpsMixin):
         compression : str or dict, default 'infer'
             For on-the-fly compression of the output dta. If string, specifies
             compression mode. If dict, value at key 'method' specifies
-            compression mode. Compression mode must be one of {'infer', 'gzip',
-            'bz2', 'zip', 'xz', None}. If compression mode is 'infer' and
+            compression mode. Compression mode must be one of {{'infer', 'gzip',
+            'bz2', 'zip', 'xz', None}}. If compression mode is 'infer' and
             `fname` is path-like, then detect compression from the following
             extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-            compression). If dict and compression mode is one of {'zip',
-            'gzip', 'bz2'}, or inferred as one of the above, other entries
+            compression). If dict and compression mode is one of {{'zip',
+            'gzip', 'bz2'}}, or inferred as one of the above, other entries
             passed as additional compression options.
 
             .. versionadded:: 1.1.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2181,9 +2227,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+        >>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
         ...                               'parrot'],
-        ...                    'speed': [350, 18, 361, 15]})
+        ...                    'speed': [350, 18, 361, 15]}})
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         if version not in (114, 117, 118, 119, None):
@@ -2250,6 +2296,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
+        storage_options=_shared_docs["storage_options"],
         examples="""Examples
         --------
         >>> df = pd.DataFrame(
@@ -2296,12 +2343,13 @@ class DataFrame(NDFrame, OpsMixin):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
-        ioargs.filepath_or_buffer.writelines(result)
-        ioargs.close()
+
+        with get_handle(buf, mode, storage_options=storage_options) as handles:
+            assert not isinstance(handles.handle, (str, mmap.mmap))
+            handles.handle.writelines(result)
         return None
 
+    @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
@@ -2335,12 +2383,12 @@ class DataFrame(NDFrame, OpsMixin):
 
             Previously this was "fname"
 
-        engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+        engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+        compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
@@ -2360,13 +2408,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 0.24.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2393,7 +2435,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame(data={{'col1': [1, 2], 'col2': [3, 4]}})
         >>> df.to_parquet('df.parquet.gzip',
         ...               compression='gzip')  # doctest: +SKIP
         >>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
@@ -2527,16 +2569,28 @@ class DataFrame(NDFrame, OpsMixin):
     @Substitution(
         klass="DataFrame",
         type_sub=" and columns",
-        max_cols_sub=(
-            """max_cols : int, optional
+        max_cols_sub=dedent(
+            """\
+            max_cols : int, optional
                 When to switch from the verbose to the truncated output. If the
                 DataFrame has more than `max_cols` columns, the truncated output
                 is used. By default, the setting in
-                ``pandas.options.display.max_info_columns`` is used.
-            """
+                ``pandas.options.display.max_info_columns`` is used."""
         ),
-        examples_sub=(
-            """
+        show_counts_sub=dedent(
+            """\
+            show_counts : bool, optional
+                Whether to show the non-null counts. By default, this is shown
+                only if the DataFrame is smaller than
+                ``pandas.options.display.max_info_rows`` and
+                ``pandas.options.display.max_info_columns``. A value of True always
+                shows the counts, and False never shows the counts.
+            null_counts : bool, optional
+                .. deprecated:: 1.2.0
+                    Use show_counts instead."""
+        ),
+        examples_sub=dedent(
+            """\
             >>> int_values = [1, 2, 3, 4, 5]
             >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
             >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -2619,31 +2673,42 @@ class DataFrame(NDFrame, OpsMixin):
             dtypes: object(3)
             memory usage: 165.9 MB"""
         ),
-        see_also_sub=(
-            """
+        see_also_sub=dedent(
+            """\
             DataFrame.describe: Generate descriptive statistics of DataFrame
                 columns.
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
+        version_added_sub="",
     )
-    @doc(DataFrameInfo.to_buffer)
+    @doc(BaseInfo.render)
     def info(
         self,
         verbose: Optional[bool] = None,
         buf: Optional[IO[str]] = None,
         max_cols: Optional[int] = None,
         memory_usage: Optional[Union[bool, str]] = None,
+        show_counts: Optional[bool] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
+        if null_counts is not None:
+            if show_counts is not None:
+                raise ValueError("null_counts used with show_counts. Use show_counts.")
+            warnings.warn(
+                "null_counts is deprecated. Use show_counts instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            show_counts = null_counts
         info = DataFrameInfo(
             data=self,
             memory_usage=memory_usage,
         )
-        info.to_buffer(
+        info.render(
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
-            show_counts=null_counts,
+            show_counts=show_counts,
         )
 
     def memory_usage(self, index=True, deep=False) -> Series:
@@ -2728,7 +2793,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5216
+        5244
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -2929,7 +2994,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_hashable(key):
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
-                if self.columns.nlevels > 1:
+                if isinstance(self.columns, MultiIndex):
                     return self._getitem_multilevel(key)
                 return self._get_item_cache(key)
 
@@ -3858,7 +3923,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
@@ -4560,7 +4630,7 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
         inplace : bool, default False
-            Modify the DataFrame in place (do not create a new object).
+            If True, modifies the DataFrame in place (do not create a new object).
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -5961,13 +6031,16 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            arrays = [array_op(l, r) for l, r in zip(self._iter_column_arrays(), right)]
+            arrays = [
+                array_op(_left, _right)
+                for _left, _right in zip(self._iter_column_arrays(), right)
+            ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)  # Handle other cases later
             right = right._values
 
-            arrays = [array_op(l, right) for l in self._iter_column_arrays()]
+            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             # Remaining cases have less-obvious dispatch rules
@@ -6031,7 +6104,8 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -6061,11 +6135,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
@@ -6133,9 +6207,9 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: DataFrame,
@@ -6363,29 +6437,11 @@ Keep all original rows and columns and also all original values
         """
         import pandas.core.computation.expressions as expressions
 
-        def extract_values(arr):
-            # Does two things:
-            # 1. maybe gets the values from the Series / Index
-            # 2. convert datelike to i8
-            # TODO: extract_array?
-            if isinstance(arr, (Index, Series)):
-                arr = arr._values
-
-            if needs_i8_conversion(arr.dtype):
-                if is_extension_array_dtype(arr.dtype):
-                    arr = arr.asi8
-                else:
-                    arr = arr.view("i8")
-            return arr
-
         def combiner(x, y):
-            mask = isna(x)
-            # TODO: extract_array?
-            if isinstance(mask, (Index, Series)):
-                mask = mask._values
+            mask = extract_array(isna(x))
 
-            x_values = extract_values(x)
-            y_values = extract_values(y)
+            x_values = extract_array(x, extract_numpy=True)
+            y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
@@ -6448,7 +6504,7 @@ Keep all original rows and columns and also all original values
         See Also
         --------
         dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Examples
         --------
@@ -6476,7 +6532,7 @@ Keep all original rows and columns and also all original values
         1  b  e
         2  c  f
 
-        For Series, it's name attribute must be set.
+        For Series, its name attribute must be set.
 
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
@@ -7984,7 +8040,7 @@ NaN 12.3   33.0
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
         -----
@@ -8072,6 +8128,15 @@ NaN 12.3   33.0
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
+            if how == "cross":
+                return merge(
+                    self,
+                    other,
+                    how=how,
+                    on=on,
+                    suffixes=(lsuffix, rsuffix),
+                    sort=sort,
+                )
             return merge(
                 self,
                 other,
@@ -8718,6 +8783,7 @@ NaN 12.3   33.0
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,
@@ -8745,11 +8811,6 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = np.array(
-            [is_object_dtype(dtype) for dtype in own_dtypes],
-            dtype=bool,
-        ).any()
-
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
@@ -8776,12 +8837,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or (
-            numeric_only is None
-            and axis == 0
-            and not any_object
-            and not self._mgr.any_extension_types
-        ):
+        if numeric_only is not None or axis == 0:
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -8806,35 +8862,13 @@ NaN 12.3   33.0
                 # GH#35865 careful to cast explicitly to object
                 nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
                 out[:] = np.array(nvs, dtype=object)
+            if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
+                # Even if we are object dtype, follow numpy and return
+                #  float64, see test_apply_funcs_over_empty
+                out = out.astype(np.float64)
             return out
 
         assert numeric_only is None
-
-        if not self._is_homogeneous_type or self._mgr.any_extension_types:
-            # try to avoid self.values call
-
-            if filter_type is None and axis == 0:
-                # operate column-wise
-
-                # numeric_only must be None here, as other cases caught above
-
-                # this can end up with a non-reduction
-                # but not always. if the types are mixed
-                # with datelike then need to make sure a series
-
-                # we only end up here if we have not specified
-                # numeric_only and yet we have tried a
-                # column-by-column reduction, where we have mixed type.
-                # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=func, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
 
         data = self
         values = data.values

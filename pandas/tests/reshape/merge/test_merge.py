@@ -601,6 +601,18 @@ class TestMerge:
 
         assert (df.var3.unique() == result.var3.unique()).all()
 
+    @pytest.mark.parametrize(
+        ("sort", "values"), [(False, [1, 1, 0, 1, 1]), (True, [0, 1, 1, 1, 1])]
+    )
+    @pytest.mark.parametrize("how", ["left", "right"])
+    def test_merge_same_order_left_right(self, sort, values, how):
+        # GH#35382
+        df = DataFrame({"a": [1, 0, 1]})
+
+        result = df.merge(df, on="a", how=how, sort=sort)
+        expected = DataFrame(values, columns=["a"])
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
         df2 = DataFrame({"i1": [0], "i3": [0]})
@@ -1923,9 +1935,7 @@ def test_merge_index_types(index):
 
     result = left.merge(right, on=["index_col"])
 
-    expected = DataFrame(
-        dict([("left_data", [1, 2]), ("right_data", [1.0, 2.0])]), index=index
-    )
+    expected = DataFrame({"left_data": [1, 2], "right_data": [1.0, 2.0]}, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2180,7 +2190,9 @@ def test_merge_multiindex_columns():
     result = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf)))
 
     # Constructing the expected results
-    expected_labels = [l + l_suf for l in letters] + [l + r_suf for l in letters]
+    expected_labels = [letter + l_suf for letter in letters] + [
+        letter + r_suf for letter in letters
+    ]
     expected_index = pd.MultiIndex.from_product(
         [expected_labels, numbers], names=["outer", "inner"]
     )
@@ -2283,3 +2295,57 @@ def test_merge_join_categorical_multiindex():
     expected = expected.drop(["Cat", "Int"], axis=1)
     result = a.join(b, on=["Cat1", "Int1"])
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    ("kwargs", "err_msg"),
+    [
+        ({"left_on": "a", "left_index": True}, ["left_on", "left_index"]),
+        ({"right_on": "a", "right_index": True}, ["right_on", "right_index"]),
+    ],
+)
+def test_merge_join_cols_error_reporting_duplicates(func, kwargs, err_msg):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = rf'Can only pass argument "{err_msg[0]}" OR "{err_msg[1]}" not both\.'
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, **kwargs)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    ("kwargs", "err_msg"),
+    [
+        ({"left_on": "a"}, ["right_on", "right_index"]),
+        ({"right_on": "a"}, ["left_on", "left_index"]),
+    ],
+)
+def test_merge_join_cols_error_reporting_missing(func, kwargs, err_msg):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = rf'Must pass "{err_msg[0]}" OR "{err_msg[1]}"\.'
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, **kwargs)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"right_index": True},
+        {"left_index": True},
+    ],
+)
+def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = (
+        r'Can only pass argument "on" OR "left_index" '
+        r'and "right_index", not a combination of both\.'
+    )
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, on="a", **kwargs)
