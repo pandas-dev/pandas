@@ -159,13 +159,13 @@ class CSVFormatter:
     @property
     def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
-        return dict(
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            date_format=self.date_format,
-            quoting=self.quoting,
-            decimal=self.decimal,
-        )
+        return {
+            "na_rep": self.na_rep,
+            "float_format": self.float_format,
+            "date_format": self.date_format,
+            "quoting": self.quoting,
+            "decimal": self.decimal,
+        }
 
     @property
     def data_index(self) -> Index:

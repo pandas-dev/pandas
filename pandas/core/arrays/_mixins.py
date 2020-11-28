@@ -162,7 +162,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         --------
         numpy.ndarray.repeat
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         new_data = self._ndarray.repeat(repeats, axis=axis)
         return self._from_backing_data(new_data)
 
