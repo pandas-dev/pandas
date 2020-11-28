@@ -1401,7 +1401,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(self, ABCMultiIndex) and is_dict_like(names):
             level = Index(self.names).get_indexer_for(names)
-            level = level[level>-1]
+            level = level[level > -1]
             names = [names[key] for key in np.array(self.names)[level]]
 
         idx._set_names(names, level=level)
