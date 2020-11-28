@@ -8,7 +8,16 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import (
+    DataFrame,
+    Grouper,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    read_csv,
+)
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
@@ -16,7 +25,7 @@ import pandas.core.common as com
 
 def test_repr():
     # GH18203
-    result = repr(pd.Grouper(key="A", level="B"))
+    result = repr(Grouper(key="A", level="B"))
     expected = "Grouper(key='A', level='B', axis=0, sort=False)"
     assert result == expected
 
@@ -1218,7 +1227,7 @@ def test_groupby_keys_same_size_as_index():
         start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
-    result = df.groupby([pd.Grouper(level=0, freq=freq), "metric"]).mean()
+    result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
     expected = df.set_index([df.index, "metric"])
 
     tm.assert_frame_equal(result, expected)
@@ -1606,7 +1615,7 @@ def test_groupby_multiindex_not_lexsorted():
 
 def test_index_label_overlaps_location():
     # checking we don't have any label/location confusion in the
-    # the wake of GH5375
+    # wake of GH5375
     df = DataFrame(list("ABCDE"), index=[2, 0, 2, 1, 1])
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)
@@ -1815,7 +1824,7 @@ def test_groupby_agg_ohlc_non_first():
         index=pd.date_range("2018-01-01", periods=2, freq="D"),
     )
 
-    result = df.groupby(pd.Grouper(freq="D")).agg(["sum", "ohlc"])
+    result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
 
     tm.assert_frame_equal(result, expected)
 
@@ -1866,11 +1875,11 @@ def test_groupby_groups_in_BaseGrouper():
     # Test if DataFrame grouped with a pandas.Grouper has correct groups
     mi = MultiIndex.from_product([["A", "B"], ["C", "D"]], names=["alpha", "beta"])
     df = DataFrame({"foo": [1, 2, 1, 2], "bar": [1, 2, 3, 4]}, index=mi)
-    result = df.groupby([pd.Grouper(level="alpha"), "beta"])
+    result = df.groupby([Grouper(level="alpha"), "beta"])
     expected = df.groupby(["alpha", "beta"])
     assert result.groups == expected.groups
 
-    result = df.groupby(["beta", pd.Grouper(level="alpha")])
+    result = df.groupby(["beta", Grouper(level="alpha")])
     expected = df.groupby(["beta", "alpha"])
     assert result.groups == expected.groups
 
@@ -2146,3 +2155,13 @@ def test_groupby_duplicate_columns():
     result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_series_with_tuple_name():
+    # GH 37755
+    ser = Series([1, 2, 3, 4], index=[1, 1, 2, 2], name=("a", "a"))
+    ser.index.name = ("b", "b")
+    result = ser.groupby(level=0).last()
+    expected = Series([2, 4], index=[1, 2], name=("a", "a"))
+    expected.index.name = ("b", "b")
+    tm.assert_series_equal(result, expected)

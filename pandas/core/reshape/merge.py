@@ -5,8 +5,9 @@ SQL-style merge routines
 import copy
 import datetime
 from functools import partial
+import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -50,6 +51,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.arrays import DatetimeArray
 
 
 @Substitution("\nleft : DataFrame")
@@ -642,6 +644,17 @@ class _MergeOperation:
 
         self._validate_specification()
 
+        cross_col = None
+        if self.how == "cross":
+            (
+                self.left,
+                self.right,
+                self.how,
+                cross_col,
+            ) = self._create_cross_configuration(self.left, self.right)
+            self.left_on = self.right_on = [cross_col]
+        self._cross = cross_col
+
         # note this function has side effects
         (
             self.left_join_keys,
@@ -689,7 +702,13 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
+        self._maybe_drop_cross_column(result, self._cross)
+
         return result.__finalize__(self, method="merge")
+
+    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: Optional[str]):
+        if cross_col is not None:
+            result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
         self, left: "DataFrame", right: "DataFrame"
@@ -1199,9 +1218,50 @@ class _MergeOperation:
                 typ = rk.categories.dtype if rk_is_cat else object
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
+    def _create_cross_configuration(
+        self, left, right
+    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+        """
+        Creates the configuration to dispatch the cross operation to inner join,
+        e.g. adding a join column and resetting parameters. Join column is added
+        to a new object, no inplace modification
+
+        Parameters
+        ----------
+        left: DataFrame
+        right DataFrame
+
+        Returns
+        -------
+            a tuple (left, right, how, cross_col) representing the adjusted
+            DataFrames with cross_col, the merge operation set to inner and the column
+            to join over.
+        """
+        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        how = "inner"
+        return (
+            left.assign(**{cross_col: 1}),
+            right.assign(**{cross_col: 1}),
+            how,
+            cross_col,
+        )
+
     def _validate_specification(self):
+        if self.how == "cross":
+            if (
+                self.left_index
+                or self.right_index
+                or self.right_on is not None
+                or self.left_on is not None
+                or self.on is not None
+            ):
+                raise MergeError(
+                    "Can not pass on, right_on, left_on or set right_index=True or "
+                    "left_index=True"
+                )
+            return
         # Hm, any way to make this logic less complicated??
-        if self.on is None and self.left_on is None and self.right_on is None:
+        elif self.on is None and self.left_on is None and self.right_on is None:
 
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
@@ -1265,7 +1325,7 @@ class _MergeOperation:
                         'of levels in the index of "left"'
                     )
                 self.left_on = [None] * n
-        if len(self.right_on) != len(self.left_on):
+        if self.how != "cross" and len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
     def _validate(self, validate: str):
@@ -1357,12 +1417,14 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
-    if how == "left":
+    if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,
         "left": libjoin.left_outer_join,
-        "right": _right_outer_join,
+        "right": lambda x, y, count, **kwargs: libjoin.left_outer_join(
+            y, x, count, **kwargs
+        )[::-1],
         "outer": libjoin.full_outer_join,
     }[how]
 
@@ -1882,11 +1944,6 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
     return left_ax, None, right_indexer
 
 
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
-    return left_indexer, right_indexer
-
-
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
 ) -> Tuple[np.ndarray, np.ndarray, int]:
@@ -1947,8 +2004,8 @@ def _factorize_keys(
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+        lk = cast("DatetimeArray", lk)._ndarray
+        rk = cast("DatetimeArray", rk)._ndarray
 
     elif (
         is_categorical_dtype(lk.dtype)

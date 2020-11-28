@@ -1600,10 +1600,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             cols = result.columns.get_indexer_for(
                 result.columns.difference(self.exclusions).unique()
             )
-            # TODO(GH-22046) - setting with iloc broken if labels are not unique
-            # .values to remove labels
-            result.iloc[:, cols] = (
-                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
+                self.count().iloc[:, cols]
             )
         return result
 
@@ -1671,10 +1669,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[0]
+                return arr[0]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(first, axis=axis)
@@ -1695,10 +1693,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[-1]
+                return arr[-1]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(last, axis=axis)
@@ -1858,6 +1856,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         from pandas.core.window import ExpandingGroupby
 
         return ExpandingGroupby(self, *args, **kwargs)
+
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
+    def ewm(self, *args, **kwargs):
+        """
+        Return an ewm grouper, providing ewm functionality per group.
+        """
+        from pandas.core.window import ExponentialMovingWindowGroupby
+
+        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
 
     def _fill(self, direction, limit=None):
         """
@@ -2365,7 +2373,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         dtype: int64
         """
         with group_selection_context(self):
-            index = self._selected_obj.index
+            index = self._selected_obj._get_axis(self.axis)
             cumcounts = self._cumcount_array(ascending=ascending)
             return self._obj_1d_constructor(cumcounts, index)
 
@@ -2706,8 +2714,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             fill_method = "pad"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
+        fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
+        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
         return (filled / shifted) - 1
 
     @Substitution(name="groupby")
@@ -2742,7 +2750,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
-        return self._selected_obj[mask]
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
 
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
@@ -2776,7 +2787,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
-        return self._selected_obj[mask]
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
 
     def _reindex_output(
         self, output: OutputFrameOrSeries, fill_value: Scalar = np.NaN

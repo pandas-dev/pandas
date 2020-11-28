@@ -36,7 +36,7 @@ def feather_file(datapath):
 @pytest.fixture
 def s3so(worker_id):
     worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-    return dict(client_kwargs={"endpoint_url": f"http://127.0.0.1:555{worker_id}/"})
+    return {"client_kwargs": {"endpoint_url": f"http://127.0.0.1:555{worker_id}/"}}
 
 
 @pytest.fixture(scope="session")

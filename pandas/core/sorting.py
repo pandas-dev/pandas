@@ -31,6 +31,7 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
+    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -390,7 +391,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values, method: str):
+def nargminmax(values: "ExtensionArray", method: str) -> int:
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -405,16 +406,20 @@ def nargminmax(values, method: str):
     int
     """
     assert method in {"argmax", "argmin"}
-    func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(isna(values))
-    values = values._values_for_argsort()
+    mask = np.asarray(values.isna())
+    if mask.all():
+        # Use same exception message we would get from numpy
+        raise ValueError(f"attempt to get {method} of an empty sequence")
 
-    idx = np.arange(len(values))
-    non_nans = values[~mask]
-    non_nan_idx = idx[~mask]
+    if method == "argmax":
+        # Use argsort with ascending=False so that if more than one entry
+        #  achieves the maximum, we take the first such occurence.
+        sorters = values.argsort(ascending=False)
+    else:
+        sorters = values.argsort(ascending=True)
 
-    return non_nan_idx[func(non_nans)]
+    return sorters[0]
 
 
 def _ensure_key_mapped_multiindex(
@@ -605,7 +610,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

@@ -245,7 +245,7 @@ class TestDataFrameReshape:
 
         # Fill with non-category results in a ValueError
         msg = r"'fill_value=d' is not present in"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
         # Fill with category value replaces missing values as expected
@@ -1173,6 +1173,32 @@ def test_stack_timezone_aware_values():
         index=MultiIndex(levels=[["a", "b", "c"], ["A"]], codes=[[0, 1, 2], [0, 0, 0]]),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_stack_empty_frame(dropna):
+    # GH 36113
+    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    result = DataFrame(dtype=np.float64).stack(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize("fill_value", [None, 0])
+def test_stack_unstack_empty_frame(dropna, fill_value):
+    # GH 36113
+    result = (
+        DataFrame(dtype=np.int64).stack(dropna=dropna).unstack(fill_value=fill_value)
+    )
+    expected = DataFrame(dtype=np.int64)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_single_index_series():
+    # GH 36113
+    msg = r"index must be a MultiIndex to unstack.*"
+    with pytest.raises(ValueError, match=msg):
+        Series(dtype=np.int64).unstack()
 
 
 def test_unstacking_multi_index_df():
