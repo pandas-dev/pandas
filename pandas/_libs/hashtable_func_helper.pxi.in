@@ -30,7 +30,7 @@ dtypes = [('float64', 'float64', 'float64_t'),
 cdef build_count_table_{{dtype}}(ndarray[{{dtype}}] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{else}}
-cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
+cdef build_count_table_{{dtype}}({{c_type}}[:] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{endif}}
     cdef:
@@ -138,7 +138,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
     cdef:
         int ret = 0
         {{if dtype != 'object'}}
-        {{dtype}}_t value
+        {{c_type}} value
         {{endif}}
         Py_ssize_t i, n = len(values)
         khiter_t k

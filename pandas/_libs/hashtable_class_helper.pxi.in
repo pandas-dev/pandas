@@ -303,22 +303,22 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group
-dtypes = [('Float64', 'float64', True),
-          ('UInt64', 'uint64', False),
-          ('Int64', 'int64', False),
-          ('Float32', 'float32', True),
-          ('UInt32', 'uint32', False),
-          ('Int32', 'int32', False),
-          ('UInt16', 'uint16', False),
-          ('Int16', 'int16', False),
-          ('UInt8', 'uint8', False),
-          ('Int8', 'int8', False)]
+# name, dtype, c_type, float_group
+dtypes = [('Float64', 'float64', 'float64_t', True),
+          ('UInt64', 'uint64', 'uint64_t', False),
+          ('Int64', 'int64', 'int64_t', False),
+          ('Float32', 'float32', 'float32_t', True),
+          ('UInt32', 'uint32', 'uint32_t', False),
+          ('Int32', 'int32', 'int32_t', False),
+          ('UInt16', 'uint16', 'uint16_t', False),
+          ('Int16', 'int16', 'int16_t', False),
+          ('UInt8', 'uint8', 'uint8_t', False),
+          ('Int8', 'int8', 'int8_t', False)]
 
 }}
 
 
-{{for name, dtype, float_group in dtypes}}
+{{for name, dtype, c_type, float_group in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -371,11 +371,11 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
+    def map(self, const {{c_type}}[:] keys, const int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t key
+            {{c_type}} key
             khiter_t k
 
         with nogil:
@@ -385,11 +385,11 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, const {{dtype}}_t[:] values):
+    def map_locations(self, const {{c_type}}[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
 
         with nogil:
@@ -399,11 +399,11 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, const {{dtype}}_t[:] values):
+    def lookup(self, const {{c_type}}[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
             intp_t[:] locs = np.empty(n, dtype=np.intp)
 
@@ -420,7 +420,7 @@ cdef class {{name}}HashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
+    def _unique(self, const {{c_type}}[:] values, {{name}}Vector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
                 object mask=None, bint return_inverse=False):
@@ -465,7 +465,7 @@ cdef class {{name}}HashTable(HashTable):
             Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
             int ret = 0
-            {{dtype}}_t val, na_value2
+            {{c_type}} val, na_value2
             khiter_t k
             {{name}}VectorData *ud
             bint use_na_value, use_mask
@@ -538,7 +538,7 @@ cdef class {{name}}HashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+    def unique(self, const {{c_type}}[:] values, bint return_inverse=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -561,7 +561,7 @@ cdef class {{name}}HashTable(HashTable):
         return self._unique(values, uniques, ignore_na=False,
                             return_inverse=return_inverse)
 
-    def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
+    def factorize(self, const {{c_type}}[:] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
@@ -606,13 +606,13 @@ cdef class {{name}}HashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def get_labels_groupby(self, const {{dtype}}_t[:] values):
+    def get_labels_groupby(self, const {{c_type}}[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             intp_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
-            {{dtype}}_t val
+            {{c_type}} val
             khiter_t k
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
