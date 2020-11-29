@@ -708,7 +708,7 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
-        return Series({l.name: l.dtype for l in self.levels})
+        return Series({level.name: level.dtype for level in self.levels})
 
     @property
     def shape(self) -> Shape:
