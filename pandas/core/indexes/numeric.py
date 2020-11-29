@@ -113,11 +113,8 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
+    @doc(Index._validate_fill_value)
     def _validate_fill_value(self, value):
-        """
-        Check if the value can be inserted into our array without casting,
-        and convert it to an appropriate native type if necessary.
-        """
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
