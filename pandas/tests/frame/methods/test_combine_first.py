@@ -359,14 +359,14 @@ class TestDataFrameCombineFirst:
         df1 = DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
         df2 = DataFrame({"a": [1, 4]}, dtype="int64")
 
-        exp1 = DataFrame({"a": [0, 1, 3, 5]}, dtype="float64")
-        exp2 = DataFrame({"a": [1, 4, 3, 5]}, dtype="float64")
+        result_12 = df1.combine_first(df2)
+        expected_12 = DataFrame({"a": [0, 1, 3, 5]}, dtype="float64")
+        tm.assert_frame_equal(result_12, expected_12)
 
-        res1 = df1.combine_first(df2)
-        res2 = df2.combine_first(df1)
+        result_21 = df2.combine_first(df1)
+        expected_21 = DataFrame({"a": [1, 4, 3, 5]}, dtype="float64")
 
-        tm.assert_frame_equal(res1, exp1)
-        tm.assert_frame_equal(res2, exp2)
+        tm.assert_frame_equal(result_21, expected_21)
 
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
