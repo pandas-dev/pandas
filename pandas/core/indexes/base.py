@@ -4180,12 +4180,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index([item], dtype=dtype, **self._get_attributes_dict())
 
-    def _to_safe_for_reshape(self):
-        """
-        Convert to object if we are a categorical.
-        """
-        return self
-
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array, and convert

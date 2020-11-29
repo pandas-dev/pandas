@@ -46,13 +46,13 @@ import pandas.core.nanops as nanops
 if TYPE_CHECKING:
     from pandas import Categorical
 
-_shared_docs: Dict[str, str] = dict()
-_indexops_doc_kwargs = dict(
-    klass="IndexOpsMixin",
-    inplace="",
-    unique="IndexOpsMixin",
-    duplicated="IndexOpsMixin",
-)
+_shared_docs: Dict[str, str] = {}
+_indexops_doc_kwargs = {
+    "klass": "IndexOpsMixin",
+    "inplace": "",
+    "unique": "IndexOpsMixin",
+    "duplicated": "IndexOpsMixin",
+}
 
 _T = TypeVar("_T", bound="IndexOpsMixin")
 
