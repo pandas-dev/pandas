@@ -1387,17 +1387,23 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
 
-        if level is not None and not is_list_like(level) and is_list_like(names):
+        elif level is not None and not is_list_like(level) and is_list_like(names):
             raise TypeError("Names must be a string when a single level is provided.")
 
-        if not is_list_like(names) and level is None and self.nlevels > 1:
+        elif not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
-        if is_dict_like(names) and not isinstance(self, ABCMultiIndex):
+        elif is_dict_like(names) and not isinstance(self, ABCMultiIndex):
             raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
 
-        if is_dict_like(names) and level is not None:
-            raise TypeError("Can not pass level when passing dict-like as `names`.")
+        if isinstance(self, ABCMultiIndex) and is_dict_like(names) and level is None:
+            # Transform dict to list of new names and corresponding levels
+            level, names_adjusted = [], []
+            for i, name in enumerate(self.names):
+                if name in names.keys():
+                    level.append(i)
+                    names_adjusted.append(names[name])
+            names = names_adjusted
 
         if not is_list_like(names):
             names = [names]
@@ -1408,15 +1414,6 @@ class Index(IndexOpsMixin, PandasObject):
             idx = self
         else:
             idx = self._shallow_copy()
-
-        if isinstance(self, ABCMultiIndex) and is_dict_like(names):
-            # Transform dict to list of new names and corresponding levels
-            level, names_adjusted = [], []
-            for i, name in enumerate(self.names):
-                if name in names.keys():
-                    level.append(i)
-                    names_adjusted.append(names[name])
-            names = names_adjusted
 
         idx._set_names(names, level=level)
         if not inplace:
