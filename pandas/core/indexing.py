@@ -663,8 +663,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            keys = self.obj.columns.tolist()
-            keys.extend([k for k in key if k not in self.obj])
+            keys = self.obj.columns.union(key, sort=False)
             self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
 
     def __setitem__(self, key, value):

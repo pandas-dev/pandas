@@ -362,6 +362,10 @@ class InsertColumns:
         np.random.seed(1234)
         self.df[list(range(100))] = np.random.randn(self.N, 100)
 
+    def time_assign_list_of_columns_concat(self):
+        df = DataFrame(np.random.randn(self.N, 100))
+        concat([self.df, df], axis=1)
+
 
 class ChainIndexing:
 
