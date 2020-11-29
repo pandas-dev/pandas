@@ -23,7 +23,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
@@ -986,7 +986,12 @@ Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
 .. ipython:: python
 
    # Try to infer the format for the index column
-   df = pd.read_csv("foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True)
+   df = pd.read_csv(
+       "foo.csv",
+       index_col=0,
+       parse_dates=True,
+       infer_datetime_format=True,
+   )
    df
 
 .. ipython:: python
@@ -1019,9 +1024,10 @@ Writing CSVs to binary file objects
 
 .. versionadded:: 1.2.0
 
-``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
-opened binary mode. For this to work, it is necessary that ``mode``
-contains a "b":
+``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
+opened binary mode. In most cases, it is not necessary to specify
+``mode`` as Pandas will auto-detect whether the file object is
+opened in text or binary mode.
 
 .. ipython:: python
 
@@ -1029,7 +1035,7 @@ contains a "b":
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1046,9 +1052,19 @@ writing to a file). For example:
 
    val = "0.3066101993807095471566981359501369297504425048828125"
    data = "a,b,c\n1,2,{0}".format(val)
-   abs(pd.read_csv(StringIO(data), engine="c", float_precision=None)["c"][0] - float(val))
    abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="high")["c"][0] - float(val)
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision=None,
+       )["c"][0] - float(val)
+   )
+   abs(
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision="high",
+       )["c"][0] - float(val)
    )
    abs(
        pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
@@ -2517,7 +2533,12 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
-   dfs = pd.read_html(url_mcc, match="Telekom Albania", header=0, converters={"MNC": str})
+   dfs = pd.read_html(
+       url_mcc,
+       match="Telekom Albania",
+       header=0,
+       converters={"MNC": str},
+   )
 
 Use some combination of the above:
 
@@ -3570,7 +3591,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame(
+       {
+           "col1": [0, np.nan, 2],
+           "col2": [1, np.nan, np.nan],
+       }
+   )
    df_with_missing
 
    df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
@@ -3944,7 +3970,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
        {
            "A": pd.Timestamp("20130101"),
            "B": [
-               pd.Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
+               pd.Timestamp("20130101") + timedelta(days=i, seconds=10)
+               for i in range(10)
            ],
        }
    )
@@ -4241,7 +4268,11 @@ results.
    store.select("df2_mt")
 
    # as a multiple
-   store.select_as_multiple(["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt")
+   store.select_as_multiple(
+       ["df1_mt", "df2_mt"],
+       where=["A>0", "B>0"],
+       selector="df1_mt",
+   )
 
 
 Delete from a table
@@ -4797,8 +4828,16 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_fp.parquet", engine="fastparquet", columns=["a", "b"])
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", columns=["a", "b"])
+   result = pd.read_parquet(
+       "example_fp.parquet",
+       engine="fastparquet",
+       columns=["a", "b"],
+   )
+   result = pd.read_parquet(
+       "example_pa.parquet",
+       engine="pyarrow",
+       columns=["a", "b"],
+   )
    result.dtypes
 
 
@@ -5176,7 +5215,11 @@ to pass to :func:`pandas.to_datetime`:
 .. code-block:: python
 
    pd.read_sql_table("data", engine, parse_dates={"Date": "%Y-%m-%d"})
-   pd.read_sql_table("data", engine, parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}})
+   pd.read_sql_table(
+       "data",
+       engine,
+       parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}},
+   )
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -5593,7 +5636,11 @@ avoid converting categorical columns into ``pd.Categorical``:
 
 .. code-block:: python
 
-    df = pd.read_spss("spss_data.sav", usecols=["foo", "bar"], convert_categoricals=False)
+    df = pd.read_spss(
+        "spss_data.sav",
+        usecols=["foo", "bar"],
+        convert_categoricals=False,
+    )
 
 More information about the SAV and ZSAV file formats is available here_.
 
@@ -5640,7 +5687,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-Given the next test set:
+The following test functions will be used below to compare the performance of several IO methods:
 
 .. code-block:: python
 
@@ -5745,7 +5792,7 @@ Given the next test set:
    def test_parquet_read():
        pd.read_parquet("test.parquet")
 
-When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
+When writing, the top three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
@@ -5779,7 +5826,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    In [13]: %timeit test_parquet_write(df)
    67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
+When reading, the top three functions in terms of speed are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
 
@@ -5816,8 +5863,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 
-For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
-Space on disk (in bytes)
+The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk (in bytes).
 
 .. code-block:: none
 

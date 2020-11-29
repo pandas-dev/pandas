@@ -251,8 +251,8 @@ class TestCategoricalRepr:
             def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
-        cat = pd.Categorical([County() for _ in range(61)])
-        idx = pd.Index(cat)
+        cat = Categorical([County() for _ in range(61)])
+        idx = Index(cat)
         ser = idx.to_series()
 
         repr(ser)

@@ -18,9 +18,6 @@ above what the in-line examples offer.
 pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
-These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
-versions.
-
 Idioms
 ------
 
@@ -71,7 +68,7 @@ Or use pandas where after you've set up a mask
    )
    df.where(df_mask, -1000)
 
-`if-then-else using numpy's where()
+`if-then-else using NumPy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
@@ -266,7 +263,9 @@ New columns
 
 .. ipython:: python
 
-   df = pd.DataFrame({"AAA": [1, 1, 1, 2, 2, 2, 3, 3], "BBB": [2, 1, 3, 4, 5, 1, 2, 3]})
+   df = pd.DataFrame(
+       {"AAA": [1, 1, 1, 2, 2, 2, 3, 3], "BBB": [2, 1, 3, 4, 5, 1, 2, 3]}
+   )
    df
 
 Method 1 : idxmin() to get the index of the minimums
@@ -327,7 +326,9 @@ Arithmetic
 
 .. ipython:: python
 
-   cols = pd.MultiIndex.from_tuples([(x, y) for x in ["A", "B", "C"] for y in ["O", "I"]])
+   cols = pd.MultiIndex.from_tuples(
+       [(x, y) for x in ["A", "B", "C"] for y in ["O", "I"]]
+   )
    df = pd.DataFrame(np.random.randn(2, 6), index=["n", "m"], columns=cols)
    df
    df = df.div(df["C"], level=1)
@@ -566,7 +567,9 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame({"Color": "Red Red Red Blue".split(), "Value": [100, 150, 50, 50]})
+   df = pd.DataFrame(
+       {"Color": "Red Red Red Blue".split(), "Value": [100, 150, 50, 50]}
+   )
    df
    df["Counts"] = df.groupby(["Color"]).transform(len)
    df
@@ -648,7 +651,10 @@ Create a list of dataframes, split using a delineation based on logic included i
    dfs = list(
        zip(
            *df.groupby(
-               (1 * (df["Case"] == "B")).cumsum().rolling(window=3, min_periods=1).median()
+               (1 * (df["Case"] == "B"))
+               .cumsum()
+               .rolling(window=3, min_periods=1)
+               .median()
            )
        )
    )[-1]
@@ -740,7 +746,18 @@ The :ref:`Pivot <reshaping.pivot>` docs.
                "yes",
            ],
            "Passed": ["yes" if x > 50 else "no" for x in grades],
-           "Employed": [True, True, True, False, False, False, False, True, True, False],
+           "Employed": [
+               True,
+               True,
+               True,
+               False,
+               False,
+               False,
+               False,
+               True,
+               True,
+               False,
+           ],
            "Grade": grades,
        }
    )
@@ -791,7 +808,9 @@ Apply
        return pd.Series(aList)
 
 
-   df_orgz = pd.concat({ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()})
+   df_orgz = pd.concat(
+       {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
+   )
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series
@@ -991,7 +1010,7 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
-`Plotting multiple charts in an ipython notebook
+`Plotting multiple charts in an IPython Jupyter notebook
 <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot
@@ -1162,7 +1181,12 @@ Option 1: pass rows explicitly to skip rows
     from io import StringIO
 
     pd.read_csv(
-        StringIO(data), sep=";", skiprows=[11, 12], index_col=0, parse_dates=True, header=10
+        StringIO(data),
+        sep=";",
+        skiprows=[11, 12],
+        index_col=0,
+        parse_dates=True,
+        header=10,
     )
 
 Option 2: read column names and then data

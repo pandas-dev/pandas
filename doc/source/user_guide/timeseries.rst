@@ -317,7 +317,9 @@ which can be specified. These are computed from the starting point specified by 
 
 .. ipython:: python
 
-   pd.to_datetime([1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s")
+   pd.to_datetime(
+       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s"
+   )
 
    pd.to_datetime(
        [1349720105100, 1349720105200, 1349720105300, 1349720105400, 1349720105500],
@@ -586,10 +588,12 @@ would include matching times on an included date:
 
 .. warning::
 
-   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+   Indexing ``DataFrame`` rows with a *single* string with getitem (e.g. ``frame[dtstring]``)
+   is deprecated starting with pandas 1.2.0 (given the ambiguity whether it is indexing
+   the rows or selecting a column) and will be removed in a future version. The equivalent
+   with ``.loc`` (e.g. ``frame.loc[dtstring]``) is still supported.
 
 .. ipython:: python
-   :okwarning:
 
    dft = pd.DataFrame(
        np.random.randn(100000, 1),
@@ -597,34 +601,30 @@ would include matching times on an included date:
        index=pd.date_range("20130101", periods=100000, freq="T"),
    )
    dft
-   dft["2013"]
+   dft.loc["2013"]
 
 This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2"]
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28"]
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28 00:00:00"]
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1-15":"2013-1-15 12:30:00"]
 
@@ -650,7 +650,6 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(["2019-01-01"], tz="US/Pacific"))
     df
@@ -702,13 +701,14 @@ If index resolution is second, then the minute-accurate timestamp gives a
     series_second.index.resolution
     series_second["2011-12-31 23:59"]
 
-If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
+If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``.loc[]`` as well.
 
 .. ipython:: python
-    :okwarning:
 
-    dft_minute = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index)
-    dft_minute["2011-12-31 23"]
+    dft_minute = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index
+    )
+    dft_minute.loc["2011-12-31 23"]
 
 
 .. warning::
@@ -748,9 +748,10 @@ With no defaults.
 .. ipython:: python
 
    dft[
-       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(2013, 2, 28, 10, 12, 0)
+       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(
+           2013, 2, 28, 10, 12, 0
+       )
    ]
-
 
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -798,9 +799,11 @@ There are several time/date properties that one can access from ``Timestamp`` or
     time,"Returns datetime.time (does not contain timezone information)"
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
+    day_of_year,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
+    day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
@@ -872,7 +875,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
@@ -1036,8 +1039,15 @@ As an interesting example, let's look at Egypt where a Friday-Saturday weekend i
     # They also observe International Workers' Day so let's
     # add that for a couple of years
 
-    holidays = ["2012-05-01", datetime.datetime(2013, 5, 1), np.datetime64("2014-05-01")]
-    bday_egypt = pd.offsets.CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+    holidays = [
+        "2012-05-01",
+        datetime.datetime(2013, 5, 1),
+        np.datetime64("2014-05-01"),
+    ]
+    bday_egypt = pd.offsets.CustomBusinessDay(
+        holidays=holidays,
+        weekmask=weekmask_egypt,
+    )
     dt = datetime.datetime(2013, 4, 30)
     dt + 2 * bday_egypt
 
@@ -1417,7 +1427,12 @@ An example of how holidays and holiday calendars are defined:
         rules = [
             USMemorialDay,
             Holiday("July 4th", month=7, day=4, observance=nearest_workday),
-            Holiday("Columbus Day", month=10, day=1, offset=pd.DateOffset(weekday=MO(2))),
+            Holiday(
+                "Columbus Day",
+                month=10,
+                day=1,
+                offset=pd.DateOffset(weekday=MO(2)),
+            ),
         ]
 
 
@@ -1560,11 +1575,6 @@ some advanced strategies.
 
 The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
-
-.. note::
-
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
-   a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
 
 Basics
 ~~~~~~
@@ -1711,7 +1721,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
@@ -2066,7 +2076,6 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
-   :okwarning:
 
    ps["2011"]
 
@@ -2076,7 +2085,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
        index=pd.period_range("2013-01-01 9:00", periods=600, freq="T"),
    )
    dfp
-   dfp["2013-01-01 10H"]
+   dfp.loc["2013-01-01 10H"]
 
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
@@ -2279,7 +2288,12 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    rng_dateutil.tz
 
    # dateutil - utc special case
-   rng_utc = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz=dateutil.tz.tzutc())
+   rng_utc = pd.date_range(
+       "3/6/2012 00:00",
+       periods=3,
+       freq="D",
+       tz=dateutil.tz.tzutc(),
+   )
    rng_utc.tz
 
 .. versionadded:: 0.25.0
@@ -2287,7 +2301,12 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
 .. ipython:: python
 
    # datetime.timezone
-   rng_utc = pd.date_range("3/6/2012 00:00", periods=3, freq="D", tz=datetime.timezone.utc)
+   rng_utc = pd.date_range(
+       "3/6/2012 00:00",
+       periods=3,
+       freq="D",
+       tz=datetime.timezone.utc,
+   )
    rng_utc.tz
 
 Note that the ``UTC`` time zone is a special case in ``dateutil`` and should be constructed explicitly
@@ -2440,10 +2459,18 @@ control over how they are handled.
 .. ipython:: python
 
    pd.Timestamp(
-       datetime.datetime(2019, 10, 27, 1, 30, 0, 0), tz="dateutil/Europe/London", fold=0
+       datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
+       tz="dateutil/Europe/London",
+       fold=0,
    )
    pd.Timestamp(
-       year=2019, month=10, day=27, hour=1, minute=30, tz="dateutil/Europe/London", fold=1
+       year=2019,
+       month=10,
+       day=27,
+       hour=1,
+       minute=30,
+       tz="dateutil/Europe/London",
+       fold=1,
    )
 
 .. _timeseries.timezone_ambiguous:

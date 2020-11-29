@@ -1,4 +1,5 @@
 """ define the IntervalIndex """
+from functools import wraps
 from operator import le, lt
 import textwrap
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
@@ -18,6 +19,7 @@ from pandas.util._exceptions import rewrite_exception
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -36,7 +38,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -112,43 +113,28 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class SetopCheck:
+def setop_check(method):
     """
     This is called to decorate the set operations of IntervalIndex
     to perform the type check in advance.
     """
+    op_name = method.__name__
 
-    def __init__(self, op_name):
-        self.op_name = op_name
+    @wraps(method)
+    def wrapped(self, other, sort=False):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other = ensure_index(other)
 
-    def __call__(self, setop):
-        def func(intvidx_self, other, sort=False):
-            intvidx_self._assert_can_do_setop(other)
-            other = ensure_index(other)
+        if not isinstance(other, IntervalIndex):
+            result = getattr(self.astype(object), op_name)(other)
+            if op_name in ("difference",):
+                result = result.astype(self.dtype)
+            return result
 
-            if not isinstance(other, IntervalIndex):
-                result = getattr(intvidx_self.astype(object), self.op_name)(other)
-                if self.op_name in ("difference",):
-                    result = result.astype(intvidx_self.dtype)
-                return result
-            elif intvidx_self.closed != other.closed:
-                raise ValueError(
-                    "can only do set operations between two IntervalIndex "
-                    "objects that are closed on the same side"
-                )
+        return method(self, other, sort)
 
-            # GH 19016: ensure set op will not return a prohibited dtype
-            subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]
-            common_subtype = find_common_type(subtypes)
-            if is_object_dtype(common_subtype):
-                raise TypeError(
-                    f"can only do {self.op_name} between two IntervalIndex "
-                    "objects that have compatible dtypes"
-                )
-
-            return setop(intvidx_self, other, sort)
-
-        return func
+    return wrapped
 
 
 @Appender(
@@ -193,11 +179,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 
-    # Immutable, so we are able to cache computations like isna in '_mask'
-    _mask = None
-
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -242,7 +226,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result._data = array
         result.name = name
         result._cache = {}
-        result._no_setting_name = False
         result._reset_identity()
         return result
 
@@ -330,28 +313,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(
-        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-        cache = self._cache.copy() if values is None else {}
-        if values is None:
-            values = self._data
-
-        result = self._simple_new(values, name=name)
-        result._cache = cache
-        return result
-
-    @cache_readonly
-    def _isnan(self):
-        """
-        Return a mask indicating if each value is NA.
-        """
-        if self._mask is None:
-            self._mask = isna(self.left)
-        return self._mask
-
     @cache_readonly
     def _engine(self):
         left = self._maybe_convert_i8(self.left)
@@ -392,11 +353,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         return self._data
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
@@ -410,9 +366,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values.dtype):
-            return self._shallow_copy(new_values)
-        return Index.astype(self, dtype, copy=copy)
+        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:
@@ -518,7 +472,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
-        Interval-like requires conversion if it's endpoints are one of the
+        Interval-like requires conversion if its endpoints are one of the
         aforementioned types.
 
         Assumes that any list-like data has already been cast to an Index.
@@ -540,7 +494,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _maybe_convert_i8(self, key):
         """
-        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        Maybe convert a given key to its equivalent i8 value(s). Used as a
         preprocessing step prior to IntervalTree queries (self._engine), which
         expects numeric data.
 
@@ -579,7 +533,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
             if key.hasnans:
-                # convert NaT from it's i8 value to np.nan so it's not viewed
+                # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
                 key_i8 = key_i8.where(~key._isnan)
 
@@ -593,17 +547,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             )
 
         return key_i8
-
-    def _check_method(self, method):
-        if method is None:
-            return
-
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for IntervalIndex"
-            )
-
-        raise ValueError("Invalid fill method")
 
     def _searchsorted_monotonic(self, label, side, exclude_label=False):
         if not self.is_non_overlapping_monotonic:
@@ -675,7 +618,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index.get_loc(pd.Interval(0, 1))
         0
         """
-        self._check_method(method)
+        self._check_indexing_method(method)
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -726,7 +669,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        self._check_method(method)
+        self._check_indexing_method(method)
 
         if self.is_overlapping:
             raise InvalidIndexError(
@@ -741,11 +684,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             if self.equals(target_as_index):
                 return np.arange(len(self), dtype="intp")
 
-            # different closed or incompatible subtype -> no matches
-            common_subtype = find_common_type(
-                [self.dtype.subtype, target_as_index.dtype.subtype]
-            )
-            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+            if self._is_non_comparable_own_type(target_as_index):
+                # different closed or incompatible subtype -> no matches
                 return np.repeat(np.intp(-1), len(target_as_index))
 
             # non-overlapping -> at most one match per interval in target_as_index
@@ -765,17 +705,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             indexer = self._engine.get_indexer(target_as_index.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
-            # (non-overlapping so get_loc guarantees scalar of KeyError)
-            indexer = []
-            for key in target_as_index:
-                try:
-                    loc = self.get_loc(key)
-                except KeyError:
-                    loc = -1
-                except InvalidIndexError as err:
-                    # i.e. non-scalar key
-                    raise TypeError(key) from err
-                indexer.append(loc)
+            return self._get_indexer_pointwise(target_as_index)[0]
 
         return ensure_platform_int(indexer)
 
@@ -787,10 +717,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # check that target_as_index IntervalIndex is compatible
         if isinstance(target_as_index, IntervalIndex):
-            common_subtype = find_common_type(
-                [self.dtype.subtype, target_as_index.dtype.subtype]
-            )
-            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+
+            if self._is_non_comparable_own_type(target_as_index):
                 # different closed or incompatible subtype -> no matches
                 return (
                     np.repeat(-1, len(target_as_index)),
@@ -801,24 +729,38 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             target_as_index, IntervalIndex
         ):
             # target_as_index might contain intervals: defer elementwise to get_loc
-            indexer, missing = [], []
-            for i, key in enumerate(target_as_index):
-                try:
-                    locs = self.get_loc(key)
-                    if isinstance(locs, slice):
-                        locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                    locs = np.array(locs, ndmin=1)
-                except KeyError:
-                    missing.append(i)
-                    locs = np.array([-1])
-                indexer.append(locs)
-            indexer = np.concatenate(indexer)
+            return self._get_indexer_pointwise(target_as_index)
+
         else:
             target_as_index = self._maybe_convert_i8(target_as_index)
             indexer, missing = self._engine.get_indexer_non_unique(
                 target_as_index.values
             )
 
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def _get_indexer_pointwise(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        pointwise implementation for get_indexer and get_indexer_non_unique.
+        """
+        indexer, missing = [], []
+        for i, key in enumerate(target):
+            try:
+                locs = self.get_loc(key)
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                locs = np.array(locs, ndmin=1)
+            except KeyError:
+                missing.append(i)
+                locs = np.array([-1])
+            except InvalidIndexError as err:
+                # i.e. non-scalar key
+                raise TypeError(key) from err
+
+            indexer.append(locs)
+
+        indexer = np.concatenate(indexer)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @property
@@ -844,7 +786,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
@@ -857,9 +799,19 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # we have missing values
         if (locs == -1).any():
-            raise KeyError
+            raise KeyError(keyarr[locs == -1].tolist())
 
         return locs
+
+    def _is_non_comparable_own_type(self, other: "IntervalIndex") -> bool:
+        # different closed or incompatible subtype -> no matches
+
+        # TODO: once closed is part of IntervalDtype, we can just define
+        #  is_comparable_dtype GH#19371
+        if self.closed != other.closed:
+            return True
+        common_subtype = find_common_type([self.dtype.subtype, other.dtype.subtype])
+        return is_object_dtype(common_subtype)
 
     # --------------------------------------------------------------------
 
@@ -879,13 +831,29 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def length(self):
         return Index(self._data.length, copy=False)
 
+    def putmask(self, mask, value):
+        arr = self._data.copy()
+        try:
+            value_left, value_right = arr._validate_setitem_value(value)
+        except (ValueError, TypeError):
+            return self.astype(object).putmask(mask, value)
+
+        if isinstance(self._data._left, np.ndarray):
+            np.putmask(arr._left, mask, value_left)
+            np.putmask(arr._right, mask, value_right)
+        else:
+            # TODO: special case not needed with __array_function__
+            arr._left.putmask(mask, value_left)
+            arr._right.putmask(mask, value_right)
+        return type(self)._simple_new(arr, name=self.name)
+
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
         values = np.where(cond, self._values, other)
         result = IntervalArray(values)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def delete(self, loc):
         """
@@ -898,7 +866,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
         result = self._data._shallow_copy(new_left, new_right)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -915,19 +883,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        left_insert, right_insert = self._data._validate_insert_value(item)
+        left_insert, right_insert = self._data._validate_scalar(item)
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         result = self._data._shallow_copy(new_left, new_right)
-        return self._shallow_copy(result)
-
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        result = self._data.take(
-            indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
-        )
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -986,39 +947,29 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return f"\n{space}"
 
     # --------------------------------------------------------------------
-
-    def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.lexsort((self.right, self.left))
-
-    def equals(self, other: object) -> bool:
-        """
-        Determines if two IntervalIndex objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        # if we can coerce to an IntervalIndex then we can compare
-        if not isinstance(other, IntervalIndex):
-            if not is_interval_dtype(other):
-                return False
-            other = Index(other)
-            if not isinstance(other, IntervalIndex):
-                return False
-
-        return (
-            self.left.equals(other.left)
-            and self.right.equals(other.right)
-            and self.closed == other.closed
-        )
-
-    # --------------------------------------------------------------------
     # Set Operations
 
+    def _assert_can_do_setop(self, other):
+        super()._assert_can_do_setop(other)
+
+        if isinstance(other, IntervalIndex) and self._is_non_comparable_own_type(other):
+            # GH#19016: ensure set op will not return a prohibited dtype
+            raise TypeError(
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side "
+                "and have compatible dtypes"
+            )
+
     @Appender(Index.intersection.__doc__)
-    @SetopCheck(op_name="intersection")
-    def intersection(
-        self, other: "IntervalIndex", sort: bool = False
-    ) -> "IntervalIndex":
+    @setop_check
+    def intersection(self, other, sort=False) -> Index:
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if not isinstance(other, IntervalIndex):
+            return self.astype(object).intersection(other)
+
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
@@ -1032,7 +983,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return taken
+        return self._wrap_setop_result(other, taken)
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
@@ -1084,7 +1035,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self[mask]
 
     def _setop(op_name: str, sort=None):
-        @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
             result_name = get_op_result_name(self, other)
@@ -1097,7 +1047,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
             return type(self).from_tuples(result, closed=self.closed, name=result_name)
 
-        return func
+        func.__name__ = op_name
+        return setop_check(func)
 
     union = _setop("union")
     difference = _setop("difference")
@@ -1114,22 +1065,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return False
 
     # TODO: arithmetic operations
-
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    def __lt__(self, other):
-        return Index.__lt__(self, other)
-
-    def __le__(self, other):
-        return Index.__le__(self, other)
-
-    def __gt__(self, other):
-        return Index.__gt__(self, other)
-
-    def __ge__(self, other):
-        return Index.__ge__(self, other)
-
-
-IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint) -> bool:
@@ -1250,8 +1185,8 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   closed='both', dtype='interval[int64]')
     """
-    start = com.maybe_box_datetimelike(start)
-    end = com.maybe_box_datetimelike(end)
+    start = maybe_box_datetimelike(start)
+    end = maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
     if freq is None and com.any_none(periods, start, end):
@@ -1315,10 +1250,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            range_func = date_range
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            range_func = timedelta_range
-
-        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

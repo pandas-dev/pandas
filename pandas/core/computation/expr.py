@@ -496,15 +496,14 @@ class BaseExprVisitor(ast.NodeVisitor):
                 f"'{lhs.type}' and '{rhs.type}'"
             )
 
-        if self.engine != "pytables":
-            if (
-                res.op in CMP_OPS_SYMS
-                and getattr(lhs, "is_datetime", False)
-                or getattr(rhs, "is_datetime", False)
-            ):
-                # all date ops must be done in python bc numexpr doesn't work
-                # well with NaT
-                return self._maybe_eval(res, self.binary_ops)
+        if self.engine != "pytables" and (
+            res.op in CMP_OPS_SYMS
+            and getattr(lhs, "is_datetime", False)
+            or getattr(rhs, "is_datetime", False)
+        ):
+            # all date ops must be done in python bc numexpr doesn't work
+            # well with NaT
+            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
@@ -660,7 +659,11 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError(f"Invalid function call {node.func.id}")
+            # pandas\core\computation\expr.py:663: error: "expr" has no
+            # attribute "id"  [attr-defined]
+            raise ValueError(
+                f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
+            )
         if hasattr(res, "value"):
             res = res.value
 
@@ -681,7 +684,12 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(f"keyword error in function call '{node.func.id}'")
+                    # pandas\core\computation\expr.py:684: error: "expr" has no
+                    # attribute "id"  [attr-defined]
+                    raise ValueError(
+                        "keyword error in function call "  # type: ignore[attr-defined]
+                        f"'{node.func.id}'"
+                    )
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value

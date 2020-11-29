@@ -464,7 +464,10 @@ which we illustrate:
        {"A": [1.0, np.nan, 3.0, 5.0, np.nan], "B": [np.nan, 2.0, 3.0, np.nan, 6.0]}
    )
    df2 = pd.DataFrame(
-       {"A": [5.0, 2.0, 4.0, np.nan, 3.0, 7.0], "B": [np.nan, np.nan, 3.0, 4.0, 6.0, 8.0]}
+       {
+           "A": [5.0, 2.0, 4.0, np.nan, 3.0, 7.0],
+           "B": [np.nan, np.nan, 3.0, 4.0, 6.0, 8.0],
+       }
    )
    df1
    df2
@@ -535,8 +538,8 @@ standard deviation of 1), very concisely:
 
 Note that methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
 preserve the location of ``NaN`` values. This is somewhat different from
-:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling`.
-For more details please see :ref:`this note <stats.moments.expanding.note>`.
+:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling` since ``NaN`` behavior
+is furthermore dictated by a ``min_periods`` parameter.
 
 .. ipython:: python
 
@@ -712,7 +715,10 @@ Similarly, you can get the most frequently occurring value(s), i.e. the mode, of
     s5 = pd.Series([1, 1, 3, 3, 3, 5, 5, 7, 7, 7])
     s5.mode()
     df5 = pd.DataFrame(
-        {"A": np.random.randint(0, 7, size=50), "B": np.random.randint(-10, 15, size=50)}
+        {
+            "A": np.random.randint(0, 7, size=50),
+            "B": np.random.randint(-10, 15, size=50),
+        }
     )
     df5.mode()
 
@@ -839,7 +845,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
-The implementation of ``pipe`` here is quite clean and feels right at home in python.
+The implementation of ``pipe`` here is quite clean and feels right at home in Python.
 We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
@@ -939,7 +945,7 @@ Aggregation API
 
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
-:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+:ref:`window API <window.overview>`, and the :ref:`resample API <timeseries.aggregate>`.
 The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias
 :meth:`DataFrame.agg`.
 
@@ -1192,7 +1198,9 @@ to :ref:`merging/joining functionality <merging>`:
 
 .. ipython:: python
 
-   s = pd.Series(["six", "seven", "six", "seven", "six"], index=["a", "b", "c", "d", "e"])
+   s = pd.Series(
+       ["six", "seven", "six", "seven", "six"], index=["a", "b", "c", "d", "e"]
+   )
    t = pd.Series({"six": 6.0, "seven": 7.0})
    s
    s.map(t)
@@ -1494,7 +1502,9 @@ labels).
 
    df = pd.DataFrame(
        {"x": [1, 2, 3, 4, 5, 6], "y": [10, 20, 30, 40, 50, 60]},
-       index=pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["let", "num"]),
+       index=pd.MultiIndex.from_product(
+           [["a", "b", "c"], [1, 2]], names=["let", "num"]
+       ),
    )
    df
    df.rename_axis(index={"let": "abc"})
@@ -1803,7 +1813,9 @@ used to sort a pandas object by its index levels.
        }
    )
 
-   unsorted_df = df.reindex(index=["a", "d", "c", "b"], columns=["three", "two", "one"])
+   unsorted_df = df.reindex(
+       index=["a", "d", "c", "b"], columns=["three", "two", "one"]
+   )
    unsorted_df
 
    # DataFrame
@@ -1849,7 +1861,9 @@ to use to determine the sorted order.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({"one": [2, 1, 1, 1], "two": [1, 3, 2, 4], "three": [5, 4, 3, 2]})
+   df1 = pd.DataFrame(
+       {"one": [2, 1, 1, 1], "two": [1, 3, 2, 4], "three": [5, 4, 3, 2]}
+   )
    df1.sort_values(by="two")
 
 The ``by`` parameter can take a list of column names, e.g.:
@@ -1994,7 +2008,9 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = pd.MultiIndex.from_tuples([("a", "one"), ("a", "two"), ("b", "three")])
+   df1.columns = pd.MultiIndex.from_tuples(
+       [("a", "one"), ("a", "two"), ("b", "three")]
+   )
    df1.sort_values(by=("a", "two"))
 
 
@@ -2187,7 +2203,7 @@ You can use the :meth:`~DataFrame.astype` method to explicitly convert dtypes fr
 even if the dtype was unchanged (pass ``copy=False`` to change this behavior). In addition, they will raise an
 exception if the astype operation is invalid.
 
-Upcasting is always according to the **numpy** rules. If two different dtypes are involved in an operation,
+Upcasting is always according to the **NumPy** rules. If two different dtypes are involved in an operation,
 then the more *general* one will be used as the result of the operation.
 
 .. ipython:: python
@@ -2245,7 +2261,11 @@ to the correct type.
      import datetime
 
      df = pd.DataFrame(
-         [[1, 2], ["a", "b"], [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]]
+         [
+             [1, 2],
+             ["a", "b"],
+             [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)],
+         ]
      )
      df = df.T
      df

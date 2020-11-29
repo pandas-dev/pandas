@@ -180,7 +180,9 @@ combined result, by using ``where`` on a selector table.
    store.select("df2_mt")
 
    # as a multiple
-   store.select_as_multiple(["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt")
+   store.select_as_multiple(
+       ["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt"
+   )
 
 .. ipython:: python
    :suppress:

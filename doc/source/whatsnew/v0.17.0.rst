@@ -786,7 +786,9 @@ Previous behavior:
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame(
+       {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+   )
 
    df_with_missing
 
