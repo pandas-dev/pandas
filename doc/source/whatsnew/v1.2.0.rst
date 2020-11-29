@@ -533,7 +533,7 @@ Categorical
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
 - Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
 - Bug in :meth:`CategoricalIndex.where` incorrectly setting non-category entries to ``np.nan`` instead of raising ``TypeError`` (:issue:`37977`)
--
+- Bug in :meth:`Categorical.to_numpy` and ``np.array(categorical)`` with timezone-aware ``datetime64`` categories incorrectly dropping the timezone information instead of casting to object dtype (:issue:`38136`)
 
 Datetimelike
 ^^^^^^^^^^^^
