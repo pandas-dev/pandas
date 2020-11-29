@@ -184,10 +184,11 @@ class Block(PandasObject):
         ValueError : the number of dimensions do not match
         """
         if ndim is None:
+            # GH#38134
             warnings.warn(
                 "Accepting ndim=None in the Block constructor is deprecated, "
                 "this will raise in a future version.",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=3,
             )
             if self.is_extension:
