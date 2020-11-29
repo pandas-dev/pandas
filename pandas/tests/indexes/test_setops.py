@@ -385,8 +385,8 @@ class TestSetOps:
         if not index.is_unique:
             return
         result = index.difference(index, sort=sort)
-        expected = index.drop(index)
-        tm.assert_index_equal(result, expected)
+        expected = index[:0]
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_intersection_difference_match_empty(self, index, sort):
         # GH#20040
@@ -395,6 +395,6 @@ class TestSetOps:
         # of an index with itself.  Test for all types
         if not index.is_unique:
             return
-        inter = index.intersection(index.drop(index))
+        inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
-        tm.assert_index_equal(inter, diff)
+        tm.assert_index_equal(inter, diff, exact=True)

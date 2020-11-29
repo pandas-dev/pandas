@@ -43,7 +43,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs: Dict[str, str] = dict()
+_shared_docs_kwargs: Dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, ShallowMixin):
@@ -949,7 +949,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
 
 # downsample methods
-for method in ["sum", "prod"]:
+for method in ["sum", "prod", "min", "max", "first", "last"]:
 
     def f(self, _method=method, min_count=0, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -960,7 +960,7 @@ for method in ["sum", "prod"]:
 
 
 # downsample methods
-for method in ["min", "max", "first", "last", "mean", "sem", "median", "ohlc"]:
+for method in ["mean", "sem", "median", "ohlc"]:
 
     def g(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
