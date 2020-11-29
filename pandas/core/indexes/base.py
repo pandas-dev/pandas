@@ -2858,13 +2858,15 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = other.take(indexer).unique()._values
+        result = Index(other.take(indexer))
+        if not result.is_unique:
+            result = result.unique()._values
 
         if sort is None:
             result = algos.safe_sort(result)
 
         # Intersection has to be unique
-        assert algos.unique(result).shape == result.shape
+        assert Index(other.take(indexer)).is_unique
 
         return result
 
