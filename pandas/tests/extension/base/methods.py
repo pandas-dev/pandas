@@ -40,10 +40,10 @@ class BaseMethodsTests(BaseExtensionTests):
         # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-        result = (
-            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
-        )
+        result = ser.value_counts(normalize=True).sort_index()
+        result = result[result > 0]
 
         expected = pd.Series([1 / len(values)] * len(values), index=result.index)
         self.assert_series_equal(result, expected)
