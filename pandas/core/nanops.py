@@ -12,7 +12,6 @@ from pandas._libs import NaT, Timedelta, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, DtypeObj, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     get_dtype,
     is_any_int_dtype,
@@ -284,7 +283,7 @@ def _get_values(
     """
     # In _get_values is only called from within nanops, and in all cases
     #  with scalar fill_value.  This guarantee is important for the
-    #  maybe_upcast_putmask call below
+    #  np.where call below
     assert is_scalar(fill_value)
     values = extract_array(values, extract_numpy=True)
 
@@ -292,10 +291,12 @@ def _get_values(
 
     dtype = values.dtype
 
+    datetimelike = False
     if needs_i8_conversion(values.dtype):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
         values = np.asarray(values.view("i8"))
+        datetimelike = True
 
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -306,13 +307,13 @@ def _get_values(
     )
 
     if skipna and (mask is not None) and (fill_value is not None):
-        values = values.copy()
-        if dtype_ok and mask.any():
-            np.putmask(values, mask, fill_value)
-
-        # promote if needed
-        else:
-            values, _ = maybe_upcast_putmask(values, mask, fill_value)
+        if mask.any():
+            if dtype_ok or datetimelike:
+                values = values.copy()
+                np.putmask(values, mask, fill_value)
+            else:
+                # np.where will promote if needed
+                values = np.where(~mask, values, fill_value)
 
     # return a platform independent precision dtype
     dtype_max = dtype
