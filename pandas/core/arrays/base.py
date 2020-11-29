@@ -1222,7 +1222,7 @@ class ExtensionOpsMixin:
 
     def __init_subclass__(cls, **kwargs):
         # We use __init_subclass__ to handle deprecations
-        super().__init_subclass__(**kwargs)
+        super().__init_subclass__()
 
         if cls.__name__ != "ExtensionScalarOpsMixin":
             # We only want to warn for user-defined subclasses,
