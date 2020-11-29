@@ -1935,18 +1935,18 @@ class TestDataFrameConstructors:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "value,dtype",
+        "scalar,dtype",
         [
             (Timedelta(1), "timedelta64[ns]"),
-            (Timedelta(1, tz="Pacific/Eastern"), "timedelta64[ns]"),
             (Timestamp(1), "datetime64[ns]"),
+            (Timestamp(1, tz="US/Eastern"), "datetime64[ns]"),
         ],
     )
-    def test_constructor_timelike_nanoseconds(self, value, dtype):
+    def test_constructor_timelike_nanoseconds(self, scalar, dtype):
         # GH38032
-        df = DataFrame(value, index=[0], columns=[0], dtype=dtype)
-        result = df.at[0, 0]
-        expected = value
+        df = DataFrame(scalar, index=[0], columns=[0], dtype=dtype)
+        result = df.at[0, 0].value
+        expected = scalar.value
         assert result == expected
 
     def test_constructor_for_list_with_dtypes(self):

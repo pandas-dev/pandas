@@ -1321,18 +1321,18 @@ class TestSeriesConstructors:
         assert s.dtype == "timedelta64[ns]"
 
     @pytest.mark.parametrize(
-        "value,dtype",
+        "scalar,dtype",
         [
             (Timedelta(1), "timedelta64[ns]"),
-            (Timedelta(1, tz="Pacific/Eastern"), "timedelta64[ns]"),
             (Timestamp(1), "datetime64[ns]"),
+            (Timestamp(1, tz="US/Eastern"), "timedelta64[ns]"),
         ],
     )
-    def test_constructor_timelike_nanoseconds(self, value, dtype):
+    def test_constructor_timelike_nanoseconds(self, scalar, dtype):
         # GH38032
-        ser = Series(value, index=[0], dtype=dtype)
-        result = ser[0]
-        expected = value
+        ser = Series(scalar, index=[0], dtype=dtype)
+        result = ser[0].value
+        expected = scalar.value
         assert result == expected
 
     # GH 16406
