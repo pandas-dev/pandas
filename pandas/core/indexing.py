@@ -838,8 +838,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            with suppress(IndexingError):
-                return self._handle_lowerdim_multi_index_axis0(tup)
+            if len(self.obj) > 1 or not any(isinstance(x, slice) for x in tup):
+                with suppress(IndexingError):
+                    return self._handle_lowerdim_multi_index_axis0(tup)
 
             # this is a series with a multi-index specified a tuple of
             # selectors
