@@ -1684,10 +1684,6 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def _to_safe_for_reshape(self):
-        """ convert to object if we are a categorical """
-        return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
-
     def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
@@ -2529,6 +2525,10 @@ class MultiIndex(Index):
         new_values = series._values[loc]
         if is_scalar(loc):
             return new_values
+
+        if len(new_values) == 1 and not self.nlevels > 1:
+            # If more than one level left, we can not return a scalar
+            return new_values[0]
 
         new_index = self[loc]
         new_index = maybe_droplevels(new_index, key)

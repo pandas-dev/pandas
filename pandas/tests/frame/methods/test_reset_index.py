@@ -618,7 +618,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
 
 def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame(dict(c1=[10.0], c2=["a"], c3=pd.to_datetime("2020-01-01")))
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(

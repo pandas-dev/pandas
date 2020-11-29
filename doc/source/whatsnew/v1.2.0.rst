@@ -454,6 +454,7 @@ Other API changes
 - Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Attempting to reindex a Series with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
+- :meth:`CategoricalIndex.append` with an index that contains non-category values will now cast instead of raising ``TypeError`` (:issue:`38098`)
 
 .. ---------------------------------------------------------------------------
 
@@ -588,6 +589,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
+- Bug in :meth:`Series.astype` conversion from ``string`` to ``float`` raised in presence of ``pd.NA`` values (:issue:`37626`)
 -
 
 Strings
@@ -631,9 +633,11 @@ Indexing
 - Bug in :meth:`MultiIndex.drop` does not raise if labels are partially found (:issue:`37820`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
+- Bug in :meth:`Series.at` returning :class:`Series` with one element instead of scalar when index is a :class:`MultiIndex` with one level (:issue:`38053`)
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
+- Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
 
 Missing
 ^^^^^^^
@@ -730,6 +734,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
+- Bug in :meth:`DataFrame.crosstab` was returning incorrect results on inputs with duplicate row names, duplicate column names or duplicate names between row and column labels (:issue:`22529`)
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`concat` and :class:`DataFrame` constructor where input index names are not preserved in some cases (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
@@ -782,3 +787,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.1.4..v1.2.0|HEAD

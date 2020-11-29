@@ -1464,7 +1464,7 @@ the string values returned are correct."""
             off = off[ii]
             val = val[ii]
             txt = self.path_or_buf.read(txtlen)
-            self.value_label_dict[labname] = dict()
+            self.value_label_dict[labname] = {}
             for i in range(n):
                 end = off[i + 1] if i < n - 1 else txtlen
                 self.value_label_dict[labname][val[i]] = self._decode(txt[off[i] : end])
