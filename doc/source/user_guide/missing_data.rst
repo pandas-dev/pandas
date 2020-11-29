@@ -239,6 +239,16 @@ of ways, which we illustrate:
    df2.fillna(0)
    df2["one"].fillna("missing")
 
+**Replace NA for columns of specific data types**
+
+.. ipython:: python
+
+nonDateDf = df.select_dtypes(exclude=['datetime'])
+df[nonDateDf.columns] = u.fillna(0)
+
+dateDf = df.select_dtypes(include=['datetime'])
+df[dateDf.columns] = u.fillna(pd.to_datetime('today'))
+
 **Fill gaps forward or backward**
 
 Using the same filling arguments as :ref:`reindexing <basics.reindexing>`, we
