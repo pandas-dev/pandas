@@ -454,6 +454,7 @@ Other API changes
 - Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Attempting to reindex a Series with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
+- :meth:`CategoricalIndex.append` with an index that contains non-category values will now cast instead of raising ``TypeError`` (:issue:`38098`)
 
 .. ---------------------------------------------------------------------------
 
@@ -635,6 +636,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
+- Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
 
 Missing
 ^^^^^^^
