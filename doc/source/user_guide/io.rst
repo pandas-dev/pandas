@@ -2832,6 +2832,18 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 Reading Excel files
 '''''''''''''''''''
 
+.. warning::
+
+   .. versionchanged:: 1.2.0
+
+   The default argument ``engine=None`` to ``pd.read_excel`` is
+   deprecated. Using None defaults to the xlrd engine which is no
+   longer maintained, and is not supported when using pandas with
+   python >= 3.9. The default value will be ``'openpyxl'`` in a future
+   version of pandas, although xlrd will continue to be allowed for the
+   indefinite future. Either install openpyxl and specify it as
+   the engine or specify ``'xlrd'`` to suppress this warning.
+
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 

@@ -48,9 +48,7 @@ def test_excel_file_warning_with_xlsx_file(datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     # DeprecationWarning: "This method will be removed in future versions.
     # Use 'tree.iter()' or 'list(tree.iter())' instead."
-    with tm.assert_produces_warning(
-        DeprecationWarning, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
+    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
         ExcelFile(path, engine=None)
 
 
@@ -59,7 +57,5 @@ def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     # DeprecationWarning: "This method will be removed in future versions.
     # Use 'tree.iter()' or 'list(tree.iter())' instead."
-    with tm.assert_produces_warning(
-        DeprecationWarning, check_stacklevel=False, raise_on_extra_warnings=False
-    ):
+    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
         pd.read_excel(path, "Sheet1", engine=None)

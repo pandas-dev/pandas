@@ -112,7 +112,7 @@ engine : str, default None
 
     .. deprecated:: 1.2.0
         The default value ``None`` is deprecated and will be changed to ``"openpyxl"``
-        in a future version. Not specifying an engine will raise a DeprecationWarning.
+        in a future version. Not specifying an engine will raise a FutureWarning.
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -899,7 +899,7 @@ class ExcelFile:
         .. deprecated:: 1.2.0
             The default value ``None`` is deprecated and will be changed to
             ``"openpyxl"`` in a future version. Not specifying an engine will
-            raise a DeprecationWarning.
+            raise a FutureWarning.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -961,7 +961,7 @@ class ExcelFile:
                     "pandas, although xlrd will continue to be allowed for the "
                     "indefinite future. Either install openpyxl and specify it as "
                     "the engine or specify 'xlrd' to suppress this warning.",
-                    DeprecationWarning,
+                    FutureWarning,
                     stacklevel=stacklevel,
                 )
         if engine not in self._engines:
