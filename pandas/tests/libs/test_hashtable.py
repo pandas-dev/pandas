@@ -80,6 +80,8 @@ class TestHashTable:
             table = table_type()
             keys = np.arange(N).astype(dtype)
             vals = np.arange(N).astype(np.int64) + N
+            keys.flags.writeable = False
+            vals.flags.writeable = False
             table.map(keys, vals)
             for i in range(N):
                 assert table.get_item(keys[i]) == i + N
@@ -88,6 +90,7 @@ class TestHashTable:
         N = 8
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
+        keys.flags.writeable = False
         table.map_locations(keys)
         for i in range(N):
             assert table.get_item(keys[i]) == i
@@ -96,6 +99,7 @@ class TestHashTable:
         N = 3
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
+        keys.flags.writeable = False
         table.map_locations(keys)
         result = table.lookup(keys)
         expected = np.arange(N)
@@ -121,6 +125,7 @@ class TestHashTable:
         table = table_type()
         expected = (np.arange(N) + N).astype(dtype)
         keys = np.repeat(expected, 5)
+        keys.flags.writeable = False
         unique = table.unique(keys)
         tm.assert_numpy_array_equal(unique, expected)
 
@@ -254,6 +259,7 @@ class TestHelpFunctions:
         N = 100
         duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
+        values.flags.writeable = False
         result = duplicated(values)
         expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
@@ -264,6 +270,8 @@ class TestHelpFunctions:
         ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
+        arr.flags.writeable = False
+        values.flags.writeable = False
         result = ismember(arr, values)
         expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
