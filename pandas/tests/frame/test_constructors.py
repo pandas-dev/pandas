@@ -1936,6 +1936,21 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "value,dtype",
+        [
+            (Timedelta(1), "timedelta64[ns]"),
+            (Timedelta(1, tz="Pacific/Eastern"), "timedelta64[ns]"),
+            (Timestamp(1), "datetime64[ns]"),
+        ],
+    )
+    def test_constructor_timelike_nanoseconds(self, value, dtype):
+        # GH38032
+        df = DataFrame(value, index=[0], columns=[0], dtype=dtype)
+        result = df.at[0, 0]
+        expected = value
+        assert result == expected
+
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
