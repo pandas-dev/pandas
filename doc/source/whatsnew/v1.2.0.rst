@@ -557,6 +557,7 @@ Datetimelike
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`.DatetimeIndex.isin` incorrectly casting integers to datetimes (:issue:`36621`)
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`.DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
 - Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
+- Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
 
 Timedelta
 ^^^^^^^^^
