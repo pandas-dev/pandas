@@ -271,6 +271,11 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch(right_dtype):
     right = DataFrame({"a": [1, 2, 3]}, dtype=right_dtype)
     tm.assert_frame_equal(left, right, check_dtype=False)
 
+def test_assert_frame_equal_datetime_dtype_mismatch():
+    df1 = DataFrame({'a': []}, dtype="datetime64[ns]")
+    df2 = DataFrame({'a': []})
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
+
 
 def test_allows_duplicate_labels():
     left = DataFrame()
