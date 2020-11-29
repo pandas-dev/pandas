@@ -241,6 +241,10 @@ Other enhancements
 - Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
+- :func:`read_parquet` gained a ``use_nullable_dtypes=True`` option to use
+  nullable dtypes that use ``pd.NA`` as missing value indicator where possible
+  for the resulting DataFrame (default is False, and only applicable for
+  ``engine="pyarrow"``) (:issue:`31242`)
 - Added :meth:`.Rolling.sem` and :meth:`Expanding.sem` to compute the standard error of the mean (:issue:`26476`)
 - :meth:`.Rolling.var` and :meth:`.Rolling.std` use Kahan summation and Welford's Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.corr` and :meth:`DataFrame.cov` use Welford's Method to avoid numerical issues (:issue:`37448`)
