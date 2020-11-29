@@ -2858,7 +2858,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = Index(other.take(indexer))
+        result = other.take(indexer)
         if not result.is_unique:
             result = result.unique()._values
         else:
