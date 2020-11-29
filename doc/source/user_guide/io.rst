@@ -2842,7 +2842,7 @@ Reading Excel files
    python >= 3.9. The default value will be ``'openpyxl'`` in a future
    version of pandas, although xlrd will continue to be allowed for the
    indefinite future. Either install openpyxl and specify it as
-   the engine or specify ``'xlrd'`` to suppress this warning.
+   the engine or specify ``'xlrd'`` to avoid raising a ``FutureWarning``.
 
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
