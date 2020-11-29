@@ -32,7 +32,7 @@ dtypes = [('complex128', 'complex128', 'khcomplex128_t', True),
 cdef build_count_table_{{dtype}}(ndarray[{{dtype}}] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{else}}
-cdef build_count_table_{{dtype}}({{c_type}}[:] values,
+cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{endif}}
     cdef:
@@ -47,8 +47,11 @@ cdef build_count_table_{{dtype}}({{c_type}}[:] values,
     kh_resize_{{ttype}}(table, n // 10)
 
     for i in range(n):
+        {{if complex_group}}
+        val = to_{{c_type}}(values[i])
+        {{else}}
         val = values[i]
-
+        {{endif}}
         if not checknull(val) or not dropna:
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
@@ -61,7 +64,11 @@ cdef build_count_table_{{dtype}}({{c_type}}[:] values,
         kh_resize_{{ttype}}(table, n)
 
         for i in range(n):
+            {{if complex_group}}
+            val = to_{{c_type}}(values[i])
+            {{else}}
             val = values[i]
+            {{endif}}
 
             {{if dtype == 'float64' or dtype == 'float32'}}
             if val == val or not dropna:
@@ -84,7 +91,7 @@ cdef build_count_table_{{dtype}}({{c_type}}[:] values,
 {{if dtype == 'object'}}
 cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
-cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
+cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -338,7 +345,7 @@ def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
 
 
-def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
+def mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         int count, max_count = 1

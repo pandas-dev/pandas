@@ -251,6 +251,7 @@ class TestHelpFunctions:
         value_count = get_ht_function("value_count", type_suffix)
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
+        values.flags.writeable = False
         keys, counts = value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
@@ -293,6 +294,7 @@ class TestHelpFunctions:
         mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
+        values.flags.writeable = False
         result = mode(values, False)
         assert result == 42
 
