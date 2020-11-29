@@ -259,10 +259,11 @@ class IndexingMixin:
           e.g. ``[True, False, True]``.
         - An alignable boolean Series. The index of the key will be aligned before
           masking.
+        - An alignable Index. The Index of the returned selection will be the input.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
-        See more at :ref:`Selection by Label <indexing.label>`
+        See more at :ref:`Selection by Label <indexing.label>`.
 
         Raises
         ------
@@ -331,6 +332,14 @@ class IndexingMixin:
         ...        index=['viper', 'sidewinder', 'cobra'])]
                     max_speed  shield
         sidewinder          7       8
+
+        Index (same behavior as ``df.reindex``)
+
+        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
+               max_speed  shield
+        foo
+        cobra          1       2
+        viper          4       5
 
         Conditional that returns a boolean Series
 
