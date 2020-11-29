@@ -84,7 +84,13 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Float64Index,
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -412,7 +418,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             labels = ensure_index(labels)
 
         if labels._is_all_dates:
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+            deep_labels = labels
+            if isinstance(labels, CategoricalIndex):
+                deep_labels = labels.categories
+
+            if not isinstance(
+                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+            ):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
