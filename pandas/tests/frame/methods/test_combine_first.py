@@ -152,29 +152,40 @@ class TestDataFrameCombineFirst:
         result_21 = df2.combine_first(df1)[2]
         tm.assert_series_equal(result_21, expected)
 
-    def test_combine_first_convert_datatime_correctly(self):
-        # GH 3593, converting datetime64[ns] incorrectly
-        df0 = DataFrame(
-            {"a": [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]}
-        )
-        df1 = DataFrame({"a": [None, None, None]})
-        df2 = df1.combine_first(df0)
-        tm.assert_frame_equal(df2, df0)
+    @pytest.mark.parametrize(
+        "data0, data1, data_expected",
+        (
+            (
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [None, None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [None, None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [datetime(2000, 1, 2), None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 2), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 2), None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+        ),
+    )
+    def test_combine_first_convert_datatime_correctly(
+        self, data0, data1, data_expected
+    ):
+        # GH 3593
 
-        df2 = df0.combine_first(df1)
-        tm.assert_frame_equal(df2, df0)
-
-        df0 = DataFrame(
-            {"a": [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]}
-        )
-        df1 = DataFrame({"a": [datetime(2000, 1, 2), None, None]})
-        df2 = df1.combine_first(df0)
-        result = df0.copy()
-        result.iloc[0, :] = df1.iloc[0, :]
-        tm.assert_frame_equal(df2, result)
-
-        df2 = df0.combine_first(df1)
-        tm.assert_frame_equal(df2, df0)
+        df0, df1 = DataFrame({"a": data0}), DataFrame({"a": data1})
+        result = df0.combine_first(df1)
+        expected = DataFrame({"a": data_expected})
+        tm.assert_frame_equal(result, expected)
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
