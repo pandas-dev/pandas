@@ -636,7 +636,6 @@ class BlockManager(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> "BlockManager":
         return self.apply(
             "convert",
@@ -644,7 +643,6 @@ class BlockManager(PandasObject):
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
     def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":

@@ -251,7 +251,7 @@ class TestDataFrameToCSV:
             df = DataFrame(dict(a=s1, b=s2))
             df.to_csv(pth, chunksize=chunksize)
 
-            recons = self.read_csv(pth)._convert(datetime=True, coerce=True)
+            recons = self.read_csv(pth).apply(to_datetime)
             tm.assert_frame_equal(df, recons, check_names=False)
 
     @pytest.mark.slow
