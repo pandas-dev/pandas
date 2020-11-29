@@ -173,7 +173,7 @@ class TestFeather:
     @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
-        self.check_round_trip(df, write_kwargs=dict(version=1))
+        self.check_round_trip(df, write_kwargs={"version": 1})
 
     @td.skip_if_no("pyarrow")
     @tm.network
