@@ -695,3 +695,13 @@ def test_loc_getitem_index_differently_ordered_slice_none():
         columns=["a", "b"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_getitem_drops_levels_for_one_row_dataframe():
+    # GH#10521
+    df = DataFrame({"a": ["a"], "b": ["b"], "c": ["a"], "d": 0}).set_index(
+        ["a", "b", "c"]
+    )
+    expected = df.copy()
+    result = df.loc["a", :, "a"]
+    tm.assert_frame_equal(result, expected)
