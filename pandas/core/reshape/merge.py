@@ -1209,7 +1209,9 @@ class _MergeOperation:
                     raise MergeError("Must pass left_on or left_index=True")
             else:
                 # use the common columns
-                common_cols = self.left.columns.intersection(self.right.columns)
+                left_cols = self.left.columns
+                right_cols = self.right.columns
+                common_cols = left_cols.intersection(right_cols)
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
@@ -1218,7 +1220,10 @@ class _MergeOperation:
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
                     )
-                if not common_cols.is_unique:
+                if (
+                    not left_cols.join(common_cols, how="inner").is_unique
+                    or not right_cols.join(common_cols, how="inner").is_unique
+                ):
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
