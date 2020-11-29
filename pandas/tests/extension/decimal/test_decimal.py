@@ -335,12 +335,7 @@ class DecimalArrayWithoutFromSequence(DecimalArray):
 
 
 class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        return cls._create_method(op, coerce_to_dtype=False)
-
-
-DecimalArrayWithoutCoercion._add_arithmetic_ops()
+    _do_coerce = False
 
 
 def test_combine_from_sequence_raises():

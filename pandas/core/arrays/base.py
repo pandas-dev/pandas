@@ -21,6 +21,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -1236,6 +1237,21 @@ class ExtensionOpsMixin:
        implementation to be called when involved in binary operations
        with NumPy arrays.
     """
+
+    def __init_subclass__(cls, **kwargs):
+        # We use __init_subclass__ to handle deprecations
+        super().__init_subclass__()
+
+        if cls.__name__ != "ExtensionScalarOpsMixin":
+            # We only want to warn for user-defined subclasses,
+            #  and cannot reference ExtensionScalarOpsMixin directly at this point.
+            warnings.warn(
+                "ExtensionOpsMixin and ExtensionScalarOpsMixin are deprecated "
+                "and will be removed in a future version. Use "
+                "pd.core.arraylike.OpsMixin instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
 
     @classmethod
     def _create_arithmetic_method(cls, op):
