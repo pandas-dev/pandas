@@ -39,7 +39,7 @@ rng = pd.Index(range(3))
         pd.IntervalIndex.from_breaks(dti4),
     ]
 )
-def non_comparable(request):
+def non_comparable_idx(request):
     # All have length 3
     return request.param
 
@@ -460,24 +460,24 @@ class TestGetIndexer:
         result = pi.get_indexer_non_unique(pi2)[0]
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_get_indexer_mismatched_dtype_different_length(self, non_comparable):
+    def test_get_indexer_mismatched_dtype_different_length(self, non_comparable_idx):
         # without method we arent checking inequalities, so get all-missing
         #  but do not raise
         dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
 
-        other = non_comparable
+        other = non_comparable_idx
 
         res = pi[:-1].get_indexer(other)
         expected = -np.ones(other.shape, dtype=np.intp)
         tm.assert_numpy_array_equal(res, expected)
 
     @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
-    def test_get_indexer_mismatched_dtype_with_method(self, non_comparable, method):
+    def test_get_indexer_mismatched_dtype_with_method(self, non_comparable_idx, method):
         dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
 
-        other = non_comparable
+        other = non_comparable_idx
 
         msg = re.escape(f"Cannot compare dtypes {pi.dtype} and {other.dtype}")
         with pytest.raises(TypeError, match=msg):
