@@ -1220,7 +1220,7 @@ class ExtensionOpsMixin:
        with NumPy arrays.
     """
 
-    def __init_subclass__(cls, /, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         # We use __init_subclass__ to handle deprecations
         super().__init_subclass__(**kwargs)
 
