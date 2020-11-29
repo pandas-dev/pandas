@@ -1456,12 +1456,12 @@ def assert_series_equal(
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
-    elif (is_extension_array_dtype(left.dtype) and needs_i8_conversion(right.dtype)) or (
-            is_extension_array_dtype(right.dtype) and needs_i8_conversion(left.dtype)
-    ):
-        #If we have an extension array and Datetimearray / TimedeltaArray, we still
-        #want to assert_extension_array_equal even though Datetimearray / TimedeltaArray
-        #dtypes are not an instance of ExtensionArraydtype subclass
+    elif (
+        is_extension_array_dtype(left.dtype) and needs_i8_conversion(right.dtype)
+    ) or (is_extension_array_dtype(right.dtype) and needs_i8_conversion(left.dtype)):
+        # If we have an extension array and Datetimearray / TimedeltaArray, we still
+        # want to assert_extension_array_equal even though Datetimearray and
+        # TimedeltaArray dtypes are not an instance of ExtensionArraydtype subclass
         assert_extension_array_equal(
             left._values,
             right._values,
