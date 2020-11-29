@@ -38,12 +38,10 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
-        data = data[:10].unique()
+        data = data[:10].unique().remove_unused_categories()
         values = np.array(data[~data.isna()])
-        ser = pd.Series(data, dtype=data.dtype)
 
-        result = ser.value_counts(normalize=True).sort_index()
-        result = result[result > 0]
+        result = pd.Series(data).value_counts(normalize=True).sort_index()
 
         expected = pd.Series([1 / len(values)] * len(values), index=result.index)
         self.assert_series_equal(result, expected)
