@@ -299,7 +299,7 @@ def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
 
 def maybe_cast_result(
     result: ArrayLike, obj: "Series", numeric_only: bool = False, how: str = ""
-):
+) -> ArrayLike:
     """
     Try casting result to a different type if appropriate
 
