@@ -3601,6 +3601,8 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if self.has_duplicates:
+                return self.unique().rename(result_names)
             return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
@@ -3619,10 +3621,12 @@ class MultiIndex(Index):
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                uniq_tuples = self._inner_indexer(lvals, rvals)[0]
-                sort = False  # uniq_tuples is already sorted
+                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
+            else:
+                uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
             other_uniq = set(rvals)
@@ -3713,16 +3717,14 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
 
             if len(other) == 0:
-                other = MultiIndex(
-                    levels=[[]] * self.nlevels,
-                    codes=[[]] * self.nlevels,
-                    verify_integrity=False,
-                )
+                return self[:0], self.names
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
                     other = MultiIndex.from_tuples(other)
-                except TypeError as err:
+                except (ValueError, TypeError) as err:
+                    # ValueError raised by tupels_to_object_array if we
+                    #  have non-object dtype
                     raise TypeError(msg) from err
         else:
             result_names = get_unanimous_names(self, other)
