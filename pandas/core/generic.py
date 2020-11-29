@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -86,7 +87,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import indexing, missing, nanops
+from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -511,7 +512,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -521,7 +522,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -532,7 +533,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
-            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
@@ -1114,7 +1114,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In this case, the parameter ``copy`` is ignored.
 
         The second calling convention will modify the names of the
-        the corresponding index if mapper is a list or a scalar.
+        corresponding index if mapper is a list or a scalar.
         However, if mapper is dict-like or a function, it will use the
         deprecated behavior of modifying the axis *labels*.
 
@@ -1927,6 +1927,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self, method="__array_wrap__"
         )
 
+    def __array_ufunc__(
+        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+    ):
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
     # ideally we would define this to avoid the getattr checks, but
     # is slower
     # @property
@@ -2717,7 +2722,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
@@ -3703,6 +3708,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index = self.columns
         else:
             index = self.index
+
+        self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
             try:
@@ -5483,7 +5490,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
-        If info_axis is a MultiIndex, it's first level values are used.
+        If info_axis is a MultiIndex, its first level values are used.
         """
         additions = super()._dir_additions()
         if self._info_axis._can_hold_strings:
@@ -6322,6 +6329,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
 
+        self._consolidate_inplace()
+
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
@@ -6743,6 +6752,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
+
+        self._consolidate_inplace()
 
         if value is None:
             # passing a single value that is scalar like
@@ -11266,7 +11277,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and is_dtype_equal(result.dtype, self.dtype)
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
             return self

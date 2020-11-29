@@ -121,6 +121,16 @@ def test_dunder_inplace_setops_deprecated(index):
         index ^= index
 
 
+@pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
+def test_intersection_duplicates(values):
+    # GH#31326
+    a = pd.Index(values)
+    b = pd.Index([3, 3])
+    result = a.intersection(b)
+    expected = pd.Index([3])
+    tm.assert_index_equal(result, expected)
+
+
 class TestSetOps:
     # Set operation tests shared by all indexes in the `index` fixture
     @pytest.mark.parametrize("case", [0.5, "xxx"])
@@ -386,8 +396,8 @@ class TestSetOps:
         if not index.is_unique:
             return
         result = index.difference(index, sort=sort)
-        expected = index.drop(index)
-        tm.assert_index_equal(result, expected)
+        expected = index[:0]
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_intersection_difference_match_empty(self, index, sort):
         # GH#20040
@@ -396,9 +406,9 @@ class TestSetOps:
         # of an index with itself.  Test for all types
         if not index.is_unique:
             return
-        inter = index.intersection(index.drop(index))
+        inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
-        tm.assert_index_equal(inter, diff)
+        tm.assert_index_equal(inter, diff, exact=True)
 
 
 @pytest.mark.parametrize(

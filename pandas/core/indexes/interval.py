@@ -122,6 +122,7 @@ def setop_check(method):
 
     @wraps(method)
     def wrapped(self, other, sort=False):
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
@@ -130,14 +131,6 @@ def setop_check(method):
             if op_name in ("difference",):
                 result = result.astype(self.dtype)
             return result
-
-        if self._is_non_comparable_own_type(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
 
         return method(self, other, sort)
 
@@ -373,9 +366,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values.dtype):
-            return self._shallow_copy(new_values)
-        return Index.astype(self, dtype, copy=copy)
+        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:
@@ -481,7 +472,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
-        Interval-like requires conversion if it's endpoints are one of the
+        Interval-like requires conversion if its endpoints are one of the
         aforementioned types.
 
         Assumes that any list-like data has already been cast to an Index.
@@ -503,7 +494,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _maybe_convert_i8(self, key):
         """
-        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        Maybe convert a given key to its equivalent i8 value(s). Used as a
         preprocessing step prior to IntervalTree queries (self._engine), which
         expects numeric data.
 
@@ -542,7 +533,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
             if key.hasnans:
-                # convert NaT from it's i8 value to np.nan so it's not viewed
+                # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
                 key_i8 = key_i8.where(~key._isnan)
 
@@ -808,7 +799,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # we have missing values
         if (locs == -1).any():
-            raise KeyError
+            raise KeyError(keyarr[locs == -1].tolist())
 
         return locs
 
@@ -874,7 +865,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
-        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
+        result = self._data._shallow_copy(new_left, new_right)
         return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
@@ -896,7 +887,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
-        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
+        result = self._data._shallow_copy(new_left, new_right)
         return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
@@ -958,11 +949,27 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
     # Set Operations
 
+    def _assert_can_do_setop(self, other):
+        super()._assert_can_do_setop(other)
+
+        if isinstance(other, IntervalIndex) and self._is_non_comparable_own_type(other):
+            # GH#19016: ensure set op will not return a prohibited dtype
+            raise TypeError(
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side "
+                "and have compatible dtypes"
+            )
+
     @Appender(Index.intersection.__doc__)
     @setop_check
-    def intersection(
-        self, other: "IntervalIndex", sort: bool = False
-    ) -> "IntervalIndex":
+    def intersection(self, other, sort=False) -> Index:
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if not isinstance(other, IntervalIndex):
+            return self.astype(object).intersection(other)
+
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:

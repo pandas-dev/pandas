@@ -379,7 +379,7 @@ class TestPandasContainer:
         ],
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
-        df = DataFrame([dict(a_float=value)])
+        df = DataFrame([{"a_float": value}])
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
@@ -475,8 +475,8 @@ class TestPandasContainer:
         index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            dict(
-                float_1=[
+            {
+                "float_1": [
                     -0.92077639,
                     0.77434435,
                     1.25234727,
@@ -488,7 +488,7 @@ class TestPandasContainer:
                     0.95748401,
                     -1.02970536,
                 ],
-                int_1=[
+                "int_1": [
                     19680418,
                     75337055,
                     99973684,
@@ -500,7 +500,7 @@ class TestPandasContainer:
                     41903419,
                     16008365,
                 ],
-                str_1=[
+                "str_1": [
                     "78c608f1",
                     "64a99743",
                     "13d2ff52",
@@ -512,7 +512,7 @@ class TestPandasContainer:
                     "7a669144",
                     "8d64d068",
                 ],
-                float_2=[
+                "float_2": [
                     -0.0428278,
                     -1.80872357,
                     3.36042349,
@@ -524,7 +524,7 @@ class TestPandasContainer:
                     -0.03030452,
                     1.43366348,
                 ],
-                str_2=[
+                "str_2": [
                     "14f04af9",
                     "d085da90",
                     "4bcfac83",
@@ -536,7 +536,7 @@ class TestPandasContainer:
                     "1f6a09ba",
                     "4bfc4d87",
                 ],
-                int_2=[
+                "int_2": [
                     86967717,
                     98098830,
                     51927505,
@@ -548,7 +548,7 @@ class TestPandasContainer:
                     24867120,
                     76131025,
                 ],
-            ),
+            },
             index=index,
         )
 

@@ -1,6 +1,59 @@
 #include <string.h>
 #include <Python.h>
 
+// khash should report usage to tracemalloc
+#if PY_VERSION_HEX >= 0x03060000
+#include <pymem.h>
+#if PY_VERSION_HEX < 0x03070000
+#define PyTraceMalloc_Track _PyTraceMalloc_Track
+#define PyTraceMalloc_Untrack _PyTraceMalloc_Untrack
+#endif
+#else
+#define PyTraceMalloc_Track(...)
+#define PyTraceMalloc_Untrack(...)
+#endif
+
+
+static const int KHASH_TRACE_DOMAIN = 424242;
+void *traced_malloc(size_t size){
+    void * ptr = malloc(size);
+    if(ptr!=NULL){
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
+    }
+    return ptr;
+}
+
+void *traced_calloc(size_t num, size_t size){
+    void * ptr = calloc(num, size);
+    if(ptr!=NULL){
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, num*size);
+    }
+    return ptr;
+}
+
+void *traced_realloc(void* old_ptr, size_t size){
+    void * ptr = realloc(old_ptr, size);
+    if(ptr!=NULL){
+        if(old_ptr != ptr){
+            PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
+        }
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
+    }
+    return ptr;
+}
+
+void traced_free(void* ptr){
+    if(ptr!=NULL){
+        PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)ptr);
+    }
+    free(ptr);
+}
+
+
+#define KHASH_MALLOC traced_malloc
+#define KHASH_REALLOC traced_realloc
+#define KHASH_CALLOC traced_calloc
+#define KHASH_FREE traced_free
 #include "khash.h"
 
 // Previously we were using the built in cpython hash function for doubles
@@ -128,7 +181,7 @@ typedef struct {
 typedef kh_str_starts_t* p_kh_str_starts_t;
 
 p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
-	kh_str_starts_t *result = (kh_str_starts_t*)calloc(1, sizeof(kh_str_starts_t));
+	kh_str_starts_t *result = (kh_str_starts_t*)KHASH_CALLOC(1, sizeof(kh_str_starts_t));
 	result->table = kh_init_str();
 	return result;
 }
@@ -151,7 +204,7 @@ khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const
 
 void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 	kh_destroy_str(table->table);
-	free(table);
+	KHASH_FREE(table);
 }
 
 void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
