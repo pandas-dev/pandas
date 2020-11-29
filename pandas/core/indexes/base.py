@@ -2691,7 +2691,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(taken, name=res_name)
 
         # Intersection has to be unique
-        assert algos.unique(taken._values).shape == taken.shape._values
+        assert algos.unique(taken._values).shape == taken._values.shape
 
         taken.name = res_name
         return taken
