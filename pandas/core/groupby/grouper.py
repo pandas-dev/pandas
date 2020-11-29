@@ -355,7 +355,6 @@ class Grouper:
                 # call self._grouper.take(obj.index) so we need to undo the sorting
                 # before we call _grouper.take.
                 if self._indexer is not None:
-                    assert self._indexer is not None
                     assert self._grouper is not None
                     reverse_indexer = self._indexer.argsort()
                     unsorted_ax = self._grouper.take(reverse_indexer)
