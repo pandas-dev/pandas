@@ -631,6 +631,7 @@ Indexing
 - Bug in :meth:`MultiIndex.drop` does not raise if labels are partially found (:issue:`37820`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
+- Bug in :meth:`Series.at` returning :class:`Series` with one element instead of scalar when index is a :class:`MultiIndex` with one level (:issue:`38053`)
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
