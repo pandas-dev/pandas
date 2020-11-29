@@ -137,20 +137,20 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(result, expected)
 
     def test_combine_first_return_obj_type_with_bools(self):
-        # GH3552, return object dtype with bools
+        # GH3552
+
         df1 = DataFrame(
             [[np.nan, 3.0, True], [-4.6, np.nan, True], [np.nan, 7.0, False]]
         )
         df2 = DataFrame([[-42.6, np.nan, True], [-5.0, 1.6, False]], index=[1, 2])
 
-        expected1 = Series([True, True, False], name=2, dtype=object)
-        expected2 = Series([True, True, False], name=2, dtype=object)
+        expected = Series([True, True, False], name=2, dtype=object)
 
-        result1 = df1.combine_first(df2)[2]
-        result2 = df2.combine_first(df1)[2]
+        result_12 = df1.combine_first(df2)[2]
+        tm.assert_series_equal(result_12, expected)
 
-        tm.assert_series_equal(result1, expected1)
-        tm.assert_series_equal(result2, expected2)
+        result_21 = df2.combine_first(df1)[2]
+        tm.assert_series_equal(result_21, expected)
 
     def test_combine_first_convert_datatime_correctly(self):
         # GH 3593, converting datetime64[ns] incorrectly
