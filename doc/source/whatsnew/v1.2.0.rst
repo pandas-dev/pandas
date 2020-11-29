@@ -589,6 +589,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
+- Bug in :meth:`Series.astype` conversion from ``string`` to ``float`` raised in presence of ``pd.NA`` values (:issue:`37626`)
 -
 
 Strings

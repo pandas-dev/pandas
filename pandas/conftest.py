@@ -288,7 +288,6 @@ def unique_nulls_fixture(request):
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
 
-
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
@@ -1085,6 +1084,20 @@ def float_ea_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
     * 'Float32'
     * 'Float64'
     """
