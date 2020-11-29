@@ -693,8 +693,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         return self._intersection(other, sort=sort)
 
-    def _intersection(self, other, sort=False):
-
+    def _intersection(self, other: Index, sort=False) -> Index:
+        """
+        intersection specialized to the case with matching dtypes.
+        """
         if len(self) == 0:
             return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
