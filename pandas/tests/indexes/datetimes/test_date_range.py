@@ -161,7 +161,7 @@ class TestDateRanges:
     def test_begin_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
             freq=freq,
         )
@@ -171,7 +171,7 @@ class TestDateRanges:
     def test_end_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq=freq
         )
         tm.assert_index_equal(rng, exp)
@@ -180,7 +180,7 @@ class TestDateRanges:
     def test_business_end_year_alias(self, freq):
         # see gh-9313
         rng = date_range("1/1/2013", "7/1/2017", freq=freq)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq=freq
         )
         tm.assert_index_equal(rng, exp)
@@ -188,12 +188,12 @@ class TestDateRanges:
     def test_date_range_negative_freq(self):
         # GH 11018
         rng = date_range("2011-12-31", freq="-2A", periods=3)
-        exp = pd.DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2A")
+        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2A")
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2A"
 
         rng = date_range("2011-01-31", freq="-2M", periods=3)
-        exp = pd.DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
+        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2M"
 
@@ -650,10 +650,10 @@ class TestDateRanges:
     def test_negative_non_tick_frequency_descending_dates(self, tz_aware_fixture):
         # GH 23270
         tz = tz_aware_fixture
-        result = pd.date_range(start="2011-06-01", end="2011-01-01", freq="-1MS", tz=tz)
-        expected = pd.date_range(
-            end="2011-06-01", start="2011-01-01", freq="1MS", tz=tz
-        )[::-1]
+        result = date_range(start="2011-06-01", end="2011-01-01", freq="-1MS", tz=tz)
+        expected = date_range(end="2011-06-01", start="2011-01-01", freq="1MS", tz=tz)[
+            ::-1
+        ]
         tm.assert_index_equal(result, expected)
 
 
@@ -739,10 +739,10 @@ class TestGenRangeGeneration:
 
     def test_precision_finer_than_offset(self):
         # GH#9907
-        result1 = pd.date_range(
+        result1 = date_range(
             start="2015-04-15 00:00:03", end="2016-04-22 00:00:00", freq="Q"
         )
-        result2 = pd.date_range(
+        result2 = date_range(
             start="2015-04-15 00:00:03", end="2015-06-22 00:00:04", freq="W"
         )
         expected1_list = [
@@ -778,19 +778,19 @@ class TestGenRangeGeneration:
     @pytest.mark.parametrize(
         "start,end",
         [
-            (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
-            (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
-            (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
-            (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1)),
+            (Timestamp(dt1, tz=tz1), Timestamp(dt2)),
+            (Timestamp(dt1), Timestamp(dt2, tz=tz2)),
+            (Timestamp(dt1, tz=tz1), Timestamp(dt2, tz=tz2)),
+            (Timestamp(dt1, tz=tz2), Timestamp(dt2, tz=tz1)),
         ],
     )
     def test_mismatching_tz_raises_err(self, start, end):
         # issue 18488
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(TypeError, match=msg):
-            pd.date_range(start, end)
+            date_range(start, end)
         with pytest.raises(TypeError, match=msg):
-            pd.date_range(start, end, freq=BDay())
+            date_range(start, end, freq=BDay())
 
 
 class TestBusinessDateRange:
@@ -849,27 +849,27 @@ class TestBusinessDateRange:
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = pd.date_range(start, end, freq="B", closed=closed)
+        result = date_range(start, end, freq="B", closed=closed)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
-        expected = pd.date_range(bday_start, bday_end, freq="D")
+        expected = date_range(bday_start, bday_end, freq="D")
         tm.assert_index_equal(result, expected)
         # Note: we do _not_ expect the freqs to match here
 
     def test_bday_near_overflow(self):
         # GH#24252 avoid doing unnecessary addition that _would_ overflow
-        start = pd.Timestamp.max.floor("D").to_pydatetime()
-        rng = pd.date_range(start, end=None, periods=1, freq="B")
-        expected = pd.DatetimeIndex([start], freq="B")
+        start = Timestamp.max.floor("D").to_pydatetime()
+        rng = date_range(start, end=None, periods=1, freq="B")
+        expected = DatetimeIndex([start], freq="B")
         tm.assert_index_equal(rng, expected)
 
     def test_bday_overflow_error(self):
         # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
         msg = "Out of bounds nanosecond timestamp"
-        start = pd.Timestamp.max.floor("D").to_pydatetime()
+        start = Timestamp.max.floor("D").to_pydatetime()
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pd.date_range(start, periods=2, freq="B")
+            date_range(start, periods=2, freq="B")
 
 
 class TestCustomDateRange:
@@ -995,7 +995,7 @@ class TestCustomDateRange:
     def test_range_with_millisecond_resolution(self, start_end):
         # https://github.com/pandas-dev/pandas/issues/24110
         start, end = start_end
-        result = pd.date_range(start=start, end=end, periods=2, closed="left")
+        result = date_range(start=start, end=end, periods=2, closed="left")
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
 
@@ -1003,8 +1003,8 @@ class TestCustomDateRange:
 def test_date_range_with_custom_holidays():
     # GH 30593
     freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
-    result = pd.date_range(start="2020-11-25 15:00", periods=4, freq=freq)
-    expected = pd.DatetimeIndex(
+    result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
+    expected = DatetimeIndex(
         [
             "2020-11-25 15:00:00",
             "2020-11-25 16:00:00",

@@ -15,7 +15,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-class Base:
+class AstypeTests:
     """Tests common to IntervalIndex with any subtype"""
 
     def test_astype_idempotent(self, index):
@@ -72,7 +72,7 @@ class Base:
             index.astype("fake_dtype")
 
 
-class TestIntSubtype(Base):
+class TestIntSubtype(AstypeTests):
     """Tests specific to IntervalIndex with integer-like subtype"""
 
     indexes = [
@@ -114,11 +114,17 @@ class TestIntSubtype(Base):
         # int64 -> uint64 fails with negative values
         index = interval_range(-10, 10)
         dtype = IntervalDtype("uint64")
-        with pytest.raises(ValueError):
+
+        # Until we decide what the exception message _should_ be, we
+        #  assert something that it should _not_ be.
+        #  We should _not_ be getting a message suggesting that the -10
+        #  has been wrapped around to a large-positive integer
+        msg = "^(?!(left side of interval must be <= right side))"
+        with pytest.raises(ValueError, match=msg):
             index.astype(dtype)
 
 
-class TestFloatSubtype(Base):
+class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
@@ -173,7 +179,7 @@ class TestFloatSubtype(Base):
             index.astype(dtype)
 
 
-class TestDatetimelikeSubtype(Base):
+class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [

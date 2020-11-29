@@ -329,6 +329,7 @@ def test_tab_completion(mframe):
         "expanding",
         "pipe",
         "sample",
+        "ewm",
     }
     assert results == expected
 
@@ -369,7 +370,6 @@ def test_groupby_selection_with_methods(df):
         "ffill",
         "bfill",
         "pct_change",
-        "tshift",
     ]
 
     for m in methods:
@@ -378,6 +378,11 @@ def test_groupby_selection_with_methods(df):
 
         # should always be frames!
         tm.assert_frame_equal(res, exp)
+
+    # check that the index cache is cleared
+    with pytest.raises(ValueError, match="Freq was not set in the index"):
+        # GH#35937
+        g.tshift()
 
     # methods which aren't just .foo()
     tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))

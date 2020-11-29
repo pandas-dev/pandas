@@ -75,10 +75,9 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace([1, 2, 3], [np.nan, 0])
 
-        # make sure that we aren't just masking a TypeError because bools don't
-        # implement indexing
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            ser.replace([1, 2], [np.nan, 0])
+        # ser is dt64 so can't hold 1 or 2, so this replace is a no-op
+        result = ser.replace([1, 2], [np.nan, 0])
+        tm.assert_series_equal(result, ser)
 
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -143,19 +142,6 @@ class TestSeriesReplace:
             assert return_value is None
         tm.assert_series_equal(s, ser)
 
-    def test_replace_with_empty_list(self):
-        # GH 21977
-        s = pd.Series([[1], [2, 3], [], np.nan, [4]])
-        expected = s
-        result = s.replace([], np.nan)
-        tm.assert_series_equal(result, expected)
-
-        # GH 19266
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            s.replace({np.nan: []})
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            s.replace({np.nan: ["dummy", "alt"]})
-
     def test_replace_mixed_types(self):
         s = pd.Series(np.arange(5), dtype="int64")
 
@@ -218,8 +204,9 @@ class TestSeriesReplace:
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            s.replace({"asdf": "asdb", True: "yes"})
+        result = s.replace({"asdf": "asdb", True: "yes"})
+        expected = pd.Series(["yes", False, "yes"])
+        tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
         N = 100
@@ -265,7 +252,7 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace({}))
 
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = pd.Series([])
@@ -397,6 +384,29 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_nonbool_regex(self, frame):
+        obj = pd.Series(["a", "b", "c "])
+        if frame:
+            obj = obj.to_frame()
+
+        msg = "'to_replace' must be 'None' if 'regex' is not a bool"
+        with pytest.raises(ValueError, match=msg):
+            obj.replace(to_replace=["a"], regex="foo")
+
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_empty_copy(self, frame):
+        obj = pd.Series([], dtype=np.float64)
+        if frame:
+            obj = obj.to_frame()
+
+        res = obj.replace(4, 5, inplace=True)
+        assert res is None
+
+        res = obj.replace(4, 5, inplace=False)
+        tm.assert_equal(res, obj)
+        assert res is not obj
+
     def test_replace_only_one_dictlike_arg(self):
         # GH#33340
 
@@ -413,10 +423,12 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
-    def test_replace_extension_other(self):
+    def test_replace_extension_other(self, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/34530
-        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
-        ser.replace("", "")  # no exception
+        obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
+        result = obj.replace("", "")  # no exception
+        # should not have changed dtype
+        tm.assert_equal(obj, result)
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
@@ -425,3 +437,14 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("pattern", ["^.$", "."])
+    def test_str_replace_regex_default_raises_warning(self, pattern):
+        # https://github.com/pandas-dev/pandas/pull/24809
+        s = pd.Series(["a", "b", "c"])
+        msg = r"The default value of regex will change from True to False"
+        if len(pattern) == 1:
+            msg += r".*single character regular expressions.*not.*literal strings"
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
+            s.str.replace(pattern, "")
+            assert re.match(msg, str(w[0].message))

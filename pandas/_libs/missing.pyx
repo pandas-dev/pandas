@@ -18,7 +18,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas.compat import is_platform_32bit
+from pandas.compat import IS64
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -26,7 +26,7 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
-    bint is_32bit = is_platform_32bit()
+    bint is_32bit = not IS64
 
 
 cpdef bint checknull(object val):
