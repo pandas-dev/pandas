@@ -492,6 +492,7 @@ Deprecations
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`.DatetimeIndex`, :class:`.TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and replaced by ``show_counts``. It will be removed in a future version (:issue:`37999`)
+- :class:`ExtensionOpsMixin` and :class:`ExtensionScalarOpsMixin` are deprecated and will be removed in a future version.  Use ``pd.core.arraylike.OpsMixin`` instead (:issue:`37080`)
 
 .. ---------------------------------------------------------------------------
 
