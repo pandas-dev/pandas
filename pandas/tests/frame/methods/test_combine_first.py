@@ -153,7 +153,7 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(result_21, expected)
 
     @pytest.mark.parametrize(
-        "data0, data1, data_expected",
+        "data1, data2, data_expected",
         (
             (
                 [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
@@ -178,12 +178,12 @@ class TestDataFrameCombineFirst:
         ),
     )
     def test_combine_first_convert_datatime_correctly(
-        self, data0, data1, data_expected
+        self, data1, data2, data_expected
     ):
         # GH 3593
 
-        df0, df1 = DataFrame({"a": data0}), DataFrame({"a": data1})
-        result = df0.combine_first(df1)
+        df1, df2 = DataFrame({"a": data1}), DataFrame({"a": data2})
+        result = df1.combine_first(df2)
         expected = DataFrame({"a": data_expected})
         tm.assert_frame_equal(result, expected)
 
