@@ -1669,11 +1669,7 @@ class DatetimeLikeArrayMixin(
             uniques = self.copy()  # TODO: copy or view?
             if sort and self.freq.n < 0:
                 codes = codes[::-1]
-                # TODO: overload __getitem__, a slice indexer returns same type as self
-                # error: Incompatible types in assignment (expression has type
-                # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")  [assignment]
-                uniques = uniques[::-1]  # type: ignore[assignment]
+                uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(na_sentinel=na_sentinel)
