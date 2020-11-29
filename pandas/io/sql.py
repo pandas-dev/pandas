@@ -1456,12 +1456,12 @@ class SQLDatabase(PandasSQL):
             self.meta.clear()
 
     def _create_sql_schema(
-            self,
-            frame: DataFrame,
-            table_name: str,
-            keys: Optional[List[str]] = None,
-            dtype : Optional[dict] = None,
-            schema: Optional[str] = None
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: Optional[List[str]] = None,
+        dtype: Optional[dict] = None,
+        schema: Optional[str] = None,
     ):
         table = SQLTable(
             table_name,
