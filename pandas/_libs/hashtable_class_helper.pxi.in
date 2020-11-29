@@ -423,7 +423,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, const {{c_type}}[:] keys, const int64_t[:] values):
+    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -432,12 +432,16 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                key = to_{{c_type}}(keys[i])
+                {{else}}
                 key = keys[i]
+                {{endif}}
                 k = kh_put_{{dtype}}(self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, const {{c_type}}[:] values):
+    def map_locations(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -446,12 +450,16 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                val= to_{{c_type}}(values[i])
+                {{else}}
                 val = values[i]
+                {{endif}}
                 k = kh_put_{{dtype}}(self.table, val, &ret)
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, const {{c_type}}[:] values):
+    def lookup(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -461,7 +469,11 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                val = to_{{c_type}}(values[i])
+                {{else}}
                 val = values[i]
+                {{endif}}
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
                     locs[i] = self.table.vals[k]
@@ -472,7 +484,7 @@ cdef class {{name}}HashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique(self, const {{c_type}}[:] values, {{name}}Vector uniques,
+    def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                 object na_value=None, bint ignore_na=False,
                 object mask=None, bint return_inverse=False):
@@ -552,7 +564,11 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                val = to_{{c_type}}(values[i])
+                {{else}}
                 val = values[i]
+                {{endif}}
 
                 if ignore_na and use_mask:
                     if mask_values[i]:
@@ -602,7 +618,7 @@ cdef class {{name}}HashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    def unique(self, const {{c_type}}[:] values, bint return_inverse=False):
+    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -625,7 +641,7 @@ cdef class {{name}}HashTable(HashTable):
         return self._unique(values, uniques, ignore_na=False,
                             return_inverse=return_inverse)
 
-    def factorize(self, const {{c_type}}[:] values, Py_ssize_t na_sentinel=-1,
+    def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
@@ -670,7 +686,7 @@ cdef class {{name}}HashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def get_labels_groupby(self, const {{c_type}}[:] values):
+    def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             intp_t[:] labels
@@ -686,7 +702,11 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                val = to_{{c_type}}(values[i])
+                {{else}}
                 val = values[i]
+                {{endif}}
 
                 # specific for groupby
                 {{if dtype == 'complex64' or dtype== 'complex128'}}

@@ -141,7 +141,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 {{if dtype == 'object'}}
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
+def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0
@@ -168,7 +168,12 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         with nogil:
             for i in range(n - 1, -1, -1):
                 # equivalent: range(n)[::-1], which cython doesn't like in nogil
-                kh_put_{{ttype}}(table, values[i], &ret)
+                {{if complex_group}}
+                value = to_{{c_type}}(values[i])
+                {{else}}
+                value = values[i]
+                {{endif}}
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     elif keep == 'first':
@@ -179,7 +184,12 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         {{else}}
         with nogil:
             for i in range(n):
-                kh_put_{{ttype}}(table, values[i], &ret)
+                {{if complex_group}}
+                value = to_{{c_type}}(values[i])
+                {{else}}
+                value = values[i]
+                {{endif}}
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
@@ -197,7 +207,11 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         {{else}}
         with nogil:
             for i in range(n):
+                {{if complex_group}}
+                value = to_{{c_type}}(values[i])
+                {{else}}
                 value = values[i]
+                {{endif}}
                 k = kh_get_{{ttype}}(table, value)
                 if k != table.n_buckets:
                     out[table.vals[k]] = 1
@@ -221,7 +235,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
@@ -254,7 +268,12 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
-            kh_put_{{ttype}}(table, values[i], &ret)
+            {{if complex_group}}
+            val = to_{{c_type}}(values[i])
+            {{else}}
+            val = values[i]
+            {{endif}}
+            kh_put_{{ttype}}(table, val, &ret)
     {{endif}}
 
     # test membership
@@ -269,7 +288,11 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
+            {{if complex_group}}
+            val = to_{{c_type}}(arr[i])
+            {{else}}
             val = arr[i]
+            {{endif}}
             k = kh_get_{{ttype}}(table, val)
             result[i] = (k != table.n_buckets)
     {{endif}}
