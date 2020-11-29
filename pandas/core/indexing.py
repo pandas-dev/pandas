@@ -665,8 +665,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         ):
             keys = self.obj.columns.tolist()
             keys.extend([k for k in key if k not in self.obj])
-            data = self.obj._mgr.reindex_axis(keys, 0)
-            object.__setattr__(self.obj, "_mgr", data)
+            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
