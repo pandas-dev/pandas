@@ -782,6 +782,7 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
 - Fixed metadata propagation when selecting columns with ``DataFrame.__getitem__`` (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
+- Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
