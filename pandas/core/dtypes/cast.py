@@ -1653,13 +1653,16 @@ def cast_scalar_to_array(
     ndarray of shape, filled with value, of specified / inferred dtype
 
     """
+    # that's what the type annotation indicates
+    assert isinstance(dtype, (type(None), str, np.dtype))
+
     if dtype is None:
         dtype, value = infer_dtype_from_scalar(value)
     else:
         if not isinstance(dtype, np.dtype):
             dtype = np.dtype(dtype)
         empty = shape and not any(shape)
-        # rem: type coercion if empty: sometimes yes, sometimes no ?
+        # dtype coercion when empty: sometimes yes, sometimes no?
 
         if not empty and is_integer_dtype(dtype) and isna(value):
             # coerce if we have nan for an integer dtype

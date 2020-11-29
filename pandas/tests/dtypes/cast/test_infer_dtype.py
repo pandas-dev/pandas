@@ -194,7 +194,7 @@ def test_cast_scalar_to_array(obj, dtype, shape):
     exp = np.empty(shape, dtype=dtype)
     exp.fill(obj)
 
-    arr = cast_scalar_to_array(shape, obj, dtype=dtype)
+    arr = cast_scalar_to_array(shape, obj, dtype=np.dtype(dtype))
     tm.assert_numpy_array_equal(arr, exp)
 
 
@@ -215,6 +215,6 @@ def test_cast_scalar_to_array(obj, dtype, shape):
 def test_cast_scalar_to_array_conversion_needed(
     obj_in, dtype_in, obj_out, dtype_out, shape
 ):
-    result = cast_scalar_to_array(shape, obj_in, dtype=dtype_in)
+    result = cast_scalar_to_array(shape, obj_in, dtype=np.dtype(dtype_in))
     expected = np.full(shape, obj_out, dtype=dtype_out)
     tm.assert_numpy_array_equal(result, expected)
