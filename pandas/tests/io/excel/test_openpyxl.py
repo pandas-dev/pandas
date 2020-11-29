@@ -68,11 +68,11 @@ def test_write_cells_merge_styled(ext):
     ]
 
     with tm.ensure_clean(ext) as path:
-        writer = _OpenpyxlWriter(path)
-        writer.write_cells(initial_cells, sheet_name=sheet_name)
-        writer.write_cells(merge_cells, sheet_name=sheet_name)
+        with _OpenpyxlWriter(path) as writer:
+            writer.write_cells(initial_cells, sheet_name=sheet_name)
+            writer.write_cells(merge_cells, sheet_name=sheet_name)
 
-        wks = writer.sheets[sheet_name]
+            wks = writer.sheets[sheet_name]
         xcell_b1 = wks["B1"]
         xcell_a2 = wks["A2"]
         assert xcell_b1.font == openpyxl_sty_merged
@@ -93,9 +93,8 @@ def test_write_append_mode(ext, mode, expected):
         wb.worksheets[1]["A1"].value = "bar"
         wb.save(f)
 
-        writer = ExcelWriter(f, engine="openpyxl", mode=mode)
-        df.to_excel(writer, sheet_name="baz", index=False)
-        writer.save()
+        with ExcelWriter(f, engine="openpyxl", mode=mode) as writer:
+            df.to_excel(writer, sheet_name="baz", index=False)
 
         wb2 = openpyxl.load_workbook(f)
         result = [sheet.title for sheet in wb2.worksheets]
