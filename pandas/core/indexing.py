@@ -654,9 +654,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for k in key:
-                if k not in self.obj:
-                    self.obj[k] = np.nan
+            keys = self.obj.columns.union(key, sort=False)
+            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
