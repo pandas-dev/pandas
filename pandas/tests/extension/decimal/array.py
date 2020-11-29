@@ -155,6 +155,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
+    def __contains__(self, item) -> bool:
+        if not isinstance(item, decimal.Decimal):
+            return False
+        elif item.is_nan():
+            return self.isna().any()
+        else:
+            return super().__contains__(item)
+
     @property
     def nbytes(self) -> int:
         n = len(self)

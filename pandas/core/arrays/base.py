@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -353,6 +354,23 @@ class ExtensionArray:
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
+
+    def __contains__(self, item) -> bool:
+        """
+        Return for `item in self`.
+        """
+        # GH37867
+        # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
+        # would raise a TypeError. The implementation below works around that.
+        if is_scalar(item) and isna(item):
+            if not self._can_hold_na:
+                return False
+            elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
+                return self.isna().any()
+            else:
+                return False
+        else:
+            return (item == self).any()
 
     def __eq__(self, other: Any) -> ArrayLike:
         """
