@@ -57,9 +57,12 @@ class TestCategoricalIndex:
         with pytest.raises(KeyError, match=r"^'d'$"):
             df.loc["d"]
 
-        msg = "cannot append a non-category item to a CategoricalIndex"
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d"] = 10
+        df2 = df.copy()
+        expected = df2.copy()
+        expected.index = expected.index.astype(object)
+        expected.loc["d"] = 10
+        df2.loc["d"] = 10
+        tm.assert_frame_equal(df2, expected)
 
         msg = "'fill_value=d' is not present in this Categorical's categories"
         with pytest.raises(TypeError, match=msg):
