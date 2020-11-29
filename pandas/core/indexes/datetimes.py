@@ -820,14 +820,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _convert_listlike_indexer(self, key):
         if not isinstance(key, list):
-            # There are no slices for arrays or indexes, so we can dispatch back
+            # There are no slices, so we can dispatch back
             return super()._convert_listlike_indexer(key)
 
         new_indexer = []
-        indexes = list(range(len(self)))
+        positions = list(range(len(self)))
         try:
             for k in key:
-                indexer = indexes[self.get_loc(k)]
+                # Convert slices to list of integers
+                indexer = positions[self.get_loc(k)]
                 if not isinstance(indexer, list):
                     indexer = [indexer]
                 new_indexer.extend(indexer)

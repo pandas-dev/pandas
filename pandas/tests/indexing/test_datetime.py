@@ -232,10 +232,20 @@ class TestDatetimeIndex:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("indexer", ["2001-01", ["2001-01"]])
+    @pytest.mark.parametrize(
+        "indexer", [["2001-01", "2001-01-30"], ["2001-01", Timestamp("2001-01-30")]]
+    )
     def test_loc_getitem_partial_strings_in_list(self, indexer):
         # GH#27180
-        ser = Series(1, index=date_range('2001-01-01', periods=60))
+        ser = Series(1, index=date_range("2001-01-29", periods=60))
         result = ser.loc[indexer]
-        expected = Series(1, index=date_range('2001-01-01', periods=31))
+        expected = Series(
+            1,
+            index=[
+                Timestamp("2001-01-29"),
+                Timestamp("2001-01-30"),
+                Timestamp("2001-01-31"),
+                Timestamp("2001-01-30"),
+            ],
+        )
         tm.assert_series_equal(result, expected)
