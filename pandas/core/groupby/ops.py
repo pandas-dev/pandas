@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import F, FrameOrSeries, Label, Shape
+from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -445,6 +445,35 @@ class BaseGrouper:
                 raise
         return func, values
 
+    def _disallow_invalid_ops(self, values: ArrayLike, how: str):
+        """
+        Check if we can do this operation with our cython functions.
+
+        Raises
+        ------
+        NotImplementedError
+            This is either not a valid function for this dtype, or
+            valid but not implemented in cython.
+        """
+        dtype = values.dtype
+
+        if is_categorical_dtype(dtype) or is_sparse(dtype):
+            # categoricals are only 1d, so we
+            #  are not setup for dim transforming
+            raise NotImplementedError(f"{dtype} dtype not supported")
+        elif is_datetime64_any_dtype(dtype):
+            # we raise NotImplemented if this is an invalid operation
+            #  entirely, e.g. adding datetimes
+            if how in ["add", "prod", "cumsum", "cumprod"]:
+                raise NotImplementedError(
+                    f"datetime64 type does not support {how} operations"
+                )
+        elif is_timedelta64_dtype(dtype):
+            if how in ["prod", "cumprod"]:
+                raise NotImplementedError(
+                    f"timedelta64 type does not support {how} operations"
+                )
+
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
@@ -466,24 +495,7 @@ class BaseGrouper:
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-
-        # we raise NotImplemented if this is an invalid operation
-        # entirely, e.g. adding datetimes
-
-        # categoricals are only 1d, so we
-        # are not setup for dim transforming
-        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
-            raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values.dtype):
-            if how in ["add", "prod", "cumsum", "cumprod"]:
-                raise NotImplementedError(
-                    f"datetime64 type does not support {how} operations"
-                )
-        elif is_timedelta64_dtype(values.dtype):
-            if how in ["prod", "cumprod"]:
-                raise NotImplementedError(
-                    f"timedelta64 type does not support {how} operations"
-                )
+        self._disallow_invalid_ops(values, how)
 
         if is_datetime64tz_dtype(values.dtype):
             # Cast to naive; we'll cast back at the end of the function
