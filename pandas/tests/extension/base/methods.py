@@ -38,12 +38,18 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
-        data = data[:10].unique().remove_unused_categories()
+        data = data[:10].unique()
         values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-        result = pd.Series(data).value_counts(normalize=True).sort_index()
+        result = ser.value_counts(normalize=True).sort_index()
 
-        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        if not isinstance(data, pd.Categorical):
+            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        else:
+            expected = pd.Series(0.0, index=result.index)
+            expected[result > 0] = 1 / len(values)
+
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
