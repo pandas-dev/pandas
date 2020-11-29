@@ -51,6 +51,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -167,6 +168,7 @@ def _ensure_data(
     elif is_categorical_dtype(values.dtype) and (
         is_categorical_dtype(dtype) or dtype is None
     ):
+        values = cast("Categorical", values)
         values = values.codes
         dtype = pandas_dtype("category")
 
@@ -458,7 +460,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
     if len(comps) > 1_000_000 and len(values) <= 26 and not is_object_dtype(comps):
-        # If the the values include nan we need to check for nan explicitly
+        # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
@@ -682,7 +684,9 @@ def factorize(
         na_sentinel = -1
         dropna = False
 
-    if is_extension_array_dtype(values.dtype):
+    if isinstance(values, ABCRangeIndex):
+        return values.factorize(sort=sort)
+    elif is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
@@ -1563,7 +1567,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
         * True: negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
-          other negative values raise a ``ValueError``.
+          negative values raise a ``ValueError``.
 
     fill_value : any, optional
         Fill value to use for NA-indices when `allow_fill` is True.
@@ -1801,7 +1805,7 @@ def take_2d_multi(arr, indexer, fill_value=np.nan):
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None):
+def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1850,7 +1854,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 
     if (
         isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr)
+        and is_integer_dtype(arr.dtype)
         and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be

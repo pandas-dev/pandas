@@ -149,11 +149,11 @@ def test_inconsistent_return_type():
     # GH5592
     # inconsistent return type
     df = DataFrame(
-        dict(
-            A=["Tiger", "Tiger", "Tiger", "Lamb", "Lamb", "Pony", "Pony"],
-            B=Series(np.arange(7), dtype="int64"),
-            C=date_range("20130101", periods=7),
-        )
+        {
+            "A": ["Tiger", "Tiger", "Tiger", "Lamb", "Lamb", "Pony", "Pony"],
+            "B": Series(np.arange(7), dtype="int64"),
+            "C": date_range("20130101", periods=7),
+        }
     )
 
     def f(grp):
@@ -257,7 +257,7 @@ def test_len():
     assert len(grouped) == expected
 
     # issue 11016
-    df = DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
+    df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
     assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 3
@@ -1615,7 +1615,7 @@ def test_groupby_multiindex_not_lexsorted():
 
 def test_index_label_overlaps_location():
     # checking we don't have any label/location confusion in the
-    # the wake of GH5375
+    # wake of GH5375
     df = DataFrame(list("ABCDE"), index=[2, 0, 2, 1, 1])
     g = df.groupby(list("ababb"))
     actual = g.filter(lambda x: len(x) > 2)

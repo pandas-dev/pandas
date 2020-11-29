@@ -366,6 +366,15 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_float(any_float_allowed_nullable_dtype):
+    # Don't compare arrays (37974)
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    result = ser.astype(any_float_allowed_nullable_dtype)
+    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
@@ -420,6 +429,24 @@ def test_reduce_missing(skipna, dtype):
         assert result == "abc"
     else:
         assert pd.isna(result)
+
+
+def test_fillna_args():
+    # GH 37987
+
+    arr = pd.array(["a", pd.NA], dtype="string")
+
+    res = arr.fillna(value="b")
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = arr.fillna(value=np.str_("b"))
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(ValueError, match=msg):
+        arr.fillna(value=1)
 
 
 @td.skip_if_no("pyarrow", min_version="0.15.0")

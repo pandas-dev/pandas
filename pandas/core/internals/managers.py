@@ -267,7 +267,7 @@ class BlockManager(PandasObject):
             "0.14.1": {
                 "axes": axes_array,
                 "blocks": [
-                    dict(values=b.values, mgr_locs=b.mgr_locs.indexer)
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
                     for b in self.blocks
                 ],
             }
@@ -442,6 +442,7 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
+        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -455,6 +456,8 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
+        consolidate: bool, default True. Join together blocks having same
+            dtype
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
@@ -468,6 +471,9 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
+
+        if consolidate:
+            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
@@ -630,7 +636,6 @@ class BlockManager(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> "BlockManager":
         return self.apply(
             "convert",
@@ -638,7 +643,6 @@ class BlockManager(PandasObject):
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
     def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":
@@ -1544,7 +1548,7 @@ class SingleBlockManager(BlockManager):
             )
 
         self.axes = [axis]
-        self.blocks = tuple([block])
+        self.blocks = (block,)
 
     @classmethod
     def from_blocks(

@@ -288,7 +288,6 @@ def unique_nulls_fixture(request):
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
 
-
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
@@ -472,8 +471,8 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = tuple([None]) + vals[0][1:]
-        vals[-1] = tuple([None]) + vals[-1][1:]
+        vals[0] = (None,) + vals[0][1:]
+        vals[-1] = (None,) + vals[-1][1:]
         return MultiIndex.from_tuples(vals)
     else:
         vals[0] = None
@@ -1086,6 +1085,20 @@ def float_ea_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
     * 'Float32'
     * 'Float64'
     """

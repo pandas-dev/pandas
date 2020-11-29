@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     maybe_cast_result,
     maybe_cast_result_dtype,
-    maybe_convert_objects,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -262,7 +261,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 return self._python_agg_general(func, *args, **kwargs)
             except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
-                #  see see test_groupby.test_basic
+                #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
@@ -1390,8 +1389,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         obj = self._obj_with_exclusions
 
-        # for each col, reshape to to size of original frame
-        # by take operation
+        # for each col, reshape to size of original frame by take operation
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
@@ -1868,8 +1866,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
 
     # See GH#26285
     for n in obj_cols:
-        converted = maybe_convert_objects(
-            result.iloc[:, n].values, convert_numeric=False
+        values = result.iloc[:, n].values
+        converted = lib.maybe_convert_objects(
+            values, convert_datetime=True, convert_timedelta=True
         )
 
         result.iloc[:, n] = converted

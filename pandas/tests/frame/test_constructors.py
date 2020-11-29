@@ -181,7 +181,7 @@ class TestDataFrameConstructors:
             for d, a in zip(dtypes, arrays):
                 assert a.dtype == d
             if ad is None:
-                ad = dict()
+                ad = {}
             ad.update({d: a for d, a in zip(dtypes, arrays)})
             return DataFrame(ad)
 
@@ -197,7 +197,7 @@ class TestDataFrameConstructors:
         _check_mixed_dtypes(df)
 
         # add lots of types
-        df = _make_mixed_dtypes_df("float", dict(A=1, B="foo", C="bar"))
+        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
         _check_mixed_dtypes(df)
 
         # GH 622
@@ -352,12 +352,12 @@ class TestDataFrameConstructors:
 
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
-        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
+        tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
         # GH 14381
         # Dict with None value
-        frame_none = DataFrame(dict(a=None), index=[0])
-        frame_none_list = DataFrame(dict(a=[None]), index=[0])
+        frame_none = DataFrame({"a": None}, index=[0])
+        frame_none_list = DataFrame({"a": [None]}, index=[0])
         assert frame_none._get_value(0, "a") is None
         assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
@@ -802,14 +802,14 @@ class TestDataFrameConstructors:
 
         # automatic labeling
         frame = DataFrame(mat)
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, index=[1, 2])
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, columns=["A", "B", "C"])
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -1540,14 +1540,12 @@ class TestDataFrameConstructors:
         msg = "cannot use columns parameter with orient='columns'"
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]),
+                {"A": [1, 2], "B": [4, 5]},
                 orient="columns",
                 columns=["one", "two"],
             )
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
-            )
+            DataFrame.from_dict({"A": [1, 2], "B": [4, 5]}, columns=["one", "two"])
 
     @pytest.mark.parametrize(
         "data_dict, keys, orient",
@@ -1590,7 +1588,7 @@ class TestDataFrameConstructors:
         arr = np.random.randn(10)
         s = Series(arr, name="x")
         df = DataFrame(s)
-        expected = DataFrame(dict(x=s))
+        expected = DataFrame({"x": s})
         tm.assert_frame_equal(df, expected)
 
         s = Series(arr, index=range(3, 13))
