@@ -365,7 +365,6 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
 
         k = kh_put_{{dtype}}(self.table, key, &ret)
-        self.table.keys[k] = key
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
         else:
@@ -698,7 +697,6 @@ cdef class StringHashTable(HashTable):
         v = get_c_string(key)
 
         k = kh_put_str(self.table, v, &ret)
-        self.table.keys[k] = v
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
         else:
@@ -1022,7 +1020,6 @@ cdef class PyObjectHashTable(HashTable):
         hash(key)
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
-        # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:

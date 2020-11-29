@@ -184,7 +184,6 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
                 out[i] = 1
             else:
                 k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
-                table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
         {{else}}
@@ -197,7 +196,6 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
                     out[i] = 1
                 else:
                     k = kh_put_{{ttype}}(table, value, &ret)
-                    table.keys[k] = value
                     table.vals[k] = i
                     out[i] = 0
         {{endif}}
