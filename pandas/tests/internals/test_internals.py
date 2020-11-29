@@ -264,6 +264,25 @@ class TestBlock:
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
 
+    def test_split(self):
+        # GH#37799
+        values = np.random.randn(3, 4)
+        blk = make_block(values, placement=[3, 1, 6], ndim=2)
+        result = blk._split()
+
+        # check that we get views, not copies
+        values[:] = -9999
+        assert (blk.values == -9999).all()
+
+        assert len(result) == 3
+        expected = [
+            make_block(values[[0]], placement=[3], ndim=2),
+            make_block(values[[1]], placement=[1], ndim=2),
+            make_block(values[[2]], placement=[6], ndim=2),
+        ]
+        for res, exp in zip(result, expected):
+            assert_block_equal(res, exp)
+
 
 class TestBlockManager:
     def test_attrs(self):
@@ -323,7 +342,9 @@ class TestBlockManager:
     def test_iget(self):
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
-        block = make_block(values=values.copy(), placement=np.arange(3))
+        block = make_block(
+            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+        )
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
@@ -667,7 +688,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, Index(["bool"]))
+        tm.assert_index_equal(bools.items, Index(["bool", "dt"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -1131,17 +1152,17 @@ def test_make_block_no_pandas_array():
     arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
-    result = make_block(arr, slice(len(arr)))
+    result = make_block(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # PandasArray, PandasDtype
-    result = make_block(arr, slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # ndarray, PandasDtype
-    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 

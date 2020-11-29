@@ -118,12 +118,6 @@ class TestTimedeltaIndex(DatetimeLike):
         result = rng.groupby(rng.days)
         assert isinstance(list(result.values())[0][0], Timedelta)
 
-        idx = TimedeltaIndex(["3d", "1d", "2d"])
-        assert not idx.equals(list(idx))
-
-        non_td = Index(list("abc"))
-        assert not idx.equals(list(non_td))
-
     def test_map(self):
         # test_map_dictlike generally tests
 

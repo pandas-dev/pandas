@@ -146,7 +146,7 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and Python environment. If you're making documentation
+requires a C/C++ compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
@@ -183,7 +183,7 @@ See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
 Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
 
-    python setup.py build_ext --inplace -j 4
+    python setup.py build_ext -j 4
 
 .. _contributing.dev_c:
 
@@ -194,6 +194,13 @@ pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
+
+If you have setup your environment using ``conda``, the packages ``c-compiler``
+and ``cxx-compiler`` will install a fitting compiler for your platform that is
+compatible with the remaining conda packages. On Windows and macOS, you will
+also need to install the SDKs as they have to be distributed separately.
+These packages will be automatically installed by using ``pandas``'s
+``environment.yml``.
 
 **Windows**
 
@@ -206,12 +213,33 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
+You can install the necessary components on the commandline using
+`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+
+.. code::
+
+    vs_buildtools.exe --quiet --wait --norestart --nocache ^
+        --installPath C:\BuildTools ^
+        --add "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" ^
+        --add Microsoft.VisualStudio.Component.VC.v141 ^
+        --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 ^
+        --add Microsoft.VisualStudio.Component.Windows10SDK.17763
+
+To setup the right paths on the commandline, call
+``"C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.16 10.0.17763.0``.
+
 **macOS**
 
-Information about compiler installation can be found here:
+To use the ``conda``-based compilers, you will need to install the
+Developer Tools using ``xcode-select --install``. Otherwise
+information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
-**Unix**
+**Linux**
+
+For Linux-based ``conda`` installations, you won't have to install any
+additional components outside of the conda environment. The instructions
+below are only needed if your setup isn't based on conda environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -243,11 +271,10 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that you have a C compiler, create an isolated pandas development
-environment:
+Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
-  <https://conda.io/miniconda.html>`_
+* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
+  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :ref:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -268,7 +295,7 @@ We'll now kick off a three-step process:
    source activate pandas-dev
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
@@ -315,7 +342,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Unix**/**macOS with pyenv**
@@ -339,7 +366,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -365,7 +392,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
@@ -442,7 +469,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-* The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `IPython directive
   <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::

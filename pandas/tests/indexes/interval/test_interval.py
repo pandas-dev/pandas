@@ -54,7 +54,10 @@ class TestIntervalIndex:
 
         assert index.closed == closed
 
-        ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
+        ivs = [
+            Interval(left, right, closed)
+            for left, right in zip(range(10), range(1, 11))
+        ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
 
@@ -74,8 +77,8 @@ class TestIntervalIndex:
         assert index.closed == closed
 
         ivs = [
-            Interval(l, r, closed) if notna(l) else np.nan
-            for l, r in zip(expected_left, expected_right)
+            Interval(left, right, closed) if notna(left) else np.nan
+            for left, right in zip(expected_left, expected_right)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -192,7 +195,7 @@ class TestIntervalIndex:
 
         # invalid type
         msg = "can only insert Interval objects and NA into an IntervalArray"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
@@ -213,7 +216,7 @@ class TestIntervalIndex:
         if data.left.dtype.kind not in ["m", "M"]:
             # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
             msg = "can only insert Interval objects and NA into an IntervalArray"
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 result = data.insert(1, pd.NaT)
         else:
             result = data.insert(1, pd.NaT)
@@ -228,7 +231,7 @@ class TestIntervalIndex:
         assert idx.is_unique is True
 
         # unique overlapping - shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
         assert idx.is_unique is True
 
         # unique nested
@@ -279,14 +282,14 @@ class TestIntervalIndex:
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
         assert idx.is_monotonic is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
+        idx = IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
         assert idx.is_monotonic is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
@@ -869,10 +872,10 @@ class TestIntervalIndex:
 
     def test_is_all_dates(self):
         # GH 23576
-        year_2017 = pd.Interval(
+        year_2017 = Interval(
             Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
-        year_2017_index = pd.IntervalIndex([year_2017])
+        year_2017_index = IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
 
     @pytest.mark.parametrize("key", [[5], (2, 3)])

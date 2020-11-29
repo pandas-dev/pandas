@@ -17,6 +17,23 @@ from pandas.tests.indexing.common import _mklbl
 
 from .test_floats import gen_obj
 
+
+def getitem(x):
+    return x
+
+
+def setitem(x):
+    return x
+
+
+def loc(x):
+    return x.loc
+
+
+def iloc(x):
+    return x.iloc
+
+
 # ------------------------------------------------------------------------
 # Indexing test cases
 
@@ -33,10 +50,7 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        msg = (
-            "cannot set using a multi-index selection "
-            "indexer with a different length than the value"
-        )
+        msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
@@ -58,15 +72,8 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize(
-        "idxr, idxr_id",
-        [
-            (lambda x: x, "getitem"),
-            (lambda x: x.loc, "loc"),
-            (lambda x: x.iloc, "iloc"),
-        ],
-    )
-    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
+    @pytest.mark.parametrize("idxr", [getitem, loc, iloc])
+    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = idxr(obj)
@@ -88,26 +95,19 @@ class TestFancy:
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "idxr, idxr_id",
-        [
-            (lambda x: x, "setitem"),
-            (lambda x: x.loc, "loc"),
-            (lambda x: x.iloc, "iloc"),
-        ],
-    )
-    def test_setitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
+    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = idxr(obj)
+        idxr = indexer(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if idxr_id == "iloc":
+        if indexer.__name__ == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
             isinstance(index, pd.IntervalIndex)
-            and idxr_id == "setitem"
+            and indexer.__name__ == "setitem"
             and obj.ndim == 1
         ):
             err = AttributeError
@@ -297,7 +297,7 @@ class TestFancy:
         result = df.loc[[1, 2], ["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("case", [lambda s: s, lambda s: s.loc])
+    @pytest.mark.parametrize("case", [getitem, loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
         s = Series(range(3), index=[1, 1, 3])
@@ -463,12 +463,12 @@ class TestFancy:
 
         # broadcasting on the rhs is required
         df = DataFrame(
-            dict(
-                A=[1, 2, 0, 0, 0],
-                B=[0, 0, 0, 10, 11],
-                C=[0, 0, 0, 10, 11],
-                D=[3, 4, 5, 6, 7],
-            )
+            {
+                "A": [1, 2, 0, 0, 0],
+                "B": [0, 0, 0, 10, 11],
+                "C": [0, 0, 0, 10, 11],
+                "D": [3, 4, 5, 6, 7],
+            }
         )
 
         expected = df.copy()
@@ -594,7 +594,7 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x])
+    @pytest.mark.parametrize("indexer", [getitem, loc])
     def test_index_type_coercion(self, indexer):
 
         # GH 11836
@@ -671,43 +671,48 @@ class TestMisc:
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
-        def run_tests(df, rhs, right):
+        def run_tests(df, rhs, right_loc, right_iloc):
             # label, index, slice
             lbl_one, idx_one, slice_one = list("bcd"), [1, 2, 3], slice(1, 4)
             lbl_two, idx_two, slice_two = ["joe", "jolie"], [1, 2], slice(1, 3)
 
             left = df.copy()
             left.loc[lbl_one, lbl_two] = rhs
-            tm.assert_frame_equal(left, right)
+            tm.assert_frame_equal(left, right_loc)
 
             left = df.copy()
             left.iloc[idx_one, idx_two] = rhs
-            tm.assert_frame_equal(left, right)
+            tm.assert_frame_equal(left, right_iloc)
 
             left = df.copy()
             left.iloc[slice_one, slice_two] = rhs
-            tm.assert_frame_equal(left, right)
+            tm.assert_frame_equal(left, right_iloc)
 
         xs = np.arange(20).reshape(5, 4)
         cols = ["jim", "joe", "jolie", "joline"]
-        df = DataFrame(xs, columns=cols, index=list("abcde"))
+        df = DataFrame(xs, columns=cols, index=list("abcde"), dtype="int64")
 
         # right hand side; permute the indices and multiplpy by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
 
         # expected `right` result; just multiply by -2
-        right = df.copy()
-        right.iloc[1:4, 1:3] *= -2
+        right_iloc = df.copy()
+        right_iloc["joe"] = [1, 14, 10, 6, 17]
+        right_iloc["jolie"] = [2, 13, 9, 5, 18]
+        right_iloc.iloc[1:4, 1:3] *= -2
+        right_loc = df.copy()
+        right_loc.iloc[1:4, 1:3] *= -2
 
         # run tests with uniform dtypes
-        run_tests(df, rhs, right)
+        run_tests(df, rhs, right_loc, right_iloc)
 
         # make frames multi-type & re-run tests
-        for frame in [df, rhs, right]:
+        for frame in [df, rhs, right_loc, right_iloc]:
             frame["joe"] = frame["joe"].astype("float64")
             frame["jolie"] = frame["jolie"].map("@{}".format)
-
-        run_tests(df, rhs, right)
+        right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
+        right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
+        run_tests(df, rhs, right_loc, right_iloc)
 
     def test_str_label_slicing_with_negative_step(self):
         SLC = pd.IndexSlice
@@ -738,7 +743,7 @@ class TestMisc:
     def test_indexing_assignment_dict_already_exists(self):
         df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]}).set_index("z")
         expected = df.copy()
-        rhs = dict(x=9, y=99)
+        rhs = {"x": 9, "y": 99}
         df.loc[5] = rhs
         expected.loc[5] = [9, 99]
         tm.assert_frame_equal(df, expected)
@@ -828,6 +833,17 @@ class TestMisc:
         wr = weakref.ref(df)
         del df
         assert wr() is None
+
+    def test_label_indexing_on_nan(self):
+        # GH 32431
+        df = Series([1, "{1,2}", 1, None])
+        vc = df.value_counts(dropna=False)
+        result1 = vc.loc[np.nan]
+        result2 = vc[np.nan]
+
+        expected = 1
+        assert result1 == expected
+        assert result2 == expected
 
 
 class TestSeriesNoneCoercion:
@@ -983,43 +999,6 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-def test_readonly_indices():
-    # GH#17192 iloc with read-only array raising TypeError
-    df = DataFrame({"data": np.ones(100, dtype="float64")})
-    indices = np.array([1, 3, 6])
-    indices.flags.writeable = False
-
-    result = df.iloc[indices]
-    expected = df.loc[[1, 3, 6]]
-    tm.assert_frame_equal(result, expected)
-
-    result = df["data"].iloc[indices]
-    expected = df["data"].loc[[1, 3, 6]]
-    tm.assert_series_equal(result, expected)
-
-
-def test_1tuple_without_multiindex():
-    ser = Series(range(5))
-    key = (slice(3),)
-
-    result = ser[key]
-    expected = ser[key[0]]
-    tm.assert_series_equal(result, expected)
-
-
-def test_duplicate_index_mistyped_key_raises_keyerror():
-    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
-    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
-    with pytest.raises(KeyError, match="None"):
-        ser[None]
-
-    with pytest.raises(KeyError, match="None"):
-        ser.index.get_loc(None)
-
-    with pytest.raises(KeyError, match="None"):
-        ser.index._engine.get_loc(None)
 
 
 def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():

@@ -9,12 +9,7 @@ import pytest
 from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -27,6 +22,7 @@ from pandas import (
     MultiIndex,
     NaT,
     Period,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -93,6 +89,17 @@ class TestSeriesConstructors:
         # Coercion
         assert float(Series([1.0])) == 1.0
         assert int(Series([1.0])) == 1
+
+    def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
+        # GH 28401
+
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+
+        ser = Series(ea_scalar, index=range(3))
+        expected = Series([ea_scalar] * 3, dtype=ea_dtype)
+
+        assert ser.dtype == ea_dtype
+        tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -267,7 +274,7 @@ class TestSeriesConstructors:
             (["1", "2"]),
             (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
             (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
+            ([Interval(left=0, right=5)]),
         ],
     )
     def test_constructor_list_str(self, input_vals, string_dtype):
@@ -549,7 +556,7 @@ class TestSeriesConstructors:
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        tm.assert_index_equal(s.index, Index(np.arange(3)))
+        tm.assert_index_equal(s.index, Index(range(3)), exact=True)
 
     @pytest.mark.parametrize(
         "input",
@@ -624,7 +631,7 @@ class TestSeriesConstructors:
             pd.period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
-            pd.RangeIndex(0, 3),
+            RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -1004,7 +1011,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_infer_interval(self, data_constructor):
         # GH 23563: consistent closed results in interval dtype
-        data = [pd.Interval(0, 1), pd.Interval(0, 2), None]
+        data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
         assert result.dtype == "interval[float64]"
@@ -1015,7 +1022,7 @@ class TestSeriesConstructors:
     )
     def test_constructor_interval_mixed_closed(self, data_constructor):
         # GH 23563: mixed closed results in object dtype (not interval dtype)
-        data = [pd.Interval(0, 1, closed="both"), pd.Interval(0, 2, closed="neither")]
+        data = [Interval(0, 1, closed="both"), Interval(0, 2, closed="neither")]
         result = Series(data_constructor(data))
         assert result.dtype == object
         assert result.tolist() == data
@@ -1039,7 +1046,7 @@ class TestSeriesConstructors:
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
     )
     def test_constructor_infer_period(self, data_constructor):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "D"), None]
+        data = [Period("2000", "D"), Period("2001", "D"), None]
         result = Series(data_constructor(data))
         expected = Series(period_array(data))
         tm.assert_series_equal(result, expected)
@@ -1056,7 +1063,7 @@ class TestSeriesConstructors:
         assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
-        data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "A")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data
@@ -1106,23 +1113,13 @@ class TestSeriesConstructors:
         expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "data,dtype",
-        [
-            (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (
-                Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
-            ),
-        ],
-    )
-    def test_constructor_dict_extension(self, data, dtype):
-        d = {"a": data}
+    def test_constructor_dict_extension(self, ea_scalar_and_dtype):
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+        d = {"a": ea_scalar}
         result = Series(d, index=["a"])
-        expected = Series(data, index=["a"], dtype=dtype)
+        expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
 
-        assert result.dtype == dtype
+        assert result.dtype == ea_dtype
 
         tm.assert_series_equal(result, expected)
 
@@ -1538,7 +1535,7 @@ class TestSeriesConstructors:
         assert series.dtype == "Period[D]"
 
         series = Series(
-            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+            [Period("2011-01-01", freq="D"), Period("2011-02-01", freq="D")]
         )
         assert series.dtype == "Period[D]"
 

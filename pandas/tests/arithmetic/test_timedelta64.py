@@ -465,7 +465,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
-        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+        # pytest.raises(TypeError, lambda : pd.Int64Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", pd.NaT, "20130105"])
@@ -822,7 +822,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_series_equal(rs, xp)
         assert rs.dtype == "timedelta64[ns]"
 
-        df = DataFrame(dict(A=v1))
+        df = DataFrame({"A": v1})
         td = Series([timedelta(days=i) for i in range(3)])
         assert td.dtype == "timedelta64[ns]"
 
