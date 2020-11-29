@@ -2379,6 +2379,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
+
+        if self.is_unique:
+            return self
+
         result = super().unique()
         return self._shallow_copy(result)
 
@@ -2858,11 +2862,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = other.take(indexer)
-        if not result.is_unique:
-            result = result.unique()._values
-        else:
-            result = result._values
+        result = other.take(indexer).unique()._values
 
         if sort is None:
             result = algos.safe_sort(result)
