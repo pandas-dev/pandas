@@ -2861,12 +2861,14 @@ class Index(IndexOpsMixin, PandasObject):
         result = Index(other.take(indexer))
         if not result.is_unique:
             result = result.unique()._values
+        else:
+            result = result._values
 
         if sort is None:
             result = algos.safe_sort(result)
 
         # Intersection has to be unique
-        assert Index(other.take(indexer)).is_unique
+        assert Index(result).is_unique
 
         return result
 
