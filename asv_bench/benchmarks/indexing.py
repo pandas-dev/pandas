@@ -358,6 +358,10 @@ class InsertColumns:
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
 
+    def time_assign_list_like_with_setitem(self):
+        np.random.seed(1234)
+        self.df[list(range(100))] = np.random.randn(self.N, 100)
+
 
 class ChainIndexing:
 
