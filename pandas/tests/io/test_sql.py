@@ -865,8 +865,8 @@ class _TestSQLApi(PandasSQLTest):
         create_sql = sql.get_schema(self.test_frame1, "test", con=self.conn)
         assert "CREATE" in create_sql
 
-    # GH28486
     def test_get_schema_with_schema(self):
+        # GH28486
         create_sql = sql.get_schema(
             self.test_frame1, "test", con=self.conn, schema="pypi"
         )
