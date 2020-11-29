@@ -2381,7 +2381,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
 
         if self.is_unique:
-            return self
+            return self._shallow_copy()
 
         result = super().unique()
         return self._shallow_copy(result)
