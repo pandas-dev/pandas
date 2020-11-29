@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape
+from pandas._typing import F, FrameOrSeries, Label, Shape
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -445,7 +445,7 @@ class BaseGrouper:
                 raise
         return func, values
 
-    def _disallow_invalid_ops(self, values: ArrayLike, how: str):
+    def _disallow_invalid_ops(self, values, how: str):
         """
         Check if this operation is valid for this dtype.
 
@@ -478,7 +478,7 @@ class BaseGrouper:
     def _ea_wrap_cython_operation(
         self,
         kind: str,
-        values: ArrayLike,
+        values,
         how: str,
         axis: int,
         min_count: int = -1,
@@ -524,7 +524,7 @@ class BaseGrouper:
     def _cython_operation(
         self,
         kind: str,
-        values: ArrayLike,
+        values,
         how: str,
         axis: int,
         min_count: int = -1,
@@ -637,6 +637,7 @@ class BaseGrouper:
             result = result.swapaxes(0, axis)
 
         if is_datetimelike and kind == "aggregate":
+            # i.e. not rank, for which we want to keep numeric dtype
             result = result.astype(orig_values.dtype)
 
         return result, names
