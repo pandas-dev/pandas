@@ -393,22 +393,22 @@ class TestDataFrameCombineFirst:
 
 
 @pytest.mark.parametrize(
-    "val1, val2",
+    "scalar1, scalar2",
     [
         (datetime(2020, 1, 1), datetime(2020, 1, 2)),
         (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
         (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
     ],
 )
-def test_combine_first_timestamp_bug(val1, val2, nulls_fixture):
+def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
+    # GH28481
+    na_value = nulls_fixture
+    frame = DataFrame([[na_value, na_value]], columns=["a", "b"])
+    other = DataFrame([[scalar1, scalar2]], columns=["b", "c"])
 
-    df1 = DataFrame([[nulls_fixture, nulls_fixture]], columns=["a", "b"])
-    df2 = DataFrame([[val1, val2]], columns=["b", "c"])
-
-    res = df1.combine_first(df2)
-    exp = DataFrame([[nulls_fixture, val1, val2]], columns=["a", "b", "c"])
-
-    tm.assert_frame_equal(res, exp)
+    result = frame.combine_first(other)
+    expected = DataFrame([[na_value, scalar1, scalar2]], columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_combine_first_with_nan_multiindex():
