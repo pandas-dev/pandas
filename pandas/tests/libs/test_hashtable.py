@@ -30,9 +30,11 @@ def get_allocated_khash_memory():
     "table_type, dtype",
     [
         (ht.PyObjectHashTable, np.object_),
+        (ht.Complex128HashTable, np.complex128),
         (ht.Int64HashTable, np.int64),
         (ht.UInt64HashTable, np.uint64),
         (ht.Float64HashTable, np.float64),
+        (ht.Complex64HashTable, np.complex64),
         (ht.Int32HashTable, np.int32),
         (ht.UInt32HashTable, np.uint32),
         (ht.Float32HashTable, np.float32),
@@ -182,6 +184,8 @@ def test_tracemalloc_for_empty_StringHashTable():
     [
         (ht.Float64HashTable, np.float64),
         (ht.Float32HashTable, np.float32),
+        (ht.Complex128HashTable, np.complex128),
+        (ht.Complex64HashTable, np.complex64),
     ],
 )
 class TestHashTableWithNans:
@@ -233,9 +237,11 @@ def get_ht_function(fun_name, type_suffix):
     "dtype, type_suffix",
     [
         (np.object_, "object"),
+        (np.complex128, "complex128"),
         (np.int64, "int64"),
         (np.uint64, "uint64"),
         (np.float64, "float64"),
+        (np.complex64, "complex64"),
         (np.int32, "int32"),
         (np.uint32, "uint32"),
         (np.float32, "float32"),
@@ -304,6 +310,8 @@ class TestHelpFunctions:
     [
         (np.float64, "float64"),
         (np.float32, "float32"),
+        (np.complex128, "complex128"),
+        (np.complex64, "complex64"),
     ],
 )
 class TestHelpFunctionsWithNans:
