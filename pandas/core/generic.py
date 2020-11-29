@@ -6144,6 +6144,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         appropriate integer extension type. Otherwise, convert to an
         appropriate floating extension type.
 
+        .. versionchanged:: 1.2
+            Starting with pandas 1.2, this method also converts float columns
+            to the nullable floating extension type.
+
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
 
