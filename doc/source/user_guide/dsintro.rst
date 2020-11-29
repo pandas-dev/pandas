@@ -439,7 +439,7 @@ Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivalent to passing a list of dictionaries.
 
-Please be aware, that that all values in the list should be dataclasses, mixing
+Please be aware, that all values in the list should be dataclasses, mixing
 types in the list would result in a TypeError.
 
 .. ipython:: python

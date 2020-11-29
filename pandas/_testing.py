@@ -1768,7 +1768,7 @@ def box_expected(expected, box_cls, transpose=True):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
         if transpose:
-            # for vector operations, we we need a DataFrame to be a single-row,
+            # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
             #  vectors of the same length.
             expected = expected.T
@@ -2167,15 +2167,15 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = dict(
-        i=makeIntIndex,
-        f=makeFloatIndex,
-        s=makeStringIndex,
-        u=makeUnicodeIndex,
-        dt=makeDateIndex,
-        td=makeTimedeltaIndex,
-        p=makePeriodIndex,
-    ).get(idx_type)
+    idx_func = {
+        "i": makeIntIndex,
+        "f": makeFloatIndex,
+        "s": makeStringIndex,
+        "u": makeUnicodeIndex,
+        "dt": makeDateIndex,
+        "td": makeTimedeltaIndex,
+        "p": makePeriodIndex,
+    }.get(idx_type)
     if idx_func:
         # pandas\_testing.py:2120: error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]
