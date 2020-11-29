@@ -492,6 +492,7 @@ Deprecations
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`.DatetimeIndex`, :class:`.TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and replaced by ``show_counts``. It will be removed in a future version (:issue:`37999`)
+- :class:`ExtensionOpsMixin` and :class:`ExtensionScalarOpsMixin` are deprecated and will be removed in a future version.  Use ``pd.core.arraylike.OpsMixin`` instead (:issue:`37080`)
 
 .. ---------------------------------------------------------------------------
 
@@ -770,6 +771,7 @@ ExtensionArray
 - Fixed bug when applying a NumPy ufunc with multiple outputs to an :class:`.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`.PeriodArray`'s ``__init__`` signature to those of :class:`.DatetimeArray` and :class:`.TimedeltaArray` (:issue:`37289`)
 - Reductions for :class:`.BooleanArray`, :class:`.Categorical`, :class:`.DatetimeArray`, :class:`.FloatingArray`, :class:`.IntegerArray`, :class:`.PeriodArray`, :class:`.TimedeltaArray`, and :class:`.PandasArray` are now keyword-only methods (:issue:`37541`)
+- Fixed a bug where a  ``TypeError`` was wrongly raised if a membership check was made on an ``ExtensionArray`` containing nan-like values (:issue:`37867`)
 
 Other
 ^^^^^
@@ -782,6 +784,7 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
 - Fixed metadata propagation when selecting columns with ``DataFrame.__getitem__`` (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
+- Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
