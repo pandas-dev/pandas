@@ -700,7 +700,6 @@ class Block(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> List["Block"]:
         """
         attempt to coerce any object types to better types return a copy
