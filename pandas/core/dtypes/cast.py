@@ -548,6 +548,11 @@ def maybe_promote(dtype, fill_value=np.nan):
         Upcasted from dtype argument if necessary.
     fill_value
         Upcasted from fill_value argument if necessary.
+
+    Raises
+    ------
+    ValueError
+        If fill_value is a non-scalar and dtype is not object.
     """
     if not is_scalar(fill_value) and not is_object_dtype(dtype):
         # with object dtype there is nothing to promote, and the user can
