@@ -33,6 +33,7 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    find_common_type,
     maybe_cast_to_integer_array,
     validate_numeric_casting,
 )
@@ -2826,8 +2827,9 @@ class Index(IndexOpsMixin, PandasObject):
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            this = self.astype("O")
-            other = other.astype("O")
+            dtype = find_common_type([self.dtype, other.dtype])
+            this = self.astype(dtype)
+            other = other.astype(dtype)
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
