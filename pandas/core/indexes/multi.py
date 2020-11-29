@@ -1684,10 +1684,6 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def _to_safe_for_reshape(self):
-        """ convert to object if we are a categorical """
-        return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
-
     def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
@@ -2529,6 +2525,10 @@ class MultiIndex(Index):
         new_values = series._values[loc]
         if is_scalar(loc):
             return new_values
+
+        if len(new_values) == 1 and not self.nlevels > 1:
+            # If more than one level left, we can not return a scalar
+            return new_values[0]
 
         new_index = self[loc]
         new_index = maybe_droplevels(new_index, key)
@@ -3601,6 +3601,8 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if self.has_duplicates:
+                return self.unique().rename(result_names)
             return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
@@ -3619,10 +3621,12 @@ class MultiIndex(Index):
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                uniq_tuples = self._inner_indexer(lvals, rvals)[0]
-                sort = False  # uniq_tuples is already sorted
+                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
+            else:
+                uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
             other_uniq = set(rvals)

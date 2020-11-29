@@ -2823,7 +2823,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -2848,7 +2848,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return result
+                return algos.unique1d(result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2859,10 +2859,13 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = other.take(indexer)._values
+        result = other.take(indexer).unique()._values
 
         if sort is None:
             result = algos.safe_sort(result)
+
+        # Intersection has to be unique
+        assert algos.unique(result).shape == result.shape
 
         return result
 
@@ -4162,12 +4165,6 @@ class Index(IndexOpsMixin, PandasObject):
             "String dtype not supported, you may need "
             "to explicitly cast to a numeric type"
         )
-
-    def _to_safe_for_reshape(self):
-        """
-        Convert to object if we are a categorical.
-        """
-        return self
 
     def _validate_fill_value(self, value):
         """
