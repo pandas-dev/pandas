@@ -51,7 +51,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCIndexClass,
     ABCMultiIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -661,9 +660,6 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
-
-    if isinstance(values, ABCRangeIndex):
-        return values.factorize(sort=sort)
 
     values = _ensure_arraylike(values)
     original = values
