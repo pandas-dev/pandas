@@ -402,6 +402,24 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
     return obj
 
 
+def ensure_wrapped_if_datetimelike(arr):
+    """
+    Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
+    """
+    if isinstance(arr, np.ndarray):
+        if arr.dtype.kind == "M":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(arr)
+
+        elif arr.dtype.kind == "m":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(arr)
+
+    return arr
+
+
 def sanitize_array(
     data,
     index: Optional[Index],
