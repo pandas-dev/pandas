@@ -85,8 +85,8 @@ _common_see_also = """
             to each row or column of a DataFrame.
 """
 
-_apply_docs = dict(
-    template="""
+_apply_docs = {
+    "template": """
     Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
@@ -123,7 +123,7 @@ _apply_docs = dict(
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
     """,
-    dataframe_examples="""
+    "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
                            'B': [1,2,3],
                            'C': [4,6, 5]})
@@ -163,7 +163,7 @@ _apply_docs = dict(
     b    2
     dtype: int64
     """,
-    series_examples="""
+    "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
 
@@ -202,7 +202,7 @@ _apply_docs = dict(
     --------
     {examples}
     """,
-)
+}
 
 _groupby_agg_method_template = """
 Compute {fname} of group values.
@@ -1600,10 +1600,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             cols = result.columns.get_indexer_for(
                 result.columns.difference(self.exclusions).unique()
             )
-            # TODO(GH-22046) - setting with iloc broken if labels are not unique
-            # .values to remove labels
-            result.iloc[:, cols] = (
-                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
+            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
+                self.count().iloc[:, cols]
             )
         return result
 
@@ -1671,10 +1669,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[0]
+                return arr[0]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(first, axis=axis)
@@ -1695,10 +1693,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
-                x = x.array[notna(x.array)]
-                if len(x) == 0:
+                arr = x.array[notna(x.array)]
+                if not len(arr):
                     return np.nan
-                return x[-1]
+                return arr[-1]
 
             if isinstance(obj, DataFrame):
                 return obj.apply(last, axis=axis)
@@ -1858,6 +1856,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         from pandas.core.window import ExpandingGroupby
 
         return ExpandingGroupby(self, *args, **kwargs)
+
+    @Substitution(name="groupby")
+    @Appender(_common_see_also)
+    def ewm(self, *args, **kwargs):
+        """
+        Return an ewm grouper, providing ewm functionality per group.
+        """
+        from pandas.core.window import ExponentialMovingWindowGroupby
+
+        return ExponentialMovingWindowGroupby(self, *args, **kwargs)
 
     def _fill(self, direction, limit=None):
         """

@@ -362,7 +362,7 @@ class TestGetLoc:
 
     def test_get_loc_invalid_string_raises_keyerror(self):
         # GH#34240
-        pi = pd.period_range("2000", periods=3, name="A")
+        pi = period_range("2000", periods=3, name="A")
         with pytest.raises(KeyError, match="A"):
             pi.get_loc("A")
 
@@ -713,7 +713,7 @@ class TestGetValue:
 
     def test_loc_str(self):
         # https://github.com/pandas-dev/pandas/issues/33964
-        index = pd.period_range(start="2000", periods=20, freq="B")
+        index = period_range(start="2000", periods=20, freq="B")
         series = Series(range(20), index=index)
         assert series.loc["2000-01-14"] == 9
 
@@ -821,7 +821,7 @@ class TestContains:
 
 class TestAsOfLocs:
     def test_asof_locs_mismatched_type(self):
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
         pi2 = dti.to_period("H")
 

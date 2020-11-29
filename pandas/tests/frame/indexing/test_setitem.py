@@ -289,14 +289,34 @@ class TestDataFrameSetItem:
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
-    @pytest.mark.parametrize("klass", [list, np.array])
-    def test_iloc_setitem_bool_indexer(self, klass):
-        # GH: 36741
-        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
-        indexer = klass([True, False, False])
-        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
-        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+    def test_setitem_complete_column_with_array(self):
+        # GH#37954
+        df = DataFrame({"a": ["one", "two", "three"], "b": [1, 2, 3]})
+        arr = np.array([[1, 1], [3, 1], [5, 1]])
+        df[["c", "d"]] = arr
+        expected = DataFrame(
+            {
+                "a": ["one", "two", "three"],
+                "b": [1, 2, 3],
+                "c": [1, 3, 5],
+                "d": [1, 1, 1],
+            }
+        )
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_setitem_bool_with_numeric_index(self, dtype):
+        # GH#36319
+        cols = Index([1, 2, 3], dtype=dtype)
+        df = DataFrame(np.random.randn(3, 3), columns=cols)
+
+        df[False] = ["a", "b", "c"]
+
+        expected_cols = Index([1, 2, 3, False], dtype=object)
+        if dtype == "f8":
+            expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
+
+        tm.assert_index_equal(df.columns, expected_cols)
 
 
 class TestDataFrameSetItemSlicing:

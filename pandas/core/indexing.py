@@ -259,10 +259,11 @@ class IndexingMixin:
           e.g. ``[True, False, True]``.
         - An alignable boolean Series. The index of the key will be aligned before
           masking.
+        - An alignable Index. The Index of the returned selection will be the input.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
-        See more at :ref:`Selection by Label <indexing.label>`
+        See more at :ref:`Selection by Label <indexing.label>`.
 
         Raises
         ------
@@ -331,6 +332,14 @@ class IndexingMixin:
         ...        index=['viper', 'sidewinder', 'cobra'])]
                     max_speed  shield
         sidewinder          7       8
+
+        Index (same behavior as ``df.reindex``)
+
+        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
+               max_speed  shield
+        foo
+        cobra          1       2
+        viper          4       5
 
         Conditional that returns a boolean Series
 
@@ -663,14 +672,8 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for i, k in enumerate(key):
-                if k not in self.obj:
-                    if value is None:
-                        self.obj[k] = np.nan
-                    elif is_list_like(value):
-                        self.obj[k] = value[i]
-                    else:
-                        self.obj[k] = value
+            keys = self.obj.columns.union(key, sort=False)
+            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -681,7 +684,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
-        iloc._setitem_with_indexer(indexer, value)
+        iloc._setitem_with_indexer(indexer, value, self.name)
 
     def _validate_key(self, key, axis: int):
         """
@@ -1018,7 +1021,7 @@ class _LocIndexer(_LocationIndexer):
 
     def _getitem_iterable(self, key, axis: int):
         """
-        Index current object with an an iterable collection of keys.
+        Index current object with an iterable collection of keys.
 
         Parameters
         ----------
@@ -1246,9 +1249,7 @@ class _LocIndexer(_LocationIndexer):
         indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(
-                keyarr, indexer, axis, raise_missing=raise_missing
-            )
+            # _validate_read_indexer is a no-op if no -1s, so skip
             return ax[indexer], indexer
 
         if ax._index_as_unique:
@@ -1309,21 +1310,15 @@ class _LocIndexer(_LocationIndexer):
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
-            # we skip the warning on Categorical
-            # as this check is actually done (check for
-            # non-missing values), but a bit later in the
-            # code, so we want to avoid warning & then
-            # just raising
-            if not ax.is_categorical():
-                not_found = key[missing_mask]
+            not_found = key[missing_mask]
 
-                with option_context("display.max_seq_items", 10, "display.width", 80):
-                    raise KeyError(
-                        "Passing list-likes to .loc or [] with any missing labels "
-                        "is no longer supported. "
-                        f"The following labels were missing: {not_found}. "
-                        "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                    )
+            with option_context("display.max_seq_items", 10, "display.width", 80):
+                raise KeyError(
+                    "Passing list-likes to .loc or [] with any missing labels "
+                    "is no longer supported. "
+                    f"The following labels were missing: {not_found}. "
+                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                )
 
 
 @doc(IndexingMixin.iloc)
@@ -1525,7 +1520,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value):
+    def _setitem_with_indexer(self, indexer, value, name="iloc"):
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1601,7 +1596,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
                         )
-                        self._setitem_with_indexer(new_indexer, value)
+                        self._setitem_with_indexer(new_indexer, value, name)
 
                         return
 
@@ -1632,11 +1627,11 @@ class _iLocIndexer(_LocationIndexer):
         # align and set the values
         if take_split_path:
             # We have to operate column-wise
-            self._setitem_with_indexer_split_path(indexer, value)
+            self._setitem_with_indexer_split_path(indexer, value, name)
         else:
-            self._setitem_single_block(indexer, value)
+            self._setitem_single_block(indexer, value, name)
 
-    def _setitem_with_indexer_split_path(self, indexer, value):
+    def _setitem_with_indexer_split_path(self, indexer, value, name: str):
         """
         Setitem column-wise.
         """
@@ -1647,68 +1642,73 @@ class _iLocIndexer(_LocationIndexer):
             indexer = _tuplify(self.ndim, indexer)
         if len(indexer) > self.ndim:
             raise IndexError("too many indices for array")
+        if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
+            raise ValueError(r"Cannot set values with ndim > 2")
 
-        if isinstance(value, ABCSeries):
+        if isinstance(value, ABCSeries) and name != "iloc":
             value = self._align_series(indexer, value)
 
         # Ensure we have something we can iterate over
-        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+        info_axis = indexer[1]
+        ilocs = self._ensure_iterable_column_indexer(info_axis)
 
         pi = indexer[0]
         lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
-        if len(ilocs) == 1:
-            # We can operate on a single column
-
-            # require that we are setting the right number of values that
-            # we are indexing
-            if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
-                # Exclude zero-len for e.g. boolean masking that is all-false
-                raise ValueError(
-                    "cannot set using a multi-index "
-                    "selection indexer with a different "
-                    "length than the value"
-                )
-
         # we need an iterable, with a ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
 
-            # we have an equal len Frame
             if isinstance(value, ABCDataFrame):
-                self._setitem_with_indexer_frame_value(indexer, value)
+                self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            # we have an equal len ndarray/convertible to our ilocs
-            # hasattr first, to avoid coercing to ndarray without reason.
-            # But we may be relying on the ndarray coercion to check ndim.
-            # Why not just convert to an ndarray earlier on if needed?
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
-                # we have an equal len list/ndarray
-                # We only get here with len(ilocs) == 1
+                # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
+
+            elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
+                # We are trying to set N values into M entries of a single
+                #  column, which is invalid for N != M
+                # Exclude zero-len for e.g. boolean masking that is all-false
+
+                if len(value) == 1 and not is_integer(info_axis):
+                    # This is a case like df.iloc[:3, [1]] = [0]
+                    #  where we treat as df.iloc[:3, 1] = 0
+                    return self._setitem_with_indexer((pi, info_axis[0]), value[0])
+
+                raise ValueError(
+                    "Must have equal len keys and value "
+                    "when setting with an iterable"
+                )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
-            else:
-                # per-label values
-                if len(ilocs) != len(value):
-                    raise ValueError(
-                        "Must have equal len keys and value "
-                        "when setting with an iterable"
-                    )
-
+            elif len(ilocs) == len(value):
+                # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, pi)
-        else:
 
-            if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
-                raise ValueError(r"Cannot set values with ndim > 2")
+            elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
+                # This is a setitem-with-expansion, see
+                #  test_loc_setitem_empty_append_expands_rows_mixed_dtype
+                # e.g. df = DataFrame(columns=["x", "y"])
+                #  df["x"] = df["x"].astype(np.int64)
+                #  df.loc[:, "x"] = [1, 2, 3]
+                self._setitem_single_column(ilocs[0], value, pi)
+
+            else:
+                raise ValueError(
+                    "Must have equal len keys and value "
+                    "when setting with an iterable"
+                )
+
+        else:
 
             # scalar value
             for loc in ilocs:
@@ -1732,7 +1732,7 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame"):
+    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -1742,7 +1742,13 @@ class _iLocIndexer(_LocationIndexer):
 
         unique_cols = value.columns.is_unique
 
-        if not unique_cols and value.columns.equals(self.obj.columns):
+        # We do not want to align the value in case of iloc GH#37728
+        if name == "iloc":
+            for i, loc in enumerate(ilocs):
+                val = value.iloc[:, i]
+                self._setitem_single_column(loc, val, pi)
+
+        elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
             # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
             for loc in ilocs:
@@ -1805,7 +1811,7 @@ class _iLocIndexer(_LocationIndexer):
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
 
-    def _setitem_single_block(self, indexer, value):
+    def _setitem_single_block(self, indexer, value, name: str):
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
@@ -1833,14 +1839,13 @@ class _iLocIndexer(_LocationIndexer):
                 return
 
             indexer = maybe_convert_ix(*indexer)
-
-        if isinstance(value, (ABCSeries, dict)):
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
             value = self._align_series(indexer, Series(value))
 
-        elif isinstance(value, ABCDataFrame):
+        elif isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)
 
         # check for chained assignment
@@ -1872,7 +1877,8 @@ class _iLocIndexer(_LocationIndexer):
             if index.is_unique:
                 new_indexer = index.get_indexer([new_index[-1]])
                 if (new_indexer != -1).any():
-                    return self._setitem_with_indexer(new_indexer, value)
+                    # We get only here with loc, so can hard code
+                    return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value
             new_values = Series([value])._values
@@ -1943,7 +1949,7 @@ class _iLocIndexer(_LocationIndexer):
         to the locations selected by `indexer`
         """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
 
         if isinstance(indexer, tuple):
 
@@ -2016,7 +2022,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: ABCDataFrame):
+    def _align_frame(self, indexer, df: "DataFrame"):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -2082,7 +2088,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 
             # we could have a convertible item here (e.g. Timestamp)
             if not is_list_like_indexer(key):
-                key = tuple([key])
+                key = (key,)
             else:
                 raise ValueError("Invalid call for scalar access (getting)!")
 
@@ -2208,9 +2214,10 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
             try:
                 res = idx._get_string_slice(key)
                 warnings.warn(
-                    "Indexing on datetimelike rows with `frame[string]` is "
-                    "deprecated and will be removed in a future version. "
-                    "Use `frame.loc[string]` instead.",
+                    "Indexing a DataFrame with a datetimelike index using a single "
+                    "string to slice the rows, like `frame[string]`, is deprecated "
+                    "and will be removed in a future version. Use `frame.loc[string]` "
+                    "instead.",
                     FutureWarning,
                     stacklevel=3,
                 )

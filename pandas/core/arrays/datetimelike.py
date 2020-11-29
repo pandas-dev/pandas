@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import (
@@ -60,7 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
@@ -99,6 +101,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         _generate_range
     """
 
+    # _infer_matches -> which infer_dtype strings are close enough to our own
+    _infer_matches: Tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
@@ -264,7 +268,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -692,6 +698,59 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         from pandas import Index
 
         return Index(self).map(mapper).array
+
+    def isin(self, values) -> np.ndarray:
+        """
+        Compute boolean array of whether each value is found in the
+        passed set of values.
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        ndarray[bool]
+        """
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
+        if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if inferred == "string":
+                        pass
+
+                    elif "mixed" in inferred:
+                        return isin(self.astype(object), values)
+                    else:
+                        return np.zeros(self.shape, dtype=bool)
+
+            try:
+                values = type(self)._from_sequence(values)
+            except ValueError:
+                return isin(self.astype(object), values)
+
+        try:
+            self._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
+
+        return isin(self.asi8, values.asi8)
 
     # ------------------------------------------------------------------
     # Null Handling
@@ -1553,6 +1612,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
     # Frequency Methods
+
+    def _maybe_clear_freq(self):
+        self._freq = None
 
     def _with_freq(self, freq):
         """
