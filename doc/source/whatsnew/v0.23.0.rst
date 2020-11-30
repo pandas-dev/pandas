@@ -288,6 +288,7 @@ For pivoting operations, this behavior is *already* controlled by the ``dropna``
    df
 
 .. ipython:: python
+   :okwarning:
 
    pd.pivot_table(df, values='values', index=['A', 'B'],
                   dropna=True)

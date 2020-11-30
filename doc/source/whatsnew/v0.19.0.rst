@@ -1131,7 +1131,7 @@ An analogous change has been made to ``MultiIndex.from_product``.
 As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes in indexes
 
 .. ipython:: python
-    :okwarning:
+   :okwarning:
 
    df = pd.DataFrame({"A": [0, 1], "B": [10, 11], "C": cat})
    df_grouped = df.groupby(by=["A", "C"]).first()

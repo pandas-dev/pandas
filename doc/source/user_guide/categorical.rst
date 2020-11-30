@@ -625,6 +625,7 @@ even if some categories are not present in the data:
 ``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories:
 
 .. ipython:: python
+   :okwarning:
 
     columns = pd.Categorical(
         ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
@@ -640,7 +641,7 @@ and will be changed in a future release. It is recommended to use the
 ``observed`` keyword explicitly:
 
 .. ipython:: python
-    :okwarning:
+   :okwarning:
 
     cats = pd.Categorical(
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
@@ -662,7 +663,7 @@ and will be changed in a future release. It is recommended to use the
 Pivot tables:
 
 .. ipython:: python
-    :okwarning:
+   :okwarning:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
@@ -680,7 +681,6 @@ Getting
 
 If the slicing operation returns either a ``DataFrame`` or a column of type
 ``Series``, the ``category`` dtype is preserved.
-    :okwarning:
 
 .. ipython:: python
 
