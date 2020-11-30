@@ -486,7 +486,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
-        d = dict()
+        d = {}
         prefix = axis[0]
 
         for i, name in enumerate(axis_index.names):
@@ -1948,14 +1948,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(
-            _mgr=self._mgr,
-            _typ=self._typ,
-            _metadata=self._metadata,
-            attrs=self.attrs,
-            _flags={k: self.flags[k] for k in self.flags._keys},
+        return {
+            "_mgr": self._mgr,
+            "_typ": self._typ,
+            "_metadata": self._metadata,
+            "attrs": self.attrs,
+            "_flags": {k: self.flags[k] for k in self.flags._keys},
             **meta,
-        )
+        }
 
     @final
     def __setstate__(self, state):
@@ -1969,7 +1969,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                flags = state.get("_flags", dict(allows_duplicate_labels=True))
+                flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
 
                 # set in the order of internal names
@@ -5999,7 +5999,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         datetime: bool_t = False,
         numeric: bool_t = False,
         timedelta: bool_t = False,
-        coerce: bool_t = False,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -6013,9 +6012,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             unconvertible values becoming NaN.
         timedelta : bool, default False
             If True, convert to timedelta where possible.
-        coerce : bool, default False
-            If True, force conversion with unconvertible values converted to
-            nulls (NaN or NaT).
 
         Returns
         -------
@@ -6024,13 +6020,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(datetime, "datetime")
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
-        validate_bool_kwarg(coerce, "coerce")
         return self._constructor(
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce,
                 copy=True,
             )
         ).__finalize__(self)
@@ -6078,9 +6072,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # python objects will still be converted to
         # native numpy numeric types
         return self._constructor(
-            self._mgr.convert(
-                datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
-            )
+            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
         ).__finalize__(self, method="infer_objects")
 
     @final
@@ -6090,6 +6082,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convert_string: bool_t = True,
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
+        convert_floating: bool_t = True,
     ) -> FrameOrSeries:
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6106,6 +6099,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether, if possible, conversion can be done to integer extension types.
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+        convert_floating : bool, defaults True
+            Whether, if possible, conversion can be done to floating extension types.
+            If `convert_integer` is also True, preference will be give to integer
+            dtypes if the floats can be faithfully casted to integers.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -6123,19 +6122,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
-        possible to turn off individual conversions to ``StringDtype``, the integer
-        extension types or ``BooleanDtype``, respectively.
+        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
+        ``convert_boolean``, it is possible to turn off individual conversions
+        to ``StringDtype``, the integer extension types, ``BooleanDtype``
+        or floating extension types, respectively.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
-        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
-        type, otherwise leave as ``object``.
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer
+        or floating extension type, otherwise leave as ``object``.
 
         If the dtype is integer, convert to an appropriate integer extension type.
 
         If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer extension type.
+        appropriate integer extension type. Otherwise, convert to an
+        appropriate floating extension type.
+
+        .. versionchanged:: 1.2
+            Starting with pandas 1.2, this method also converts float columns
+            to the nullable floating extension type.
 
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
@@ -6175,7 +6180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> dfn = df.convert_dtypes()
         >>> dfn
            a  b      c     d     e      f
-        0  1  x   True     h    10    NaN
+        0  1  x   True     h    10   <NA>
         1  2  y  False     i  <NA>  100.5
         2  3  z   <NA>  <NA>    20  200.0
 
@@ -6185,7 +6190,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         c    boolean
         d     string
         e      Int64
-        f    float64
+        f    Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
@@ -6207,12 +6212,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if self.ndim == 1:
             return self._convert_dtypes(
-                infer_objects, convert_string, convert_integer, convert_boolean
+                infer_objects,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
         else:
             results = [
                 col._convert_dtypes(
-                    infer_objects, convert_string, convert_integer, convert_boolean
+                    infer_objects,
+                    convert_string,
+                    convert_integer,
+                    convert_boolean,
+                    convert_floating,
                 )
                 for col_name, col in self.items()
             ]
@@ -7140,7 +7153,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -7207,7 +7220,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -7927,8 +7940,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -7953,8 +7966,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df2 = pd.DataFrame(d2,
         ...                    index=pd.MultiIndex.from_product([days,
         ...                                                     ['morning',
@@ -10201,10 +10214,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame(dict(
-        ...     FR=[4.0405, 4.0963, 4.3149],
-        ...     GR=[1.7246, 1.7482, 1.8519],
-        ...     IT=[804.74, 810.01, 860.13]),
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
         ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
         >>> df
                         FR      GR      IT
@@ -10221,10 +10234,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame(dict([
-        ...     ('2016', [1769950, 30586265]),
-        ...     ('2015', [1500923, 40912316]),
-        ...     ('2014', [1371819, 41403351])]),
+        >>> df = pd.DataFrame({
+        ...     '2016': [1769950, 30586265],
+        ...     '2015': [1500923, 40912316],
+        ...     '2014': [1371819, 41403351]},
         ...     index=['GOOG', 'APPL'])
         >>> df
                   2016      2015      2014

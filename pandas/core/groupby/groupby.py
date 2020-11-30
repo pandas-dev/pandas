@@ -85,8 +85,8 @@ _common_see_also = """
             to each row or column of a DataFrame.
 """
 
-_apply_docs = dict(
-    template="""
+_apply_docs = {
+    "template": """
     Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
@@ -123,7 +123,7 @@ _apply_docs = dict(
     Series.apply : Apply a function to a Series.
     DataFrame.apply : Apply a function to each row or column of a DataFrame.
     """,
-    dataframe_examples="""
+    "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
                            'B': [1,2,3],
                            'C': [4,6, 5]})
@@ -163,7 +163,7 @@ _apply_docs = dict(
     b    2
     dtype: int64
     """,
-    series_examples="""
+    "series_examples": """
     >>> s = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = s.groupby(s.index)
 
@@ -202,7 +202,7 @@ _apply_docs = dict(
     --------
     {examples}
     """,
-)
+}
 
 _groupby_agg_method_template = """
 Compute {fname} of group values.
@@ -982,8 +982,11 @@ b  2""",
         assert filled_series is not None
         return filled_series.gt(0).any() and func_nm not in base.cython_cast_blocklist
 
-    def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
+    def _cython_transform(
+        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+    ):
         output: Dict[base.OutputKey, np.ndarray] = {}
+
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -991,7 +994,9 @@ b  2""",
                 continue
 
             try:
-                result, _ = self.grouper.transform(obj.values, how, **kwargs)
+                result, _ = self.grouper._cython_operation(
+                    "transform", obj.values, how, axis, **kwargs
+                )
             except NotImplementedError:
                 continue
 
@@ -1067,8 +1072,8 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, agg_names = self.grouper.aggregate(
-                obj._values, how, min_count=min_count
+            result, agg_names = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
             )
 
             if agg_names:

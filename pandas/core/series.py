@@ -84,7 +84,13 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Float64Index,
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -112,6 +118,8 @@ _shared_doc_kwargs.update(
         axes_single_arg="{0 or 'index'}",
         axis="""axis : {0 or 'index'}
             Parameter needed for compatibility with DataFrame.""",
+        inplace="""inplace : boolean, default False
+            If True, performs operation inplace and returns None.""",
         unique="np.ndarray",
         duplicated="Series",
         optional_by="",
@@ -412,7 +420,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             labels = ensure_index(labels)
 
         if labels._is_all_dates:
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+            deep_labels = labels
+            if isinstance(labels, CategoricalIndex):
+                deep_labels = labels.categories
+
+            if not isinstance(
+                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+            ):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
@@ -1101,7 +1115,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat(tuple(), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(
@@ -4711,6 +4725,7 @@ Keep all original rows and also all original values
         convert_string: bool = True,
         convert_integer: bool = True,
         convert_boolean: bool = True,
+        convert_floating: bool = True,
     ) -> "Series":
         input_series = self
         if infer_objects:
@@ -4718,9 +4733,13 @@ Keep all original rows and also all original values
             if is_object_dtype(input_series):
                 input_series = input_series.copy()
 
-        if convert_string or convert_integer or convert_boolean:
+        if convert_string or convert_integer or convert_boolean or convert_floating:
             inferred_dtype = convert_dtypes(
-                input_series._values, convert_string, convert_integer, convert_boolean
+                input_series._values,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
             try:
                 result = input_series.astype(inferred_dtype)
