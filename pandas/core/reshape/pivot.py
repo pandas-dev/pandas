@@ -268,19 +268,13 @@ def _add_margins(
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
-    try:
-        # check the result column and leave floats
-        for dtype in set(result.dtypes):
-            cols = result.select_dtypes([dtype]).columns
-            margin_dummy[cols] = margin_dummy[cols].apply(
-                maybe_downcast_to_dtype, args=(dtype,)
-            )
-        result = result.append(margin_dummy)
-    except TypeError:
-
-        # we cannot reshape, so coerce the axis
-        result.index = result.index._to_safe_for_reshape()
-        result = result.append(margin_dummy)
+    # check the result column and leave floats
+    for dtype in set(result.dtypes):
+        cols = result.select_dtypes([dtype]).columns
+        margin_dummy[cols] = margin_dummy[cols].apply(
+            maybe_downcast_to_dtype, args=(dtype,)
+        )
+    result = result.append(margin_dummy)
     result.index.names = row_names
 
     return result
@@ -328,16 +322,7 @@ def _generate_marginal_results(
 
                 # we are going to mutate this, so need to copy!
                 piece = piece.copy()
-                try:
-                    piece[all_key] = margin[key]
-                except ValueError:
-                    # we cannot reshape, so coerce the axis
-                    piece.set_axis(
-                        piece._get_axis(cat_axis)._to_safe_for_reshape(),
-                        axis=cat_axis,
-                        inplace=True,
-                    )
-                    piece[all_key] = margin[key]
+                piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)

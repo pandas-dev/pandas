@@ -242,6 +242,10 @@ Other enhancements
 - Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
+- :func:`read_parquet` gained a ``use_nullable_dtypes=True`` option to use
+  nullable dtypes that use ``pd.NA`` as missing value indicator where possible
+  for the resulting DataFrame (default is False, and only applicable for
+  ``engine="pyarrow"``) (:issue:`31242`)
 - Added :meth:`.Rolling.sem` and :meth:`Expanding.sem` to compute the standard error of the mean (:issue:`26476`)
 - :meth:`.Rolling.var` and :meth:`.Rolling.std` use Kahan summation and Welford's Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.corr` and :meth:`DataFrame.cov` use Welford's Method to avoid numerical issues (:issue:`37448`)
@@ -455,6 +459,7 @@ Other API changes
 - Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
 - Attempting to reindex a Series with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
+- :meth:`CategoricalIndex.append` with an index that contains non-category values will now cast instead of raising ``TypeError`` (:issue:`38098`)
 
 .. ---------------------------------------------------------------------------
 
@@ -528,7 +533,7 @@ Categorical
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
 - Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
 - Bug in :meth:`CategoricalIndex.where` incorrectly setting non-category entries to ``np.nan`` instead of raising ``TypeError`` (:issue:`37977`)
--
+- Bug in :meth:`Categorical.to_numpy` and ``np.array(categorical)`` with timezone-aware ``datetime64`` categories incorrectly dropping the timezone information instead of casting to object dtype (:issue:`38136`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -589,6 +594,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
+- Bug in :meth:`Series.astype` conversion from ``string`` to ``float`` raised in presence of ``pd.NA`` values (:issue:`37626`)
 -
 
 Strings
@@ -632,9 +638,11 @@ Indexing
 - Bug in :meth:`MultiIndex.drop` does not raise if labels are partially found (:issue:`37820`)
 - Bug in :meth:`DataFrame.loc` did not raise ``KeyError`` when missing combination was given with ``slice(None)`` for remaining levels (:issue:`19556`)
 - Bug in :meth:`DataFrame.loc` raising ``TypeError`` when non-integer slice was given to select values from :class:`MultiIndex` (:issue:`25165`, :issue:`24263`)
+- Bug in :meth:`Series.at` returning :class:`Series` with one element instead of scalar when index is a :class:`MultiIndex` with one level (:issue:`38053`)
 - Bug in :meth:`DataFrame.loc` returning and assigning elements in wrong order when indexer is differently ordered than the :class:`MultiIndex` to filter (:issue:`31330`, :issue:`34603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
+- Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
 
 Missing
 ^^^^^^^
@@ -747,6 +755,7 @@ Reshaping
 - Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
 - Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
 - Bug in :meth:`DataFrame.merge` and :meth:`pandas.merge` returning inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
+- Bug in :func:`merge_ordered` couldn't handle list-like ``left_by`` or ``right_by`` (:issue:`35269`)
 
 Sparse
 ^^^^^^
@@ -762,6 +771,7 @@ ExtensionArray
 - Fixed bug when applying a NumPy ufunc with multiple outputs to an :class:`.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`.PeriodArray`'s ``__init__`` signature to those of :class:`.DatetimeArray` and :class:`.TimedeltaArray` (:issue:`37289`)
 - Reductions for :class:`.BooleanArray`, :class:`.Categorical`, :class:`.DatetimeArray`, :class:`.FloatingArray`, :class:`.IntegerArray`, :class:`.PeriodArray`, :class:`.TimedeltaArray`, and :class:`.PandasArray` are now keyword-only methods (:issue:`37541`)
+- Fixed a bug where a  ``TypeError`` was wrongly raised if a membership check was made on an ``ExtensionArray`` containing nan-like values (:issue:`37867`)
 
 Other
 ^^^^^
@@ -774,6 +784,7 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
 - Fixed metadata propagation when selecting columns with ``DataFrame.__getitem__`` (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
+- Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
