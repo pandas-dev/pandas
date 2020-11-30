@@ -35,7 +35,6 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
     find_common_type,
-    maybe_cast_result,
     maybe_cast_result_dtype,
     maybe_downcast_numeric,
 )
@@ -46,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
 )
@@ -1089,8 +1087,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
             try:
-                result, _ = self.grouper.aggregate(
-                    bvalues, how, axis=1, min_count=min_count
+                result, _ = self.grouper._cython_operation(
+                    "aggregate", bvalues, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1147,7 +1145,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
-            cast = self._transform_should_cast(func)
             try:
                 result[item] = colg.aggregate(func, *args, **kwargs)
 
@@ -1159,10 +1156,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # otherwise we get here from an AttributeError in _make_wrapper
                 cannot_agg.append(item)
                 continue
-
-            else:
-                if cast:
-                    result[item] = maybe_cast_result(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1281,7 +1274,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # as we are stacking can easily have object dtypes here
         so = self._selected_obj
         if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-            result = _recast_datetimelike_result(result)
+            result = result._convert(datetime=True)
         else:
             result = result._convert(datetime=True)
 
@@ -1834,40 +1827,3 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return results
 
     boxplot = boxplot_frame_groupby
-
-
-def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
-    """
-    If we have date/time like in the original, then coerce dates
-    as we are stacking can easily have object dtypes here.
-
-    Parameters
-    ----------
-    result : DataFrame
-
-    Returns
-    -------
-    DataFrame
-
-    Notes
-    -----
-    - Assumes Groupby._selected_obj has ndim==2 and at least one
-    datetimelike column
-    """
-    result = result.copy()
-
-    obj_cols = [
-        idx
-        for idx in range(len(result.columns))
-        if is_object_dtype(result.dtypes.iloc[idx])
-    ]
-
-    # See GH#26285
-    for n in obj_cols:
-        values = result.iloc[:, n].values
-        converted = lib.maybe_convert_objects(
-            values, convert_datetime=True, convert_timedelta=True
-        )
-
-        result.iloc[:, n] = converted
-    return result
