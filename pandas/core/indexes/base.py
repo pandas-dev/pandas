@@ -4736,7 +4736,7 @@ class Index(IndexOpsMixin, PandasObject):
                       dtype='datetime64[ns]', freq='MS')
         """
         raise NotImplementedError(
-            f"This method is only implemented for DatetimeIndex,"
+            f"This method is only implemented for DatetimeIndex, "
             "PeriodIndex and TimedeltaIndex; Got type {type(self).__name__}"
         )
 
