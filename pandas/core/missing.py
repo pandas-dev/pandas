@@ -528,18 +528,18 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
     return P(x)
 
 
-def _interpolate_with_limit_area(values, method, limit, limit_area):
-
-    # `limit_area` is not supported by `pad_2d` and `backfill_2d`. Hence, the
-    # following code block does a recursive call and applies the interpolation
-    # and `limit_area` logic along a certain axis.
+def _interpolate_with_limit_area(
+    values, method: str, limit: Optional[int], limit_area: Optional[str]
+):
+    """
+    Apply interpolation and limit_area logic to values along a to-be-specified axis.
+    """
 
     invalid = isna(values)
 
     if not invalid.any():
-        return values
-
-    if not invalid.all():
+        pass
+    elif not invalid.all():
         first = find_valid_index(values, "first")
         last = find_valid_index(values, "last")
 
@@ -552,8 +552,7 @@ def _interpolate_with_limit_area(values, method, limit, limit_area):
         if limit_area == "inside":
             invalid[first : last + 1] = False
         elif limit_area == "outside":
-            invalid[:first] = False
-            invalid[last + 1 :] = False
+            invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
     else:
@@ -577,7 +576,6 @@ def interpolate_2d(
     needed fills inplace, returns the result.
     """
     if limit_area is not None:
-
         return np.apply_along_axis(
             partial(
                 _interpolate_with_limit_area,
