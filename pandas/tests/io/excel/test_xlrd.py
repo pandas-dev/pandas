@@ -61,6 +61,9 @@ def test_excel_file_warning_with_xlsx_file(datapath):
             match="The xlrd engine is no longer maintained",
         ):
             ExcelFile(path, engine=None)
+    else:
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, "Sheet1", engine=None)
 
 
 def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
@@ -78,4 +81,7 @@ def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
             raise_on_extra_warnings=False,
             match="The xlrd engine is no longer maintained",
         ):
+            pd.read_excel(path, "Sheet1", engine=None)
+    else:
+        with tm.assert_produces_warning(None):
             pd.read_excel(path, "Sheet1", engine=None)
