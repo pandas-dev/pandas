@@ -48,6 +48,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 
@@ -765,6 +766,9 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return delta
 
         raise raise_on_incompatible(self, other)
+
+    def factorize(self, na_sentinel=-1):
+        return ExtensionArray.factorize(self, na_sentinel=na_sentinel)
 
 
 def raise_on_incompatible(left, right):
