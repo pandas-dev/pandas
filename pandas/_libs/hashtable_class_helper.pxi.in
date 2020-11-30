@@ -681,6 +681,7 @@ cdef class {{name}}HashTable(HashTable):
                                  ignore_na=True, return_inverse=True)
         return labels
 
+    {{if dtype == 'int64'}}
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
@@ -701,16 +702,9 @@ cdef class {{name}}HashTable(HashTable):
                 val = {{to_c_type}}(values[i])
 
                 # specific for groupby
-                {{if dtype == 'complex64' or dtype== 'complex128'}}
-                # TODO: what should be done here?
-                if val.real < 0:
-                    labels[i] = -1
-                    continue
-                {{elif dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
-                {{endif}}
 
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
@@ -730,6 +724,7 @@ cdef class {{name}}HashTable(HashTable):
         arr_uniques = uniques.to_array()
 
         return np.asarray(labels), arr_uniques
+    {{endif}}
 
 {{endfor}}
 

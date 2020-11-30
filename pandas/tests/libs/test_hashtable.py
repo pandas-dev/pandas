@@ -156,6 +156,16 @@ class TestHashTable:
             assert get_allocated_khash_memory() == 0
 
 
+def test_get_labels_groupby_for_Int64():
+    table = ht.Int64HashTable()
+    vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
+    arr, unique = table.get_labels_groupby(vals)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_unique = np.array([1, 2], dtype=np.int64)
+    tm.assert_numpy_array_equal(arr, expected_arr)
+    tm.assert_numpy_array_equal(unique, expected_unique)
+
+
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
     keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
