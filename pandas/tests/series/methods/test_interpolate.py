@@ -458,64 +458,80 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method, limit_direction=limit_direction)
 
-    def test_interp_limit_area_with_pad(self):
-        # Test for issue #26796
-        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+                {"method": "pad", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                range(5),
+                range(5),
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
+        # GH26796
 
-        expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan])
-        result = s.interpolate(method="pad", limit_area="inside")
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
         tm.assert_series_equal(result, expected)
 
-        expected = Series(
-            [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan]
-        )
-        result = s.interpolate(method="pad", limit_area="inside", limit=1)
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
+        # GH26796
 
-        expected = Series([np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0])
-        result = s.interpolate(method="pad", limit_area="outside")
-        tm.assert_series_equal(result, expected)
-
-        expected = Series(
-            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
-        )
-        result = s.interpolate(method="pad", limit_area="outside", limit=1)
-        tm.assert_series_equal(result, expected)
-
-        # Test for all NaNs
-        s = Series([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-        result = s.interpolate(method="pad", limit_area="outside", limit=1)
-        tm.assert_series_equal(result, expected)
-
-        # Test for no NaNs
-        s = Series([1, 2, 3, 4])
-        expected = Series([1, 2, 3, 4])
-        result = s.interpolate(method="pad", limit_area="outside", limit=1)
-        tm.assert_series_equal(result, expected)
-
-    def test_interp_limit_area_with_backfill(self):
-        # Test for issue #26796
-        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
-
-        expected = Series([np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan])
-        result = s.interpolate(method="bfill", limit_area="inside")
-        tm.assert_series_equal(result, expected)
-
-        expected = Series(
-            [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan]
-        )
-        result = s.interpolate(method="bfill", limit_area="inside", limit=1)
-        tm.assert_series_equal(result, expected)
-
-        expected = Series([3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
-        result = s.interpolate(method="bfill", limit_area="outside")
-        tm.assert_series_equal(result, expected)
-
-        expected = Series(
-            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan]
-        )
-        result = s.interpolate(method="bfill", limit_area="outside", limit=1)
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
         tm.assert_series_equal(result, expected)
 
     def test_interp_limit_direction(self):
