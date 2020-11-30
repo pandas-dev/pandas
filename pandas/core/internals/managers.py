@@ -267,7 +267,7 @@ class BlockManager(PandasObject):
             "0.14.1": {
                 "axes": axes_array,
                 "blocks": [
-                    dict(values=b.values, mgr_locs=b.mgr_locs.indexer)
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
                     for b in self.blocks
                 ],
             }
@@ -636,7 +636,6 @@ class BlockManager(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> "BlockManager":
         return self.apply(
             "convert",
@@ -644,7 +643,6 @@ class BlockManager(PandasObject):
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
     def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":

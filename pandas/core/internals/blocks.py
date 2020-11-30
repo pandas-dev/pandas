@@ -700,7 +700,6 @@ class Block(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> List["Block"]:
         """
         attempt to coerce any object types to better types return a copy
@@ -2528,12 +2527,12 @@ class ObjectBlock(Block):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> List["Block"]:
         """
-        attempt to coerce any object types to better types return a copy of
+        attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+
         # operate column-by-column
         def f(mask, val, idx):
             shape = val.shape
@@ -2542,7 +2541,6 @@ class ObjectBlock(Block):
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce,
                 copy=copy,
             )
             if isinstance(values, np.ndarray):
