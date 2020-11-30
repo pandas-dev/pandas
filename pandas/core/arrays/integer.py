@@ -636,8 +636,9 @@ class IntegerArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(result, mask, copy=False)
 
         if result.dtype == "timedelta64[ns]":
             from pandas.core.arrays import TimedeltaArray
