@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p20
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
@@ -44,9 +46,12 @@ class TestSparseArrayArithmetics:
 
             if op in [operator.floordiv, ops.rfloordiv]:
                 # Series sets 1//0 to np.inf, which SparseArray does not do (yet)
-                mask = np.isinf(expected)
-                if mask.any():
-                    expected[mask] = np.nan
+                if _np_version_under1p20:
+                    # numpy 1.20 updated floordiv, matching the behavior
+                    #  in core.ops.  See https://github.com/numpy/numpy/pull/16161
+                    mask = np.isinf(expected)
+                    if mask.any():
+                        expected[mask] = np.nan
 
             self._assert(result, expected)
 
