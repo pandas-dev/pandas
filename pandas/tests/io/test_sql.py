@@ -234,7 +234,7 @@ SQL_STRINGS = {
                 `a` INTEGER,
                 `b` TEXT,
                 `c` TEXT,
-                PRIMARY KEY (`a`, `b`)
+                CONSTRAINT pk_PkeyTable PRIMARY KEY (a,b)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
                 "a" INTEGER PRIMARY KEY,
