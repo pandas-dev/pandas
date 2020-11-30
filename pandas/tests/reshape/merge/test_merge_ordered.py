@@ -193,6 +193,6 @@ class TestMergeOrdered:
         # GH 38167
         left = DataFrame([["g", "h", 1], ["g", "h", 3]], columns=list("GHT"))
         right = DataFrame([[2, 1]], columns=list("TE"))
-        msg = r"\['h'\] not found in left columns"
+        msg = r"\{'h'\} not found in left columns"
         with pytest.raises(KeyError, match=msg):
             merge_ordered(left, right, on="T", left_by=["G", "h"])

@@ -114,7 +114,7 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
     # if we can groupby the rhs
     # then we can get vastly better perf
-    if all([item in right.columns for item in by]):
+    if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
     for key, lhs in lby:
@@ -273,7 +273,7 @@ def merge_ordered(
     elif left_by is not None:
         if isinstance(left_by, str):
             left_by = [left_by]
-        check = list(filter(lambda i: i not in left.columns, left_by))
+        check = set(left_by).difference(left.columns)
         if len(check) != 0:
             raise KeyError(f"{check} not found in left columns")
         result, _ = _groupby_and_merge(
@@ -282,7 +282,7 @@ def merge_ordered(
     elif right_by is not None:
         if isinstance(right_by, str):
             right_by = [right_by]
-        check = list(filter(lambda i: i not in right.columns, right_by))
+        check = set(right_by).difference(right.columns)
         if len(check) != 0:
             raise KeyError(f"{check} not found in right columns")
         result, _ = _groupby_and_merge(
