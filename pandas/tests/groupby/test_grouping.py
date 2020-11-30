@@ -703,7 +703,7 @@ class TestGrouping:
         tm.assert_frame_equal(result, expected)
 
     def test_default_observed_deprecated(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             [["A", 1, 1], ["A", 2, 1], ["B", 1, 1]], columns=["x", "y", "z"]
         )
         df.x = df.x.astype("category")
