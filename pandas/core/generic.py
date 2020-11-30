@@ -2795,10 +2795,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {{'infer', 'gz', 'bz2', 'zip', 'xz', None}}, \
+        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, \
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
+            Compression mode may be any of the following possible
+            values: {{‘infer’, ‘gzip’, ‘bz2’, ‘zip’, ‘xz’, None}}. If compression
+            mode is ‘infer’ and path_or_buf is path-like, then detect
+            compression mode from the following extensions:
+            ‘.gz’, ‘.bz2’, ‘.zip’ or ‘.xz’. (otherwise no compression).
+            If dict given and mode is ‘zip’ or inferred as ‘zip’, other entries
+            passed as additional compression options.
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
