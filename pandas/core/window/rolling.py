@@ -800,11 +800,12 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             indexer = np.array([], dtype=np.intp)
         codes = [c.take(indexer) for c in codes]
 
+        # if the index of the original dataframe needs to be preserved, append
+        # this index (but reordered) to the codes/levels from the groupby
         if grouped_object_index is not None:
-            if isinstance(grouped_object_index, MultiIndex):
-                idx = grouped_object_index.take(indexer)
-            else:
-                idx = MultiIndex.from_arrays([grouped_object_index.take(indexer)])
+            idx = grouped_object_index.take(indexer)
+            if not isinstance(idx, MultiIndex):
+                idx = MultiIndex.from_arrays([idx])
             codes.extend(list(idx.codes))
             levels.extend(list(idx.levels))
 
