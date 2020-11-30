@@ -2247,8 +2247,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             # restore the index names in order
             result.index.names = index_names[order]
-            # reorder rows to keep things sorted
 
+            # reorder rows to keep things sorted
             indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
             return result.take(indices)
         else:
