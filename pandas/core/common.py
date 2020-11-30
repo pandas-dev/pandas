@@ -24,12 +24,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -42,13 +37,13 @@ class SettingWithCopyWarning(Warning):
     pass
 
 
-def flatten(l):
+def flatten(line):
     """
     Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
-    l : sequence
+    line : sequence
         The non string sequence to flatten
 
     Notes
@@ -59,11 +54,11 @@ def flatten(l):
     -------
     flattened : generator
     """
-    for el in l:
-        if iterable_not_string(el):
-            yield from flatten(el)
+    for element in line:
+        if iterable_not_string(element):
+            yield from flatten(element)
         else:
-            yield el
+            yield element
 
 
 def consensus_name_attr(objs):
@@ -105,7 +100,7 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndexClass)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
@@ -282,20 +277,23 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(l):
+def is_true_slices(line):
     """
-    Find non-trivial slices in "l": return a list of booleans with same length.
+    Find non-trivial slices in "line": return a list of booleans with same length.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l) -> bool:
+def is_full_slice(obj, line) -> bool:
     """
     We have a full length slice.
     """
     return (
-        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice)
+        and obj.start == 0
+        and obj.stop == line
+        and obj.step is None
     )
 
 
@@ -468,8 +466,11 @@ def convert_to_list_like(
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
     """
-    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        return values
+    if isinstance(
+        values, (list, np.ndarray, ABCIndexClass, ABCSeries, ABCExtensionArray)
+    ):
+        # np.ndarray resolving as Any gives a false positive
+        return values  # type: ignore[return-value]
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 

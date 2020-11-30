@@ -118,8 +118,8 @@ class TestDataFrameToDict:
         ]
         assert isinstance(recons_data, list)
         assert len(recons_data) == 3
-        for l, r in zip(recons_data, expected_records):
-            tm.assert_dict_equal(l, r)
+        for left, right in zip(recons_data, expected_records):
+            tm.assert_dict_equal(left, right)
 
         # GH#10844
         recons_data = DataFrame(test_data).to_dict("index")

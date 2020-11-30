@@ -70,6 +70,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -86,7 +87,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import indexing, missing, nanops
+from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -511,7 +512,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -521,7 +522,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -532,7 +533,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
-            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
@@ -1114,7 +1114,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In this case, the parameter ``copy`` is ignored.
 
         The second calling convention will modify the names of the
-        the corresponding index if mapper is a list or a scalar.
+        corresponding index if mapper is a list or a scalar.
         However, if mapper is dict-like or a function, it will use the
         deprecated behavior of modifying the axis *labels*.
 
@@ -1927,6 +1927,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self, method="__array_wrap__"
         )
 
+    def __array_ufunc__(
+        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+    ):
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
     # ideally we would define this to avoid the getattr checks, but
     # is slower
     # @property
@@ -2024,7 +2029,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # I/O Methods
 
     @final
-    @doc(klass="object")
+    @doc(klass="object", storage_options=_shared_docs["storage_options"])
     def to_excel(
         self,
         excel_writer,
@@ -2101,10 +2106,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2185,6 +2187,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     @final
+    @doc(storage_options=_shared_docs["storage_options"])
     def to_json(
         self,
         path_or_buf: Optional[FilePathOrBuffer] = None,
@@ -2217,27 +2220,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split', 'records', 'index', 'table'}.
+                - allowed values are: {{'split', 'records', 'index', 'table'}}.
 
             * DataFrame:
 
                 - default is 'columns'
-                - allowed values are: {'split', 'records', 'index', 'columns',
-                  'values', 'table'}.
+                - allowed values are: {{'split', 'records', 'index', 'columns',
+                  'values', 'table'}}.
 
             * The format of the JSON string:
 
-                - 'split' : dict like {'index' -> [index], 'columns' -> [columns],
-                  'data' -> [values]}
-                - 'records' : list like [{column -> value}, ... , {column -> value}]
-                - 'index' : dict like {index -> {column -> value}}
-                - 'columns' : dict like {column -> {index -> value}}
+                - 'split' : dict like {{'index' -> [index], 'columns' -> [columns],
+                  'data' -> [values]}}
+                - 'records' : list like [{{column -> value}}, ... , {{column -> value}}]
+                - 'index' : dict like {{index -> {{column -> value}}}}
+                - 'columns' : dict like {{column -> {{index -> value}}}}
                 - 'values' : just the values array
-                - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                - 'table' : dict like {{'schema': {{schema}}, 'data': {{data}}}}
 
                 Describing the data, where data component is like ``orient='records'``.
 
-        date_format : {None, 'epoch', 'iso'}
+        date_format : {{None, 'epoch', 'iso'}}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
             ``orient='table'``, the default is 'iso'. For all other orients,
@@ -2260,7 +2263,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}
 
             A string representing the compression to use in the output file,
             only used when the first argument is a filename. By default, the
@@ -2277,13 +2280,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
            .. versionadded:: 1.0.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2320,7 +2317,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> result = df.to_json(orient="split")
         >>> parsed = json.loads(result)
         >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
-        {
+        {{
             "columns": [
                 "col 1",
                 "col 2"
@@ -2339,7 +2336,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "d"
                 ]
             ]
-        }
+        }}
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2348,14 +2345,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> parsed = json.loads(result)
         >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         [
-            {
+            {{
                 "col 1": "a",
                 "col 2": "b"
-            },
-            {
+            }},
+            {{
                 "col 1": "c",
                 "col 2": "d"
-            }
+            }}
         ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
@@ -2363,32 +2360,32 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> result = df.to_json(orient="index")
         >>> parsed = json.loads(result)
         >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
-        {
-            "row 1": {
+        {{
+            "row 1": {{
                 "col 1": "a",
                 "col 2": "b"
-            },
-            "row 2": {
+            }},
+            "row 2": {{
                 "col 1": "c",
                 "col 2": "d"
-            }
-        }
+            }}
+        }}
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
         >>> result = df.to_json(orient="columns")
         >>> parsed = json.loads(result)
         >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
-        {
-            "col 1": {
+        {{
+            "col 1": {{
                 "row 1": "a",
                 "row 2": "c"
-            },
-            "col 2": {
+            }},
+            "col 2": {{
                 "row 1": "b",
                 "row 2": "d"
-            }
-        }
+            }}
+        }}
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
@@ -2411,40 +2408,40 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> result = df.to_json(orient="table")
         >>> parsed = json.loads(result)
         >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
-        {
-            "schema": {
+        {{
+            "schema": {{
                 "fields": [
-                    {
+                    {{
                         "name": "index",
                         "type": "string"
-                    },
-                    {
+                    }},
+                    {{
                         "name": "col 1",
                         "type": "string"
-                    },
-                    {
+                    }},
+                    {{
                         "name": "col 2",
                         "type": "string"
-                    }
+                    }}
                 ],
                 "primaryKey": [
                     "index"
                 ],
                 "pandas_version": "0.20.0"
-            },
+            }},
             "data": [
-                {
+                {{
                     "index": "row 1",
                     "col 1": "a",
                     "col 2": "b"
-                },
-                {
+                }},
+                {{
                     "index": "row 2",
                     "col 1": "c",
                     "col 2": "d"
-                }
+                }}
             ]
-        }
+        }}
         """
         from pandas.io import json
 
@@ -2728,7 +2725,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
@@ -2786,6 +2783,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     @final
+    @doc(storage_options=_shared_docs["storage_options"])
     def to_pickle(
         self,
         path,
@@ -2800,7 +2798,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
+        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, \
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
@@ -2812,13 +2810,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. [1] https://docs.python.org/3/library/pickle.html.
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2831,7 +2823,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+        >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
         >>> original_df
            foo  bar
         0    0    5
@@ -3196,6 +3188,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     @final
+    @doc(storage_options=_shared_docs["storage_options"])
     def to_csv(
         self,
         path_or_buf: Optional[FilePathOrBuffer] = None,
@@ -3275,11 +3268,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
-            possible values: {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. If
+            possible values: {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}. If
             compression mode is 'infer' and `path_or_buf` is path-like, then
             detect compression mode from the following extensions: '.gz',
             '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
-            and mode is one of {'zip', 'gzip', 'bz2'}, or inferred as
+            and mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as
             one of the above, other entries passed as
             additional compression options.
 
@@ -3336,13 +3329,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionadded:: 1.1.0
 
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -3359,9 +3346,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']})
+        ...                    'weapon': ['sai', 'bo staff']}})
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
 
@@ -3724,6 +3711,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index = self.columns
         else:
             index = self.index
+
+        self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
             try:
@@ -5505,7 +5494,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
-        If info_axis is a MultiIndex, it's first level values are used.
+        If info_axis is a MultiIndex, its first level values are used.
         """
         additions = super()._dir_additions()
         if self._info_axis._can_hold_strings:
@@ -6012,7 +6001,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         datetime: bool_t = False,
         numeric: bool_t = False,
         timedelta: bool_t = False,
-        coerce: bool_t = False,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -6026,9 +6014,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             unconvertible values becoming NaN.
         timedelta : bool, default False
             If True, convert to timedelta where possible.
-        coerce : bool, default False
-            If True, force conversion with unconvertible values converted to
-            nulls (NaN or NaT).
 
         Returns
         -------
@@ -6037,13 +6022,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(datetime, "datetime")
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
-        validate_bool_kwarg(coerce, "coerce")
         return self._constructor(
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce,
                 copy=True,
             )
         ).__finalize__(self)
@@ -6091,9 +6074,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # python objects will still be converted to
         # native numpy numeric types
         return self._constructor(
-            self._mgr.convert(
-                datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
-            )
+            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
         ).__finalize__(self, method="infer_objects")
 
     @final
@@ -6103,6 +6084,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convert_string: bool_t = True,
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
+        convert_floating: bool_t = True,
     ) -> FrameOrSeries:
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6119,6 +6101,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether, if possible, conversion can be done to integer extension types.
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+        convert_floating : bool, defaults True
+            Whether, if possible, conversion can be done to floating extension types.
+            If `convert_integer` is also True, preference will be give to integer
+            dtypes if the floats can be faithfully casted to integers.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -6136,19 +6124,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
-        possible to turn off individual conversions to ``StringDtype``, the integer
-        extension types or ``BooleanDtype``, respectively.
+        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
+        ``convert_boolean``, it is possible to turn off individual conversions
+        to ``StringDtype``, the integer extension types, ``BooleanDtype``
+        or floating extension types, respectively.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
-        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
-        type, otherwise leave as ``object``.
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer
+        or floating extension type, otherwise leave as ``object``.
 
         If the dtype is integer, convert to an appropriate integer extension type.
 
         If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer extension type.
+        appropriate integer extension type. Otherwise, convert to an
+        appropriate floating extension type.
+
+        .. versionchanged:: 1.2
+            Starting with pandas 1.2, this method also converts float columns
+            to the nullable floating extension type.
 
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
@@ -6188,7 +6182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> dfn = df.convert_dtypes()
         >>> dfn
            a  b      c     d     e      f
-        0  1  x   True     h    10    NaN
+        0  1  x   True     h    10   <NA>
         1  2  y  False     i  <NA>  100.5
         2  3  z   <NA>  <NA>    20  200.0
 
@@ -6198,7 +6192,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         c    boolean
         d     string
         e      Int64
-        f    float64
+        f    Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
@@ -6220,12 +6214,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if self.ndim == 1:
             return self._convert_dtypes(
-                infer_objects, convert_string, convert_integer, convert_boolean
+                infer_objects,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
         else:
             results = [
                 col._convert_dtypes(
-                    infer_objects, convert_string, convert_integer, convert_boolean
+                    infer_objects,
+                    convert_string,
+                    convert_integer,
+                    convert_boolean,
+                    convert_floating,
                 )
                 for col_name, col in self.items()
             ]
@@ -6343,6 +6345,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
+
+        self._consolidate_inplace()
 
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -6765,6 +6769,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
+
+        self._consolidate_inplace()
 
         if value is None:
             # passing a single value that is scalar like
@@ -9024,7 +9030,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = -cond if inplace else cond
 
         # try to align with other
-        try_quick = True
         if isinstance(other, NDFrame):
 
             # align with me
@@ -9063,12 +9068,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # match True cond to other
                     elif len(cond[icond]) == len(other):
 
-                        # try to not change dtype at first (if try_quick)
-                        if try_quick:
-                            new_other = np.asarray(self)
-                            new_other = new_other.copy()
-                            new_other[icond] = other
-                            other = new_other
+                        # try to not change dtype at first
+                        new_other = np.asarray(self)
+                        new_other = new_other.copy()
+                        new_other[icond] = other
+                        other = new_other
 
                     else:
                         raise ValueError(
@@ -11290,7 +11294,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and is_dtype_equal(result.dtype, self.dtype)
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             self._values[:] = result._values
             return self
@@ -11854,7 +11862,7 @@ DataFrame.all : Return whether all elements are True over requested axis.
 _any_desc = """\
 Return whether any element is True, potentially over an axis.
 
-Returns False unless there at least one element within a series or
+Returns False unless there is at least one element within a series or
 along a Dataframe axis that is True or equivalent (e.g. non-zero or
 non-empty)."""
 
