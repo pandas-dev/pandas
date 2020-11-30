@@ -1,13 +1,12 @@
 """
 Routines for filling missing data.
 """
-
+from functools import partial
 from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
 from pandas._libs import algos, lib
-
 from pandas._typing import ArrayLike, Axis, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
@@ -529,6 +528,43 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
     return P(x)
 
 
+def _interpolate_with_limit_area(values, method, limit, limit_area):
+
+    # `limit_area` is not supported by `pad_2d` and `backfill_2d`. Hence, the
+    # following code block does a recursive call and applies the interpolation
+    # and `limit_area` logic along a certain axis.
+
+    invalid = isna(values)
+
+    if not invalid.any():
+        return values
+
+    if not invalid.all():
+        first = find_valid_index(values, "first")
+        last = find_valid_index(values, "last")
+
+        values = interpolate_2d(
+            values,
+            method=method,
+            limit=limit,
+        )
+
+        if limit_area == "inside":
+            invalid[first : last + 1] = False
+        elif limit_area == "outside":
+            invalid[:first] = False
+            invalid[last + 1 :] = False
+
+        values[invalid] = np.nan
+    else:
+        values = interpolate_2d(
+            values,
+            method=method,
+            limit=limit,
+        )
+    return values
+
+
 def interpolate_2d(
     values,
     method: str = "pad",
@@ -540,45 +576,18 @@ def interpolate_2d(
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
-
-    # `limit_area` is not supported by `pad_2d` and `backfill_2d`. Hence, the
-    # following code block does a recursive call and applies the interpolation
-    # and `limit_area` logic along a certain axis.
     if limit_area is not None:
 
-        def func(values):
-            invalid = isna(values)
-
-            if not invalid.any():
-                return values
-
-            if not invalid.all():
-                first = find_valid_index(values, "first")
-                last = find_valid_index(values, "last")
-
-                values = interpolate_2d(
-                    values,
-                    method=method,
-                    limit=limit,
-                )
-
-                if limit_area == "inside":
-                    invalid[first : last + 1] = False
-                elif limit_area == "outside":
-                    invalid[:first] = False
-                    invalid[last + 1 :] = False
-
-                values[invalid] = np.nan
-            else:
-                values = interpolate_2d(
-                    values,
-                    method=method,
-                    limit=limit,
-                )
-            return values
-
-        values = np.apply_along_axis(func, axis, values)
-        return values
+        return np.apply_along_axis(
+            partial(
+                _interpolate_with_limit_area,
+                method=method,
+                limit=limit,
+                limit_area=limit_area,
+            ),
+            axis,
+            values,
+        )
 
     orig_values = values
 
