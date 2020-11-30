@@ -70,7 +70,7 @@ class TestSelectDtypes:
             {
                 "a": list("abc"),
                 "b": list(range(1, 4)),
-                "c": np.arange(3, 6).astype("u1"),
+                "c": np.arange(3, 6, dtype="u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
                 "f": pd.date_range("now", periods=3).values,
@@ -93,7 +93,7 @@ class TestSelectDtypes:
             {
                 "a": list("abc"),
                 "b": list(range(1, 4)),
-                "c": np.arange(3, 6).astype("int32"),
+                "c": np.arange(3, 6, dtype="int32"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
                 "f": pd.date_range("now", periods=3).values,
