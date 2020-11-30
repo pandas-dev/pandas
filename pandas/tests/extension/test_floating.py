@@ -190,7 +190,15 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    def test_astype_str(self, data):
+        if data.dtype == pd.Float32Dtype():
+            return
+        super().test_astype_str(data)
+
+    def test_astype_string(self, data):
+        if data.dtype == pd.Float32Dtype():
+            return
+        super().test_astype_string(data)
 
 
 class TestGroupby(base.BaseGroupbyTests):
