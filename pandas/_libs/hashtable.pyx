@@ -15,8 +15,10 @@ cnp.import_array()
 from pandas._libs cimport util
 from pandas._libs.khash cimport (
     KHASH_TRACE_DOMAIN,
-    are_equal_khcomplex64_t,
-    are_equal_khcomplex128_t,
+    are_equivalent_float32_t,
+    are_equivalent_float64_t,
+    are_equivalent_khcomplex64_t,
+    are_equivalent_khcomplex128_t,
     kh_str_t,
     khcomplex64_t,
     khcomplex128_t,

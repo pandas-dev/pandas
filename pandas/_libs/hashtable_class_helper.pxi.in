@@ -33,6 +33,44 @@ cdef bint is_nan_kh{{name}}_t(kh{{name}}_t val) nogil:
 {{py:
 
 # name
+float_types = ['float64_t',
+               'float32_t']
+}}
+
+{{for c_type in float_types}}
+
+cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    return val != val
+{{endfor}}
+
+
+{{py:
+
+
+# name
+int_types = ['int64_t',
+             'int32_t',
+             'int16_t',
+             'int8_t',
+             'uint64_t',
+             'uint32_t',
+             'uint16_t',
+             'uint8_t',]
+}}
+
+{{for c_type in int_types}}
+
+cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    return False
+
+cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
+    return val1 == val2
+{{endfor}}
+
+
+{{py:
+
+# name
 cimported_types = ['complex64',
                    'complex128',
                    'float32',
@@ -336,24 +374,24 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, c_type, float_group, complex_group, to_c_type
-dtypes = [('Complex128', 'complex128', 'khcomplex128_t', True, True, "to_khcomplex128_t"),
-          ('Float64', 'float64', 'float64_t', True, False, ""),
-          ('UInt64', 'uint64', 'uint64_t', False, False, ""),
-          ('Int64', 'int64', 'int64_t', False, False, ""),
-          ('Complex64', 'complex64', 'khcomplex64_t', True, True, "to_khcomplex64_t"),
-          ('Float32', 'float32', 'float32_t', True, False, ""),
-          ('UInt32', 'uint32', 'uint32_t', False, False, ""),
-          ('Int32', 'int32', 'int32_t', False, False, ""),
-          ('UInt16', 'uint16', 'uint16_t', False, False, ""),
-          ('Int16', 'int16', 'int16_t', False, False, ""),
-          ('UInt8', 'uint8', 'uint8_t', False, False, ""),
-          ('Int8', 'int8', 'int8_t', False, False, "")]
+# name, dtype, c_type, to_c_type
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t', "to_khcomplex128_t"),
+          ('Float64', 'float64', 'float64_t', ""),
+          ('UInt64', 'uint64', 'uint64_t', ""),
+          ('Int64', 'int64', 'int64_t', ""),
+          ('Complex64', 'complex64', 'khcomplex64_t', "to_khcomplex64_t"),
+          ('Float32', 'float32', 'float32_t', ""),
+          ('UInt32', 'uint32', 'uint32_t', ""),
+          ('Int32', 'int32', 'int32_t', ""),
+          ('UInt16', 'uint16', 'uint16_t', ""),
+          ('Int16', 'int16', 'int16_t', ""),
+          ('UInt8', 'uint8', 'uint8_t', ""),
+          ('Int8', 'int8', 'int8_t', "")]
 
 }}
 
 
-{{for name, dtype, c_type, float_group, complex_group, to_c_type in dtypes}}
+{{for name, dtype, c_type, to_c_type in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -539,14 +577,8 @@ cdef class {{name}}HashTable(HashTable):
                         labels[i] = na_sentinel
                         continue
                 elif ignore_na and (
-                {{if complex_group}}
-                not is_nan_{{c_type}}(val) or 
-                (use_na_value and are_equal_{{c_type}}(val,na_value2))
-                {{elif float_group}}
-                val != val or (use_na_value and val == na_value2)
-                {{else}}
-                (use_na_value and val == na_value2)
-                {{endif}}             
+                    is_nan_{{c_type}}(val) or 
+                    (use_na_value and are_equivalent_{{c_type}}(val,na_value2))               
                 ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,

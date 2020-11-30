@@ -6,24 +6,24 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# dtype, ttype, c_type, complex_group, to_c_type
-dtypes = [('complex128', 'complex128', 'khcomplex128_t', True, "to_khcomplex128_t"),
-          ('complex64', 'complex64', 'khcomplex64_t', True, "to_khcomplex64_t"),
-          ('float64', 'float64', 'float64_t', False, ""),
-          ('float32', 'float32', 'float32_t', False, ""),
-          ('uint64', 'uint64', 'uint64_t', False, ""),
-          ('uint32', 'uint32', 'uint32_t', False, ""),
-          ('uint16', 'uint16', 'uint16_t', False, ""),
-          ('uint8', 'uint8', 'uint8_t', False, ""),
-          ('object', 'pymap', 'object', False, ""),
-          ('int64', 'int64', 'int64_t', False, ""),
-          ('int32', 'int32', 'int32_t', False, ""),
-          ('int16', 'int16', 'int16_t', False, ""),
-          ('int8', 'int8', 'int8_t', False, "")]
+# dtype, ttype, c_type, to_c_type, to_dtype
+dtypes = [('complex128', 'complex128', 'khcomplex128_t', "to_khcomplex128_t", "to_complex128"),
+          ('complex64', 'complex64', 'khcomplex64_t', "to_khcomplex64_t", "to_complex64"),
+          ('float64', 'float64', 'float64_t', "", ""),
+          ('float32', 'float32', 'float32_t', "", ""),
+          ('uint64', 'uint64', 'uint64_t', "", ""),
+          ('uint32', 'uint32', 'uint32_t', "", ""),
+          ('uint16', 'uint16', 'uint16_t', "", ""),
+          ('uint8', 'uint8', 'uint8_t', "", ""),
+          ('object', 'pymap', 'object', "", ""),
+          ('int64', 'int64', 'int64_t', "", ""),
+          ('int32', 'int32', 'int32_t', "", ""),
+          ('int16', 'int16', 'int16_t', "", ""),
+          ('int8', 'int8', 'int8_t', "", "")]
 
 }}
 
-{{for dtype, ttype, c_type, complex_group, to_c_type in dtypes}}
+{{for dtype, ttype, c_type, to_c_type, to_dtype in dtypes}}
 
 
 @cython.wraparound(False)
@@ -62,13 +62,7 @@ cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
         for i in range(n):
             val = {{to_c_type}}(values[i])
 
-            {{if dtype == 'float64' or dtype == 'float32'}}
-            if val == val or not dropna:
-            {{elif complex_group}}
             if not is_nan_{{c_type}}(val) or not dropna:
-            {{else}}
-            if True:
-            {{endif}}
                 k = kh_get_{{ttype}}(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
@@ -117,11 +111,7 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     with nogil:
         for k in range(table.n_buckets):
             if kh_exist_{{ttype}}(table, k):
-                {{if complex_group}}
-                result_keys[i] = to_{{dtype}}(table.keys[k])
-                {{else}}
-                result_keys[i] = table.keys[k]
-                {{endif}}         
+                result_keys[i] = {{to_dtype}}(table.keys[k])     
                 result_counts[i] = table.vals[k]
                 i += 1
     {{endif}}
