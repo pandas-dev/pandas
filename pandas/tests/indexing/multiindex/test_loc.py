@@ -699,9 +699,8 @@ def test_loc_getitem_index_differently_ordered_slice_none():
 
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
     # GH#10521
-    df = DataFrame({"a": ["a"], "b": ["b"], "c": ["a"], "d": 0}).set_index(
-        ["a", "b", "c"]
-    )
+    mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
+    df = DataFrame({"d": [0]}, index=mi)
     expected = df.copy()
-    result = df.loc["a", :, "a"]
+    result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
