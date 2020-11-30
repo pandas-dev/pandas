@@ -111,21 +111,21 @@ if TYPE_CHECKING:
 
 __all__ = ["Series"]
 
-_shared_doc_kwargs = dict(
-    axes="index",
-    klass="Series",
-    axes_single_arg="{0 or 'index'}",
-    axis="""axis : {0 or 'index'}
+_shared_doc_kwargs = {
+    "axes": "index",
+    "klass": "Series",
+    "axes_single_arg": "{0 or 'index'}",
+    "axis": """axis : {0 or 'index'}
         Parameter needed for compatibility with DataFrame.""",
-    inplace="""inplace : boolean, default False
+    "inplace": """inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
-    unique="np.ndarray",
-    duplicated="Series",
-    optional_by="",
-    optional_mapper="",
-    optional_labels="",
-    optional_axis="",
-)
+    "unique": "np.ndarray",
+    "duplicated": "Series",
+    "optional_by": "",
+    "optional_mapper": "",
+    "optional_labels": "",
+    "optional_axis": "",
+}
 
 
 def _coerce_method(converter):
@@ -1113,7 +1113,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat(tuple(), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(
