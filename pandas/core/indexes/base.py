@@ -2729,7 +2729,7 @@ class Index(IndexOpsMixin, PandasObject):
         rvals = other._values
 
         try:
-            # If one of both is not monotonic, we resort it afterwards
+            # If one or both is not monotonic, we resort it afterwards
             result = self._outer_indexer(np.sort(lvals), np.sort(rvals))[0]
         except TypeError:
             # incomparable objects

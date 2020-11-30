@@ -2197,22 +2197,26 @@ def make_duplicates_of_left_unique_in_right(
 
 def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
     """
-    Elements from union_values are resorted after the ranking of the first occurrence in
-    lvals and then rvals, if element is not in lvals. All occurrences of this element
+    Elements from union_values are re-sorted after the ranking of the first occurrence
+    in lvals and then rvals, if element is not in lvals. All occurrences of this element
     are placed at the spot of the first occurrence of this element.
 
     Parameters
     ----------
-    union_values: np.array which is a sorted union of lvals and rvals
-    lvals: np.ndarray of the left values which is ordered in front.
-    rvals: np.ndarray of the right values ordered after lvals.
+    union_values: np.array
+        sorted union of lvals and rvals
+    lvals: np.ndarray
+        left values which is ordered in front.
+    rvals: np.ndarray
+        right values ordered after lvals.
 
     Returns
     -------
     np.ndarray containing the resorted values from union_values
     """
     indexer = []
-    counts = dict(zip(*np.unique(union_values, return_counts=True)))
+    # counts = dict(zip(*np.unique(union_values, return_counts=True)))
+    counts = value_counts(union_values)
     unique_array = unique(np.append(lvals, rvals))
     # Create indexer to resort result
     for i, value in enumerate(unique_array):
