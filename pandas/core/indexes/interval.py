@@ -976,7 +976,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = self._intersection(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
-    def _intersection(self, other: Index, sort) -> Index:
+    def _intersection(self, other, sort):
         """
         intersection specialized to the case with matching dtypes.
         """
