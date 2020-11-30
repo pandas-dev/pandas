@@ -2227,6 +2227,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 )
                 for qi in q
             ]
+        if self.axis == 0:
             result = concat(results, axis=0, keys=q)
             # fix levels to place quantiles on the inside
             # TODO(GH-10710): Ideally, we could write this as
@@ -2246,10 +2247,23 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             # restore the index names in order
             result.index.names = index_names[order]
-
             # reorder rows to keep things sorted
+
             indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
             return result.take(indices)
+        else:
+            result = concat(results, axis=1, keys=q)
+
+            order = list(range(1, result.columns.nlevels)) + [0]
+            index_names = np.array(result.columns.names)
+            result.columns.names = np.arange(len(index_names))
+            result = result.reorder_levels(order, axis=1)
+            result.columns.names = index_names[order]
+
+            indices = np.arange(result.shape[1]).reshape(
+                [len(q), self.ngroups],
+            ).T.flatten()
+            return result.take(indices, axis=1)
 
     @Substitution(name="groupby")
     def ngroup(self, ascending: bool = True):
