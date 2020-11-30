@@ -1177,7 +1177,7 @@ class TestExcelWriter:
         result = pd.read_excel(path, comment="#")
         tm.assert_frame_equal(result, expected)
 
-    def test_datetimes(self, path, engine):
+    def test_datetimes(self, path):
 
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [

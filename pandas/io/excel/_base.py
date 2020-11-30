@@ -112,15 +112,15 @@ engine : str, default None
 
     .. versionchanged:: 1.2.0
         The engine xlrd is no longer maintained, and is not supported with
-        python >= 3.9. When ``engine="None"``, the following logic will be
+        python >= 3.9. When ``engine=None``, the following logic will be
         used to determine the engine.
 
-        - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
+        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
           then odf will be used.
-        - Otherwise if path_or_buffer is a bytes stream, the file has the
+        - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
           extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
         - Otherwise if openpyxl is installed, then openpyxl will be used.
-        - Otherwise xlrd will be used and a FutureWarning will be raised.
+        - Otherwise xlrd will be used and a ``FutureWarning`` will be raised.
 
         Specifying ``engine="xlrd"`` will continue to be allowed for the
         indefinite future.
@@ -908,15 +908,15 @@ class ExcelFile:
         .. versionchanged:: 1.2.0
 
            The engine xlrd is no longer maintained, and is not supported with
-           python >= 3.9. When ``engine="None"``, the following logic will be
+           python >= 3.9. When ``engine=None``, the following logic will be
            used to determine the engine.
 
-           - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
+           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
              then odf will be used.
-           - Otherwise if path_or_buffer is a bytes stream, the file has the
+           - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
              extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
            - Otherwise if openpyxl is installed, then openpyxl will be used.
-           - Otherwise xlrd will be used and a FutureWarning will be raised.
+           - Otherwise xlrd will be used and a ``FutureWarning`` will be raised.
 
            Specifying ``engine="xlrd"`` will continue to be allowed for the
            indefinite future.
@@ -983,8 +983,10 @@ class ExcelFile:
                         "The xlrd engine is no longer maintained and is not "
                         "supported when using pandas with python >= 3.9. However, "
                         "the engine xlrd will continue to be allowed for the "
-                        "indefinite future. Either install openpyxl or specify "
-                        "engine='xlrd' to silence this warning.",
+                        "indefinite future. Beginning with pandas 1.2.0, the "
+                        "openpyxl engine will be used if it is installed and the "
+                        "engine argument is not specified. Either install openpyxl "
+                        "or specify engine='xlrd' to silence this warning.",
                         FutureWarning,
                         stacklevel=stacklevel,
                     )

@@ -13,12 +13,12 @@ including other versions of pandas.
    Previously, the default argument ``engine=None`` to ``pd.read_excel``
    would result in using the xlrd engine in many cases. The engine xlrd is no longer
    maintained, and is not supported with python >= 3.9. When ``engine=None``, the
-   following logic will be used to determine the engine.
+   following logic is now used to determine the engine.
 
    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt), then odf will be used.
    - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
    - Otherwise if openpyxl is installed, then openpyxl will be used.
-   - Otherwise xlrd will be used and a FutureWarning will be raised.
+   - Otherwise xlrd will be used and a ``FutureWarning`` will be raised.
 
    Specifying ``engine="xlrd"`` will continue to be allowed for the indefinite future.
 
