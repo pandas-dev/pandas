@@ -982,8 +982,11 @@ b  2""",
         assert filled_series is not None
         return filled_series.gt(0).any() and func_nm not in base.cython_cast_blocklist
 
-    def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
+    def _cython_transform(
+        self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
+    ):
         output: Dict[base.OutputKey, np.ndarray] = {}
+
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -991,7 +994,9 @@ b  2""",
                 continue
 
             try:
-                result, _ = self.grouper.transform(obj.values, how, **kwargs)
+                result, _ = self.grouper._cython_operation(
+                    "transform", obj.values, how, axis, **kwargs
+                )
             except NotImplementedError:
                 continue
 
@@ -1067,8 +1072,8 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, agg_names = self.grouper.aggregate(
-                obj._values, how, min_count=min_count
+            result, agg_names = self.grouper._cython_operation(
+                "aggregate", obj._values, how, axis=0, min_count=min_count
             )
 
             if agg_names:
