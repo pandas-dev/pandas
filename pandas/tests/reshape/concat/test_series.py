@@ -106,9 +106,9 @@ class TestSeriesConcat:
         s2 = Series(np.random.randn(len(dates)), index=dates, name="value")
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        expected = Index([0, 1])
+        expected = Index(range(2))
 
-        tm.assert_index_equal(result.columns, expected)
+        tm.assert_index_equal(result.columns, expected, exact=True)
 
     @pytest.mark.parametrize(
         "s1name,s2name", [(np.int64(190), (43, 0)), (190, (43, 0))]
