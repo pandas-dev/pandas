@@ -433,16 +433,16 @@ class Styler:
             else:
                 table_attr += ' class="tex2jax_ignore"'
 
-        return dict(
-            head=head,
-            cellstyle=cellstyle,
-            body=body,
-            uuid=uuid,
-            precision=precision,
-            table_styles=table_styles,
-            caption=caption,
-            table_attributes=table_attr,
-        )
+        return {
+            "head": head,
+            "cellstyle": cellstyle,
+            "body": body,
+            "uuid": uuid,
+            "precision": precision,
+            "table_styles": table_styles,
+            "caption": caption,
+            "table_attributes": table_attr,
+        }
 
     def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
         """
@@ -903,7 +903,7 @@ class Styler:
         Set the table attributes.
 
         These are the items that show up in the opening ``<table>`` tag
-        in addition to to automatic (by default) id.
+        in addition to automatic (by default) id.
 
         Parameters
         ----------
