@@ -15,6 +15,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
+    is_dtype_equal,
     is_float,
     is_integer,
     is_list_like,
@@ -515,8 +516,11 @@ class RangeIndex(Int64Index):
     def _intersection(self, other, sort=False):
 
         if not isinstance(other, RangeIndex):
-            result = super()._intersection(other, sort=sort)
-            return self._wrap_setop_result(other, result)
+            if is_dtype_equal(other.dtype, self.dtype):
+                # Int64Index
+                result = super()._intersection(other, sort=sort)
+                return self._wrap_setop_result(other, result)
+            return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)
