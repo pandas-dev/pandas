@@ -48,10 +48,10 @@ from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
-    import sqlalchemy.schema
-    import sqlalchemy.sql.sqltypes as sqltypes
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -263,7 +263,8 @@ class SQLAlchemyMixIn(MixInBase):
         return table_list
 
     def _close_conn(self):
-        pass
+        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
+        self.conn.dispose()
 
 
 class PandasSQLTest:
@@ -280,7 +281,6 @@ class PandasSQLTest:
 
     @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
-        import io
 
         iris_csv_file = datapath(*request.param)
 
@@ -290,7 +290,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -346,13 +346,13 @@ class PandasSQLTest:
 
     def _load_test2_data(self):
         df = DataFrame(
-            dict(
-                A=[4, 1, 3, 6],
-                B=["asd", "gsq", "ylt", "jkl"],
-                C=[1.1, 3.1, 6.9, 5.3],
-                D=[False, True, True, False],
-                E=["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
-            )
+            {
+                "A": [4, 1, 3, 6],
+                "B": ["asd", "gsq", "ylt", "jkl"],
+                "C": [1.1, 3.1, 6.9, 5.3],
+                "D": [False, True, True, False],
+                "E": ["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
+            }
         )
         df["E"] = to_datetime(df["E"])
 
@@ -697,8 +697,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -708,8 +708,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -717,8 +717,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -726,8 +726,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -737,8 +737,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
         assert df.IntDateOnlyCol.tolist() == [
-            pd.Timestamp("2010-10-10"),
-            pd.Timestamp("2010-12-12"),
+            Timestamp("2010-10-10"),
+            Timestamp("2010-12-12"),
         ]
 
     def test_date_and_index(self):
@@ -1242,7 +1242,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-        conn = cls.connect()
+        conn = cls.conn = cls.connect()
         conn.connect()
 
     def load_test_data_and_sql(self):
@@ -1364,7 +1364,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Int column with NA values stays as float
         assert issubclass(df.IntColWithNull.dtype.type, np.floating)
         # Bool column with NA values becomes object
-        assert issubclass(df.BoolColWithNull.dtype.type, np.object)
+        assert issubclass(df.BoolColWithNull.dtype.type, object)
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
@@ -1490,10 +1490,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_out_of_bounds_datetime(self):
         # GH 26761
-        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
         data.to_sql("test_datetime_obb", self.conn, index=False)
         result = sql.read_sql_table("test_datetime_obb", self.conn)
-        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
 
     def test_naive_datetimeindex_roundtrip(self):
@@ -1813,6 +1813,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, input):
+        # GH 34431
+
+        df = DataFrame(input)
+
+        if self.flavor == "mysql":
+            msg = "inf cannot be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
+
     def test_temporary_table(self):
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -1900,9 +1918,9 @@ class _TestMySQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
-            url.format(driver=cls.driver), connect_args=cls.connect_args
+            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            connect_args=cls.connect_args,
         )
 
     @classmethod
@@ -1969,8 +1987,9 @@ class _TestPostgreSQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "postgresql+{driver}://postgres@localhost/pandas_nosetest"
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(
+            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+        )
 
     @classmethod
     def setup_driver(cls):
@@ -2329,9 +2348,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):
@@ -2388,7 +2404,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2409,8 +2425,8 @@ class TestXSQLite(SQLiteMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 
@@ -2648,7 +2664,7 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
         # GH#32571 result comes back rounded to 6 digits in some builds;
         #  no obvious pattern
 
@@ -2690,8 +2706,8 @@ class TestXMySQL(MySQLMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 

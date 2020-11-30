@@ -3,6 +3,8 @@ import random
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
 import pandas._testing as tm
@@ -77,22 +79,28 @@ class TestDataFrameSortValues:
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True)
+        return_value = sorted_df.sort_values(by="A", inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A")
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True)
+        return_value = sorted_df.sort_values(by=1, axis=1, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=["A", "B"], ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(
+            by=["A", "B"], ascending=False, inplace=True
+        )
+        assert return_value is None
         expected = frame.sort_values(by=["A", "B"], ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -124,7 +132,7 @@ class TestDataFrameSortValues:
         # GH#9918
         # uint64 multicolumn sort
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
@@ -133,7 +141,7 @@ class TestDataFrameSortValues:
         df["a"] = df["a"].astype(np.uint64)
         result = df.sort_values(["a", "b"])
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
@@ -234,7 +242,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_stable_categorial(self):
         # GH#16793
-        df = DataFrame({"x": pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
+        df = DataFrame({"x": Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
         expected = df.copy()
         sorted_df = df.sort_values("x", kind="mergesort")
         tm.assert_frame_equal(sorted_df, expected)
@@ -349,14 +357,14 @@ class TestDataFrameSortValues:
             Timestamp(x)
             for x in ["2017-01-01", "2014-01-01", "2016-01-01", "2015-01-01"]
         ]
-        df = pd.DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
+        df = DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
 
         d3 = [Timestamp(x) for x in ["2015-01-01", "2016-01-01", "2016-01-01", np.nan]]
         d4 = [
             Timestamp(x)
             for x in ["2014-01-01", "2015-01-01", "2017-01-01", "2016-01-01"]
         ]
-        expected = pd.DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
+        expected = DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
         sorted_df = df.sort_values(by=["a", "b"])
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -375,9 +383,9 @@ class TestDataFrameSortValues:
         reversed_category_indices = sorted(category_indices, reverse=True)
         reversed_na_indices = sorted(na_indices)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
-                column_name: pd.Categorical(
+                column_name: Categorical(
                     ["A", np.nan, "B", np.nan, "C"], categories=categories, ordered=True
                 )
             }
@@ -455,21 +463,21 @@ class TestDataFrameSortValues:
             Timestamp(x)
             for x in ["2017-01-01", "2014-01-01", "2016-01-01", "2015-01-01"]
         ]
-        df = pd.DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
+        df = DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
 
         d3 = [Timestamp(x) for x in ["2015-01-01", "2016-01-01", "2016-01-01", np.nan]]
         d4 = [
             Timestamp(x)
             for x in ["2014-01-01", "2015-01-01", "2017-01-01", "2016-01-01"]
         ]
-        expected = pd.DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
+        expected = DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
         sorted_df = df.sort_values(by=["a", "b"])
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_na_position_with_categories_raises(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             {
-                "c": pd.Categorical(
+                "c": Categorical(
                     ["A", np.nan, "B", np.nan, "C"],
                     categories=["A", "B", "C"],
                     ordered=True,
@@ -519,7 +527,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_nat_na_position_default(self):
         # GH 13230
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": [1, 2, 3, 4, 4],
                 "date": pd.DatetimeIndex(
@@ -544,17 +552,24 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        assert return_value is None
         expected = frame.sort_values(by="A", key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by=1, axis=1, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by="A", ascending=False, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -653,7 +668,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         df.sort_index(key=sort_by_key)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_values("A", key=lambda x: x[:1])
 
@@ -678,3 +693,110 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         result = df.sort_values(1, key=lambda col: -col, axis=1)
         expected = df.loc[:, ::-1]
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_sort_values_key_casts_to_categorical(self, ordered):
+        # https://github.com/pandas-dev/pandas/issues/36383
+        categories = ["c", "b", "a"]
+        df = DataFrame({"x": [1, 1, 1], "y": ["a", "b", "c"]})
+
+        def sorter(key):
+            if key.name == "y":
+                return pd.Series(
+                    Categorical(key, categories=categories, ordered=ordered)
+                )
+            return key
+
+        result = df.sort_values(by=["x", "y"], key=sorter)
+        expected = DataFrame(
+            {"x": [1, 1, 1], "y": ["c", "b", "a"]}, index=pd.Index([2, 1, 0])
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.fixture
+def df_none():
+    return DataFrame(
+        {
+            "outer": ["a", "a", "a", "b", "b", "b"],
+            "inner": [1, 2, 2, 2, 1, 1],
+            "A": np.arange(6, 0, -1),
+            ("B", 5): ["one", "one", "two", "two", "one", "one"],
+        }
+    )
+
+
+@pytest.fixture(params=[["outer"], ["outer", "inner"]])
+def df_idx(request, df_none):
+    levels = request.param
+    return df_none.set_index(levels)
+
+
+@pytest.fixture(
+    params=[
+        "inner",  # index level
+        ["outer"],  # list of index level
+        "A",  # column
+        [("B", 5)],  # list of column
+        ["inner", "outer"],  # two index levels
+        [("B", 5), "outer"],  # index level and column
+        ["A", ("B", 5)],  # Two columns
+        ["inner", "outer"],  # two index levels and column
+    ]
+)
+def sort_names(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def ascending(request):
+    return request.param
+
+
+class TestSortValuesLevelAsStr:
+    def test_sort_index_level_and_column_label(
+        self, df_none, df_idx, sort_names, ascending
+    ):
+        # GH#14353
+
+        # Get index levels from df_idx
+        levels = df_idx.index.names
+
+        # Compute expected by sorting on columns and the setting index
+        expected = df_none.sort_values(
+            by=sort_names, ascending=ascending, axis=0
+        ).set_index(levels)
+
+        # Compute result sorting on mix on columns and index levels
+        result = df_idx.sort_values(by=sort_names, ascending=ascending, axis=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_column_level_and_index_label(
+        self, df_none, df_idx, sort_names, ascending
+    ):
+        # GH#14353
+
+        # Get levels from df_idx
+        levels = df_idx.index.names
+
+        # Compute expected by sorting on axis=0, setting index levels, and then
+        # transposing. For some cases this will result in a frame with
+        # multiple column levels
+        expected = (
+            df_none.sort_values(by=sort_names, ascending=ascending, axis=0)
+            .set_index(levels)
+            .T
+        )
+
+        # Compute result by transposing and sorting on axis=1.
+        result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
+
+        if len(levels) > 1:
+            # Accessing multi-level columns that are not lexsorted raises a
+            # performance warning
+            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+                tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)

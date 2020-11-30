@@ -1,2 +1,2 @@
 
-cpdef str get_rule_month(object source, str default=*)
+cpdef str get_rule_month(str source)

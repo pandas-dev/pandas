@@ -5,6 +5,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -12,7 +13,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import FrameOrSeriesUnion, Label
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -200,7 +201,7 @@ def pivot_table(
 
 
 def _add_margins(
-    table: Union["Series", "DataFrame"],
+    table: FrameOrSeriesUnion,
     data,
     values,
     rows,
@@ -239,7 +240,7 @@ def _add_margins(
 
     elif values:
         marginal_result_set = _generate_marginal_results(
-            table, data, values, rows, cols, aggfunc, observed, margins_name,
+            table, data, values, rows, cols, aggfunc, observed, margins_name
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
@@ -267,19 +268,13 @@ def _add_margins(
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
-    try:
-        # check the result column and leave floats
-        for dtype in set(result.dtypes):
-            cols = result.select_dtypes([dtype]).columns
-            margin_dummy[cols] = margin_dummy[cols].apply(
-                maybe_downcast_to_dtype, args=(dtype,)
-            )
-        result = result.append(margin_dummy)
-    except TypeError:
-
-        # we cannot reshape, so coerce the axis
-        result.index = result.index._to_safe_for_reshape()
-        result = result.append(margin_dummy)
+    # check the result column and leave floats
+    for dtype in set(result.dtypes):
+        cols = result.select_dtypes([dtype]).columns
+        margin_dummy[cols] = margin_dummy[cols].apply(
+            maybe_downcast_to_dtype, args=(dtype,)
+        )
+    result = result.append(margin_dummy)
     result.index.names = row_names
 
     return result
@@ -308,7 +303,7 @@ def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All",
+    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -327,17 +322,7 @@ def _generate_marginal_results(
 
                 # we are going to mutate this, so need to copy!
                 piece = piece.copy()
-                try:
-                    piece[all_key] = margin[key]
-                except TypeError:
-
-                    # we cannot reshape, so coerce the axis
-                    piece.set_axis(
-                        piece._get_axis(cat_axis)._to_safe_for_reshape(),
-                        axis=cat_axis,
-                        inplace=True,
-                    )
-                    piece[all_key] = margin[key]
+                piece[all_key] = margin[key]
 
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
@@ -451,10 +436,9 @@ def pivot(
             cols = com.convert_to_list_like(index)
         else:
             cols = []
-        cols.extend(columns)
 
         append = index is None
-        indexed = data.set_index(cols, append=append)
+        indexed = data.set_index(cols + columns, append=append)
     else:
         if index is None:
             index = [Series(data.index, name=data.index.name)]
@@ -580,29 +564,37 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-    index = com.maybe_make_list(index)
-    columns = com.maybe_make_list(columns)
-
-    rownames = _get_names(index, rownames, prefix="row")
-    colnames = _get_names(columns, colnames, prefix="col")
-
-    common_idx = None
-    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
-    if pass_objs:
-        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
-
-    data: Dict = {}
-    data.update(zip(rownames, index))
-    data.update(zip(colnames, columns))
-
     if values is None and aggfunc is not None:
         raise ValueError("aggfunc cannot be used without values.")
 
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
+
+    common_idx = None
+    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    if pass_objs:
+        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
+
+    rownames = _get_names(index, rownames, prefix="row")
+    colnames = _get_names(columns, colnames, prefix="col")
+
+    # duplicate names mapped to unique names for pivot op
+    (
+        rownames_mapper,
+        unique_rownames,
+        colnames_mapper,
+        unique_colnames,
+    ) = _build_names_mapper(rownames, colnames)
+
     from pandas import DataFrame
 
+    data = {
+        **dict(zip(unique_rownames, index)),
+        **dict(zip(unique_colnames, columns)),
+    }
     df = DataFrame(data, index=common_idx)
     original_df_cols = df.columns
 
@@ -615,8 +607,8 @@ def crosstab(
 
     table = df.pivot_table(
         ["__dummy__"],
-        index=rownames,
-        columns=colnames,
+        index=unique_rownames,
+        columns=unique_colnames,
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
@@ -634,6 +626,9 @@ def crosstab(
         table = _normalize(
             table, normalize=normalize, margins=margins, margins_name=margins_name
         )
+
+    table = table.rename_axis(index=rownames_mapper, axis=0)
+    table = table.rename_axis(columns=colnames_mapper, axis=1)
 
     return table
 
@@ -670,12 +665,11 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         # keep index and column of pivoted table
         table_index = table.index
         table_columns = table.columns
+        last_ind_or_col = table.iloc[-1, :].name
 
-        # check if margin name is in (for MI cases) or equal to last
+        # check if margin name is not in (for MI cases) and not equal to last
         # index/column and save the column and index margin
-        if (margins_name not in table.iloc[-1, :].name) | (
-            margins_name != table.iloc[:, -1].name
-        ):
+        if (margins_name not in last_ind_or_col) & (margins_name != last_ind_or_col):
             raise ValueError(f"{margins_name} not in pivoted DataFrame")
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
@@ -734,3 +728,57 @@ def _get_names(arrs, names, prefix: str = "row"):
             names = list(names)
 
     return names
+
+
+def _build_names_mapper(
+    rownames: List[str], colnames: List[str]
+) -> Tuple[Dict[str, str], List[str], Dict[str, str], List[str]]:
+    """
+    Given the names of a DataFrame's rows and columns, returns a set of unique row
+    and column names and mappers that convert to original names.
+
+    A row or column name is replaced if it is duplicate among the rows of the inputs,
+    among the columns of the inputs or between the rows and the columns.
+
+    Paramters
+    ---------
+    rownames: list[str]
+    colnames: list[str]
+
+    Returns
+    -------
+    Tuple(Dict[str, str], List[str], Dict[str, str], List[str])
+
+    rownames_mapper: dict[str, str]
+        a dictionary with new row names as keys and original rownames as values
+    unique_rownames: list[str]
+        a list of rownames with duplicate names replaced by dummy names
+    colnames_mapper: dict[str, str]
+        a dictionary with new column names as keys and original column names as values
+    unique_colnames: list[str]
+        a list of column names with duplicate names replaced by dummy names
+
+    """
+
+    def get_duplicates(names):
+        seen: Set = set()
+        return {name for name in names if name not in seen}
+
+    shared_names = set(rownames).intersection(set(colnames))
+    dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
+
+    rownames_mapper = {
+        f"row_{i}": name for i, name in enumerate(rownames) if name in dup_names
+    }
+    unique_rownames = [
+        f"row_{i}" if name in dup_names else name for i, name in enumerate(rownames)
+    ]
+
+    colnames_mapper = {
+        f"col_{i}": name for i, name in enumerate(colnames) if name in dup_names
+    }
+    unique_colnames = [
+        f"col_{i}" if name in dup_names else name for i, name in enumerate(colnames)
+    ]
+
+    return rownames_mapper, unique_rownames, colnames_mapper, unique_colnames

@@ -3,7 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
@@ -120,7 +119,7 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
     index = _asfreq_compat(empty_series_dti.index, freq)
 
-    expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
+    expected = Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
     tm.assert_series_equal(result, expected)
 
@@ -158,7 +157,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
+    expected = DataFrame({"a": []}, dtype="int64", index=index)
 
     tm.assert_frame_equal(result, expected)
 
@@ -174,13 +173,13 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = pd.Series([], dtype="int64", index=index)
+    expected = Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
-@pytest.mark.parametrize("dtype", [np.float, np.int, np.object, "datetime64[ns]"])
+@pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run

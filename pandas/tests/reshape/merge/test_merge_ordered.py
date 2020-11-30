@@ -88,9 +88,9 @@ class TestMergeOrdered:
             with pytest.raises(ValueError, match=pattern):
                 pd.concat(df_seq)
 
-        pd.concat([pd.DataFrame()])
-        pd.concat([None, pd.DataFrame()])
-        pd.concat([pd.DataFrame(), None])
+        pd.concat([DataFrame()])
+        pd.concat([None, DataFrame()])
+        pd.concat([DataFrame(), None])
 
     def test_doc_example(self):
         left = DataFrame(
@@ -112,6 +112,68 @@ class TestMergeOrdered:
                 "lvalue": [1, 1, 2, 2, 3] * 2,
                 "rvalue": [np.nan, 1, 2, 3, 3] * 2,
             }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "left, right, on, left_by, right_by, expected",
+        [
+            (
+                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
+                DataFrame({"T": [2], "E": [1]}),
+                ["T"],
+                ["G", "H"],
+                None,
+                DataFrame(
+                    {
+                        "G": ["g"] * 3,
+                        "H": ["h"] * 3,
+                        "T": [1, 2, 3],
+                        "E": [np.nan, 1.0, np.nan],
+                    }
+                ),
+            ),
+            (
+                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
+                DataFrame({"T": [2], "E": [1]}),
+                "T",
+                ["G", "H"],
+                None,
+                DataFrame(
+                    {
+                        "G": ["g"] * 3,
+                        "H": ["h"] * 3,
+                        "T": [1, 2, 3],
+                        "E": [np.nan, 1.0, np.nan],
+                    }
+                ),
+            ),
+            (
+                DataFrame({"T": [2], "E": [1]}),
+                DataFrame({"G": ["g", "g"], "H": ["h", "h"], "T": [1, 3]}),
+                ["T"],
+                None,
+                ["G", "H"],
+                DataFrame(
+                    {
+                        "T": [1, 2, 3],
+                        "E": [np.nan, 1.0, np.nan],
+                        "G": ["g"] * 3,
+                        "H": ["h"] * 3,
+                    }
+                ),
+            ),
+        ],
+    )
+    def test_list_type_by(self, left, right, on, left_by, right_by, expected):
+        # GH 35269
+        result = merge_ordered(
+            left=left,
+            right=right,
+            on=on,
+            left_by=left_by,
+            right_by=right_by,
         )
 
         tm.assert_frame_equal(result, expected)

@@ -5,17 +5,21 @@ from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
 
+
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport NPY_INT64, int64_t
+
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
 
+@cython.final
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
@@ -203,7 +207,7 @@ cdef slice slice_canonize(slice s):
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
+        Py_ssize_t start = 0, stop = 0, step = 1
 
     if s.step is None:
         step = 1
@@ -235,7 +239,7 @@ cdef slice slice_canonize(slice s):
             if stop > start:
                 stop = start
 
-    if start < 0 or (stop < 0 and s.stop is not None):
+    if start < 0 or (stop < 0 and s.stop is not None and step > 0):
         raise ValueError("unbounded slice")
 
     if stop < 0:

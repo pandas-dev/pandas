@@ -1,3 +1,5 @@
+import string
+import sys
 import warnings
 
 import numpy as np
@@ -34,6 +36,7 @@ class Constructor:
         self.values_all_int8 = np.ones(N, "int8")
         self.categorical = pd.Categorical(self.values, self.categories)
         self.series = pd.Series(self.categorical)
+        self.intervals = pd.interval_range(0, 1, periods=N // 10)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -43,6 +46,9 @@ class Constructor:
 
     def time_datetimes(self):
         pd.Categorical(self.datetimes)
+
+    def time_interval(self):
+        pd.Categorical(self.datetimes, categories=self.datetimes)
 
     def time_datetimes_with_nat(self):
         pd.Categorical(self.datetimes_with_nat)
@@ -61,6 +67,47 @@ class Constructor:
 
     def time_existing_series(self):
         pd.Categorical(self.series)
+
+
+class AsType:
+    def setup(self):
+        N = 10 ** 5
+
+        random_pick = np.random.default_rng().choice
+
+        categories = {
+            "str": list(string.ascii_letters),
+            "int": np.random.randint(2 ** 16, size=154),
+            "float": sys.maxsize * np.random.random((38,)),
+            "timestamp": [
+                pd.Timestamp(x, unit="s") for x in np.random.randint(2 ** 18, size=578)
+            ],
+        }
+
+        self.df = pd.DataFrame(
+            {col: random_pick(cats, N) for col, cats in categories.items()}
+        )
+
+        for col in ("int", "float", "timestamp"):
+            self.df[col + "_as_str"] = self.df[col].astype(str)
+
+        for col in self.df.columns:
+            self.df[col] = self.df[col].astype("category")
+
+    def astype_str(self):
+        [self.df[col].astype("str") for col in "int float timestamp".split()]
+
+    def astype_int(self):
+        [self.df[col].astype("int") for col in "int_as_str timestamp".split()]
+
+    def astype_float(self):
+        [
+            self.df[col].astype("float")
+            for col in "float_as_str int int_as_str timestamp".split()
+        ]
+
+    def astype_datetime(self):
+        self.df["float"].astype(pd.DatetimeTZDtype(tz="US/Pacific"))
 
 
 class Concat:

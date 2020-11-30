@@ -10,7 +10,6 @@ from pandas._libs.tslibs import Timedelta, offsets, to_offset
     [
         (to_offset("10us"), offsets.Micro(10)),
         (offsets.Hour(), offsets.Hour()),
-        ((5, "T"), offsets.Minute(5)),
         ("2h30min", offsets.Minute(150)),
         ("2h 30min", offsets.Minute(150)),
         ("2h30min15s", offsets.Second(150 * 60 + 15)),
@@ -89,8 +88,14 @@ def test_to_offset_invalid(freqstr):
 
 
 def test_to_offset_no_evaluate():
-    with pytest.raises(ValueError, match="Could not evaluate"):
+    msg = str(("", ""))
+    with pytest.raises(TypeError, match=msg):
         to_offset(("", ""))
+
+
+def test_to_offset_tuple_unsupported():
+    with pytest.raises(TypeError, match="pass as a string instead"):
+        to_offset((5, "T"))
 
 
 @pytest.mark.parametrize(
@@ -126,15 +131,15 @@ def test_to_offset_leading_plus(freqstr, expected):
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        (dict(days=1, seconds=1), offsets.Second(86401)),
-        (dict(days=-1, seconds=1), offsets.Second(-86399)),
-        (dict(hours=1, minutes=10), offsets.Minute(70)),
-        (dict(hours=1, minutes=-10), offsets.Minute(50)),
-        (dict(weeks=1), offsets.Day(7)),
-        (dict(hours=1), offsets.Hour(1)),
-        (dict(hours=1), to_offset("60min")),
-        (dict(microseconds=1), offsets.Micro(1)),
-        (dict(microseconds=0), offsets.Nano(0)),
+        ({"days": 1, "seconds": 1}, offsets.Second(86401)),
+        ({"days": -1, "seconds": 1}, offsets.Second(-86399)),
+        ({"hours": 1, "minutes": 10}, offsets.Minute(70)),
+        ({"hours": 1, "minutes": -10}, offsets.Minute(50)),
+        ({"weeks": 1}, offsets.Day(7)),
+        ({"hours": 1}, offsets.Hour(1)),
+        ({"hours": 1}, to_offset("60min")),
+        ({"microseconds": 1}, offsets.Micro(1)),
+        ({"microseconds": 0}, offsets.Nano(0)),
     ],
 )
 def test_to_offset_pd_timedelta(kwargs, expected):

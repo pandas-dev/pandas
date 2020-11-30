@@ -2,7 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import NaT, Series, date_range
+from pandas import Categorical, NaT, Series, date_range
 
 from .pandas_vb_common import tm
 
@@ -36,6 +36,28 @@ class IsIn:
         self.s.isin(self.values)
 
 
+class IsInDatetime64:
+    def setup(self):
+        dti = date_range(
+            start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
+        )
+        self.ser = Series(dti)
+        self.subset = self.ser._values[::3]
+        self.cat_subset = Categorical(self.subset)
+
+    def time_isin(self):
+        self.ser.isin(self.subset)
+
+    def time_isin_cat_values(self):
+        self.ser.isin(self.cat_subset)
+
+    def time_isin_mismatched_dtype(self):
+        self.ser.isin([1, 2])
+
+    def time_isin_empty(self):
+        self.ser.isin([])
+
+
 class IsInFloat64:
     def setup(self):
         self.small = Series([1, 2], dtype=np.float64)
@@ -58,17 +80,15 @@ class IsInFloat64:
 
 class IsInForObjects:
     def setup(self):
-        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(np.object)
-        self.vals_nans = np.full(10 ** 4, np.nan).astype(np.object)
-        self.s_short = Series(np.arange(2)).astype(np.object)
-        self.s_long = Series(np.arange(10 ** 5)).astype(np.object)
-        self.vals_short = np.arange(2).astype(np.object)
-        self.vals_long = np.arange(10 ** 5).astype(np.object)
+        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(object)
+        self.vals_nans = np.full(10 ** 4, np.nan).astype(object)
+        self.s_short = Series(np.arange(2)).astype(object)
+        self.s_long = Series(np.arange(10 ** 5)).astype(object)
+        self.vals_short = np.arange(2).astype(object)
+        self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(
-            np.object
-        )
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(np.object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,
@@ -90,6 +110,55 @@ class IsInForObjects:
     def time_isin_long_series_long_values_floats(self):
         # no dominating part
         self.s_long_floats.isin(self.vals_long_floats)
+
+
+class IsInLongSeriesLookUpDominates:
+    params = [
+        ["int64", "int32", "float64", "float32", "object"],
+        [5, 1000],
+        ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
+    ]
+    param_names = ["dtype", "MaxNumber", "series_type"]
+
+    def setup(self, dtype, MaxNumber, series_type):
+        N = 10 ** 7
+        if series_type == "random_hits":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N)
+        if series_type == "random_misses":
+            np.random.seed(42)
+            array = np.random.randint(0, MaxNumber, N) + MaxNumber
+        if series_type == "monotone_hits":
+            array = np.repeat(np.arange(MaxNumber), N // MaxNumber)
+        if series_type == "monotone_misses":
+            array = np.arange(N) + MaxNumber
+        self.series = Series(array).astype(dtype)
+        self.values = np.arange(MaxNumber).astype(dtype)
+
+    def time_isin(self, dtypes, MaxNumber, series_type):
+        self.series.isin(self.values)
+
+
+class IsInLongSeriesValuesDominate:
+    params = [
+        ["int64", "int32", "float64", "float32", "object"],
+        ["random", "monotone"],
+    ]
+    param_names = ["dtype", "series_type"]
+
+    def setup(self, dtype, series_type):
+        N = 10 ** 7
+        if series_type == "random":
+            np.random.seed(42)
+            vals = np.random.randint(0, 10 * N, N)
+        if series_type == "monotone":
+            vals = np.arange(N)
+        self.values = vals.astype(dtype)
+        M = 10 ** 6 + 1
+        self.series = Series(np.arange(M)).astype(dtype)
+
+    def time_isin(self, dtypes, series_type):
+        self.series.isin(self.values)
 
 
 class NSort:

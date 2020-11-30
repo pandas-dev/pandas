@@ -300,7 +300,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         creating a new one with default parameters.
     size : int, default 50
         Number of data points to consider during each sampling. It must be
-        greater or equal than the length of the `series`.
+        less than or equal to the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
     **kwds
@@ -318,7 +318,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
-    This example draws a basic bootstap plot for a Series.
+    This example draws a basic bootstrap plot for a Series.
 
     .. plot::
         :context: close-figs
@@ -530,7 +530,9 @@ class _Options(dict):
         -------
         None
         """
-        self.__init__()
+        # pandas\plotting\_misc.py:533: error: Cannot access "__init__"
+        # directly  [misc]
+        self.__init__()  # type: ignore[misc]
 
     def _get_canonical_key(self, key):
         return self._ALIASES.get(key, key)

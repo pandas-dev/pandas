@@ -4,7 +4,9 @@ on:
   push:
     branches: master
   pull_request:
-    branches: master
+    branches:
+      - master
+      - 1.1.x
 
 env:
   ENV_FILE: environment.yml
@@ -16,7 +18,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::add-path::${HOME}/miniconda3/bin"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1
@@ -33,12 +35,6 @@ jobs:
       run: |
         source activate pandas-dev
         ci/code_checks.sh lint
-      if: always()
-
-    - name: Dependencies consistency
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh dependencies
       if: always()
 
     - name: Checks on imported code
@@ -102,7 +98,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1
@@ -123,7 +119,7 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
     - name: Install ssh key
       run: |

@@ -26,15 +26,29 @@ def to_timedelta(arg, unit=None, errors="raise"):
     ----------
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
-    unit : str, default 'ns'
-        Must not be specified if the arg is/contains a str.
-        Denotes the unit of the arg. Possible values:
-        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
-        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
-        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
-        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
-        'nanosecond', 'N').
+
+        .. deprecated:: 1.2
+            Strings with units 'M', 'Y' and 'y' do not represent
+            unambiguous timedelta values and will be removed in a future version
+
+    unit : str, optional
+        Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
+
+        Possible values:
+
+        * 'W'
+        * 'D' / 'days' / 'day'
+        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'S' / 'seconds' / 'sec' / 'second'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+
+        .. versionchanged:: 1.1.0
+
+           Must not be specified when `arg` context strings and
+           ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -51,6 +65,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
     convert_dtypes : Convert dtypes.
+
+    Notes
+    -----
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds for string inputs.
 
     Examples
     --------
@@ -81,11 +100,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
         unit = parse_timedelta_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(
-            "Units 'M' and 'Y' are no longer supported, as they do not "
+            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
 

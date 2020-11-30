@@ -1,27 +1,24 @@
 """
-For compatibility with numpy libraries, pandas functions or
-methods have to accept '*args' and '**kwargs' parameters to
-accommodate numpy arguments that are not actually used or
-respected in the pandas implementation.
+For compatibility with numpy libraries, pandas functions or methods have to
+accept '*args' and '**kwargs' parameters to accommodate numpy arguments that
+are not actually used or respected in the pandas implementation.
 
-To ensure that users do not abuse these parameters, validation
-is performed in 'validators.py' to make sure that any extra
-parameters passed correspond ONLY to those in the numpy signature.
-Part of that validation includes whether or not the user attempted
-to pass in non-default values for these extraneous parameters. As we
-want to discourage users from relying on these parameters when calling
-the pandas implementation, we want them only to pass in the default values
-for these parameters.
+To ensure that users do not abuse these parameters, validation is performed in
+'validators.py' to make sure that any extra parameters passed correspond ONLY
+to those in the numpy signature. Part of that validation includes whether or
+not the user attempted to pass in non-default values for these extraneous
+parameters. As we want to discourage users from relying on these parameters
+when calling the pandas implementation, we want them only to pass in the
+default values for these parameters.
 
-This module provides a set of commonly used default arguments for functions
-and methods that are spread throughout the codebase. This module will make it
+This module provides a set of commonly used default arguments for functions and
+methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+from numpy import __version__, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -74,7 +71,7 @@ class CompatValidator:
                 raise ValueError(f"invalid validation method '{method}'")
 
 
-ARGMINMAX_DEFAULTS = dict(out=None)
+ARGMINMAX_DEFAULTS = {"out": None}
 validate_argmin = CompatValidator(
     ARGMINMAX_DEFAULTS, fname="argmin", method="both", max_fname_arg_count=1
 )
@@ -93,11 +90,10 @@ def process_skipna(skipna, args):
 
 def validate_argmin_with_skipna(skipna, args, kwargs):
     """
-    If 'Series.argmin' is called via the 'numpy' library,
-    the third parameter in its signature is 'out', which
-    takes either an ndarray or 'None', so check if the
-    'skipna' parameter is either an instance of ndarray or
-    is None, since 'skipna' itself should be a boolean
+    If 'Series.argmin' is called via the 'numpy' library, the third parameter
+    in its signature is 'out', which takes either an ndarray or 'None', so
+    check if the 'skipna' parameter is either an instance of ndarray or is
+    None, since 'skipna' itself should be a boolean
     """
     skipna, args = process_skipna(skipna, args)
     validate_argmin(args, kwargs)
@@ -106,23 +102,22 @@ def validate_argmin_with_skipna(skipna, args, kwargs):
 
 def validate_argmax_with_skipna(skipna, args, kwargs):
     """
-    If 'Series.argmax' is called via the 'numpy' library,
-    the third parameter in its signature is 'out', which
-    takes either an ndarray or 'None', so check if the
-    'skipna' parameter is either an instance of ndarray or
-    is None, since 'skipna' itself should be a boolean
+    If 'Series.argmax' is called via the 'numpy' library, the third parameter
+    in its signature is 'out', which takes either an ndarray or 'None', so
+    check if the 'skipna' parameter is either an instance of ndarray or is
+    None, since 'skipna' itself should be a boolean
     """
     skipna, args = process_skipna(skipna, args)
     validate_argmax(args, kwargs)
     return skipna
 
 
-ARGSORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+ARGSORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+if LooseVersion(__version__) >= LooseVersion("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 
@@ -131,9 +126,9 @@ validate_argsort = CompatValidator(
     ARGSORT_DEFAULTS, fname="argsort", max_fname_arg_count=0, method="both"
 )
 
-# two different signatures of argsort, this second validation
-# for when the `kind` param is supported
-ARGSORT_DEFAULTS_KIND: "OrderedDict[str, Optional[int]]" = OrderedDict()
+# two different signatures of argsort, this second validation for when the
+# `kind` param is supported
+ARGSORT_DEFAULTS_KIND: Dict[str, Optional[int]] = {}
 ARGSORT_DEFAULTS_KIND["axis"] = -1
 ARGSORT_DEFAULTS_KIND["order"] = None
 validate_argsort_kind = CompatValidator(
@@ -143,11 +138,10 @@ validate_argsort_kind = CompatValidator(
 
 def validate_argsort_with_ascending(ascending, args, kwargs):
     """
-    If 'Categorical.argsort' is called via the 'numpy' library, the
-    first parameter in its signature is 'axis', which takes either
-    an integer or 'None', so check if the 'ascending' parameter has
-    either integer type or is None, since 'ascending' itself should
-    be a boolean
+    If 'Categorical.argsort' is called via the 'numpy' library, the first
+    parameter in its signature is 'axis', which takes either an integer or
+    'None', so check if the 'ascending' parameter has either integer type or is
+    None, since 'ascending' itself should be a boolean
     """
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
@@ -157,7 +151,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
+CLIP_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -165,10 +159,10 @@ validate_clip = CompatValidator(
 
 def validate_clip_with_axis(axis, args, kwargs):
     """
-    If 'NDFrame.clip' is called via the numpy library, the third
-    parameter in its signature is 'out', which can takes an ndarray,
-    so check if the 'axis' parameter is an instance of ndarray, since
-    'axis' itself should either be an integer or None
+    If 'NDFrame.clip' is called via the numpy library, the third parameter in
+    its signature is 'out', which can takes an ndarray, so check if the 'axis'
+    parameter is an instance of ndarray, since 'axis' itself should either be
+    an integer or None
     """
     if isinstance(axis, ndarray):
         args = (axis,) + args
@@ -178,7 +172,7 @@ def validate_clip_with_axis(axis, args, kwargs):
     return axis
 
 
-CUM_FUNC_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
+CUM_FUNC_DEFAULTS: Dict[str, Any] = {}
 CUM_FUNC_DEFAULTS["dtype"] = None
 CUM_FUNC_DEFAULTS["out"] = None
 validate_cum_func = CompatValidator(
@@ -191,10 +185,9 @@ validate_cumsum = CompatValidator(
 
 def validate_cum_func_with_skipna(skipna, args, kwargs, name):
     """
-    If this function is called via the 'numpy' library, the third
-    parameter in its signature is 'dtype', which takes either a
-    'numpy' dtype or 'None', so check if the 'skipna' parameter is
-    a boolean or not
+    If this function is called via the 'numpy' library, the third parameter in
+    its signature is 'dtype', which takes either a 'numpy' dtype or 'None', so
+    check if the 'skipna' parameter is a boolean or not
     """
     if not is_bool(skipna):
         args = (skipna,) + args
@@ -204,7 +197,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
     return skipna
 
 
-ALLANY_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
@@ -215,10 +208,10 @@ validate_any = CompatValidator(
     ALLANY_DEFAULTS, fname="any", method="both", max_fname_arg_count=1
 )
 
-LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
+LOGICAL_FUNC_DEFAULTS = {"out": None, "keepdims": False}
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
+MINMAX_DEFAULTS = {"axis": None, "out": None, "keepdims": False}
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -226,28 +219,28 @@ validate_max = CompatValidator(
     MINMAX_DEFAULTS, fname="max", method="both", max_fname_arg_count=1
 )
 
-RESHAPE_DEFAULTS: Dict[str, str] = dict(order="C")
+RESHAPE_DEFAULTS: Dict[str, str] = {"order": "C"}
 validate_reshape = CompatValidator(
     RESHAPE_DEFAULTS, fname="reshape", method="both", max_fname_arg_count=1
 )
 
-REPEAT_DEFAULTS: Dict[str, Any] = dict(axis=None)
+REPEAT_DEFAULTS: Dict[str, Any] = {"axis": None}
 validate_repeat = CompatValidator(
     REPEAT_DEFAULTS, fname="repeat", method="both", max_fname_arg_count=1
 )
 
-ROUND_DEFAULTS: Dict[str, Any] = dict(out=None)
+ROUND_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
 
-SORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+SORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 SORT_DEFAULTS["axis"] = -1
 SORT_DEFAULTS["kind"] = "quicksort"
 SORT_DEFAULTS["order"] = None
 validate_sort = CompatValidator(SORT_DEFAULTS, fname="sort", method="kwargs")
 
-STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
+STAT_FUNC_DEFAULTS: Dict[str, Optional[Any]] = {}
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
@@ -281,13 +274,13 @@ validate_median = CompatValidator(
     MEDIAN_DEFAULTS, fname="median", method="both", max_fname_arg_count=1
 )
 
-STAT_DDOF_FUNC_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+STAT_DDOF_FUNC_DEFAULTS: Dict[str, Optional[bool]] = {}
 STAT_DDOF_FUNC_DEFAULTS["dtype"] = None
 STAT_DDOF_FUNC_DEFAULTS["out"] = None
 STAT_DDOF_FUNC_DEFAULTS["keepdims"] = False
 validate_stat_ddof_func = CompatValidator(STAT_DDOF_FUNC_DEFAULTS, method="kwargs")
 
-TAKE_DEFAULTS: "OrderedDict[str, Optional[str]]" = OrderedDict()
+TAKE_DEFAULTS: Dict[str, Optional[str]] = {}
 TAKE_DEFAULTS["out"] = None
 TAKE_DEFAULTS["mode"] = "raise"
 validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")
@@ -295,10 +288,9 @@ validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")
 
 def validate_take_with_convert(convert, args, kwargs):
     """
-    If this function is called via the 'numpy' library, the third
-    parameter in its signature is 'axis', which takes either an
-    ndarray or 'None', so check if the 'convert' parameter is either
-    an instance of ndarray or is None
+    If this function is called via the 'numpy' library, the third parameter in
+    its signature is 'axis', which takes either an ndarray or 'None', so check
+    if the 'convert' parameter is either an instance of ndarray or is None
     """
     if isinstance(convert, ndarray) or convert is None:
         args = (convert,) + args
@@ -308,7 +300,7 @@ def validate_take_with_convert(convert, args, kwargs):
     return convert
 
 
-TRANSPOSE_DEFAULTS = dict(axes=None)
+TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
 )
@@ -361,10 +353,9 @@ def validate_expanding_func(name, args, kwargs) -> None:
 
 def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
     """
-    'args' and 'kwargs' should be empty, except for allowed
-    kwargs because all of
-    their necessary parameters are explicitly listed in
-    the function signature
+    'args' and 'kwargs' should be empty, except for allowed kwargs because all
+    of their necessary parameters are explicitly listed in the function
+    signature
     """
     if allowed is None:
         allowed = []
@@ -383,9 +374,8 @@ RESAMPLER_NUMPY_OPS = ("min", "max", "sum", "prod", "mean", "std", "var")
 
 def validate_resampler_func(method: str, args, kwargs) -> None:
     """
-    'args' and 'kwargs' should be empty because all of
-    their necessary parameters are explicitly listed in
-    the function signature
+    'args' and 'kwargs' should be empty because all of their necessary
+    parameters are explicitly listed in the function signature
     """
     if len(args) + len(kwargs) > 0:
         if method in RESAMPLER_NUMPY_OPS:
@@ -397,20 +387,20 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
             raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis: Optional[int]) -> None:
+def validate_minmax_axis(axis: Optional[int], ndim: int = 1) -> None:
     """
-    Ensure that the axis argument passed to min, max, argmin, or argmax is
-    zero or None, as otherwise it will be incorrectly ignored.
+    Ensure that the axis argument passed to min, max, argmin, or argmax is zero
+    or None, as otherwise it will be incorrectly ignored.
 
     Parameters
     ----------
     axis : int or None
+    ndim : int, default 1
 
     Raises
     ------
     ValueError
     """
-    ndim = 1  # hard-coded for Index
     if axis is None:
         return
     if axis >= ndim or (axis < 0 and ndim + axis < 0):

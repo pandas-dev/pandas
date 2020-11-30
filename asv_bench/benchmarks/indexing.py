@@ -191,7 +191,7 @@ class Take:
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.indexer = [True, False, True, True, False] * 20000
+        self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
         self.s.take(self.indexer)
@@ -357,6 +357,14 @@ class InsertColumns:
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+    def time_assign_list_like_with_setitem(self):
+        np.random.seed(1234)
+        self.df[list(range(100))] = np.random.randn(self.N, 100)
+
+    def time_assign_list_of_columns_concat(self):
+        df = DataFrame(np.random.randn(self.N, 100))
+        concat([self.df, df], axis=1)
 
 
 class ChainIndexing:
