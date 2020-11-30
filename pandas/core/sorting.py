@@ -31,7 +31,6 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -391,7 +390,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values: "ExtensionArray", method: str) -> int:
+def nargminmax(values, method: str):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -406,20 +405,16 @@ def nargminmax(values: "ExtensionArray", method: str) -> int:
     int
     """
     assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(values.isna())
-    if mask.all():
-        # Use same exception message we would get from numpy
-        raise ValueError(f"attempt to get {method} of an empty sequence")
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
 
-    if method == "argmax":
-        # Use argsort with ascending=False so that if more than one entry
-        #  achieves the maximum, we take the first such occurence.
-        sorters = values.argsort(ascending=False)
-    else:
-        sorters = values.argsort(ascending=True)
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
 
-    return sorters[0]
+    return non_nan_idx[func(non_nans)]
 
 
 def _ensure_key_mapped_multiindex(
