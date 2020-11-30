@@ -615,20 +615,16 @@ Apart from :meth:`Series.min`, :meth:`Series.max` and :meth:`Series.mode`, the
 following operations are possible with categorical data:
 
 ``Series`` methods like :meth:`Series.value_counts` will use all categories,
-even if some categories are not present in the data, though this default is
-deprecated and will be changed in a future release. It is recommended to use
-the `observed` keyword explicitly:
+even if some categories are not present in the data:
 
 .. ipython:: python
-    :okwarning:
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
-``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories:
 
 .. ipython:: python
-    :okwarning:
 
     columns = pd.Categorical(
         ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
@@ -639,7 +635,9 @@ the `observed` keyword explicitly:
     )
     df.sum(axis=1, level=1)
 
-Groupby will also show "unused" categories:
+Groupby will also show "unused" categories, though this default is deprecated
+and will be changed in a future release. It is recommended to use the
+`observed` keyword explicitly:
 
 .. ipython:: python
     :okwarning:
