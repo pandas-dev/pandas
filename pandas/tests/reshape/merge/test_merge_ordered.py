@@ -184,9 +184,7 @@ class TestMergeOrdered:
         right = DataFrame([[2, 1]], columns=list("TE"))
         result = merge_ordered(left, right, on="T", left_by=["G", "H"])
         expected = DataFrame(
-            {
-                {"G": ["g"] * 3, "H": ["h"] * 3, "T": [1, 2, 3], "E": [np.nan, 1.0, np.nan]}
-            }
+            {"G": ["g"] * 3, "H": ["h"] * 3, "T": [1, 2, 3], "E": [np.nan, 1.0, np.nan]}
         )
 
         tm.assert_frame_equal(result, expected)
