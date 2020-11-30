@@ -9001,7 +9001,18 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+
+        if self._can_fast_transpose or axis == 1:
+            # i.e. self.values call is cheap and non-casting (or unavoidable)
+            indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        else:
+            bm_axis = 1 - axis
+
+            def blk_func(bvalues):
+                return nanops.nanargmin(bvalues, axis=bm_axis, skipna=skipna)
+
+            mgr, _ = self._mgr.reduce(blk_func)
+            indices = mgr.as_array().ravel()
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -9074,7 +9085,18 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+
+        if self._can_fast_transpose or axis == 1:
+            # i.e. self.values call is cheap and non-casting (or unavoidable)
+            indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        else:
+            bm_axis = 1 - axis
+
+            def blk_func(bvalues):
+                return nanops.nanargmax(bvalues, axis=bm_axis, skipna=skipna)
+
+            mgr, _ = self._mgr.reduce(blk_func)
+            indices = mgr.as_array().ravel()
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
