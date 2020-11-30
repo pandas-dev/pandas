@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 
@@ -272,9 +272,8 @@ def test_columns_groupby_quantile():
         ],
         index=list("XYZ"),
         columns=Index(
-            [('A', 0.8), ('A', 0.2), ('B', 0.8), ('B', 0.2)],
-            names=['col', None]
-        )
+            [('A', 0.8), ('A', 0.2), ('B', 0.8), ('B', 0.2)], names=['col', None]
+        ),
     )
 
     tm.assert_frame_equal(result, expected)

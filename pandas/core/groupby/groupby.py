@@ -2259,10 +2259,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result.columns.names = np.arange(len(index_names))
             result = result.reorder_levels(order, axis=1)
             result.columns.names = index_names[order]
-
-            indices = np.arange(result.shape[1]).reshape(
-                [len(q), self.ngroups],
-            ).T.flatten()
+            indices = (
+                np.arange(result.shape[1])
+                .reshape(
+                    [len(q), self.ngroups],
+                )
+                .T.flatten()
+            )
             return result.take(indices, axis=1)
 
     @Substitution(name="groupby")
