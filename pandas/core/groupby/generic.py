@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     maybe_cast_result,
     maybe_cast_result_dtype,
-    maybe_convert_objects,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -1867,8 +1866,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
 
     # See GH#26285
     for n in obj_cols:
-        converted = maybe_convert_objects(
-            result.iloc[:, n].values, convert_numeric=False
+        values = result.iloc[:, n].values
+        converted = lib.maybe_convert_objects(
+            values, convert_datetime=True, convert_timedelta=True
         )
 
         result.iloc[:, n] = converted
