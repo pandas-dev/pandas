@@ -398,10 +398,13 @@ def test_getitem_generator(string_series):
     ],
 )
 def test_getitem_ndim_deprecated(series):
-    with tm.assert_produces_warning(FutureWarning):
-        res = series[:, None]
+    with tm.assert_produces_warning(
+        FutureWarning, match="Support for multi-dimensional indexing"
+    ):
+        result = series[:, None]
 
-    assert isinstance(res, np.ndarray)
+    assert isinstance(result, np.ndarray)
+    tm.assert_numpy_array_equal(result, np.asarray(series)[:, None])
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
