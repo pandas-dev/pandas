@@ -637,7 +637,7 @@ even if some categories are not present in the data:
 
 Groupby will also show "unused" categories, though this default is deprecated
 and will be changed in a future release. It is recommended to use the
-`observed` keyword explicitly:
+``observed`` keyword explicitly:
 
 .. ipython:: python
     :okwarning:
