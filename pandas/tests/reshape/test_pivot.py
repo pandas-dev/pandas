@@ -12,10 +12,10 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _testing as tm,
     concat,
     date_range,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import pivot_table
 
@@ -2058,6 +2058,12 @@ class TestPivotTable:
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
+    def test_pivot_table_observed_deprecated_default(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # make sure we actually have a category to warn on
+            self.data.A = self.data.A.astype("category")
+            self.data.pivot_table(values="D", index=["A", "B"], columns=["C"])
+
 
 class TestPivot:
     def test_pivot(self):
@@ -2186,9 +2192,3 @@ class TestPivot:
 
         assert index == ["lev1", "lev2"]
         assert columns == ["lev3"]
-
-    def test_pivot_table_observed_deprecated_default(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # make sure we actually have a category to warn on
-            self.data.A = self.data.A.astype("category")
-            self.data.pivot_table(values="D", index=["A", "B"], columns=["C"])
