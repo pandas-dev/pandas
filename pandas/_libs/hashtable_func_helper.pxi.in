@@ -7,8 +7,10 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 {{py:
 
 # dtype, ttype, c_type, to_c_type, to_dtype
-dtypes = [('complex128', 'complex128', 'khcomplex128_t', "to_khcomplex128_t", "to_complex128"),
-          ('complex64', 'complex64', 'khcomplex64_t', "to_khcomplex64_t", "to_complex64"),
+dtypes = [('complex128', 'complex128', 'khcomplex128_t', \
+                         "to_khcomplex128_t", "to_complex128"),
+          ('complex64', 'complex64', 'khcomplex64_t', \
+                         "to_khcomplex64_t", "to_complex64"),
           ('float64', 'float64', 'float64_t', "", ""),
           ('float32', 'float32', 'float32_t', "", ""),
           ('uint64', 'uint64', 'uint64_t', "", ""),
@@ -111,7 +113,7 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     with nogil:
         for k in range(table.n_buckets):
             if kh_exist_{{ttype}}(table, k):
-                result_keys[i] = {{to_dtype}}(table.keys[k])     
+                result_keys[i] = {{to_dtype}}(table.keys[k])
                 result_counts[i] = table.vals[k]
                 i += 1
     {{endif}}

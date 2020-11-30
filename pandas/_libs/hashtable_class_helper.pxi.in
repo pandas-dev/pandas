@@ -55,7 +55,7 @@ int_types = ['int64_t',
              'uint64_t',
              'uint32_t',
              'uint16_t',
-             'uint8_t',]
+             'uint8_t']
 }}
 
 {{for c_type in int_types}}
@@ -564,9 +564,9 @@ cdef class {{name}}HashTable(HashTable):
             # We use None, to make it optional, which requires `object` type
             # for the parameter. To please the compiler, we use na_value2,
             # which is only used if it's *specified*.
-            na_value2 = {{to_c_type}}(na_value)      
+            na_value2 = {{to_c_type}}(na_value)
         else:
-            na_value2 = {{to_c_type}}(0)  
+            na_value2 = {{to_c_type}}(0)
 
         with nogil:
             for i in range(n):
@@ -577,8 +577,8 @@ cdef class {{name}}HashTable(HashTable):
                         labels[i] = na_sentinel
                         continue
                 elif ignore_na and (
-                    is_nan_{{c_type}}(val) or 
-                    (use_na_value and are_equivalent_{{c_type}}(val,na_value2))               
+                   is_nan_{{c_type}}(val) or
+                   (use_na_value and are_equivalent_{{c_type}}(val, na_value2))
                 ):
                     # if missing values do not count as unique values (i.e. if
                     # ignore_na is True), skip the hashtable entry for them,
