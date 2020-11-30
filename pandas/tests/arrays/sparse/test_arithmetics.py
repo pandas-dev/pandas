@@ -150,7 +150,22 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, 0, values, 0)
         self._check_comparison_ops(a, 3, values, 3)
 
-    def test_float_same_index(self, kind, mix, all_arithmetic_functions, request):
+    def test_float_same_index_without_nans(
+        self, kind, mix, all_arithmetic_functions, request
+    ):
+        # when sp_index are the same
+        op = all_arithmetic_functions
+
+        values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
+        rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
+
+        a = self._klass(values, kind=kind, fill_value=0)
+        b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_numeric_ops(a, b, values, rvalues, mix, op)
+
+    def test_float_same_index_with_nans(
+        self, kind, mix, all_arithmetic_functions, request
+    ):
         # when sp_index are the same
         op = all_arithmetic_functions
 
@@ -164,13 +179,6 @@ class TestSparseArrayArithmetics:
 
         a = self._klass(values, kind=kind)
         b = self._klass(rvalues, kind=kind)
-        self._check_numeric_ops(a, b, values, rvalues, mix, op)
-
-        values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
-        rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
-
-        a = self._klass(values, kind=kind, fill_value=0)
-        b = self._klass(rvalues, kind=kind, fill_value=0)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_float_same_index_comparison(self, kind):
@@ -342,8 +350,8 @@ class TestSparseArrayArithmetics:
         op = all_arithmetic_functions
 
         if not _np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
+            if op in [operator.floordiv, ops.rfloordiv] and mix:
+                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
                 request.node.add_marker(mark)
 
         rdtype = "int64"
