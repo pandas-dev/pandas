@@ -172,14 +172,14 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # Docstring templates
 
-_shared_doc_kwargs = dict(
-    axes="index, columns",
-    klass="DataFrame",
-    axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+_shared_doc_kwargs = {
+    "axes": "index, columns",
+    "klass": "DataFrame",
+    "axes_single_arg": "{0 or 'index', 1 or 'columns'}",
+    "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
-    optional_by="""
+    "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
 
@@ -187,12 +187,12 @@ _shared_doc_kwargs = dict(
               levels and/or column labels.
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels.""",
-    optional_labels="""labels : array-like, optional
+    "optional_labels": """labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
-    optional_axis="""axis : int or str, optional
+    "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
-)
+}
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -524,7 +524,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             mgr = self._init_mgr(
-                data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
+                data, axes={"index": index, "columns": columns}, dtype=dtype, copy=copy
             )
 
         elif isinstance(data, dict):
@@ -2902,7 +2902,7 @@ class DataFrame(NDFrame, OpsMixin):
         1    object
         dtype: object
         """
-        nv.validate_transpose(args, dict())
+        nv.validate_transpose(args, {})
         # construct the args
 
         dtypes = list(self.dtypes)
@@ -7358,7 +7358,7 @@ NaN 12.3   33.0
 
         return result.__finalize__(self, method="unstack")
 
-    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
+    @Appender(_shared_docs["melt"] % {"caller": "df.melt(", "other": "melt"})
     def melt(
         self,
         id_vars=None,
