@@ -1,5 +1,6 @@
 import abc
 import datetime
+import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
@@ -104,15 +105,25 @@ engine : str, default None
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
     Engine compatibility :
 
-    - "xlrd" supports most old/new Excel file formats but is no longer maintained
-      and not supported with Python >= 3.9.
+    - "xlrd" supports most old/new Excel file formats.
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
-    .. deprecated:: 1.2.0
-        The default value ``None`` is deprecated and will be changed to ``"openpyxl"``
-        in a future version. Not specifying an engine will raise a FutureWarning.
+    .. versionchanged:: 1.2.0
+        The engine xlrd is no longer maintained, and is not supported with
+        python >= 3.9. When ``engine="None"``, the following logic will be
+        used to determine the engine.
+
+        - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
+          then odf will be used.
+        - Otherwise if path_or_buffer is a bytes stream, the file has the
+          extension `.xls`, or is an xlrd Book instance, then xlrd will be used.
+        - Otherwise if openpyxl is installed, then openpyxl will be used.
+        - Otherwise xlrd will be used and a FutureWarning will be raised.
+
+        Specifying ``engine="xlrd"`` will continue to be allowed for the
+        indefinite future.
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -887,19 +898,29 @@ class ExcelFile:
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-        default ``xlrd`` for .xls* files, ``odf`` for .ods files.
+        ``xlrd``, ``odf`` for .ods files.
         Engine compatibility :
 
-        - ``xlrd`` supports most old/new Excel file formats but is no longer maintained
-          and is not supported with Python >= 3.9.
+        - ``xlrd`` supports most old/new Excel file formats.
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
 
-        .. deprecated:: 1.2.0
-            The default value ``None`` is deprecated and will be changed to
-            ``"openpyxl"`` in a future version. Not specifying an engine will
-            raise a FutureWarning.
+        .. versionchanged:: 1.2.0
+
+           The engine xlrd is no longer maintained, and is not supported with
+           python >= 3.9. When ``engine="None"``, the following logic will be
+           used to determine the engine.
+
+           - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
+             then odf will be used.
+           - Otherwise if path_or_buffer is a bytes stream, the file has the
+             extension `.xls`, or is an xlrd Book instance, then xlrd will be used.
+           - Otherwise if openpyxl is installed, then openpyxl will be used.
+           - Otherwise xlrd will be used and a FutureWarning will be raised.
+
+           Specifying ``engine="xlrd"`` will continue to be allowed for the
+           indefinite future.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -918,8 +939,6 @@ class ExcelFile:
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            engine = "xlrd"
-
             # Determine ext and use odf for ods stream/file
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 ext = None
@@ -930,40 +949,47 @@ class ExcelFile:
                 if ext == ".ods":
                     engine = "odf"
 
-            # GH 35029 - Default to openpyxl if xlrd is not installed for non-xls
             if (
-                engine == "xlrd"
-                and ext != ".xls"
-                and import_optional_dependency(
+                import_optional_dependency(
                     "xlrd", raise_on_missing=False, on_version="ignore"
                 )
-                is None
+                is not None
             ):
-                engine = "openpyxl"
+                from xlrd import Book
 
-            # GH 35029 - Don't warn with xls files as only xlrd can read them
-            if engine == "xlrd" and ext != ".xls":
-                import inspect
+                if isinstance(path_or_buffer, Book):
+                    engine = "xlrd"
 
-                caller = inspect.stack()[1]
-                if (
-                    caller.filename.endswith("pandas/io/excel/_base.py")
-                    and caller.function == "read_excel"
+            # GH 35029 - Prefer openpyxl except for xls files
+            if engine is None:
+                if ext is None or isinstance(path_or_buffer, bytes) or ext == ".xls":
+                    engine = "xlrd"
+                elif (
+                    import_optional_dependency(
+                        "openpyxl", raise_on_missing=False, on_version="ignore"
+                    )
+                    is not None
                 ):
-                    stacklevel = 4
+                    engine = "openpyxl"
                 else:
-                    stacklevel = 2
-                warnings.warn(
-                    "The default argument engine=None is deprecated. Using None "
-                    "defaults to the xlrd engine which is no longer maintained, "
-                    "and is not supported when using pandas with python >= 3.9. "
-                    "The default value will be 'openpyxl' in a future version of "
-                    "pandas, although xlrd will continue to be allowed for the "
-                    "indefinite future. Either install openpyxl and specify it as "
-                    "the engine or specify 'xlrd' to suppress this warning.",
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
+                    caller = inspect.stack()[1]
+                    if (
+                        caller.filename.endswith("pandas/io/excel/_base.py")
+                        and caller.function == "read_excel"
+                    ):
+                        stacklevel = 4
+                    else:
+                        stacklevel = 2
+                    warnings.warn(
+                        "The xlrd engine is no longer maintained and is not "
+                        "supported when using pandas with python >= 3.9. However, "
+                        "the engine xlrd will continue to be allowed for the "
+                        "indefinite future. Either install openpyxl or specify "
+                        "engine='xlrd' to silence this warning.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    engine = "xlrd"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 

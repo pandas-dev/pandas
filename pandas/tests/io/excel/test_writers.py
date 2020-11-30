@@ -351,11 +351,14 @@ class TestExcelWriter:
             msg = "sheet 0 not found"
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, "0")
-        else:
+        elif engine == "xlwt":
             import xlrd
 
             msg = "No sheet named <'0'>"
             with pytest.raises(xlrd.XLRDError, match=msg):
+                pd.read_excel(xl, sheet_name="0")
+        else:
+            with pytest.raises(KeyError, match="Worksheet 0 does not exist."):
                 pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -1174,7 +1177,7 @@ class TestExcelWriter:
         result = pd.read_excel(path, comment="#")
         tm.assert_frame_equal(result, expected)
 
-    def test_datetimes(self, path):
+    def test_datetimes(self, path, engine):
 
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
@@ -1193,7 +1196,9 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
+        # GH 35029 - Default changed to openpyxl, but test is for odf/xlrd
+        engine = "odf" if path.endswith("ods") else "xlrd"
+        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0, engine=engine)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
 

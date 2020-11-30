@@ -2832,18 +2832,6 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 Reading Excel files
 '''''''''''''''''''
 
-.. warning::
-
-   .. versionchanged:: 1.2.0
-
-   The default argument ``engine=None`` to ``pd.read_excel`` is
-   deprecated. Using None defaults to the xlrd engine which is no
-   longer maintained, and is not supported when using pandas with
-   python >= 3.9. The default value will be ``'openpyxl'`` in a future
-   version of pandas, although xlrd will continue to be allowed for the
-   indefinite future. Either install openpyxl and specify it as
-   the engine or specify ``'xlrd'`` to avoid raising a ``FutureWarning``.
-
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 
@@ -2994,7 +2982,7 @@ For example, to read in a ``MultiIndex`` index without names:
        index=pd.MultiIndex.from_product([["a", "b"], ["c", "d"]]),
    )
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
    df
 
 If the index has level names, they will parsed as well, using the same
@@ -3004,7 +2992,7 @@ parameters.
 
    df.index = df.index.set_names(["lvl1", "lvl2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], engine="openpyxl")
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1])
    df
 
 
@@ -3015,9 +3003,7 @@ should be passed to ``index_col`` and ``header``:
 
    df.columns = pd.MultiIndex.from_product([["a"], ["b", "d"]], names=["c1", "c2"])
    df.to_excel("path_to_file.xlsx")
-   df = pd.read_excel(
-       "path_to_file.xlsx", index_col=[0, 1], header=[0, 1], engine="openpyxl"
-   )
+   df = pd.read_excel("path_to_file.xlsx", index_col=[0, 1], header=[0, 1])
    df
 
 .. ipython:: python

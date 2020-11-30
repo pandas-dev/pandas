@@ -41,21 +41,3 @@ def test_excel_table_sheet_by_index(datapath, read_ext):
     with ExcelFile(path, engine="xlrd") as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, sheet_name="asdf")
-
-
-def test_excel_file_warning_with_xlsx_file(datapath):
-    # GH 29375
-    path = datapath("io", "data", "excel", "test1.xlsx")
-    # DeprecationWarning: "This method will be removed in future versions.
-    # Use 'tree.iter()' or 'list(tree.iter())' instead."
-    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
-        ExcelFile(path, engine=None)
-
-
-def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
-    # GH 29375
-    path = datapath("io", "data", "excel", "test1.xlsx")
-    # DeprecationWarning: "This method will be removed in future versions.
-    # Use 'tree.iter()' or 'list(tree.iter())' instead."
-    with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
-        pd.read_excel(path, "Sheet1", engine=None)
