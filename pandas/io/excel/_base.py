@@ -102,7 +102,7 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
     Engine compatibility :
 
     - "xlrd" supports most old/new Excel file formats.
@@ -118,7 +118,7 @@ engine : str, default None
         - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
           then odf will be used.
         - Otherwise if path_or_buffer is a bytes stream, the file has the
-          extension `.xls`, or is an xlrd Book instance, then xlrd will be used.
+          extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
         - Otherwise if openpyxl is installed, then openpyxl will be used.
         - Otherwise xlrd will be used and a FutureWarning will be raised.
 
@@ -897,8 +897,7 @@ class ExcelFile:
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-        ``xlrd``, ``odf`` for .ods files.
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
         Engine compatibility :
 
         - ``xlrd`` supports most old/new Excel file formats.
@@ -915,7 +914,7 @@ class ExcelFile:
            - If path_or_buffer is an OpenDocument format (.odf, .ods, .odt),
              then odf will be used.
            - Otherwise if path_or_buffer is a bytes stream, the file has the
-             extension `.xls`, or is an xlrd Book instance, then xlrd will be used.
+             extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
            - Otherwise if openpyxl is installed, then openpyxl will be used.
            - Otherwise xlrd will be used and a FutureWarning will be raised.
 

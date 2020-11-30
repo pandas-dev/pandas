@@ -16,7 +16,7 @@ including other versions of pandas.
    following logic will be used to determine the engine.
 
    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt), then odf will be used.
-   - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the extension `.xls`, or is an xlrd Book instance, then xlrd will be used.
+   - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
    - Otherwise if openpyxl is installed, then openpyxl will be used.
    - Otherwise xlrd will be used and a FutureWarning will be raised.
 
