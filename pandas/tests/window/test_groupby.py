@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 from pandas.core.groupby.groupby import get_groupby
@@ -418,12 +426,24 @@ class TestRolling:
         # GH 36197
         expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
-        expected.index = MultiIndex.from_tuples([], names=["s1", None])
+        # GH-38057 from_tupes gives empty object dtype, we now get float/int levels
+        # expected.index = MultiIndex.from_product([[], []], names=["s1", None])
+        expected.index = MultiIndex.from_product(
+            [Index([], dtype="float64"), Index([], dtype="int64")], names=["s1", None]
+        )
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
-        expected.index = MultiIndex.from_tuples([], names=["s1", "s2", None])
+        # expected.index = MultiIndex.from_tuples([], names=["s1", "s2", None])
+        expected.index = MultiIndex.from_product(
+            [
+                Index([], dtype="float64"),
+                Index([], dtype="float64"),
+                Index([], dtype="int64"),
+            ],
+            names=["s1", "s2", None],
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_string_index(self):
