@@ -403,8 +403,8 @@ def test_getitem_ndim_deprecated(series):
     ):
         result = series[:, None]
 
-    assert isinstance(result, np.ndarray)
-    tm.assert_numpy_array_equal(result, np.asarray(series)[:, None])
+    expected = np.asarray(series)[:, None]
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
