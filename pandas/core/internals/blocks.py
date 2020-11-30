@@ -124,7 +124,16 @@ class Block(PandasObject):
         obj._mgr_locs = placement
         return obj
 
-    def __init__(self, values, placement, ndim=None):
+    def __init__(self, values, placement, ndim: int):
+        """
+        Parameters
+        ----------
+        values : np.ndarray or ExtensionArray
+        placement : BlockPlacement (or castable)
+        ndim : int
+            1 for SingleBlockManager/Series, 2 for BlockManager/DataFrame
+        """
+        # TODO(EA2D): ndim will be unnecessary with 2D EAs
         self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
         self.values = self._maybe_coerce_values(values)
@@ -691,7 +700,6 @@ class Block(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> List["Block"]:
         """
         attempt to coerce any object types to better types return a copy
@@ -852,7 +860,15 @@ class Block(PandasObject):
         """
         See BlockManager._replace_list docstring.
         """
-        src_len = len(src_list) - 1
+        # Exclude anything that we know we won't contain
+        pairs = [
+            (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
+        ]
+        if not len(pairs):
+            # shortcut, nothing to replace
+            return [self] if inplace else [self.copy()]
+
+        src_len = len(pairs) - 1
 
         def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
             """
@@ -865,15 +881,19 @@ class Block(PandasObject):
             s = maybe_box_datetimelike(s)
             return compare_or_regex_search(self.values, s, regex, mask)
 
-        # Calculate the mask once, prior to the call of comp
-        # in order to avoid repeating the same computations
-        mask = ~isna(self.values)
+        if self.is_object:
+            # Calculate the mask once, prior to the call of comp
+            # in order to avoid repeating the same computations
+            mask = ~isna(self.values)
+            masks = [comp(s[0], mask, regex) for s in pairs]
+        else:
+            # GH#38086 faster if we know we dont need to check for regex
+            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
 
-        masks = [comp(s, mask, regex) for s in src_list]
         masks = [_extract_bool_array(x) for x in masks]
 
         rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(zip(src_list, dest_list)):
+        for i, (src, dest) in enumerate(pairs):
             new_rb: List["Block"] = []
             for blk in rb:
                 m = masks[i]
@@ -1028,7 +1048,7 @@ class Block(PandasObject):
         if lib.is_scalar(value) and isinstance(values, np.ndarray):
             value = convert_scalar_for_putitemlike(value, values.dtype)
 
-        if self.is_extension or self.is_object:
+        if self.is_extension or (self.is_object and not lib.is_scalar(value)):
             # GH#19266 using np.putmask gives unexpected results with listlike value
             if is_list_like(value) and len(value) == len(values):
                 values[mask] = value[mask]
@@ -1646,7 +1666,7 @@ class ExtensionBlock(Block):
 
     values: ExtensionArray
 
-    def __init__(self, values, placement, ndim=None):
+    def __init__(self, values, placement, ndim: int):
         """
         Initialize a non-consolidatable block.
 
@@ -2172,7 +2192,9 @@ class DatetimeLikeBlockMixin(Block):
         values = self.array_values().reshape(self.shape)
 
         new_values = values - values.shift(n, axis=axis)
-        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
+        return [
+            TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer, ndim=self.ndim)
+        ]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
@@ -2483,12 +2505,12 @@ class ObjectBlock(Block):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> List["Block"]:
         """
-        attempt to coerce any object types to better types return a copy of
+        attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+
         # operate column-by-column
         def f(mask, val, idx):
             shape = val.shape
@@ -2497,7 +2519,6 @@ class ObjectBlock(Block):
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce,
                 copy=copy,
             )
             if isinstance(values, np.ndarray):
@@ -2623,6 +2644,7 @@ def get_block_type(values, dtype=None):
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
     elif is_extension_array_dtype(values.dtype):
+        # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock

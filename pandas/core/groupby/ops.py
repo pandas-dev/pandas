@@ -148,7 +148,7 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
 
-        __finalize__ has not been called for the the subsetted objects returned.
+        __finalize__ has not been called for the subsetted objects returned.
         """
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
@@ -588,22 +588,12 @@ class BaseGrouper:
 
         return result, names
 
-    def aggregate(
-        self, values, how: str, axis: int = 0, min_count: int = -1
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
-        return self._cython_operation(
-            "aggregate", values, how, axis, min_count=min_count
-        )
-
-    def transform(self, values, how: str, axis: int = 0, **kwargs):
-        return self._cython_operation("transform", values, how, axis, **kwargs)
-
     def _aggregate(
         self, result, counts, values, comp_ids, agg_func, min_count: int = -1
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
-            agg_func(result, counts, values, comp_ids, rank=1)
+            agg_func(result, counts, values, comp_ids, min_count, rank=1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
