@@ -180,9 +180,9 @@ class TestMergeOrdered:
 
     def test_left_by_length_equals_to_right_shape0(self):
         # GH 38166
-        l = DataFrame([["g", "h", 1], ["g", "h", 3]], columns=list("GHT"))
-        r = DataFrame([[2, 1]], columns=list("TE"))
-        result = merge_ordered(l, r, on="T", left_by=["G", "H"])
+        left = DataFrame([["g", "h", 1], ["g", "h", 3]], columns=list("GHT"))
+        right = DataFrame([[2, 1]], columns=list("TE"))
+        result = merge_ordered(left, right, on="T", left_by=["G", "H"])
         expected = DataFrame(
             {
                 "G": ["g"] * 3,
@@ -196,8 +196,8 @@ class TestMergeOrdered:
 
     def test_elements_not_in_by_but_in_df(self):
         # GH 38167
-        l = DataFrame([["g", "h", 1], ["g", "h", 3]], columns=list("GHT"))
-        r = DataFrame([[2, 1]], columns=list("TE"))
+        left = DataFrame([["g", "h", 1], ["g", "h", 3]], columns=list("GHT"))
+        right = DataFrame([[2, 1]], columns=list("TE"))
         msg = r"\['h'\] not found in left columns"
         with pytest.raises(KeyError, match=msg):
-            merge_ordered(l, r, on="T", left_by=["G", "h"])
+            merge_ordered(left, right, on="T", left_by=["G", "h"])
