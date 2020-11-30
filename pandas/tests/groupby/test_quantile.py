@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Index
 import pandas._testing as tm
 
 
@@ -261,7 +261,7 @@ def test_columns_groupby_quantile():
     df = DataFrame(
         np.arange(12).reshape(3, -1),
         index=list("XYZ"),
-        columns=Series(list("ABAB"), name="col"),
+        columns=pd.Series(list("ABAB"), name="col"),
     )
     result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
     expected = DataFrame(
@@ -272,7 +272,7 @@ def test_columns_groupby_quantile():
         ],
         index=list("XYZ"),
         columns=Index(
-            [('A', 0.8), ('A', 0.2), ('B', 0.8), ('B', 0.2)], names=['col', None]
+            [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
         ),
     )
 
