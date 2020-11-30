@@ -509,6 +509,19 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
+    def test_intersection_duplicates(self):
+        # GH#
+        idx1 = Index(
+            [
+                pd.Timestamp("2019-12-12"),
+                pd.Timestamp("2019-12-13"),
+                pd.Timestamp("2019-12-12"),
+            ]
+        )
+        result = idx1.intersection(idx1)
+        expected = Index([pd.Timestamp("2019-12-12"), pd.Timestamp("2019-12-13")])
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDatetimeIndex:
     def setup_method(self, method):

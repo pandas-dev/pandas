@@ -687,7 +687,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
