@@ -554,6 +554,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :meth:`DataFrame.combine_first` that would convert datetime-like column on other :class:`DataFrame` to integer when the column is not present in original :class:`DataFrame` (:issue:`28481`)
 - Bug in :attr:`.DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 - Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 - Bug in :class:`.DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
