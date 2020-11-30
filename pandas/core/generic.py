@@ -3128,9 +3128,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
-        ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']})
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                   mask=['red', 'purple'],
+        ...                   weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -3351,8 +3351,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Create 'out.zip' containing 'out.csv'
 
-        >>> compression_opts = {'method': 'zip',
-        ...                     'archive_name': 'out.csv'}  # doctest: +SKIP
+        >>> compression_opts = dict(method='zip',
+        ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
         """
@@ -7407,11 +7407,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are NA.
 
-        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
-        ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
-        ...                    'name': ['Alfred', 'Batman', ''],
-        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                          pd.Timestamp('1940-04-25')],
+        ...                    name=['Alfred', 'Batman', ''],
+        ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -7474,11 +7474,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are not NA.
 
-        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
-        ...                    'born':[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
-        ...                    'name':['Alfred', 'Batman', ''],
-        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                          pd.Timestamp('1940-04-25')],
+        ...                    name=['Alfred', 'Batman', ''],
+        ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
