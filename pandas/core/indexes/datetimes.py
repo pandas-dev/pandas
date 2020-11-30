@@ -782,10 +782,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         def check_str_or_none(point):
             return point is not None and not isinstance(point, str)
+
         # GH#33146 if start and end are combinations of str and None and Index is not
         # monotonic, we can not use Index.slice_indexer because it does not honor the
         # actual elements, is only searching for start and end
-        if check_str_or_none(start) or check_str_or_none(end) or self.is_monotonic_increasing:
+        if (
+            check_str_or_none(start)
+            or check_str_or_none(end)
+            or self.is_monotonic_increasing
+        ):
             return Index.slice_indexer(self, start, end, step, kind=kind)
 
         mask = np.array(True)
