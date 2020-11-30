@@ -1631,16 +1631,19 @@ def cast_scalar_to_array(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
-        elif dtype.kind in ["M", "m"]:
+        elif dtype.kind == "m":
             # GH38032: filling in Timedelta/Timestamp drops nanoseconds
-            if isinstance(value, (Timedelta, Timestamp)):
+            if isinstance(value, Timedelta):
                 value = value.to_numpy()
             # GH36541: filling datetime-like array directly with pd.NaT
             # raises ValueError: cannot convert float NaN to integer
             elif is_valid_nat_for_dtype(value, dtype):
-                value = (
-                    np.datetime64("NaT") if dtype.kind == "M" else np.timedelta64("NaT")
-                )
+                value = np.timedelta64("NaT")
+        elif dtype.kind == "M":
+            if isinstance(value, Timestamp):
+                value = value.to_numpy()
+            elif is_valid_nat_for_dtype(value, dtype):
+                value = np.datetime64("NaT")
 
     values = np.empty(shape, dtype=dtype)
     values.fill(value)

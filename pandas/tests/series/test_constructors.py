@@ -1325,7 +1325,7 @@ class TestSeriesConstructors:
         [
             (Timedelta(1), "timedelta64[ns]"),
             (Timestamp(1), "datetime64[ns]"),
-            (Timestamp(1, tz="US/Eastern"), "timedelta64[ns]"),
+            (Timestamp(1, tz="US/Eastern"), "datetime64[ns]"),
         ],
     )
     def test_constructor_timelike_nanoseconds(self, scalar, dtype):
