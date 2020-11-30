@@ -316,16 +316,32 @@ def test_array_multiindex_raises():
             TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="H"),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
+        # GH#26406 tz is preserved in Categorical[dt64tz]
+        (
+            pd.Categorical(pd.date_range("2016-01-01", periods=2, tz="US/Pacific")),
+            np.array(
+                [
+                    Timestamp("2016-01-01", tz="US/Pacific"),
+                    Timestamp("2016-01-02", tz="US/Pacific"),
+                ]
+            ),
+        ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series):
-    box = index_or_series
+def test_to_numpy(array, expected, index_or_series_or_array):
+    box = index_or_series_or_array
     thing = box(array)
 
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
         pytest.skip(f"No index type for {array.dtype}")
 
+    if array.dtype.name == "int64" and box is pd.array:
+        pytest.xfail("thing is Int64 and to_numpy() returns object")
+
     result = thing.to_numpy()
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.asarray(thing)
     tm.assert_numpy_array_equal(result, expected)
 
 
