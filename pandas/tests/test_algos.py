@@ -307,6 +307,39 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex(self, sort):
+        # increasing -> sort doesn't matter
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        result = algos.factorize(ri, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex_decreasing(self, sort):
+        # decreasing -> sort matters
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        ri2 = ri[::-1]
+        expected = expected[0], ri2
+        if sort:
+            expected = expected[0][::-1], expected[1][::-1]
+
+        result = algos.factorize(ri2, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri2.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
@@ -840,6 +873,27 @@ class TestIsin:
 
         result = algos.isin(arr, set(arr[0:2]))
         expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype1", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    @pytest.mark.parametrize("dtype", ["i8", "f8", "u8"])
+    def test_isin_datetimelike_values_numeric_comps(self, dtype, dtype1):
+        # Anything but object and we get all-False shortcut
+
+        dta = date_range("2013-01-01", periods=3)._values
+        if dtype1 == "period[D]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.to_period("D")
+        elif dtype1 == "M8[ns, UTC]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.tz_localize("UTC")
+        else:
+            arr = Series(dta.view("i8")).view(dtype1)._values
+
+        comps = arr.view("i8").astype(dtype)
+
+        result = algos.isin(comps, arr)
+        expected = np.zeros(comps.shape, dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
@@ -1517,6 +1571,7 @@ class TestHashTable:
             (ht.StringHashTable, ht.ObjectVector, "object", True),
             (ht.Float64HashTable, ht.Float64Vector, "float64", False),
             (ht.Int64HashTable, ht.Int64Vector, "int64", False),
+            (ht.Int32HashTable, ht.Int32Vector, "int32", False),
             (ht.UInt64HashTable, ht.UInt64Vector, "uint64", False),
         ],
     )
@@ -1640,6 +1695,7 @@ class TestHashTable:
             ht.StringHashTable,
             ht.Float64HashTable,
             ht.Int64HashTable,
+            ht.Int32HashTable,
             ht.UInt64HashTable,
         ],
     )

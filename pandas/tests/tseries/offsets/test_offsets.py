@@ -4191,8 +4191,8 @@ class TestDST:
 
     # test both basic names and dateutil timezones
     timezone_utc_offsets = {
-        "US/Eastern": dict(utc_offset_daylight=-4, utc_offset_standard=-5),
-        "dateutil/US/Pacific": dict(utc_offset_daylight=-7, utc_offset_standard=-8),
+        "US/Eastern": {"utc_offset_daylight": -4, "utc_offset_standard": -5},
+        "dateutil/US/Pacific": {"utc_offset_daylight": -7, "utc_offset_standard": -8},
     }
     valid_date_offsets_singular = [
         "weekday",
