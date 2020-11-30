@@ -31,7 +31,7 @@ class TestSparseArrayArithmetics:
     def _assert(self, a, b):
         tm.assert_numpy_array_equal(a, b)
 
-    def _check_numeric_ops(self, a, b, a_dense, b_dense, mix, op, flag=False):
+    def _check_numeric_ops(self, a, b, a_dense, b_dense, mix, op):
         with np.errstate(invalid="ignore", divide="ignore"):
             if mix:
                 result = op(a, b_dense).to_dense()
