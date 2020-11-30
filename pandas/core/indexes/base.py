@@ -2654,7 +2654,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -2672,7 +2672,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return self._wrap_setop_result(other, result)
+                return self._wrap_setop_result(other, algos.unique1d(result))
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2683,12 +2683,15 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        taken = other.take(indexer)
+        taken = other.take(indexer).unique()
         res_name = get_op_result_name(self, other)
 
         if sort is None:
             taken = algos.safe_sort(taken.values)
             return self._shallow_copy(taken, name=res_name)
+
+        # Intersection has to be unique
+        assert algos.unique(taken._values).shape == taken._values.shape
 
         taken.name = res_name
         return taken

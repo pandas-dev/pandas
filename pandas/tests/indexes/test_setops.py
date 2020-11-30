@@ -95,3 +95,13 @@ def test_union_dtypes(left, right, expected):
     b = pd.Index([], dtype=right)
     result = (a | b).dtype
     assert result == expected
+
+
+@pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
+def test_intersection_duplicates(values):
+    # GH#31326
+    a = pd.Index(values)
+    b = pd.Index([3, 3])
+    result = a.intersection(b)
+    expected = pd.Index([3])
+    tm.assert_index_equal(result, expected)
