@@ -24,27 +24,45 @@ prevent accidental introduction of duplicate labels, which can affect downstream
 
 By default, duplicates continue to be allowed.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Series([1, 2], index=['a', 'a'])
+    In [1]: pd.Series([1, 2], index=['a', 'a'])
+    Out[1]:
+    a    1
+    a    2
+    Length: 2, dtype: int64
 
-.. ipython:: python
-   :okexcept:
-
-   pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
+    In [2]: pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
+    ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 1]
 
 pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: ipython
 
-   a = (
-       pd.Series([1, 2], index=['a', 'b'])
-         .set_flags(allows_duplicate_labels=False)
-   )
-   a
-   # An operation introducing duplicates
-   a.reindex(['a', 'b', 'a'])
+    In [3]: a = (
+       ...:     pd.Series([1, 2], index=['a', 'b'])
+       ...:       .set_flags(allows_duplicate_labels=False)
+       ...: )
+
+    In [4]: a
+    Out[4]:
+    a    1
+    b    2
+    Length: 2, dtype: int64
+
+    # An operation introducing duplicates
+    In [5]: a.reindex(['a', 'b', 'a'])
+    ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 2]
+
+    [1 rows x 1 columns]
 
 .. warning::
 
@@ -492,7 +510,6 @@ Deprecations
 - Deprecated :meth:`Index.asi8` for :class:`Index` subclasses other than :class:`.DatetimeIndex`, :class:`.TimedeltaIndex`, and :class:`PeriodIndex` (:issue:`37877`)
 - The ``inplace`` parameter of :meth:`Categorical.remove_unused_categories` is deprecated and will be removed in a future version (:issue:`37643`)
 - The ``null_counts`` parameter of :meth:`DataFrame.info` is deprecated and replaced by ``show_counts``. It will be removed in a future version (:issue:`37999`)
-- :class:`ExtensionOpsMixin` and :class:`ExtensionScalarOpsMixin` are deprecated and will be removed in a future version.  Use ``pd.core.arraylike.OpsMixin`` instead (:issue:`37080`)
 
 .. ---------------------------------------------------------------------------
 
@@ -533,10 +550,11 @@ Categorical
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
 - Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
 - Bug in :meth:`CategoricalIndex.where` incorrectly setting non-category entries to ``np.nan`` instead of raising ``TypeError`` (:issue:`37977`)
--
+- Bug in :meth:`Categorical.to_numpy` and ``np.array(categorical)`` with timezone-aware ``datetime64`` categories incorrectly dropping the timezone information instead of casting to object dtype (:issue:`38136`)
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :meth:`DataFrame.combine_first` that would convert datetime-like column on other :class:`DataFrame` to integer when the column is not present in original :class:`DataFrame` (:issue:`28481`)
 - Bug in :attr:`.DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 - Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 - Bug in :class:`.DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
