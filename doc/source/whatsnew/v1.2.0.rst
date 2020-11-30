@@ -24,27 +24,45 @@ prevent accidental introduction of duplicate labels, which can affect downstream
 
 By default, duplicates continue to be allowed.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Series([1, 2], index=['a', 'a'])
+    In [1]: pd.Series([1, 2], index=['a', 'a'])
+    Out[1]:
+    a    1
+    a    2
+    Length: 2, dtype: int64
 
-.. ipython:: python
-   :okexcept:
-
-   pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
+    In [2]: pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
+    ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 1]
 
 pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: ipython
 
-   a = (
-       pd.Series([1, 2], index=['a', 'b'])
-         .set_flags(allows_duplicate_labels=False)
-   )
-   a
-   # An operation introducing duplicates
-   a.reindex(['a', 'b', 'a'])
+    In [3]: a = (
+       ...:     pd.Series([1, 2], index=['a', 'b'])
+       ...:       .set_flags(allows_duplicate_labels=False)
+       ...: )
+
+    In [4]: a
+    Out[4]:
+    a    1
+    b    2
+    Length: 2, dtype: int64
+
+    # An operation introducing duplicates
+    In [5]: a.reindex(['a', 'b', 'a'])
+    ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 2]
+
+    [1 rows x 1 columns]
 
 .. warning::
 
