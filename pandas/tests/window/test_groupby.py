@@ -426,8 +426,8 @@ class TestRolling:
         # GH 36197
         expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
-        # GH-38057 from_tupes gives empty object dtype, we now get float/int levels
-        # expected.index = MultiIndex.from_product([[], []], names=["s1", None])
+        # GH-38057 from_tuples gives empty object dtype, we now get float/int levels
+        # expected.index = MultiIndex.from_tuples([], names=["s1", None])
         expected.index = MultiIndex.from_product(
             [Index([], dtype="float64"), Index([], dtype="int64")], names=["s1", None]
         )
@@ -435,7 +435,6 @@ class TestRolling:
 
         expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
-        # expected.index = MultiIndex.from_tuples([], names=["s1", "s2", None])
         expected.index = MultiIndex.from_product(
             [
                 Index([], dtype="float64"),
