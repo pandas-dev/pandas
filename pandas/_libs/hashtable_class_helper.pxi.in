@@ -336,24 +336,24 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, c_type, float_group, complex_group
-dtypes = [('Complex128', 'complex128', 'khcomplex128_t', True, True),
-          ('Float64', 'float64', 'float64_t', True, False),
-          ('UInt64', 'uint64', 'uint64_t', False, False),
-          ('Int64', 'int64', 'int64_t', False, False),
-          ('Complex64', 'complex64', 'khcomplex64_t', True, True),
-          ('Float32', 'float32', 'float32_t', True, False),
-          ('UInt32', 'uint32', 'uint32_t', False, False),
-          ('Int32', 'int32', 'int32_t', False, False),
-          ('UInt16', 'uint16', 'uint16_t', False, False),
-          ('Int16', 'int16', 'int16_t', False, False),
-          ('UInt8', 'uint8', 'uint8_t', False, False),
-          ('Int8', 'int8', 'int8_t', False, False)]
+# name, dtype, c_type, float_group, complex_group, to_c_type
+dtypes = [('Complex128', 'complex128', 'khcomplex128_t', True, True, "to_khcomplex128_t"),
+          ('Float64', 'float64', 'float64_t', True, False, ""),
+          ('UInt64', 'uint64', 'uint64_t', False, False, ""),
+          ('Int64', 'int64', 'int64_t', False, False, ""),
+          ('Complex64', 'complex64', 'khcomplex64_t', True, True, "to_khcomplex64_t"),
+          ('Float32', 'float32', 'float32_t', True, False, ""),
+          ('UInt32', 'uint32', 'uint32_t', False, False, ""),
+          ('Int32', 'int32', 'int32_t', False, False, ""),
+          ('UInt16', 'uint16', 'uint16_t', False, False, ""),
+          ('Int16', 'int16', 'int16_t', False, False, ""),
+          ('UInt8', 'uint8', 'uint8_t', False, False, ""),
+          ('Int8', 'int8', 'int8_t', False, False, "")]
 
 }}
 
 
-{{for name, dtype, c_type, float_group, complex_group in dtypes}}
+{{for name, dtype, c_type, float_group, complex_group, to_c_type in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -375,11 +375,7 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             {{c_type}} ckey
-        {{if complex_group}}
-        ckey = to_{{c_type}}(key)
-        {{else}}
-        ckey = key
-        {{endif}}
+        ckey = {{to_c_type}}(key)
         k = kh_get_{{dtype}}(self.table, ckey)
         return k != self.table.n_buckets
 
@@ -395,11 +391,7 @@ cdef class {{name}}HashTable(HashTable):
         cdef:
             khiter_t k
             {{c_type}} cval
-        {{if complex_group}}
-        cval = to_{{c_type}}(val)
-        {{else}}
-        cval = val
-        {{endif}}
+        cval = {{to_c_type}}(val)
         k = kh_get_{{dtype}}(self.table, cval)
         if k != self.table.n_buckets:
             return self.table.vals[k]
@@ -411,11 +403,7 @@ cdef class {{name}}HashTable(HashTable):
             khiter_t k
             int ret = 0
             {{c_type}} ckey
-        {{if complex_group}}
-        ckey = to_{{c_type}}(key)
-        {{else}}
-        ckey = key
-        {{endif}}
+        ckey = {{to_c_type}}(key)
         k = kh_put_{{dtype}}(self.table, ckey, &ret)
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
@@ -432,11 +420,7 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
-                {{if complex_group}}
-                key = to_{{c_type}}(keys[i])
-                {{else}}
-                key = keys[i]
-                {{endif}}
+                key = {{to_c_type}}(keys[i])
                 k = kh_put_{{dtype}}(self.table, key, &ret)
                 self.table.vals[k] = <Py_ssize_t>values[i]
 
@@ -450,11 +434,7 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
-                {{if complex_group}}
-                val= to_{{c_type}}(values[i])
-                {{else}}
-                val = values[i]
-                {{endif}}
+                val= {{to_c_type}}(values[i])
                 k = kh_put_{{dtype}}(self.table, val, &ret)
                 self.table.vals[k] = i
 
@@ -469,11 +449,7 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
-                {{if complex_group}}
-                val = to_{{c_type}}(values[i])
-                {{else}}
-                val = values[i]
-                {{endif}}
+                val = {{to_c_type}}(values[i])
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
                     locs[i] = self.table.vals[k]
@@ -550,25 +526,13 @@ cdef class {{name}}HashTable(HashTable):
             # We use None, to make it optional, which requires `object` type
             # for the parameter. To please the compiler, we use na_value2,
             # which is only used if it's *specified*.
-            {{if complex_group}}
-            na_value2 = to_{{c_type}}(na_value)
-            {{else}}
-            na_value2 = na_value
-            {{endif}}       
+            na_value2 = {{to_c_type}}(na_value)      
         else:
-            {{if complex_group}}
-            na_value2 = to_{{c_type}}(0)
-            {{else}}
-            na_value2 = 0
-            {{endif}}   
+            na_value2 = {{to_c_type}}(0)  
 
         with nogil:
             for i in range(n):
-                {{if complex_group}}
-                val = to_{{c_type}}(values[i])
-                {{else}}
-                val = values[i]
-                {{endif}}
+                val = {{to_c_type}}(values[i])
 
                 if ignore_na and use_mask:
                     if mask_values[i]:
@@ -702,11 +666,7 @@ cdef class {{name}}HashTable(HashTable):
 
         with nogil:
             for i in range(n):
-                {{if complex_group}}
-                val = to_{{c_type}}(values[i])
-                {{else}}
-                val = values[i]
-                {{endif}}
+                val = {{to_c_type}}(values[i])
 
                 # specific for groupby
                 {{if dtype == 'complex64' or dtype== 'complex128'}}
