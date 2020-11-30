@@ -37,11 +37,11 @@ def right():
 def left_multi():
     return DataFrame(
         {
-            'Origin':["A", "A", "B", "B", "C"],
-            'Destination':["A", "B", "A", "C", "A"],
-            'Period':["AM", "AM", "IP", "AM", "OP"],
-            'TripPurp':["hbw", "nhb", "hbo", "nhb", "hbw"],
-            'Trips':[1987, 3647, 2470, 4296, 4444],
+            "Origin": ["A", "A", "B", "B", "C"],
+            "Destination": ["A", "B", "A", "C", "A"],
+            "Period": ["AM", "AM", "IP", "AM", "OP"],
+            "TripPurp": ["hbw", "nhb", "hbo", "nhb", "hbw"],
+            "Trips": [1987, 3647, 2470, 4296, 4444],
         },
         columns=["Origin", "Destination", "Period", "TripPurp", "Trips"],
     ).set_index(["Origin", "Destination", "Period", "TripPurp"])
@@ -51,11 +51,11 @@ def left_multi():
 def right_multi():
     return DataFrame(
         {
-            'Origin':["A", "A", "B", "B", "C", "C", "E"],
-            'Destination':["A", "B", "A", "B", "A", "B", "F"],
-            'Period':["AM", "AM", "IP", "AM", "OP", "IP", "AM"],
-            'LinkType':["a", "b", "c", "b", "a", "b", "a"],
-            'Distance':[100, 80, 90, 80, 75, 35, 55],
+            "Origin": ["A", "A", "B", "B", "C", "C", "E"],
+            "Destination": ["A", "B", "A", "B", "A", "B", "F"],
+            "Period": ["AM", "AM", "IP", "AM", "OP", "IP", "AM"],
+            "LinkType": ["a", "b", "c", "b", "a", "b", "a"],
+            "Distance": [100, 80, 90, 80, 75, 35, 55],
         },
         columns=["Origin", "Destination", "Period", "LinkType", "Distance"],
     ).set_index(["Origin", "Destination", "Period", "LinkType"])
@@ -534,16 +534,16 @@ class TestMergeMulti:
         # merge multi-levels
         household = DataFrame(
             {
-                'household_id':[1, 2, 3],
-                'male':[0, 1, 0],
-                'wealth':[196087.3, 316478.7, 294750],
+                "household_id": [1, 2, 3],
+                "male": [0, 1, 0],
+                "wealth": [196087.3, 316478.7, 294750],
             },
             columns=["household_id", "male", "wealth"],
         ).set_index("household_id")
         portfolio = DataFrame(
             {
-                'household_id':[1, 2, 2, 3, 3, 3, 4],
-                'asset_id':[
+                "household_id": [1, 2, 2, 3, 3, 3, 4],
+                "asset_id": [
                     "nl0000301109",
                     "nl0000289783",
                     "gb00b03mlx29",
@@ -552,7 +552,7 @@ class TestMergeMulti:
                     "nl0000289965",
                     np.nan,
                 ],
-                'name':[
+                "name": [
                     "ABN Amro",
                     "Robeco",
                     "Royal Dutch Shell",
@@ -561,7 +561,7 @@ class TestMergeMulti:
                     "Postbank BioTech Fonds",
                     np.nan,
                 ],
-                'share':[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
+                "share": [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
             },
             columns=["household_id", "asset_id", "name", "share"],
         ).set_index(["household_id", "asset_id"])
@@ -569,9 +569,16 @@ class TestMergeMulti:
         expected = (
             DataFrame(
                 {
-                    'male':[0, 1, 1, 0, 0, 0],
-                    'wealth':[196087.3, 316478.7, 316478.7, 294750.0, 294750.0, 294750.0],
-                    'name':[
+                    "male": [0, 1, 1, 0, 0, 0],
+                    "wealth": [
+                        196087.3,
+                        316478.7,
+                        316478.7,
+                        294750.0,
+                        294750.0,
+                        294750.0,
+                    ],
+                    "name": [
                         "ABN Amro",
                         "Robeco",
                         "Royal Dutch Shell",
@@ -579,9 +586,9 @@ class TestMergeMulti:
                         "AAB Eastern Europe Equity Fund",
                         "Postbank BioTech Fonds",
                     ],
-                    'share':[1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
-                    'household_id':[1, 2, 2, 3, 3, 3],
-                    'asset_id':[
+                    "share": [1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
+                    "household_id": [1, 2, 2, 3, 3, 3],
+                    "asset_id": [
                         "nl0000301109",
                         "nl0000289783",
                         "gb00b03mlx29",
@@ -611,7 +618,7 @@ class TestMergeMulti:
                 expected,
                 (
                     DataFrame(
-                        {'share':[1.00]},
+                        {"share": [1.00]},
                         index=MultiIndex.from_tuples(
                             [(4, np.nan)], names=["household_id", "asset_id"]
                         ),
@@ -643,8 +650,8 @@ class TestMergeMulti:
         # GH6360
         household = DataFrame(
             {
-                'household_id':[1, 2, 2, 3, 3, 3, 4],
-                'asset_id':[
+                "household_id": [1, 2, 2, 3, 3, 3, 4],
+                "asset_id": [
                     "nl0000301109",
                     "nl0000301109",
                     "gb00b03mlx29",
@@ -653,30 +660,36 @@ class TestMergeMulti:
                     "nl0000289965",
                     np.nan,
                 ],
-                'share':[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
+                "share": [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
             },
             columns=["household_id", "asset_id", "share"],
         ).set_index(["household_id", "asset_id"])
 
         log_return = DataFrame(
             {
-                'asset_id':[
+                "asset_id": [
                     "gb00b03mlx29",
                     "gb00b03mlx29",
                     "gb00b03mlx29",
                     "lu0197800237",
                     "lu0197800237",
                 ],
-                't':[233, 234, 235, 180, 181],
-                'log_return':[0.09604978, -0.06524096, 0.03532373, 0.03025441, 0.036997],
+                "t": [233, 234, 235, 180, 181],
+                "log_return": [
+                    0.09604978,
+                    -0.06524096,
+                    0.03532373,
+                    0.03025441,
+                    0.036997,
+                ],
             }
         ).set_index(["asset_id", "t"])
 
         expected = (
             DataFrame(
                 {
-                    'household_id':[2, 2, 2, 3, 3, 3, 3, 3],
-                    'asset_id':[
+                    "household_id": [2, 2, 2, 3, 3, 3, 3, 3],
+                    "asset_id": [
                         "gb00b03mlx29",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
@@ -686,9 +699,9 @@ class TestMergeMulti:
                         "lu0197800237",
                         "lu0197800237",
                     ],
-                    't':[233, 234, 235, 233, 234, 235, 180, 181],
-                    'share':[0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
-                    'log_return':[
+                    "t": [233, 234, 235, 233, 234, 235, 180, 181],
+                    "share": [0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
+                    "log_return": [
                         0.09604978,
                         -0.06524096,
                         0.03532373,
@@ -716,8 +729,8 @@ class TestMergeMulti:
         expected = (
             DataFrame(
                 {
-                    'household_id':[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-                    'asset_id':[
+                    "household_id": [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+                    "asset_id": [
                         "nl0000301109",
                         "nl0000301109",
                         "gb00b03mlx29",
@@ -731,8 +744,21 @@ class TestMergeMulti:
                         "nl0000289965",
                         None,
                     ],
-                    't':[None, None, 233, 234, 235, 233, 234, 235, 180, 181, None, None],
-                    'share':[
+                    "t": [
+                        None,
+                        None,
+                        233,
+                        234,
+                        235,
+                        233,
+                        234,
+                        235,
+                        180,
+                        181,
+                        None,
+                        None,
+                    ],
+                    "share": [
                         1.0,
                         0.4,
                         0.6,
@@ -746,7 +772,7 @@ class TestMergeMulti:
                         0.25,
                         1.0,
                     ],
-                    'log_return':[
+                    "log_return": [
                         None,
                         None,
                         0.09604978,
