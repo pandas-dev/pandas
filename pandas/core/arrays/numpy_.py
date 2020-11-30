@@ -12,7 +12,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
-from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -145,7 +144,7 @@ class PandasArray(
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
-    # that _typ to ensure that that users don't unnecessarily use EAs inside
+    # that _typ to ensure that users don't unnecessarily use EAs inside
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
@@ -172,7 +171,9 @@ class PandasArray(
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -273,39 +274,46 @@ class PandasArray(
 
     def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
-        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_all((), dict(out=out, keepdims=keepdims))
-        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, skipna: bool = True, **kwargs) -> Scalar:
+    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
-        return masked_reductions.min(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        result = nanops.nanmin(
+            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
+        return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, skipna: bool = True, **kwargs) -> Scalar:
+    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
-        return masked_reductions.max(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        result = nanops.nanmax(
+            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
+        return self._wrap_reduction_result(axis, result)
 
     def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)
-        return nanops.nansum(
+        result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
+        return self._wrap_reduction_result(axis, result)
 
     def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_prod((), kwargs)
-        return nanops.nanprod(
+        result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
+        return self._wrap_reduction_result(axis, result)
 
     def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))
-        return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     def median(
         self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
@@ -313,7 +321,8 @@ class PandasArray(
         nv.validate_median(
             (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
         )
-        return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     def std(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
@@ -321,7 +330,8 @@ class PandasArray(
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
-        return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
     def var(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
@@ -329,7 +339,8 @@ class PandasArray(
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="var"
         )
-        return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
     def sem(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
@@ -337,19 +348,22 @@ class PandasArray(
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="sem"
         )
-        return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        return self._wrap_reduction_result(axis, result)
 
     def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="kurt"
         )
-        return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="skew"
         )
-        return nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        return self._wrap_reduction_result(axis, result)
 
     # ------------------------------------------------------------------------
     # Additional Methods

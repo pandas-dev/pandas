@@ -1,7 +1,6 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
-
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -33,6 +32,7 @@ from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
+from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -204,7 +204,11 @@ class Styler:
         """
         return self.render()
 
-    @doc(NDFrame.to_excel, klass="Styler")
+    @doc(
+        NDFrame.to_excel,
+        klass="Styler",
+        storage_options=generic._shared_docs["storage_options"],
+    )
     def to_excel(
         self,
         excel_writer,
@@ -429,16 +433,16 @@ class Styler:
             else:
                 table_attr += ' class="tex2jax_ignore"'
 
-        return dict(
-            head=head,
-            cellstyle=cellstyle,
-            body=body,
-            uuid=uuid,
-            precision=precision,
-            table_styles=table_styles,
-            caption=caption,
-            table_attributes=table_attr,
-        )
+        return {
+            "head": head,
+            "cellstyle": cellstyle,
+            "body": body,
+            "uuid": uuid,
+            "precision": precision,
+            "table_styles": table_styles,
+            "caption": caption,
+            "table_attributes": table_attr,
+        }
 
     def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
         """
@@ -561,7 +565,6 @@ class Styler:
         '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
         '  </tbody>'
         '</table>'
-
         """
         classes = classes.reindex_like(self.data)
 
@@ -900,7 +903,7 @@ class Styler:
         Set the table attributes.
 
         These are the items that show up in the opening ``<table>`` tag
-        in addition to to automatic (by default) id.
+        in addition to automatic (by default) id.
 
         Parameters
         ----------
@@ -987,20 +990,46 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles) -> "Styler":
+    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> "Styler":
         """
         Set the table styles on a Styler.
 
         These are placed in a ``<style>`` tag before the generated HTML table.
 
+        This function can be used to style the entire table, columns, rows or
+        specific HTML selectors.
+
         Parameters
         ----------
-        table_styles : list
-            Each individual table_style should be a dictionary with
-            ``selector`` and ``props`` keys. ``selector`` should be a CSS
-            selector that the style will be applied to (automatically
-            prefixed by the table's UUID) and ``props`` should be a list of
-            tuples with ``(attribute, value)``.
+        table_styles : list or dict
+            If supplying a list, each individual table_style should be a
+            dictionary with ``selector`` and ``props`` keys. ``selector``
+            should be a CSS selector that the style will be applied to
+            (automatically prefixed by the table's UUID) and ``props``
+            should be a list of tuples with ``(attribute, value)``.
+            If supplying a dict, the dict keys should correspond to
+            column names or index values, depending upon the specified
+            `axis` argument. These will be mapped to row or col CSS
+            selectors. MultiIndex values as dict keys should be
+            in their respective tuple form. The dict values should be
+            a list as specified in the form with CSS selectors and
+            props that will be applied to the specified row or column.
+
+            .. versionchanged:: 1.2.0
+
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``). Only used if `table_styles` is
+            dict.
+
+            .. versionadded:: 1.2.0
+
+        overwrite : boolean, default True
+            Styles are replaced if `True`, or extended if `False`. CSS
+            rules are preserved so most recent styles set will dominate
+            if selectors intersect.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -1008,13 +1037,48 @@ class Styler:
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df = pd.DataFrame(np.random.randn(10, 4),
+        ...                   columns=['A', 'B', 'C', 'D'])
         >>> df.style.set_table_styles(
         ...     [{'selector': 'tr:hover',
         ...       'props': [('background-color', 'yellow')]}]
         ... )
+
+        Adding column styling by name
+
+        >>> df.style.set_table_styles({
+        ...     'A': [{'selector': '',
+        ...            'props': [('color', 'red')]}],
+        ...     'B': [{'selector': 'td',
+        ...            'props': [('color', 'blue')]}]
+        ... }, overwrite=False)
+
+        Adding row styling
+
+        >>> df.style.set_table_styles({
+        ...     0: [{'selector': 'td:hover',
+        ...          'props': [('font-size', '25px')]}]
+        ... }, axis=1, overwrite=False)
         """
-        self.table_styles = table_styles
+        if is_dict_like(table_styles):
+            if axis in [0, "index"]:
+                obj, idf = self.data.columns, ".col"
+            else:
+                obj, idf = self.data.index, ".row"
+
+            table_styles = [
+                {
+                    "selector": s["selector"] + idf + str(obj.get_loc(key)),
+                    "props": s["props"],
+                }
+                for key, styles in table_styles.items()
+                for s in styles
+            ]
+
+        if not overwrite and self.table_styles is not None:
+            self.table_styles.extend(table_styles)
+        else:
+            self.table_styles = table_styles
         return self
 
     def set_na_rep(self, na_rep: str) -> "Styler":

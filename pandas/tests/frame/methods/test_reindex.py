@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import inspect
 from itertools import permutations
 
@@ -864,3 +864,30 @@ class TestDataFrameSelectReindex:
             "fill_value",
             "tolerance",
         }
+
+    def test_reindex_multiindex_ffill_added_rows(self):
+        # GH#23693
+        # reindex added rows with nan values even when fill method was specified
+        mi = MultiIndex.from_tuples([("a", "b"), ("d", "e")])
+        df = DataFrame([[0, 7], [3, 4]], index=mi, columns=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
+        result = df.reindex(mi2, axis=0, method="ffill")
+        expected = DataFrame([[0, 7], [3, 4], [3, 4]], index=mi2, columns=["x", "y"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"method": "pad", "tolerance": timedelta(seconds=9)},
+            {"method": "backfill", "tolerance": timedelta(seconds=9)},
+            {"method": "nearest"},
+            {"method": None},
+        ],
+    )
+    def test_reindex_empty_frame(self, kwargs):
+        # GH#27315
+        idx = date_range(start="2020", freq="30s", periods=3)
+        df = DataFrame([], index=Index([], name="time"), columns=["a"])
+        result = df.reindex(idx, **kwargs)
+        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        tm.assert_frame_equal(result, expected)

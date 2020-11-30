@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     maybe_cast_result,
     maybe_cast_result_dtype,
-    maybe_convert_objects,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -262,7 +261,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 return self._python_agg_general(func, *args, **kwargs)
             except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
-                #  see see test_groupby.test_basic
+                #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
@@ -1390,8 +1389,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         obj = self._obj_with_exclusions
 
-        # for each col, reshape to to size of original frame
-        # by take operation
+        # for each col, reshape to size of original frame by take operation
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
@@ -1530,6 +1528,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._apply_filter(indices, dropna)
 
     def __getitem__(self, key):
+        if self.axis == 1:
+            # GH 37725
+            raise ValueError("Cannot subset columns when using axis=1")
         # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
             # if len == 1, then it becomes a SeriesGroupBy and this is actually
@@ -1672,11 +1673,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index(key.label for key in output)
-        columns.name = self.obj.columns.name
-
         result = self.obj._constructor(indexed_output)
-        result.columns = columns
+
+        if self.axis == 1:
+            result = result.T
+            result.columns = self.obj.columns
+        else:
+            columns = Index(key.label for key in output)
+            columns.name = self.obj.columns.name
+            result.columns = columns
+
         result.index = self.obj.index
 
         return result
@@ -1860,8 +1866,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
 
     # See GH#26285
     for n in obj_cols:
-        converted = maybe_convert_objects(
-            result.iloc[:, n].values, convert_numeric=False
+        values = result.iloc[:, n].values
+        converted = lib.maybe_convert_objects(
+            values, convert_datetime=True, convert_timedelta=True
         )
 
         result.iloc[:, n] = converted

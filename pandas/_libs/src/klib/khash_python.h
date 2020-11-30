@@ -1,6 +1,59 @@
 #include <string.h>
 #include <Python.h>
 
+// khash should report usage to tracemalloc
+#if PY_VERSION_HEX >= 0x03060000
+#include <pymem.h>
+#if PY_VERSION_HEX < 0x03070000
+#define PyTraceMalloc_Track _PyTraceMalloc_Track
+#define PyTraceMalloc_Untrack _PyTraceMalloc_Untrack
+#endif
+#else
+#define PyTraceMalloc_Track(...)
+#define PyTraceMalloc_Untrack(...)
+#endif
+
+
+static const int KHASH_TRACE_DOMAIN = 424242;
+void *traced_malloc(size_t size){
+    void * ptr = malloc(size);
+    if(ptr!=NULL){
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
+    }
+    return ptr;
+}
+
+void *traced_calloc(size_t num, size_t size){
+    void * ptr = calloc(num, size);
+    if(ptr!=NULL){
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, num*size);
+    }
+    return ptr;
+}
+
+void *traced_realloc(void* old_ptr, size_t size){
+    void * ptr = realloc(old_ptr, size);
+    if(ptr!=NULL){
+        if(old_ptr != ptr){
+            PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
+        }
+        PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
+    }
+    return ptr;
+}
+
+void traced_free(void* ptr){
+    if(ptr!=NULL){
+        PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)ptr);
+    }
+    free(ptr);
+}
+
+
+#define KHASH_MALLOC traced_malloc
+#define KHASH_REALLOC traced_realloc
+#define KHASH_CALLOC traced_calloc
+#define KHASH_FREE traced_free
 #include "khash.h"
 
 // Previously we were using the built in cpython hash function for doubles
@@ -13,32 +66,67 @@
 // is 64 bits the truncation causes collission issues.  Given all that, we use our own
 // simple hash, viewing the double bytes as an int64 and using khash's default
 // hash for 64 bit integers.
-// GH 13436
+// GH 13436 showed that _Py_HashDouble doesn't work well with khash
+// GH 28303 showed, that the simple xoring-version isn't good enough
+// See GH 36729 for evaluation of the currently used murmur2-hash version
+// An interesting alternative to expensive murmur2-hash would be to change
+// the probing strategy and use e.g. the probing strategy from CPython's
+// implementation of dicts, which shines for smaller sizes but is more
+// predisposed to superlinear running times (see GH 36729 for comparison)
+
+
 khint64_t PANDAS_INLINE asint64(double key) {
-  khint64_t val;
-  memcpy(&val, &key, sizeof(double));
-  return val;
+    khint64_t val;
+    memcpy(&val, &key, sizeof(double));
+    return val;
 }
 
-// correct for all inputs but not -0.0 and NaNs
-#define kh_float64_hash_func_0_NAN(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+khint32_t PANDAS_INLINE asint32(float key) {
+    khint32_t val;
+    memcpy(&val, &key, sizeof(float));
+    return val;
+}
 
-// correct for all inputs but not NaNs
-#define kh_float64_hash_func_NAN(key) ((key) == 0.0 ?                       \
-                                        kh_float64_hash_func_0_NAN(0.0) : \
-                                        kh_float64_hash_func_0_NAN(key))
+#define ZERO_HASH 0
+#define NAN_HASH  0
 
-// correct for all
-#define kh_float64_hash_func(key) ((key) != (key) ?                       \
-                                   kh_float64_hash_func_NAN(Py_NAN) :     \
-                                   kh_float64_hash_func_NAN(key))
+khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
+    // 0.0 and -0.0 should have the same hash:
+    if (val == 0.0){
+        return ZERO_HASH;
+    }
+    // all nans should have the same hash:
+    if ( val!=val ){
+        return NAN_HASH;
+    }
+    khint64_t as_int = asint64(val);
+    return murmur2_64to32(as_int);
+}
 
-#define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
+khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
+    // 0.0 and -0.0 should have the same hash:
+    if (val == 0.0f){
+        return ZERO_HASH;
+    }
+    // all nans should have the same hash:
+    if ( val!=val ){
+        return NAN_HASH;
+    }
+    khint32_t as_int = asint32(val);
+    return murmur2_32to32(as_int);
+}
+
+#define kh_floats_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
-	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_float64_hash_equal)
+	KHASH_INIT(name, khfloat64_t, khval_t, 1, kh_float64_hash_func, kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
+
+#define KHASH_MAP_INIT_FLOAT32(name, khval_t)								\
+	KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func, kh_floats_hash_equal)
+
+KHASH_MAP_INIT_FLOAT32(float32, size_t)
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
@@ -93,7 +181,7 @@ typedef struct {
 typedef kh_str_starts_t* p_kh_str_starts_t;
 
 p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
-	kh_str_starts_t *result = (kh_str_starts_t*)calloc(1, sizeof(kh_str_starts_t));
+	kh_str_starts_t *result = (kh_str_starts_t*)KHASH_CALLOC(1, sizeof(kh_str_starts_t));
 	result->table = kh_init_str();
 	return result;
 }
@@ -116,7 +204,7 @@ khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const
 
 void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 	kh_destroy_str(table->table);
-	free(table);
+	KHASH_FREE(table);
 }
 
 void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {

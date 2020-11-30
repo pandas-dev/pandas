@@ -7,12 +7,13 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import is_dtype_equal, is_list_like, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
 
@@ -45,7 +46,7 @@ class DecimalDtype(ExtensionDtype):
         return True
 
 
-class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
+class DecimalArray(OpsMixin, ExtensionArray):
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
@@ -155,6 +156,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
+    def __contains__(self, item) -> bool:
+        if not isinstance(item, decimal.Decimal):
+            return False
+        elif item.is_nan():
+            return self.isna().any()
+        else:
+            return super().__contains__(item)
+
     @property
     def nbytes(self) -> int:
         n = len(self)
@@ -178,7 +187,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if skipna:
             # If we don't have any NAs, we can ignore skipna
@@ -217,6 +226,42 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return np.asarray(res, dtype=bool)
 
+    _do_coerce = True  # overriden in DecimalArrayWithoutCoercion
+
+    def _arith_method(self, other, op):
+        def convert_values(param):
+            if isinstance(param, ExtensionArray) or is_list_like(param):
+                ovalues = param
+            else:  # Assume its an object
+                ovalues = [param] * len(self)
+            return ovalues
+
+        lvalues = self
+        rvalues = convert_values(other)
+
+        # If the operator is not defined for the underlying objects,
+        # a TypeError should be raised
+        res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+
+        def _maybe_convert(arr):
+            if self._do_coerce:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # We catch all regular exceptions here, and fall back
+                # to an ndarray.
+                res = maybe_cast_to_extension_array(type(self), arr)
+                if not isinstance(res, type(self)):
+                    # exception raised in _from_sequence; ensure we have ndarray
+                    res = np.asarray(arr)
+            else:
+                res = np.asarray(arr)
+            return res
+
+        if op.__name__ in {"divmod", "rdivmod"}:
+            a, b = zip(*res)
+            return _maybe_convert(a), _maybe_convert(b)
+
+        return _maybe_convert(res)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
@@ -224,6 +269,3 @@ def to_decimal(values, context=None):
 
 def make_data():
     return [decimal.Decimal(random.random()) for _ in range(100)]
-
-
-DecimalArray._add_arithmetic_ops()

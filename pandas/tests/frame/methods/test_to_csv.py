@@ -251,7 +251,7 @@ class TestDataFrameToCSV:
             df = DataFrame(dict(a=s1, b=s2))
             df.to_csv(pth, chunksize=chunksize)
 
-            recons = self.read_csv(pth)._convert(datetime=True, coerce=True)
+            recons = self.read_csv(pth).apply(to_datetime)
             tm.assert_frame_equal(df, recons, check_names=False)
 
     @pytest.mark.slow
@@ -1034,12 +1034,12 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(df, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            handles = get_handle(
+            with get_handle(
                 filename, "w", compression=compression, encoding=encoding
-            )
-            df.to_csv(handles.handle, encoding=encoding)
-            assert not handles.handle.closed
-            handles.close()
+            ) as handles:
+                df.to_csv(handles.handle, encoding=encoding)
+                assert not handles.handle.closed
+
             result = pd.read_csv(
                 filename,
                 compression=compression,

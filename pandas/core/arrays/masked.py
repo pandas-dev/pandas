@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import numpy as np
 
@@ -56,7 +58,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+    def construct_array_type(cls) -> Type[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -100,7 +102,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -261,7 +265,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.nbytes + self._mask.nbytes
 
     @classmethod
-    def _concat_same_type(cls: Type[BaseMaskedArrayT], to_concat) -> BaseMaskedArrayT:
+    def _concat_same_type(
+        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+    ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask)
@@ -269,6 +275,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def take(
         self: BaseMaskedArrayT,
         indexer,
+        *,
         allow_fill: bool = False,
         fill_value: Optional[Scalar] = None,
     ) -> BaseMaskedArrayT:
@@ -357,7 +364,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 

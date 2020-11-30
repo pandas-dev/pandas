@@ -67,7 +67,7 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core import algorithms, base, generic, missing, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
 from pandas.core.arrays import ExtensionArray
@@ -84,7 +84,13 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Float64Index,
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -176,6 +182,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
 
     _typ = "series"
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     _name: Label
     _metadata: List[str] = ["name"]
@@ -367,7 +374,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = na_value_for_dtype(dtype)
             keys = index
         else:
-            keys, values = tuple([]), []
+            keys, values = tuple(), []
 
         # Input is now list-like, so rely on "standard" construction:
 
@@ -411,7 +418,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             labels = ensure_index(labels)
 
         if labels._is_all_dates:
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+            deep_labels = labels
+            if isinstance(labels, CategoricalIndex):
+                deep_labels = labels.categories
+
+            if not isinstance(
+                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+            ):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
@@ -683,81 +696,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array_ufunc__(
-        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
-    ):
-        # TODO: handle DataFrame
-        cls = type(self)
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        # Determine if we should defer.
-        no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
-
-        for item in inputs:
-            higher_priority = (
-                hasattr(item, "__array_priority__")
-                and item.__array_priority__ > self.__array_priority__
-            )
-            has_array_ufunc = (
-                hasattr(item, "__array_ufunc__")
-                and type(item).__array_ufunc__ not in no_defer
-                and not isinstance(item, self._HANDLED_TYPES)
-            )
-            if higher_priority or has_array_ufunc:
-                return NotImplemented
-
-        # align all the inputs.
-        names = [getattr(x, "name") for x in inputs if hasattr(x, "name")]
-        types = tuple(type(x) for x in inputs)
-        # TODO: dataframe
-        alignable = [x for x, t in zip(inputs, types) if issubclass(t, Series)]
-
-        if len(alignable) > 1:
-            # This triggers alignment.
-            # At the moment, there aren't any ufuncs with more than two inputs
-            # so this ends up just being x1.index | x2.index, but we write
-            # it to handle *args.
-            index = alignable[0].index
-            for s in alignable[1:]:
-                index = index.union(s.index)
-            inputs = tuple(
-                x.reindex(index) if issubclass(t, Series) else x
-                for x, t in zip(inputs, types)
-            )
-        else:
-            index = self.index
-
-        inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
-        result = getattr(ufunc, method)(*inputs, **kwargs)
-
-        name = names[0] if len(set(names)) == 1 else None
-
-        def construct_return(result):
-            if lib.is_scalar(result):
-                return result
-            elif result.ndim > 1:
-                # e.g. np.subtract.outer
-                if method == "outer":
-                    # GH#27198
-                    raise NotImplementedError
-                return result
-            return self._constructor(result, index=index, name=name, copy=False)
-
-        if type(result) is tuple:
-            # multiple return values
-            return tuple(construct_return(x) for x in result)
-        elif method == "at":
-            # no return value
-            return None
-        else:
-            return construct_return(result)
-
     def __array__(self, dtype=None) -> np.ndarray:
         """
         Return the values as a NumPy array.
@@ -900,7 +838,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
 
-            except KeyError:
+            except (KeyError, TypeError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -964,7 +902,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("key of type tuple not found and not a MultiIndex")
+            raise KeyError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1015,12 +953,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # positional setter
                 values[key] = value
             else:
-                # GH#12862 adding an new key to the Series
+                # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
         except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError(
+                raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
 
@@ -1428,6 +1366,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
+        storage_options=generic._shared_docs["storage_options"],
         examples=dedent(
             """
             Examples
@@ -1466,14 +1405,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Add index (row) labels.
 
             .. versionadded:: 1.1.0
-
-        storage_options : dict, optional
-            Extra options that make sense for a particular storage connection, e.g.
-            host, port, username, password, etc., if using a URL that will
-            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-            will be raised if providing this argument with a local path or
-            a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values.
+        {storage_options}
 
             .. versionadded:: 1.2.0
 
@@ -2813,7 +2745,8 @@ Name: Max Speed, dtype: float64
         out.name = name
         return out
 
-    @Appender(
+    @doc(
+        generic._shared_docs["compare"],
         """
 Returns
 -------
@@ -2873,9 +2806,9 @@ Keep all original rows and also all original values
 2    c     c
 3    d     b
 4    e     e
-"""
+""",
+        klass=_shared_doc_kwargs["klass"],
     )
-    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
         other: "Series",
@@ -4190,7 +4123,15 @@ Keep all original rows and also all original values
             )
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        *,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """
         Perform a reduction operation.
@@ -4550,6 +4491,31 @@ Keep all original rows and also all original values
             method=method,
         )
 
+    def _replace_single(self, to_replace, method, inplace, limit):
+        """
+        Replaces values in a Series using the fill method specified when no
+        replacement value is given in the replace method
+        """
+
+        orig_dtype = self.dtype
+        result = self if inplace else self.copy()
+        fill_f = missing.get_fill_func(method)
+
+        mask = missing.mask_missing(result.values, to_replace)
+        values = fill_f(result.values, limit=limit, mask=mask)
+
+        if values.dtype == orig_dtype and inplace:
+            return
+
+        result = self._constructor(values, index=self.index, dtype=self.dtype)
+        result = result.__finalize__(self)
+
+        if inplace:
+            self._update_inplace(result)
+            return
+
+        return result
+
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
@@ -4663,7 +4629,7 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
         """
-        result = algorithms.isin(self, values)
+        result = algorithms.isin(self._values, values)
         return self._constructor(result, index=self.index).__finalize__(
             self, method="isin"
         )
@@ -4752,6 +4718,7 @@ Keep all original rows and also all original values
         convert_string: bool = True,
         convert_integer: bool = True,
         convert_boolean: bool = True,
+        convert_floating: bool = True,
     ) -> "Series":
         input_series = self
         if infer_objects:
@@ -4759,9 +4726,13 @@ Keep all original rows and also all original values
             if is_object_dtype(input_series):
                 input_series = input_series.copy()
 
-        if convert_string or convert_integer or convert_boolean:
+        if convert_string or convert_integer or convert_boolean or convert_floating:
             inferred_dtype = convert_dtypes(
-                input_series._values, convert_string, convert_integer, convert_boolean
+                input_series._values,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
             try:
                 result = input_series.astype(inferred_dtype)

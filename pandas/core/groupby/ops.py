@@ -148,7 +148,7 @@ class BaseGrouper:
         -------
         Generator yielding subsetted objects
 
-        __finalize__ has not been called for the the subsetted objects returned.
+        __finalize__ has not been called for the subsetted objects returned.
         """
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
@@ -603,8 +603,7 @@ class BaseGrouper:
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
-            # TODO: should we be using min_count instead of hard-coding it?
-            agg_func(result, counts, values, comp_ids, rank=1, min_count=-1)
+            agg_func(result, counts, values, comp_ids, min_count, rank=1)
         else:
             agg_func(result, counts, values, comp_ids, min_count)
 
