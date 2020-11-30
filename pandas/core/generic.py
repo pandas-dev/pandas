@@ -128,15 +128,15 @@ if TYPE_CHECKING:
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
-_shared_doc_kwargs = dict(
-    axes="keywords for axes",
-    klass="Series/DataFrame",
-    axes_single_arg="int or labels for object",
-    args_transpose="axes to permute (int or label for object)",
-    optional_by="""
+_shared_doc_kwargs = {
+    "axes": "keywords for axes",
+    "klass": "Series/DataFrame",
+    "axes_single_arg": "int or labels for object",
+    "args_transpose": "axes to permute (int or label for object)",
+    "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
-)
+}
 
 
 bool_t = bool  # Need alias because NDFrame has def bool:
@@ -484,7 +484,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
-        d = dict()
+        d = {}
         prefix = axis[0]
 
         for i, name in enumerate(axis_index.names):
@@ -1946,14 +1946,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(
-            _mgr=self._mgr,
-            _typ=self._typ,
-            _metadata=self._metadata,
-            attrs=self.attrs,
-            _flags={k: self.flags[k] for k in self.flags._keys},
+        return {
+            "_mgr": self._mgr,
+            "_typ": self._typ,
+            "_metadata": self._metadata,
+            "attrs": self.attrs,
+            "_flags": {k: self.flags[k] for k in self.flags._keys},
             **meta,
-        )
+        }
 
     @final
     def __setstate__(self, state):
@@ -1967,7 +1967,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                flags = state.get("_flags", dict(allows_duplicate_labels=True))
+                flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
 
                 # set in the order of internal names
@@ -3128,9 +3128,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
+        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -3351,8 +3351,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Create 'out.zip' containing 'out.csv'
 
-        >>> compression_opts = dict(method='zip',
-        ...                         archive_name='out.csv')  # doctest: +SKIP
+        >>> compression_opts = {'method': 'zip',
+        ...                     'archive_name': 'out.csv'}  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
         """
@@ -7407,11 +7407,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
         ...                             pd.Timestamp('1940-04-25')],
-        ...                    name=['Alfred', 'Batman', ''],
-        ...                    toy=[None, 'Batmobile', 'Joker']))
+        ...                    'name': ['Alfred', 'Batman', ''],
+        ...                    'toy': [None, 'Batmobile', 'Joker']})
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -7474,11 +7474,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are not NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
-        ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
+        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        ...                    'born':[pd.NaT, pd.Timestamp('1939-05-27'),
         ...                             pd.Timestamp('1940-04-25')],
-        ...                    name=['Alfred', 'Batman', ''],
-        ...                    toy=[None, 'Batmobile', 'Joker']))
+        ...                    'name':['Alfred', 'Batman', ''],
+        ...                    'toy': [None, 'Batmobile', 'Joker']})
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -8196,8 +8196,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -8222,8 +8222,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df2 = pd.DataFrame(d2,
         ...                    index=pd.MultiIndex.from_product([days,
         ...                                                     ['morning',
@@ -10470,10 +10470,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame(dict(
-        ...     FR=[4.0405, 4.0963, 4.3149],
-        ...     GR=[1.7246, 1.7482, 1.8519],
-        ...     IT=[804.74, 810.01, 860.13]),
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
         ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
         >>> df
                         FR      GR      IT
@@ -10490,10 +10490,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame(dict([
-        ...     ('2016', [1769950, 30586265]),
-        ...     ('2015', [1500923, 40912316]),
-        ...     ('2014', [1371819, 41403351])]),
+        >>> df = pd.DataFrame({
+        ...     '2016': [1769950, 30586265],
+        ...     '2015': [1500923, 40912316],
+        ...     '2014': [1371819, 41403351]},
         ...     index=['GOOG', 'APPL'])
         >>> df
                   2016      2015      2014
