@@ -8,6 +8,15 @@ including other versions of pandas.
 
 {{ header }}
 
+.. warning::
+
+   Previously, the default argument ``engine=None`` to ``pd.read_excel``
+   would result in using the `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine in
+   many cases. The engine ``xlrd`` is no longer maintained, and is not supported with
+   python >= 3.9. If `openpyxl <https://pypi.org/project/openpyxl/>`_  is installed,
+   many of these  cases will now default to using the ``openpyxl`` engine. See the
+   :func:`read_excel` documentation for more details.
+
 .. ---------------------------------------------------------------------------
 
 Enhancements
