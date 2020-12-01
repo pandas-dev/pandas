@@ -857,6 +857,25 @@ class _TestSQLApi(PandasSQLTest):
         )
         tm.assert_frame_equal(df, result, check_index_type=True)
 
+    @pytest.mark.parametrize(
+        "dtype, expected",
+        [
+            (None, [float, float]),
+            (int, [int, int]),
+            (float, [float, float]),
+            ({"SepalLength": int, "SepalWidth": float}, [int, float]),
+        ],
+    )
+    def test_dtype_argument(self, dtype, expected):
+        # GH10285 Add dtype argument to read_sql_query
+        result = sql.read_sql_query(
+            "SELECT SepalLength, SepalWidth FROM iris", self.conn, dtype=dtype
+        )
+        assert result.dtypes.to_dict() == {
+            "SepalLength": expected[0],
+            "SepalWidth": expected[1],
+        }
+
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
         sql.to_sql(df, "test_frame_integer_col_names", self.conn, if_exists="replace")
