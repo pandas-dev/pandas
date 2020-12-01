@@ -1631,12 +1631,12 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(result, expected)
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example
@@ -1656,11 +1656,11 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(result, expected, check_index_type=False)
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -1788,14 +1788,10 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             store.put("df", df)
-            tm.assert_frame_equal(
-                store["df"], expected, check_index_type=True, check_column_type=True
-            )
+            tm.assert_frame_equal(store["df"], expected)
 
             store.put("df1", df, format="table")
-            tm.assert_frame_equal(
-                store["df1"], expected, check_index_type=True, check_column_type=True
-            )
+            tm.assert_frame_equal(store["df1"], expected)
 
             with pytest.raises(ValueError):
                 store.put("df2", df, format="table", data_columns=["A"])
@@ -1820,9 +1816,7 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             store.put("df1", df, format="table")
-            tm.assert_frame_equal(
-                store["df1"], expected, check_index_type=True, check_column_type=True
-            )
+            tm.assert_frame_equal(store["df1"], expected)
 
     def test_store_multiindex(self, setup_path):
 
