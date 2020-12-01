@@ -398,7 +398,7 @@ def extract_index(data) -> Index:
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
             if len(lengths) > 1:
-                raise ValueError("arrays must all be same length")
+                raise ValueError("All arrays must be of the same length")
 
             if have_dicts:
                 raise ValueError(
