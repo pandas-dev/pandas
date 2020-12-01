@@ -53,6 +53,7 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.core.indexing import _tuplify
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc, rewrite_axis_style_signature
 from pandas.util._validators import (
@@ -4173,6 +4174,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # Case for non-unique axis
         else:
+            if isinstance(axis, MultiIndex) and level is None and isinstance(labels, str):
+                # Set level to zero in case of MultiIndex and label is string, because
+                # isin can't handle strings for MultiIndexes GH#36293
+                level = 0
             labels = ensure_object(com.index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
