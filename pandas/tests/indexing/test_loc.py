@@ -1571,7 +1571,7 @@ class TestPartialStringSlicing:
         )
         expected = frame_or_series(
             [1] * 2,
-            index=Index(
+            index=pd.Index(
                 [
                     Timestamp("2020-01-01"),
                     Timestamp("2020-01-02 23:59:59.999999999"),
