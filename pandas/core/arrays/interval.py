@@ -58,7 +58,9 @@ IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 _interval_shared_docs = {}
 
 _shared_docs_kwargs = {
-    "klass":"IntervalArray", "qualname":"arrays.IntervalArray", "name":""
+    "klass": "IntervalArray",
+    "qualname": "arrays.IntervalArray",
+    "name": "",
 }
 
 
@@ -128,13 +130,13 @@ for more.
 @Appender(
     _interval_shared_docs["class"]
     % {
-        "klass":"IntervalArray",
-        "summary":"Pandas array for interval data that are closed on the same side.",
-        "versionadded":"0.24.0",
-        "name":"",
-        "extra_attributes":"",
-        "extra_methods":"",
-        "examples":textwrap.dedent(
+        "klass": "IntervalArray",
+        "summary": "Pandas array for interval data that are closed on the same side.",
+        "versionadded": "0.24.0",
+        "name": "",
+        "extra_attributes": "",
+        "extra_methods": "",
+        "examples": textwrap.dedent(
             """\
     Examples
     --------
@@ -320,8 +322,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["from_breaks"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -391,8 +393,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["from_arrays"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
         <IntervalArray>
@@ -446,8 +448,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["from_tuples"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -1145,8 +1147,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["overlaps"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> data = [(0, 1), (1, 3), (2, 4)]
         >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
@@ -1208,8 +1210,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["set_closed"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -1360,7 +1362,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
 
     @Appender(
-        _interval_shared_docs["to_tuples"] % {"return_type":"ndarray", "examples":""}
+        _interval_shared_docs["to_tuples"] % {"return_type": "ndarray", "examples": ""}
     )
     def to_tuples(self, na_tuple=True):
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
@@ -1373,7 +1375,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), {"axis":axis})
+        nv.validate_repeat(tuple(), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
@@ -1413,8 +1415,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["contains"]
         % {
-            "klass":"IntervalArray",
-            "examples":textwrap.dedent(
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals

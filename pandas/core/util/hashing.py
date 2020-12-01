@@ -291,8 +291,8 @@ def hash_array(
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30
-    vals *= np.uint64(0xBF58476D1CE4E5B9)
+    vals *= np.uint64(0xbf58476d1ce4e5b9)
     vals ^= vals >> 27
-    vals *= np.uint64(0x94D049BB133111EB)
+    vals *= np.uint64(0x94d049bb133111eb)
     vals ^= vals >> 31
     return vals
