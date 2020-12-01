@@ -31,7 +31,6 @@ class ShallowMixin(PandasObject):
         return self._constructor(obj, **kwargs)
 
 
-# Wait is this _only_ used in  BaseWindowGroupby?
 class GotItemMixin(PandasObject):
     """
     Provide the groupby facilities to the mixed object.
