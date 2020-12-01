@@ -1033,7 +1033,7 @@ def test_transform_invalid_name_raises():
     [
         DataFrame(
             {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
-            index=["A", "B", "C", "D", "E", "F"]
+            index=["A", "B", "C", "D", "E", "F"],
         ),
         Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
     ],
