@@ -1,7 +1,8 @@
 """
 Module consolidating common testing functions for checking plotting.
 
-Currently all plotting tests are marked as slow.
+Currently all plotting tests are marked as slow via
+``pytestmark = pytest.mark.slow`` at the module level.
 """
 
 import os
