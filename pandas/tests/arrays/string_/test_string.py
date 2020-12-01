@@ -495,6 +495,18 @@ def test_value_counts_na(dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_with_normalize(dtype, request):
+    if dtype == "arrow_string":
+        reason = "TypeError: boolean value of NA is ambiguous"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "values, expected",
     [
