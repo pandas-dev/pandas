@@ -1552,6 +1552,40 @@ class TestPartialStringSlicing:
         sliced = df.loc["0 days"]
         tm.assert_series_equal(sliced, expected)
 
+    @pytest.mark.parametrize("indexer_end", [None, "2020-01-02 23:59:59.999999999"])
+    def test_loc_getitem_partial_slice_non_monotonicity(
+        self, indexer_end, frame_or_series
+    ):
+        # GH#33146
+        df = frame_or_series(
+            [1] * 5,
+            index=Index(
+                [
+                    Timestamp("2019-12-30"),
+                    Timestamp("2020-01-01"),
+                    Timestamp("2019-12-25"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                    Timestamp("2019-12-19"),
+                ]
+            ),
+        )
+        expected = frame_or_series(
+            [1] * 2,
+            index=Index(
+                [
+                    Timestamp("2020-01-01"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                ]
+            ),
+        )
+        indexer = slice("2020-01-01", indexer_end)
+
+        result = df[indexer]
+        tm.assert_equal(result, expected)
+
+        result = df.loc[indexer]
+        tm.assert_equal(result, expected)
+
 
 class TestLabelSlicing:
     def test_loc_getitem_label_slice_across_dst(self):
