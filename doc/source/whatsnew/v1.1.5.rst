@@ -25,6 +25,7 @@ Fixed regressions
 - Fixed regression in ``df.groupby(..).rolling(..)`` with the resulting :class:`MultiIndex` when grouping by a label that is in the index (:issue:`37641`)
 - Fixed regression in :meth:`DataFrame.fillna` not filling ``NaN`` after other operations such as :meth:`DataFrame.pivot` (:issue:`36495`).
 - Fixed performance regression for :meth:`DataFrame.__setitem__` with list-like indexers (:issue:`37954`)
+- Fixed performance regression in ``df.groupby(..).rolling(..)`` (:issue:`38038`)
 - Fixed regression in :meth:`MultiIndex.intersection` returning duplicates when at least one of the indexes had duplicates (:issue:`36915`)
 
 .. ---------------------------------------------------------------------------
