@@ -1261,6 +1261,7 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
+                limit_area=limit_area,
                 downcast=downcast,
             )
         # validate the interp method
@@ -1287,6 +1288,7 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
+        limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
@@ -1301,6 +1303,7 @@ class Block(PandasObject):
             method=method,
             axis=axis,
             limit=limit,
+            limit_area=limit_area,
         )
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]

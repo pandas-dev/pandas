@@ -670,6 +670,7 @@ Missing
 
 - Bug in :meth:`.SeriesGroupBy.transform` now correctly handles missing values for ``dropna=False`` (:issue:`35014`)
 - Bug in :meth:`Series.nunique` with ``dropna=True`` was returning incorrect results when both ``NA`` and ``None`` missing values were present (:issue:`37566`)
+- Bug in :meth:`Series.interpolate` where kwarg ``limit_area`` and ``limit_direction`` had no effect when using methods ``pad`` and ``backfill`` (:issue:`31048`)
 -
 
 MultiIndex
