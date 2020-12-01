@@ -712,7 +712,8 @@ class TestParquetPyArrow(Base):
             path="s3://pandas-test/parquet_dir",
             read_kwargs={"storage_options": s3so},
             write_kwargs={
-                "partition_cols": partition_col, "compression": None,
+                "partition_cols": partition_col,
+                "compression": None,
                 "storage_options": s3so
             },
             check_like=True,
