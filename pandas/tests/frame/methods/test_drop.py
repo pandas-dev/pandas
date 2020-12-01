@@ -441,3 +441,11 @@ class TestDataFrameDrop:
             # Perform operation and check result
             getattr(y, operation)(1)
             tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)

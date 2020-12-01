@@ -4174,7 +4174,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # Case for non-unique axis
         else:
-            if isinstance(axis, MultiIndex) and level is None and isinstance(labels, str):
+            if (
+                isinstance(axis, MultiIndex)
+                and level is None
+                and isinstance(labels, str)
+            ):
                 # Set level to zero in case of MultiIndex and label is string, because
                 # isin can't handle strings for MultiIndexes GH#36293
                 level = 0
