@@ -539,13 +539,15 @@ class IntegerArray(BaseMaskedArray):
         return BooleanArray(result, mask)
 
     def _arith_method(self, other, op):
+        from pandas.core.arrays import FloatingArray
+
         op_name = op.__name__
         omask = None
 
         if getattr(other, "ndim", 0) > 1:
             raise NotImplementedError("can only perform ops with 1-d structures")
 
-        if isinstance(other, IntegerArray):
+        if isinstance(other, (IntegerArray, FloatingArray)):
             other, omask = other._data, other._mask
 
         elif is_list_like(other):
@@ -636,8 +638,9 @@ class IntegerArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(result, mask, copy=False)
 
         if result.dtype == "timedelta64[ns]":
             from pandas.core.arrays import TimedeltaArray
