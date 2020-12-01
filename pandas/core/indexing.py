@@ -672,8 +672,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
+            # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
+
+            self.obj._mgr = self.obj._mgr.reindex_axis(
+                keys, axis=0, copy=False, consolidate=False, only_slice=True
+            )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
