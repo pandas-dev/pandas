@@ -142,9 +142,7 @@ def test_getitem_generator(string_series):
     ],
 )
 def test_getitem_ndim_deprecated(series):
-    with tm.assert_produces_warning(
-        FutureWarning, match="Support for multi-dimensional indexing"
-    ):
+    with tm.assert_produces_warning(FutureWarning):
         result = series[:, None]
 
     expected = np.asarray(series)[:, None]
