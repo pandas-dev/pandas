@@ -45,6 +45,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Scalar,
+    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -673,6 +674,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         else:
             return self.obj[self._selection]
 
+    @final
     def _reset_group_selection(self) -> None:
         """
         Clear group based selection.
@@ -685,6 +687,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = None
             self._reset_cache("_selected_obj")
 
+    @final
     def _set_group_selection(self) -> None:
         """
         Create group based selection.
@@ -710,6 +713,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
+    @final
     def _set_result_index_ordered(
         self, result: "OutputFrameOrSeries"
     ) -> "OutputFrameOrSeries":
@@ -765,6 +769,7 @@ b  2""",
 
     plot = property(GroupByPlot)
 
+    @final
     def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
 
@@ -904,6 +909,7 @@ b  2""",
 
         return result
 
+    @final
     def _python_apply_general(
         self, f: F, data: FrameOrSeriesUnion
     ) -> FrameOrSeriesUnion:

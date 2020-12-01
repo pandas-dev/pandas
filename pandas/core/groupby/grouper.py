@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeries, Label, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -321,6 +321,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
+    @final
     def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
@@ -382,6 +383,7 @@ class Grouper:
         self.grouper = ax
         return self.grouper
 
+    @final
     @property
     def groups(self):
         # pandas\core\groupby\grouper.py:382: error: Item "None" of
@@ -399,6 +401,7 @@ class Grouper:
         return f"{cls_name}({attrs})"
 
 
+@final
 class Grouping:
     """
     Holds the grouping information for a single key
