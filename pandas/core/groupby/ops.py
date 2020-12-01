@@ -370,8 +370,6 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
-
     def _is_builtin_func(self, arg):
         """
         if we define a builtin function for this argument, return it,
@@ -516,12 +514,9 @@ class BaseGrouper:
 
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
-
-        Names is only useful when dealing with 2D results, like ohlc
-        (see self._name_functions).
         """
         orig_values = values
         assert kind in ["transform", "aggregate"]
@@ -619,8 +614,6 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names: Optional[List[str]] = self._name_functions.get(how, None)
-
         if swapped:
             result = result.swapaxes(0, axis)
 
@@ -630,7 +623,7 @@ class BaseGrouper:
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             result = maybe_downcast_to_dtype(result, dtype)
 
-        return result, names
+        return result
 
     def _aggregate(
         self, result, counts, values, comp_ids, agg_func, min_count: int = -1

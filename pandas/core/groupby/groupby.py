@@ -1069,16 +1069,18 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, agg_names = self.grouper._cython_operation(
+            result = self.grouper._cython_operation(
                 "aggregate", obj._values, how, axis=0, min_count=min_count
             )
 
-            if agg_names:
+            if how == "ohlc":
                 # e.g. ohlc
+                agg_names = ["open", "high", "low", "close"]
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
                     output[key] = result_column
+                    #output[key] = maybe_downcast_to_dtype(result_column, obj.dtype)
                     idx += 1
             else:
                 assert result.ndim == 1
