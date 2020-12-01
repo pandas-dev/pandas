@@ -533,6 +533,22 @@ def _interpolate_with_limit_area(
 ):
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
+
+    Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str
+        Interpolation method. Could be "bfill" or "pad"
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
     """
 
     invalid = isna(values)
@@ -574,6 +590,24 @@ def interpolate_2d(
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
+
+       Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str, default "pad"
+        Interpolation method. Could be "bfill" or "pad"
+    axis: 0 or 1
+        Interpolation axis
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str, optional
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
     """
     if limit_area is not None:
         return np.apply_along_axis(
