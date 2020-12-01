@@ -529,8 +529,8 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values, method: str, limit: Optional[int], limit_area: Optional[str]
-):
+    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
 
