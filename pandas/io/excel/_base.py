@@ -111,16 +111,19 @@ engine : str, default None
     - "pyxlsb" supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
-        The engine xlrd is no longer maintained, and is not supported with
+        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+        is no longer maintained, and is not supported with
         python >= 3.9. When ``engine=None``, the following logic will be
         used to determine the engine.
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-          then odf will be used.
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
-          extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
-        - Otherwise if openpyxl is installed, then openpyxl will be used.
-        - Otherwise xlrd will be used and a ``FutureWarning`` will be raised.
+          extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd`` will
+          be used.
+        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+          then ``openpyxl`` will be used.
+        - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
         Specifying ``engine="xlrd"`` will continue to be allowed for the
         indefinite future.
@@ -907,16 +910,19 @@ class ExcelFile:
 
         .. versionchanged:: 1.2.0
 
-           The engine xlrd is no longer maintained, and is not supported with
+           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+           is no longer maintained, and is not supported with
            python >= 3.9. When ``engine=None``, the following logic will be
            used to determine the engine.
 
            - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-             then odf will be used.
+             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
            - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
-             extension ``.xls``, or is an xlrd Book instance, then xlrd will be used.
-           - Otherwise if openpyxl is installed, then openpyxl will be used.
-           - Otherwise xlrd will be used and a ``FutureWarning`` will be raised.
+             extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd``
+             will be used.
+           - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+             then ``openpyxl`` will be used.
+           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
            Specifying ``engine="xlrd"`` will continue to be allowed for the
            indefinite future.
