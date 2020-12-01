@@ -159,7 +159,7 @@ def test_list_numeric(data, arr_kwargs):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [{"dtype" : "O"}, {}])
+@pytest.mark.parametrize("kwargs", [{"dtype": "O"}, {}])
 def test_numeric(kwargs):
     data = [1, -3.14, 7]
 

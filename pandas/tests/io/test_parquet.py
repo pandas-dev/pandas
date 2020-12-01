@@ -714,7 +714,7 @@ class TestParquetPyArrow(Base):
             write_kwargs={
                 "partition_cols": partition_col,
                 "compression": None,
-                "storage_options": s3so
+                "storage_options": s3so,
             },
             check_like=True,
             repeat=1,
