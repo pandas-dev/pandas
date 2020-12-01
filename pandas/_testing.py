@@ -1289,6 +1289,7 @@ def assert_series_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
+    check_index=True,
 ):
     """
     Check that left and right Series are equal.
@@ -1348,6 +1349,10 @@ def assert_series_equal(
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    check_index : bool, default True
+        Whether to check index equivalence. If False, then compare only values.
+
+        .. versionadded:: 1.2.0
 
     Examples
     --------
@@ -1383,18 +1388,20 @@ def assert_series_equal(
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
-    # index comparison
-    assert_index_equal(
-        left.index,
-        right.index,
-        exact=check_index_type,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_categorical=check_categorical,
-        rtol=rtol,
-        atol=atol,
-        obj=f"{obj}.index",
-    )
+    if check_index:
+        # GH #38183
+        assert_index_equal(
+            left.index,
+            right.index,
+            exact=check_index_type,
+            check_names=check_names,
+            check_exact=check_exact,
+            check_categorical=check_categorical,
+            rtol=rtol,
+            atol=atol,
+            obj=f"{obj}.index",
+        )
+
     if check_freq and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         lidx = left.index
         ridx = right.index
@@ -1703,6 +1710,7 @@ def assert_frame_equal(
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                 rtol=rtol,
                 atol=atol,
+                check_index=False,
             )
 
 
