@@ -1188,7 +1188,7 @@ b  2""",
 
             if self.grouper._filter_empty_groups:
                 mask = counts.ravel() > 0
-                # since we are masking, make sure that we have a float object
+                # since we are masking, make sure that we have a float dtype
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
