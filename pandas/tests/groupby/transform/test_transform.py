@@ -1032,7 +1032,8 @@ def test_transform_invalid_name_raises():
     "obj",
     [
         DataFrame(
-            {"a": [0, 0, 0, 1, 1, 1], "b": range(6)}, index=["A", "B", "C", "D", "E", "F"]
+            {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
+            index=["A", "B", "C", "D", "E", "F"]
         ),
         Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
     ],
