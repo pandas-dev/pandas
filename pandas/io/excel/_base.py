@@ -553,6 +553,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
     See DataFrame.to_excel for typical usage.
 
+    The writer should be used as a context manager. Otherwise, call `close()` to save
+    and close any opened file handles.
+
     Parameters
     ----------
     path : str or typing.BinaryIO
