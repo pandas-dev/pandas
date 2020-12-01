@@ -553,9 +553,7 @@ def _interpolate_with_limit_area(
 
     invalid = isna(values)
 
-    if not invalid.any():
-        pass
-    elif not invalid.all():
+    if not invalid.all():
         first = find_valid_index(values, "first")
         last = find_valid_index(values, "last")
 
@@ -571,12 +569,7 @@ def _interpolate_with_limit_area(
             invalid[:first] = invalid[last + 1 :] = False
 
         values[invalid] = np.nan
-    else:
-        values = interpolate_2d(
-            values,
-            method=method,
-            limit=limit,
-        )
+
     return values
 
 
