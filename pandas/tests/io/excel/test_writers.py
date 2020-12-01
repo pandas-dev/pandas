@@ -522,10 +522,9 @@ class TestExcelWriter:
         frame.to_excel(path, "test1", index=False)
 
         # Test writing to separate sheets
-        writer = ExcelWriter(path)
-        frame.to_excel(writer, "test1")
-        tsframe.to_excel(writer, "test2")
-        writer.close()
+        with ExcelWriter(path) as writer:
+            frame.to_excel(writer, "test1")
+            tsframe.to_excel(writer, "test2")
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(frame, recons)
@@ -1199,17 +1198,16 @@ class TestExcelWriter:
 
     def test_bytes_io(self, engine):
         # see gh-7074
-        bio = BytesIO()
-        df = DataFrame(np.random.randn(10, 2))
+        with BytesIO() as bio:
+            df = DataFrame(np.random.randn(10, 2))
 
-        # Pass engine explicitly, as there is no file path to infer from.
-        writer = ExcelWriter(bio, engine=engine)
-        df.to_excel(writer)
-        writer.save()
+            # Pass engine explicitly, as there is no file path to infer from.
+            with ExcelWriter(bio, engine=engine) as writer:
+                df.to_excel(writer)
 
-        bio.seek(0)
-        reread_df = pd.read_excel(bio, index_col=0)
-        tm.assert_frame_equal(df, reread_df)
+            bio.seek(0)
+            reread_df = pd.read_excel(bio, index_col=0)
+            tm.assert_frame_equal(df, reread_df)
 
     def test_write_lists_dict(self, path):
         # see gh-8188.
@@ -1317,12 +1315,12 @@ class TestExcelWriterEngineTests:
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
         with tm.ensure_clean(ext) as path:
-            writer = ExcelWriter(path)
-            if ext == ".xlsx" and td.safe_import("xlsxwriter"):
-                # xlsxwriter has preference over openpyxl if both installed
-                assert isinstance(writer, _XlsxWriter)
-            else:
-                assert isinstance(writer, klass)
+            with ExcelWriter(path) as writer:
+                if ext == ".xlsx" and td.safe_import("xlsxwriter"):
+                    # xlsxwriter has preference over openpyxl if both installed
+                    assert isinstance(writer, _XlsxWriter)
+                else:
+                    assert isinstance(writer, klass)
 
     def test_ExcelWriter_dispatch_raises(self):
         with pytest.raises(ValueError, match="No engine"):
@@ -1356,8 +1354,8 @@ class TestExcelWriterEngineTests:
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
                 register_writer(DummyClass)
-                writer = ExcelWriter(filepath)
-                assert isinstance(writer, DummyClass)
+                with ExcelWriter(filepath) as writer:
+                    assert isinstance(writer, DummyClass)
                 df = tm.makeCustomDataframe(1, 1)
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
@@ -1377,5 +1375,5 @@ class TestFSPath:
 
     def test_excelwriter_fspath(self):
         with tm.ensure_clean("foo.xlsx") as path:
-            writer = ExcelWriter(path)
-            assert os.fspath(writer) == str(path)
+            with ExcelWriter(path) as writer:
+                assert os.fspath(writer) == str(path)
