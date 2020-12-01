@@ -838,14 +838,8 @@ class TestInplaceOperations:
         (
             ("Int64", "Int64", "Int64", "Int64"),
             ("float", "float", "float", "float"),
-            ("Int64", "float", "float", "float"),
-            pytest.param(
-                "Int64",
-                "Float64",
-                "Float64",
-                "Float64",
-                marks=pytest.mark.xfail(reason="Not implemented yet"),
-            ),
+            ("Int64", "float", "Float64", "Float64"),
+            ("Int64", "Float64", "Float64", "Float64"),
         ),
     )
     def test_series_inplace_ops(self, dtype1, dtype2, dtype_expected, dtype_mul):

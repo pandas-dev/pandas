@@ -43,11 +43,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
     for scalar in [scalar, data.dtype.type(scalar)]:
         result = op(data, scalar)
         expected = op(data, scalar_array)
-        if isinstance(expected, ExtensionArray):
-            tm.assert_extension_array_equal(result, expected)
-        else:
-            # TODO div still gives float ndarray -> remove this once we have Float EA
-            tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 def test_array_NA(data, all_arithmetic_operators):

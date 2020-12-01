@@ -196,6 +196,9 @@ Alternatively, you can also use the dtype object:
 
    pd.Series([1.5, None], dtype=pd.Float32Dtype())
 
+Operations with the existing integer or boolean nullable data types that
+give float results will now also use the nullable floating data types (:issue:`38178`).
+
 .. warning::
 
    Experimental: the new floating data types are currently experimental, and their
