@@ -162,7 +162,7 @@ def test_get_labels_groupby_for_Int64():
     arr, unique = table.get_labels_groupby(vals)
     expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
     expected_unique = np.array([1, 2], dtype=np.int64)
-    tm.assert_numpy_array_equal(arr, expected_arr)
+    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
     tm.assert_numpy_array_equal(unique, expected_unique)
 
 
