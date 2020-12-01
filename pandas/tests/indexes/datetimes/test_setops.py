@@ -509,17 +509,18 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
-    def test_intersection_duplicates(self):
-        # GH#
+    @pytest.mark.parametrize("sort", [False, None])
+    def test_intersection_duplicates(self, sort):
+        # GH#38196
         idx1 = Index(
             [
-                pd.Timestamp("2019-12-12"),
                 pd.Timestamp("2019-12-13"),
+                pd.Timestamp("2019-12-12"),
                 pd.Timestamp("2019-12-12"),
             ]
         )
-        result = idx1.intersection(idx1)
-        expected = Index([pd.Timestamp("2019-12-12"), pd.Timestamp("2019-12-13")])
+        result = idx1.intersection(idx1, sort=sort)
+        expected = Index([pd.Timestamp("2019-12-13"), pd.Timestamp("2019-12-12")])
         tm.assert_index_equal(result, expected)
 
 
