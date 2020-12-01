@@ -3,43 +3,21 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import NaT, Series, Timestamp
+from pandas import Series, Timestamp
 import pandas._testing as tm
 
 
 class TestConvert:
     def test_convert(self):
         # GH#10265
-        # Tests: All to nans, coerce, true
-        # Test coercion returns correct type
-        ser = Series(["a", "b", "c"])
-        results = ser._convert(datetime=True, coerce=True)
-        expected = Series([NaT] * 3)
-        tm.assert_series_equal(results, expected)
-
-        results = ser._convert(numeric=True, coerce=True)
-        expected = Series([np.nan] * 3)
-        tm.assert_series_equal(results, expected)
-
-        expected = Series([NaT] * 3, dtype=np.dtype("m8[ns]"))
-        results = ser._convert(timedelta=True, coerce=True)
-        tm.assert_series_equal(results, expected)
-
         dt = datetime(2001, 1, 1, 0, 0)
         td = dt - datetime(2000, 1, 1, 0, 0)
 
         # Test coercion with mixed types
         ser = Series(["a", "3.1415", dt, td])
-        results = ser._convert(datetime=True, coerce=True)
-        expected = Series([NaT, NaT, dt, NaT])
-        tm.assert_series_equal(results, expected)
 
-        results = ser._convert(numeric=True, coerce=True)
+        results = ser._convert(numeric=True)
         expected = Series([np.nan, 3.1415, np.nan, np.nan])
-        tm.assert_series_equal(results, expected)
-
-        results = ser._convert(timedelta=True, coerce=True)
-        expected = Series([NaT, NaT, NaT, td], dtype=np.dtype("m8[ns]"))
         tm.assert_series_equal(results, expected)
 
         # Test standard conversion returns original
@@ -116,19 +94,6 @@ class TestConvert:
                 datetime(2001, 1, 3, 0, 0),
             ]
         )
-        s2 = Series(
-            [
-                datetime(2001, 1, 1, 0, 0),
-                datetime(2001, 1, 2, 0, 0),
-                datetime(2001, 1, 3, 0, 0),
-                "foo",
-                1.0,
-                1,
-                Timestamp("20010104"),
-                "20010105",
-            ],
-            dtype="O",
-        )
 
         result = ser._convert(datetime=True)
         expected = Series(
@@ -137,35 +102,12 @@ class TestConvert:
         )
         tm.assert_series_equal(result, expected)
 
-        result = ser._convert(datetime=True, coerce=True)
-        tm.assert_series_equal(result, expected)
-
-        expected = Series(
-            [
-                Timestamp("20010101"),
-                Timestamp("20010102"),
-                Timestamp("20010103"),
-                NaT,
-                NaT,
-                NaT,
-                Timestamp("20010104"),
-                Timestamp("20010105"),
-            ],
-            dtype="M8[ns]",
-        )
-        result = s2._convert(datetime=True, numeric=False, timedelta=False, coerce=True)
-        tm.assert_series_equal(result, expected)
-        result = s2._convert(datetime=True, coerce=True)
-        tm.assert_series_equal(result, expected)
-
-        ser = Series(["foo", "bar", 1, 1.0], dtype="O")
-        result = ser._convert(datetime=True, coerce=True)
-        expected = Series([NaT] * 2 + [Timestamp(1)] * 2)
+        result = ser._convert(datetime=True)
         tm.assert_series_equal(result, expected)
 
         # preserver if non-object
         ser = Series([1], dtype="float32")
-        result = ser._convert(datetime=True, coerce=True)
+        result = ser._convert(datetime=True)
         tm.assert_series_equal(result, ser)
 
         # FIXME: dont leave commented-out
@@ -173,16 +115,6 @@ class TestConvert:
         # r[0] = np.nan
         # result = res._convert(convert_dates=True,convert_numeric=False)
         # assert result.dtype == 'M8[ns]'
-
-        # dateutil parses some single letters into today's value as a date
-        expected = Series([NaT])
-        for x in "abcdefghijklmnopqrstuvwxyz":
-            ser = Series([x])
-            result = ser._convert(datetime=True, coerce=True)
-            tm.assert_series_equal(result, expected)
-            ser = Series([x.upper()])
-            result = ser._convert(datetime=True, coerce=True)
-            tm.assert_series_equal(result, expected)
 
     def test_convert_no_arg_error(self):
         ser = Series(["1.0", "2"])

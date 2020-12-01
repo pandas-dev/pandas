@@ -1,5 +1,5 @@
 from datetime import datetime, time, timedelta, tzinfo
-from typing import Optional, Union
+from typing import Optional, Union, cast
 import warnings
 
 import numpy as np
@@ -154,6 +154,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _scalar_type = Timestamp
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype = is_datetime64_any_dtype
+    _infer_matches = ("datetime", "datetime64", "date")
 
     # define my properties & methods for delegation
     _bool_ops = [
@@ -444,9 +445,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         if not left_closed and len(index) and index[0] == start:
-            index = index[1:]
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            index = cast(DatetimeArray, index[1:])
         if not right_closed and len(index) and index[-1] == end:
-            index = index[:-1]
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            index = cast(DatetimeArray, index[:-1])
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index.asi8, freq=freq, dtype=dtype)
@@ -473,9 +476,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # Stricter check for setitem vs comparison methods
             if not timezones.tz_compare(self.tz, other.tz):
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
-
-    def _maybe_clear_freq(self):
-        self._freq = None
 
     # -----------------------------------------------------------------
     # Descriptive Properties

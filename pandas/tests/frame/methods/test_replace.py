@@ -1123,7 +1123,7 @@ class TestDataFrameReplace:
         tm.assert_series_equal(result, expected)
 
     def test_replace_dict_tuple_list_ordering_remains_the_same(self):
-        df = DataFrame(dict(A=[np.nan, 1]))
+        df = DataFrame({"A": [np.nan, 1]})
         res1 = df.replace(to_replace={np.nan: 0, 1: -1e8})
         res2 = df.replace(to_replace=(1, np.nan), value=[-1e8, 0])
         res3 = df.replace(to_replace=[1, np.nan], value=[-1e8, 0])
@@ -1523,12 +1523,10 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_period_ignore_float(self, frame_or_series):
-        """
-        Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
-        with a Period column the old, faulty behavior is to raise TypeError.
-        """
-        obj = DataFrame({"Per": [pd.Period("2020-01")] * 3})
+    @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
+    def test_replace_ea_ignore_float(self, frame_or_series, value):
+        # GH#34871
+        obj = DataFrame({"Per": [value] * 3})
         if frame_or_series is not DataFrame:
             obj = obj["Per"]
 

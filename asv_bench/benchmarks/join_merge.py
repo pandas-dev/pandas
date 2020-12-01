@@ -132,6 +132,9 @@ class Join:
     def time_join_dataframe_index_shuffle_key_bigger_sort(self, sort):
         self.df_shuf.join(self.df_key2, on="key2", sort=sort)
 
+    def time_join_dataframes_cross(self, sort):
+        self.df.loc[:2000].join(self.df_key1, how="cross", sort=sort)
+
 
 class JoinIndex:
     def setup(self):
@@ -204,6 +207,9 @@ class Merge:
 
     def time_merge_dataframe_integer_key(self, sort):
         merge(self.df, self.df2, on="key1", sort=sort)
+
+    def time_merge_dataframes_cross(self, sort):
+        merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
 
 class I8Merge:
