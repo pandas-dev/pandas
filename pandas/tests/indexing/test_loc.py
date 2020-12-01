@@ -1559,7 +1559,7 @@ class TestPartialStringSlicing:
         # GH#33146
         df = frame_or_series(
             [1] * 5,
-            index=Index(
+            index=pd.Index(
                 [
                     Timestamp("2019-12-30"),
                     Timestamp("2020-01-01"),
