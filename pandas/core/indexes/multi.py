@@ -3398,6 +3398,8 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()
             return self
 
         if not is_object_dtype(other.dtype):
@@ -3416,10 +3418,12 @@ class MultiIndex(Index):
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                uniq_tuples = self._inner_indexer(lvals, rvals)[0]
-                sort = False  # uniq_tuples is already sorted
+                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
+            else:
+                uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
             other_uniq = set(rvals)

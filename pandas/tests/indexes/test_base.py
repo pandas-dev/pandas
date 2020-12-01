@@ -688,7 +688,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize(
         "index2,expected_arr",
-        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B", "A"])],
+        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B"])],
     )
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique

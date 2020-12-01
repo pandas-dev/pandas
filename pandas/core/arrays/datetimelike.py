@@ -1253,7 +1253,7 @@ class DatetimeLikeArrayMixin(
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1659,6 +1659,20 @@ class DatetimeLikeArrayMixin(
         result = nanops.nanmean(values.view("i8"), skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
+
+    # --------------------------------------------------------------
+
+    def factorize(self, na_sentinel=-1, sort: bool = False):
+        if self.freq is not None:
+            # We must be unique, so can short-circuit (and retain freq)
+            codes = np.arange(len(self), dtype=np.intp)
+            uniques = self.copy()  # TODO: copy or view?
+            if sort and self.freq.n < 0:
+                codes = codes[::-1]
+                uniques = uniques[::-1]
+            return codes, uniques
+        # FIXME: shouldn't get here; we are ignoring sort
+        return super().factorize(na_sentinel=na_sentinel)
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()

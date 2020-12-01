@@ -284,14 +284,17 @@ class BlockManager(PandasObject):
         return axes_array, block_values, block_items, extra_state
 
     def __setstate__(self, state):
-        def unpickle_block(values, mgr_locs):
-            return make_block(values, placement=mgr_locs)
+        def unpickle_block(values, mgr_locs, ndim: int):
+            # TODO(EA2D): ndim would be unnecessary with 2D EAs
+            return make_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]
             self.axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(self.axes)
             self.blocks = tuple(
-                unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
+                unpickle_block(b["values"], b["mgr_locs"], ndim=ndim)
+                for b in state["blocks"]
             )
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
@@ -414,6 +417,7 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
+        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -427,6 +431,8 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
+        consolidate: bool, default True. Join together blocks having same
+            dtype
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
@@ -440,6 +446,9 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
+
+        if consolidate:
+            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
