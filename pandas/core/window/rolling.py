@@ -795,7 +795,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
         group_indices = self._groupby.grouper.indices.values()
         if group_indices:
-            indexer = np.concatenate(list(self._groupby.grouper.indices.values()))
+            indexer = np.concatenate(list(group_indices))
         else:
             indexer = np.array([], dtype=np.intp)
         codes = [c.take(indexer) for c in codes]
