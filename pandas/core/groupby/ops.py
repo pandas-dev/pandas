@@ -516,7 +516,7 @@ class BaseGrouper:
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> np.ndarray:
         """
-        Returns the values of a cython operation as a Tuple of [data, names].
+        Returns the values of a cython operation.
         """
         orig_values = values
         assert kind in ["transform", "aggregate"]
