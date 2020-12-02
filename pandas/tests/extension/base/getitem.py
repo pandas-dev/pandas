@@ -160,10 +160,7 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_getitem_mask_raises(self, data):
         mask = np.array([True, False])
-        msg = (
-            "boolean index did not match indexed array along dimension 0; "
-            f"dimension is {len(data)} but corresponding boolean dimension is 2"
-        )
+        msg = f"Boolean index has wrong length: 2 instead of {len(data)}"
         with pytest.raises(IndexError, match=msg):
             data[mask]
 
@@ -345,7 +342,11 @@ class BaseGetitemTests(BaseExtensionTests):
     @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
-        msg = "index 3 is out of bounds for axis 0 with size 3"
+        msg = (
+            "indices are out-of-bounds"
+            if allow_fill
+            else "index 3 is out of bounds with size 3"
+        )
         with pytest.raises(IndexError, match=msg):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
