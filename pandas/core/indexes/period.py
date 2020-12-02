@@ -452,13 +452,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if not self._is_comparable_dtype(target.dtype):
-                # i.e. target.freq != self.freq
-                # No matches
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches
+        if not self._should_compare(target):
+            return self._get_indexer_non_comparable(target, method, unique=True)
 
+        if isinstance(target, PeriodIndex):
             target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
