@@ -290,6 +290,7 @@ class Grouper:
         self._grouper = None
         self.dropna = dropna
 
+    @final
     @property
     def ax(self):
         return self.grouper
@@ -390,6 +391,7 @@ class Grouper:
         # "Optional[Any]" has no attribute "groups"  [union-attr]
         return self.grouper.groups  # type: ignore[union-attr]
 
+    @final
     def __repr__(self) -> str:
         attrs_list = (
             f"{attr_name}={repr(getattr(self, attr_name))}"

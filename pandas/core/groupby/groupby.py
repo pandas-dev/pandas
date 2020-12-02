@@ -12,6 +12,7 @@ import datetime
 from functools import partial, wraps
 import inspect
 import re
+from textwrap import dedent
 import types
 from typing import (
     Callable,
@@ -449,6 +450,7 @@ user defined function, and no alternative execution attempts will be tried.
 """
 
 
+@final
 class GroupByPlot(PandasObject):
     """
     Class implementing the .plot attribute for groupby objects.
@@ -572,9 +574,11 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.grouper = grouper
         self.exclusions = exclusions or set()
 
+    @final
     def __len__(self) -> int:
         return len(self.groups)
 
+    @final
     def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
@@ -736,6 +740,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
 
+    @final
     def _dir_additions(self) -> Set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
@@ -751,23 +756,25 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @Substitution(
         klass="GroupBy",
-        examples="""\
->>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
->>> df
-   A  B
-0  a  1
-1  b  2
-2  a  3
-3  b  4
+        examples=dedent(
+            """\
+        >>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
+        >>> df
+           A  B
+        0  a  1
+        1  b  2
+        2  a  3
+        3  b  4
 
-To get the difference between each groups maximum and minimum value in one
-pass, you can do
+        To get the difference between each groups maximum and minimum value in one
+        pass, you can do
 
->>> df.groupby('A').pipe(lambda x: x.max() - x.min())
-   B
-A
-a  2
-b  2""",
+        >>> df.groupby('A').pipe(lambda x: x.max() - x.min())
+           B
+        A
+        a  2
+        b  2"""
+        ),
     )
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
