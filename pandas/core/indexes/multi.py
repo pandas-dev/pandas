@@ -2165,7 +2165,8 @@ class MultiIndex(Index):
                 if isinstance(loc, int):
                     inds.append(loc)
                 elif isinstance(loc, slice):
-                    inds.extend(range(loc.start, loc.stop))
+                    step = loc.step if loc.step is not None else 1
+                    inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn(

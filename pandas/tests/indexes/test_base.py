@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
@@ -19,6 +20,7 @@ from pandas import (
     DatetimeIndex,
     Float64Index,
     Int64Index,
+    IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -1504,6 +1506,17 @@ class TestIndex(Base):
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
+
+    def test_drop_with_duplicates_in_index(self, index):
+        # GH38051
+        if len(index) == 0 or isinstance(index, MultiIndex):
+            return
+        if isinstance(index, IntervalIndex) and not IS64:
+            pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
+        index = index.unique().repeat(2)
+        expected = index[2:]
+        result = index.drop(index[0])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "attr",
