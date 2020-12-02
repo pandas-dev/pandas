@@ -58,7 +58,9 @@ IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 _interval_shared_docs = {}
 
 _shared_docs_kwargs = {
-    "klass": "IntervalArray", "qualname": "arrays.IntervalArray", "name": ""
+    "klass": "IntervalArray",
+    "qualname": "arrays.IntervalArray",
+    "name": "",
 }
 
 

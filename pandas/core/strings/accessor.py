@@ -236,12 +236,12 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(
-            self,
-            result,
-            name=None,
-            expand=None,
-            fill_value=np.nan,
-            returns_string=True,
+        self,
+        result,
+        name=None,
+        expand=None,
+        fill_value=np.nan,
+        returns_string=True,
     ):
         from pandas import Index, MultiIndex
 
@@ -371,9 +371,9 @@ class StringMethods(NoNewAttributesMixin):
             # in case of list-like `others`, all elements must be
             # either Series/Index/np.ndarray (1-dim)...
             if all(
-                    isinstance(x, (ABCSeries, ABCIndexClass))
-                    or (isinstance(x, np.ndarray) and x.ndim == 1)
-                    for x in others
+                isinstance(x, (ABCSeries, ABCIndexClass))
+                or (isinstance(x, np.ndarray) and x.ndim == 1)
+                for x in others
             ):
                 los: List[Series] = []
                 while others:  # iterate through list and append each element
@@ -840,7 +840,7 @@ class StringMethods(NoNewAttributesMixin):
         % {
             "side": "first",
             "return": "3 elements containing the string itself, followed by two "
-                      "empty strings",
+            "empty strings",
             "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
@@ -854,7 +854,7 @@ class StringMethods(NoNewAttributesMixin):
         % {
             "side": "last",
             "return": "3 elements containing two empty strings, followed by the "
-                      "string itself",
+            "string itself",
             "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
@@ -1791,7 +1791,9 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(
         _shared_docs["str_strip"]
         % {
-            "side": "left and right sides", "method": "strip", "position": "leading and trailing"
+            "side": "left and right sides",
+            "method": "strip",
+            "position": "leading and trailing",
         }
     )
     @forbid_nonstring_types(["bytes"])
@@ -2657,14 +2659,20 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
     _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
     _doc_args["capitalize"] = {
-        "type": "be capitalized", "method": "capitalize", "version": ""
+        "type": "be capitalized",
+        "method": "capitalize",
+        "version": "",
     }
-    _doc_args["swapcase"] = {"type": "be swapcased", "method": "swapcase", "version": ""}
+    _doc_args["swapcase"] = {
+        "type": "be swapcased",
+        "method": "swapcase",
+        "version": "",
+    }
     _doc_args["casefold"] = {
-     "type": "be casefolded",
-     "method": "casefold",
-     "version": "\n    .. versionadded:: 0.25.0\n"}
-
+        "type": "be casefolded",
+        "method": "casefold",
+        "version": "\n    .. versionadded:: 0.25.0\n",
+    }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])
     @forbid_nonstring_types(["bytes"])

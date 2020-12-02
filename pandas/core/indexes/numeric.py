@@ -224,7 +224,12 @@ _num_index_shared_docs[
     An Index instance can **only** contain hashable objects.
 """
 
-_int64_descr_args = {"klass": "Int64Index", "ltype": "integer", "dtype": "int64", "extra": ""}
+_int64_descr_args = {
+    "klass": "Int64Index",
+    "ltype": "integer",
+    "dtype": "int64",
+    "extra": "",
+}
 
 
 class IntegerIndex(NumericIndex):
@@ -287,7 +292,10 @@ class Int64Index(IntegerIndex):
 
 
 _uint64_descr_args = {
-    "klass": "UInt64Index", "ltype": "unsigned integer", "dtype": "uint64", "extra": ""
+    "klass": "UInt64Index",
+    "ltype": "unsigned integer",
+    "dtype": "uint64",
+    "extra": "",
 }
 
 
@@ -315,7 +323,10 @@ class UInt64Index(IntegerIndex):
 
 
 _float64_descr_args = {
-    "klass": "Float64Index", "dtype": "float64", "ltype": "float", "extra": ""
+    "klass": "Float64Index",
+    "dtype": "float64",
+    "ltype": "float",
+    "extra": "",
 }
 
 

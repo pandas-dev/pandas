@@ -151,7 +151,7 @@ def create_data():
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
         "timedelta": timedelta_range("00:00:00", freq="30T", periods=10),
-        "range": RangeIndex(10)
+        "range": RangeIndex(10),
     }
 
     if _loose_version >= LooseVersion("0.21"):
@@ -252,7 +252,7 @@ def create_data():
         "nat": NaT,
         "tz": Timestamp("2011-01-01", tz="US/Eastern"),
         "freq": Timestamp("2011-01-01", freq="D"),
-        "both": Timestamp("2011-01-01", tz="Asia/Tokyo", freq="M")
+        "both": Timestamp("2011-01-01", tz="Asia/Tokyo", freq="M"),
     }
 
     off = {
