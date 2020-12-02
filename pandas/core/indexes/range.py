@@ -15,6 +15,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
+    is_dtype_equal,
     is_float,
     is_integer,
     is_list_like,
@@ -504,11 +505,21 @@ class RangeIndex(Int64Index):
         intersection : Index
         """
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+
         if not isinstance(other, RangeIndex):
+            if is_dtype_equal(other.dtype, self.dtype):
+                # Int64Index
+                result = super()._intersection(other, sort=sort)
+                return self._wrap_setop_result(other, result)
             return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):

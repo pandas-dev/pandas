@@ -98,13 +98,20 @@ def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
         ("Period[D]", "float64", "object"),
     ],
 )
-def test_union_dtypes(left, right, expected):
+@pytest.mark.parametrize("names", [("foo", "foo", "foo"), ("foo", "bar", None)])
+def test_union_dtypes(left, right, expected, names):
     left = pandas_dtype(left)
     right = pandas_dtype(right)
-    a = pd.Index([], dtype=left)
-    b = pd.Index([], dtype=right)
-    result = a.union(b).dtype
-    assert result == expected
+    a = pd.Index([], dtype=left, name=names[0])
+    b = pd.Index([], dtype=right, name=names[1])
+    result = a.union(b)
+    assert result.dtype == expected
+    assert result.name == names[2]
+
+    # Testing name retention
+    # TODO: pin down desired dtype; do we want it to be commutative?
+    result = a.intersection(b)
+    assert result.name == names[2]
 
 
 def test_dunder_inplace_setops_deprecated(index):
@@ -387,6 +394,25 @@ class TestSetOps:
         intersect = first.intersection(second).sort_values()
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
+
+    def test_intersection_name_retention_with_nameless(self, index):
+        if isinstance(index, MultiIndex):
+            index = index.rename(list(range(index.nlevels)))
+        else:
+            index = index.rename("foo")
+
+        other = np.asarray(index)
+
+        result = index.intersection(other)
+        assert result.name == index.name
+
+        # empty other, same dtype
+        result = index.intersection(other[:0])
+        assert result.name == index.name
+
+        # empty `self`
+        result = index[:0].intersection(other)
+        assert result.name == index.name
 
     def test_difference_preserves_type_empty(self, index, sort):
         # GH#20040

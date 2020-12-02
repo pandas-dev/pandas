@@ -3603,7 +3603,12 @@ class MultiIndex(Index):
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique().rename(result_names)
-            return self.rename(result_names)
+            return self._get_reconciled_name_object(other)
+
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+        other, result_names = self._convert_can_do_setop(other)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3721,7 +3726,7 @@ class MultiIndex(Index):
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
-                    other = MultiIndex.from_tuples(other)
+                    other = MultiIndex.from_tuples(other, names=self.names)
                 except (ValueError, TypeError) as err:
                     # ValueError raised by tuples_to_object_array if we
                     #  have non-object dtype
