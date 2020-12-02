@@ -63,24 +63,24 @@ Here are just a few of the things that pandas does well:
     date shifting and lagging
 
 
-   [missing-data]: https://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
-   [insertion-deletion]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html#column-selection-addition-deletion
-   [alignment]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html?highlight=alignment#intro-to-data-structures
-   [groupby]: https://pandas.pydata.org/pandas-docs/stable/groupby.html#group-by-split-apply-combine
-   [conversion]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html#dataframe
-   [slicing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#slicing-ranges
-   [fancy-indexing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#advanced-indexing-with-ix
-   [subsetting]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing
-   [merging]: https://pandas.pydata.org/pandas-docs/stable/merging.html#database-style-dataframe-joining-merging
-   [joining]: https://pandas.pydata.org/pandas-docs/stable/merging.html#joining-on-index
-   [reshape]: https://pandas.pydata.org/pandas-docs/stable/reshaping.html#reshaping-and-pivot-tables
-   [pivot-table]: https://pandas.pydata.org/pandas-docs/stable/reshaping.html#pivot-tables-and-cross-tabulations
-   [mi]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#hierarchical-indexing-multiindex
-   [flat-files]: https://pandas.pydata.org/pandas-docs/stable/io.html#csv-text-files
-   [excel]: https://pandas.pydata.org/pandas-docs/stable/io.html#excel-files
-   [db]: https://pandas.pydata.org/pandas-docs/stable/io.html#sql-queries
-   [hdfstore]: https://pandas.pydata.org/pandas-docs/stable/io.html#hdf5-pytables
-   [timeseries]: https://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
+   [missing-data]: https://pandas.pydata.org/pandas-docs/stable/user_guide/missing_data.html
+   [insertion-deletion]: https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#column-selection-addition-deletion
+   [alignment]: https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html?highlight=alignment#intro-to-data-structures
+   [groupby]: https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#group-by-split-apply-combine
+   [conversion]: https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe
+   [slicing]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#slicing-ranges
+   [fancy-indexing]: https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#advanced
+   [subsetting]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#boolean-indexing
+   [merging]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#database-style-dataframe-or-named-series-joining-merging
+   [joining]: https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#joining-on-index
+   [reshape]: https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html
+   [pivot-table]: https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html
+   [mi]: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#hierarchical-indexing-multiindex
+   [flat-files]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#csv-text-files
+   [excel]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#excel-files
+   [db]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#sql-queries
+   [hdfstore]: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#hdf5-pytables
+   [timeseries]: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-series-date-functionality
 
 ## Where to get it
 The source code is currently hosted on GitHub at:
@@ -154,7 +154,7 @@ For usage questions, the best place to go to is [StackOverflow](https://stackove
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
 ## Discussion and Development
-Most development discussions take place on github in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
+Most development discussions take place on GitHub in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
 
 ## Contributing to pandas [![Open Source Helpers](https://www.codetriage.com/pandas-dev/pandas/badges/users.svg)](https://www.codetriage.com/pandas-dev/pandas)
 
