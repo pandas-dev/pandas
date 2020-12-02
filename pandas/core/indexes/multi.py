@@ -3723,7 +3723,7 @@ class MultiIndex(Index):
                 try:
                     other = MultiIndex.from_tuples(other)
                 except (ValueError, TypeError) as err:
-                    # ValueError raised by tupels_to_object_array if we
+                    # ValueError raised by tuples_to_object_array if we
                     #  have non-object dtype
                     raise TypeError(msg) from err
         else:
