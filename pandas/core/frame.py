@@ -9001,7 +9001,11 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+
+        res = self._reduce(
+            nanops.nanargmin, "argmin", axis=axis, skipna=skipna, numeric_only=False
+        )
+        indices = res._values
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -9074,7 +9078,11 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+
+        res = self._reduce(
+            nanops.nanargmax, "argmax", axis=axis, skipna=skipna, numeric_only=False
+        )
+        indices = res._values
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
