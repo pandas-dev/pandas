@@ -1880,3 +1880,24 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_unstack_with_missing_int_cast_to_float(self):
+        # https://github.com/pandas-dev/pandas/issues/37115
+        df = DataFrame(
+            {
+                "a": ["A", "A", "B"],
+                "b": ["ca", "cb", "cb"],
+                "v": [10] * 3,
+            }
+        ).set_index(["a", "b"])
+
+        # add another int column to get 2 blocks
+        df["is_"] = 1
+        assert len(df._mgr.blocks) == 2
+
+        result = df.unstack("b")
+        result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
+
+        # This would raise `ValueError: Cannot convert non-finite values (NA or inf)
+        # to integer` if the fillna operation above fails
+        result[("is_", "ca")] = result[("is_", "ca")].astype("uint8")
