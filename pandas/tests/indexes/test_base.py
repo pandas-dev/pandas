@@ -1249,10 +1249,9 @@ class TestIndex(Base):
         if method == "get_indexer":
             tm.assert_numpy_array_equal(result, expected)
         else:
-            expected = np.array([-1, -1, -1, -1], dtype=np.intp)
-
+            missing = np.arange(3, dtype=np.intp)
             tm.assert_numpy_array_equal(result[0], expected)
-            tm.assert_numpy_array_equal(result[1], expected)
+            tm.assert_numpy_array_equal(result[1], missing)
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -2346,5 +2345,6 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
+        missing = np.arange(6, dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], no_matches)
-        tm.assert_numpy_array_equal(result[1], no_matches)
+        tm.assert_numpy_array_equal(result[1], missing)
