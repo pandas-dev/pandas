@@ -402,6 +402,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             data = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
+            if data is None:
+                # self.categories is RangeIndex
+                data = self.categories._range
             data = data.rstrip(", ")
         return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
