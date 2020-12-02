@@ -473,7 +473,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
     @pytest.mark.parametrize("op", ["__add__", "__sub__", "__mul__"])
     def test_arith_flex_frame_mixed(
@@ -488,9 +488,9 @@ class TestFrameFlexArithmetic:
         # no overflow in the uint
         dtype = None
         if op in ["__sub__"]:
-            dtype = dict(B="uint64", C=None)
+            dtype = {"B": "uint64", "C": None}
         elif op in ["__add__", "__mul__"]:
-            dtype = dict(C=None)
+            dtype = {"C": None}
         tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
@@ -498,7 +498,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         # vs plain int
         result = getattr(int_frame, op)(2 * int_frame)
@@ -1126,7 +1126,7 @@ class TestFrameArithmeticUnsorted:
 
         # mix vs mix
         added = mixed_float_frame + mixed_float_frame
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # with int
         added = float_frame + mixed_int_frame
@@ -1160,20 +1160,20 @@ class TestFrameArithmeticUnsorted:
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
         added = mixed_float_frame + series.astype("float16")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # FIXME: don't leave commented-out
         # these raise with numexpr.....as we are adding an int64 to an
         # uint64....weird vs int
 
         # added = mixed_int_frame + (100*series).astype('int64')
-        # _check_mixed_int(added, dtype = dict(A = 'int64', B = 'float64', C =
-        # 'int64', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int64', "B": 'float64', "C":
+        # 'int64', "D": 'int64'})
         # added = mixed_int_frame + (100*series).astype('int32')
-        # _check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C =
-        # 'int32', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int32', "B": 'float64', "C":
+        # 'int32', "D": 'int64'})
 
         # TimeSeries
         ts = datetime_frame["A"]
@@ -1228,7 +1228,7 @@ class TestFrameArithmeticUnsorted:
         result = mixed_float_frame * 2
         for c, s in result.items():
             tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         result = DataFrame() * 2
         assert result.index.equals(DataFrame().index)

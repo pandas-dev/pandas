@@ -1631,16 +1631,12 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected)
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example
@@ -1660,16 +1656,11 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
-            # FIXME: 2020-05-07 freq check randomly fails in the CI
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -2374,9 +2365,7 @@ class TestHDFStore:
             ts3 = Series(
                 ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
             )
-        self._check_roundtrip(
-            ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
-        )
+        self._check_roundtrip(ts3, tm.assert_series_equal, path=setup_path)
 
     def test_float_index(self, setup_path):
 
