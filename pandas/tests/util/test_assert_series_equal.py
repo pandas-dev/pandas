@@ -65,7 +65,7 @@ def _assert_not_series_equal_both(a, b, **kwargs):
     _assert_not_series_equal(b, a, **kwargs)
 
 
-@pytest.mark.parametrize("data", [range(3), list("abc"), list("áàä")])
+@pytest.mark.parametrize("data", [range(3), ["abc"], ["áàä"]])
 def test_series_equal(data):
     _assert_series_equal_both(Series(data), Series(data))
 
@@ -74,9 +74,9 @@ def test_series_equal(data):
     "data1,data2",
     [
         (range(3), range(1, 4)),
-        (list("abc"), list("xyz")),
-        (list("áàä"), list("éèë")),
-        (list("áàä"), list(b"aaa")),
+        (["abc"], ["xyz"]),
+        (["áàä"], ["éèë"]),
+        (["áàä"], [b"aaa"]),
         (range(3), range(4)),
     ],
 )
@@ -219,7 +219,7 @@ Attribute "dtype" are different
 ordered=False\\)"""
 
     s1 = Series(Categorical(["a", "b"]))
-    s2 = Series(Categorical(["a", "b"], categories=list("abc")))
+    s2 = Series(Categorical(["a", "b"], categories=["abc"]))
 
     if check_categorical:
         with pytest.raises(AssertionError, match=msg):
