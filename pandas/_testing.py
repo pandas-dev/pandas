@@ -299,22 +299,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    if compression == "zip":
-        compress_method = zipfile.ZipFile
-    elif compression == "gzip":
-        # pandas\_testing.py:288: error: Incompatible types in assignment
-        # (expression has type "Type[GzipFile]", variable has type
-        # "Type[ZipFile]")
-        compress_method = gzip.GzipFile  # type: ignore[assignment]
-    elif compression == "bz2":
-        # pandas\_testing.py:290: error: Incompatible types in assignment
-        # (expression has type "Type[BZ2File]", variable has type
-        # "Type[ZipFile]")
-        compress_method = bz2.BZ2File  # type: ignore[assignment]
-    elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
-    else:
-        raise ValueError(f"Unrecognized compression type: {compression}")
+    compress_method = _select_compress_method(compression)
 
     if compression == "zip":
         mode = "w"
@@ -330,6 +315,19 @@ def write_to_compressed(compression, path, data, dest="test"):
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
+
+
+def _select_compress_method(compression: str) -> Callable:
+    if compression == "zip":
+        return zipfile.ZipFile
+    elif compression == "gzip":
+        return gzip.GzipFile
+    elif compression == "bz2":
+        return bz2.BZ2File
+    elif compression == "xz":
+        return get_lzma_file(lzma)
+    else:
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
 
 def _get_tol_from_less_precise(check_less_precise: Union[bool, int]) -> float:
