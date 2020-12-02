@@ -612,6 +612,8 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
+        # the below is only here to silence the FutureWarning
+        observed=False,
         **kwargs,
     )
 
