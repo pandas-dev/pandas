@@ -1000,9 +1000,6 @@ b  2""",
             except NotImplementedError:
                 continue
 
-            if self._transform_should_cast(how):
-                result = maybe_cast_result(result, obj, how=how)
-
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
@@ -1081,12 +1078,12 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = maybe_cast_result(result_column, obj, how=how)
+                    output[key] = result_column
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = maybe_cast_result(result, obj, how=how)
+                output[key] = result
                 idx += 1
 
         if not output:
