@@ -29,7 +29,7 @@ def _safe_add(df):
             issubclass(s.dtype.type, (np.integer, np.floating)) and s.dtype != "uint8"
         )
 
-    return DataFrame(dict((c, s + 1) if is_ok(s) else (c, s) for c, s in df.items()))
+    return DataFrame({(c, s + 1) if is_ok(s) else (c, s) for c, s in df.items()})
 
 
 class TestDataFrameIndexingWhere:

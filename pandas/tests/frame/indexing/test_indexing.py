@@ -73,8 +73,8 @@ class TestDataFrameIndexing:
             iter,
             Index,
             set,
-            lambda l: dict(zip(l, range(len(l)))),
-            lambda l: dict(zip(l, range(len(l)))).keys(),
+            lambda l: {zip(l, range(len(l)))},
+            lambda l: {zip(l, range(len(l)))}.keys(),
         ],
         ids=["list", "iter", "Index", "set", "dict", "dict_keys"],
     )
