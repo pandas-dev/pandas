@@ -87,9 +87,9 @@ def test_series_not_equal_value_mismatch(data1, data2):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(dtype="float64"),  # dtype mismatch
-        dict(index=[1, 2, 4]),  # index mismatch
-        dict(name="foo"),  # name mismatch
+        {"dtype": "float64"},  # dtype mismatch
+        {"index": [1, 2, 4]},  # index mismatch
+        {"name": "foo"},  # name mismatch
     ],
 )
 def test_series_not_equal_metadata_mismatch(kwargs):
@@ -140,7 +140,7 @@ def test_less_precise(data1, data2, dtype, decimals):
     ],
 )
 def test_series_equal_index_dtype(s1, s2, msg, check_index_type):
-    kwargs = dict(check_index_type=check_index_type)
+    kwargs = {"check_index_type": check_index_type}
 
     if check_index_type:
         with pytest.raises(AssertionError, match=msg):

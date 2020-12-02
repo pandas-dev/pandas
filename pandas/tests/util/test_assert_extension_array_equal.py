@@ -9,9 +9,9 @@ from pandas.core.arrays.sparse import SparseArray
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(),  # Default is check_exact=False
-        dict(check_exact=False),
-        dict(check_exact=True),
+        {},  # Default is check_exact=False
+        {"check_exact": False},
+        {"check_exact": True},
     ],
 )
 def test_assert_extension_array_equal_not_exact(kwargs):
@@ -55,7 +55,7 @@ ExtensionArray values are different \\(50\\.0 %\\)
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):
     end = 5
-    kwargs = dict(check_dtype=check_dtype)
+    kwargs = {"check_dtype": check_dtype}
 
     arr1 = SparseArray(np.arange(end, dtype="int64"))
     arr2 = SparseArray(np.arange(end, dtype="int32"))
