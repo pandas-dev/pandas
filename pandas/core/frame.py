@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     np_issubclass_compat,
     pandas_dtype,
 )
