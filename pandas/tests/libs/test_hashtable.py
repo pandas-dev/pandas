@@ -75,33 +75,33 @@ class TestHashTable:
             table.get_item(index + 2)
         assert str(index + 2) in str(excinfo.value)
 
-    def test_map(self, table_type, dtype):
+    def test_map(self, table_type, dtype, writable):
         # PyObjectHashTable has no map-method
         if table_type != ht.PyObjectHashTable:
             N = 77
             table = table_type()
             keys = np.arange(N).astype(dtype)
             vals = np.arange(N).astype(np.int64) + N
-            keys.flags.writeable = False
-            vals.flags.writeable = False
+            keys.flags.writeable = writable
+            vals.flags.writeable = writable
             table.map(keys, vals)
             for i in range(N):
                 assert table.get_item(keys[i]) == i + N
 
-    def test_map_locations(self, table_type, dtype):
+    def test_map_locations(self, table_type, dtype, writable):
         N = 8
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
-        keys.flags.writeable = False
+        keys.flags.writeable = writable
         table.map_locations(keys)
         for i in range(N):
             assert table.get_item(keys[i]) == i
 
-    def test_lookup(self, table_type, dtype):
+    def test_lookup(self, table_type, dtype, writable):
         N = 3
         table = table_type()
         keys = (np.arange(N) + N).astype(dtype)
-        keys.flags.writeable = False
+        keys.flags.writeable = writable
         table.map_locations(keys)
         result = table.lookup(keys)
         expected = np.arange(N)
@@ -119,7 +119,7 @@ class TestHashTable:
         result = table.lookup(wrong_keys)
         assert np.all(result == -1)
 
-    def test_unique(self, table_type, dtype):
+    def test_unique(self, table_type, dtype, writable):
         if dtype in (np.int8, np.uint8):
             N = 88
         else:
@@ -127,7 +127,7 @@ class TestHashTable:
         table = table_type()
         expected = (np.arange(N) + N).astype(dtype)
         keys = np.repeat(expected, 5)
-        keys.flags.writeable = False
+        keys.flags.writeable = writable
         unique = table.unique(keys)
         tm.assert_numpy_array_equal(unique, expected)
 
@@ -156,9 +156,10 @@ class TestHashTable:
             assert get_allocated_khash_memory() == 0
 
 
-def test_get_labels_groupby_for_Int64():
+def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
+    vals.flags.writeable = writable
     arr, unique = table.get_labels_groupby(vals)
     expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
     expected_unique = np.array([1, 2], dtype=np.int64)
@@ -262,33 +263,33 @@ def get_ht_function(fun_name, type_suffix):
     ],
 )
 class TestHelpFunctions:
-    def test_value_count(self, dtype, type_suffix):
+    def test_value_count(self, dtype, type_suffix, writable):
         N = 43
         value_count = get_ht_function("value_count", type_suffix)
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
-        values.flags.writeable = False
+        values.flags.writeable = writable
         keys, counts = value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
 
-    def test_duplicated_first(self, dtype, type_suffix):
+    def test_duplicated_first(self, dtype, type_suffix, writable):
         N = 100
         duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
-        values.flags.writeable = False
+        values.flags.writeable = writable
         result = duplicated(values)
         expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix):
+    def test_ismember_yes(self, dtype, type_suffix, writable):
         N = 127
         ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
-        arr.flags.writeable = False
-        values.flags.writeable = False
+        arr.flags.writeable = writable
+        values.flags.writeable = writable
         result = ismember(arr, values)
         expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
@@ -302,7 +303,7 @@ class TestHelpFunctions:
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix):
+    def test_mode(self, dtype, type_suffix, writable):
         if dtype in (np.int8, np.uint8):
             N = 53
         else:
@@ -310,7 +311,7 @@ class TestHelpFunctions:
         mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
-        values.flags.writeable = False
+        values.flags.writeable = writable
         result = mode(values, False)
         assert result == 42
 
