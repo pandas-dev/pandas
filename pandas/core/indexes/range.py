@@ -186,8 +186,9 @@ class RangeIndex(Int64Index):
         return attrs
 
     def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
+        # we are formatting thru the attributes; this is used for
+        #  CategoricalDtype.__repr__
+        return str(self._range)
 
     def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
         if not len(self._range):

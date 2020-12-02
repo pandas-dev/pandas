@@ -399,10 +399,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __repr__(self) -> str_type:
         if self.categories is None:
-            data = "None, "
+            data = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
-        return f"CategoricalDtype(categories={data}ordered={self.ordered})"
+            data = data.rstrip(", ")
+        return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
