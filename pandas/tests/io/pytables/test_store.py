@@ -1788,10 +1788,14 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             store.put("df", df)
-            tm.assert_frame_equal(store["df"], expected)
+            tm.assert_frame_equal(
+                store["df"], expected, check_index_type=True, check_column_type=True
+            )
 
             store.put("df1", df, format="table")
-            tm.assert_frame_equal(store["df1"], expected)
+            tm.assert_frame_equal(
+                store["df1"], expected, check_index_type=True, check_column_type=True
+            )
 
             with pytest.raises(ValueError):
                 store.put("df2", df, format="table", data_columns=["A"])
@@ -1816,7 +1820,9 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             store.put("df1", df, format="table")
-            tm.assert_frame_equal(store["df1"], expected)
+            tm.assert_frame_equal(
+                store["df1"], expected, check_index_type=True, check_column_type=True
+            )
 
     def test_store_multiindex(self, setup_path):
 
@@ -2359,9 +2365,7 @@ class TestHDFStore:
             ts3 = Series(
                 ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
             )
-        self._check_roundtrip(
-            ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
-        )
+        self._check_roundtrip(ts3, tm.assert_series_equal, path=setup_path)
 
     def test_float_index(self, setup_path):
 
