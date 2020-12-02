@@ -50,7 +50,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
-from pandas.core.dtypes.cast import maybe_cast_result
+from pandas.core.dtypes.cast import maybe_cast_result, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
@@ -1195,7 +1195,7 @@ b  2""",
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                result = maybe_cast_result(values[mask], result)
+                result = maybe_downcast_to_dtype(values[mask], result.dtype)
 
             output[key] = result
 
