@@ -1456,12 +1456,7 @@ def assert_series_equal(
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
-    elif (
-        is_extension_array_dtype(left.dtype) and needs_i8_conversion(right.dtype)
-    ) or (is_extension_array_dtype(right.dtype) and needs_i8_conversion(left.dtype)):
-        # If we have an extension array and Datetimearray / TimedeltaArray, we still
-        # want to assert_extension_array_equal even though Datetimearray and
-        # TimedeltaArray dtypes are not an instance of ExtensionArraydtype subclass
+    elif is_ExtensionArrayDtype_and_needs_i8_conversion(left.dtype, right.dtype):
         assert_extension_array_equal(
             left._values,
             right._values,
@@ -1876,6 +1871,16 @@ def assert_copy(iter1, iter2, **eql_kwargs):
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg
+
+
+def is_ExtensionArrayDtype_and_needs_i8_conversion(left_dtype, right_dtype):
+    """
+    Checks that we have the combination of an ExtensionArraydtype and
+    a dtype that should be converted to int64.
+    """
+    return (
+        is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+    ) or (is_extension_array_dtype(right_dtype) and needs_i8_conversion(left_dtype))
 
 
 def getCols(k):
