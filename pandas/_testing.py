@@ -1289,6 +1289,7 @@ def assert_series_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
+    *,
     check_index=True,
 ):
     """
