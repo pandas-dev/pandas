@@ -57,9 +57,9 @@ IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
 _interval_shared_docs = {}
 
-_shared_docs_kwargs = dict(
-    klass="IntervalArray", qualname="arrays.IntervalArray", name=""
-)
+_shared_docs_kwargs = {
+    "klass": "IntervalArray", "qualname": "arrays.IntervalArray", "name": ""
+}
 
 
 _interval_shared_docs[
@@ -127,14 +127,14 @@ for more.
 
 @Appender(
     _interval_shared_docs["class"]
-    % dict(
-        klass="IntervalArray",
-        summary="Pandas array for interval data that are closed on the same side.",
-        versionadded="0.24.0",
-        name="",
-        extra_attributes="",
-        extra_methods="",
-        examples=textwrap.dedent(
+    % {
+        "klass": "IntervalArray",
+        "summary": "Pandas array for interval data that are closed on the same side.",
+        "versionadded": "0.24.0",
+        "name": "",
+        "extra_attributes": "",
+        "extra_methods": "",
+        "examples": textwrap.dedent(
             """\
     Examples
     --------
@@ -151,7 +151,7 @@ for more.
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
         ),
-    )
+    }
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
     ndim = 1
@@ -319,9 +319,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     @Appender(
         _interval_shared_docs["from_breaks"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -331,7 +331,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 3, closed: right, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def from_breaks(cls, breaks, closed="right", copy=False, dtype=None):
         breaks = maybe_convert_platform_interval(breaks)
@@ -390,9 +390,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     @Appender(
         _interval_shared_docs["from_arrays"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
         <IntervalArray>
@@ -400,7 +400,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 3, closed: right, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def from_arrays(cls, left, right, closed="right", copy=False, dtype=None):
         left = maybe_convert_platform_interval(left)
@@ -445,9 +445,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     @Appender(
         _interval_shared_docs["from_tuples"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -457,7 +457,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 2, closed: right, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def from_tuples(cls, data, closed="right", copy=False, dtype=None):
         if len(data):
@@ -904,7 +904,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
         """
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         fill_left = fill_right = fill_value
         if allow_fill:
@@ -1144,9 +1144,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @Appender(
         _interval_shared_docs["overlaps"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> data = [(0, 1), (1, 3), (2, 4)]
         >>> intervals = pd.arrays.IntervalArray.from_tuples(data)
@@ -1156,7 +1156,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 3, closed: right, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def overlaps(self, other):
         if isinstance(other, (IntervalArray, ABCIntervalIndex)):
@@ -1207,9 +1207,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @Appender(
         _interval_shared_docs["set_closed"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -1224,7 +1224,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 3, closed: both, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def set_closed(self, closed):
         if closed not in VALID_CLOSED:
@@ -1360,7 +1360,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
 
     @Appender(
-        _interval_shared_docs["to_tuples"] % dict(return_type="ndarray", examples="")
+        _interval_shared_docs["to_tuples"] % {"return_type": "ndarray", "examples": ""}
     )
     def to_tuples(self, na_tuple=True):
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
@@ -1373,7 +1373,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
@@ -1412,9 +1412,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @Appender(
         _interval_shared_docs["contains"]
-        % dict(
-            klass="IntervalArray",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalArray",
+            "examples": textwrap.dedent(
                 """\
         >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
@@ -1423,7 +1423,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Length: 3, closed: right, dtype: interval[int64]
         """
             ),
-        )
+        }
     )
     def contains(self, other):
         if isinstance(other, Interval):
