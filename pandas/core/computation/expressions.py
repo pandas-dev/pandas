@@ -22,7 +22,7 @@ if NUMEXPR_INSTALLED:
     import numexpr as ne
 
 _TEST_MODE = None
-_TEST_RESULT: List[bool] = list()
+_TEST_RESULT: List[bool] = []
 USE_NUMEXPR = NUMEXPR_INSTALLED
 _evaluate = None
 _where = None
