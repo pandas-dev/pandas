@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 import pandas as pd
@@ -287,15 +285,3 @@ def test_allows_duplicate_labels():
 
     with pytest.raises(AssertionError, match="<Flags"):
         tm.assert_frame_equal(left, right)
-
-
-def test_assert_frame_equal_checks_index_exactly_twice():
-    data = {"col1": [1, 2, 3], "col2": [4, 5, 6]}
-    left = DataFrame(data, index=["a", "b", "c"])
-    right = DataFrame(data, index=["a", "b", "c"])
-    with patch("pandas._testing.assert_index_equal", return_value=None) as mock:
-        tm.assert_frame_equal(left, right)
-        # Expect exactly two calls:
-        # 1. Index equality
-        # 2. Columns equality
-        assert mock.call_count == 2
