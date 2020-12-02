@@ -114,25 +114,6 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"^\[10\]$"):
             df.loc[[10, 4]]
 
-    def test_string_representation(self):
-        # GH 32553
-
-        markers = Series(
-            ["foo", "bar"],
-            index=pd.IntervalIndex(
-                [
-                    pd.Interval(left, right)
-                    for left, right in zip(
-                        pd.Float64Index([329.973, 345.137], dtype="float64"),
-                        pd.Float64Index([345.137, 360.191], dtype="float64"),
-                    )
-                ]
-            ),
-        )
-        result = str(markers)
-        expected = "(329.973, 345.137]    foo\n(345.137, 360.191]    bar\ndtype: object"
-        assert result == expected
-
 
 class TestIntervalIndexInsideMultiIndex:
     def test_mi_intervalindex_slicing_with_scalar(self):
