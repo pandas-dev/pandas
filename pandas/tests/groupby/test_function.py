@@ -692,14 +692,14 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
-    df = DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    df = DataFrame({"a": [1], "b": pd.to_datetime(["2001"])})
     expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummin()
     tm.assert_series_equal(expected, result)
 
     # GH 15635
-    df = DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+    df = DataFrame({"a": [1, 2, 1], "b": [1, 2, 2]})
     result = df.groupby("a").b.cummin()
     expected = Series([1, 2, 1], name="b")
     tm.assert_series_equal(result, expected)
@@ -748,14 +748,14 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
-    df = DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    df = DataFrame({"a": [1], "b": pd.to_datetime(["2001"])})
     expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummax()
     tm.assert_series_equal(expected, result)
 
     # GH 15635
-    df = DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
+    df = DataFrame({"a": [1, 2, 1], "b": [2, 1, 1]})
     result = df.groupby("a").b.cummax()
     expected = Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)

@@ -5,6 +5,8 @@ from pandas import Series
 pytest.importorskip("matplotlib")
 from pandas.plotting._matplotlib.style import get_standard_colors
 
+pytestmark = pytest.mark.slow
+
 
 class TestGetStandardColors:
     @pytest.mark.parametrize(

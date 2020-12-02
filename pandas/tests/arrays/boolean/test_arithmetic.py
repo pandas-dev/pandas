@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.arrays import FloatingArray
 
 
 @pytest.fixture
@@ -51,13 +52,15 @@ def test_sub(left_array, right_array):
 
 
 def test_div(left_array, right_array):
-    # for now division gives a float numpy array
     result = left_array / right_array
-    expected = np.array(
-        [1.0, np.inf, np.nan, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
-        dtype="float64",
+    expected = FloatingArray(
+        np.array(
+            [1.0, np.inf, np.nan, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
+            dtype="float64",
+        ),
+        np.array([False, False, True, False, False, True, True, True, True]),
     )
-    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

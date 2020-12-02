@@ -1684,10 +1684,6 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def _to_safe_for_reshape(self):
-        """ convert to object if we are a categorical """
-        return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
-
     def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
@@ -2143,7 +2139,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples
+            Must be a list of tuples when level is not specified
         level : int or level name, default None
         errors : str, default 'raise'
 
@@ -2198,10 +2194,13 @@ class MultiIndex(Index):
         # are not nan and equal -1, this means they are missing in the index
         nan_codes = isna(codes)
         values[(np.equal(nan_codes, False)) & (values == -1)] = -2
+        if index.shape[0] == self.shape[0]:
+            values[np.equal(nan_codes, True)] = -2
 
+        not_found = codes[values == -2]
+        if len(not_found) != 0 and errors != "ignore":
+            raise KeyError(f"labels {not_found} not found in level")
         mask = ~algos.isin(self.codes[i], values)
-        if mask.all() and errors != "ignore":
-            raise KeyError(f"labels {codes} not found in level")
 
         return self[mask]
 
@@ -2311,7 +2310,7 @@ class MultiIndex(Index):
 
     def _get_codes_for_sorting(self):
         """
-        we categorizing our codes by using the
+        we are categorizing our codes by using the
         available categories (all, not just observed)
         excluding any missing ones (-1); this is in preparation
         for sorting, where we need to disambiguate that -1 is not
@@ -2526,6 +2525,10 @@ class MultiIndex(Index):
         new_values = series._values[loc]
         if is_scalar(loc):
             return new_values
+
+        if len(new_values) == 1 and not self.nlevels > 1:
+            # If more than one level left, we can not return a scalar
+            return new_values[0]
 
         new_index = self[loc]
         new_index = maybe_droplevels(new_index, key)
@@ -3605,7 +3608,14 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            return self.rename(result_names)
+            if self.has_duplicates:
+                return self.unique().rename(result_names)
+            return self._get_reconciled_name_object(other)
+
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+        other, result_names = self._convert_can_do_setop(other)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3623,10 +3633,12 @@ class MultiIndex(Index):
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
-                uniq_tuples = self._inner_indexer(lvals, rvals)[0]
-                sort = False  # uniq_tuples is already sorted
+                inner_tuples = self._inner_indexer(lvals, rvals)[0]
+                sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
+            else:
+                uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
             other_uniq = set(rvals)
@@ -3717,16 +3729,14 @@ class MultiIndex(Index):
         if not isinstance(other, Index):
 
             if len(other) == 0:
-                other = MultiIndex(
-                    levels=[[]] * self.nlevels,
-                    codes=[[]] * self.nlevels,
-                    verify_integrity=False,
-                )
+                return self[:0], self.names
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
-                    other = MultiIndex.from_tuples(other)
-                except TypeError as err:
+                    other = MultiIndex.from_tuples(other, names=self.names)
+                except (ValueError, TypeError) as err:
+                    # ValueError raised by tuples_to_object_array if we
+                    #  have non-object dtype
                     raise TypeError(msg) from err
         else:
             result_names = get_unanimous_names(self, other)

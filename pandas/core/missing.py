@@ -1,13 +1,13 @@
 """
 Routines for filling missing data.
 """
-
+from functools import partial
 from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import DtypeObj
+from pandas._typing import ArrayLike, Axis, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -15,57 +15,45 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_integer_dtype,
     is_numeric_v_string_like,
-    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
 
 
-def mask_missing(arr, values_to_mask):
+def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
+
+    Parameters
+    ----------
+    arr : ArrayLike
+    values_to_mask: list, tuple, or scalar
+
+    Returns
+    -------
+    np.ndarray[bool]
     """
+    # When called from Block.replace/replace_list, values_to_mask is a scalar
+    #  known to be holdable by arr.
+    # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
-
-    try:
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
-
-    except Exception:
-        values_to_mask = np.array(values_to_mask, dtype=object)
+    values_to_mask = np.array(values_to_mask, dtype=dtype)
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
-    mask = None
+    # GH 21977
+    mask = np.zeros(arr.shape, dtype=bool)
     for x in nonna:
-        if mask is None:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask = False
-            else:
-                mask = arr == x
-
-            # if x is a string and arr is not, then we get False and we must
-            # expand the mask to size arr.shape
-            if is_scalar(mask):
-                mask = np.zeros(arr.shape, dtype=bool)
+        if is_numeric_v_string_like(arr, x):
+            # GH#29553 prevent numpy deprecation warnings
+            pass
         else:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                mask |= False
-            else:
-                mask |= arr == x
+            mask |= arr == x
 
     if na_mask.any():
-        if mask is None:
-            mask = isna(arr)
-        else:
-            mask |= isna(arr)
-
-    # GH 21977
-    if mask is None:
-        mask = np.zeros(arr.shape, dtype=bool)
+        mask |= isna(arr)
 
     return mask
 
@@ -540,16 +528,92 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
     return P(x)
 
 
+def _interpolate_with_limit_area(
+    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+) -> ArrayLike:
+    """
+    Apply interpolation and limit_area logic to values along a to-be-specified axis.
+
+    Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str
+        Interpolation method. Could be "bfill" or "pad"
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
+    """
+
+    invalid = isna(values)
+
+    if not invalid.all():
+        first = find_valid_index(values, "first")
+        last = find_valid_index(values, "last")
+
+        values = interpolate_2d(
+            values,
+            method=method,
+            limit=limit,
+        )
+
+        if limit_area == "inside":
+            invalid[first : last + 1] = False
+        elif limit_area == "outside":
+            invalid[:first] = invalid[last + 1 :] = False
+
+        values[invalid] = np.nan
+
+    return values
+
+
 def interpolate_2d(
     values,
-    method="pad",
-    axis=0,
-    limit=None,
+    method: str = "pad",
+    axis: Axis = 0,
+    limit: Optional[int] = None,
+    limit_area: Optional[str] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
+
+       Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str, default "pad"
+        Interpolation method. Could be "bfill" or "pad"
+    axis: 0 or 1
+        Interpolation axis
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str, optional
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
     """
+    if limit_area is not None:
+        return np.apply_along_axis(
+            partial(
+                _interpolate_with_limit_area,
+                method=method,
+                limit=limit,
+                limit_area=limit_area,
+            ),
+            axis,
+            values,
+        )
+
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
