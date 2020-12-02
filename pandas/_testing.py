@@ -1695,8 +1695,12 @@ def assert_frame_equal(
     else:
         for i, col in enumerate(left.columns):
             assert col in right
-            lcol = left.iloc[:, i]
-            rcol = right.iloc[:, i]
+            lcol = left._ixs(i, axis=1)
+            rcol = right._ixs(i, axis=1)
+            # GH #38183
+            # use check_index=False, because we do not want to run
+            # assert_index_equal for each column,
+            # as we already checked it for the whole dataframe before.
             assert_series_equal(
                 lcol,
                 rcol,
