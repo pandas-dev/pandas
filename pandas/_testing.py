@@ -1289,6 +1289,7 @@ def assert_series_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
+    check_index=True,
 ):
     """
     Check that left and right Series are equal.
@@ -1348,6 +1349,10 @@ def assert_series_equal(
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    check_index : bool, default True
+        Whether to check index equivalence. If False, then compare only values.
+
+        .. versionadded:: 1.2.0
 
     Examples
     --------
@@ -1358,55 +1363,6 @@ def assert_series_equal(
     """
     __tracebackhide__ = True
 
-    _assert_series_values_equal(
-        left,
-        right,
-        check_dtype=check_dtype,
-        check_series_type=check_series_type,
-        check_less_precise=check_less_precise,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_datetimelike_compat=check_datetimelike_compat,
-        check_categorical=check_categorical,
-        check_category_order=check_category_order,
-        check_freq=check_freq,
-        check_flags=check_flags,
-        rtol=rtol,
-        atol=atol,
-        obj=obj,
-    )
-
-    assert_index_equal(
-        left.index,
-        right.index,
-        exact=check_index_type,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_categorical=check_categorical,
-        rtol=rtol,
-        atol=atol,
-        obj=f"{obj}.index",
-    )
-
-
-def _assert_series_values_equal(
-    left,
-    right,
-    *,
-    check_dtype=True,
-    check_series_type=True,
-    check_less_precise=no_default,
-    check_names=True,
-    check_exact=False,
-    check_datetimelike_compat=False,
-    check_categorical=True,
-    check_category_order=True,
-    check_freq=True,
-    check_flags=True,
-    rtol=1.0e-5,
-    atol=1.0e-8,
-    obj="Series",
-):
     if check_less_precise is not no_default:
         warnings.warn(
             "The 'check_less_precise' keyword in testing.assert_*_equal "
@@ -1431,6 +1387,20 @@ def _assert_series_values_equal(
 
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+
+    if check_index:
+        # GH #38183
+        assert_index_equal(
+            left.index,
+            right.index,
+            exact=check_index_type,
+            check_names=check_names,
+            check_exact=check_exact,
+            check_categorical=check_categorical,
+            rtol=rtol,
+            atol=atol,
+            obj=f"{obj}.index",
+        )
 
     if check_freq and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         lidx = left.index
@@ -1727,10 +1697,11 @@ def assert_frame_equal(
             assert col in right
             lcol = left.iloc[:, i]
             rcol = right.iloc[:, i]
-            _assert_series_values_equal(
+            assert_series_equal(
                 lcol,
                 rcol,
                 check_dtype=check_dtype,
+                check_index_type=check_index_type,
                 check_exact=check_exact,
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
@@ -1739,6 +1710,7 @@ def assert_frame_equal(
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                 rtol=rtol,
                 atol=atol,
+                check_index=False,
             )
 
 
