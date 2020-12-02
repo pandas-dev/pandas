@@ -2380,6 +2380,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
+
+        if self.is_unique:
+            return self._shallow_copy()
+
         result = super().unique()
         return self._shallow_copy(result)
 
@@ -2866,7 +2870,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.safe_sort(result)
 
         # Intersection has to be unique
-        assert algos.unique(result).shape == result.shape
+        assert Index(result).is_unique
 
         return result
 
