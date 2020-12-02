@@ -1185,22 +1185,22 @@ b  2""",
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = maybe_cast_result(result, obj, numeric_only=True)
+            result = maybe_cast_result(result, obj, numeric_only=True)
 
-        if not output:
-            return self._python_apply_general(f, self._selected_obj)
-
-        if self.grouper._filter_empty_groups:
-
-            mask = counts.ravel() > 0
-            for key, result in output.items():
+            if self.grouper._filter_empty_groups:
+                mask = counts.ravel() > 0
 
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[key] = maybe_cast_result(values[mask], result)
+                result = maybe_cast_result(values[mask], result)
+
+            output[key] = result
+
+        if not output:
+            return self._python_apply_general(f, self._selected_obj)
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
