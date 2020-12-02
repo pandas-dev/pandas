@@ -1456,7 +1456,16 @@ def assert_series_equal(
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
-    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+    elif is_extension_array_dtype_and_needs_i8_conversion(
+        left.dtype, right.dtype
+    ) or is_extension_array_dtype_and_needs_i8_conversion(right.dtype, left.dtype):
+        assert_extension_array_equal(
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
+        )
+    elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
             left._values,
@@ -1768,7 +1777,7 @@ def box_expected(expected, box_cls, transpose=True):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
         if transpose:
-            # for vector operations, we we need a DataFrame to be a single-row,
+            # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
             #  vectors of the same length.
             expected = expected.T
@@ -1864,6 +1873,20 @@ def assert_copy(iter1, iter2, **eql_kwargs):
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg
+
+
+def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+    """
+    Checks that we have the combination of an ExtensionArraydtype and
+    a dtype that should be converted to int64
+
+    Returns
+    -------
+    bool
+
+    Related to issue #37609
+    """
+    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
 
 
 def getCols(k):
@@ -2167,15 +2190,15 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = dict(
-        i=makeIntIndex,
-        f=makeFloatIndex,
-        s=makeStringIndex,
-        u=makeUnicodeIndex,
-        dt=makeDateIndex,
-        td=makeTimedeltaIndex,
-        p=makePeriodIndex,
-    ).get(idx_type)
+    idx_func = {
+        "i": makeIntIndex,
+        "f": makeFloatIndex,
+        "s": makeStringIndex,
+        "u": makeUnicodeIndex,
+        "dt": makeDateIndex,
+        "td": makeTimedeltaIndex,
+        "p": makePeriodIndex,
+    }.get(idx_type)
     if idx_func:
         # pandas\_testing.py:2120: error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]

@@ -144,7 +144,7 @@ class PandasArray(
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
-    # that _typ to ensure that that users don't unnecessarily use EAs inside
+    # that _typ to ensure that users don't unnecessarily use EAs inside
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
