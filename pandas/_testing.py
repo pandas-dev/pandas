@@ -10,7 +10,17 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
@@ -301,16 +311,14 @@ def write_to_compressed(compression, path, data, dest="test"):
     """
     compress_method = _select_compress_method(compression)
 
+    args: Tuple[Any, ...]
     if compression == "zip":
         mode = "w"
         args = (dest, data)
         method = "writestr"
     else:
         mode = "wb"
-        # pandas\_testing.py:302: error: Incompatible types in assignment
-        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
-        # Any]")
-        args = (data,)  # type: ignore[assignment]
+        args = (data,)
         method = "write"
 
     with compress_method(path, mode=mode) as f:
