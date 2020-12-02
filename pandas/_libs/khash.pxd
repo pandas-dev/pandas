@@ -1,8 +1,21 @@
 from cpython.object cimport PyObject
-from numpy cimport float64_t, int32_t, int64_t, uint32_t, uint64_t
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 
 
 cdef extern from "khash_python.h":
+    const int KHASH_TRACE_DOMAIN
+
     ctypedef uint32_t khint_t
     ctypedef khint_t khiter_t
 
@@ -67,72 +80,6 @@ cdef extern from "khash_python.h":
     void kh_destroy_str_starts(kh_str_starts_t*) nogil
     void kh_resize_str_starts(kh_str_starts_t*, khint_t) nogil
 
-    ctypedef struct kh_int64_t:
-        khint_t n_buckets, size, n_occupied, upper_bound
-        uint32_t *flags
-        int64_t *keys
-        size_t *vals
-
-    kh_int64_t* kh_init_int64() nogil
-    void kh_destroy_int64(kh_int64_t*) nogil
-    void kh_clear_int64(kh_int64_t*) nogil
-    khint_t kh_get_int64(kh_int64_t*, int64_t) nogil
-    void kh_resize_int64(kh_int64_t*, khint_t) nogil
-    khint_t kh_put_int64(kh_int64_t*, int64_t, int*) nogil
-    void kh_del_int64(kh_int64_t*, khint_t) nogil
-
-    bint kh_exist_int64(kh_int64_t*, khiter_t) nogil
-
-    ctypedef uint64_t khuint64_t
-
-    ctypedef struct kh_uint64_t:
-        khint_t n_buckets, size, n_occupied, upper_bound
-        uint32_t *flags
-        khuint64_t *keys
-        size_t *vals
-
-    kh_uint64_t* kh_init_uint64() nogil
-    void kh_destroy_uint64(kh_uint64_t*) nogil
-    void kh_clear_uint64(kh_uint64_t*) nogil
-    khint_t kh_get_uint64(kh_uint64_t*, uint64_t) nogil
-    void kh_resize_uint64(kh_uint64_t*, khint_t) nogil
-    khint_t kh_put_uint64(kh_uint64_t*, uint64_t, int*) nogil
-    void kh_del_uint64(kh_uint64_t*, khint_t) nogil
-
-    bint kh_exist_uint64(kh_uint64_t*, khiter_t) nogil
-
-    ctypedef struct kh_float64_t:
-        khint_t n_buckets, size, n_occupied, upper_bound
-        uint32_t *flags
-        float64_t *keys
-        size_t *vals
-
-    kh_float64_t* kh_init_float64() nogil
-    void kh_destroy_float64(kh_float64_t*) nogil
-    void kh_clear_float64(kh_float64_t*) nogil
-    khint_t kh_get_float64(kh_float64_t*, float64_t) nogil
-    void kh_resize_float64(kh_float64_t*, khint_t) nogil
-    khint_t kh_put_float64(kh_float64_t*, float64_t, int*) nogil
-    void kh_del_float64(kh_float64_t*, khint_t) nogil
-
-    bint kh_exist_float64(kh_float64_t*, khiter_t) nogil
-
-    ctypedef struct kh_int32_t:
-        khint_t n_buckets, size, n_occupied, upper_bound
-        uint32_t *flags
-        int32_t *keys
-        size_t *vals
-
-    kh_int32_t* kh_init_int32() nogil
-    void kh_destroy_int32(kh_int32_t*) nogil
-    void kh_clear_int32(kh_int32_t*) nogil
-    khint_t kh_get_int32(kh_int32_t*, int32_t) nogil
-    void kh_resize_int32(kh_int32_t*, khint_t) nogil
-    khint_t kh_put_int32(kh_int32_t*, int32_t, int*) nogil
-    void kh_del_int32(kh_int32_t*, khint_t) nogil
-
-    bint kh_exist_int32(kh_int32_t*, khiter_t) nogil
-
     # sweep factorize
 
     ctypedef struct kh_strbox_t:
@@ -150,3 +97,5 @@ cdef extern from "khash_python.h":
     void kh_del_strbox(kh_strbox_t*, khint_t) nogil
 
     bint kh_exist_strbox(kh_strbox_t*, khiter_t) nogil
+
+include "khash_for_primitive_helper.pxi"

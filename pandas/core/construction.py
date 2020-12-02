@@ -351,7 +351,7 @@ def array(
     return result
 
 
-def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
+def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayLike]:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -399,9 +399,25 @@ def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
-    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
-    return obj  # type: ignore[return-value]
+    return obj
+
+
+def ensure_wrapped_if_datetimelike(arr):
+    """
+    Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
+    """
+    if isinstance(arr, np.ndarray):
+        if arr.dtype.kind == "M":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(arr)
+
+        elif arr.dtype.kind == "m":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(arr)
+
+    return arr
 
 
 def sanitize_array(

@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
+_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 
 # --- Period index sketch
 
@@ -65,7 +65,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
+class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
 
@@ -250,7 +250,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self) -> np.ndarray:
-        return np.asarray(self)
+        return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -436,8 +436,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             )
 
         # _assert_can_do_setop ensures we have matching dtype
-        result = Int64Index.join(
-            self,
+        result = super().join(
             other,
             how=how,
             level=level,
@@ -453,13 +452,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if not self._is_comparable_dtype(target.dtype):
-                # i.e. target.freq != self.freq
-                # No matches
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches
+        if not self._should_compare(target):
+            return self._get_indexer_non_comparable(target, method, unique=True)
 
+        if isinstance(target, PeriodIndex):
             target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
@@ -579,10 +575,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
                 # string cannot be parsed as datetime-like
-                # TODO: we need tests for this case
-                raise KeyError(label) from err
+                raise self._invalid_indexer("slice", label) from err
         elif is_integer(label) or is_float(label):
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return label
 
@@ -641,15 +636,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        elif is_object_dtype(other.dtype):
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+
+        if is_object_dtype(other.dtype):
             return self.astype("O").intersection(other, sort=sort)
 
-        elif not is_dtype_equal(self.dtype, other.dtype):
+        elif not self._is_comparable_dtype(other.dtype):
             # We can infer that the intersection is empty.
             # assert_can_do_setop ensures that this is not just a mismatched freq
             this = self[:0].astype("O")
