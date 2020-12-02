@@ -8,6 +8,15 @@ including other versions of pandas.
 
 {{ header }}
 
+.. warning::
+
+   Previously, the default argument ``engine=None`` to ``pd.read_excel``
+   would result in using the `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine in
+   many cases. The engine ``xlrd`` is no longer maintained, and is not supported with
+   python >= 3.9. If `openpyxl <https://pypi.org/project/openpyxl/>`_  is installed,
+   many of these  cases will now default to using the ``openpyxl`` engine. See the
+   :func:`read_excel` documentation for more details.
+
 .. ---------------------------------------------------------------------------
 
 Enhancements
@@ -670,6 +679,7 @@ Missing
 
 - Bug in :meth:`.SeriesGroupBy.transform` now correctly handles missing values for ``dropna=False`` (:issue:`35014`)
 - Bug in :meth:`Series.nunique` with ``dropna=True`` was returning incorrect results when both ``NA`` and ``None`` missing values were present (:issue:`37566`)
+- Bug in :meth:`Series.interpolate` where kwarg ``limit_area`` and ``limit_direction`` had no effect when using methods ``pad`` and ``backfill`` (:issue:`31048`)
 -
 
 MultiIndex
@@ -777,6 +787,8 @@ Reshaping
 - Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
 - Bug in :meth:`DataFrame.merge` and :meth:`pandas.merge` returning inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
 - Bug in :func:`merge_ordered` couldn't handle list-like ``left_by`` or ``right_by`` (:issue:`35269`)
+- Bug in :func:`merge_ordered` returned wrong join result when length of ``left_by`` or ``right_by`` equals to the rows of ``left`` or ``right`` (:issue:`38166`)
+- Bug in :func:`merge_ordered` didn't raise when elements in ``left_by`` or ``right_by`` not exist in ``left`` columns or ``right`` columns (:issue:`38167`)
 
 Sparse
 ^^^^^^
@@ -804,6 +816,7 @@ Other
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
 - Fixed metadata propagation when selecting columns with ``DataFrame.__getitem__`` (:issue:`28283`)
+- Bug in :meth:`Index.intersection` with non-:class:`Index` failing to set the correct name on the returned :class:`Index` (:issue:`38111`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
 - Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
