@@ -389,10 +389,22 @@ def test_getitem_generator(string_series):
     tm.assert_series_equal(result2, expected)
 
 
-def test_getitem_ndim_deprecated():
-    s = Series([0, 1])
-    with tm.assert_produces_warning(FutureWarning):
-        s[:, None]
+@pytest.mark.parametrize(
+    "series",
+    [
+        Series([0, 1]),
+        Series(date_range("2012-01-01", periods=2)),
+        Series(date_range("2012-01-01", periods=2, tz="CET")),
+    ],
+)
+def test_getitem_ndim_deprecated(series):
+    with tm.assert_produces_warning(
+        FutureWarning, match="Support for multi-dimensional indexing"
+    ):
+        result = series[:, None]
+
+    expected = np.asarray(series)[:, None]
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(

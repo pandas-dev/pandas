@@ -373,10 +373,10 @@ class TestTimezoneConcat:
 
     def test_concat_tz_frame(self):
         df2 = DataFrame(
-            dict(
-                A=Timestamp("20130102", tz="US/Eastern"),
-                B=Timestamp("20130603", tz="CET"),
-            ),
+            {
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+            },
             index=range(5),
         )
 
@@ -391,20 +391,20 @@ class TestTimezoneConcat:
         ts2 = Timestamp("2015-01-01", tz="UTC")
         ts3 = Timestamp("2015-01-01", tz="EST")
 
-        df1 = DataFrame(dict(time=[ts1]))
-        df2 = DataFrame(dict(time=[ts2]))
-        df3 = DataFrame(dict(time=[ts3]))
+        df1 = DataFrame({"time": [ts1]})
+        df2 = DataFrame({"time": [ts2]})
+        df3 = DataFrame({"time": [ts3]})
 
         results = pd.concat([df1, df2]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts2]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts2]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df1, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts3]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts3]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df2, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts2, ts3]))
+        expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
     def test_concat_multiindex_with_tz(self):
