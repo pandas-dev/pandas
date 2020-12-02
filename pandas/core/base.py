@@ -10,7 +10,9 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Optional,
+    Set,
     TypeVar,
     Union,
     cast,
@@ -152,6 +154,9 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
+    obj: Any
+    exclusions: Set[Optional[Hashable]] = set()
+
     _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
@@ -206,18 +211,9 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-        # pandas\core\base.py:195: error: "SelectionMixin" has no attribute
-        # "obj"  [attr-defined]
-        if self._selection is None or isinstance(
-            self.obj, ABCSeries  # type: ignore[attr-defined]
-        ):
-            # pandas\core\base.py:194: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-            return self.obj  # type: ignore[attr-defined]
-        else:
-            # pandas\core\base.py:204: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-            return self.obj[self._selection]  # type: ignore[attr-defined]
+        if self._selection is None or isinstance(self.obj, ABCSeries):
+            return self.obj
+        return self.obj[self._selection]
 
     @cache_readonly
     def ndim(self) -> int:
@@ -225,58 +221,31 @@ class SelectionMixin:
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        # pandas\core\base.py:209: error: "SelectionMixin" has no attribute
-        # "obj"  [attr-defined]
-        if self._selection is not None and isinstance(
-            self.obj, ABCDataFrame  # type: ignore[attr-defined]
-        ):
-            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-            return self.obj.reindex(  # type: ignore[attr-defined]
-                columns=self._selection_list
-            )
+        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
+            return self.obj.reindex(columns=self._selection_list)
 
-        # pandas\core\base.py:207: error: "SelectionMixin" has no attribute
-        # "exclusions"  [attr-defined]
-        if len(self.exclusions) > 0:  # type: ignore[attr-defined]
-            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-
-            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
-            # "exclusions"  [attr-defined]
-            return self.obj.drop(self.exclusions, axis=1)  # type: ignore[attr-defined]
+        if len(self.exclusions) > 0:
+            return self.obj.drop(self.exclusions, axis=1)
         else:
-            # pandas\core\base.py:210: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-            return self.obj  # type: ignore[attr-defined]
+            return self.obj
 
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
-            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
-            # "obj"  [attr-defined]
-            if len(
-                self.obj.columns.intersection(key)  # type: ignore[attr-defined]
-            ) != len(key):
-                # pandas\core\base.py:218: error: "SelectionMixin" has no
-                # attribute "obj"  [attr-defined]
-                bad_keys = list(
-                    set(key).difference(self.obj.columns)  # type: ignore[attr-defined]
-                )
+            if len(self.obj.columns.intersection(key)) != len(key):
+                bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
-            if key not in self.obj.columns:  # type: ignore[attr-defined]
+            if key not in self.obj.columns:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
-            if key not in self.obj:  # type: ignore[attr-defined]
+            if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 

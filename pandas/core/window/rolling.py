@@ -85,7 +85,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         "on",
         "closed",
     ]
-    exclusions: Set[str] = set()
 
     def __init__(
         self,
