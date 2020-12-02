@@ -2251,9 +2251,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result.axes[self.axis].names = index_names[order]
 
             # reorder rows to keep things sorted
-            indices = np.arange(result.shape[self.axis]).reshape(
-                [len(q), self.ngroups]
-            ).T.flatten()
+            indices = (
+                np.arange(result.shape[self.axis])
+                .reshape([len(q), self.ngroups])
+                .T.flatten()
+            )
             return result.take(indices, axis=self.axis)
 
     @Substitution(name="groupby")
