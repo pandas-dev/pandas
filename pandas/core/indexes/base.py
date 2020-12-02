@@ -107,15 +107,15 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_index_doc_kwargs = dict(
-    klass="Index",
-    inplace="",
-    target_klass="Index",
-    raises_section="",
-    unique="Index",
-    duplicated="np.ndarray",
-)
-_index_shared_docs = dict()
+_index_doc_kwargs = {
+    "klass": "Index",
+    "inplace": "",
+    "target_klass": "Index",
+    "raises_section": "",
+    "unique": "Index",
+    "duplicated": "np.ndarray",
+}
+_index_shared_docs = {}
 str_t = str
 
 
@@ -743,7 +743,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         if kwargs:
-            nv.validate_take(tuple(), kwargs)
+            nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -818,7 +818,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
@@ -2156,7 +2156,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Pickle Methods
 
     def __reduce__(self):
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_Index, (type(self), d), None
 
