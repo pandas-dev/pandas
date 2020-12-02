@@ -384,6 +384,7 @@ class TestRaises:
     ],
     ids=lambda x: type(x).__name__,
 )
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_raises_basic(idx):
     msg = "Index has duplicates."
     with pytest.raises(pd.errors.DuplicateLabelError, match=msg):

@@ -555,6 +555,7 @@ def test_agg_structs_series(structure, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_agg_category_nansum(observed):
     categories = ["a", "b", "c"]
     df = DataFrame(

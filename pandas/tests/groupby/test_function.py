@@ -410,6 +410,7 @@ def test_cython_median():
     tm.assert_frame_equal(rs, xp)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_median_empty_bins(observed):
     df = DataFrame(np.random.randint(0, 44, 500))
 

@@ -175,6 +175,7 @@ def test__cython_agg_general(op, targop):
         ("max", np.max),
     ],
 )
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_cython_agg_empty_buckets(op, targop, observed):
     df = DataFrame([11, 12, 13])
     grps = range(0, 55, 5)
@@ -189,6 +190,7 @@ def test_cython_agg_empty_buckets(op, targop, observed):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these

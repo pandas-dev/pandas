@@ -987,6 +987,7 @@ def test_groupby_transform_with_datetimes(func, values):
 
 
 @pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_transform_absent_categories(func):
     # GH 16771
     # cython transforms with more groups than rows
@@ -1153,6 +1154,7 @@ def test_transform_lambda_indexing():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_categorical_and_not_categorical_key(observed):
     # Checks that groupby-transform, when grouping by both a categorical
     # and a non-categorical key, doesn't try to expand the output to include

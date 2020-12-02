@@ -212,6 +212,7 @@ def test_basic():
     tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_level_get_group(observed):
     # GH15155
     df = DataFrame(
@@ -276,6 +277,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
@@ -384,11 +386,13 @@ def test_observed(observed):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_observed_codes_remap(observed):
     d = {"C1": [3, 3, 4, 5], "C2": [1, 2, 3, 4], "C3": [10, 100, 200, 34]}
     df = DataFrame(d)
     values = pd.cut(df["C1"], [1, 2, 3, 6])
     values.name = "cat"
+
     groups_double_key = df.groupby([values, "C2"], observed=observed)
 
     idx = MultiIndex.from_arrays([values, [1, 2, 3, 4]], names=["cat", "C2"])
@@ -423,12 +427,14 @@ def test_observed_perf():
     assert result.index.levels[2].nunique() == df.other_id.nunique()
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_observed_groups(observed):
     # gh-20583
     # test that we have the appropriate groups
 
     cat = Categorical(["a", "c", "a"], categories=["a", "b", "c"])
     df = DataFrame({"cat": cat, "vals": [1, 2, 3]})
+
     g = df.groupby("cat", observed=observed)
 
     result = g.groups
@@ -444,6 +450,7 @@ def test_observed_groups(observed):
     tm.assert_dict_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_observed_groups_with_nan(observed):
     # GH 24740
     df = DataFrame(
@@ -480,6 +487,7 @@ def test_observed_nth():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_dataframe_categorical_with_nan(observed):
     # GH 21151
     s1 = Categorical([np.nan, "a", np.nan, "a"], categories=["a", "b", "c"])
@@ -503,6 +511,7 @@ def test_dataframe_categorical_with_nan(observed):
 @pytest.mark.parametrize("ordered", [True, False])
 @pytest.mark.parametrize("observed", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
     # GH 25871: Fix groupby sorting on ordered Categoricals
     # GH 25167: Groupby with observed=True doesn't sort
@@ -1050,6 +1059,7 @@ def test_empty_prod():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_multiindex_categorical_datetime():
     # https://github.com/pandas-dev/pandas/issues/21390
 
@@ -1167,6 +1177,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
 
 @pytest.mark.parametrize("operation", ["agg", "apply"])
 @pytest.mark.parametrize("observed", [False, None])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     # GH 24880
     index, _ = MultiIndex.from_product(
@@ -1231,6 +1242,7 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     # GH 24880
     expected = Series(data=data, index=index, name="C")
@@ -1240,6 +1252,7 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
     expected = df_cat.groupby(["A", "B"])["C"].mean()
@@ -1248,6 +1261,7 @@ def test_groupby_categorical_series_dataframe_consistent(df_cat):
 
 
 @pytest.mark.parametrize("code", [([1, 0, 0]), ([0, 0, 0])])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_categorical_axis_1(code):
     # GH 13420
     df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
@@ -1257,6 +1271,7 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
@@ -1285,6 +1300,7 @@ def test_get_nonexistent_category():
         )
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
     # GH 17605
     if reduction_func == "ngroup":
@@ -1384,6 +1400,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 
 @pytest.mark.parametrize("observed", [False, None])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     reduction_func, observed, request
 ):
@@ -1417,6 +1434,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert (res.loc[unobserved_cats] == expected).all().all()
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_series_groupby_categorical_aggregation_getitem():
     # GH 8870
     d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}
@@ -1472,6 +1490,7 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_read_only_category_no_sort():
     # GH33410
     cats = np.array([1, 2])
@@ -1480,10 +1499,12 @@ def test_read_only_category_no_sort():
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
     expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_sorted_missing_category_values():
     # GH 28597
     df = DataFrame(
@@ -1631,6 +1652,7 @@ def test_categorical_transform():
 
 
 @pytest.mark.parametrize("func", ["first", "last"])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     func: str, observed: bool
 ):
@@ -1656,6 +1678,7 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
 
 
 @pytest.mark.parametrize("func", ["first", "last"])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     func: str, observed: bool
 ):

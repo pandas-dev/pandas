@@ -47,6 +47,7 @@ def test_size_period_index():
 
 
 @pytest.mark.parametrize("as_index", [True, False])
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")

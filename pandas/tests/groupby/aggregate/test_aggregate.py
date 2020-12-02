@@ -1060,6 +1060,7 @@ def test_groupby_get_by_index():
         ({"nr": "min"}, {"nr": [1, 5]}),
     ],
 )
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
     # test single aggregations on ordered categorical cols GHGH27800
 
@@ -1094,6 +1095,7 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
         ({"cat_ord": ["min", "max"]}, [("a", "b"), ("c", "d")]),
     ],
 )
+@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     # test combined aggregations on ordered categorical cols GH27800
 
