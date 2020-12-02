@@ -3078,8 +3078,11 @@ class MultiIndex(Index):
             # given the inputs and the codes/indexer, compute an indexer set
             # if we have a provided indexer, then this need not consider
             # the entire labels set
-
+            if step is not None and step < 0:
+                # Switch elements for negative step size
+                start, stop = stop - 1, start - 1
             r = np.arange(start, stop, step)
+
             if indexer is not None and len(indexer) != len(codes):
 
                 # we have an indexer which maps the locations in the labels
@@ -3342,6 +3345,8 @@ class MultiIndex(Index):
                         k_codes = k_codes[k_codes >= 0]  # Filter absent keys
                         # True if the given codes are not ordered
                         need_sort = (k_codes[:-1] > k_codes[1:]).any()
+                elif isinstance(k, slice) and k.step is not None and k.step < 0:
+                    need_sort = True
             # Bail out if both index and seq are sorted
             if not need_sort:
                 return indexer
@@ -3368,6 +3373,8 @@ class MultiIndex(Index):
                 key_order_map[level_indexer] = np.arange(len(level_indexer))
 
                 new_order = key_order_map[self.codes[i][indexer]]
+            elif isinstance(k, slice) and k.step is not None and k.step < 0:
+                new_order = np.arange(n)[k][indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
                 # slice(None) should not determine order GH#31330
                 new_order = np.ones((n,))[indexer]
@@ -3603,7 +3610,12 @@ class MultiIndex(Index):
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique().rename(result_names)
-            return self.rename(result_names)
+            return self._get_reconciled_name_object(other)
+
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+        other, result_names = self._convert_can_do_setop(other)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3721,9 +3733,9 @@ class MultiIndex(Index):
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
-                    other = MultiIndex.from_tuples(other)
+                    other = MultiIndex.from_tuples(other, names=self.names)
                 except (ValueError, TypeError) as err:
-                    # ValueError raised by tupels_to_object_array if we
+                    # ValueError raised by tuples_to_object_array if we
                     #  have non-object dtype
                     raise TypeError(msg) from err
         else:

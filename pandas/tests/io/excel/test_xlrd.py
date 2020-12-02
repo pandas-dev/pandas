@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.compat._optional import import_optional_dependency
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -38,6 +40,48 @@ def test_read_xlrd_book(read_ext, frame):
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
     path = datapath("io", "data", "excel", f"test1{read_ext}")
-    with ExcelFile(path) as excel:
+    with ExcelFile(path, engine="xlrd") as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, sheet_name="asdf")
+
+
+def test_excel_file_warning_with_xlsx_file(datapath):
+    # GH 29375
+    path = datapath("io", "data", "excel", "test1.xlsx")
+    has_openpyxl = (
+        import_optional_dependency(
+            "openpyxl", raise_on_missing=False, on_version="ignore"
+        )
+        is not None
+    )
+    if not has_openpyxl:
+        with tm.assert_produces_warning(
+            FutureWarning,
+            raise_on_extra_warnings=False,
+            match="The xlrd engine is no longer maintained",
+        ):
+            ExcelFile(path, engine=None)
+    else:
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, "Sheet1", engine=None)
+
+
+def test_read_excel_warning_with_xlsx_file(tmpdir, datapath):
+    # GH 29375
+    path = datapath("io", "data", "excel", "test1.xlsx")
+    has_openpyxl = (
+        import_optional_dependency(
+            "openpyxl", raise_on_missing=False, on_version="ignore"
+        )
+        is not None
+    )
+    if not has_openpyxl:
+        with tm.assert_produces_warning(
+            FutureWarning,
+            raise_on_extra_warnings=False,
+            match="The xlrd engine is no longer maintained",
+        ):
+            pd.read_excel(path, "Sheet1", engine=None)
+    else:
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, "Sheet1", engine=None)

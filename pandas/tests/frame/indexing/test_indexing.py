@@ -714,7 +714,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
-    @pytest.mark.parametrize("kwargs", [dict(), dict(index=[1]), dict(columns=["A"])])
+    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
         # see gh-10126
         kwargs["dtype"] = dtype
@@ -1238,7 +1238,7 @@ class TestDataFrameIndexing:
         assert is_integer(result)
 
         # GH 11617
-        df = DataFrame(dict(a=[1.23]))
+        df = DataFrame({"a": [1.23]})
         df["b"] = 666
 
         result = df.loc[0, "b"]
