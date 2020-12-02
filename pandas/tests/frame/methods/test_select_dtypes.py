@@ -362,10 +362,11 @@ class TestSelectDtypes:
 
     def test_select_dtypes_numeric(self):
         # GH 35340
+
         da = DummyArray([1, 2], dtype=DummyDtype(numeric=True))
-        df = pd.DataFrame(da)
+        df = DataFrame(da)
         assert df.select_dtypes(np.number).shape == df.shape
 
         da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
-        df = pd.DataFrame(da)
+        df = DataFrame(da)
         assert df.select_dtypes(np.number).shape != df.shape
