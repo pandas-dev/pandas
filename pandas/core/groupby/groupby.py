@@ -2232,29 +2232,36 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 )
                 for qi in q
             ]
-            result = concat(results, axis=0, keys=q)
+            result = concat(results, axis=self.axis, keys=q)
             # fix levels to place quantiles on the inside
             # TODO(GH-10710): Ideally, we could write this as
             #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
             #  but this hits https://github.com/pandas-dev/pandas/issues/10710
             #  which doesn't reorder the list-like `q` on the inner level.
-            order = list(range(1, result.index.nlevels)) + [0]
+            order = list(range(1, result.axes[self.axis].nlevels)) + [0]
 
             # temporarily saves the index names
-            index_names = np.array(result.index.names)
+            index_names = np.array(result.axes[self.axis].names)
 
             # set index names to positions to avoid confusion
-            result.index.names = np.arange(len(index_names))
+            result.axes[self.axis].names = np.arange(len(index_names))
 
             # place quantiles on the inside
-            result = result.reorder_levels(order)
+            if isinstance(result, Series):
+                result = result.reorder_levels(order)
+            else:
+                result = result.reorder_levels(order, axis=self.axis)
 
             # restore the index names in order
-            result.index.names = index_names[order]
+            result.axes[self.axis].names = index_names[order]
 
             # reorder rows to keep things sorted
-            indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
-            return result.take(indices)
+            indices = (
+                np.arange(result.shape[self.axis])
+                .reshape([len(q), self.ngroups])
+                .T.flatten()
+            )
+            return result.take(indices, axis=self.axis)
 
     @Substitution(name="groupby")
     def ngroup(self, ascending: bool = True):
