@@ -165,10 +165,6 @@ class BaseGetitemTests(BaseExtensionTests):
             data[mask]
 
         mask = pd.array(mask, dtype="boolean")
-        msg = (
-            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis"
-            " (`None`) and integer or boolean arrays are valid indices"
-        )
         with pytest.raises(IndexError, match=msg):
             data[mask]
 
