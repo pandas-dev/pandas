@@ -1185,7 +1185,9 @@ b  2""",
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            result = maybe_cast_result(result, obj, numeric_only=True)
+
+            if is_numeric_dtype(obj.dtype):
+                result = maybe_downcast_to_dtype(result, obj.dtype)
 
             if self.grouper._filter_empty_groups:
                 mask = counts.ravel() > 0
