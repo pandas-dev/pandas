@@ -671,14 +671,14 @@ class TestDataFrameAnalytics:
 
     def test_operators_timedelta64(self):
         df = DataFrame(
-            dict(
-                A=date_range("2012-1-1", periods=3, freq="D"),
-                B=date_range("2012-1-2", periods=3, freq="D"),
-                C=Timestamp("20120101") - timedelta(minutes=5, seconds=5),
-            )
+            {
+                "A": date_range("2012-1-1", periods=3, freq="D"),
+                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
+            }
         )
 
-        diffs = DataFrame(dict(A=df["A"] - df["C"], B=df["A"] - df["B"]))
+        diffs = DataFrame({"A": df["A"] - df["C"], "B": df["A"] - df["B"]})
 
         # min
         result = diffs.min()
@@ -699,7 +699,7 @@ class TestDataFrameAnalytics:
         # abs
         result = diffs.abs()
         result2 = abs(diffs)
-        expected = DataFrame(dict(A=df["A"] - df["C"], B=df["B"] - df["A"]))
+        expected = DataFrame({"A": df["A"] - df["C"], "B": df["B"] - df["A"]})
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -1241,7 +1241,7 @@ class TestDataFrameReductions:
         # returned NaT for series. These tests check that the API is consistent in
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
         # information
-        df = DataFrame(dict(x=pd.to_datetime([])))
+        df = DataFrame({"x": pd.to_datetime([])})
         expected_dt_series = Series(pd.to_datetime([]))
         # check axis 0
         assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
@@ -1254,7 +1254,7 @@ class TestDataFrameReductions:
     def test_min_max_dt64_api_consistency_empty_df(self):
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
-        df = DataFrame(dict(x=[]))
+        df = DataFrame({"x": []})
         expected_float_series = Series([], dtype=float)
         # check axis 0
         assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())

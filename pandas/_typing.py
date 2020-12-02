@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from mmap import mmap
-from pathlib import Path
+from os import PathLike
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -135,7 +135,7 @@ AggObjType = Union[
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
 FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union[Path, FileOrBuffer[T]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
