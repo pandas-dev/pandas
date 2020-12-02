@@ -620,6 +620,7 @@ Numeric
 - Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 - Bug in :meth:`DataFrame.std` with ``timedelta64`` dtype and ``skipna=False`` (:issue:`37392`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with ``datetime64`` dtype and ``skipna=False`` (:issue:`36907`)
+- Bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` with mixed dtypes incorrectly raising ``TypeError`` (:issue:`38195`)
 
 Conversion
 ^^^^^^^^^^
