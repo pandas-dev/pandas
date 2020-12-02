@@ -1432,3 +1432,17 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
