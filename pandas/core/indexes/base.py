@@ -5564,7 +5564,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         arr_dtype = "object" if self.dtype == "object" else None
         labels = com.index_labels_to_array(labels, dtype=arr_dtype)
-        indexer = self.get_indexer(labels)
+        indexer = self.get_indexer_for(labels)
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
