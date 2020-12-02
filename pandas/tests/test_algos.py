@@ -758,8 +758,8 @@ class TestUnique:
     def test_different_nans(self):
         # GH 21866
         # create different nans from bit-patterns:
-        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
-        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000001))[0]
         assert NAN1 != NAN1
         assert NAN2 != NAN2
         a = np.array([NAN1, NAN2])  # NAN1 and NAN2 are equivalent
@@ -770,8 +770,8 @@ class TestUnique:
     def test_first_nan_kept(self):
         # GH 22295
         # create different nans from bit-patterns:
-        bits_for_nan1 = 0xfff8000000000001
-        bits_for_nan2 = 0x7ff8000000000001
+        bits_for_nan1 = 0xFFF8000000000001
+        bits_for_nan2 = 0x7FF8000000000001
         NAN1 = struct.unpack("d", struct.pack("=Q", bits_for_nan1))[0]
         NAN2 = struct.unpack("d", struct.pack("=Q", bits_for_nan2))[0]
         assert NAN1 != NAN1
@@ -1027,8 +1027,8 @@ class TestIsin:
         # create different nans from bit-patterns,
         # these nans will land in different buckets in the hash-table
         # if no special care is taken
-        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
-        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000001))[0]
         assert NAN1 != NAN1
         assert NAN2 != NAN2
 
@@ -1539,8 +1539,8 @@ class TestHashTable:
     def test_add_different_nans(self):
         # GH 21866 inconsistent hash-function for float64
         # create different nans from bit-patterns:
-        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
-        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7FF8000000000001))[0]
         assert NAN1 != NAN1
         assert NAN2 != NAN2
         # default hash function would lead to different hash-buckets

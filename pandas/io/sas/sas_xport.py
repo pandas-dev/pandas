@@ -196,7 +196,7 @@ def _parse_float_vec(vec):
 
     # Start by setting first half of ieee number to first half of IBM
     # number sans exponent
-    ieee1 = xport1 & 0x00ffffff
+    ieee1 = xport1 & 0x00FFFFFF
 
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3
@@ -219,7 +219,7 @@ def _parse_float_vec(vec):
     ieee2 = (xport2 >> shift) | ((xport1 & 0x00000007) << (29 + (3 - shift)))
 
     # clear the 1 bit to the left of the binary point
-    ieee1 &= 0xffefffff
+    ieee1 &= 0xFFEFFFFF
 
     # set the exponent of the ieee number to be the actual exponent
     # plus the shift count + 1023. Or this into the first half of the
@@ -228,7 +228,7 @@ def _parse_float_vec(vec):
     # incremented by 1 and the fraction bits left 4 positions to the
     # right of the radix point.  (had to add >> 24 because C treats &
     # 0x7f as 0x7f000000 and Python doesn't)
-    ieee1 |= ((((((xport1 >> 24) & 0x7f) - 65) << 2) + shift + 1023) << 20) | (
+    ieee1 |= ((((((xport1 >> 24) & 0x7F) - 65) << 2) + shift + 1023) << 20) | (
         xport1 & 0x80000000
     )
 
@@ -433,9 +433,9 @@ class XportReader(ReaderBase, abc.Iterator):
         v = vec.view(dtype="u1,u1,u2,u4")
         miss = (v["f1"] == 0) & (v["f2"] == 0) & (v["f3"] == 0)
         miss1 = (
-            ((v["f0"] >= 0x41) & (v["f0"] <= 0x5a))
-            | (v["f0"] == 0x5f)
-            | (v["f0"] == 0x2e)
+            ((v["f0"] >= 0x41) & (v["f0"] <= 0x5A))
+            | (v["f0"] == 0x5F)
+            | (v["f0"] == 0x2E)
         )
         miss &= miss1
         return miss
