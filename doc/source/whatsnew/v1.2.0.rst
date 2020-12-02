@@ -659,6 +659,7 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` and a level named ``"0"`` (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
+- Bug in :meth:`DataFrame.loc` returning empty result when indexer is a slice with negative step size (:issue:`38071`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when the index was of ``object`` dtype and the given numeric label was in the index (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from a :class:`MultiIndex` (:issue:`27104`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
