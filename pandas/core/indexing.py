@@ -672,17 +672,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for i, k in enumerate(key):
-                if k not in self.obj:
-                    if value is None:
-                        self.obj[k] = np.nan
-                    elif is_array_like(value) and value.ndim == 2:
-                        # GH#37964 have to select columnwise in case of array
-                        self.obj[k] = value[:, i]
-                    elif is_list_like(value):
-                        self.obj[k] = value[i]
-                    else:
-                        self.obj[k] = value
+            # GH#38148
+            keys = self.obj.columns.union(key, sort=False)
+
+            self.obj._mgr = self.obj._mgr.reindex_axis(
+                keys, axis=0, copy=False, consolidate=False, only_slice=True
+            )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
