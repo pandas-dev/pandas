@@ -238,7 +238,7 @@ class TestDataFrameToRecords:
             ),
             # Invalid dype values.
             (
-                {"index": False, "column_dtypes": list()},
+                {"index": False, "column_dtypes": []},
                 (ValueError, "Invalid dtype \\[\\] specified for column A"),
             ),
             (
