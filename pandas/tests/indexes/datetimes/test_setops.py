@@ -471,10 +471,11 @@ class TestBusinessDatetimeIndex:
 
     def test_intersection_list(self):
         # GH#35876
+        # values is not an Index -> no name -> retain "a"
         values = [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-02-01")]
         idx = DatetimeIndex(values, name="a")
         res = idx.intersection(values)
-        tm.assert_index_equal(res, idx.rename(None))
+        tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone
@@ -508,6 +509,20 @@ class TestBusinessDatetimeIndex:
         late_dr = date_range(start=late_start, end=late_end, tz=tz, freq=MonthEnd())
 
         early_dr.union(late_dr, sort=sort)
+
+    @pytest.mark.parametrize("sort", [False, None])
+    def test_intersection_duplicates(self, sort):
+        # GH#38196
+        idx1 = Index(
+            [
+                pd.Timestamp("2019-12-13"),
+                pd.Timestamp("2019-12-12"),
+                pd.Timestamp("2019-12-12"),
+            ]
+        )
+        result = idx1.intersection(idx1, sort=sort)
+        expected = Index([pd.Timestamp("2019-12-13"), pd.Timestamp("2019-12-12")])
+        tm.assert_index_equal(result, expected)
 
 
 class TestCustomDatetimeIndex:
