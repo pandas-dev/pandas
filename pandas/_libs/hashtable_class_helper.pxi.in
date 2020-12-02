@@ -19,52 +19,53 @@ cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
     res.imag = val.imag
     return res
 
+
 cdef {{name}}_t to_{{name}}(kh{{name}}_t val) nogil:
     cdef {{name}}_t res
     res.real = val.real
     res.imag = val.imag
     return res
 
-cdef bint is_nan_kh{{name}}_t(kh{{name}}_t val) nogil:
+{{endfor}}
+
+
+{{py:
+
+
+# name
+c_types = ['khcomplex128_t',
+           'khcomplex64_t',
+           'float64_t',
+           'float32_t',
+           'int64_t',
+           'int32_t',
+           'int16_t',
+           'int8_t',
+           'uint64_t',
+           'uint32_t',
+           'uint16_t',
+           'uint8_t']
+}}
+
+{{for c_type in c_types}}
+
+cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    {{if c_type in {'khcomplex128_t', 'khcomplex64_t'} }}
     return val.real != val.real or val.imag != val.imag
-{{endfor}}
-
-
-{{py:
-
-# name
-float_types = ['float64_t',
-               'float32_t']
-}}
-
-{{for c_type in float_types}}
-
-cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    {{elif c_type in {'float64_t', 'float32_t'} }}
     return val != val
-{{endfor}}
-
-
-{{py:
-
-
-# name
-int_types = ['int64_t',
-             'int32_t',
-             'int16_t',
-             'int8_t',
-             'uint64_t',
-             'uint32_t',
-             'uint16_t',
-             'uint8_t']
-}}
-
-{{for c_type in int_types}}
-
-cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+    {{else}}
     return False
+    {{endif}}
 
+
+{{if c_type in {'khcomplex128_t', 'khcomplex64_t', 'float64_t', 'float32_t'} }}
+# are_equivalent_{{c_type}} is cimported via khash.pxd
+{{else}}
 cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
     return val1 == val2
+{{endif}}
+
 {{endfor}}
 
 
@@ -97,6 +98,7 @@ from pandas._libs.khash cimport (
     kh_put_{{name}},
     kh_resize_{{name}},
 )
+
 {{endfor}}
 
 # ----------------------------------------------------------------------
