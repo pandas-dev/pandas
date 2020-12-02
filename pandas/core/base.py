@@ -4,12 +4,22 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import IndexLabel
+from pandas._typing import DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -23,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
 from pandas.core.accessor import DirNamesMixin
@@ -33,13 +43,16 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
-_shared_docs: Dict[str, str] = dict()
-_indexops_doc_kwargs = dict(
-    klass="IndexOpsMixin",
-    inplace="",
-    unique="IndexOpsMixin",
-    duplicated="IndexOpsMixin",
-)
+if TYPE_CHECKING:
+    from pandas import Categorical
+
+_shared_docs: Dict[str, str] = {}
+_indexops_doc_kwargs = {
+    "klass": "IndexOpsMixin",
+    "inplace": "",
+    "unique": "IndexOpsMixin",
+    "duplicated": "IndexOpsMixin",
+}
 
 _T = TypeVar("_T", bound="IndexOpsMixin")
 
@@ -82,7 +95,9 @@ class PandasObject(DirNamesMixin):
         either a value or Series of values
         """
         if hasattr(self, "memory_usage"):
-            mem = self.memory_usage(deep=True)
+            # pandas\core\base.py:84: error: "PandasObject" has no attribute
+            # "memory_usage"  [attr-defined]
+            mem = self.memory_usage(deep=True)  # type: ignore[attr-defined]
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -191,10 +206,18 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-        if self._selection is None or isinstance(self.obj, ABCSeries):
-            return self.obj
+        # pandas\core\base.py:195: error: "SelectionMixin" has no attribute
+        # "obj"  [attr-defined]
+        if self._selection is None or isinstance(
+            self.obj, ABCSeries  # type: ignore[attr-defined]
+        ):
+            # pandas\core\base.py:194: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj  # type: ignore[attr-defined]
         else:
-            return self.obj[self._selection]
+            # pandas\core\base.py:204: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj[self._selection]  # type: ignore[attr-defined]
 
     @cache_readonly
     def ndim(self) -> int:
@@ -202,31 +225,58 @@ class SelectionMixin:
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj.reindex(columns=self._selection_list)
+        # pandas\core\base.py:209: error: "SelectionMixin" has no attribute
+        # "obj"  [attr-defined]
+        if self._selection is not None and isinstance(
+            self.obj, ABCDataFrame  # type: ignore[attr-defined]
+        ):
+            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj.reindex(  # type: ignore[attr-defined]
+                columns=self._selection_list
+            )
 
-        if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
+        # pandas\core\base.py:207: error: "SelectionMixin" has no attribute
+        # "exclusions"  [attr-defined]
+        if len(self.exclusions) > 0:  # type: ignore[attr-defined]
+            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+
+            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
+            # "exclusions"  [attr-defined]
+            return self.obj.drop(self.exclusions, axis=1)  # type: ignore[attr-defined]
         else:
-            return self.obj
+            # pandas\core\base.py:210: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj  # type: ignore[attr-defined]
 
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
-                bad_keys = list(set(key).difference(self.obj.columns))
+            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            if len(
+                self.obj.columns.intersection(key)  # type: ignore[attr-defined]
+            ) != len(key):
+                # pandas\core\base.py:218: error: "SelectionMixin" has no
+                # attribute "obj"  [attr-defined]
+                bad_keys = list(
+                    set(key).difference(self.obj.columns)  # type: ignore[attr-defined]
+                )
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            if key not in self.obj.columns:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj.columns:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            if key not in self.obj:
+            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
+            if key not in self.obj:  # type: ignore[attr-defined]
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
@@ -238,7 +288,7 @@ class SelectionMixin:
         Parameters
         ----------
         key : str / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -301,9 +351,14 @@ class IndexOpsMixin(OpsMixin):
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations: FrozenSet[str] = frozenset(
+    _hidden_attrs: FrozenSet[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
+
+    @property
+    def dtype(self) -> DtypeObj:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
 
     @property
     def _values(self) -> Union[ExtensionArray, np.ndarray]:
@@ -348,7 +403,7 @@ class IndexOpsMixin(OpsMixin):
 
     def item(self):
         """
-        Return the first element of the underlying data as a python scalar.
+        Return the first element of the underlying data as a Python scalar.
 
         Returns
         -------
@@ -541,7 +596,11 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+            # pandas\core\base.py:837: error: Too many arguments for "to_numpy"
+            # of "ExtensionArray"  [call-arg]
+            return self.array.to_numpy(  # type: ignore[call-arg]
+                dtype, copy=copy, na_value=na_value, **kwargs
+            )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
@@ -767,6 +826,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,
@@ -832,7 +892,15 @@ class IndexOpsMixin(OpsMixin):
             if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
-                return self._values.map(mapper)
+
+                # pandas\core\base.py:893: error: Incompatible types in
+                # assignment (expression has type "Categorical", variable has
+                # type "IndexOpsMixin")  [assignment]
+                self = cast("Categorical", self)  # type: ignore[assignment]
+                # pandas\core\base.py:894: error: Item "ExtensionArray" of
+                # "Union[ExtensionArray, Any]" has no attribute "map"
+                # [union-attr]
+                return self._values.map(mapper)  # type: ignore[union-attr]
 
             values = self._values
 
@@ -849,12 +917,13 @@ class IndexOpsMixin(OpsMixin):
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)._values
+            # pandas\core\base.py:1142: error: "IndexOpsMixin" has no attribute
+            # "astype"  [attr-defined]
+            values = self.astype(object)._values  # type: ignore[attr-defined]
             if na_action == "ignore":
-
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
-
+                map_f = lambda values, f: lib.map_infer_mask(
+                    values, f, isna(values).view(np.uint8)
+                )
             elif na_action is None:
                 map_f = lib.map_infer
             else:
@@ -914,8 +983,8 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
-        4.0    1
         2.0    1
+        4.0    1
         1.0    1
         dtype: int64
 
@@ -925,8 +994,8 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
-        4.0    0.2
         2.0    0.2
+        4.0    0.2
         1.0    0.2
         dtype: float64
 
@@ -938,8 +1007,8 @@ class IndexOpsMixin(OpsMixin):
         number of half-open bins.
 
         >>> s.value_counts(bins=3)
-        (2.0, 3.0]      2
         (0.996, 2.0]    2
+        (2.0, 3.0]      2
         (3.0, 4.0]      1
         dtype: int64
 
@@ -949,9 +1018,9 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
+        2.0    1
         NaN    1
         4.0    1
-        2.0    1
         1.0    1
         dtype: int64
         """
@@ -1013,11 +1082,8 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        uniqs = self.unique()
-        n = len(uniqs)
-        if dropna and isna(uniqs).any():
-            n -= 1
-        return n
+        obj = remove_na_arraylike(self) if dropna else self
+        return len(obj.unique())
 
     @property
     def is_unique(self) -> bool:
@@ -1091,7 +1157,9 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(deep=deep)
+            # pandas\core\base.py:1379: error: "ExtensionArray" has no
+            # attribute "memory_usage"  [attr-defined]
+            return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
@@ -1182,6 +1250,16 @@ class IndexOpsMixin(OpsMixin):
         >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
 
+        >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> ser
+        0   2000-03-11
+        1   2000-03-12
+        2   2000-03-13
+        dtype: datetime64[ns]
+
+        >>> ser.searchsorted('3/14/2000')
+        3
+
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
@@ -1215,7 +1293,9 @@ class IndexOpsMixin(OpsMixin):
 
     def drop_duplicates(self, keep="first"):
         duplicated = self.duplicated(keep=keep)
-        result = self[np.logical_not(duplicated)]
+        # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
+        # indexable  [index]
+        result = self[np.logical_not(duplicated)]  # type: ignore[index]
         return result
 
     def duplicated(self, keep="first"):

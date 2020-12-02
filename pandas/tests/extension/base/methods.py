@@ -125,7 +125,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
-            expected = expected[::-1]
+            # GH 35922. Expect stable sort
+            if ser.nunique() == 2:
+                expected = ser.iloc[[0, 1, 2]]
+            else:
+                expected = ser.iloc[[1, 0, 2]]
 
         self.assert_series_equal(result, expected)
 
@@ -443,10 +447,10 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "'axis"),
-            (-1, dict(), ValueError, "negative"),
-            ([1, 2], dict(), ValueError, "shape"),
-            (2, dict(foo="bar"), TypeError, "'foo'"),
+            (2, {"axis": 1}, ValueError, "axis"),
+            (-1, {}, ValueError, "negative"),
+            ([1, 2], {}, ValueError, "shape"),
+            (2, {"foo": "bar"}, TypeError, "'foo'"),
         ],
     )
     def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):

@@ -377,10 +377,10 @@ def test_series_ret_bins():
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        (dict(duplicates="drop"), None),
-        (dict(), "Bin edges must be unique"),
-        (dict(duplicates="raise"), "Bin edges must be unique"),
-        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
+        ({"duplicates": "drop"}, None),
+        ({}, "Bin edges must be unique"),
+        ({"duplicates": "raise"}, "Bin edges must be unique"),
+        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_cut_duplicates_bin(kwargs, msg):
@@ -668,9 +668,16 @@ def test_cut_unordered_with_missing_labels_raises_error():
 
 def test_cut_unordered_with_series_labels():
     # https://github.com/pandas-dev/pandas/issues/36603
-    s = pd.Series([1, 2, 3, 4, 5])
-    bins = pd.Series([0, 2, 4, 6])
-    labels = pd.Series(["a", "b", "c"])
+    s = Series([1, 2, 3, 4, 5])
+    bins = Series([0, 2, 4, 6])
+    labels = Series(["a", "b", "c"])
     result = pd.cut(s, bins=bins, labels=labels, ordered=False)
-    expected = pd.Series(["a", "a", "b", "b", "c"], dtype="category")
+    expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
+
+
+def test_cut_no_warnings():
+    df = DataFrame({"value": np.random.randint(0, 100, 20)})
+    labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
+    with tm.assert_produces_warning(False):
+        df["group"] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -71,6 +73,7 @@ def test_ufunc_reduce_raises(values):
         np.add.reduce(a)
 
 
+@pytest.mark.skipif(not IS64, reason="GH 36579: fail on 32-bit system")
 @pytest.mark.parametrize(
     "pandasmethname, kwargs",
     [
@@ -107,6 +110,13 @@ def test_value_counts_empty():
     result = s.value_counts()
     idx = pd.Index([], dtype="object")
     expected = pd.Series([], index=idx, dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_normalize():
+    s = pd.Series([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=[0.1, 0.2], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
 

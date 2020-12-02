@@ -3,8 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 
 
@@ -74,17 +73,17 @@ def test_cmov_window():
 def test_cmov_window_corner():
     # GH 8238
     # all nan
-    vals = pd.Series([np.nan] * 10)
+    vals = Series([np.nan] * 10)
     result = vals.rolling(5, center=True, win_type="boxcar").mean()
     assert np.isnan(result).all()
 
     # empty
-    vals = pd.Series([], dtype=object)
+    vals = Series([], dtype=object)
     result = vals.rolling(5, center=True, win_type="boxcar").mean()
     assert len(result) == 0
 
     # shorter than window
-    vals = pd.Series(np.random.randn(5))
+    vals = Series(np.random.randn(5))
     result = vals.rolling(10, win_type="boxcar").mean()
     assert np.isnan(result).all()
     assert len(result) == 5
@@ -431,7 +430,7 @@ def test_cmov_window_special(win_types_special):
     kwds = {
         "kaiser": {"beta": 1.0},
         "gaussian": {"std": 1.0},
-        "general_gaussian": {"power": 2.0, "width": 2.0},
+        "general_gaussian": {"p": 2.0, "sig": 2.0},
         "exponential": {"tau": 10},
     }
 
@@ -503,7 +502,7 @@ def test_cmov_window_special_linear_range(win_types_special):
     kwds = {
         "kaiser": {"beta": 1.0},
         "gaussian": {"std": 1.0},
-        "general_gaussian": {"power": 2.0, "width": 2.0},
+        "general_gaussian": {"p": 2.0, "sig": 2.0},
         "slepian": {"width": 0.5},
         "exponential": {"tau": 10},
     }
@@ -523,22 +522,22 @@ def test_cmov_window_special_linear_range(win_types_special):
 
 
 def test_rolling_min_min_periods():
-    a = pd.Series([1, 2, 3, 4, 5])
+    a = Series([1, 2, 3, 4, 5])
     result = a.rolling(window=100, min_periods=1).min()
-    expected = pd.Series(np.ones(len(a)))
+    expected = Series(np.ones(len(a)))
     tm.assert_series_equal(result, expected)
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
-        pd.Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
 
 
 def test_rolling_max_min_periods():
-    a = pd.Series([1, 2, 3, 4, 5], dtype=np.float64)
+    a = Series([1, 2, 3, 4, 5], dtype=np.float64)
     b = a.rolling(window=100, min_periods=1).max()
     tm.assert_almost_equal(a, b)
     msg = "min_periods 5 must be <= window 3"
     with pytest.raises(ValueError, match=msg):
-        pd.Series([1, 2, 3]).rolling(window=3, min_periods=5).max()
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).max()
 
 
 def test_rolling_quantile_np_percentile():
@@ -546,7 +545,7 @@ def test_rolling_quantile_np_percentile():
     # is analogous to Numpy's percentile
     row = 10
     col = 5
-    idx = pd.date_range("20100101", periods=row, freq="B")
+    idx = date_range("20100101", periods=row, freq="B")
     df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
 
     df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
@@ -610,17 +609,17 @@ def test_rolling_quantile_param():
 
 
 def test_rolling_std_1obs():
-    vals = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
+    vals = Series([1.0, 2.0, 3.0, 4.0, 5.0])
 
     result = vals.rolling(1, min_periods=1).std()
-    expected = pd.Series([np.nan] * 5)
+    expected = Series([np.nan] * 5)
     tm.assert_series_equal(result, expected)
 
     result = vals.rolling(1, min_periods=1).std(ddof=0)
-    expected = pd.Series([0.0] * 5)
+    expected = Series([0.0] * 5)
     tm.assert_series_equal(result, expected)
 
-    result = pd.Series([np.nan, np.nan, 3, 4, 5]).rolling(3, min_periods=2).std()
+    result = Series([np.nan, np.nan, 3, 4, 5]).rolling(3, min_periods=2).std()
     assert np.isnan(result[2])
 
 
@@ -629,7 +628,7 @@ def test_rolling_std_neg_sqrt():
 
     # Test move_nanstd for neg sqrt.
 
-    a = pd.Series(
+    a = Series(
         [
             0.0011448196318903589,
             0.00028718669878572767,

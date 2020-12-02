@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -23,7 +22,6 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arraylike import OpsMixin
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
@@ -172,12 +170,13 @@ def coerce_to_array(
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
-        if inferred_dtype in integer_like:
-            if not np.all(
+        if (inferred_dtype in integer_like) and not (
+            np.all(
                 values[~mask_values].astype(float)
                 == values_object[~mask_values].astype(float)
-            ):
-                raise TypeError("Need to pass bool-like values")
+            )
+        ):
+            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(len(values), dtype=bool)
@@ -195,15 +194,15 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if not values.ndim == 1:
+    if values.ndim != 1:
         raise ValueError("values must be a 1D list-like")
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise ValueError("mask must be a 1D list-like")
 
     return values, mask
 
 
-class BooleanArray(OpsMixin, BaseMaskedArray):
+class BooleanArray(BaseMaskedArray):
     """
     Array of boolean (True/False) data with missing values.
 
@@ -274,7 +273,9 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -282,7 +283,7 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], dtype=None, copy: bool = False
+        cls, strings: List[str], *, dtype=None, copy: bool = False
     ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
@@ -295,7 +296,7 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
                 raise ValueError(f"{s} cannot be cast to bool")
 
         scalars = [map_string(x) for x in strings]
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -397,9 +398,8 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
                 self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
         # for integer, error if there are missing values
-        if is_integer_dtype(dtype):
-            if self._hasna:
-                raise ValueError("cannot convert NA to integer")
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
@@ -420,13 +420,13 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         data[self._mask] = -1
         return data
 
-    def any(self, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, **kwargs):
         """
         Return whether any element is True.
 
@@ -494,7 +494,7 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, **kwargs):
         """
         Return whether all elements are True.
 
@@ -561,48 +561,40 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    @classmethod
-    def _create_logical_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def logical_method(self, other):
+    def _logical_method(self, other, op):
 
-            assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other_is_booleanarray = isinstance(other, BooleanArray)
-            other_is_scalar = lib.is_scalar(other)
-            mask = None
+        assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
+        other_is_booleanarray = isinstance(other, BooleanArray)
+        other_is_scalar = lib.is_scalar(other)
+        mask = None
 
-            if other_is_booleanarray:
-                other, mask = other._data, other._mask
-            elif is_list_like(other):
-                other = np.asarray(other, dtype="bool")
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                other, mask = coerce_to_array(other, copy=False)
-            elif isinstance(other, np.bool_):
-                other = other.item()
+        if other_is_booleanarray:
+            other, mask = other._data, other._mask
+        elif is_list_like(other):
+            other = np.asarray(other, dtype="bool")
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            other, mask = coerce_to_array(other, copy=False)
+        elif isinstance(other, np.bool_):
+            other = other.item()
 
-            if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
-                raise TypeError(
-                    "'other' should be pandas.NA or a bool. "
-                    f"Got {type(other).__name__} instead."
-                )
+        if other_is_scalar and other is not libmissing.NA and not lib.is_bool(other):
+            raise TypeError(
+                "'other' should be pandas.NA or a bool. "
+                f"Got {type(other).__name__} instead."
+            )
 
-            if not other_is_scalar and len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
+        if not other_is_scalar and len(self) != len(other):
+            raise ValueError("Lengths must match to compare")
 
-            if op.__name__ in {"or_", "ror_"}:
-                result, mask = ops.kleene_or(self._data, other, self._mask, mask)
-            elif op.__name__ in {"and_", "rand_"}:
-                result, mask = ops.kleene_and(self._data, other, self._mask, mask)
-            elif op.__name__ in {"xor", "rxor"}:
-                result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+        if op.__name__ in {"or_", "ror_"}:
+            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+        elif op.__name__ in {"and_", "rand_"}:
+            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+        elif op.__name__ in {"xor", "rxor"}:
+            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-            return BooleanArray(result, mask)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(logical_method, name, cls)
+        return BooleanArray(result, mask)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import FloatingArray, IntegerArray
@@ -643,12 +635,61 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
 
         return BooleanArray(result, mask, copy=False)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _arith_method(self, other, op):
+        mask = None
+        op_name = op.__name__
+
+        if isinstance(other, BooleanArray):
+            other, mask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match")
+
+        # nans propagate
+        if mask is None:
+            mask = self._mask
+            if other is libmissing.NA:
+                mask |= True
+        else:
+            mask = self._mask | mask
+
+        if other is libmissing.NA:
+            # if other is NA, the result will be all NA and we can't run the
+            # actual op, so we need to choose the resulting dtype manually
+            if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                dtype = "int8"
+            else:
+                dtype = "bool"
+            result = np.zeros(len(self._data), dtype=dtype)
+        else:
+            if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
+                # Avoid DeprecationWarning: In future, it will be an error
+                #  for 'np.bool_' scalars to be interpreted as an index
+                other = bool(other)
+
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
+
+        # divmod returns a tuple
+        if op_name == "divmod":
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
+
+        return self._maybe_mask_result(result, mask, other, op_name)
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        return super()._reduce(name, skipna, **kwargs)
+        return super()._reduce(name, skipna=skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -665,10 +706,11 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
 
-        if is_bool_dtype(result):
+            return FloatingArray(result, mask, copy=False)
+
+        elif is_bool_dtype(result):
             return BooleanArray(result, mask, copy=False)
 
         elif is_integer_dtype(result):
@@ -678,60 +720,3 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
         else:
             result[mask] = np.nan
             return result
-
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        op_name = op.__name__
-
-        @ops.unpack_zerodim_and_defer(op_name)
-        def boolean_arithmetic_method(self, other):
-            mask = None
-
-            if isinstance(other, BooleanArray):
-                other, mask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match")
-
-            # nans propagate
-            if mask is None:
-                mask = self._mask
-                if other is libmissing.NA:
-                    mask |= True
-            else:
-                mask = self._mask | mask
-
-            if other is libmissing.NA:
-                # if other is NA, the result will be all NA and we can't run the
-                # actual op, so we need to choose the resulting dtype manually
-                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
-                    dtype = "int8"
-                else:
-                    dtype = "bool"
-                result = np.zeros(len(self._data), dtype=dtype)
-            else:
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # divmod returns a tuple
-            if op_name == "divmod":
-                div, mod = result
-                return (
-                    self._maybe_mask_result(div, mask, other, "floordiv"),
-                    self._maybe_mask_result(mod, mask, other, "mod"),
-                )
-
-            return self._maybe_mask_result(result, mask, other, op_name)
-
-        name = f"__{op_name}__"
-        return set_function_name(boolean_arithmetic_method, name, cls)
-
-
-BooleanArray._add_logical_ops()
-BooleanArray._add_arithmetic_ops()

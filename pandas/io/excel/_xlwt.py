@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Dict
 
 import pandas._libs.json as json
+from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -13,7 +14,15 @@ class XlwtWriter(ExcelWriter):
     engine = "xlwt"
     supported_extensions = (".xls",)
 
-    def __init__(self, path, engine=None, encoding=None, mode="w", **engine_kwargs):
+    def __init__(
+        self,
+        path,
+        engine=None,
+        encoding=None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        **engine_kwargs,
+    ):
         # Use the xlwt module as the Excel writer.
         import xlwt
 
@@ -22,7 +31,9 @@ class XlwtWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with xlwt!")
 
-        super().__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(
+            path, mode=mode, storage_options=storage_options, **engine_kwargs
+        )
 
         if encoding is None:
             encoding = "ascii"
@@ -34,7 +45,9 @@ class XlwtWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        self.book.save(self.path)
+        if self.sheets:
+            # fails when the ExcelWriter is just opened and then closed
+            self.book.save(self.handles.handle)
 
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None

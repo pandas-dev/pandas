@@ -641,7 +641,7 @@ def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
-        dict({"A": np.arange(10, dtype="float64"), "B": pd.Timestamp("20010101")})
+        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
     )
     df.iloc[3:6, :] = np.nan
 
@@ -1472,7 +1472,7 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = pd.DatetimeIndex(
+    dti = DatetimeIndex(
         list(
             pd.date_range(
                 start="2018-01-04 09:01:00",

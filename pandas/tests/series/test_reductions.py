@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import MultiIndex, Series
+import pandas._testing as tm
 
 
 def test_reductions_td64_with_nat():
@@ -12,6 +13,16 @@ def test_reductions_td64_with_nat():
     assert ser.median() == exp
     assert ser.min() == exp
     assert ser.max() == exp
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_td64_sum_empty(skipna):
+    # GH#37151
+    ser = Series([], dtype="timedelta64[ns]")
+
+    result = ser.sum(skipna=skipna)
+    assert isinstance(result, pd.Timedelta)
+    assert result == pd.Timedelta(0)
 
 
 def test_td64_summation_overflow():
@@ -46,8 +57,16 @@ def test_prod_numpy16_bug():
     assert not isinstance(result, Series)
 
 
+def test_sum_with_level():
+    obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
+
+    result = obj.sum(level=0)
+    expected = Series([10.0], index=[2])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", [np.any, np.all])
-@pytest.mark.parametrize("kwargs", [dict(keepdims=True), dict(out=object())])
+@pytest.mark.parametrize("kwargs", [{"keepdims": True}, {"out": object()}])
 def test_validate_any_all_out_keepdims_raises(kwargs, func):
     ser = Series([1, 2])
     param = list(kwargs)[0]
