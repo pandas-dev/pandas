@@ -555,7 +555,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     def _is_comparable_dtype(self, dtype):
-        return self._categories._is_comparable_dtype(dtype)
+        return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
