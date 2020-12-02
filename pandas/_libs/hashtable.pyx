@@ -13,8 +13,12 @@ cnp.import_array()
 
 
 from pandas._libs cimport util
-from pandas._libs.khash cimport kh_str_t, khiter_t
+from pandas._libs.khash cimport KHASH_TRACE_DOMAIN, kh_str_t, khiter_t
 from pandas._libs.missing cimport checknull
+
+
+def get_hashtable_trace_domain():
+    return KHASH_TRACE_DOMAIN
 
 
 cdef int64_t NPY_NAT = util.get_nat()

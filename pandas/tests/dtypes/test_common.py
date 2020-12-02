@@ -105,16 +105,16 @@ class TestPandasDtype:
         assert com.pandas_dtype(dtype) == dtype
 
 
-dtypes = dict(
-    datetime_tz=com.pandas_dtype("datetime64[ns, US/Eastern]"),
-    datetime=com.pandas_dtype("datetime64[ns]"),
-    timedelta=com.pandas_dtype("timedelta64[ns]"),
-    period=PeriodDtype("D"),
-    integer=np.dtype(np.int64),
-    float=np.dtype(np.float64),
-    object=np.dtype(object),
-    category=com.pandas_dtype("category"),
-)
+dtypes = {
+    "datetime_tz": com.pandas_dtype("datetime64[ns, US/Eastern]"),
+    "datetime": com.pandas_dtype("datetime64[ns]"),
+    "timedelta": com.pandas_dtype("timedelta64[ns]"),
+    "period": PeriodDtype("D"),
+    "integer": np.dtype(np.int64),
+    "float": np.dtype(np.float64),
+    "object": np.dtype(object),
+    "category": com.pandas_dtype("category"),
+}
 
 
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))

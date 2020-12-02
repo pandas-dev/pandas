@@ -714,7 +714,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
-    @pytest.mark.parametrize("kwargs", [dict(), dict(index=[1]), dict(columns=["A"])])
+    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
         # see gh-10126
         kwargs["dtype"] = dtype
@@ -1238,7 +1238,7 @@ class TestDataFrameIndexing:
         assert is_integer(result)
 
         # GH 11617
-        df = DataFrame(dict(a=[1.23]))
+        df = DataFrame({"a": [1.23]})
         df["b"] = 666
 
         result = df.loc[0, "b"]
@@ -1503,10 +1503,29 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize("tpl", [tuple([1]), tuple([1, 2])])
+    @pytest.mark.parametrize(
+        "tpl",
+        [
+            (1,),
+            (
+                1,
+                2,
+            ),
+        ],
+    )
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
-        idx = Index([tuple([1]), tuple([1, 2])], name="A", tupleize_cols=False)
+        idx = Index(
+            [
+                (1,),
+                (
+                    1,
+                    2,
+                ),
+            ],
+            name="A",
+            tupleize_cols=False,
+        )
         df = DataFrame(index=idx)
 
         result = df.loc[[tpl]]

@@ -62,13 +62,13 @@ class TestCategoricalMissing:
         "fillna_kwargs, msg",
         [
             (
-                dict(value=1, method="ffill"),
+                {"value": 1, "method": "ffill"},
                 "Cannot specify both 'value' and 'method'.",
             ),
-            (dict(), "Must specify a fill 'value' or 'method'."),
-            (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
+            ({}, "Must specify a fill 'value' or 'method'."),
+            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
             (
-                dict(value=Series([1, 2, 3, 4, "a"])),
+                {"value": Series([1, 2, 3, 4, "a"])},
                 "Cannot setitem on a Categorical with a new category",
             ),
         ],
