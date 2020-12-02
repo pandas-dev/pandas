@@ -2227,46 +2227,32 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 )
                 for qi in q
             ]
-        if self.axis == 0:
-            result = concat(results, axis=0, keys=q)
-            # fix levels to place quantiles on the inside
-            # TODO(GH-10710): Ideally, we could write this as
-            #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
-            #  but this hits https://github.com/pandas-dev/pandas/issues/10710
-            #  which doesn't reorder the list-like `q` on the inner level.
-            order = list(range(1, result.index.nlevels)) + [0]
+        result = concat(results, axis=self.axis, keys=q)
+        # fix levels to place quantiles on the inside
+        # TODO(GH-10710): Ideally, we could write this as
+        #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
+        #  but this hits https://github.com/pandas-dev/pandas/issues/10710
+        #  which doesn't reorder the list-like `q` on the inner level.
+        order = list(range(1, result.axes[self.axis].nlevels)) + [0]
 
-            # temporarily saves the index names
-            index_names = np.array(result.index.names)
+        # temporarily saves the index names
+        index_names = np.array(result.axes[self.axis].names)
 
-            # set index names to positions to avoid confusion
-            result.index.names = np.arange(len(index_names))
+        # set index names to positions to avoid confusion
+        result.axes[self.axis].names = np.arange(len(index_names))
 
-            # place quantiles on the inside
+        # place quantiles on the inside
+        if isinstance(result, Series):
             result = result.reorder_levels(order)
-
-            # restore the index names in order
-            result.index.names = index_names[order]
-
-            # reorder rows to keep things sorted
-            indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
-            return result.take(indices)
         else:
-            result = concat(results, axis=1, keys=q)
+            result = result.reorder_levels(order, axis=self.axis)
 
-            order = list(range(1, result.columns.nlevels)) + [0]
-            index_names = np.array(result.columns.names)
-            result.columns.names = np.arange(len(index_names))
-            result = result.reorder_levels(order, axis=1)
-            result.columns.names = index_names[order]
-            indices = (
-                np.arange(result.shape[1])
-                .reshape(
-                    [len(q), self.ngroups],
-                )
-                .T.flatten()
-            )
-            return result.take(indices, axis=1)
+        # restore the index names in order
+        result.axes[self.axis].names = index_names[order]
+
+        # reorder rows to keep things sorted
+        indices = np.arange(result.shape[self.axis]).reshape([len(q), self.ngroups]).T.flatten()
+        return result.take(indices, axis=self.axis)
 
     @Substitution(name="groupby")
     def ngroup(self, ascending: bool = True):
