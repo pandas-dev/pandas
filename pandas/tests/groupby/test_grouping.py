@@ -307,9 +307,8 @@ class TestGrouping:
         # reset_index changes columns dtype to object
         by_columns = df.reset_index().groupby(idx_names).mean()
 
-        tm.assert_frame_equal(by_levels, by_columns, check_column_type=False)
-
-        by_columns.columns = Index(by_columns.columns, dtype=np.int64)
+        # without casting, by_columns.columns is object-dtype
+        by_columns.columns = by_columns.columns.astype(np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
