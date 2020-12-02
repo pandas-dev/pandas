@@ -995,7 +995,7 @@ b  2""",
 
             try:
                 result, _ = self.grouper._cython_operation(
-                    "transform", obj.values, how, axis, **kwargs
+                    "transform", obj._values, how, axis, **kwargs
                 )
             except NotImplementedError:
                 continue

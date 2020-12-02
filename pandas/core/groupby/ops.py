@@ -491,8 +491,11 @@ class BaseGrouper:
             res_values, names = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
+            if how in ["rank"]:
+                # preserve float64 dtype
+                return res_values, names
+
             res_values = res_values.astype("i8", copy=False)
-            # FIXME: this is wrong for rank, but not tested.
             result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
             return result, names
 
