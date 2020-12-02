@@ -624,9 +624,6 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetimelike and kind == "aggregate":
-            result = result.astype(orig_values.dtype)
-
         if how not in base.cython_cast_blocklist:
             # "rank" is the only member of cython_cast_blocklist we get here
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
