@@ -2037,7 +2037,7 @@ class IndexCol:
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
 
-        kwargs = dict()
+        kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
         if self.freq is not None:
@@ -3237,7 +3237,7 @@ class Table(Fixed):
         self.non_index_axes = non_index_axes or []
         self.values_axes = values_axes or []
         self.data_columns = data_columns or []
-        self.info = info or dict()
+        self.info = info or {}
         self.nan_rep = nan_rep
 
     @property
@@ -3446,7 +3446,7 @@ class Table(Fixed):
         """ retrieve our attributes """
         self.non_index_axes = getattr(self.attrs, "non_index_axes", None) or []
         self.data_columns = getattr(self.attrs, "data_columns", None) or []
-        self.info = getattr(self.attrs, "info", None) or dict()
+        self.info = getattr(self.attrs, "info", None) or {}
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
@@ -3596,7 +3596,7 @@ class Table(Fixed):
         if not isinstance(columns, (tuple, list)):
             columns = [columns]
 
-        kw = dict()
+        kw = {}
         if optlevel is not None:
             kw["optlevel"] = optlevel
         if kind is not None:
@@ -3689,7 +3689,7 @@ class Table(Fixed):
             return []
 
         axis, axis_labels = non_index_axes[0]
-        info = self.info.get(axis, dict())
+        info = self.info.get(axis, {})
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
                 f"cannot use a multi-index on axis [{axis}] with "
@@ -4071,7 +4071,7 @@ class Table(Fixed):
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
 
-        d = dict(name="table", expectedrows=expectedrows)
+        d = {"name": "table", "expectedrows": expectedrows}
 
         # description from the axes & values
         d["description"] = {a.cname: a.typ for a in self.axes}
@@ -4458,9 +4458,9 @@ class AppendableFrameTable(AppendableTable):
         result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
-            self.info.get(self.non_index_axes[0][0], dict())
+            self.info.get(self.non_index_axes[0][0], {})
             if len(self.non_index_axes)
-            else dict()
+            else {}
         )
 
         inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
