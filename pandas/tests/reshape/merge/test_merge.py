@@ -422,10 +422,10 @@ class TestMerge:
     @pytest.mark.parametrize(
         "kwarg",
         [
-            dict(left_index=True, right_index=True),
-            dict(left_index=True, right_on="x"),
-            dict(left_on="a", right_index=True),
-            dict(left_on="a", right_on="x"),
+            {"left_index": True, "right_index": True},
+            {"left_index": True, "right_on": "x"},
+            {"left_on": "a", "right_index": True},
+            {"left_on": "a", "right_on": "x"},
         ],
     )
     def test_merge_left_empty_right_empty(self, join_type, kwarg):
@@ -475,18 +475,18 @@ class TestMerge:
             tm.assert_frame_equal(result, exp)
 
         for kwarg in [
-            dict(left_index=True, right_index=True),
-            dict(left_index=True, right_on="x"),
+            {"left_index": True, "right_index": True},
+            {"left_index": True, "right_on": "x"},
         ]:
             check1(exp_in, kwarg)
             check2(exp_out, kwarg)
 
-        kwarg = dict(left_on="a", right_index=True)
+        kwarg = {"left_on": "a", "right_index": True}
         check1(exp_in, kwarg)
         exp_out["a"] = [0, 1, 2]
         check2(exp_out, kwarg)
 
-        kwarg = dict(left_on="a", right_on="x")
+        kwarg = {"left_on": "a", "right_on": "x"}
         check1(exp_in, kwarg)
         exp_out["a"] = np.array([np.nan] * 3, dtype=object)
         check2(exp_out, kwarg)
@@ -524,10 +524,10 @@ class TestMerge:
             tm.assert_frame_equal(result, exp)
 
             for kwarg in [
-                dict(left_index=True, right_index=True),
-                dict(left_index=True, right_on="x"),
-                dict(left_on="a", right_index=True),
-                dict(left_on="a", right_on="x"),
+                {"left_index": True, "right_index": True},
+                {"left_index": True, "right_on": "x"},
+                {"left_on": "a", "right_index": True},
+                {"left_on": "a", "right_on": "x"},
             ]:
                 check1(exp_in, kwarg)
                 check2(exp_out, kwarg)
@@ -1999,19 +1999,19 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
 @pytest.mark.parametrize(
     "col1, col2, kwargs, expected_cols",
     [
-        (0, 0, dict(suffixes=("", "_dup")), ["0", "0_dup"]),
-        (0, 0, dict(suffixes=(None, "_dup")), [0, "0_dup"]),
-        (0, 0, dict(suffixes=("_x", "_y")), ["0_x", "0_y"]),
-        (0, 0, dict(suffixes=["_x", "_y"]), ["0_x", "0_y"]),
-        ("a", 0, dict(suffixes=(None, "_y")), ["a", 0]),
-        (0.0, 0.0, dict(suffixes=("_x", None)), ["0.0_x", 0.0]),
-        ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
-        ("a", "a", dict(suffixes=("_x", None)), ["a_x", "a"]),
-        ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
-        ("a", "a", dict(suffixes=(None, "_x")), ["a", "a_x"]),
-        (0, 0, dict(suffixes=("_a", None)), ["0_a", 0]),
-        ("a", "a", dict(), ["a_x", "a_y"]),
-        (0, 0, dict(), ["0_x", "0_y"]),
+        (0, 0, {"suffixes": ("", "_dup")}, ["0", "0_dup"]),
+        (0, 0, {"suffixes": (None, "_dup")}, [0, "0_dup"]),
+        (0, 0, {"suffixes": ("_x", "_y")}, ["0_x", "0_y"]),
+        (0, 0, {"suffixes": ["_x", "_y"]}, ["0_x", "0_y"]),
+        ("a", 0, {"suffixes": (None, "_y")}, ["a", 0]),
+        (0.0, 0.0, {"suffixes": ("_x", None)}, ["0.0_x", 0.0]),
+        ("b", "b", {"suffixes": (None, "_y")}, ["b", "b_y"]),
+        ("a", "a", {"suffixes": ("_x", None)}, ["a_x", "a"]),
+        ("a", "b", {"suffixes": ("_x", None)}, ["a", "b"]),
+        ("a", "a", {"suffixes": (None, "_x")}, ["a", "a_x"]),
+        (0, 0, {"suffixes": ("_a", None)}, ["0_a", 0]),
+        ("a", "a", {}, ["a_x", "a_y"]),
+        (0, 0, {}, ["0_x", "0_y"]),
     ],
 )
 def test_merge_suffix(col1, col2, kwargs, expected_cols):
