@@ -2821,7 +2821,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
