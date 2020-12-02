@@ -2380,6 +2380,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
+
+        if self.is_unique:
+            return self._shallow_copy()
+
         result = super().unique()
         return self._shallow_copy(result)
 
@@ -2821,15 +2825,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
             dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype)
-            other = other.astype(dtype)
+            this = self.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
@@ -2866,7 +2870,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.safe_sort(result)
 
         # Intersection has to be unique
-        assert algos.unique(result).shape == result.shape
+        assert Index(result).is_unique
 
         return result
 
