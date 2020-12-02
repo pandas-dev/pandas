@@ -4941,6 +4941,43 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _get_indexer_non_comparable(self, target: "Index", method, unique: bool = True):
+        """
+        Called from get_indexer or get_indexer_non_unique when the target
+        is of a non-comparable dtype.
+
+        For get_indexer lookups with method=None, get_indexer is an _equality_
+        check, so non-comparable dtypes mean we will always have no matches.
+
+        For get_indexer lookups with a method, get_indexer is an _inequality_
+        check, so non-comparable dtypes mean we will always raise TypeError.
+
+        Parameters
+        ----------
+        target : Index
+        method : str or None
+        unique : bool, default True
+            * True if called from get_indexer.
+            * False if called from get_indexer_non_unique.
+
+        Raises
+        ------
+        TypeError
+            If doing an inequality check, i.e. method is not None.
+        """
+        if method is not None:
+            other = _unpack_nested_dtype(target)
+            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
+
+        no_matches = -1 * np.ones(target.shape, dtype=np.intp)
+        if unique:
+            # This is for get_indexer
+            return no_matches
+        else:
+            # This is for get_indexer_non_unique
+            missing = np.arange(len(target), dtype=np.intp)
+            return no_matches, missing
+
     @property
     def _index_as_unique(self):
         """
@@ -4975,6 +5012,14 @@ class Index(IndexOpsMixin, PandasObject):
             other, self = other._maybe_promote(self)
 
         return self, other
+
+    def _should_compare(self, other: "Index") -> bool:
+        """
+        Check if `self == other` can ever have non-False entries.
+        """
+        other = _unpack_nested_dtype(other)
+        dtype = other.dtype
+        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -6123,3 +6168,24 @@ def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
     name_sets = [{*ns} for ns in zip_longest(*name_tups)]
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
+
+
+def _unpack_nested_dtype(other: Index) -> Index:
+    """
+    When checking if our dtype is comparable with another, we need
+    to unpack CategoricalDtype to look at its categories.dtype.
+
+    Parameters
+    ----------
+    other : Index
+
+    Returns
+    -------
+    Index
+    """
+    dtype = other.dtype
+    if is_categorical_dtype(dtype):
+        # If there is ever a SparseIndex, this could get dispatched
+        #  here too.
+        return dtype.categories
+    return other
