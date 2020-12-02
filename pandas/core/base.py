@@ -10,7 +10,6 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
-    Hashable,
     Optional,
     Set,
     TypeVar,
@@ -21,7 +20,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeObj, IndexLabel
+from pandas._typing import DtypeObj, IndexLabel, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -155,7 +154,7 @@ class SelectionMixin:
     """
 
     obj: Any
-    exclusions: Set[Optional[Hashable]] = set()
+    exclusions: Set[Label] = set()
 
     _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
