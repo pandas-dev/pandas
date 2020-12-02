@@ -2828,8 +2828,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not is_dtype_equal(self.dtype, other.dtype):
             dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype)
-            other = other.astype(dtype)
+            this = self.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
