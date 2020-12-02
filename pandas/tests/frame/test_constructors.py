@@ -1238,32 +1238,34 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_preserve_order(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_preserve_order(self, dict_type):
         # see gh-13304
         expected = DataFrame([[2, 1]], columns=["b", "a"])
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = [2]
         data["a"] = [1]
 
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = 2
         data["a"] = 1
 
         result = DataFrame([data])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_conflicting_orders(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_conflicting_orders(self, dict_type):
         # the first dict element sets the ordering for the DataFrame,
         # even if there are conflicting orders from subsequent ones
-        row_one = OrderedDict()
+        row_one = dict_type()
         row_one["b"] = 2
         row_one["a"] = 1
 
-        row_two = OrderedDict()
+        row_two = dict_type()
         row_two["a"] = 1
         row_two["b"] = 2
 
