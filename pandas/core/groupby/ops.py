@@ -28,7 +28,11 @@ from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import maybe_cast_result
+from pandas.core.dtypes.cast import (
+    maybe_cast_result,
+    maybe_cast_result_dtype,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_float,
     ensure_float64,
@@ -620,8 +624,11 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetimelike and kind == "aggregate":
-            result = result.astype(orig_values.dtype)
+        if how not in base.cython_cast_blocklist:
+            # e.g. if we are int64 and need to restore to datetime64/timedelta64
+            # "rank" is the only member of cython_cast_blocklist we get here
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            result = maybe_downcast_to_dtype(result, dtype)
 
         return result, names
 
