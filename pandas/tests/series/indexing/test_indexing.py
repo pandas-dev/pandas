@@ -369,8 +369,7 @@ def test_2d_to_1d_assignment_raises():
 
     msg = "|".join(
         [
-            r"shape mismatch: value array of shape \(2,2\) could not be "
-            r"broadcast to indexing result of shape \(2,\)",
+            r"shape mismatch: value array of shape \(2,2\)",
             r"cannot reshape array of size 4 into shape \(2,\)",
         ]
     )
