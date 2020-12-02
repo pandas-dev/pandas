@@ -1876,7 +1876,9 @@ def assert_copy(iter1, iter2, **eql_kwargs):
 def is_ExtensionArrayDtype_and_needs_i8_conversion(left_dtype, right_dtype):
     """
     Checks that we have the combination of an ExtensionArraydtype and
-    a dtype that should be converted to int64.
+    a dtype that should be converted to int64
+
+    Related to issue #37609
     """
     return (
         is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
