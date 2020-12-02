@@ -1898,6 +1898,12 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
 
-        # This would raise `ValueError: Cannot convert non-finite values (NA or inf)
-        # to integer` if the fillna operation above fails
-        result[("is_", "ca")] = result[("is_", "ca")].astype("uint8")
+        expected = DataFrame(
+            [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
+            index=Index(["A", "B"], dtype="object", name="a"),
+            columns=MultiIndex.from_tuples(
+                [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
+                names=[None, "b"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
