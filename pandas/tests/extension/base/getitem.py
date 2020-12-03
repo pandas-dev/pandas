@@ -306,10 +306,10 @@ class BaseGetitemTests(BaseExtensionTests):
         result = empty.take([-1], allow_fill=True)
         assert na_cmp(result[0], na_value)
 
-        if empty.dtype.name == 'arrow_string':
-            msg = 'Index -1 out of bounds'
-        elif empty.dtype.name == 'json':
-            msg = 'Index is out of bounds or cannot do a non-empty take from an empty array.'
+        if empty.dtype.name == "arrow_string":
+            msg = "Index -1 out of bounds"
+        elif empty.dtype.name == "json":
+            msg = "Index is out of bounds or cannot do a non-empty take from an empty array."
         else:
             msg = "cannot do a non-empty take from an empty axes."
 
@@ -344,10 +344,10 @@ class BaseGetitemTests(BaseExtensionTests):
     @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
-        if (arr.dtype.name == 'arrow_string') | ('Sparse' in arr.dtype.name):
+        if (arr.dtype.name == "arrow_string") | ("Sparse" in arr.dtype.name):
             msg = "out of bounds value in 'indices'."
-        elif arr.dtype.name == 'json':
-            msg = 'Index is out of bounds or cannot do a non-empty take from an empty array.'
+        elif arr.dtype.name == "json":
+            msg = "Index is out of bounds or cannot do a non-empty take from an empty array."
         else:
             if allow_fill:
                 msg = "indices are out-of-bounds"
