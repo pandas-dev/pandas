@@ -309,7 +309,10 @@ class BaseGetitemTests(BaseExtensionTests):
         if empty.dtype.name == "arrow_string":
             msg = "Index -1 out of bounds"
         elif empty.dtype.name == "json":
-            msg = "Index is out of bounds or cannot do a non-empty take from an empty array."
+            msg = (
+                "Index is out of bounds or cannot do a non-empty take "
+                "from an empty array."
+            )
         else:
             msg = "cannot do a non-empty take from an empty axes."
 
@@ -347,7 +350,10 @@ class BaseGetitemTests(BaseExtensionTests):
         if (arr.dtype.name == "arrow_string") | ("Sparse" in arr.dtype.name):
             msg = "out of bounds value in 'indices'."
         elif arr.dtype.name == "json":
-            msg = "Index is out of bounds or cannot do a non-empty take from an empty array."
+            msg = (
+                "Index is out of bounds or cannot do a non-empty take "
+                "from an empty array."
+            )
         else:
             if allow_fill:
                 msg = "indices are out-of-bounds"
