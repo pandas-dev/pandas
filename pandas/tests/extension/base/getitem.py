@@ -359,7 +359,7 @@ class BaseGetitemTests(BaseExtensionTests):
                 msg = "indices are out-of-bounds"
             else:
                 if ("numpy" not in str(type(arr))) | (
-                    arr.dtype.name in ["float32", "float64", "object"]
+                    arr.dtype.name not in ["string"]
                 ):
                     msg = "index 3 is out of bounds for axis 0 with size 3"
                 else:
