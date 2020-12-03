@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -345,9 +344,7 @@ class Grouper:
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(
-                obj, ABCSeries
-            ):
+            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
                 # pandas\core\groupby\grouper.py:348: error: Item "None" of
                 # "Optional[Any]" has no attribute "take"  [union-attr]
                 ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
