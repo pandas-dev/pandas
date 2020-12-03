@@ -4735,9 +4735,8 @@ class Index(IndexOpsMixin, PandasObject):
                        '2012-03-01'],
                       dtype='datetime64[ns]', freq='MS')
         """
-        raise NotImplementedError(
-            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
-            f"TimedeltaIndex; Got type {type(self).__name__}")
+        raise NotImplementedError(f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+                                  f"TimedeltaIndex; Got type {type(self).__name__}")
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
         """
