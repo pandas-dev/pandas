@@ -73,7 +73,7 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+        msg = f"This method is only implemented for DatetimeIndex, PeriodIndex and "\
         f"TimedeltaIndex; Got type {type(idx).__name__}"
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
