@@ -2073,13 +2073,31 @@ class TestLocSeries:
         result = s2["a"]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "array_fn,assert_fn",
+        [
+            (np.zeros, tm.assert_numpy_array_equal),
+            (pd.array, tm.assert_extension_array_equal),
+            (list, tm.assert_python_equal),
+            (tuple, tm.assert_python_equal),
+        ],
+    )
     @pytest.mark.parametrize("size", [0, 4, 5, 6])
-    def test_loc_setitem_with_array(self, size):
+    def test_loc_iloc_setitem_with_listlike(self, size, array_fn, assert_fn):
         # GH37748
+        # testing insertion, in Series of size N (here 5), of listlike
+        # of size  0, N-1, N, N+1
+
+        expected = array_fn([0] * size)
+
         ser = Series(0, index=list("abcde"), dtype="object")
 
-        expected = np.zeros(size)
         ser.loc["a"] = expected
         result = ser[0]
+        assert_fn(result, expected)
 
-        tm.assert_numpy_array_equal(result, expected)
+        ser = Series(0, index=list("abcde"), dtype="object")
+
+        ser.iloc[0] = expected
+        result = ser[0]
+        assert_fn(result, expected)
