@@ -2,14 +2,13 @@
 Tests for the pandas.io.common functionalities
 """
 import gzip
+import http.server
 from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
 
-# from unittest.mock import MagicMock, patch
 import threading
-import http.server
 
 
 import pytest
