@@ -994,7 +994,7 @@ b  2""",
                 continue
 
             try:
-                result, _ = self.grouper._cython_operation(
+                result = self.grouper._cython_operation(
                     "transform", obj._values, how, axis, **kwargs
                 )
             except NotImplementedError:
@@ -1069,12 +1069,13 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, agg_names = self.grouper._cython_operation(
+            result = self.grouper._cython_operation(
                 "aggregate", obj._values, how, axis=0, min_count=min_count
             )
 
-            if agg_names:
+            if how == "ohlc":
                 # e.g. ohlc
+                agg_names = ["open", "high", "low", "close"]
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
