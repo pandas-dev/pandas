@@ -559,7 +559,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
     [
         (CSVUserAgentResponder, pd.read_csv, 34259),
         (JSONUserAgentResponder, pd.read_json, 34260),
-        (ParquetUserAgentResponder, pd.read_parquet, 34268),
+        #(ParquetUserAgentResponder, pd.read_parquet, 34268),
         (PickleUserAgentResponder, pd.read_pickle, 34271),
         (StataUserAgentResponder, pd.read_stata, 34272),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34261),
@@ -576,6 +576,7 @@ def test_server_and_default_headers(responder, read_method, port):
     except Exception:
         df_http = pd.DataFrame({"header": []})
         server.shutdown()
+    server.server_close()
 
     server_thread.join()
     assert not df_http.empty
@@ -586,7 +587,7 @@ def test_server_and_default_headers(responder, read_method, port):
     [
         (CSVUserAgentResponder, pd.read_csv, 34263),
         (JSONUserAgentResponder, pd.read_json, 34264),
-        (ParquetUserAgentResponder, pd.read_parquet, 34270),
+        #(ParquetUserAgentResponder, pd.read_parquet, 34270),
         (PickleUserAgentResponder, pd.read_pickle, 34273),
         (StataUserAgentResponder, pd.read_stata, 34274),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34265),
@@ -608,6 +609,7 @@ def test_server_and_custom_headers(responder, read_method, port):
     except Exception:
         df_http = pd.DataFrame({"header": []})
         server.shutdown()
+    server.server_close()
     server_thread.join()
     tm.assert_frame_equal(df_true, df_http)
 
@@ -637,6 +639,7 @@ def test_server_and_custom_headers(responder, read_method, port):
     except Exception:
         df_http = pd.DataFrame({"0": [], "1": []})
         server.shutdown()
+    server.server_close()
     server_thread.join()
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
