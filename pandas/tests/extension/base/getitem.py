@@ -341,10 +341,12 @@ class BaseGetitemTests(BaseExtensionTests):
         if allow_fill:
             msg = "indices are out-of-bounds"
         else:
-            if arr.dtype.name[:5] == 'float':
-                msg = "index 3 is out of bounds for size 3"
-            else:
+            if ("numpy" not in str(type(arr))) | (
+                arr.dtype.name in ["float32", "float64", "object"]
+            ):
                 msg = "index 3 is out of bounds for axis 0 with size 3"
+            else:
+                msg = "index 3 is out of bounds for size 3"
 
         with pytest.raises(IndexError, match=msg):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
