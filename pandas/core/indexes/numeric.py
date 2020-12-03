@@ -29,7 +29,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 
-_num_index_shared_docs = dict()
+_num_index_shared_docs = {}
 
 
 class NumericIndex(Index):
@@ -224,7 +224,12 @@ _num_index_shared_docs[
     An Index instance can **only** contain hashable objects.
 """
 
-_int64_descr_args = dict(klass="Int64Index", ltype="integer", dtype="int64", extra="")
+_int64_descr_args = {
+    "klass": "Int64Index",
+    "ltype": "integer",
+    "dtype": "int64",
+    "extra": "",
+}
 
 
 class IntegerIndex(NumericIndex):
@@ -286,9 +291,12 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.dtype(np.int64)
 
 
-_uint64_descr_args = dict(
-    klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
-)
+_uint64_descr_args = {
+    "klass": "UInt64Index",
+    "ltype": "unsigned integer",
+    "dtype": "uint64",
+    "extra": "",
+}
 
 
 class UInt64Index(IntegerIndex):
@@ -314,9 +322,12 @@ class UInt64Index(IntegerIndex):
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
 
-_float64_descr_args = dict(
-    klass="Float64Index", dtype="float64", ltype="float", extra=""
-)
+_float64_descr_args = {
+    "klass": "Float64Index",
+    "dtype": "float64",
+    "ltype": "float",
+    "extra": "",
+}
 
 
 class Float64Index(NumericIndex):
