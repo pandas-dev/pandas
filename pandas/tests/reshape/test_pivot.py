@@ -185,7 +185,6 @@ class TestPivotTable:
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
     def test_pivot_table_categorical(self):
 
         cat1 = Categorical(
@@ -195,13 +194,14 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pd.pivot_table(df, values="values", index=["A", "B"], dropna=True)
+        result = pd.pivot_table(
+            df, values="values", index=["A", "B"], dropna=True, observed=False
+        )
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
     def test_pivot_table_dropna_categoricals(self, dropna):
         # GH 15193
         categories = ["a", "b", "c", "d"]
@@ -215,7 +215,9 @@ class TestPivotTable:
         )
 
         df["A"] = df["A"].astype(CDT(categories, ordered=False))
-        result = df.pivot_table(index="B", columns="A", values="C", dropna=dropna)
+        result = df.pivot_table(
+            index="B", columns="A", values="C", dropna=dropna, observed=False
+        )
         expected_columns = Series(["a", "b", "c"], name="A")
         expected_columns = expected_columns.astype(CDT(categories, ordered=False))
         expected_index = Series([1, 2, 3], name="B")
@@ -230,7 +232,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
     def test_pivot_with_non_observable_dropna(self, dropna):
         # gh-21133
         df = DataFrame(
@@ -244,7 +245,7 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         expected = DataFrame(
             {"B": [2, 3]},
             index=Index(
@@ -269,7 +270,7 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         expected = DataFrame(
             {"B": [2, 3, 0]},
             index=Index(
@@ -282,15 +283,13 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
     def test_pivot_with_interval_index(self, interval_values, dropna):
         # GH 25814
         df = DataFrame({"A": interval_values, "B": 1})
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+        result = df.pivot_table(index="A", values="B", dropna=dropna, observed=False)
         expected = DataFrame({"B": 1}, index=Index(interval_values.unique(), name="A"))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
     def test_pivot_with_interval_index_margins(self):
         # GH 25815
         ordered_cat = pd.IntervalIndex.from_arrays([0, 0, 1, 1], [1, 1, 2, 2])
@@ -305,7 +304,13 @@ class TestPivotTable:
         )
 
         pivot_tab = pd.pivot_table(
-            df, index="C", columns="B", values="A", aggfunc="sum", margins=True
+            df,
+            index="C",
+            columns="B",
+            values="A",
+            aggfunc="sum",
+            margins=True,
+            observed=False,
         )
 
         result = pivot_tab["All"]

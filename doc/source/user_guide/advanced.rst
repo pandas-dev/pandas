@@ -808,10 +808,9 @@ order is ``cab``).
 Groupby operations on the index will preserve the index nature as well.
 
 .. ipython:: python
-   :okwarning:
 
-   df2.groupby(level=0).sum()
-   df2.groupby(level=0).sum().index
+   df2.groupby(level=0, observed=False).sum()
+   df2.groupby(level=0, observed=False).sum().index
 
 Reindexing operations will return a resulting index based on the type of the passed
 indexer. Passing a list will return a plain-old ``Index``; indexing with

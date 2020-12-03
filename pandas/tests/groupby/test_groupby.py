@@ -15,10 +15,10 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     read_csv,
 )
-import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 
@@ -2012,7 +2012,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
         pytest.skip("Not applicable")
 
     df = DataFrame([[1, 1]], columns=idx)
-    grp_by = df.groupby([0])
+    grp_by = df.groupby([0], observed=False)
 
     args = []
     if groupby_func in {"fillna", "nth"}:

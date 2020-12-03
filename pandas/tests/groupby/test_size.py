@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, PeriodIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, PeriodIndex, Series, _testing as tm
 
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
@@ -47,11 +46,10 @@ def test_size_period_index():
 
 
 @pytest.mark.parametrize("as_index", [True, False])
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")
-    result = df.groupby(["A", "B"], as_index=as_index).size()
+    result = df.groupby(["A", "B"], as_index=as_index, observed=False).size()
 
     expected = DataFrame(
         [[1, 1, 1], [1, 2, 0], [2, 1, 0], [2, 2, 1]], columns=["A", "B", "size"]

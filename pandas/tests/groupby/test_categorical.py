@@ -11,9 +11,9 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _testing as tm,
     qcut,
 )
-import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
@@ -1059,7 +1059,6 @@ def test_empty_prod():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_multiindex_categorical_datetime():
     # https://github.com/pandas-dev/pandas/issues/21390
 
@@ -1072,7 +1071,7 @@ def test_groupby_multiindex_categorical_datetime():
             "values": np.arange(9),
         }
     )
-    result = df.groupby(["key1", "key2"]).mean()
+    result = df.groupby(["key1", "key2"], observed=False).mean()
 
     idx = MultiIndex.from_product(
         [
@@ -1252,11 +1251,10 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
-    expected = df_cat.groupby(["A", "B"])["C"].mean()
-    result = df_cat.groupby(["A", "B"]).mean()["C"]
+    expected = df_cat.groupby(["A", "B"], observed=False)["C"].mean()
+    result = df_cat.groupby(["A", "B"], observed=False).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 
@@ -1448,8 +1446,7 @@ def test_series_groupby_categorical_aggregation_getitem():
 
 
 @pytest.mark.parametrize(
-    "func, expected_values",
-    [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
+    "func, expected_values", [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
 )
 def test_groupby_agg_categorical_columns(func, expected_values):
     # 31256

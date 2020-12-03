@@ -13,8 +13,7 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, concat
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 
@@ -1060,7 +1059,6 @@ def test_groupby_get_by_index():
         ({"nr": "min"}, {"nr": [1, 5]}),
     ],
 )
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
     # test single aggregations on ordered categorical cols GHGH27800
 
@@ -1075,7 +1073,7 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
@@ -1095,7 +1093,6 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
         ({"cat_ord": ["min", "max"]}, [("a", "b"), ("c", "d")]),
     ],
 )
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     # test combined aggregations on ordered categorical cols GH27800
 
@@ -1110,7 +1107,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(

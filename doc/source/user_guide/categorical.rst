@@ -625,7 +625,6 @@ even if some categories are not present in the data:
 ``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories:
 
 .. ipython:: python
-   :okwarning:
 
     columns = pd.Categorical(
         ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
@@ -638,16 +637,15 @@ even if some categories are not present in the data:
 
 Groupby will also show "unused" categories, though this default is deprecated
 and will be changed in a future release. It is recommended to use the
-``observed`` keyword explicitly:
+``observed`` keyword explicitly as below:
 
 .. ipython:: python
-   :okwarning:
 
     cats = pd.Categorical(
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
     )
     df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
-    df.groupby("cats").mean()
+    df.groupby("cats", observed=False).mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df2 = pd.DataFrame(
@@ -657,17 +655,16 @@ and will be changed in a future release. It is recommended to use the
             "values": [1, 2, 3, 4],
         }
     )
-    df2.groupby(["cats", "B"]).mean()
+    df2.groupby(["cats", "B"], observed=False).mean()
 
 
 Pivot tables:
 
 .. ipython:: python
-   :okwarning:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values="values", index=["A", "B"])
+    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
 
 Data munging
 ------------

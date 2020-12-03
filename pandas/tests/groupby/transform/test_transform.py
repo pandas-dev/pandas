@@ -13,10 +13,10 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     concat,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 
 
@@ -472,12 +472,7 @@ def test_groupby_transform_with_int():
 
     # int case
     df = DataFrame(
-        {
-            "A": [1, 1, 1, 2, 2, 2],
-            "B": 1,
-            "C": [1, 2, 3, 1, 2, 3],
-            "D": "foo",
-        }
+        {"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": [1, 2, 3, 1, 2, 3], "D": "foo",}
     )
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
@@ -987,7 +982,6 @@ def test_groupby_transform_with_datetimes(func, values):
 
 
 @pytest.mark.parametrize("func", ["cumsum", "cumprod", "cummin", "cummax"])
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
 def test_transform_absent_categories(func):
     # GH 16771
     # cython transforms with more groups than rows
@@ -995,7 +989,7 @@ def test_transform_absent_categories(func):
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), func)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 

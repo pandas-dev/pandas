@@ -702,12 +702,11 @@ Sorting is per order in the categories, not lexical order.
 
     df.sort_values(by="grade")
 
-Grouping by a categorical column also shows empty categories.
+Grouping by a categorical column can also show empty categories, using the observed keyword.
 
 .. ipython:: python
-    :okwarning:
 
-    df.groupby("grade").size()
+    df.groupby("grade", observed=False).size()
 
 
 Plotting

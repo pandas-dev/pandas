@@ -3,8 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 
 
 @pytest.mark.parametrize(
@@ -21,7 +20,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip("Not applicable")
 
-    grouped = obj.groupby(np.arange(0, 10))
+    grouped = obj.groupby(np.arange(0, 10), observed=False)
 
     # Groups should preserve subclass type
     assert isinstance(grouped.get_group(0), type(obj))
