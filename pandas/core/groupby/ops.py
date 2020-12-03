@@ -727,7 +727,11 @@ class BaseGrouper:
 
         result = lib.maybe_convert_objects(result, try_float=0)
 
-        if is_object_dtype(result.dtype) and is_extension_array_dtype(obj.dtype):
+        if is_numeric_dtype(obj.dtype):
+            # Needed to cast float64 back to Float64
+            result = maybe_cast_result(result, obj, numeric_only=True)
+
+        elif is_object_dtype(result.dtype) and is_extension_array_dtype(obj.dtype):
             # FIXME: kludge; we have tests for DecimalArray that get here
             #  but they only work because DecimalArray._from_sequence is
             #  strict in what inputs it accepts, which we cannot rely on.
