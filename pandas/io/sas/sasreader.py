@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 from pandas._typing import FilePathOrBuffer, Label
 
-from pandas.io.common import stringify_path
+from pandas.io.common import IOHandles, stringify_path
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -17,6 +17,8 @@ class ReaderBase(metaclass=ABCMeta):
     """
     Protocol for XportReader and SAS7BDATReader classes.
     """
+
+    handles: IOHandles
 
     @abstractmethod
     def read(self, nrows=None):
@@ -134,4 +136,5 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    return reader.read()
+    with reader.handles:
+        return reader.read()
