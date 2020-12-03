@@ -508,19 +508,22 @@ class RangeIndex(Int64Index):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
+            # has_duplicates check is unnecessary for RangeIndex, but
+            #  used to match other subclasses.
             return self._get_reconciled_name_object(other)
 
-        return self._intersection(other, sort=sort)
+        if not is_dtype_equal(self.dtype, other.dtype):
+            return super().intersection(other, sort=sort)
+
+        result = self._intersection(other, sort=sort)
+        return self._wrap_setop_result(other, result)
 
     def _intersection(self, other, sort=False):
 
         if not isinstance(other, RangeIndex):
-            if is_dtype_equal(other.dtype, self.dtype):
-                # Int64Index
-                result = super()._intersection(other, sort=sort)
-                return self._wrap_setop_result(other, result)
-            return super().intersection(other, sort=sort)
+            # Int64Index
+            return super()._intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)
@@ -562,7 +565,7 @@ class RangeIndex(Int64Index):
         if sort is None:
             new_index = new_index.sort_values()
 
-        return self._wrap_setop_result(other, new_index)
+        return new_index
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""

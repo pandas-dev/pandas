@@ -969,6 +969,20 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg):
             frame.idxmax(axis=2)
 
+    def test_idxmax_mixed_dtype(self):
+        # don't cast to object, which would raise in nanops
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
+
+        result = df.idxmax()
+        expected = Series([1, 0, 2], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([0, 2, 0], index=[1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Logical reductions
 
