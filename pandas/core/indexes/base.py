@@ -493,7 +493,12 @@ class Index(IndexOpsMixin, PandasObject):
         duplicates = self[self.duplicated(keep="first")].unique()
         assert len(duplicates)
 
-        out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        # see pr-35967 about the observed keyword
+        out = (
+            Series(np.arange(len(self)))
+            .groupby(self, observed=False)
+            .agg(list)[duplicates]
+        )
         if self.nlevels == 1:
             out = out.rename_axis("label")
         return out.to_frame(name="positions")
