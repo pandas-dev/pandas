@@ -7,9 +7,7 @@ from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
-
 import threading
-
 
 import pytest
 
