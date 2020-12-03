@@ -416,7 +416,6 @@ def to_parquet(
         return None
 
 
-
 @doc(storage_options=generic._shared_docs["storage_options"])
 def read_parquet(
     path,
@@ -479,7 +478,9 @@ def read_parquet(
     impl = get_engine(engine)
 
     return impl.read(
-        path, columns=columns, storage_options=storage_options, 
-        use_nullable_dtypes=use_nullable_dtypes, **kwargs
+        path,
+        columns=columns,
+        storage_options=storage_options,
+        use_nullable_dtypes=use_nullable_dtypes,
+        **kwargs,
     )
-
