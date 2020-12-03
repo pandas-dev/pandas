@@ -338,11 +338,14 @@ class BaseGetitemTests(BaseExtensionTests):
     @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
-        msg = (
-            "indices are out-of-bounds"
-            if allow_fill
-            else "index 3 is out of bounds with size 3"
-        )
+        if allow_fill:
+            msg = "indices are out-of-bounds"
+        else:
+            if arr.dtype.name[:5] == 'float':
+                msg = "index 3 is out of bounds for size 3"
+            else:
+                msg = "index 3 is out of bounds for axis 0 with size 3"
+
         with pytest.raises(IndexError, match=msg):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
