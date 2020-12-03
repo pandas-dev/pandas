@@ -124,7 +124,11 @@ def setop_check(method):
     def wrapped(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if op_name == "intersection":
+            if self.equals(other):
+                return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
             result = getattr(self.astype(object), op_name)(other)
@@ -967,9 +971,20 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
+        if self.equals(other) and not self.has_duplicates:
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, IntervalIndex):
             return self.astype(object).intersection(other)
 
+        result = self._intersection(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _intersection(self, other, sort):
+        """
+        intersection specialized to the case with matching dtypes.
+        """
+        # For IntervalIndex we also know other.closed == self.closed
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
@@ -983,7 +998,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return self._wrap_setop_result(other, taken)
+        return taken
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """

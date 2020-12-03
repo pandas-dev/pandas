@@ -452,13 +452,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if not self._is_comparable_dtype(target.dtype):
-                # i.e. target.freq != self.freq
-                # No matches
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches
+        if not self._should_compare(target):
+            return self._get_indexer_non_comparable(target, method, unique=True)
 
+        if isinstance(target, PeriodIndex):
             target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
@@ -639,15 +636,19 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        elif is_object_dtype(other.dtype):
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other, sort=False):
+
+        if is_object_dtype(other.dtype):
             return self.astype("O").intersection(other, sort=sort)
 
-        elif not is_dtype_equal(self.dtype, other.dtype):
+        elif not self._is_comparable_dtype(other.dtype):
             # We can infer that the intersection is empty.
             # assert_can_do_setop ensures that this is not just a mismatched freq
             this = self[:0].astype("O")
