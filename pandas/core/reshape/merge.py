@@ -114,11 +114,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
     # if we can groupby the rhs
     # then we can get vastly better perf
-
-    try:
+    if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
-    except KeyError:
-        pass
 
     for key, lhs in lby:
 
@@ -140,9 +137,7 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
         # make sure join keys are in the merged
         # TODO, should merge_pieces do this?
-        for k in by:
-            if k in merged:
-                merged[k] = key
+        merged[by] = key
 
         pieces.append(merged)
 
@@ -276,10 +271,20 @@ def merge_ordered(
     if left_by is not None and right_by is not None:
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
+        if isinstance(left_by, str):
+            left_by = [left_by]
+        check = set(left_by).difference(left.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in left columns")
         result, _ = _groupby_and_merge(
             left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
+        if isinstance(right_by, str):
+            right_by = [right_by]
+        check = set(right_by).difference(right.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in right columns")
         result, _ = _groupby_and_merge(
             right_by, on, right, left, lambda x, y: _merger(y, x)
         )
@@ -1271,7 +1276,9 @@ class _MergeOperation:
                 raise MergeError("Must pass left_on or left_index=True")
             else:
                 # use the common columns
-                common_cols = self.left.columns.intersection(self.right.columns)
+                left_cols = self.left.columns
+                right_cols = self.right.columns
+                common_cols = left_cols.intersection(right_cols)
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
@@ -1280,7 +1287,10 @@ class _MergeOperation:
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
                     )
-                if not common_cols.is_unique:
+                if (
+                    not left_cols.join(common_cols, how="inner").is_unique
+                    or not right_cols.join(common_cols, how="inner").is_unique
+                ):
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:

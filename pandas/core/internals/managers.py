@@ -267,7 +267,7 @@ class BlockManager(PandasObject):
             "0.14.1": {
                 "axes": axes_array,
                 "blocks": [
-                    dict(values=b.values, mgr_locs=b.mgr_locs.indexer)
+                    {"values": b.values, "mgr_locs": b.mgr_locs.indexer}
                     for b in self.blocks
                 ],
             }
@@ -636,7 +636,6 @@ class BlockManager(PandasObject):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> "BlockManager":
         return self.apply(
             "convert",
@@ -644,7 +643,6 @@ class BlockManager(PandasObject):
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
     def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":
@@ -1238,6 +1236,8 @@ class BlockManager(PandasObject):
         limit=None,
         fill_value=None,
         copy: bool = True,
+        consolidate: bool = True,
+        only_slice: bool = False,
     ):
         """
         Conform block manager to new index.
@@ -1248,7 +1248,13 @@ class BlockManager(PandasObject):
         )
 
         return self.reindex_indexer(
-            new_index, indexer, axis=axis, fill_value=fill_value, copy=copy
+            new_index,
+            indexer,
+            axis=axis,
+            fill_value=fill_value,
+            copy=copy,
+            consolidate=consolidate,
+            only_slice=only_slice,
         )
 
     def reindex_indexer(
@@ -1260,6 +1266,7 @@ class BlockManager(PandasObject):
         allow_dups: bool = False,
         copy: bool = True,
         consolidate: bool = True,
+        only_slice: bool = False,
     ) -> T:
         """
         Parameters
@@ -1272,6 +1279,8 @@ class BlockManager(PandasObject):
         copy : bool, default True
         consolidate: bool, default True
             Whether to consolidate inplace before reindexing.
+        only_slice : bool, default False
+            Whether to take views, not copies, along columns.
 
         pandas-indexer with -1's only.
         """
@@ -1295,7 +1304,9 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
+            new_blocks = self._slice_take_blocks_ax0(
+                indexer, fill_value=fill_value, only_slice=only_slice
+            )
         else:
             new_blocks = [
                 blk.take_nd(

@@ -288,7 +288,6 @@ def unique_nulls_fixture(request):
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
 
-
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
@@ -319,6 +318,16 @@ def index_or_series(request):
 
 # Generate cartesian product of index_or_series fixture:
 index_or_series2 = index_or_series
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
+)
+def index_or_series_or_array(request):
+    """
+    Fixture to parametrize over Index, Series, and ExtensionArray
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -1091,6 +1100,20 @@ def float_ea_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1409,3 +1432,17 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
