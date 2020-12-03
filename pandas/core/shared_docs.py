@@ -386,5 +386,4 @@ _shared_docs[
     host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
     are forwarded to ``urllib`` as header options. For other URLs (e.g.
     starting with "s3://", and "gcs://") the key-value pairs are forwarded to
-    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details.
-    """
+    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details."""
