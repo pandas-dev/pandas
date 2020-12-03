@@ -130,7 +130,7 @@ class TestResetIndex:
         float_frame.index.name = "index"
         deleveled = float_frame.reset_index()
         tm.assert_series_equal(deleveled["index"], Series(float_frame.index))
-        tm.assert_index_equal(deleveled.index, Index(np.arange(len(deleveled))))
+        tm.assert_index_equal(deleveled.index, Index(range(len(deleveled))), exact=True)
 
         # preserve column names
         float_frame.columns.name = "columns"
@@ -618,7 +618,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
 
 def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame(dict(c1=[10.0], c2=["a"], c3=pd.to_datetime("2020-01-01")))
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(

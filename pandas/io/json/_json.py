@@ -1098,7 +1098,7 @@ class FrameParser(Parser):
         assert obj is not None  # for mypy
 
         needs_new_obj = False
-        new_obj = dict()
+        new_obj = {}
         for i, (col, c) in enumerate(obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)

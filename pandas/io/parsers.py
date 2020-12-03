@@ -1881,7 +1881,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
