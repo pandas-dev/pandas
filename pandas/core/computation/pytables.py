@@ -378,14 +378,14 @@ class UnaryOp(ops.UnaryOp):
         operand = self.operand
         operand = operand.prune(klass)
 
-        if operand is not None:
-            if issubclass(klass, ConditionBinOp):
-                if operand.condition is not None:
-                    return operand.invert()
-            elif issubclass(klass, FilterBinOp):
-                if operand.filter is not None:
-                    return operand.invert()
-
+        if operand is not None and (
+            issubclass(klass, ConditionBinOp)
+            and operand.condition is not None
+            or not issubclass(klass, ConditionBinOp)
+            and issubclass(klass, FilterBinOp)
+            and operand.filter is not None
+        ):
+            return operand.invert()
         return None
 
 
@@ -429,6 +429,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
             value = value.value
         except AttributeError:
             pass
+
+        if isinstance(slobj, Term):
+            # In py39 np.ndarray lookups with Term containing int raise
+            slobj = slobj.value
 
         try:
             return self.const_type(value[slobj], self.env)

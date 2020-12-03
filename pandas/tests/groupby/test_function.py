@@ -186,12 +186,12 @@ def test_arg_passthru():
             "timedelta": [pd.Timedelta("1.5s"), pd.Timedelta("3s")],
             "int": [1.5, 3],
             "datetime": [
-                pd.Timestamp("2013-01-01 12:00:00"),
-                pd.Timestamp("2013-01-03 00:00:00"),
+                Timestamp("2013-01-01 12:00:00"),
+                Timestamp("2013-01-03 00:00:00"),
             ],
             "datetimetz": [
-                pd.Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
-                pd.Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
+                Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
+                Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
             ],
         },
         index=Index([1, 2], name="group"),
@@ -692,14 +692,14 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
-    df = DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    df = DataFrame({"a": [1], "b": pd.to_datetime(["2001"])})
     expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummin()
     tm.assert_series_equal(expected, result)
 
     # GH 15635
-    df = DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+    df = DataFrame({"a": [1, 2, 1], "b": [1, 2, 2]})
     result = df.groupby("a").b.cummin()
     expected = Series([1, 2, 1], name="b")
     tm.assert_series_equal(result, expected)
@@ -748,14 +748,14 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_frame_equal(result, expected)
 
     # GH 15561
-    df = DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    df = DataFrame({"a": [1], "b": pd.to_datetime(["2001"])})
     expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummax()
     tm.assert_series_equal(expected, result)
 
     # GH 15635
-    df = DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
+    df = DataFrame({"a": [1, 2, 1], "b": [2, 1, 1]})
     result = df.groupby("a").b.cummax()
     expected = Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)
@@ -916,14 +916,14 @@ def test_frame_describe_tupleindex():
 def test_frame_describe_unstacked_format():
     # GH 4792
     prices = {
-        pd.Timestamp("2011-01-06 10:59:05", tz=None): 24990,
-        pd.Timestamp("2011-01-06 12:43:33", tz=None): 25499,
-        pd.Timestamp("2011-01-06 12:54:09", tz=None): 25499,
+        Timestamp("2011-01-06 10:59:05", tz=None): 24990,
+        Timestamp("2011-01-06 12:43:33", tz=None): 25499,
+        Timestamp("2011-01-06 12:54:09", tz=None): 25499,
     }
     volumes = {
-        pd.Timestamp("2011-01-06 10:59:05", tz=None): 1500000000,
-        pd.Timestamp("2011-01-06 12:43:33", tz=None): 5000000000,
-        pd.Timestamp("2011-01-06 12:54:09", tz=None): 100000000,
+        Timestamp("2011-01-06 10:59:05", tz=None): 1500000000,
+        Timestamp("2011-01-06 12:43:33", tz=None): 5000000000,
+        Timestamp("2011-01-06 12:54:09", tz=None): 100000000,
     }
     df = DataFrame({"PRICE": prices, "VOLUME": volumes})
     result = df.groupby("PRICE").VOLUME.describe()
@@ -957,7 +957,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
     )
 
     expected = (
-        pd.DataFrame.from_records(
+        DataFrame.from_records(
             [
                 ("a", "count", 3.0, 3.0),
                 ("a", "mean", 88.0, 99.0),

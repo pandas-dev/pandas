@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Series
@@ -227,8 +226,12 @@ def test_ewma_halflife_arg(series):
         series.ewm()
 
 
-def test_ewm_alpha(arr):
+def test_ewm_alpha():
     # GH 10789
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+
     s = Series(arr)
     a = s.ewm(alpha=0.61722699889169674).mean()
     b = s.ewm(com=0.62014947789973052).mean()
@@ -255,8 +258,12 @@ def test_ewm_alpha_arg(series):
         s.ewm(halflife=10.0, alpha=0.5)
 
 
-def test_ewm_domain_checks(arr):
+def test_ewm_domain_checks():
     # GH 12492
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+
     s = Series(arr)
     msg = "comass must satisfy: comass >= 0"
     with pytest.raises(ValueError, match=msg):
@@ -305,7 +312,7 @@ def test_ew_empty_series(method):
 @pytest.mark.parametrize("name", ["mean", "var", "vol"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
-    arr = randn(50)
+    arr = np.random.randn(50)
     arr[:10] = np.NaN
     arr[-10:] = np.NaN
     s = Series(arr)

@@ -205,15 +205,15 @@ class TestDatetimeConcat:
         first = DataFrame([[pd.NaT], [pd.NaT]])
         first = first.apply(lambda x: x.dt.tz_localize(tz))
         second = DataFrame(
-            [[pd.Timestamp("2015/01/01", tz=tz)], [pd.Timestamp("2016/01/01", tz=tz)]],
+            [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=tz)]],
             index=[2, 3],
         )
         expected = DataFrame(
             [
                 pd.NaT,
                 pd.NaT,
-                pd.Timestamp("2015/01/01", tz=tz),
-                pd.Timestamp("2016/01/01", tz=tz),
+                Timestamp("2015/01/01", tz=tz),
+                Timestamp("2016/01/01", tz=tz),
             ]
         )
 
@@ -222,7 +222,7 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("s", [pd.NaT, pd.Timestamp("20150101")])
+    @pytest.mark.parametrize("s", [pd.NaT, Timestamp("20150101")])
     def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, s):
         # GH 12396
 
@@ -263,8 +263,8 @@ class TestDatetimeConcat:
         first = Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1)
         second = DataFrame(
             [
-                [pd.Timestamp("2015/01/01", tz=tz2)],
-                [pd.Timestamp("2016/01/01", tz=tz2)],
+                [Timestamp("2015/01/01", tz=tz2)],
+                [Timestamp("2016/01/01", tz=tz2)],
             ],
             index=[2, 3],
         )
@@ -273,8 +273,8 @@ class TestDatetimeConcat:
             [
                 pd.NaT,
                 pd.NaT,
-                pd.Timestamp("2015/01/01", tz=tz2),
-                pd.Timestamp("2016/01/01", tz=tz2),
+                Timestamp("2015/01/01", tz=tz2),
+                Timestamp("2016/01/01", tz=tz2),
             ]
         )
         if tz1 != tz2:
@@ -344,12 +344,12 @@ class TestTimezoneConcat:
     def test_concat_tz_series_tzlocal(self):
         # see gh-13583
         x = [
-            pd.Timestamp("2011-01-01", tz=dateutil.tz.tzlocal()),
-            pd.Timestamp("2011-02-01", tz=dateutil.tz.tzlocal()),
+            Timestamp("2011-01-01", tz=dateutil.tz.tzlocal()),
+            Timestamp("2011-02-01", tz=dateutil.tz.tzlocal()),
         ]
         y = [
-            pd.Timestamp("2012-01-01", tz=dateutil.tz.tzlocal()),
-            pd.Timestamp("2012-02-01", tz=dateutil.tz.tzlocal()),
+            Timestamp("2012-01-01", tz=dateutil.tz.tzlocal()),
+            Timestamp("2012-02-01", tz=dateutil.tz.tzlocal()),
         ]
 
         result = concat([Series(x), Series(y)], ignore_index=True)
@@ -359,8 +359,8 @@ class TestTimezoneConcat:
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta
         x = [
-            pd.Timestamp("2011-01-01", tz="US/Eastern"),
-            pd.Timestamp("2011-02-01", tz="US/Eastern"),
+            Timestamp("2011-01-01", tz="US/Eastern"),
+            Timestamp("2011-02-01", tz="US/Eastern"),
         ]
         y = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
         result = concat([Series(x), Series(y)], ignore_index=True)
@@ -373,10 +373,10 @@ class TestTimezoneConcat:
 
     def test_concat_tz_frame(self):
         df2 = DataFrame(
-            dict(
-                A=pd.Timestamp("20130102", tz="US/Eastern"),
-                B=pd.Timestamp("20130603", tz="CET"),
-            ),
+            {
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+            },
             index=range(5),
         )
 
@@ -391,20 +391,20 @@ class TestTimezoneConcat:
         ts2 = Timestamp("2015-01-01", tz="UTC")
         ts3 = Timestamp("2015-01-01", tz="EST")
 
-        df1 = DataFrame(dict(time=[ts1]))
-        df2 = DataFrame(dict(time=[ts2]))
-        df3 = DataFrame(dict(time=[ts3]))
+        df1 = DataFrame({"time": [ts1]})
+        df2 = DataFrame({"time": [ts2]})
+        df3 = DataFrame({"time": [ts3]})
 
         results = pd.concat([df1, df2]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts2]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts2]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df1, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts3]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts3]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df2, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts2, ts3]))
+        expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
     def test_concat_multiindex_with_tz(self):
@@ -501,7 +501,7 @@ class TestPeriodConcat:
 
         # non-period
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
-        y = Series(pd.DatetimeIndex(["2015-11-01", "2015-12-01"]))
+        y = Series(DatetimeIndex(["2015-11-01", "2015-12-01"]))
         expected = Series([x[0], x[1], y[0], y[1]], dtype="object")
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)

@@ -5,15 +5,10 @@ import pytest
 
 from pandas.compat import IS64, PYPY
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, IntervalIndex, Series
+from pandas import DataFrame, Index, Series
 
 
 @pytest.mark.parametrize(
@@ -40,54 +35,6 @@ def test_binary_ops_docstring(klass, op_name, op):
     # reverse version of the binary ops
     expected_str = " ".join([operand2, op, operand1])
     assert expected_str in getattr(klass, "r" + op_name).__doc__
-
-
-def test_none_comparison(series_with_simple_index):
-    series = series_with_simple_index
-    if isinstance(series.index, IntervalIndex):
-        # IntervalIndex breaks on "series[0] = np.nan" below
-        pytest.skip("IntervalIndex doesn't support assignment")
-    if len(series) < 1:
-        pytest.skip("Test doesn't make sense on empty data")
-
-    # bug brought up by #1079
-    # changed from TypeError in 0.17.0
-    series[0] = np.nan
-
-    # noinspection PyComparisonWithNone
-    result = series == None  # noqa
-    assert not result.iat[0]
-    assert not result.iat[1]
-
-    # noinspection PyComparisonWithNone
-    result = series != None  # noqa
-    assert result.iat[0]
-    assert result.iat[1]
-
-    result = None == series  # noqa
-    assert not result.iat[0]
-    assert not result.iat[1]
-
-    result = None != series  # noqa
-    assert result.iat[0]
-    assert result.iat[1]
-
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
-        # Following DatetimeIndex (and Timestamp) convention,
-        # inequality comparisons with Series[datetime64] raise
-        msg = "Invalid comparison"
-        with pytest.raises(TypeError, match=msg):
-            None > series
-        with pytest.raises(TypeError, match=msg):
-            series > None
-    else:
-        result = None > series
-        assert not result.iat[0]
-        assert not result.iat[1]
-
-        result = series < None
-        assert not result.iat[0]
-        assert not result.iat[1]
 
 
 def test_ndarray_compat_properties(index_or_series_obj):
@@ -130,7 +77,7 @@ def test_memory_usage(index_or_series_obj):
         if isinstance(obj, Index):
             expected = 0
         else:
-            expected = 80 if IS64 else 48
+            expected = 108 if IS64 else 64
         assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up

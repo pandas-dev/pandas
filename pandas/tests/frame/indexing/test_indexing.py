@@ -66,21 +66,6 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
 
-    @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
-    def test_loc_iterable(self, float_frame, key_type):
-        idx = key_type(["A", "B", "C"])
-        result = float_frame.loc[:, idx]
-        expected = float_frame.loc[:, ["A", "B", "C"]]
-        tm.assert_frame_equal(result, expected)
-
-    def test_loc_timedelta_0seconds(self):
-        # GH#10583
-        df = DataFrame(np.random.normal(size=(10, 4)))
-        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
-        expected = df.loc[pd.Timedelta("0s") :, :]
-        result = df.loc["0s":, :]
-        tm.assert_frame_equal(expected, result)
-
     @pytest.mark.parametrize(
         "idx_type",
         [
@@ -125,29 +110,6 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
 
-    @pytest.mark.parametrize(
-        "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
-    )
-    def test_loc_uint64(self, val, expected):
-        # see gh-19399
-        df = DataFrame([1, 2], index=[2 ** 63 - 1, 2 ** 63])
-        result = df.loc[val]
-
-        expected.name = val
-        tm.assert_series_equal(result, expected)
-
-    def test_getitem_callable(self, float_frame):
-        # GH 12533
-        result = float_frame[lambda x: "A"]
-        tm.assert_series_equal(result, float_frame.loc[:, "A"])
-
-        result = float_frame[lambda x: ["A", "B"]]
-        tm.assert_frame_equal(result, float_frame.loc[:, ["A", "B"]])
-
-        df = float_frame[:3]
-        result = df[lambda x: [True, False, True]]
-        tm.assert_frame_equal(result, float_frame.iloc[[0, 2], :])
-
     def test_setitem_list(self, float_frame):
 
         float_frame["E"] = "foo"
@@ -180,11 +142,6 @@ class TestDataFrameIndexing:
         result = df.loc[df.index[1], ["tt1", "tt2"]]
         expected = Series(["1", "2"], df.columns, name=1)
         tm.assert_series_equal(result, expected)
-
-    def test_setitem_list_not_dataframe(self, float_frame):
-        data = np.random.randn(len(float_frame), 2)
-        float_frame[["A", "B"]] = data
-        tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
     def test_setitem_list_of_tuples(self, float_frame):
         tuples = list(zip(float_frame["A"], float_frame["B"]))
@@ -273,14 +230,6 @@ class TestDataFrameIndexing:
         df[("joe", "last")] = df[("jolie", "first")].loc[i, j]
         tm.assert_frame_equal(df[("joe", "last")], df[("jolie", "first")])
 
-    def test_setitem_callable(self):
-        # GH 12533
-        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]})
-        df[lambda x: "A"] = [11, 12, 13, 14]
-
-        exp = DataFrame({"A": [11, 12, 13, 14], "B": [5, 6, 7, 8]})
-        tm.assert_frame_equal(df, exp)
-
     def test_setitem_other_callable(self):
         # GH 13299
         def inc(x):
@@ -291,6 +240,24 @@ class TestDataFrameIndexing:
 
         expected = DataFrame([[-1, inc], [inc, -1]])
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "cols, values, expected",
+        [
+            (["C", "D", "D", "a"], [1, 2, 3, 4], 4),  # with duplicates
+            (["D", "C", "D", "a"], [1, 2, 3, 4], 4),  # mixed order
+            (["C", "B", "B", "a"], [1, 2, 3, 4], 4),  # other duplicate cols
+            (["C", "B", "a"], [1, 2, 3], 3),  # no duplicates
+            (["B", "C", "a"], [3, 2, 1], 1),  # alphabetical order
+            (["C", "a", "B"], [3, 2, 1], 2),  # in the middle
+        ],
+    )
+    def test_setitem_same_column(self, cols, values, expected):
+        # GH 23239
+        df = DataFrame([values], columns=cols)
+        df["a"] = df["a"]
+        result = df["a"].values[0]
+        assert result == expected
 
     def test_getitem_boolean(
         self, float_string_frame, mixed_float_frame, mixed_int_frame, datetime_frame
@@ -518,18 +485,13 @@ class TestDataFrameIndexing:
         df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
-    def test_setitem_dtype(self, dtype, float_frame):
-        arr = np.random.randn(len(float_frame))
-
-        float_frame[dtype] = np.array(arr, dtype=dtype)
-        assert float_frame[dtype].dtype.name == dtype
-
     def test_setitem_tuple(self, float_frame):
         float_frame["A", "B"] = float_frame["A"]
-        tm.assert_series_equal(
-            float_frame["A", "B"], float_frame["A"], check_names=False
-        )
+        assert ("A", "B") in float_frame.columns
+
+        result = float_frame["A", "B"]
+        expected = float_frame["A"]
+        tm.assert_series_equal(result, expected, check_names=False)
 
     def test_setitem_always_copy(self, float_frame):
         s = float_frame["A"].copy()
@@ -587,25 +549,6 @@ class TestDataFrameIndexing:
         df[df > np.abs(df)] = df * 2
         np.putmask(expected.values, mask.values, df.values * 2)
         tm.assert_frame_equal(df, expected)
-
-    @pytest.mark.parametrize(
-        "mask_type",
-        [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
-        ids=["dataframe", "array"],
-    )
-    def test_setitem_boolean_mask(self, mask_type, float_frame):
-
-        # Test for issue #18582
-        df = float_frame.copy()
-        mask = mask_type(df)
-
-        # index with boolean mask
-        result = df.copy()
-        result[mask] = np.nan
-
-        expected = df.copy()
-        expected.values[np.array(mask)] = np.nan
-        tm.assert_frame_equal(result, expected)
 
     def test_setitem_cast(self, float_frame):
         float_frame["D"] = float_frame["D"].astype("i8")
@@ -789,7 +732,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("dtype", ["float", "int64"])
-    @pytest.mark.parametrize("kwargs", [dict(), dict(index=[1]), dict(columns=["A"])])
+    @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
         # see gh-10126
         kwargs["dtype"] = dtype
@@ -820,19 +763,6 @@ class TestDataFrameIndexing:
         df = DataFrame()
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
-
-    def test_slice_floats(self):
-        index = [52195.504153, 52196.303147, 52198.369883]
-        df = DataFrame(np.random.rand(3, 2), index=index)
-
-        s1 = df.loc[52195.1:52196.5]
-        assert len(s1) == 2
-
-        s1 = df.loc[52195.1:52196.6]
-        assert len(s1) == 2
-
-        s1 = df.loc[52195.1:52198.9]
-        assert len(s1) == 3
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -882,15 +812,6 @@ class TestDataFrameIndexing:
             sliced["C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
-
-    def test_setitem_slice_position(self):
-        # GH#31469
-        df = DataFrame(np.zeros((100, 1)))
-        df[-4:] = 1
-        arr = np.zeros((100, 1))
-        arr[-4:] = 1
-        expected = DataFrame(arr)
-        tm.assert_frame_equal(df, expected)
 
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
@@ -1000,14 +921,13 @@ class TestDataFrameIndexing:
         expected = float_frame.loc[:, float_frame.columns[[2, 0, 1]]]
         tm.assert_frame_equal(result, expected)
 
-    def test_getitem_setitem_fancy_exceptions(self, float_frame):
-        ix = float_frame.iloc
+    def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame):
         with pytest.raises(IndexingError, match="Too many indexers"):
-            ix[:, :, :]
+            float_frame.iloc[:, :, :]
 
         with pytest.raises(IndexError, match="too many indices for array"):
             # GH#32257 we let numpy do validation, get their exception
-            ix[:, :, :] = 1
+            float_frame.iloc[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
         # boolean index misaligned labels
@@ -1327,32 +1247,6 @@ class TestDataFrameIndexing:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
-    def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
-
-        # this is actually ambiguous as the 2 is interpreted as a positional
-        # so column is not created
-        df = df_orig.copy()
-        df._set_value("C", 2, 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        df = df_orig.copy()
-        df.loc["C", 2] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        # create both new
-        df = df_orig.copy()
-        df._set_value("C", "D", 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
-        df = df_orig.copy()
-        df.loc["C", "D"] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):
         float_frame["E"] = 1
@@ -1362,7 +1256,7 @@ class TestDataFrameIndexing:
         assert is_integer(result)
 
         # GH 11617
-        df = DataFrame(dict(a=[1.23]))
+        df = DataFrame({"a": [1.23]})
         df["b"] = 666
 
         result = df.loc[0, "b"]
@@ -1456,11 +1350,11 @@ class TestDataFrameIndexing:
 
         # insert a duplicate element to the index
         trange = pd.date_range(
-            start=pd.Timestamp(year=2017, month=1, day=1),
-            end=pd.Timestamp(year=2017, month=1, day=5),
+            start=Timestamp(year=2017, month=1, day=1),
+            end=Timestamp(year=2017, month=1, day=5),
         )
 
-        trange = trange.insert(loc=5, item=pd.Timestamp(year=2017, month=1, day=5))
+        trange = trange.insert(loc=5, item=Timestamp(year=2017, month=1, day=5))
 
         df = DataFrame(0, index=trange, columns=["A", "B"])
         bool_idx = np.array([False, False, False, False, False, True])
@@ -1530,12 +1424,12 @@ class TestDataFrameIndexing:
 
     def test_loc_setitem_datetime_coercion(self):
         # gh-1048
-        df = DataFrame({"c": [pd.Timestamp("2010-10-01")] * 3})
+        df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
-        assert pd.Timestamp("2008-08-08") == df.loc[0, "c"]
-        assert pd.Timestamp("2008-08-08") == df.loc[1, "c"]
+        assert Timestamp("2008-08-08") == df.loc[0, "c"]
+        assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        assert pd.Timestamp("2005-05-05") == df.loc[2, "c"]
+        assert Timestamp("2005-05-05") == df.loc[2, "c"]
 
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
@@ -1627,10 +1521,29 @@ class TestDataFrameIndexing:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    @pytest.mark.parametrize("tpl", [tuple([1]), tuple([1, 2])])
+    @pytest.mark.parametrize(
+        "tpl",
+        [
+            (1,),
+            (
+                1,
+                2,
+            ),
+        ],
+    )
     def test_loc_getitem_index_single_double_tuples(self, tpl):
         # GH 20991
-        idx = Index([tuple([1]), tuple([1, 2])], name="A", tupleize_cols=False)
+        idx = Index(
+            [
+                (1,),
+                (
+                    1,
+                    2,
+                ),
+            ],
+            name="A",
+            tupleize_cols=False,
+        )
         df = DataFrame(index=idx)
 
         result = df.loc[[tpl]]
@@ -1812,27 +1725,27 @@ def test_object_casting_indexing_wraps_datetimelike():
     )
 
     ser = df.loc[0]
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     ser = df.iloc[0]
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     ser = df.xs(0, axis=0)
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
-    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[1], Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
     blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
-    assert isinstance(val, pd.Timestamp)
+    assert isinstance(val, Timestamp)
 
     blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block

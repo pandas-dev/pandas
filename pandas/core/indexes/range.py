@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List
+from typing import Any, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -15,11 +15,12 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
+    is_dtype_equal,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_scalar,
+    is_signed_integer_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
@@ -29,7 +30,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.numeric import Int64Index
+from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 _empty_range = range(0)
@@ -369,7 +370,7 @@ class RangeIndex(Int64Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
-        if not (is_integer_dtype(target_array) and target_array.ndim == 1):
+        if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
             return super().get_indexer(target, method=method, tolerance=tolerance)
 
@@ -397,6 +398,8 @@ class RangeIndex(Int64Index):
         name = self.name if name is no_default else name
 
         if values is not None:
+            if values.dtype.kind == "f":
+                return Float64Index(values, name=name)
             return Int64Index._simple_new(values, name=name)
 
         result = self._simple_new(self._range, name=name)
@@ -459,6 +462,16 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
+    def factorize(
+        self, sort: bool = False, na_sentinel: Optional[int] = -1
+    ) -> Tuple[np.ndarray, "RangeIndex"]:
+        codes = np.arange(len(self), dtype=np.intp)
+        uniques = self
+        if sort and self.step < 0:
+            codes = codes[::-1]
+            uniques = uniques[::-1]
+        return codes, uniques
+
     def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
@@ -492,12 +505,25 @@ class RangeIndex(Int64Index):
         intersection : Index
         """
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
+            # has_duplicates check is unnecessary for RangeIndex, but
+            #  used to match other subclasses.
             return self._get_reconciled_name_object(other)
 
-        if not isinstance(other, RangeIndex):
+        if not is_dtype_equal(self.dtype, other.dtype):
             return super().intersection(other, sort=sort)
+
+        result = self._intersection(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _intersection(self, other, sort=False):
+
+        if not isinstance(other, RangeIndex):
+            # Int64Index
+            return super()._intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)
@@ -539,7 +565,7 @@ class RangeIndex(Int64Index):
         if sort is None:
             new_index = new_index.sort_values()
 
-        return self._wrap_setop_result(other, new_index)
+        return new_index
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
@@ -658,13 +684,17 @@ class RangeIndex(Int64Index):
         if not isinstance(overlap, RangeIndex):
             # We wont end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
+        if overlap.step != first.step:
+            # In some cases we might be able to get a RangeIndex back,
+            #  but not worth the effort.
+            return super().difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection
             new_rng = range(overlap[-1] + first.step, first.stop, first.step)
-        elif overlap[-1] == first.stop:
+        elif overlap[-1] == first[-1]:
             # The difference is everything before the intersection
-            new_rng = range(first.start, overlap[0] - first.step, first.step)
+            new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
             return super().difference(other, sort=sort)
@@ -813,11 +843,8 @@ class RangeIndex(Int64Index):
 
     def _cmp_method(self, other, op):
         if isinstance(other, RangeIndex) and self._range == other._range:
-            if op in {operator.eq, operator.le, operator.ge}:
-                return np.ones(len(self), dtype=bool)
-            elif op in {operator.ne, operator.lt, operator.gt}:
-                return np.zeros(len(self), dtype=bool)
-
+            # Both are immutable so if ._range attr. are equal, shortcut is possible
+            return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
     def _arith_method(self, other, op):

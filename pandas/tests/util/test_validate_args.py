@@ -30,7 +30,7 @@ def test_bad_arg_length_max_value_single():
 
 def test_bad_arg_length_max_value_multiple():
     args = (None, None)
-    compat_args = dict(foo=None)
+    compat_args = {"foo": None}
 
     min_fname_arg_count = 2
     max_length = len(compat_args) + min_fname_arg_count
@@ -61,7 +61,7 @@ def test_not_all_defaults(i):
 
 def test_validation():
     # No exceptions should be raised.
-    validate_args(_fname, (None,), 2, dict(out=None))
+    validate_args(_fname, (None,), 2, {"out": None})
 
     compat_args = {"axis": 1, "out": None}
     validate_args(_fname, (1, None), 2, compat_args)

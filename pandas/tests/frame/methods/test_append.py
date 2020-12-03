@@ -189,9 +189,9 @@ class TestDataFrameAppend:
     def test_append_timestamps_aware_or_naive(self, tz_naive_fixture, timestamp):
         # GH 30238
         tz = tz_naive_fixture
-        df = DataFrame([pd.Timestamp(timestamp, tz=tz)])
+        df = DataFrame([Timestamp(timestamp, tz=tz)])
         result = df.append(df.iloc[0]).iloc[-1]
-        expected = Series(pd.Timestamp(timestamp, tz=tz), name=0)
+        expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

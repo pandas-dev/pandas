@@ -242,7 +242,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_stable_categorial(self):
         # GH#16793
-        df = DataFrame({"x": pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
+        df = DataFrame({"x": Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
         expected = df.copy()
         sorted_df = df.sort_values("x", kind="mergesort")
         tm.assert_frame_equal(sorted_df, expected)
@@ -305,11 +305,11 @@ class TestDataFrameSortValues:
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
-            dict(int=int_values, float=float_values), columns=["int", "float"]
+            {"int": int_values, "float": float_values}, columns=["int", "float"]
         )
 
         df_reversed = DataFrame(
-            dict(int=int_values[::-1], float=float_values[::-1]),
+            {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
             index=[1, 0],
         )
@@ -329,12 +329,12 @@ class TestDataFrameSortValues:
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
         df = DataFrame(
-            dict(datetime=[Timestamp("2016-01-01"), NaT], float=float_values),
+            {"datetime": [Timestamp("2016-01-01"), NaT], "float": float_values},
             columns=["datetime", "float"],
         )
 
         df_reversed = DataFrame(
-            dict(datetime=[NaT, Timestamp("2016-01-01")], float=float_values[::-1]),
+            {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
             index=[1, 0],
         )
@@ -385,7 +385,7 @@ class TestDataFrameSortValues:
 
         df = DataFrame(
             {
-                column_name: pd.Categorical(
+                column_name: Categorical(
                     ["A", np.nan, "B", np.nan, "C"], categories=categories, ordered=True
                 )
             }
@@ -477,7 +477,7 @@ class TestDataFrameSortValues:
     def test_sort_values_na_position_with_categories_raises(self):
         df = DataFrame(
             {
-                "c": pd.Categorical(
+                "c": Categorical(
                     ["A", np.nan, "B", np.nan, "C"],
                     categories=["A", "B", "C"],
                     ordered=True,
@@ -703,7 +703,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         def sorter(key):
             if key.name == "y":
                 return pd.Series(
-                    pd.Categorical(key, categories=categories, ordered=ordered)
+                    Categorical(key, categories=categories, ordered=ordered)
                 )
             return key
 

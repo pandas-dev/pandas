@@ -146,9 +146,10 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and Python environment. If you're making documentation
-changes, you can skip to :ref:`contributing.documentation` but you won't be able
-to build the documentation locally before pushing your changes.
+requires a C/C++ compiler and Python environment. If you're making documentation
+changes, you can skip to :ref:`contributing.documentation` but if you skip
+creating the development environment you won't be able to build the documentation
+locally before pushing your changes.
 
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -183,7 +184,7 @@ See https://www.jetbrains.com/help/pycharm/docker.html for details.
 
 Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
 
-    python setup.py build_ext --inplace -j 4
+    python setup.py build_ext -j 4
 
 .. _contributing.dev_c:
 
@@ -194,6 +195,13 @@ pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
+
+If you have setup your environment using ``conda``, the packages ``c-compiler``
+and ``cxx-compiler`` will install a fitting compiler for your platform that is
+compatible with the remaining conda packages. On Windows and macOS, you will
+also need to install the SDKs as they have to be distributed separately.
+These packages will be automatically installed by using ``pandas``'s
+``environment.yml``.
 
 **Windows**
 
@@ -206,12 +214,33 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
+You can install the necessary components on the commandline using
+`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+
+.. code::
+
+    vs_buildtools.exe --quiet --wait --norestart --nocache ^
+        --installPath C:\BuildTools ^
+        --add "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" ^
+        --add Microsoft.VisualStudio.Component.VC.v141 ^
+        --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 ^
+        --add Microsoft.VisualStudio.Component.Windows10SDK.17763
+
+To setup the right paths on the commandline, call
+``"C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.16 10.0.17763.0``.
+
 **macOS**
 
-Information about compiler installation can be found here:
+To use the ``conda``-based compilers, you will need to install the
+Developer Tools using ``xcode-select --install``. Otherwise
+information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
-**Unix**
+**Linux**
+
+For Linux-based ``conda`` installations, you won't have to install any
+additional components outside of the conda environment. The instructions
+below are only needed if your setup isn't based on conda environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -243,11 +272,10 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that you have a C compiler, create an isolated pandas development
-environment:
+Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
-  <https://conda.io/miniconda.html>`_
+* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
+  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :ref:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -268,7 +296,7 @@ We'll now kick off a three-step process:
    source activate pandas-dev
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
@@ -315,7 +343,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Unix**/**macOS with pyenv**
@@ -339,7 +367,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -365,7 +393,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
+   python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
@@ -442,7 +470,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-* The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `IPython directive
   <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
@@ -638,7 +666,46 @@ In addition to ``./ci/code_checks.sh``, some extra checks are run by
 ``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
 run them.
 
-Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
+Additional standards are outlined on the :ref:`pandas code style guide <code_style>`.
+
+.. _contributing.pre-commit:
+
+Pre-commit
+----------
+
+You can run many of these styling checks manually as we have described above. However,
+we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
+to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+    pip install pre-commit
+
+and then running::
+
+    pre-commit install
+
+from the root of the pandas repository. Now all of the styling checks will be
+run each time you commit changes without your needing to run each one manually.
+In addition, using ``pre-commit`` will also allow you to more easily
+remain up-to-date with our code checks as they change.
+
+Note that if needed, you can skip these checks with ``git commit --no-verify``.
+
+If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
+to run its checks with::
+
+    pre-commit run --files <files you have modified>
+
+without needing to have done ``pre-commit install`` beforehand.
+
+.. note::
+
+    If you have conflicting installations of ``virtualenv``, then you may get an
+    error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
+
+    Also, due to a `bug in virtualenv <https://github.com/pypa/virtualenv/issues/1986>`_,
+    you may run into issues if you're using conda. To solve this, you can downgrade
+    ``virtualenv`` to version ``20.0.33``.
 
 Optional dependencies
 ---------------------
@@ -712,7 +779,7 @@ Python (PEP8 / black)
 pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
-format throughout the project.
+format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
 
 :ref:`Continuous Integration <contributing.ci>` will run those tools and
 report any stylistic errors in your code. Therefore, it is helpful before
@@ -726,9 +793,6 @@ apply ``black`` as you edit files.
 
 You should use a ``black`` version 20.8b1 as previous versions are not compatible
 with the pandas codebase.
-
-If you wish to run these checks automatically, we encourage you to use
-:ref:`pre-commits <contributing.pre-commit>` instead.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
@@ -806,39 +870,6 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 Where similar caveats apply if you are on OSX or Windows.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
-
-.. _contributing.pre-commit:
-
-Pre-commit
-~~~~~~~~~~
-
-You can run many of these styling checks manually as we have described above. However,
-we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
-to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
-can be done by installing ``pre-commit``::
-
-    pip install pre-commit
-
-and then running::
-
-    pre-commit install
-
-from the root of the pandas repository. Now all of the styling checks will be
-run each time you commit changes without your needing to run each one manually.
-In addition, using this pre-commit hook will also allow you to more easily
-remain up-to-date with our code checks as they change.
-
-Note that if needed, you can skip these checks with ``git commit --no-verify``.
-
-If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks by running::
-
-    pre-commit run --files <files you have modified>
-
-without having to have done ``pre-commit install`` beforehand.
-
-Note that if you have conflicting installations of ``virtualenv``, then you may get an
-error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~

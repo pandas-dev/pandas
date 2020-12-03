@@ -5,12 +5,23 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, isna
+from pandas import DataFrame, Index, MultiIndex, Series, isna, timedelta_range
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 
 class TestSeriesApply:
+    def test_series_map_box_timedelta(self):
+        # GH#11349
+        ser = Series(timedelta_range("1 day 1 s", periods=5, freq="h"))
+
+        def f(x):
+            return x.total_seconds()
+
+        ser.map(f)
+        ser.apply(f)
+        DataFrame(ser).applymap(f)
+
     def test_apply(self, datetime_series):
         with np.errstate(all="ignore"):
             tm.assert_series_equal(
