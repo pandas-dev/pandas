@@ -50,7 +50,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
-from pandas.core.dtypes.cast import maybe_cast_result
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
@@ -994,14 +994,11 @@ b  2""",
                 continue
 
             try:
-                result, _ = self.grouper._cython_operation(
+                result = self.grouper._cython_operation(
                     "transform", obj._values, how, axis, **kwargs
                 )
             except NotImplementedError:
                 continue
-
-            if self._transform_should_cast(how):
-                result = maybe_cast_result(result, obj, how=how)
 
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
@@ -1072,21 +1069,22 @@ b  2""",
             if numeric_only and not is_numeric:
                 continue
 
-            result, agg_names = self.grouper._cython_operation(
+            result = self.grouper._cython_operation(
                 "aggregate", obj._values, how, axis=0, min_count=min_count
             )
 
-            if agg_names:
+            if how == "ohlc":
                 # e.g. ohlc
+                agg_names = ["open", "high", "low", "close"]
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = maybe_cast_result(result_column, obj, how=how)
+                    output[key] = result_column
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = maybe_cast_result(result, obj, how=how)
+                output[key] = result
                 idx += 1
 
         if not output:
@@ -1185,22 +1183,24 @@ b  2""",
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
-        if not output:
-            return self._python_apply_general(f, self._selected_obj)
+            if is_numeric_dtype(obj.dtype):
+                result = maybe_downcast_to_dtype(result, obj.dtype)
 
-        if self.grouper._filter_empty_groups:
-
-            mask = counts.ravel() > 0
-            for key, result in output.items():
+            if self.grouper._filter_empty_groups:
+                mask = counts.ravel() > 0
 
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[key] = maybe_cast_result(values[mask], result)
+                result = maybe_downcast_to_dtype(values[mask], result.dtype)
+
+            output[key] = result
+
+        if not output:
+            return self._python_apply_general(f, self._selected_obj)
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
