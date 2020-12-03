@@ -35,9 +35,7 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
     find_common_type,
-    maybe_cast_result,
     maybe_cast_result_dtype,
-    maybe_convert_objects,
     maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
@@ -47,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
 )
@@ -61,7 +58,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -262,7 +259,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 return self._python_agg_general(func, *args, **kwargs)
             except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
-                #  see see test_groupby.test_basic
+                #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
@@ -1028,43 +1025,69 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        no_result = object()
-
         def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
             # see if we can cast the values to the desired dtype
             # this may not be the original dtype
             assert not isinstance(result, DataFrame)
-            assert result is not no_result
 
             dtype = maybe_cast_result_dtype(values.dtype, how)
             result = maybe_downcast_numeric(result, dtype)
 
-            if isinstance(values, ExtensionArray) and isinstance(result, np.ndarray):
-                # e.g. values was an IntegerArray
-                # (1, N) case can occur if values was Categorical
-                #  and result is ndarray[object]
-                # TODO(EA2D): special casing not needed with 2D EAs
-                assert result.ndim == 1 or result.shape[0] == 1
-                try:
-                    # Cast back if feasible
-                    result = type(values)._from_sequence(
-                        result.ravel(), dtype=values.dtype
-                    )
-                except (ValueError, TypeError):
-                    # reshape to be valid for non-Extension Block
-                    result = result.reshape(1, -1)
+            if isinstance(values, Categorical) and isinstance(result, np.ndarray):
+                # If the Categorical op didn't raise, it is dtype-preserving
+                result = type(values)._from_sequence(result.ravel(), dtype=values.dtype)
+                # Note this will have result.dtype == dtype from above
 
             elif isinstance(result, np.ndarray) and result.ndim == 1:
                 # We went through a SeriesGroupByPath and need to reshape
+                # GH#32223 includes case with IntegerArray values
                 result = result.reshape(1, -1)
+                # test_groupby_duplicate_columns gets here with
+                #  result.dtype == int64, values.dtype=object, how="min"
 
+            return result
+
+        def py_fallback(bvalues: ArrayLike) -> ArrayLike:
+            # if self.grouper.aggregate fails, we fall back to a pure-python
+            #  solution
+
+            # We get here with a) EADtypes and b) object dtype
+            obj: FrameOrSeriesUnion
+
+            # call our grouper again with only this block
+            if isinstance(bvalues, ExtensionArray):
+                # TODO(EA2D): special case not needed with 2D EAs
+                obj = Series(bvalues)
+            else:
+                obj = DataFrame(bvalues.T)
+                if obj.shape[1] == 1:
+                    # Avoid call to self.values that can occur in DataFrame
+                    #  reductions; see GH#28949
+                    obj = obj.iloc[:, 0]
+
+            # Create SeriesGroupBy with observed=True so that it does
+            # not try to add missing categories if grouping over multiple
+            # Categoricals. This will done by later self._reindex_output()
+            # Doing it here creates an error. See GH#34951
+            sgb = get_groupby(obj, self.grouper, observed=True)
+            result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
+
+            assert isinstance(result, (Series, DataFrame))  # for mypy
+            # In the case of object dtype block, it may have been split
+            #  in the operation.  We un-split here.
+            result = result._consolidate()
+            assert isinstance(result, (Series, DataFrame))  # for mypy
+            assert len(result._mgr.blocks) == 1
+
+            # unwrap DataFrame to get array
+            result = result._mgr.blocks[0].values
             return result
 
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
             try:
-                result, _ = self.grouper.aggregate(
-                    bvalues, how, axis=1, min_count=min_count
+                result, _ = self.grouper._cython_operation(
+                    "aggregate", bvalues, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1077,35 +1100,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                # We get here with a) EADtypes and b) object dtype
-                obj: FrameOrSeriesUnion
-                # call our grouper again with only this block
-                if isinstance(bvalues, ExtensionArray):
-                    # TODO(EA2D): special case not needed with 2D EAs
-                    obj = Series(bvalues)
-                else:
-                    obj = DataFrame(bvalues.T)
-                    if obj.shape[1] == 1:
-                        # Avoid call to self.values that can occur in DataFrame
-                        #  reductions; see GH#28949
-                        obj = obj.iloc[:, 0]
-
-                # Create SeriesGroupBy with observed=True so that it does
-                # not try to add missing categories if grouping over multiple
-                # Categoricals. This will done by later self._reindex_output()
-                # Doing it here creates an error. See GH#34951
-                sgb = get_groupby(obj, self.grouper, observed=True)
-                result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
-
-                assert isinstance(result, (Series, DataFrame))  # for mypy
-                # In the case of object dtype block, it may have been split
-                #  in the operation.  We un-split here.
-                result = result._consolidate()
-                assert isinstance(result, (Series, DataFrame))  # for mypy
-                assert len(result._mgr.blocks) == 1
-
-                # unwrap DataFrame to get array
-                result = result._mgr.blocks[0].values
+                result = py_fallback(bvalues)
 
             return cast_agg_result(result, bvalues, how)
 
@@ -1149,7 +1144,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
 
-            cast = self._transform_should_cast(func)
             try:
                 result[item] = colg.aggregate(func, *args, **kwargs)
 
@@ -1161,10 +1155,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # otherwise we get here from an AttributeError in _make_wrapper
                 cannot_agg.append(item)
                 continue
-
-            else:
-                if cast:
-                    result[item] = maybe_cast_result(result[item], data)
 
         result_columns = obj.columns
         if cannot_agg:
@@ -1283,7 +1273,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # as we are stacking can easily have object dtypes here
         so = self._selected_obj
         if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-            result = _recast_datetimelike_result(result)
+            result = result._convert(datetime=True)
         else:
             result = result._convert(datetime=True)
 
@@ -1389,8 +1379,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         obj = self._obj_with_exclusions
 
-        # for each col, reshape to to size of original frame
-        # by take operation
+        # for each col, reshape to size of original frame by take operation
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
         output = [
@@ -1837,39 +1826,3 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return results
 
     boxplot = boxplot_frame_groupby
-
-
-def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
-    """
-    If we have date/time like in the original, then coerce dates
-    as we are stacking can easily have object dtypes here.
-
-    Parameters
-    ----------
-    result : DataFrame
-
-    Returns
-    -------
-    DataFrame
-
-    Notes
-    -----
-    - Assumes Groupby._selected_obj has ndim==2 and at least one
-    datetimelike column
-    """
-    result = result.copy()
-
-    obj_cols = [
-        idx
-        for idx in range(len(result.columns))
-        if is_object_dtype(result.dtypes.iloc[idx])
-    ]
-
-    # See GH#26285
-    for n in obj_cols:
-        converted = maybe_convert_objects(
-            result.iloc[:, n].values, convert_numeric=False
-        )
-
-        result.iloc[:, n] = converted
-    return result

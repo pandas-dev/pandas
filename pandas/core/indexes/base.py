@@ -33,6 +33,7 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    find_common_type,
     maybe_cast_to_integer_array,
     validate_numeric_casting,
 )
@@ -1486,7 +1487,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sortlevel(self, level=None, ascending=True, sort_remaining=None):
         """
-        For internal compatibility with with the Index API.
+        For internal compatibility with the Index API.
 
         Sort the Index. This is for compat with MultiIndex
 
@@ -2379,6 +2380,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
+
+        if self.is_unique:
+            return self._shallow_copy()
+
         result = super().unique()
         return self._shallow_copy(result)
 
@@ -2820,14 +2825,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other):
+        if self.equals(other) and not self.has_duplicates:
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            this = self.astype("O")
-            other = other.astype("O")
+            dtype = find_common_type([self.dtype, other.dtype])
+            this = self.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
@@ -2847,7 +2853,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
             else:
-                return result
+                return algos.unique1d(result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2858,10 +2864,13 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = other.take(indexer)._values
+        result = other.take(indexer).unique()._values
 
         if sort is None:
             result = algos.safe_sort(result)
+
+        # Intersection has to be unique
+        assert Index(result).is_unique
 
         return result
 
@@ -3433,11 +3442,11 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @final
-    def _invalid_indexer(self, form: str_t, key):
+    def _invalid_indexer(self, form: str_t, key) -> TypeError:
         """
         Consistent invalid indexer message.
         """
-        raise TypeError(
+        return TypeError(
             f"cannot do {form} indexing on {type(self).__name__} with these "
             f"indexers [{key}] of type {type(key).__name__}"
         )
@@ -3558,7 +3567,7 @@ class Index(IndexOpsMixin, PandasObject):
             cur_labels = self.take(indexer[check]).values
             cur_indexer = ensure_int64(length[check])
 
-            new_labels = np.empty(tuple([len(indexer)]), dtype=object)
+            new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
 
@@ -4180,12 +4189,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Index([item], dtype=dtype, **self._get_attributes_dict())
 
-    def _to_safe_for_reshape(self):
-        """
-        Convert to object if we are a categorical.
-        """
-        return self
-
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array, and convert
@@ -4451,7 +4454,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        # If other is a subclass of self and defines it's own equals method, we
+        # If other is a subclass of self and defines its own equals method, we
         # dispatch to the subclass method. For instance for a MultiIndex,
         # a d-level MultiIndex can equal d-tuple Index.
         # Note: All EA-backed Index subclasses override equals
@@ -4896,6 +4899,14 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
+
+        if target.is_boolean() and self.is_numeric():
+            # Treat boolean labels passed to a numeric index as not found. Without
+            # this fix False and True would be treated as 0 and 1 respectively.
+            # (GH #16877)
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
@@ -4929,6 +4940,43 @@ class Index(IndexOpsMixin, PandasObject):
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
+
+    def _get_indexer_non_comparable(self, target: "Index", method, unique: bool = True):
+        """
+        Called from get_indexer or get_indexer_non_unique when the target
+        is of a non-comparable dtype.
+
+        For get_indexer lookups with method=None, get_indexer is an _equality_
+        check, so non-comparable dtypes mean we will always have no matches.
+
+        For get_indexer lookups with a method, get_indexer is an _inequality_
+        check, so non-comparable dtypes mean we will always raise TypeError.
+
+        Parameters
+        ----------
+        target : Index
+        method : str or None
+        unique : bool, default True
+            * True if called from get_indexer.
+            * False if called from get_indexer_non_unique.
+
+        Raises
+        ------
+        TypeError
+            If doing an inequality check, i.e. method is not None.
+        """
+        if method is not None:
+            other = _unpack_nested_dtype(target)
+            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
+
+        no_matches = -1 * np.ones(target.shape, dtype=np.intp)
+        if unique:
+            # This is for get_indexer
+            return no_matches
+        else:
+            # This is for get_indexer_non_unique
+            missing = np.arange(len(target), dtype=np.intp)
+            return no_matches, missing
 
     @property
     def _index_as_unique(self):
@@ -4964,6 +5012,14 @@ class Index(IndexOpsMixin, PandasObject):
             other, self = other._maybe_promote(self)
 
         return self, other
+
+    def _should_compare(self, other: "Index") -> bool:
+        """
+        Check if `self == other` can ever have non-False entries.
+        """
+        other = _unpack_nested_dtype(other)
+        dtype = other.dtype
+        return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -5145,7 +5201,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self, values)
+        return algos.isin(self._values, values)
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
@@ -5230,7 +5286,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_integer(key):
             pass
         else:
-            self._invalid_indexer(form, key)
+            raise self._invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t, kind):
         """
@@ -5259,7 +5315,7 @@ class Index(IndexOpsMixin, PandasObject):
         # datetimelike Indexes
         # reject them, if index does not contain label
         if (is_float(label) or is_integer(label)) and label not in self.values:
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return label
 
@@ -5508,7 +5564,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         arr_dtype = "object" if self.dtype == "object" else None
         labels = com.index_labels_to_array(labels, dtype=arr_dtype)
-        indexer = self.get_indexer(labels)
+        indexer = self.get_indexer_for(labels)
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
@@ -5523,6 +5579,17 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
+        if self.is_(other):
+            # fastpath
+            if op in {operator.eq, operator.le, operator.ge}:
+                arr = np.ones(len(self), dtype=bool)
+                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
+                    # TODO: should set MultiIndex._can_hold_na = False?
+                    arr[self.isna()] = False
+                return arr
+            elif op in {operator.ne, operator.lt, operator.gt}:
+                return np.zeros(len(self), dtype=bool)
+
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
@@ -6101,3 +6168,24 @@ def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
     name_sets = [{*ns} for ns in zip_longest(*name_tups)]
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
+
+
+def _unpack_nested_dtype(other: Index) -> Index:
+    """
+    When checking if our dtype is comparable with another, we need
+    to unpack CategoricalDtype to look at its categories.dtype.
+
+    Parameters
+    ----------
+    other : Index
+
+    Returns
+    -------
+    Index
+    """
+    dtype = other.dtype
+    if is_categorical_dtype(dtype):
+        # If there is ever a SparseIndex, this could get dispatched
+        #  here too.
+        return dtype.categories
+    return other

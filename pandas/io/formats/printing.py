@@ -206,7 +206,7 @@ def pprint_thing(
                 translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
-            escape_chars = escape_chars or tuple()
+            escape_chars = escape_chars or ()
 
         result = str(thing)
         for c in escape_chars:
@@ -308,7 +308,7 @@ def format_object_summary(
     name : name, optional
         defaults to the class name of the obj
     indent_for_name : bool, default True
-        Whether subsequent lines should be be indented to
+        Whether subsequent lines should be indented to
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.

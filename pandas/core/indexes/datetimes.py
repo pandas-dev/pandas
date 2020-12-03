@@ -227,6 +227,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
+    inferred_freq: Optional[str]
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
@@ -337,7 +338,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # we use a special reduce here because we need
         # to simply set the .tz (and not reinterpret it)
 
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
@@ -717,7 +718,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-            parsed, reso = parsing.parse_time_string(label, freq)
+            try:
+                parsed, reso = parsing.parse_time_string(label, freq)
+            except parsing.DateParseError as err:
+                raise self._invalid_indexer("slice", label) from err
+
             reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
@@ -732,7 +737,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(label, (self._data._recognized_scalars, date)):
             self._deprecate_mismatched_indexing(label)
         else:
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
 
@@ -813,9 +818,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 raise
 
     # --------------------------------------------------------------------
-
-    def is_type_compatible(self, kind: str) -> bool:
-        return kind == self.inferred_type or kind == "datetime"
 
     @property
     def inferred_type(self) -> str:

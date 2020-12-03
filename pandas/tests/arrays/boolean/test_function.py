@@ -85,6 +85,13 @@ def test_value_counts_na():
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_with_normalize():
+    s = pd.Series([True, False, pd.NA], dtype="boolean")
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([1, 1], index=[False, True], dtype="Float64") / 2
+    tm.assert_series_equal(result, expected)
+
+
 def test_diff():
     a = pd.array(
         [True, True, False, False, True, None, True, None, False], dtype="boolean"
