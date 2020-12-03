@@ -50,7 +50,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
-from pandas.core.dtypes.cast import maybe_cast_result, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
@@ -994,7 +994,7 @@ b  2""",
                 continue
 
             try:
-                result, _ = self.grouper._cython_operation(
+                result = self.grouper._cython_operation(
                     "transform", obj._values, how, axis, **kwargs
                 )
             except NotImplementedError:
@@ -1080,7 +1080,6 @@ b  2""",
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
                     output[key] = result_column
-                    #output[key] = maybe_downcast_to_dtype(result_column, obj.dtype)
                     idx += 1
             else:
                 assert result.ndim == 1

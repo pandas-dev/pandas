@@ -490,25 +490,25 @@ class BaseGrouper:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             values = values.view("M8[ns]")
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
             if how in ["rank"]:
                 # preserve float64 dtype
-                return res_values, names
+                return res_values
 
             res_values = res_values.astype("i8", copy=False)
             result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
-            return result, names
+            return result
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
             values = ensure_int_or_float(values)
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
             result = maybe_cast_result(result=res_values, obj=orig_values, how=how)
-            return result, names
+            return result
 
         raise NotImplementedError(values.dtype)
 
