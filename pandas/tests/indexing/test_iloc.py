@@ -1042,3 +1042,14 @@ class TestILocSeries:
         ser1.iloc[1:3] = ser2.iloc[1:3]
         expected = Series([1, 5, 6])
         tm.assert_series_equal(ser1, expected)
+
+    @pytest.mark.parametrize("size", [0, 4, 5, 6])
+    def test_iloc_setitem_with_array(self, size):
+        # GH37748
+        ser = Series(0, index=range(5), dtype="object")
+
+        expected = np.zeros(size)
+        ser.iloc[0] = expected
+        result = ser[0]
+
+        tm.assert_numpy_array_equal(result, expected)

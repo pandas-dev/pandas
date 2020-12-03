@@ -2072,3 +2072,14 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
+
+    @pytest.mark.parametrize("size", [0, 4, 5, 6])
+    def test_loc_setitem_with_array(self, size):
+        # GH37748
+        ser = Series(0, index=list("abcde"), dtype="object")
+
+        expected = np.zeros(size)
+        ser.loc["a"] = expected
+        result = ser[0]
+
+        tm.assert_numpy_array_equal(result, expected)
