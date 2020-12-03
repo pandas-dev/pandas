@@ -122,22 +122,19 @@ def setop_check(method):
 
     @wraps(method)
     def wrapped(self, other, sort=False):
+        self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if op_name == "intersection":
+            if self.equals(other):
+                return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
             result = getattr(self.astype(object), op_name)(other)
             if op_name in ("difference",):
                 result = result.astype(self.dtype)
             return result
-
-        if self._is_non_comparable_own_type(other):
-            # GH#19016: ensure set op will not return a prohibited dtype
-            raise TypeError(
-                "can only do set operations between two IntervalIndex "
-                "objects that are closed on the same side "
-                "and have compatible dtypes"
-            )
 
         return method(self, other, sort)
 
@@ -320,19 +317,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(
-        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
-    ):
-        name = self.name if name is lib.no_default else name
-
-        if values is not None:
-            return self._simple_new(values, name=name)
-
-        result = self._simple_new(self._data, name=name)
-        result._cache = self._cache
-        return result
-
     @cache_readonly
     def _engine(self):
         left = self._maybe_convert_i8(self.left)
@@ -373,11 +357,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         return self._data
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
@@ -391,9 +370,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
-        if is_interval_dtype(new_values.dtype):
-            return self._shallow_copy(new_values)
-        return Index.astype(self, dtype, copy=copy)
+        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:
@@ -499,7 +476,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
-        Interval-like requires conversion if it's endpoints are one of the
+        Interval-like requires conversion if its endpoints are one of the
         aforementioned types.
 
         Assumes that any list-like data has already been cast to an Index.
@@ -521,7 +498,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _maybe_convert_i8(self, key):
         """
-        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        Maybe convert a given key to its equivalent i8 value(s). Used as a
         preprocessing step prior to IntervalTree queries (self._engine), which
         expects numeric data.
 
@@ -560,7 +537,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
             if key.hasnans:
-                # convert NaT from it's i8 value to np.nan so it's not viewed
+                # convert NaT from its i8 value to np.nan so it's not viewed
                 # as a valid value, maybe causing errors (e.g. is_overlapping)
                 key_i8 = key_i8.where(~key._isnan)
 
@@ -826,7 +803,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         # we have missing values
         if (locs == -1).any():
-            raise KeyError
+            raise KeyError(keyarr[locs == -1].tolist())
 
         return locs
 
@@ -858,6 +835,22 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def length(self):
         return Index(self._data.length, copy=False)
 
+    def putmask(self, mask, value):
+        arr = self._data.copy()
+        try:
+            value_left, value_right = arr._validate_setitem_value(value)
+        except (ValueError, TypeError):
+            return self.astype(object).putmask(mask, value)
+
+        if isinstance(self._data._left, np.ndarray):
+            np.putmask(arr._left, mask, value_left)
+            np.putmask(arr._right, mask, value_right)
+        else:
+            # TODO: special case not needed with __array_function__
+            arr._left.putmask(mask, value_left)
+            arr._right.putmask(mask, value_right)
+        return type(self)._simple_new(arr, name=self.name)
+
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
@@ -876,8 +869,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
-        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        result = self._data._shallow_copy(new_left, new_right)
+        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc, item):
         """
@@ -898,8 +891,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
-        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
+        result = self._data._shallow_copy(new_left, new_right)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -958,18 +951,40 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return f"\n{space}"
 
     # --------------------------------------------------------------------
-
-    def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.lexsort((self.right, self.left))
-
-    # --------------------------------------------------------------------
     # Set Operations
+
+    def _assert_can_do_setop(self, other):
+        super()._assert_can_do_setop(other)
+
+        if isinstance(other, IntervalIndex) and self._is_non_comparable_own_type(other):
+            # GH#19016: ensure set op will not return a prohibited dtype
+            raise TypeError(
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side "
+                "and have compatible dtypes"
+            )
 
     @Appender(Index.intersection.__doc__)
     @setop_check
-    def intersection(
-        self, other: "IntervalIndex", sort: bool = False
-    ) -> "IntervalIndex":
+    def intersection(self, other, sort=False) -> Index:
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
+
+        if self.equals(other) and not self.has_duplicates:
+            return self._get_reconciled_name_object(other)
+
+        if not isinstance(other, IntervalIndex):
+            return self.astype(object).intersection(other)
+
+        result = self._intersection(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _intersection(self, other, sort):
+        """
+        intersection specialized to the case with matching dtypes.
+        """
+        # For IntervalIndex we also know other.closed == self.closed
         if self.left.is_unique and self.right.is_unique:
             taken = self._intersection_unique(other)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
@@ -983,7 +998,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return self._wrap_setop_result(other, taken)
+        return taken
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """

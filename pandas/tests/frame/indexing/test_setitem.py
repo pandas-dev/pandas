@@ -289,6 +289,53 @@ class TestDataFrameSetItem:
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
+    def test_setitem_complete_column_with_array(self):
+        # GH#37954
+        df = DataFrame({"a": ["one", "two", "three"], "b": [1, 2, 3]})
+        arr = np.array([[1, 1], [3, 1], [5, 1]])
+        df[["c", "d"]] = arr
+        expected = DataFrame(
+            {
+                "a": ["one", "two", "three"],
+                "b": [1, 2, 3],
+                "c": [1, 3, 5],
+                "d": [1, 1, 1],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_setitem_bool_with_numeric_index(self, dtype):
+        # GH#36319
+        cols = Index([1, 2, 3], dtype=dtype)
+        df = DataFrame(np.random.randn(3, 3), columns=cols)
+
+        df[False] = ["a", "b", "c"]
+
+        expected_cols = Index([1, 2, 3, False], dtype=object)
+        if dtype == "f8":
+            expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
+
+        tm.assert_index_equal(df.columns, expected_cols)
+
+
+class TestDataFrameSetItemWithExpansion:
+    def test_setitem_listlike_views(self):
+        # GH#38148
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
+
+        # get one column as a view of df
+        ser = df["a"]
+
+        # add columns with list-like indexer
+        df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
+
+        # edit in place the first column to check view semantics
+        df.iloc[0, 0] = 100
+
+        expected = Series([100, 2, 3], name="a")
+        tm.assert_series_equal(ser, expected)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):

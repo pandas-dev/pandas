@@ -1881,7 +1881,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2974,9 +2978,9 @@ class PythonParser(ParserBase):
         if self.comment is None:
             return lines
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for x in l:
+            for x in line:
                 if not isinstance(x, str) or self.comment not in x:
                     rl.append(x)
                 else:
@@ -3003,14 +3007,14 @@ class PythonParser(ParserBase):
             The same array of lines with the "empty" ones removed.
         """
         ret = []
-        for l in lines:
+        for line in lines:
             # Remove empty lines and lines with only one whitespace value
             if (
-                len(l) > 1
-                or len(l) == 1
-                and (not isinstance(l[0], str) or l[0].strip())
+                len(line) > 1
+                or len(line) == 1
+                and (not isinstance(line[0], str) or line[0].strip())
             ):
-                ret.append(l)
+                ret.append(line)
         return ret
 
     def _check_thousands(self, lines):
@@ -3023,9 +3027,9 @@ class PythonParser(ParserBase):
 
     def _search_replace_num_columns(self, lines, search, replace):
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for i, x in enumerate(l):
+            for i, x in enumerate(line):
                 if (
                     not isinstance(x, str)
                     or search not in x

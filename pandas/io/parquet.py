@@ -1,5 +1,6 @@
 """ parquet compat """
 
+from distutils.version import LooseVersion
 import io
 import os
 from typing import Any, AnyStr, Dict, List, Optional, Tuple
@@ -187,9 +188,38 @@ class PyArrowImpl(BaseImpl):
                 handles.close()
 
     def read(
-        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
+        self,
+        path,
+        columns=None,
+        use_nullable_dtypes=False,
+        storage_options: StorageOptions = None,
+        **kwargs,
     ):
         kwargs["use_pandas_metadata"] = True
+
+        to_pandas_kwargs = {}
+        if use_nullable_dtypes:
+            if LooseVersion(self.api.__version__) >= "0.16":
+                import pandas as pd
+
+                mapping = {
+                    self.api.int8(): pd.Int8Dtype(),
+                    self.api.int16(): pd.Int16Dtype(),
+                    self.api.int32(): pd.Int32Dtype(),
+                    self.api.int64(): pd.Int64Dtype(),
+                    self.api.uint8(): pd.UInt8Dtype(),
+                    self.api.uint16(): pd.UInt16Dtype(),
+                    self.api.uint32(): pd.UInt32Dtype(),
+                    self.api.uint64(): pd.UInt64Dtype(),
+                    self.api.bool_(): pd.BooleanDtype(),
+                    self.api.string(): pd.StringDtype(),
+                }
+                to_pandas_kwargs["types_mapper"] = mapping.get
+            else:
+                raise ValueError(
+                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
+                    f"({self.api.__version__} is installed"
+                )
 
         path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
             path,
@@ -200,7 +230,7 @@ class PyArrowImpl(BaseImpl):
         try:
             return self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
-            ).to_pandas()
+            ).to_pandas(**to_pandas_kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -268,6 +298,12 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if use_nullable_dtypes:
+            raise ValueError(
+                "The 'use_nullable_dtypes' argument is not supported for the "
+                "fastparquet engine"
+            )
         path = stringify_path(path)
         parquet_kwargs = {}
         handles = None
@@ -380,12 +416,14 @@ def to_parquet(
         return None
 
 
+
 @doc(storage_options=generic._shared_docs["storage_options"])
 def read_parquet(
     path,
     engine: str = "auto",
     columns=None,
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool = False,
     **kwargs,
 ):
     """
@@ -416,7 +454,18 @@ def read_parquet(
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
+
     {storage_options}
+
+        .. versionadded:: 1.2.0
+
+    use_nullable_dtypes : bool, default False
+        If True, use dtypes that use ``pd.NA`` as missing value indicator
+        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        As new dtypes are added that support ``pd.NA`` in the future, the
+        output with this option will change to use those dtypes.
+        Note: this is an experimental option, and behaviour (e.g. additional
+        support dtypes) may change without notice.
 
         .. versionadded:: 1.2.0
 
@@ -428,4 +477,9 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
-    return impl.read(path, columns=columns, storage_options=storage_options, **kwargs)
+
+    return impl.read(
+        path, columns=columns, storage_options=storage_options, 
+        use_nullable_dtypes=use_nullable_dtypes, **kwargs
+    )
+

@@ -115,6 +115,24 @@ int main() {
 #include "../inline_helper.h"
 
 
+// hooks for memory allocator, C-runtime allocator used per default
+#ifndef KHASH_MALLOC
+#define KHASH_MALLOC malloc
+#endif
+
+#ifndef KHASH_REALLOC
+#define KHASH_REALLOC realloc
+#endif
+
+#ifndef KHASH_CALLOC
+#define KHASH_CALLOC calloc
+#endif
+
+#ifndef KHASH_FREE
+#define KHASH_FREE free
+#endif
+
+
 #if UINT_MAX == 0xffffffffu
 typedef unsigned int khint32_t;
 #elif ULONG_MAX == 0xffffffffu
@@ -122,14 +140,23 @@ typedef unsigned long khint32_t;
 #endif
 
 #if ULONG_MAX == ULLONG_MAX
-typedef unsigned long khuint64_t;
-typedef signed long khint64_t;
+typedef unsigned long khint64_t;
 #else
-typedef unsigned long long khuint64_t;
-typedef signed long long khint64_t;
+typedef unsigned long long khint64_t;
+#endif
+
+#if UINT_MAX == 0xffffu
+typedef unsigned int khint16_t;
+#elif USHRT_MAX == 0xffffu
+typedef unsigned short khint16_t;
+#endif
+
+#if UCHAR_MAX == 0xffu
+typedef unsigned char khint8_t;
 #endif
 
 typedef double khfloat64_t;
+typedef float khfloat32_t;
 
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
@@ -256,14 +283,14 @@ static const double __ac_HASH_UPPER = 0.77;
 		khval_t *vals;													\
 	} kh_##name##_t;													\
 	SCOPE kh_##name##_t *kh_init_##name(void) {								\
-		return (kh_##name##_t*)calloc(1, sizeof(kh_##name##_t));		\
+		return (kh_##name##_t*)KHASH_CALLOC(1, sizeof(kh_##name##_t));		\
 	}																	\
 	SCOPE void kh_destroy_##name(kh_##name##_t *h)						\
 	{																	\
 		if (h) {														\
-			free(h->keys); free(h->flags);								\
-			free(h->vals);												\
-			free(h);													\
+			KHASH_FREE(h->keys); KHASH_FREE(h->flags);								\
+			KHASH_FREE(h->vals);												\
+			KHASH_FREE(h);													\
 		}																\
 	}																	\
 	SCOPE void kh_clear_##name(kh_##name##_t *h)						\
@@ -296,11 +323,11 @@ static const double __ac_HASH_UPPER = 0.77;
 			if (new_n_buckets < 4) new_n_buckets = 4;					\
 			if (h->size >= (khint_t)(new_n_buckets * __ac_HASH_UPPER + 0.5)) j = 0;	/* requested size is too small */ \
 			else { /* hash table size to be changed (shrink or expand); rehash */ \
-				new_flags = (khint32_t*)malloc(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
+				new_flags = (khint32_t*)KHASH_MALLOC(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
 				memset(new_flags, 0xff, __ac_fsize(new_n_buckets) * sizeof(khint32_t)); \
 				if (h->n_buckets < new_n_buckets) {	/* expand */		\
-					h->keys = (khkey_t*)realloc(h->keys, new_n_buckets * sizeof(khkey_t)); \
-					if (kh_is_map) h->vals = (khval_t*)realloc(h->vals, new_n_buckets * sizeof(khval_t)); \
+					h->keys = (khkey_t*)KHASH_REALLOC(h->keys, new_n_buckets * sizeof(khkey_t)); \
+					if (kh_is_map) h->vals = (khval_t*)KHASH_REALLOC(h->vals, new_n_buckets * sizeof(khval_t)); \
 				} /* otherwise shrink */								\
 			}															\
 		}																\
@@ -333,10 +360,10 @@ static const double __ac_HASH_UPPER = 0.77;
 				}														\
 			}															\
 			if (h->n_buckets > new_n_buckets) { /* shrink the hash table */ \
-				h->keys = (khkey_t*)realloc(h->keys, new_n_buckets * sizeof(khkey_t)); \
-				if (kh_is_map) h->vals = (khval_t*)realloc(h->vals, new_n_buckets * sizeof(khval_t)); \
+				h->keys = (khkey_t*)KHASH_REALLOC(h->keys, new_n_buckets * sizeof(khkey_t)); \
+				if (kh_is_map) h->vals = (khval_t*)KHASH_REALLOC(h->vals, new_n_buckets * sizeof(khval_t)); \
 			}															\
-			free(h->flags); /* free the working space */				\
+			KHASH_FREE(h->flags); /* free the working space */				\
 			h->flags = new_flags;										\
 			h->n_buckets = new_n_buckets;								\
 			h->n_occupied = h->size;									\
@@ -588,7 +615,17 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
   @param  khval_t  Type of values [type]
  */
+
+// we implicitly convert signed int to unsigned int, thus potential overflows
+// for operations (<<,*,+) don't trigger undefined behavior, also >>-operator
+// is implementation defined for signed ints if sign-bit is set.
+// because we never really "get" the keys, there will be no convertion from
+// unsigend int to (signed) int (which would be implementation defined behavior)
+// this holds also for 64-, 16- and 8-bit integers
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
+	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT(name, khval_t)								\
 	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
@@ -596,7 +633,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
  */
 #define KHASH_SET_INIT_UINT64(name)										\
-	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_SET_INIT_INT64(name)										\
 	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
@@ -607,10 +644,33 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_UINT64(name, khval_t)								\
-	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
 	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+
+/*! @function
+  @abstract     Instantiate a hash map containing 16bit-integer keys
+  @param  name  Name of the hash table [symbol]
+  @param  khval_t  Type of values [type]
+ */
+#define KHASH_MAP_INIT_INT16(name, khval_t)								\
+	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT16(name, khval_t)								\
+	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+/*! @function
+  @abstract     Instantiate a hash map containing 8bit-integer keys
+  @param  name  Name of the hash table [symbol]
+  @param  khval_t  Type of values [type]
+ */
+#define KHASH_MAP_INIT_INT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_MAP_INIT_UINT8(name, khval_t)								\
+	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
 
 
 typedef const char *kh_cstr_t;
@@ -634,12 +694,23 @@ typedef const char *kh_cstr_t;
 #define kh_exist_float64(h, k) (kh_exist(h, k))
 #define kh_exist_uint64(h, k) (kh_exist(h, k))
 #define kh_exist_int64(h, k) (kh_exist(h, k))
+#define kh_exist_float32(h, k) (kh_exist(h, k))
 #define kh_exist_int32(h, k) (kh_exist(h, k))
+#define kh_exist_uint32(h, k) (kh_exist(h, k))
+#define kh_exist_int16(h, k) (kh_exist(h, k))
+#define kh_exist_uint16(h, k) (kh_exist(h, k))
+#define kh_exist_int8(h, k) (kh_exist(h, k))
+#define kh_exist_uint8(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
+KHASH_MAP_INIT_UINT(uint32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
+KHASH_MAP_INIT_INT16(int16, size_t)
+KHASH_MAP_INIT_UINT16(uint16, size_t)
+KHASH_MAP_INIT_INT8(int8, size_t)
+KHASH_MAP_INIT_UINT8(uint8, size_t)
 
 
 #endif /* __AC_KHASH_H */

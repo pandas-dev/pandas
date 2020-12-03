@@ -7,7 +7,6 @@ import gzip
 from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
 import mmap
 import os
-import pathlib
 from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, cast
 from urllib.parse import (
     urljoin,
@@ -176,19 +175,8 @@ def stringify_path(
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if hasattr(filepath_or_buffer, "__fspath__"):
-        # https://github.com/python/mypy/issues/1424
-        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
-        # attribute "__fspath__"  [union-attr]
-        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
-    elif isinstance(filepath_or_buffer, pathlib.Path):
-        filepath_or_buffer = str(filepath_or_buffer)
+    if isinstance(filepath_or_buffer, os.PathLike):
+        filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
 
