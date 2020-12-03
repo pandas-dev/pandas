@@ -87,10 +87,15 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import arraylike, indexing, missing, nanops
-import pandas.core.algorithms as algos
+from pandas.core import (
+    algorithms as algos,
+    arraylike,
+    common as com,
+    indexing,
+    missing,
+    nanops,
+)
 from pandas.core.base import PandasObject, SelectionMixin
-import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
@@ -6027,10 +6032,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(timedelta, "timedelta")
         return self._constructor(
             self._mgr.convert(
-                datetime=datetime,
-                numeric=numeric,
-                timedelta=timedelta,
-                copy=True,
+                datetime=datetime, numeric=numeric, timedelta=timedelta, copy=True,
             )
         ).__finalize__(self)
 
@@ -6880,10 +6882,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         f"Expecting {len(to_replace)} got {len(value)} "
                     )
                 new_data = self._mgr.replace_list(
-                    src_list=to_replace,
-                    dest_list=value,
-                    inplace=inplace,
-                    regex=regex,
+                    src_list=to_replace, dest_list=value, inplace=inplace, regex=regex,
                 )
 
             elif to_replace is None:
@@ -10545,7 +10544,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
         if axis is None:
             raise ValueError("Must specify 'axis' when aggregating by level.")
-        grouped = self.groupby(level=level, axis=axis, sort=False)
+        # see pr-35967 for discussion about the observed keyword
+        grouped = self.groupby(level=level, axis=axis, sort=False, observed=False)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
