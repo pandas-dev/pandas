@@ -15,9 +15,11 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4=4.6.0
   - bottleneck=1.2.*
+  - jinja2
   - lxml
   - matplotlib=3.0.0
   - numpy=1.16.*
+  - odfpy
   - openpyxl=2.6.0
   - python-dateutil
   - python-blosc

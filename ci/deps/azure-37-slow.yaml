@@ -16,10 +16,12 @@ dependencies:
   - beautifulsoup4
   - fsspec>=0.7.4
   - html5lib
+  - jinja2
   - lxml
   - matplotlib
   - numexpr
   - numpy
+  - odfpy
   - openpyxl
   - patsy
   - psycopg2
@@ -36,3 +38,6 @@ dependencies:
   - xlwt
   - moto
   - flask
+  - pip
+  - pip:
+    - pyxlsb
