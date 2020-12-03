@@ -1315,3 +1315,26 @@ def test_stack_positional_level_duplicate_column_names():
     expected = pd.DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_with_missing_int_cast_to_float():
+    # https://github.com/pandas-dev/pandas/issues/37115
+    df = DataFrame(
+        {"a": ["A", "A", "B"], "b": ["ca", "cb", "cb"], "v": [10] * 3}
+    ).set_index(["a", "b"])
+
+    # add another int column to get 2 blocks
+    df["is_"] = 1
+    assert len(df._mgr.blocks) == 2
+
+    result = df.unstack("b")
+    result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
+
+    expected = DataFrame(
+        [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
+        index=Index(["A", "B"], dtype="object", name="a"),
+        columns=MultiIndex.from_tuples(
+            [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")], names=[None, "b"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
