@@ -1,8 +1,7 @@
+import re
 import warnings
 
 import pytest
-
-import re
 
 import pandas as pd
 import pandas._testing as tm
