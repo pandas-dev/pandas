@@ -6,6 +6,8 @@ import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _XlwtWriter
 
+pytestmark = pytest.mark.slow
+
 xlwt = pytest.importorskip("xlwt")
 
 pytestmark = pytest.mark.parametrize("ext,", [".xls"])

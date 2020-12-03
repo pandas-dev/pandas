@@ -1,3 +1,10 @@
+"""
+Package for testing excel-related functionality.
+
+All tests are marked as slow via ``pytestmark = pytest.mark.slow``
+at the top of each test module.
+"""
+
 import pytest
 
 pytestmark = [

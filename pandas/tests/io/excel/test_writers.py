@@ -21,6 +21,8 @@ from pandas.io.excel import (
     register_writer,
 )
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def path(ext):

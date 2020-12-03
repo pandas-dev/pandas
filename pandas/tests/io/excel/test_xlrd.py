@@ -7,6 +7,8 @@ import pandas._testing as tm
 
 from pandas.io.excel import ExcelFile
 
+pytestmark = pytest.mark.slow
+
 xlrd = pytest.importorskip("xlrd")
 xlwt = pytest.importorskip("xlwt")
 

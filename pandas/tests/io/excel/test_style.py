@@ -7,6 +7,8 @@ import pandas._testing as tm
 from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
 
+pytestmark = pytest.mark.slow
+
 
 @pytest.mark.parametrize(
     "engine",

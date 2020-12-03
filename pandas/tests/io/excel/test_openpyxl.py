@@ -7,6 +7,8 @@ import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
+pytestmark = pytest.mark.slow
+
 openpyxl = pytest.importorskip("openpyxl")
 
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
