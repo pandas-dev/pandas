@@ -383,11 +383,8 @@ _shared_docs[
     "storage_options"
 ] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc. If using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://" then see the
-    fsspec and backend storage implementation docs for the set of
-    allowed keys and values. Otherwise, in ``read_*`` funtions only, the
-    remote URL is handled via urllib (eg. HTTP or HTTPS). When handled by
-    urllib this key value mapping will be passed to the headers
-    argument of the urllib request thereby allowing custom headers
-    such as setting the User-Agent."""
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib`` as header options. For other URLs (e.g.
+    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
+    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details.
+    """
