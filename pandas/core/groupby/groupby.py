@@ -966,22 +966,6 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _transform_should_cast(self, func_nm: str) -> bool:
-        """
-        Parameters
-        ----------
-        func_nm: str
-            The name of the aggregation function being performed
-
-        Returns
-        -------
-        bool
-            Whether transform should attempt to cast the result of aggregation
-        """
-        filled_series = self.grouper.size().fillna(0)
-        assert filled_series is not None
-        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blocklist
-
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
     ):

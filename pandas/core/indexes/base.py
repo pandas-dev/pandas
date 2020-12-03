@@ -70,7 +70,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -3494,12 +3493,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
-            values: Union[range, ExtensionArray, np.ndarray]
-            if isinstance(self, ABCRangeIndex):
-                values = range(0)
-            else:
-                values = self._data[:0]  # appropriately-dtyped empty array
-            target = self._simple_new(values, name=self.name)
+            target = self[:0]
         else:
             target = ensure_index(target)
 
@@ -3829,6 +3823,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_level(
         self, other, level, how="left", return_indexers=False, keep_order=True
     ):
@@ -3972,6 +3967,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_monotonic(self, other, how="left", return_indexers=False):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
