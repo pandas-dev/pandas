@@ -1212,7 +1212,7 @@ b  2""",
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = self.filter(lambda x:True).axes[self.axis]
+            ax = self.filter(lambda x: True).axes[self.axis]
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
