@@ -18,8 +18,8 @@ from pandas.io.common import (
     IOHandles,
     get_handle,
     is_fsspec_url,
-    stringify_path,
     is_url,
+    stringify_path,
 )
 
 
