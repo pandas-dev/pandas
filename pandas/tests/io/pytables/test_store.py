@@ -4888,6 +4888,47 @@ class TestHDFStore:
         with pytest.raises(ValueError, match=message):
             pd.read_hdf(data_path)
 
+    def test_supported_for_subclasses_dataframe(self):
+        class SubDataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return SubDataFrame
+
+        data = {"a": [1, 2], "b": [3, 4]}
+        sdf = SubDataFrame(data, dtype=np.intp)
+
+        expected = np.array([[1, 3], [2, 4]], dtype=np.intp)
+
+        with ensure_clean_path("temp.h5") as path:
+            sdf.to_hdf(path, "df")
+            result = read_hdf(path, "df").values
+            assert np.array_equal(result, expected)
+
+        with ensure_clean_path("temp.h5") as path:
+            with HDFStore(path) as store:
+                store.put("df", sdf)
+            result = read_hdf(path, "df").values
+            assert np.array_equal(result, expected)
+
+    def test_supported_for_subclasses_series(self):
+        class SubSeries(Series):
+            @property
+            def _constructor(self):
+                return SubSeries
+
+        sser = SubSeries([1, 2, 3], dtype=np.intp)
+
+        expected = np.array([1, 2, 3], dtype=np.intp)
+
+        with ensure_clean_path("temp.h5") as path:
+            sser.to_hdf(path, "ser")
+
+        with ensure_clean_path("temp.h5") as path:
+            with HDFStore(path) as store:
+                store.put("ser", sser)
+            result = read_hdf(path, "ser").values
+            assert np.array_equal(result, expected)
+
 
 @pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
 def test_maybe_adjust_name_bad_version_raises(bad_version):
