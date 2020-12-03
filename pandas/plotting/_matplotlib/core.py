@@ -387,7 +387,6 @@ class MPLPlot:
                 return self.axes[0]
 
     def _convert_to_ndarray(self, data):
-        # data = self.data
         # GH32073: cast to float if values contain nulled integers
         if (
             is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
