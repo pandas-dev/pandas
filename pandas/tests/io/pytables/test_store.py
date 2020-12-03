@@ -2734,7 +2734,7 @@ class TestHDFStore:
             df = DataFrame(
                 {
                     "ts": bdate_range("2012-01-01", periods=300),
-                    "A": np.random.randn(300)
+                    "A": np.random.randn(300),
                 }
             )
             _maybe_remove(store, "df")
@@ -2842,10 +2842,10 @@ class TestHDFStore:
                     "ts": bdate_range("2012-01-01", periods=300),
                     "A": np.random.randn(300),
                     "B": range(300),
-                    "users": ["a"] * 50 +
-                    ["b"] * 50 +
-                    ["c"] * 100 +
-                    [f"a{i:03d}" for i in range(100)],
+                    "users": ["a"] * 50
+                    + ["b"] * 50
+                    + ["c"] * 100
+                    + [f"a{i:03d}" for i in range(100)],
                 }
             )
             _maybe_remove(store, "df")
@@ -3142,9 +3142,7 @@ class TestHDFStore:
 
         # GH 3499, losing frequency info on index recreation
         df = DataFrame(
-            {
-                "A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="H"))
-            }
+            {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="H"))}
         )
 
         with ensure_clean_store(setup_path) as store:
@@ -3191,8 +3189,7 @@ class TestHDFStore:
             df3 = DataFrame(
                 {
                     "A": Series(
-                        range(3),
-                        index=date_range("2002-1-1", periods=3, freq="D")
+                        range(3), index=date_range("2002-1-1", periods=3, freq="D")
                     )
                 }
             )
@@ -3209,8 +3206,7 @@ class TestHDFStore:
                 df = DataFrame(
                     {
                         "A": Series(
-                            range(3),
-                            index=date_range("2000-1-1", periods=3, freq="H")
+                            range(3), index=date_range("2000-1-1", periods=3, freq="H")
                         )
                     }
                 )
@@ -3218,8 +3214,7 @@ class TestHDFStore:
                 df2 = DataFrame(
                     {
                         "A": Series(
-                            range(3),
-                            index=date_range("2002-1-1", periods=3, freq="D")
+                            range(3), index=date_range("2002-1-1", periods=3, freq="D")
                         )
                     }
                 )
