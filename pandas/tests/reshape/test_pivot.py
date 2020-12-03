@@ -2073,6 +2073,7 @@ class TestPivotTable:
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
     def test_pivot_table_observed_deprecated_default(self):
+        # pr-35967
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # make sure we actually have a category to warn on
             self.data.A = self.data.A.astype("category")
