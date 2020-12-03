@@ -757,10 +757,10 @@ class TestNumpyJSONTests:
     def test_array_list(self):
         arr_list = [
             "a",
-            list(),
-            dict(),
-            dict(),
-            list(),
+            [],
+            {},
+            {},
+            [],
             42,
             97.8,
             ["a", "b"],
@@ -853,7 +853,7 @@ class TestPandasJSONTests:
             dtype=dtype,
         )
         encode_kwargs = {} if orient is None else {"orient": orient}
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
         assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
@@ -926,7 +926,7 @@ class TestPandasJSONTests:
         assert s.dtype == dtype
 
         encode_kwargs = {} if orient is None else {"orient": orient}
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
         assert s.dtype == dtype
