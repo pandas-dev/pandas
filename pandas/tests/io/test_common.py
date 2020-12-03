@@ -6,7 +6,11 @@ from io import BytesIO, StringIO
 import mmap
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+
+# from unittest.mock import MagicMock, patch
+import threading
+import http.server
+
 
 import pytest
 
@@ -415,285 +419,236 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("relative/local/path")
 
 
-def test_plain_text_read_csv_http_custom_headers(monkeypatch):
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_csv_bytes = true_df.to_csv(index=False).encode("utf-8")
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
+class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
+    """
+    Base class for setting up a server that can be set up to respond
+    with a particular file format with accompanying content-type headers
+    """
+
+    def start_processing_headers(self):
+        """
+        shared logic at the start of a GET request
+        """
+        self.send_response(200)
+        self.requested_from_user_agent = self.headers["User-Agent"]
+        response_df = pd.DataFrame(
+            {
+                "header": [self.requested_from_user_agent],
+            }
+        )
+        return response_df
+
+    def gzip_bytes(self, response_bytes):
+        """
+        some web servers will send back gzipped files to save bandwidth
+        """
+        bio = BytesIO()
+        zipper = gzip.GzipFile(fileobj=bio, mode="w")
+        zipper.write(response_bytes)
+        zipper.close()
+        response_bytes = bio.getvalue()
+        return response_bytes
+
+    def write_back_bytes(self, response_bytes):
+        """
+        shared logic at the end of a GET request
+        """
+        self.wfile.write(response_bytes)
+
+
+class CSVUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+
+        self.send_header("Content-Type", "text/csv")
+        self.end_headers()
+
+        response_bytes = response_df.to_csv(index=False).encode("utf-8")
+        self.write_back_bytes(response_bytes)
+
+
+class GzippedCSVUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "text/csv")
+        self.send_header("Content-Encoding", "gzip")
+        self.end_headers()
+
+        response_bytes = response_df.to_csv(index=False).encode("utf-8")
+        response_bytes = self.gzip_bytes(response_bytes)
+
+        self.write_back_bytes(response_bytes)
+
+
+class JSONUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+
+        response_bytes = response_df.to_json().encode("utf-8")
+
+        self.write_back_bytes(response_bytes)
+
+
+class GzippedJSONUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Encoding", "gzip")
+        self.end_headers()
+
+        response_bytes = response_df.to_json().encode("utf-8")
+        response_bytes = self.gzip_bytes(response_bytes)
+
+        self.write_back_bytes(response_bytes)
+
+
+class ParquetUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/octet-stream")
+        self.end_headers()
+
+        response_bytes = response_df.to_parquet(index=False)
+
+        self.write_back_bytes(response_bytes)
+
+
+class PickleUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/octet-stream")
+        self.end_headers()
+
+        bio = BytesIO()
+        response_df.to_pickle(bio)
+        response_bytes = bio.getvalue()
+
+        self.write_back_bytes(response_bytes)
+
+
+class StataUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/octet-stream")
+        self.end_headers()
+
+        bio = BytesIO()
+        response_df.to_stata(bio)
+        response_bytes = bio.getvalue()
+
+        self.write_back_bytes(response_bytes)
+
+
+class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
+    """
+    Send all request headers back for checking round trip
+    """
+
+    def do_GET(self):
+        response_df = pd.DataFrame(self.headers.items())
+        self.send_response(200)
+        self.send_header("Content-Type", "text/csv")
+        self.end_headers()
+        response_bytes = response_df.to_csv(index=False).encode("utf-8")
+        self.wfile.write(response_bytes)
+
+
+@pytest.mark.parametrize(
+    "responder, read_method, port",
+    [
+        (CSVUserAgentResponder, pd.read_csv, 34259),
+        (JSONUserAgentResponder, pd.read_json, 34260),
+        (ParquetUserAgentResponder, pd.read_parquet, 34268),
+        (PickleUserAgentResponder, pd.read_pickle, 34271),
+        (StataUserAgentResponder, pd.read_stata, 34272),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34261),
+        (GzippedJSONUserAgentResponder, pd.read_json, 34262),
+    ],
+)
+def test_server_and_default_headers(responder, read_method, port):
+    server = http.server.HTTPServer(("localhost", port), responder)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        df_http = read_method(f"http://localhost:{port}")
+        server.shutdown()
+    except Exception:
+        df_http = pd.DataFrame({"header": []})
+        server.shutdown()
+
+    server_thread.join()
+    assert not df_http.empty
+
+
+@pytest.mark.parametrize(
+    "responder, read_method, port",
+    [
+        (CSVUserAgentResponder, pd.read_csv, 34263),
+        (JSONUserAgentResponder, pd.read_json, 34264),
+        (ParquetUserAgentResponder, pd.read_parquet, 34270),
+        (PickleUserAgentResponder, pd.read_pickle, 34273),
+        (StataUserAgentResponder, pd.read_stata, 34274),
+        (GzippedCSVUserAgentResponder, pd.read_csv, 34265),
+        (GzippedJSONUserAgentResponder, pd.read_json, 34266),
+    ],
+)
+def test_server_and_custom_headers(responder, read_method, port):
+    custom_user_agent = "Super Cool One"
+    df_true = pd.DataFrame({"header": [custom_user_agent]})
+    server = http.server.HTTPServer(("localhost", port), responder)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+        )
+        server.shutdown()
+    except Exception:
+        df_http = pd.DataFrame({"header": []})
+        server.shutdown()
+    server_thread.join()
+    tm.assert_frame_equal(df_true, df_http)
+
+
+@pytest.mark.parametrize(
+    "responder, read_method, port",
+    [
+        (AllHeaderCSVResponder, pd.read_csv, 34267),
+    ],
+)
+def test_server_and_custom_headers(responder, read_method, port):
+    custom_user_agent = "Super Cool One"
+    custom_auth_token = "Super Secret One"
+    storage_options = {
+        "User-Agent": custom_user_agent,
+        "Auth": custom_auth_token,
     }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "text/csv",
-        }
-
-        @staticmethod
-        def read():
-            return df_csv_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_csv(
-                "http://localhost:80/test.csv", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_gzip_read_csv_http_custom_headers():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_csv_bytes = true_df.to_csv(index=False).encode("utf-8")
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "text/csv",
-            "Content-Encoding": "gzip",
-        }
-
-        @staticmethod
-        def read():
-            bio = BytesIO()
-            zipper = gzip.GzipFile(fileobj=bio, mode="w")
-            zipper.write(df_csv_bytes)
-            zipper.close()
-            gzipped_response = bio.getvalue()
-            return gzipped_response
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_csv(
-                "http://localhost:80/test.csv", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_plain_text_read_json_http_custom_headers():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_json_bytes = true_df.to_json().encode("utf-8")
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/json",
-        }
-
-        @staticmethod
-        def read():
-            return df_json_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_json(
-                "http://localhost:80/test.json", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_gzip_read_json_http_custom_headers():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_json_bytes = true_df.to_json().encode("utf-8")
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/json",
-            "Content-Encoding": "gzip",
-        }
-
-        @staticmethod
-        def read():
-            bio = BytesIO()
-            zipper = gzip.GzipFile(fileobj=bio, mode="w")
-            zipper.write(df_json_bytes)
-            zipper.close()
-            gzipped_response = bio.getvalue()
-            return gzipped_response
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_json(
-                "http://localhost:80/test.json", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_read_parquet_http_no_storage_options():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_parquet_bytes = true_df.to_parquet(index=False)
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/octet-stream",
-        }
-
-        @staticmethod
-        def read():
-            return df_parquet_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_parquet("http://localhost:80/test.parquet")
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_read_parquet_http_with_storage_options():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    df_parquet_bytes = true_df.to_parquet(index=False)
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/octet-stream",
-        }
-
-        @staticmethod
-        def read():
-            return df_parquet_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_parquet(
-                "http://localhost:80/test.parquet", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_read_pickle_http_with_storage_options():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    bio = BytesIO()
-    true_df.to_pickle(bio)
-    df_pickle_bytes = bio.getvalue()
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/octet-stream",
-        }
-
-        @staticmethod
-        def read():
-            return df_pickle_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_pickle(
-                "http://localhost:80/test.pkl", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
-
-
-def test_read_stata_http_with_storage_options():
-    true_df = pd.DataFrame({"column_name": ["column_value"]})
-    bio = BytesIO()
-    true_df.to_stata(bio, write_index=False)
-    df_pickle_bytes = bio.getvalue()
-    headers = {
-        "User-Agent": "custom",
-        "Auth": "other_custom",
-    }
-
-    class DummyResponse:
-        headers = {
-            "Content-Type": "application/octet-stream",
-        }
-
-        @staticmethod
-        def read():
-            return df_pickle_bytes
-
-        @staticmethod
-        def close():
-            pass
-
-    def dummy_response_getter(url):
-        return DummyResponse()
-
-    dummy_request = MagicMock()
-    with patch("urllib.request.Request", new=dummy_request):
-        with patch("urllib.request.urlopen", new=dummy_response_getter):
-            received_df = pd.read_stata(
-                "http://localhost:80/test.dta", storage_options=headers
-            )
-            assert dummy_request.called_with(headers=headers)
-            tm.assert_frame_equal(received_df, true_df)
+    server = http.server.HTTPServer(("localhost", port), responder)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options=storage_options,
+        )
+        server.shutdown()
+    except Exception:
+        df_http = pd.DataFrame({"0": [], "1": []})
+        server.shutdown()
+    server_thread.join()
+    df_http = df_http[df_http["0"].isin(storage_options.keys())]
+    df_http = df_http.sort_values(["0"]).reset_index()
+    df_http = df_http[["0", "1"]]
+    keys = list(storage_options.keys())
+    df_true = pd.DataFrame(
+        {"0": [k for k in keys], "1": [storage_options[k] for k in keys]}
+    )
+    df_true = df_true.sort_values(["0"])
+    df_true = df_true.reset_index().drop(["index"], axis=1)
+    tm.assert_frame_equal(df_true, df_http)
 
 
 def test_to_parquet_to_disk_with_storage_options():
