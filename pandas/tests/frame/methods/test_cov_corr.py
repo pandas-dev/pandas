@@ -208,6 +208,25 @@ class TestDataFrameCorr:
         assert df["A"] is ser
         assert df.values[0, 0] == 99
 
+    @pytest.mark.parametrize("length", [2, 20, 200, 2000])
+    def test_corr_for_constant_columns(self, length):
+        # GH: 37448
+        df = DataFrame(length * [[0.4, 0.1]], columns=["A", "B"])
+        result = df.corr()
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_calc_corr_small_numbers(self):
+        # GH: 37452
+        df = DataFrame(
+            {"A": [1.0e-20, 2.0e-20, 3.0e-20], "B": [1.0e-20, 2.0e-20, 3.0e-20]}
+        )
+        result = df.corr()
+        expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCorrWith:
     def test_corrwith(self, datetime_frame):

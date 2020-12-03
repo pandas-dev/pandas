@@ -71,7 +71,7 @@ class CompatValidator:
                 raise ValueError(f"invalid validation method '{method}'")
 
 
-ARGMINMAX_DEFAULTS = dict(out=None)
+ARGMINMAX_DEFAULTS = {"out": None}
 validate_argmin = CompatValidator(
     ARGMINMAX_DEFAULTS, fname="argmin", method="both", max_fname_arg_count=1
 )
@@ -151,7 +151,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
+CLIP_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -208,10 +208,10 @@ validate_any = CompatValidator(
     ALLANY_DEFAULTS, fname="any", method="both", max_fname_arg_count=1
 )
 
-LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
+LOGICAL_FUNC_DEFAULTS = {"out": None, "keepdims": False}
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
+MINMAX_DEFAULTS = {"axis": None, "out": None, "keepdims": False}
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -219,17 +219,17 @@ validate_max = CompatValidator(
     MINMAX_DEFAULTS, fname="max", method="both", max_fname_arg_count=1
 )
 
-RESHAPE_DEFAULTS: Dict[str, str] = dict(order="C")
+RESHAPE_DEFAULTS: Dict[str, str] = {"order": "C"}
 validate_reshape = CompatValidator(
     RESHAPE_DEFAULTS, fname="reshape", method="both", max_fname_arg_count=1
 )
 
-REPEAT_DEFAULTS: Dict[str, Any] = dict(axis=None)
+REPEAT_DEFAULTS: Dict[str, Any] = {"axis": None}
 validate_repeat = CompatValidator(
     REPEAT_DEFAULTS, fname="repeat", method="both", max_fname_arg_count=1
 )
 
-ROUND_DEFAULTS: Dict[str, Any] = dict(out=None)
+ROUND_DEFAULTS: Dict[str, Any] = {"out": None}
 validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
@@ -300,7 +300,7 @@ def validate_take_with_convert(convert, args, kwargs):
     return convert
 
 
-TRANSPOSE_DEFAULTS = dict(axes=None)
+TRANSPOSE_DEFAULTS = {"axes": None}
 validate_transpose = CompatValidator(
     TRANSPOSE_DEFAULTS, fname="transpose", method="both", max_fname_arg_count=0
 )
@@ -387,7 +387,7 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
             raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis: Optional[int]) -> None:
+def validate_minmax_axis(axis: Optional[int], ndim: int = 1) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is zero
     or None, as otherwise it will be incorrectly ignored.
@@ -395,12 +395,12 @@ def validate_minmax_axis(axis: Optional[int]) -> None:
     Parameters
     ----------
     axis : int or None
+    ndim : int, default 1
 
     Raises
     ------
     ValueError
     """
-    ndim = 1  # hard-coded for Index
     if axis is None:
         return
     if axis >= ndim or (axis < 0 and ndim + axis < 0):

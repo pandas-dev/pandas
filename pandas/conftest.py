@@ -33,8 +33,10 @@ from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
+
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -286,10 +288,19 @@ def unique_nulls_fixture(request):
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
 
-
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
+
+
+@pytest.fixture(params=[pd.DataFrame, pd.Series])
+def frame_or_series(request):
+    """
+    Fixture to parametrize over DataFrame and Series.
+    """
+    return request.param
+
+
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )
@@ -307,6 +318,16 @@ def index_or_series(request):
 
 # Generate cartesian product of index_or_series fixture:
 index_or_series2 = index_or_series
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
+)
+def index_or_series_or_array(request):
+    """
+    Fixture to parametrize over Index, Series, and ExtensionArray
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -386,13 +407,12 @@ def _create_multiindex():
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ["first", "second"]
-    mi = MultiIndex(
+    return MultiIndex(
         levels=[major_axis, minor_axis],
         codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False,
     )
-    return mi
 
 
 def _create_mi_with_dt64tz_level():
@@ -461,8 +481,8 @@ def index_with_missing(request):
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
-        vals[0] = tuple([None]) + vals[0][1:]
-        vals[-1] = tuple([None]) + vals[-1][1:]
+        vals[0] = (None,) + vals[0][1:]
+        vals[-1] = (None,) + vals[-1][1:]
         return MultiIndex.from_tuples(vals)
     else:
         vals[0] = None
@@ -676,6 +696,26 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+# ----------------------------------------------------------------
+# Scalars
+# ----------------------------------------------------------------
+@pytest.fixture(
+    params=[
+        (Interval(left=0, right=5), IntervalDtype("int64")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        (Period("2012-01", freq="M"), "period[M]"),
+        (Period("2012-02-01", freq="D"), "period[D]"),
+        (
+            Timestamp("2011-01-01", tz="US/Eastern"),
+            DatetimeTZDtype(tz="US/Eastern"),
+        ),
+        (Timedelta(seconds=500), "timedelta64[ns]"),
+    ]
+)
+def ea_scalar_and_dtype(request):
+    return request.param
 
 
 # ----------------------------------------------------------------
@@ -1060,6 +1100,20 @@ def float_ea_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1130,6 +1184,26 @@ def any_nullable_int_dtype(request):
     * 'Int32'
     * 'UInt64'
     * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_numeric_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype and
+    any float ea dtypes.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
@@ -1358,3 +1432,17 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param

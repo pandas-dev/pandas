@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -103,6 +103,7 @@ class TestDataFrameCombineFirst:
         combined = frame1.combine_first(frame2)
         assert len(combined.columns) == 5
 
+    def test_combine_first_same_as_in_update(self):
         # gh 3016 (same as in update)
         df = DataFrame(
             [[1.0, 2.0, False, True], [4.0, 5.0, True, False]],
@@ -118,6 +119,7 @@ class TestDataFrameCombineFirst:
         df.loc[0, "A"] = 45
         tm.assert_frame_equal(result, df)
 
+    def test_combine_first_doc_example(self):
         # doc example
         df1 = DataFrame(
             {"A": [1.0, np.nan, 3.0, 5.0, np.nan], "B": [np.nan, 2.0, 3.0, np.nan, 6.0]}
@@ -134,38 +136,56 @@ class TestDataFrameCombineFirst:
         expected = DataFrame({"A": [1, 2, 3, 5, 3, 7.0], "B": [np.nan, 2, 3, 4, 6, 8]})
         tm.assert_frame_equal(result, expected)
 
-        # GH3552, return object dtype with bools
+    def test_combine_first_return_obj_type_with_bools(self):
+        # GH3552
+
         df1 = DataFrame(
             [[np.nan, 3.0, True], [-4.6, np.nan, True], [np.nan, 7.0, False]]
         )
         df2 = DataFrame([[-42.6, np.nan, True], [-5.0, 1.6, False]], index=[1, 2])
 
-        result = df1.combine_first(df2)[2]
-        expected = Series([True, True, False], name=2)
-        tm.assert_series_equal(result, expected)
+        expected = Series([True, True, False], name=2, dtype=object)
 
-        # GH 3593, converting datetime64[ns] incorrectly
-        df0 = DataFrame(
-            {"a": [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]}
-        )
-        df1 = DataFrame({"a": [None, None, None]})
-        df2 = df1.combine_first(df0)
-        tm.assert_frame_equal(df2, df0)
+        result_12 = df1.combine_first(df2)[2]
+        tm.assert_series_equal(result_12, expected)
 
-        df2 = df0.combine_first(df1)
-        tm.assert_frame_equal(df2, df0)
+        result_21 = df2.combine_first(df1)[2]
+        tm.assert_series_equal(result_21, expected)
 
-        df0 = DataFrame(
-            {"a": [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]}
-        )
-        df1 = DataFrame({"a": [datetime(2000, 1, 2), None, None]})
-        df2 = df1.combine_first(df0)
-        result = df0.copy()
-        result.iloc[0, :] = df1.iloc[0, :]
-        tm.assert_frame_equal(df2, result)
+    @pytest.mark.parametrize(
+        "data1, data2, data_expected",
+        (
+            (
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [None, None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [None, None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [datetime(2000, 1, 2), None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 2), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+            (
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+                [datetime(2000, 1, 2), None, None],
+                [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            ),
+        ),
+    )
+    def test_combine_first_convert_datatime_correctly(
+        self, data1, data2, data_expected
+    ):
+        # GH 3593
 
-        df2 = df0.combine_first(df1)
-        tm.assert_frame_equal(df2, df0)
+        df1, df2 = DataFrame({"a": data1}), DataFrame({"a": data2})
+        result = df1.combine_first(df2)
+        expected = DataFrame({"a": data_expected})
+        tm.assert_frame_equal(result, expected)
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
@@ -339,9 +359,14 @@ class TestDataFrameCombineFirst:
         df1 = DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
         df2 = DataFrame({"a": [1, 4]}, dtype="int64")
 
-        res = df1.combine_first(df2)
-        tm.assert_frame_equal(res, df1)
-        assert res["a"].dtype == "int64"
+        result_12 = df1.combine_first(df2)
+        expected_12 = DataFrame({"a": [0, 1, 3, 5]}, dtype="float64")
+        tm.assert_frame_equal(result_12, expected_12)
+
+        result_21 = df2.combine_first(df1)
+        expected_21 = DataFrame({"a": [1, 4, 3, 5]}, dtype="float64")
+
+        tm.assert_frame_equal(result_21, expected_21)
 
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
@@ -353,3 +378,64 @@ class TestDataFrameCombineFirst:
         exp = DataFrame({"isBool": [True], "isNum": [val]})
 
         tm.assert_frame_equal(res, exp)
+
+    def test_combine_first_string_dtype_only_na(self):
+        # GH: 37519
+        df = DataFrame({"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string")
+        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype="string")
+        df.set_index(["a", "b"], inplace=True)
+        df2.set_index(["a", "b"], inplace=True)
+        result = df.combine_first(df2)
+        expected = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string"
+        ).set_index(["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "scalar1, scalar2",
+    [
+        (datetime(2020, 1, 1), datetime(2020, 1, 2)),
+        (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
+        (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
+        (pd.Interval(left=0, right=1), pd.Interval(left=2, right=3, closed="left")),
+    ],
+)
+def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
+    # GH28481
+    na_value = nulls_fixture
+    frame = DataFrame([[na_value, na_value]], columns=["a", "b"])
+    other = DataFrame([[scalar1, scalar2]], columns=["b", "c"])
+
+    result = frame.combine_first(other)
+    expected = DataFrame([[na_value, scalar1, scalar2]], columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_with_nan_multiindex():
+    # gh-36562
+
+    mi1 = MultiIndex.from_arrays(
+        [["b", "b", "c", "a", "b", np.nan], [1, 2, 3, 4, 5, 6]], names=["a", "b"]
+    )
+    df = DataFrame({"c": [1, 1, 1, 1, 1, 1]}, index=mi1)
+    mi2 = MultiIndex.from_arrays(
+        [["a", "b", "c", "a", "b", "d"], [1, 1, 1, 1, 1, 1]], names=["a", "b"]
+    )
+    s = Series([1, 2, 3, 4, 5, 6], index=mi2)
+    res = df.combine_first(DataFrame({"d": s}))
+    mi_expected = MultiIndex.from_arrays(
+        [
+            ["a", "a", "a", "b", "b", "b", "b", "c", "c", "d", np.nan],
+            [1, 1, 4, 1, 1, 2, 5, 1, 3, 1, 6],
+        ],
+        names=["a", "b"],
+    )
+    expected = DataFrame(
+        {
+            "c": [np.nan, np.nan, 1, 1, 1, 1, 1, np.nan, 1, np.nan, 1],
+            "d": [1.0, 4.0, np.nan, 2.0, 5.0, np.nan, np.nan, 3.0, np.nan, 6.0, np.nan],
+        },
+        index=mi_expected,
+    )
+    tm.assert_frame_equal(res, expected)

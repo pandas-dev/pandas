@@ -177,9 +177,9 @@ class TestDataFrameFormatting:
         df = DataFrame(1, columns=range(10), index=range(10))
         df.iloc[1, 1] = np.nan
 
-        def check(null_counts, result):
+        def check(show_counts, result):
             buf = StringIO()
-            df.info(buf=buf, null_counts=null_counts)
+            df.info(buf=buf, show_counts=show_counts)
             assert ("non-null" in buf.getvalue()) is result
 
         with option_context(
@@ -193,6 +193,18 @@ class TestDataFrameFormatting:
             check(None, False)
             check(True, False)
             check(False, False)
+
+        # GH37999
+        with tm.assert_produces_warning(
+            FutureWarning, match="null_counts is deprecated.+"
+        ):
+            buf = StringIO()
+            df.info(buf=buf, null_counts=True)
+            assert "non-null" in buf.getvalue()
+
+        # GH37999
+        with pytest.raises(ValueError, match=r"null_counts used with show_counts.+"):
+            df.info(null_counts=True, show_counts=True)
 
     def test_repr_truncation(self):
         max_len = 20
@@ -643,7 +655,7 @@ class TestDataFrameFormatting:
         # index name
         df = DataFrame(
             {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
-            index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
+            index=Index(["あ", "い", "うう", "え"], name="おおおお"),
         )
         expected = (
             "          a       b\n"
@@ -658,7 +670,7 @@ class TestDataFrameFormatting:
         # all
         df = DataFrame(
             {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
-            index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
+            index=Index(["あ", "いいい", "うう", "え"], name="お"),
         )
         expected = (
             "       あああ いいいいい\n"
@@ -787,7 +799,7 @@ class TestDataFrameFormatting:
             # index name
             df = DataFrame(
                 {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
-                index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
+                index=Index(["あ", "い", "うう", "え"], name="おおおお"),
             )
             expected = (
                 "                   a             b\n"
@@ -802,7 +814,7 @@ class TestDataFrameFormatting:
             # all
             df = DataFrame(
                 {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
-                index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
+                index=Index(["あ", "いいい", "うう", "え"], name="お"),
             )
             expected = (
                 "            あああ いいいいい\n"
@@ -1009,7 +1021,7 @@ class TestDataFrameFormatting:
 
         # GH 12211
         df = DataFrame(
-            {"date": [pd.Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
+            {"date": [Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
         )
 
         with option_context("display.max_rows", 5):
@@ -1019,7 +1031,7 @@ class TestDataFrameFormatting:
             assert "..." in result
             assert "[6 rows x 1 columns]" in result
 
-        dts = [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
+        dts = [Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1033,7 +1045,7 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.NaT] * 5 + [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5
+        dts = [pd.NaT] * 5 + [Timestamp("2011-01-01", tz="US/Eastern")] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1047,8 +1059,8 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
-            pd.Timestamp("2011-01-01", tz="US/Eastern")
+        dts = [Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
+            Timestamp("2011-01-01", tz="US/Eastern")
         ] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
@@ -1681,7 +1693,7 @@ c  10  11  12  13  14\
     def test_to_string_line_width(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
         s = df.to_string(line_width=80)
-        assert max(len(l) for l in s.split("\n")) == 80
+        assert max(len(line) for line in s.split("\n")) == 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, index=range(10, 15), columns=range(30))
@@ -2029,6 +2041,35 @@ c  10  11  12  13  14\
         )
         assert str(df) == exp
 
+    @pytest.mark.parametrize(
+        "length, max_rows, min_rows, expected",
+        [
+            (10, 10, 10, 10),
+            (10, 10, None, 10),
+            (10, 8, None, 8),
+            (20, 30, 10, 30),  # max_rows > len(frame), hence max_rows
+            (50, 30, 10, 10),  # max_rows < len(frame), hence min_rows
+            (100, 60, 10, 10),  # same
+            (60, 60, 10, 60),  # edge case
+            (61, 60, 10, 10),  # edge case
+        ],
+    )
+    def test_max_rows_fitted(self, length, min_rows, max_rows, expected):
+        """Check that display logic is correct.
+
+        GH #37359
+
+        See description here:
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
+        """
+        formatter = fmt.DataFrameFormatter(
+            DataFrame(np.random.rand(length, 3)),
+            max_rows=max_rows,
+            min_rows=min_rows,
+        )
+        result = formatter.max_rows_fitted
+        assert result == expected
+
 
 def gen_series_formatting():
     s1 = Series(["a"] * 100)
@@ -2184,7 +2225,7 @@ class TestSeriesFormatting:
 
         # object dtype, longer than unicode repr
         s = Series(
-            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+            [1, 22, 3333, 44444], index=[1, "AB", Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -2282,7 +2323,7 @@ class TestSeriesFormatting:
             # object dtype, longer than unicode repr
             s = Series(
                 [1, 22, 3333, 44444],
-                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
+                index=[1, "AB", Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"

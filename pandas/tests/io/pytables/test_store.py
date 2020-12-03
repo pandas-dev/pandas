@@ -302,7 +302,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 df = DataFrame({"a": [1]})
 
-                with pd.HDFStore(path, mode="w") as hdf:
+                with HDFStore(path, mode="w") as hdf:
                     hdf.put(
                         "table",
                         df,
@@ -843,7 +843,7 @@ class TestHDFStore:
 
         # Check if file-defaults can be overridden on a per table basis
         with ensure_clean_path(setup_path) as tmpfile:
-            store = pd.HDFStore(tmpfile)
+            store = HDFStore(tmpfile)
             store.append("dfc", df, complevel=9, complib="blosc")
             store.append("df", df)
             store.close()
@@ -1253,16 +1253,31 @@ class TestHDFStore:
             store.append("df2", df[10:], dropna=False)
             tm.assert_frame_equal(store["df2"], df)
 
-        # Test to make sure defaults are to not drop.
-        # Corresponding to Issue 9382
+    def test_store_dropna(self, setup_path):
         df_with_missing = DataFrame(
-            {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+            {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
+            index=list("abc"),
+        )
+        df_without_missing = DataFrame(
+            {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
         )
 
+        # # Test to make sure defaults are to not drop.
+        # # Corresponding to Issue 9382
         with ensure_clean_path(setup_path) as path:
-            df_with_missing.to_hdf(path, "df_with_missing", format="table")
-            reloaded = read_hdf(path, "df_with_missing")
+            df_with_missing.to_hdf(path, "df", format="table")
+            reloaded = read_hdf(path, "df")
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_without_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
@@ -1283,7 +1298,7 @@ class TestHDFStore:
             df = DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            with pd.HDFStore(path, "r") as store:
+            with HDFStore(path, "r") as store:
 
                 with pytest.raises(KeyError, match="'No object named k2 in the file'"):
                     pd.read_hdf(store, "k2")
@@ -1509,7 +1524,7 @@ class TestHDFStore:
     def test_to_hdf_errors(self, format, setup_path):
 
         data = ["\ud800foo"]
-        ser = Series(data, index=pd.Index(data))
+        ser = Series(data, index=Index(data))
         with ensure_clean_path(setup_path) as path:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
@@ -1616,16 +1631,13 @@ class TestHDFStore:
                 & (df_new.A > 0)
                 & (df_new.B < 0)
             ]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected, check_freq=False)
+            # FIXME: 2020-05-07 freq check randomly fails in the CI
 
             # yield an empty frame
             result = store.select("df", "string='foo' and string2='cool'")
             expected = df_new[(df_new.string == "foo") & (df_new.string2 == "cool")]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example
@@ -1645,16 +1657,11 @@ class TestHDFStore:
             result = store.select("df_dc", "B>0")
 
             expected = df_dc[df_dc.B > 0]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
+            tm.assert_frame_equal(result, expected)
 
             result = store.select("df_dc", ["B > 0", "C > 0", "string == foo"])
             expected = df_dc[(df_dc.B > 0) & (df_dc.C > 0) & (df_dc.string == "foo")]
-            tm.assert_frame_equal(
-                result, expected, check_index_type=False, check_freq=False
-            )
-            # FIXME: 2020-05-07 freq check randomly fails in the CI
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_store(setup_path) as store:
             # doc example part 2
@@ -1918,7 +1925,7 @@ class TestHDFStore:
 
     def test_mi_data_columns(self, setup_path):
         # GH 14435
-        idx = pd.MultiIndex.from_arrays(
+        idx = MultiIndex.from_arrays(
             [date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
         )
         df = DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
@@ -2325,7 +2332,7 @@ class TestHDFStore:
                 np.random.randn(20, 2), index=pd.date_range("20130101", periods=20)
             )
             store.put("df", df, format="table")
-            expected = df[df.index > pd.Timestamp("20130105")]
+            expected = df[df.index > Timestamp("20130105")]
 
             import datetime
 
@@ -2359,9 +2366,7 @@ class TestHDFStore:
             ts3 = Series(
                 ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
             )
-        self._check_roundtrip(
-            ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
-        )
+        self._check_roundtrip(ts3, tm.assert_series_equal, path=setup_path)
 
     def test_float_index(self, setup_path):
 
@@ -2533,11 +2538,11 @@ class TestHDFStore:
     @pytest.mark.parametrize("table_format", ["table", "fixed"])
     def test_store_index_name_numpy_str(self, table_format, setup_path):
         # GH #13492
-        idx = pd.Index(
+        idx = Index(
             pd.to_datetime([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]),
             name="cols\u05d2",
         )
-        idx1 = pd.Index(
+        idx1 = Index(
             pd.to_datetime([datetime.date(2010, 1, 1), datetime.date(2010, 1, 2)]),
             name="rows\u05d0",
         )
@@ -3920,11 +3925,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_pathlib(writer, reader)
@@ -3941,11 +3946,11 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         def writer(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 df.to_hdf(store, "df")
 
         def reader(path):
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 return pd.read_hdf(store, "df")
 
         result = tm.round_trip_localpath(writer, reader)
@@ -4139,7 +4144,7 @@ class TestHDFStore:
             expected = DataFrame(
                 [[1, 2, 3, "D"]],
                 columns=["A", "B", "C", "D"],
-                index=pd.Index(["ABC"], name="INDEX_NAME"),
+                index=Index(["ABC"], name="INDEX_NAME"),
             )
             tm.assert_frame_equal(expected, result)
 
@@ -4152,9 +4157,9 @@ class TestHDFStore:
         ) as store:
             result = store.select("df")
             expected = DataFrame(
-                [[pd.Timestamp("2020-02-06T18:00")]],
+                [[Timestamp("2020-02-06T18:00")]],
                 columns=["A"],
-                index=pd.Index(["date"]),
+                index=Index(["date"]),
             )
             tm.assert_frame_equal(expected, result)
 
@@ -4447,7 +4452,7 @@ class TestHDFStore:
 
             # Appending must have the same categories
             df3 = df.copy()
-            df3["s"].cat.remove_unused_categories(inplace=True)
+            df3["s"] = df3["s"].cat.remove_unused_categories()
 
             with pytest.raises(ValueError):
                 store.append("df3", df3)
@@ -4768,14 +4773,14 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
-            ts = pd.Timestamp("2014-01-01")  # noqa
+            ts = Timestamp("2014-01-01")  # noqa
             result = store.select("test", where="real_date > ts")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
             for op in ["<", ">", "=="]:
                 # non strings to string column always fail
-                for v in [2.1, True, pd.Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
+                for v in [2.1, True, Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
                     query = f"date {op} v"
                     with pytest.raises(TypeError):
                         store.select("test", where=query)
@@ -4814,7 +4819,7 @@ class TestHDFStore:
 
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
     def test_read_py2_hdf_file_in_py3(self, datapath):
@@ -4852,7 +4857,7 @@ class TestHDFStore:
 
         df = DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:
-            with pd.HDFStore(path) as store:
+            with HDFStore(path) as store:
                 store.put("df", df, "t")
                 result = pd.read_hdf(store, "df", where=where)
                 tm.assert_frame_equal(result, df)

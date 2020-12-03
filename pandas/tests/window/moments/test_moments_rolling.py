@@ -3,8 +3,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 
 
@@ -431,7 +430,7 @@ def test_cmov_window_special(win_types_special):
     kwds = {
         "kaiser": {"beta": 1.0},
         "gaussian": {"std": 1.0},
-        "general_gaussian": {"power": 2.0, "width": 2.0},
+        "general_gaussian": {"p": 2.0, "sig": 2.0},
         "exponential": {"tau": 10},
     }
 
@@ -503,7 +502,7 @@ def test_cmov_window_special_linear_range(win_types_special):
     kwds = {
         "kaiser": {"beta": 1.0},
         "gaussian": {"std": 1.0},
-        "general_gaussian": {"power": 2.0, "width": 2.0},
+        "general_gaussian": {"p": 2.0, "sig": 2.0},
         "slepian": {"width": 0.5},
         "exponential": {"tau": 10},
     }
@@ -546,7 +545,7 @@ def test_rolling_quantile_np_percentile():
     # is analogous to Numpy's percentile
     row = 10
     col = 5
-    idx = pd.date_range("20100101", periods=row, freq="B")
+    idx = date_range("20100101", periods=row, freq="B")
     df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
 
     df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)

@@ -183,7 +183,7 @@ def coerce_to_array(
     -------
     tuple of (values, mask)
     """
-    # if values is integer numpy array, preserve it's dtype
+    # if values is integer numpy array, preserve its dtype
     if dtype is None and hasattr(values, "dtype"):
         if is_integer_dtype(values.dtype):
             dtype = values.dtype
@@ -358,15 +358,17 @@ class IntegerArray(BaseMaskedArray):
         return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
@@ -484,7 +486,7 @@ class IntegerArray(BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         if self._mask.any():
@@ -537,13 +539,15 @@ class IntegerArray(BaseMaskedArray):
         return BooleanArray(result, mask)
 
     def _arith_method(self, other, op):
+        from pandas.core.arrays import FloatingArray
+
         op_name = op.__name__
         omask = None
 
         if getattr(other, "ndim", 0) > 1:
             raise NotImplementedError("can only perform ops with 1-d structures")
 
-        if isinstance(other, IntegerArray):
+        if isinstance(other, (IntegerArray, FloatingArray)):
             other, omask = other._data, other._mask
 
         elif is_list_like(other):
@@ -603,19 +607,19 @@ class IntegerArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def sum(self, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
 
-    def prod(self, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_prod((), kwargs)
         return super()._reduce("prod", skipna=skipna, min_count=min_count)
 
-    def min(self, skipna=True, **kwargs):
+    def min(self, *, skipna=True, **kwargs):
         nv.validate_min((), kwargs)
         return super()._reduce("min", skipna=skipna)
 
-    def max(self, skipna=True, **kwargs):
+    def max(self, *, skipna=True, **kwargs):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna)
 
@@ -634,8 +638,9 @@ class IntegerArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(result, mask, copy=False)
 
         if result.dtype == "timedelta64[ns]":
             from pandas.core.arrays import TimedeltaArray

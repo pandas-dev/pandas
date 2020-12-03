@@ -21,7 +21,6 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param(
@@ -35,7 +34,6 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
@@ -579,6 +577,10 @@ class TestReaders:
         if pd.read_excel.keywords["engine"] == "openpyxl":
             pytest.xfail("Maybe not supported by openpyxl")
 
+        if pd.read_excel.keywords["engine"] is None:
+            # GH 35029
+            pytest.xfail("Defaults to openpyxl, maybe not supported")
+
         result = pd.read_excel("testdateoverflow" + read_ext)
         tm.assert_frame_equal(result, expected)
 
@@ -992,7 +994,7 @@ class TestReaders:
         # GH 31783
         file_name = "testmultiindex" + read_ext
         data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
-        idx = pd.MultiIndex.from_tuples(
+        idx = MultiIndex.from_tuples(
             [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
         )
         expected = DataFrame(data, index=idx, columns=(2, 3))
@@ -1161,16 +1163,14 @@ class TestExcelFileRead:
         expected = DataFrame(["\udc88"], columns=["Column1"])
 
         # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx")
+        actual = pd.read_excel("high_surrogate.xlsx", engine="xlrd")
         tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
         # GH 33476
-        idx = pd.Index(["Z"], name="I2")
-        cols = pd.MultiIndex.from_tuples(
-            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
-        )
+        idx = Index(["Z"], name="I2")
+        cols = MultiIndex.from_tuples([("A", "B"), ("A", "B.1")], names=["I11", "I12"])
         expected = DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
         result = pd.read_excel(
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
@@ -1185,7 +1185,7 @@ class TestExcelFileRead:
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
-        expected_column_index = pd.MultiIndex.from_tuples(
+        expected_column_index = MultiIndex.from_tuples(
             [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
             names=[
                 pd.to_datetime("02/29/2020").to_pydatetime(),

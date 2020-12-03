@@ -196,8 +196,8 @@ class TestArithmetic:
         # GH#13043
         ser = Series(
             [
-                pd.Timestamp("2015-01-01", tz="US/Eastern"),
-                pd.Timestamp("2015-01-01", tz="Asia/Tokyo"),
+                Timestamp("2015-01-01", tz="US/Eastern"),
+                Timestamp("2015-01-01", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
@@ -205,8 +205,8 @@ class TestArithmetic:
 
         exp = Series(
             [
-                pd.Timestamp("2015-01-02", tz="US/Eastern"),
-                pd.Timestamp("2015-01-02", tz="Asia/Tokyo"),
+                Timestamp("2015-01-02", tz="US/Eastern"),
+                Timestamp("2015-01-02", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
@@ -216,8 +216,8 @@ class TestArithmetic:
         # object series & object series
         ser2 = Series(
             [
-                pd.Timestamp("2015-01-03", tz="US/Eastern"),
-                pd.Timestamp("2015-01-05", tz="Asia/Tokyo"),
+                Timestamp("2015-01-03", tz="US/Eastern"),
+                Timestamp("2015-01-05", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
@@ -326,7 +326,7 @@ class TestArithmetic:
             "foo" - index
 
         with pytest.raises(TypeError, match=msg):
-            np.array([True, pd.Timestamp.now()]) - index
+            np.array([True, Timestamp.now()]) - index
 
 
 class MyIndex(pd.Index):

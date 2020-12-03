@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -29,6 +30,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -415,7 +417,9 @@ def nargminmax(values, method: str):
     return non_nan_idx[func(non_nans)]
 
 
-def ensure_key_mapped_multiindex(index, key: Callable, level=None):
+def _ensure_key_mapped_multiindex(
+    index: "MultiIndex", key: Callable, level=None
+) -> "MultiIndex":
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -441,7 +445,6 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     labels : MultiIndex
         Resulting MultiIndex with modified levels.
     """
-    from pandas.core.indexes.api import MultiIndex
 
     if level is not None:
         if isinstance(level, (str, int)):
@@ -460,7 +463,7 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
         for level in range(index.nlevels)
     ]
 
-    labels = MultiIndex.from_arrays(mapped)
+    labels = type(index).from_arrays(mapped)
 
     return labels
 
@@ -484,7 +487,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         return values
 
     if isinstance(values, ABCMultiIndex):
-        return ensure_key_mapped_multiindex(values, key, level=levels)
+        return _ensure_key_mapped_multiindex(values, key, level=levels)
 
     result = key(values.copy())
     if len(result) != len(values):
@@ -526,16 +529,22 @@ def get_flattened_list(
     return [tuple(array) for array in arrays.values()]
 
 
-def get_indexer_dict(label_list, keys):
+def get_indexer_dict(
+    label_list: List[np.ndarray], keys: List["Index"]
+) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
     -------
-    dict
+    dict:
         Labels mapped to indexers.
     """
     shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    if np.all(group_index == -1):
+        # When all keys are nan and dropna=True, indices_fast can't handle this
+        # and the return is empty anyway
+        return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
         if is_int64_overflow_possible(shape)
@@ -596,7 +605,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

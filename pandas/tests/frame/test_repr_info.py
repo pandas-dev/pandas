@@ -9,8 +9,10 @@ from pandas import (
     Categorical,
     DataFrame,
     MultiIndex,
+    NaT,
     PeriodIndex,
     Series,
+    Timestamp,
     date_range,
     option_context,
     period_range,
@@ -21,6 +23,14 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
+    def test_repr_unicode_level_names(self, frame_or_series):
+        index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
+
+        obj = DataFrame(np.random.randn(2, 4), index=index)
+        if frame_or_series is Series:
+            obj = obj[0]
+        repr(obj)
+
     def test_assign_index_sequences(self):
         # GH#2200
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
@@ -35,6 +45,12 @@ class TestDataFrameReprInfoEtc:
         index[0] = ["faz", "boo"]
         df.index = index
         repr(df)
+
+    def test_repr_with_mi_nat(self, float_string_frame):
+        df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
+        result = repr(df)
+        expected = "              X\nNaT        a  1\n2013-01-01 b  2"
+        assert result == expected
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns

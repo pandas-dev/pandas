@@ -105,7 +105,7 @@ def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
         return True
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
         return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 

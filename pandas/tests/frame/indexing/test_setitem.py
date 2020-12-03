@@ -10,16 +10,30 @@ from pandas import (
     Interval,
     NaT,
     Period,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     notna,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 
 
 class TestDataFrameSetItem:
+    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
+    def test_setitem_dtype(self, dtype, float_frame):
+        arr = np.random.randn(len(float_frame))
+
+        float_frame[dtype] = np.array(arr, dtype=dtype)
+        assert float_frame[dtype].dtype.name == dtype
+
+    def test_setitem_list_not_dataframe(self, float_frame):
+        data = np.random.randn(len(float_frame), 2)
+        float_frame[["A", "B"]] = data
+        tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
+
     def test_setitem_error_msmgs(self):
 
         # GH 7432
@@ -183,6 +197,53 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
+        # GH#7492
+        data_ns = np.array([1, "nat"], dtype="datetime64[ns]")
+        result = Series(data_ns).to_frame()
+        result["new"] = data_ns
+        expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        # OutOfBoundsDatetime error shouldn't occur
+        data_s = np.array([1, "nat"], dtype="datetime64[s]")
+        result["new"] = data_s
+        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into a not-yet-existing column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df[unit] = vals
+
+        assert df[unit].dtype == np.dtype("M8[ns]")
+        assert (df[unit].values == ex_vals).all()
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_existing_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into an already-existing dt64 column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df["dates"] = np.arange(n, dtype=np.int64).view("M8[ns]")
+
+        # We overwrite existing dt64 column with new, non-nano dt64 vals
+        df["dates"] = vals
+        assert (df["dates"].values == ex_vals).all()
+
     def test_setitem_dt64tz(self, timezone_frame):
 
         df = timezone_frame
@@ -213,3 +274,106 @@ class TestDataFrameSetItem:
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_setitem_periodindex(self):
+        rng = period_range("1/1/2000", periods=5, name="index")
+        df = DataFrame(np.random.randn(5, 3), index=rng)
+
+        df["Index"] = rng
+        rs = Index(df["Index"])
+        tm.assert_index_equal(rs, rng, check_names=False)
+        assert rs.name == "Index"
+        assert rng.name == "index"
+
+        rs = df.reset_index().set_index("index")
+        assert isinstance(rs.index, PeriodIndex)
+        tm.assert_index_equal(rs.index, rng)
+
+    def test_setitem_complete_column_with_array(self):
+        # GH#37954
+        df = DataFrame({"a": ["one", "two", "three"], "b": [1, 2, 3]})
+        arr = np.array([[1, 1], [3, 1], [5, 1]])
+        df[["c", "d"]] = arr
+        expected = DataFrame(
+            {
+                "a": ["one", "two", "three"],
+                "b": [1, 2, 3],
+                "c": [1, 3, 5],
+                "d": [1, 1, 1],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_setitem_bool_with_numeric_index(self, dtype):
+        # GH#36319
+        cols = Index([1, 2, 3], dtype=dtype)
+        df = DataFrame(np.random.randn(3, 3), columns=cols)
+
+        df[False] = ["a", "b", "c"]
+
+        expected_cols = Index([1, 2, 3, False], dtype=object)
+        if dtype == "f8":
+            expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
+
+        tm.assert_index_equal(df.columns, expected_cols)
+
+
+class TestDataFrameSetItemWithExpansion:
+    def test_setitem_listlike_views(self):
+        # GH#38148
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
+
+        # get one column as a view of df
+        ser = df["a"]
+
+        # add columns with list-like indexer
+        df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
+
+        # edit in place the first column to check view semantics
+        df.iloc[0, 0] = 100
+
+        expected = Series([100, 2, 3], name="a")
+        tm.assert_series_equal(ser, expected)
+
+
+class TestDataFrameSetItemSlicing:
+    def test_setitem_slice_position(self):
+        # GH#31469
+        df = DataFrame(np.zeros((100, 1)))
+        df[-4:] = 1
+        arr = np.zeros((100, 1))
+        arr[-4:] = 1
+        expected = DataFrame(arr)
+        tm.assert_frame_equal(df, expected)
+
+
+class TestDataFrameSetItemCallable:
+    def test_setitem_callable(self):
+        # GH#12533
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]})
+        df[lambda x: "A"] = [11, 12, 13, 14]
+
+        exp = DataFrame({"A": [11, 12, 13, 14], "B": [5, 6, 7, 8]})
+        tm.assert_frame_equal(df, exp)
+
+
+class TestDataFrameSetItemBooleanMask:
+    @pytest.mark.parametrize(
+        "mask_type",
+        [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
+        ids=["dataframe", "array"],
+    )
+    def test_setitem_boolean_mask(self, mask_type, float_frame):
+
+        # Test for issue #18582
+        df = float_frame.copy()
+        mask = mask_type(df)
+
+        # index with boolean mask
+        result = df.copy()
+        result[mask] = np.nan
+
+        expected = df.copy()
+        expected.values[np.array(mask)] = np.nan
+        tm.assert_frame_equal(result, expected)

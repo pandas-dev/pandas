@@ -21,6 +21,28 @@ from pandas import (
 )
 import pandas._testing as tm
 
+dti4 = date_range("2016-01-01", periods=4)
+dti = dti4[:-1]
+rng = pd.Index(range(3))
+
+
+@pytest.fixture(
+    params=[
+        dti,
+        dti.tz_localize("UTC"),
+        dti.to_period("W"),
+        dti - dti[0],
+        rng,
+        pd.Index([1, 2, 3]),
+        pd.Index([2.0, 3.0, 4.0]),
+        pd.Index([4, 5, 6], dtype="u8"),
+        pd.IntervalIndex.from_breaks(dti4),
+    ]
+)
+def non_comparable_idx(request):
+    # All have length 3
+    return request.param
+
 
 class TestGetItem:
     def test_ellipsis(self):
@@ -362,7 +384,7 @@ class TestGetLoc:
 
     def test_get_loc_invalid_string_raises_keyerror(self):
         # GH#34240
-        pi = pd.period_range("2000", periods=3, name="A")
+        pi = period_range("2000", periods=3, name="A")
         with pytest.raises(KeyError, match="A"):
             pi.get_loc("A")
 
@@ -437,6 +459,37 @@ class TestGetIndexer:
 
         result = pi.get_indexer_non_unique(pi2)[0]
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_mismatched_dtype_different_length(self, non_comparable_idx):
+        # without method we arent checking inequalities, so get all-missing
+        #  but do not raise
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+
+        other = non_comparable_idx
+
+        res = pi[:-1].get_indexer(other)
+        expected = -np.ones(other.shape, dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_mismatched_dtype_with_method(self, non_comparable_idx, method):
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+
+        other = non_comparable_idx
+
+        msg = re.escape(f"Cannot compare dtypes {pi.dtype} and {other.dtype}")
+        with pytest.raises(TypeError, match=msg):
+            pi.get_indexer(other, method=method)
+
+        for dtype in ["object", "category"]:
+            other2 = other.astype(dtype)
+            if dtype == "object" and isinstance(other, PeriodIndex):
+                continue
+            # For object dtype we are liable to get a different exception message
+            with pytest.raises(TypeError):
+                pi.get_indexer(other2, method=method)
 
     def test_get_indexer_non_unique(self):
         # GH 17717
@@ -545,16 +598,17 @@ class TestWhere:
 
         i2 = PeriodIndex([NaT, NaT] + pi[2:].tolist(), freq="D")
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        msg = "value should be a 'Period', 'NaT', or array of those"
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.asi8)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.to_timestamp("S"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             # non-matching scalar
             pi.where(notna(i2), Timedelta(days=4))
 
@@ -562,7 +616,7 @@ class TestWhere:
         pi = period_range("20130101", periods=5, freq="D")
         cond = np.array([True, False, True, True, False])
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Period', 'NaT', or array of those"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             pi.where(cond, np.timedelta64("NaT", "ns"))
@@ -712,7 +766,7 @@ class TestGetValue:
 
     def test_loc_str(self):
         # https://github.com/pandas-dev/pandas/issues/33964
-        index = pd.period_range(start="2000", periods=20, freq="B")
+        index = period_range(start="2000", periods=20, freq="B")
         series = Series(range(20), index=index)
         assert series.loc["2000-01-14"] == 9
 
@@ -820,7 +874,7 @@ class TestContains:
 
 class TestAsOfLocs:
     def test_asof_locs_mismatched_type(self):
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
         pi2 = dti.to_period("H")
 

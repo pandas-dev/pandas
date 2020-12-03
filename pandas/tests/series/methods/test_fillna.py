@@ -19,6 +19,43 @@ import pandas._testing as tm
 
 
 class TestSeriesFillNA:
+    def test_fillna_nat(self):
+        series = Series([0, 1, 2, NaT.value], dtype="M8[ns]")
+
+        filled = series.fillna(method="pad")
+        filled2 = series.fillna(value=series.values[2])
+
+        expected = series.copy()
+        expected.values[3] = expected.values[2]
+
+        tm.assert_series_equal(filled, expected)
+        tm.assert_series_equal(filled2, expected)
+
+        df = DataFrame({"A": series})
+        filled = df.fillna(method="pad")
+        filled2 = df.fillna(value=series.values[2])
+        expected = DataFrame({"A": expected})
+        tm.assert_frame_equal(filled, expected)
+        tm.assert_frame_equal(filled2, expected)
+
+        series = Series([NaT.value, 0, 1, 2], dtype="M8[ns]")
+
+        filled = series.fillna(method="bfill")
+        filled2 = series.fillna(value=series[1])
+
+        expected = series.copy()
+        expected[0] = expected[1]
+
+        tm.assert_series_equal(filled, expected)
+        tm.assert_series_equal(filled2, expected)
+
+        df = DataFrame({"A": series})
+        filled = df.fillna(method="bfill")
+        filled2 = df.fillna(value=series[1])
+        expected = DataFrame({"A": expected})
+        tm.assert_frame_equal(filled, expected)
+        tm.assert_frame_equal(filled2, expected)
+
     def test_fillna(self, datetime_series):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
 
@@ -616,14 +653,14 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
 
-        msg = "'fill_value=d' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna(Series("d"))
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'

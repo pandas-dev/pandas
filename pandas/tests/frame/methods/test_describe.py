@@ -56,7 +56,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data_1": [4, 2, True, 2], "bool_data_2": [4, 2, True, 3]},
+            {"bool_data_1": [4, 2, False, 2], "bool_data_2": [4, 2, True, 3]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
@@ -79,7 +79,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data": [4, 2, True, 2], "str_data": [4, 3, "a", 2]},
+            {"bool_data": [4, 2, False, 2], "str_data": [4, 3, "a", 2]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
@@ -117,7 +117,7 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_categorical_column(self):
         # GH#26397
-        # Ensure the index of an an empty categorical DataFrame column
+        # Ensure the index of an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
         df = DataFrame({"empty_col": Categorical([])})
         result = df.describe()
@@ -277,12 +277,12 @@ class TestDataFrameDescribe:
             {
                 "a": [
                     3,
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-01"),
-                    pd.Timestamp("2012-01-01T12:00:00"),
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-02T12:00:00"),
-                    pd.Timestamp("2012-01-03"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-01"),
+                    Timestamp("2012-01-01T12:00:00"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-02T12:00:00"),
+                    Timestamp("2012-01-03"),
                     np.nan,
                 ],
                 "b": [3, 2, 1, 1.5, 2, 2.5, 3, 1],

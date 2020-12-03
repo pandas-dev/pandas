@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
@@ -158,12 +158,12 @@ def test_aggregate_normal(resample_method):
 @pytest.mark.parametrize(
     "method, method_args, unit",
     [
-        ("sum", dict(), 0),
-        ("sum", dict(min_count=0), 0),
-        ("sum", dict(min_count=1), np.nan),
-        ("prod", dict(), 1),
-        ("prod", dict(min_count=0), 1),
-        ("prod", dict(min_count=1), np.nan),
+        ("sum", {}, 0),
+        ("sum", {"min_count": 0}, 0),
+        ("sum", {"min_count": 1}, np.nan),
+        ("prod", {}, 1),
+        ("prod", {"min_count": 0}, 1),
+        ("prod", {"min_count": 1}, np.nan),
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
@@ -267,14 +267,14 @@ def test_repr():
 @pytest.mark.parametrize(
     "method, method_args, expected_values",
     [
-        ("sum", dict(), [1, 0, 1]),
-        ("sum", dict(min_count=0), [1, 0, 1]),
-        ("sum", dict(min_count=1), [1, np.nan, 1]),
-        ("sum", dict(min_count=2), [np.nan, np.nan, np.nan]),
-        ("prod", dict(), [1, 1, 1]),
-        ("prod", dict(min_count=0), [1, 1, 1]),
-        ("prod", dict(min_count=1), [1, np.nan, 1]),
-        ("prod", dict(min_count=2), [np.nan, np.nan, np.nan]),
+        ("sum", {}, [1, 0, 1]),
+        ("sum", {"min_count": 0}, [1, 0, 1]),
+        ("sum", {"min_count": 1}, [1, np.nan, 1]),
+        ("sum", {"min_count": 2}, [np.nan, np.nan, np.nan]),
+        ("prod", {}, [1, 1, 1]),
+        ("prod", {"min_count": 0}, [1, 1, 1]),
+        ("prod", {"min_count": 1}, [1, np.nan, 1]),
+        ("prod", {"min_count": 2}, [np.nan, np.nan, np.nan]),
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
@@ -306,21 +306,21 @@ def test_groupby_resample_interpolate():
     expected_ind = pd.MultiIndex.from_tuples(
         [
             (50, "2018-01-07"),
-            (50, pd.Timestamp("2018-01-08")),
-            (50, pd.Timestamp("2018-01-09")),
-            (50, pd.Timestamp("2018-01-10")),
-            (50, pd.Timestamp("2018-01-11")),
-            (50, pd.Timestamp("2018-01-12")),
-            (50, pd.Timestamp("2018-01-13")),
-            (50, pd.Timestamp("2018-01-14")),
-            (50, pd.Timestamp("2018-01-15")),
-            (50, pd.Timestamp("2018-01-16")),
-            (50, pd.Timestamp("2018-01-17")),
-            (50, pd.Timestamp("2018-01-18")),
-            (50, pd.Timestamp("2018-01-19")),
-            (50, pd.Timestamp("2018-01-20")),
-            (50, pd.Timestamp("2018-01-21")),
-            (60, pd.Timestamp("2018-01-14")),
+            (50, Timestamp("2018-01-08")),
+            (50, Timestamp("2018-01-09")),
+            (50, Timestamp("2018-01-10")),
+            (50, Timestamp("2018-01-11")),
+            (50, Timestamp("2018-01-12")),
+            (50, Timestamp("2018-01-13")),
+            (50, Timestamp("2018-01-14")),
+            (50, Timestamp("2018-01-15")),
+            (50, Timestamp("2018-01-16")),
+            (50, Timestamp("2018-01-17")),
+            (50, Timestamp("2018-01-18")),
+            (50, Timestamp("2018-01-19")),
+            (50, Timestamp("2018-01-20")),
+            (50, Timestamp("2018-01-21")),
+            (60, Timestamp("2018-01-14")),
         ],
         names=["volume", "week_starting"],
     )

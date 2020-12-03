@@ -18,14 +18,14 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSe
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array
+from pandas.core.construction import array, ensure_wrapped_if_datetimelike
 
 
-def _get_dtype_kinds(l) -> Set[str]:
+def _get_dtype_kinds(arrays) -> Set[str]:
     """
     Parameters
     ----------
-    l : list of arrays
+    arrays : list of arrays
 
     Returns
     -------
@@ -33,7 +33,7 @@ def _get_dtype_kinds(l) -> Set[str]:
         A set of kinds that exist in this list of arrays.
     """
     typs: Set[str] = set()
-    for arr in l:
+    for arr in arrays:
         # Note: we use dtype.kind checks because they are much more performant
         #  than is_foo_dtype
 
@@ -152,7 +152,7 @@ def concat_compat(to_concat, axis: int = 0):
             return np.concatenate(to_concat)
 
     elif _contains_datetime or "timedelta" in typs:
-        return _concat_datetime(to_concat, axis=axis, typs=typs)
+        return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -296,12 +296,12 @@ def union_categoricals(
         raise TypeError("dtype of categories must be the same")
 
     ordered = False
-    if all(first.is_dtype_equal(other) for other in to_union[1:]):
+    if all(first._categories_match_up_to_permutation(other) for other in to_union[1:]):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
 
-        all_codes = [first._validate_listlike(x) for x in to_union]
+        all_codes = [first._encode_with_my_categories(x)._codes for x in to_union]
         new_codes = np.concatenate(all_codes)
 
         if sort_categories and not ignore_order and ordered:
@@ -346,7 +346,7 @@ def _concatenate_2d(to_concat, axis: int):
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis=0, typs=None):
+def _concat_datetime(to_concat, axis=0):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype
@@ -355,21 +355,19 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     ----------
     to_concat : array of arrays
     axis : axis to provide concatenation
-    typs : set of to_concat dtypes
 
     Returns
     -------
     a single array, preserving the combined dtypes
     """
-    if typs is None:
-        typs = _get_dtype_kinds(to_concat)
+    to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
 
-    to_concat = [_wrap_datetimelike(x) for x in to_concat]
     single_dtype = len({x.dtype for x in to_concat}) == 1
 
     # multiple types, need to coerce to object
     if not single_dtype:
-        # wrap_datetimelike ensures that astype(object) wraps in Timestamp/Timedelta
+        # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
+        #  in Timestamp/Timedelta
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
     if axis == 1:
@@ -383,17 +381,3 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         assert result.shape[0] == 1
         result = result[0]
     return result
-
-
-def _wrap_datetimelike(arr):
-    """
-    Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
-
-    DTA/TDA handle .astype(object) correctly.
-    """
-    from pandas.core.construction import array as pd_array, extract_array
-
-    arr = extract_array(arr, extract_numpy=True)
-    if isinstance(arr, np.ndarray) and arr.dtype.kind in ["m", "M"]:
-        arr = pd_array(arr)
-    return arr

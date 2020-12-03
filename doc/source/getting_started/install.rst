@@ -28,20 +28,20 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installing pandas and the rest of the `NumPy <https://www.numpy.org/>`__ and
-`SciPy <https://www.scipy.org/>`__ stack can be a little
+Installing pandas and the rest of the `NumPy <https://numpy.org/>`__ and
+`SciPy <https://scipy.org/>`__ stack can be a little
 difficult for inexperienced users.
 
 The simplest way to install not only pandas, but Python and the most popular
-packages that make up the `SciPy <https://www.scipy.org/>`__ stack
-(`IPython <https://ipython.org/>`__, `NumPy <https://www.numpy.org/>`__,
+packages that make up the `SciPy <https://scipy.org/>`__ stack
+(`IPython <https://ipython.org/>`__, `NumPy <https://numpy.org/>`__,
 `Matplotlib <https://matplotlib.org/>`__, ...) is with
 `Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
-(Linux, Mac OS X, Windows) Python distribution for data analytics and
+(Linux, macOS, Windows) Python distribution for data analytics and
 scientific computing.
 
 After running the installer, the user will have access to pandas and the
-rest of the `SciPy <https://www.scipy.org/>`__ stack without needing to install
+rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
@@ -220,7 +220,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.16.5
+`NumPy <https://numpy.org>`__                                    1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
@@ -284,7 +284,7 @@ pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.12.0             pandas-like API for N-dimensional data
+xarray                    0.12.3             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.2.0              Excel reading
 xlwt                      1.3.0              Excel writing

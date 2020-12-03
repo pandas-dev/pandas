@@ -25,7 +25,7 @@ VERSIONS = {
     "sqlalchemy": "1.2.8",
     "tables": "3.5.1",
     "tabulate": "0.8.7",
-    "xarray": "0.12.0",
+    "xarray": "0.12.3",
     "xlrd": "1.2.0",
     "xlwt": "1.3.0",
     "xlsxwriter": "1.0.2",
