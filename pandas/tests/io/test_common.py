@@ -503,13 +503,36 @@ class GzippedJSONUserAgentResponder(BaseUserAgentResponder):
         self.write_back_bytes(response_bytes)
 
 
-class ParquetUserAgentResponder(BaseUserAgentResponder):
+class ParquetPyArrowUserAgentResponder(BaseUserAgentResponder):
     def do_GET(self):
         response_df = self.start_processing_headers()
         self.send_header("Content-Type", "application/octet-stream")
         self.end_headers()
 
-        response_bytes = response_df.to_parquet(index=False)
+        response_bytes = response_df.to_parquet(index=False, engine="pyarrow")
+
+        self.write_back_bytes(response_bytes)
+
+
+class ParquetFastParquetUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "application/octet-stream")
+        self.end_headers()
+
+        # the fastparquet engine doesn't like to write to a buffer
+        # it can do it via the open_with function being set appropriately
+        # however it automatically calls the close method and wipes the buffer
+        # so just overwrite that attribute on this instance to not do that
+        def dummy_close():
+            pass
+
+        bio = BytesIO()
+        bio.close = dummy_close
+        response_df.to_parquet(
+            "none", index=False, engine="fastparquet", open_with=lambda x, y: bio
+        )
+        response_bytes = bio.getvalue()
 
         self.write_back_bytes(response_bytes)
 
@@ -559,8 +582,8 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
     [
         (CSVUserAgentResponder, pd.read_csv, 34259, None),
         (JSONUserAgentResponder, pd.read_json, 34260, None),
-        (ParquetUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
-        (ParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34268, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34273, "fastparquet"),
         (PickleUserAgentResponder, pd.read_pickle, 34271, None),
         (StataUserAgentResponder, pd.read_stata, 34272, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34261, None),
@@ -592,8 +615,8 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
     [
         (CSVUserAgentResponder, pd.read_csv, 34263, None),
         (JSONUserAgentResponder, pd.read_json, 34264, None),
-        (ParquetUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
-        (ParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
+        (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
         (PickleUserAgentResponder, pd.read_pickle, 34273, None),
         (StataUserAgentResponder, pd.read_stata, 34274, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
