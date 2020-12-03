@@ -4902,13 +4902,13 @@ class TestHDFStore:
         with ensure_clean_path("temp.h5") as path:
             sdf.to_hdf(path, "df")
             result = read_hdf(path, "df").values
-            assert np.array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
         with ensure_clean_path("temp.h5") as path:
             with HDFStore(path) as store:
                 store.put("df", sdf)
             result = read_hdf(path, "df").values
-            assert np.array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_supported_for_subclasses_series(self):
         class SubSeries(Series):
@@ -4922,12 +4922,14 @@ class TestHDFStore:
 
         with ensure_clean_path("temp.h5") as path:
             sser.to_hdf(path, "ser")
+            result = read_hdf(path, "ser").values
+            tm.assert_numpy_array_equal(result, expected)
 
         with ensure_clean_path("temp.h5") as path:
             with HDFStore(path) as store:
                 store.put("ser", sser)
             result = read_hdf(path, "ser").values
-            assert np.array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
