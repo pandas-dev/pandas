@@ -306,7 +306,13 @@ class BaseGetitemTests(BaseExtensionTests):
         result = empty.take([-1], allow_fill=True)
         assert na_cmp(result[0], na_value)
 
-        msg = "cannot do a non-empty take from an empty axes."
+        if empty.dtype.name == 'arrow_string':
+            msg = 'Index -1 out of bounds'
+        elif empty.dtype.name == 'json':
+            msg = 'Index is out of bounds or cannot do a non-empty take from an empty array.'
+        else:
+            msg = "cannot do a non-empty take from an empty axes."
+
         with pytest.raises(IndexError, match=msg):
             empty.take([-1])
 
