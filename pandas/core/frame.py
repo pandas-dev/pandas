@@ -3682,7 +3682,6 @@ class DataFrame(NDFrame, OpsMixin):
         4   True  1.0
         5  False  2.0
         """
-
         if not is_list_like(include):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
