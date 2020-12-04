@@ -555,7 +555,7 @@ class StataUserAgentResponder(BaseUserAgentResponder):
         self.end_headers()
 
         bio = BytesIO()
-        response_df.to_stata(bio)
+        response_df.to_stata(bio, write_index=False)
         response_bytes = bio.getvalue()
 
         self.write_back_bytes(response_bytes)
@@ -614,7 +614,7 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
         (CSVUserAgentResponder, pd.read_csv, 34263, None),
         (JSONUserAgentResponder, pd.read_json, 34264, None),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, 34270, "pyarrow"),
-        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34270, "fastparquet"),
+        (ParquetFastParquetUserAgentResponder, pd.read_parquet, 34275, "fastparquet"),
         (PickleUserAgentResponder, pd.read_pickle, 34273, None),
         (StataUserAgentResponder, pd.read_stata, 34274, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, 34265, None),
@@ -624,6 +624,7 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
 def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
     if read_method is pd.read_parquet:
         pytest.importorskip(parquet_engine)
+
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
     server = http.server.HTTPServer(("localhost", port), responder)
@@ -641,13 +642,13 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
                 storage_options={"User-Agent": custom_user_agent},
                 engine=parquet_engine,
             )
-            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
         server.shutdown()
     except Exception:
         df_http = pd.DataFrame({"header": []})
         server.shutdown()
     server.server_close()
     server_thread.join()
+
     tm.assert_frame_equal(df_true, df_http)
 
 
@@ -682,9 +683,7 @@ def test_server_and_all_custom_headers(responder, read_method, port):
     df_http = df_http.sort_values(["0"]).reset_index()
     df_http = df_http[["0", "1"]]
     keys = list(storage_options.keys())
-    df_true = pd.DataFrame(
-        {"0": keys, "1": [storage_options[k] for k in keys]}
-    )
+    df_true = pd.DataFrame({"0": keys, "1": [storage_options[k] for k in keys]})
     df_true = df_true.sort_values(["0"])
     df_true = df_true.reset_index().drop(["index"], axis=1)
     tm.assert_frame_equal(df_true, df_http)
@@ -707,6 +706,4 @@ def test_to_parquet_to_disk_with_storage_options(engine):
 
     true_df = pd.DataFrame({"column_name": ["column_value"]})
     with pytest.raises(ValueError):
-        true_df.to_parquet(
-            "/tmp/junk.parquet", storage_options=headers, engine=engine
-        )
+        true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=engine)
