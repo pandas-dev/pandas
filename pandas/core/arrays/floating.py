@@ -386,9 +386,9 @@ class FloatingArray(BaseMaskedArray):
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = dict(na_value=np.nan)
+            kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            kwargs = {"na_value": np.datetime64("NaT")}
         else:
             kwargs = {}
 
