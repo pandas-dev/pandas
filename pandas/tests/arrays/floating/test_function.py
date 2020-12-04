@@ -157,8 +157,9 @@ def test_preserve_dtypes(op):
     # groupby
     result = getattr(df.groupby("A"), op)()
 
+    # GH#38254 until _from_sequence is reliably strict, we cannot retain Float64
     expected = pd.DataFrame(
-        {"B": np.array([1.0, 3.0]), "C": pd.array([0.1, 3], dtype="Float64")},
+        {"B": np.array([1.0, 3.0]), "C": pd.array([0.1, 3], dtype="float64")},
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)

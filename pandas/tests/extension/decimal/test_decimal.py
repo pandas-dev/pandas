@@ -445,7 +445,8 @@ def test_groupby_agg():
     )
 
     # single key, selected column
-    expected = pd.Series(to_decimal([data[0], data[3]]))
+    # GH#38254 until _from_sequence is reliably strict, we cant retain dtype
+    expected = pd.Series(to_decimal([data[0], data[3]])).astype(object)
     result = df.groupby("id1")["decimals"].agg(lambda x: x.iloc[0])
     tm.assert_series_equal(result, expected, check_names=False)
     result = df["decimals"].groupby(df["id1"]).agg(lambda x: x.iloc[0])
@@ -455,14 +456,16 @@ def test_groupby_agg():
     expected = pd.Series(
         to_decimal([data[0], data[1], data[3]]),
         index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 1)]),
-    )
+    ).astype(object)
     result = df.groupby(["id1", "id2"])["decimals"].agg(lambda x: x.iloc[0])
     tm.assert_series_equal(result, expected, check_names=False)
     result = df["decimals"].groupby([df["id1"], df["id2"]]).agg(lambda x: x.iloc[0])
     tm.assert_series_equal(result, expected, check_names=False)
 
     # multiple columns
-    expected = pd.DataFrame({"id2": [0, 1], "decimals": to_decimal([data[0], data[3]])})
+    expected = pd.DataFrame(
+        {"id2": [0, 1], "decimals": to_decimal([data[0], data[3]]).astype(object)}
+    )
     result = df.groupby("id1").agg(lambda x: x.iloc[0])
     tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -478,7 +481,11 @@ def test_groupby_agg_ea_method(monkeypatch):
 
     data = make_data()[:5]
     df = pd.DataFrame({"id": [0, 0, 0, 1, 1], "decimals": DecimalArray(data)})
-    expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))
+
+    # GH#38254 until _from_sequence is reliably strict, we cant retain dtype
+    expected = pd.Series(
+        to_decimal([data[0] + data[1] + data[2], data[3] + data[4]])
+    ).astype(object)
 
     result = df.groupby("id")["decimals"].agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)

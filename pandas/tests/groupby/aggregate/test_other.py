@@ -632,7 +632,8 @@ def test_groupby_agg_err_catching(err_cls):
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )
 
-    expected = Series(to_decimal([data[0], data[3]]))
+    # GH#38254 until _from_sequence is strict, we cannot reliably cast agg results
+    expected = Series(to_decimal([data[0], data[3]])).astype(object)
 
     def weird_func(x):
         # weird function that raise something other than TypeError or IndexError

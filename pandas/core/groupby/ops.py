@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
-    is_object_dtype,
     is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
@@ -719,19 +718,7 @@ class BaseGrouper:
             result[label] = res
 
         result = lib.maybe_convert_objects(result, try_float=0)
-
-        if is_numeric_dtype(obj.dtype):
-            # Needed to cast float64 back to Float64
-            result = maybe_cast_result(result, obj, numeric_only=True)
-
-        elif is_object_dtype(result.dtype) and is_extension_array_dtype(obj.dtype):
-            # FIXME: kludge; we have tests for DecimalArray that get here
-            #  but they only work because DecimalArray._from_sequence is
-            #  strict in what inputs it accepts, which we cannot rely on.
-            inferred = lib.infer_dtype(result, skipna=False)
-            if inferred == obj.dtype.name == "decimal":
-                cls = obj.dtype.construct_array_type()
-                result = cls._from_sequence(result)
+        # TODO: cast to EA once _from_sequence is reliably strict GH#38254
 
         return result, counts
 
