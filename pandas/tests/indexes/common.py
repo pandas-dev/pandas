@@ -73,7 +73,10 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = f"Not supported for type {type(idx).__name__}"
+        msg = (
+            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+            f"TimedeltaIndex; Got type {type(idx).__name__}"
+        )
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
