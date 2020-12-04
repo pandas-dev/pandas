@@ -1583,6 +1583,7 @@ value will be an iterable object of type ``TextFileReader``:
            print(chunk)
 
 .. versionchanged:: 1.2
+
   ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:

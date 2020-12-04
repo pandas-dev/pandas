@@ -278,7 +278,8 @@ iterator : bool, default False
     ``get_chunk()``.
 
     .. versionchanged:: 1.2
-        ``TextFileReader`` is a context manager.
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
@@ -286,7 +287,8 @@ chunksize : int, optional
     for more information on ``iterator`` and ``chunksize``.
 
     .. versionchanged:: 1.2
-        ``TextFileReader`` is a context manager.
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the

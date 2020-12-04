@@ -438,7 +438,8 @@ def read_json(
         If this is None, the file will be read into memory all at once.
 
         .. versionchanged:: 1.2
-            ``JsonReader`` is a context manager.
+
+           ``JsonReader`` is a context manager.
 
     compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
