@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, Label
+from pandas._typing import Dtype, DtypeObj, Label
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -147,6 +147,10 @@ class NumericIndex(Index):
                     f"if it is a scalar: {repr(tolerance)}"
                 )
         return tolerance
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
+        return is_numeric_dtype(dtype)
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
