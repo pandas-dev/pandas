@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 
 from pandas._libs import Timedelta, missing as libmissing
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -19,6 +20,9 @@ class NumericArray(BaseMaskedArray):
     """
     Base class for IntegerArray and FloatingArray.
     """
+
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
+        raise AbstractMethodError(self)
 
     def _arith_method(self, other, op):
         op_name = op.__name__
