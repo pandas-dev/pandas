@@ -662,8 +662,8 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
                 engine=parquet_engine,
             )
         server.shutdown()
-    except Exception:
-        df_http = pd.DataFrame({"header": []})
+    except Exception as e:
+        df_http = pd.DataFrame({"header": [str(e)]})
         server.shutdown()
     server.server_close()
     server_thread.join()
