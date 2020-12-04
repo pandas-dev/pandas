@@ -2694,7 +2694,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not self._can_union_without_object_cast(other):
             return self._union_incompatible_dtypes(other, sort=sort)
