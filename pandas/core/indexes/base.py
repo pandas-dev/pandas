@@ -70,7 +70,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
-    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -2914,12 +2913,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            # pass an empty np.ndarray with the appropriate dtype
-            return self._shallow_copy(self._data[:0])
+            return self[:0].rename(result_name)
 
-        other, result_name = self._convert_can_do_setop(other)
+        result = self._difference(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _difference(self, other, sort):
 
         this = self._get_unique_index()
 
@@ -2934,7 +2936,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return this._shallow_copy(the_diff, name=result_name)
+        return the_diff
 
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
@@ -3494,12 +3496,7 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
-            values: Union[range, ExtensionArray, np.ndarray]
-            if isinstance(self, ABCRangeIndex):
-                values = range(0)
-            else:
-                values = self._data[:0]  # appropriately-dtyped empty array
-            target = self._simple_new(values, name=self.name)
+            target = self[:0]
         else:
             target = ensure_index(target)
 
@@ -3829,6 +3826,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_level(
         self, other, level, how="left", return_indexers=False, keep_order=True
     ):
@@ -3972,6 +3970,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_monotonic(self, other, how="left", return_indexers=False):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
@@ -4739,7 +4738,10 @@ class Index(IndexOpsMixin, PandasObject):
                        '2012-03-01'],
                       dtype='datetime64[ns]', freq='MS')
         """
-        raise NotImplementedError(f"Not supported for type {type(self).__name__}")
+        raise NotImplementedError(
+            f"This method is only implemented for DatetimeIndex, PeriodIndex and "
+            f"TimedeltaIndex; Got type {type(self).__name__}"
+        )
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
         """
