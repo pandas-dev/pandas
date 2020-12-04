@@ -419,7 +419,9 @@ def test_is_fsspec_url():
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
     """
     Base class for setting up a server that can be set up to respond
-    with a particular file format with accompanying content-type headers
+    with a particular file format with accompanying content-type headers.
+    The interfaces on the different io methods are different enough
+    that this seemed logical to do.
     """
 
     def start_processing_headers(self):
@@ -609,15 +611,11 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
-    try:
-        if parquet_engine is None:
-            df_http = read_method(f"http://localhost:{port}")
-        else:
-            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-        server.shutdown()
-    except Exception:
-        df_http = pd.DataFrame({"header": []})
-        server.shutdown()
+    if parquet_engine is None:
+        df_http = read_method(f"http://localhost:{port}")
+    else:
+        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
+    server.shutdown()
     server.server_close()
     server_thread.join()
     assert not df_http.empty
@@ -654,22 +652,6 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
-    # try:
-    #    if parquet_engine is None:
-    #        df_http = read_method(
-    #            f"http://localhost:{port}",
-    #            storage_options={"User-Agent": custom_user_agent},
-    #        )
-    #    else:
-    #        df_http = read_method(
-    #            f"http://localhost:{port}",
-    #            storage_options={"User-Agent": custom_user_agent},
-    #            engine=parquet_engine,
-    #        )
-    #    server.shutdown()
-    # except Exception as e:
-    #    df_http = pd.DataFrame({"header": [str(e)]})
-    #    server.shutdown()
 
     if parquet_engine is None:
         df_http = read_method(
@@ -706,24 +688,24 @@ def test_server_and_all_custom_headers(responder, read_method, port):
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
-    try:
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options=storage_options,
-        )
-        server.shutdown()
-    except Exception:
-        df_http = pd.DataFrame({"0": [], "1": []})
-        server.shutdown()
+
+    df_http = read_method(
+        f"http://localhost:{port}",
+        storage_options=storage_options,
+    )
+    server.shutdown()
     server.server_close()
     server_thread.join()
+
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
     df_http = df_http[["0", "1"]]
+
     keys = list(storage_options.keys())
     df_true = pd.DataFrame({"0": keys, "1": [storage_options[k] for k in keys]})
     df_true = df_true.sort_values(["0"])
     df_true = df_true.reset_index().drop(["index"], axis=1)
+
     tm.assert_frame_equal(df_true, df_http)
 
 
