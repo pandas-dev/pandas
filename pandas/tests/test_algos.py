@@ -1044,7 +1044,6 @@ class TestIsin:
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_int_df_string_search(self):
         """Comparing df with int`s (1,2) with a string at isin() ("1")
         -> should not match values because int 1 is not equal str 1"""
@@ -1053,7 +1052,6 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_nan_df_string_search(self):
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
         -> should not match values because np.nan is not equal str NaN"""
@@ -1062,7 +1060,6 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_float_df_string_search(self):
         """Comparing df with floats (1.4245,2.32441) with a string at isin() ("1.4245")
         -> should not match values because float 1.4245 is not equal str 1.4245"""
