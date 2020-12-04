@@ -536,7 +536,8 @@ class TestNestedToRecord:
 
     def test_nested_flattens(self):
         data = {
-            "flat1": 1, "dict1": {"c": 1, "d": 2},
+            "flat1": 1,
+            "dict1": {"c": 1, "d": 2},
             "nested": {"e": {"c": 1, "d": 2}, "d": 2}
         }
 
