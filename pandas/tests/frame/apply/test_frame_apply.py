@@ -60,6 +60,12 @@ class TestDataFrameApply:
         assert isinstance(df["c0"].dtype, CategoricalDtype)
         assert isinstance(df["c1"].dtype, CategoricalDtype)
 
+    def test_apply_axis1_with_ea(self):
+        # GH#36785
+        df = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
+        result = df.apply(lambda x: x, axis=1)
+        tm.assert_frame_equal(result, df)
+
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
         # GH 7778

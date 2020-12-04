@@ -9,7 +9,12 @@ from pandas._config import option_context
 from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_extension_array_dtype,
+    is_list_like,
+    is_sequence,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -407,12 +412,20 @@ class FrameColumnApply(FrameApply):
         mgr = ser._mgr
         blk = mgr.blocks[0]
 
-        for (arr, name) in zip(values, self.index):
-            # GH#35462 re-pin mgr in case setitem changed it
-            ser._mgr = mgr
-            blk.values = arr
-            ser.name = name
-            yield ser
+        if is_extension_array_dtype(blk.dtype):
+            # values will be incorrect for this block
+            # TODO(EA2D): special case would be unnecessary with 2D EAs
+            obj = self.obj
+            for i in range(len(obj)):
+                yield obj._ixs(i, axis=0)
+
+        else:
+            for (arr, name) in zip(values, self.index):
+                # GH#35462 re-pin mgr in case setitem changed it
+                ser._mgr = mgr
+                blk.values = arr
+                ser.name = name
+                yield ser
 
     @property
     def result_index(self) -> "Index":
