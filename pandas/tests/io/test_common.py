@@ -597,16 +597,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
 )
 def test_server_and_default_headers(responder, read_method, port, parquet_engine):
     if parquet_engine is not None:
-        if parquet_engine == "pyarrow":
-            try:
-                import pyarrow  # noqa:F401
-            except ImportError:
-                pytest.skip("pyarrow is not installed")
-        if parquet_engine == "fastparquet":
-            try:
-                import fastparquet  # noqa:F401
-            except ImportError:
-                pytest.skip("fastparquet is not installed")
+        pytest.importorskip(parquet_engine)
 
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
@@ -636,16 +627,7 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
 )
 def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
     if parquet_engine is not None:
-        if parquet_engine == "pyarrow":
-            try:
-                import pyarrow  # noqa:F401
-            except ImportError:
-                pytest.skip("pyarrow is not installed")
-        if parquet_engine == "fastparquet":
-            try:
-                import fastparquet  # noqa:F401
-            except ImportError:
-                pytest.skip("fastparquet is not installed")
+        pytest.importorskip(parquet_engine)
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
