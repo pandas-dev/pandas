@@ -109,13 +109,15 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
     if not isinstance(by, (list, tuple)):
         by = [by]
 
-    lby = left.groupby(by, sort=False)
+    # see pr-35967 for discussion about observed=False
+    # this is the previous default behavior if the group is a categorical
+    lby = left.groupby(by, sort=False, observed=False)
     rby: Optional[groupby.DataFrameGroupBy] = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
     if all(item in right.columns for item in by):
-        rby = right.groupby(by, sort=False)
+        rby = right.groupby(by, sort=False, observed=False)
 
     for key, lhs in lby:
 
