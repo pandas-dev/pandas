@@ -4897,18 +4897,18 @@ class TestHDFStore:
         data = {"a": [1, 2], "b": [3, 4]}
         sdf = SubDataFrame(data, dtype=np.intp)
 
-        expected = np.array([[1, 3], [2, 4]], dtype=np.intp)
+        expected = DataFrame(data, dtype=np.intp)
 
         with ensure_clean_path("temp.h5") as path:
             sdf.to_hdf(path, "df")
-            result = read_hdf(path, "df").values
-            tm.assert_numpy_array_equal(result, expected)
+            result = read_hdf(path, "df")
+            tm.assert_frame_equal(result, expected)
 
         with ensure_clean_path("temp.h5") as path:
             with HDFStore(path) as store:
                 store.put("df", sdf)
-            result = read_hdf(path, "df").values
-            tm.assert_numpy_array_equal(result, expected)
+            result = read_hdf(path, "df")
+            tm.assert_frame_equal(result, expected)
 
     def test_supported_for_subclasses_series(self):
         class SubSeries(Series):
@@ -4916,20 +4916,21 @@ class TestHDFStore:
             def _constructor(self):
                 return SubSeries
 
-        sser = SubSeries([1, 2, 3], dtype=np.intp)
+        data = [1, 2, 3]
+        sser = SubSeries(data, dtype=np.intp)
 
-        expected = np.array([1, 2, 3], dtype=np.intp)
+        expected = Series(data, dtype=np.intp)
 
         with ensure_clean_path("temp.h5") as path:
             sser.to_hdf(path, "ser")
-            result = read_hdf(path, "ser").values
-            tm.assert_numpy_array_equal(result, expected)
+            result = read_hdf(path, "ser")
+            tm.assert_series_equal(result, expected)
 
         with ensure_clean_path("temp.h5") as path:
             with HDFStore(path) as store:
                 store.put("ser", sser)
-            result = read_hdf(path, "ser").values
-            tm.assert_numpy_array_equal(result, expected)
+            result = read_hdf(path, "ser")
+            tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
