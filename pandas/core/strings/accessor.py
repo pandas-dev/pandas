@@ -3023,7 +3023,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         if isinstance(arr, ABCIndexClass):
             raise ValueError("only one regex group is supported with Index")
         name = None
-        names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+        names = {zip(regex.groupindex.values(), regex.groupindex.keys())}
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.size == 0:
             result = DataFrame(columns=columns, dtype=object)
@@ -3049,7 +3049,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
     regex = re.compile(pat, flags=flags)
     groups_or_na = _groups_or_na_fun(regex)
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+    names = {zip(regex.groupindex.values(), regex.groupindex.keys())}
     columns = [names.get(1 + i, i) for i in range(regex.groups)]
 
     if len(arr) == 0:
@@ -3087,7 +3087,7 @@ def str_extractall(arr, pat, flags=0):
     if isinstance(arr, ABCIndexClass):
         arr = arr.to_series().reset_index(drop=True)
 
-    names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
+    names = {zip(regex.groupindex.values(), regex.groupindex.keys())}
     columns = [names.get(1 + i, i) for i in range(regex.groups)]
     match_list = []
     index_list = []
