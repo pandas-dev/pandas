@@ -370,8 +370,6 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
-
     def _is_builtin_func(self, arg):
         """
         if we define a builtin function for this argument, return it,
@@ -492,36 +490,33 @@ class BaseGrouper:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             values = values.view("M8[ns]")
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
             if how in ["rank"]:
                 # preserve float64 dtype
-                return res_values, names
+                return res_values
 
             res_values = res_values.astype("i8", copy=False)
             result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
-            return result, names
+            return result
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
             values = ensure_int_or_float(values)
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
             result = maybe_cast_result(result=res_values, obj=orig_values, how=how)
-            return result, names
+            return result
 
         raise NotImplementedError(values.dtype)
 
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
-        Returns the values of a cython operation as a Tuple of [data, names].
-
-        Names is only useful when dealing with 2D results, like ohlc
-        (see self._name_functions).
+        Returns the values of a cython operation.
         """
         orig_values = values
         assert kind in ["transform", "aggregate"]
@@ -619,8 +614,6 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names: Optional[List[str]] = self._name_functions.get(how, None)
-
         if swapped:
             result = result.swapaxes(0, axis)
 
@@ -630,7 +623,7 @@ class BaseGrouper:
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             result = maybe_downcast_to_dtype(result, dtype)
 
-        return result, names
+        return result
 
     def _aggregate(
         self, result, counts, values, comp_ids, agg_func, min_count: int = -1

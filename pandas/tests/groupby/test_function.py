@@ -281,67 +281,93 @@ def test_arg_passthru():
     tm.assert_index_equal(result.columns, expected_columns)
 
 
-def test_non_cython_api():
+class TestGroupByNonCythonPaths:
+    # GH#5610 non-cython calls should not include the grouper
+    # Tests for code not expected to go through cython paths.
 
-    # GH5610
-    # non-cython calls should not include the grouper
+    @pytest.fixture
+    def df(self):
+        df = DataFrame(
+            [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
+            columns=["A", "B", "C"],
+        )
+        return df
 
-    df = DataFrame(
-        [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]], columns=["A", "B", "C"]
-    )
-    g = df.groupby("A")
-    gni = df.groupby("A", as_index=False)
+    @pytest.fixture
+    def gb(self, df):
+        gb = df.groupby("A")
+        return gb
 
-    # mad
-    expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
-    expected.index.name = "A"
-    result = g.mad()
-    tm.assert_frame_equal(result, expected)
+    @pytest.fixture
+    def gni(self, df):
+        gni = df.groupby("A", as_index=False)
+        return gni
 
-    expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
-    result = gni.mad()
-    tm.assert_frame_equal(result, expected)
+    # TODO: non-unique columns, as_index=False
+    def test_idxmax(self, gb):
+        # object dtype so idxmax goes through _aggregate_item_by_item
+        # GH#5610
+        # non-cython calls should not include the grouper
+        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
+        expected.index.name = "A"
+        result = gb.idxmax()
+        tm.assert_frame_equal(result, expected)
 
-    # describe
-    expected_index = Index([1, 3], name="A")
-    expected_col = pd.MultiIndex(
-        levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
-        codes=[[0] * 8, list(range(8))],
-    )
-    expected = DataFrame(
-        [
-            [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-            [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-        ],
-        index=expected_index,
-        columns=expected_col,
-    )
-    result = g.describe()
-    tm.assert_frame_equal(result, expected)
+    def test_idxmin(self, gb):
+        # object dtype so idxmax goes through _aggregate_item_by_item
+        # GH#5610
+        # non-cython calls should not include the grouper
+        expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
+        expected.index.name = "A"
+        result = gb.idxmin()
+        tm.assert_frame_equal(result, expected)
 
-    expected = pd.concat(
-        [
-            df[df.A == 1].describe().unstack().to_frame().T,
-            df[df.A == 3].describe().unstack().to_frame().T,
-        ]
-    )
-    expected.index = Index([0, 1])
-    result = gni.describe()
-    tm.assert_frame_equal(result, expected)
+    def test_any(self, gb):
+        expected = DataFrame(
+            [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
+        )
+        expected.index.name = "A"
+        result = gb.any()
+        tm.assert_frame_equal(result, expected)
 
-    # any
-    expected = DataFrame(
-        [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
-    )
-    expected.index.name = "A"
-    result = g.any()
-    tm.assert_frame_equal(result, expected)
+    def test_mad(self, gb, gni):
+        # mad
+        expected = DataFrame([[0], [np.nan]], columns=["B"], index=[1, 3])
+        expected.index.name = "A"
+        result = gb.mad()
+        tm.assert_frame_equal(result, expected)
 
-    # idxmax
-    expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
-    expected.index.name = "A"
-    result = g.idxmax()
-    tm.assert_frame_equal(result, expected)
+        expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
+        result = gni.mad()
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe(self, df, gb, gni):
+        # describe
+        expected_index = Index([1, 3], name="A")
+        expected_col = pd.MultiIndex(
+            levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
+            codes=[[0] * 8, list(range(8))],
+        )
+        expected = DataFrame(
+            [
+                [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+                [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            ],
+            index=expected_index,
+            columns=expected_col,
+        )
+        result = gb.describe()
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.concat(
+            [
+                df[df.A == 1].describe().unstack().to_frame().T,
+                df[df.A == 3].describe().unstack().to_frame().T,
+            ]
+        )
+        expected.index = Index([0, 1])
+        result = gni.describe()
+        tm.assert_frame_equal(result, expected)
 
 
 def test_cython_api2():
