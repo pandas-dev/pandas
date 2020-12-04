@@ -399,16 +399,18 @@ class FrameColumnApply(FrameApply):
 
         if is_extension_array_dtype(blk.dtype):
             # values will be incorrect for this block
-            vals = blk.values
-            # TODO(EA2D): iterator would be unnecessary with 2D EAs
-            values = (vals[slice(i, i + 1)] for i in range(len(vals)))
+            # TODO(EA2D): special case would be unnecessary with 2D EAs
+            obj = self.obj
+            for i in range(len(obj)):
+                yield obj._ixs(i, axis=0)
 
-        for (arr, name) in zip(values, self.index):
-            # GH#35462 re-pin mgr in case setitem changed it
-            ser._mgr = mgr
-            blk.values = arr
-            ser.name = name
-            yield ser
+        else:
+            for (arr, name) in zip(values, self.index):
+                # GH#35462 re-pin mgr in case setitem changed it
+                ser._mgr = mgr
+                blk.values = arr
+                ser.name = name
+                yield ser
 
     @property
     def result_index(self) -> "Index":
