@@ -15,7 +15,6 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_dtype_equal,
     is_float,
     is_integer,
     is_list_like,
@@ -482,42 +481,6 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
     # Set Operations
-
-    def intersection(self, other, sort=False):
-        """
-        Form the intersection of two Index objects.
-
-        Parameters
-        ----------
-        other : Index or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        intersection : Index
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other) and not self.has_duplicates:
-            # has_duplicates check is unnecessary for RangeIndex, but
-            #  used to match other subclasses.
-            return self._get_reconciled_name_object(other)
-
-        if not is_dtype_equal(self.dtype, other.dtype):
-            return super().intersection(other, sort=sort)
-
-        result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
 
     def _intersection(self, other, sort=False):
 

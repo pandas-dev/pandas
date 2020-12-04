@@ -706,10 +706,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, type(self)):
-                if result.freq is None:
-                    # TODO: no tests rely on this; needed?
-                    result = result._with_freq("infer")
             return result
 
         elif not self._can_fast_intersect(other):
