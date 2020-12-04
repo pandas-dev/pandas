@@ -1782,21 +1782,23 @@ def test_series_getitem_label_list_missing_integer_values():
 
 
 @pytest.mark.parametrize(
-    "columns, column_key, expected_columns, check_column_type",
+    "columns, column_key, expected_columns",
     [
-        ([2011, 2012, 2013], [2011, 2012], [0, 1], True),
-        ([2011, 2012, "All"], [2011, 2012], [0, 1], False),
-        ([2011, 2012, "All"], [2011, "All"], [0, 2], True),
+        ([2011, 2012, 2013], [2011, 2012], [0, 1]),
+        ([2011, 2012, "All"], [2011, 2012], [0, 1]),
+        ([2011, 2012, "All"], [2011, "All"], [0, 2]),
     ],
 )
-def test_loc_getitem_label_list_integer_labels(
-    columns, column_key, expected_columns, check_column_type
-):
+def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_columns):
     # gh-14836
     df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
-    tm.assert_frame_equal(result, expected, check_column_type=check_column_type)
+
+    if df.columns.is_object() and all(isinstance(x, int) for x in column_key):
+        expected.columns = expected.columns.astype(int)
+
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
 
 def test_loc_setitem_float_intindex():

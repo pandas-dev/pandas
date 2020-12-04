@@ -28,7 +28,11 @@ from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import maybe_cast_result
+from pandas.core.dtypes.cast import (
+    maybe_cast_result,
+    maybe_cast_result_dtype,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_float,
     ensure_float64,
@@ -375,8 +379,6 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
-    _name_functions = {"ohlc": ["open", "high", "low", "close"]}
-
     @final
     def _is_builtin_func(self, arg):
         """
@@ -502,34 +504,34 @@ class BaseGrouper:
             # All of the functions implemented here are ordinal, so we can
             #  operate on the tz-naive equivalents
             values = values.view("M8[ns]")
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
+            if how in ["rank"]:
+                # preserve float64 dtype
+                return res_values
+
             res_values = res_values.astype("i8", copy=False)
-            # FIXME: this is wrong for rank, but not tested.
             result = type(orig_values)._simple_new(res_values, dtype=orig_values.dtype)
-            return result, names
+            return result
 
         elif is_integer_dtype(values.dtype) or is_bool_dtype(values.dtype):
             # IntegerArray or BooleanArray
             values = ensure_int_or_float(values)
-            res_values, names = self._cython_operation(
+            res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
             result = maybe_cast_result(result=res_values, obj=orig_values, how=how)
-            return result, names
+            return result
 
         raise NotImplementedError(values.dtype)
 
     @final
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+    ) -> np.ndarray:
         """
-        Returns the values of a cython operation as a Tuple of [data, names].
-
-        Names is only useful when dealing with 2D results, like ohlc
-        (see self._name_functions).
+        Returns the values of a cython operation.
         """
         orig_values = values
         assert kind in ["transform", "aggregate"]
@@ -627,15 +629,16 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names: Optional[List[str]] = self._name_functions.get(how, None)
-
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetimelike and kind == "aggregate":
-            result = result.astype(orig_values.dtype)
+        if how not in base.cython_cast_blocklist:
+            # e.g. if we are int64 and need to restore to datetime64/timedelta64
+            # "rank" is the only member of cython_cast_blocklist we get here
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            result = maybe_downcast_to_dtype(result, dtype)
 
-        return result, names
+        return result
 
     @final
     def _aggregate(
@@ -734,7 +737,7 @@ class BaseGrouper:
             result[label] = res
 
         result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: maybe_cast_to_extension_array?
+        result = maybe_cast_result(result, obj, numeric_only=True)
 
         return result, counts
 
