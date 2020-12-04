@@ -508,10 +508,6 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            if how in ["mean", "median", "var"]:
-                # preserve float64 dtype
-                return res_values
-
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             if is_extension_array_dtype(dtype):
                 cls = dtype.construct_array_type()
