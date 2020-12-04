@@ -126,10 +126,6 @@ def setop_check(method):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if op_name == "intersection":
-            if self.equals(other):
-                return self._get_reconciled_name_object(other)
-
         if not isinstance(other, IntervalIndex):
             result = getattr(self.astype(object), op_name)(other)
             if op_name in ("difference",):
@@ -965,7 +961,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             )
 
     @Appender(Index.intersection.__doc__)
-    @setop_check
     def intersection(self, other, sort=False) -> Index:
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
