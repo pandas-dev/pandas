@@ -772,6 +772,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 - Bug in :meth:`.DataFrameGroupBy.head`, :meth:`.DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
 - Bug in :meth:`.DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
+- Bug in :meth:`.DataFrameGroupBy.apply` dropped values on ``nan`` group when returning the same axes with the original frame (:issue:`38227`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` couldn't handle with arraylike ``q`` when grouping by columns (:issue:`33795`)
 - Bug in :meth:`DataFrameGroupBy.rank` with ``datetime64tz`` or period dtype incorrectly casting results to those dtypes instead of returning ``float64`` dtype (:issue:`38187`)
 
