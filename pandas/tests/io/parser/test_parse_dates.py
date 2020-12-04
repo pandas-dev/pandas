@@ -1020,13 +1020,13 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     )
     expected = expected.set_index("nominal")
 
-    reader = parser.read_csv(
+    with parser.read_csv(
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
         index_col="nominal",
         chunksize=2,
-    )
-    chunks = list(reader)
+    ) as reader:
+        chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])

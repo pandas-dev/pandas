@@ -213,10 +213,11 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
         DataFrame({"a": [1, 1], "b": Categorical(["a", "b"])}),
         DataFrame({"a": [1, 2], "b": Categorical(["b", "c"])}, index=[2, 3]),
     ]
-    actuals = parser.read_csv(StringIO(data), dtype={"b": "category"}, chunksize=2)
-
-    for actual, expected in zip(actuals, expecteds):
-        tm.assert_frame_equal(actual, expected)
+    with parser.read_csv(
+        StringIO(data), dtype={"b": "category"}, chunksize=2
+    ) as actuals:
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
 
 
 def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
@@ -235,10 +236,9 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
         ),
     ]
     dtype = CategoricalDtype(cats)
-    actuals = parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2)
-
-    for actual, expected in zip(actuals, expecteds):
-        tm.assert_frame_equal(actual, expected)
+    with parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2) as actuals:
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
 
 
 @pytest.mark.parametrize("ordered", [False, True])
