@@ -649,22 +649,36 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.start()
-    try:
-        if parquet_engine is None:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-            )
-        else:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-                engine=parquet_engine,
-            )
-        server.shutdown()
-    except Exception as e:
-        df_http = pd.DataFrame({"header": [str(e)]})
-        server.shutdown()
+    # try:
+    #    if parquet_engine is None:
+    #        df_http = read_method(
+    #            f"http://localhost:{port}",
+    #            storage_options={"User-Agent": custom_user_agent},
+    #        )
+    #    else:
+    #        df_http = read_method(
+    #            f"http://localhost:{port}",
+    #            storage_options={"User-Agent": custom_user_agent},
+    #            engine=parquet_engine,
+    #        )
+    #    server.shutdown()
+    # except Exception as e:
+    #    df_http = pd.DataFrame({"header": [str(e)]})
+    #    server.shutdown()
+
+    if parquet_engine is None:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+        )
+    else:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+            engine=parquet_engine,
+        )
+    server.shutdown()
+
     server.server_close()
     server_thread.join()
 
