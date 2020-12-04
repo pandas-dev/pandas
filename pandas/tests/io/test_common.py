@@ -657,7 +657,7 @@ def test_server_and_custom_headers(responder, read_method, port, parquet_engine)
         (AllHeaderCSVResponder, pd.read_csv, 34267),
     ],
 )
-def test_server_and_custom_headers(responder, read_method, port):
+def test_server_and_all_custom_headers(responder, read_method, port):
     custom_user_agent = "Super Cool One"
     custom_auth_token = "Super Secret One"
     storage_options = {
@@ -683,7 +683,7 @@ def test_server_and_custom_headers(responder, read_method, port):
     df_http = df_http[["0", "1"]]
     keys = list(storage_options.keys())
     df_true = pd.DataFrame(
-        {"0": [k for k in keys], "1": [storage_options[k] for k in keys]}
+        {"0": keys, "1": [storage_options[k] for k in keys]}
     )
     df_true = df_true.sort_values(["0"])
     df_true = df_true.reset_index().drop(["index"], axis=1)
@@ -707,6 +707,6 @@ def test_to_parquet_to_disk_with_storage_options(engine):
 
     true_df = pd.DataFrame({"column_name": ["column_value"]})
     with pytest.raises(ValueError):
-        df_parquet_bytes = true_df.to_parquet(
+        true_df.to_parquet(
             "/tmp/junk.parquet", storage_options=headers, engine=engine
         )
