@@ -1446,7 +1446,8 @@ def test_series_groupby_categorical_aggregation_getitem():
 
 
 @pytest.mark.parametrize(
-    "func, expected_values", [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
+    "func, expected_values",
+    [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
 )
 def test_groupby_agg_categorical_columns(func, expected_values):
     # 31256

@@ -472,7 +472,12 @@ def test_groupby_transform_with_int():
 
     # int case
     df = DataFrame(
-        {"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": [1, 2, 3, 1, 2, 3], "D": "foo",}
+        {
+            "A": [1, 1, 1, 2, 2, 2],
+            "B": 1,
+            "C": [1, 2, 3, 1, 2, 3],
+            "D": "foo",
+        }
     )
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())

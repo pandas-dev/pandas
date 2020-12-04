@@ -6032,7 +6032,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(timedelta, "timedelta")
         return self._constructor(
             self._mgr.convert(
-                datetime=datetime, numeric=numeric, timedelta=timedelta, copy=True,
+                datetime=datetime,
+                numeric=numeric,
+                timedelta=timedelta,
+                copy=True,
             )
         ).__finalize__(self)
 
@@ -6882,7 +6885,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         f"Expecting {len(to_replace)} got {len(value)} "
                     )
                 new_data = self._mgr.replace_list(
-                    src_list=to_replace, dest_list=value, inplace=inplace, regex=regex,
+                    src_list=to_replace,
+                    dest_list=value,
+                    inplace=inplace,
+                    regex=regex,
                 )
 
             elif to_replace is None:
