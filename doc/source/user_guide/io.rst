@@ -1634,10 +1634,10 @@ of header key value mappings to the ``storage_options`` keyword argument as show
 
    headers = {"User-Agent": "pandas"}
    df = pd.read_csv(
-            "https://download.bls.gov/pub/time.series/cu/cu.item",
-            sep="\t",
-            storage_options=headers
-        )
+       "https://download.bls.gov/pub/time.series/cu/cu.item",
+       sep="\t",
+       storage_options=headers
+   )
 
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
