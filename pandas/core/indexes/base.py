@@ -2913,12 +2913,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            # pass an empty np.ndarray with the appropriate dtype
-            return self._shallow_copy(self._data[:0])
+            return self[:0].rename(result_name)
 
-        other, result_name = self._convert_can_do_setop(other)
+        result = self._difference(other, sort=sort)
+        return self._wrap_setop_result(other, result)
+
+    def _difference(self, other, sort):
 
         this = self._get_unique_index()
 
@@ -2933,7 +2936,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return this._shallow_copy(the_diff, name=result_name)
+        return the_diff
 
     def symmetric_difference(self, other, result_name=None, sort=None):
         """

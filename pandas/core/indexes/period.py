@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 import warnings
 
 import numpy as np
@@ -660,14 +660,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def difference(self, other, sort=None):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            # pass an empty PeriodArray with the appropriate dtype
+            return self[:0].rename(result_name)
 
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            values = cast(PeriodArray, self._data[:0])
-            return type(self)._simple_new(values, name=self.name)
+        return self._difference(other, sort=sort)
+
+    def _difference(self, other, sort):
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)

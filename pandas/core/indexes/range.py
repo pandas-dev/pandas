@@ -666,6 +666,8 @@ class RangeIndex(Int64Index):
     def difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
             return super().difference(other, sort=sort)
