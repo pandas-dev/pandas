@@ -112,7 +112,7 @@ class TestHDFStore:
             tm.assert_frame_equal(o, roundtrip("frame", o))
 
             # table
-            df = DataFrame(dict(A=range(5), B=range(5)))
+            df = DataFrame({"A": range(5), "B": range(5)})
             df.to_hdf(path, "table", append=True)
             result = read_hdf(path, "table", where=["index>2"])
             tm.assert_frame_equal(df[df.index > 2], result)
@@ -370,7 +370,7 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
 
-            df = DataFrame(dict(A=range(5), B=range(5)))
+            df = DataFrame({"A": range(5), "B": range(5)})
             store.put("df", df)
 
             assert store.keys() == ["/df"]
@@ -1081,7 +1081,7 @@ class TestHDFStore:
     def test_encoding(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
-            df = DataFrame(dict(A="foo", B="bar"), index=range(5))
+            df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
             df.loc[2, "A"] = np.nan
             df.loc[3, "B"] = np.nan
             _maybe_remove(store, "df")
@@ -1458,7 +1458,7 @@ class TestHDFStore:
                     store.get_storer(key).table.description, name
                 ).itemsize, size
 
-            df = DataFrame(dict(A="foo", B="bar"), index=range(10))
+            df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
             # a min_itemsize that creates a data_column
             _maybe_remove(store, "df")
@@ -2188,13 +2188,13 @@ class TestHDFStore:
         # append timedelta
 
         df = DataFrame(
-            dict(
-                A=Timestamp("20130101"),
-                B=[
+            {
+                "A": Timestamp("20130101"),
+                "B": [
                     Timestamp("20130101") + timedelta(days=i, seconds=10)
                     for i in range(10)
                 ],
-            )
+            }
         )
         df["C"] = df["A"] - df["B"]
         df.loc[3:5, "C"] = np.nan
@@ -2732,7 +2732,10 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             # with a Timestamp data column (GH #2637)
             df = DataFrame(
-                dict(ts=bdate_range("2012-01-01", periods=300), A=np.random.randn(300))
+                {
+                    "ts": bdate_range("2012-01-01", periods=300),
+                    "A": np.random.randn(300),
+                }
             )
             _maybe_remove(store, "df")
             store.append("df", df, data_columns=["ts", "A"])
@@ -2760,7 +2763,7 @@ class TestHDFStore:
                 tm.assert_frame_equal(expected, result)
 
             # integer index
-            df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
+            df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
             _maybe_remove(store, "df_int")
             store.append("df_int", df)
             result = store.select("df_int", "index<10 and columns=['A']")
@@ -2769,11 +2772,11 @@ class TestHDFStore:
 
             # float index
             df = DataFrame(
-                dict(
-                    A=np.random.rand(20),
-                    B=np.random.rand(20),
-                    index=np.arange(20, dtype="f8"),
-                )
+                {
+                    "A": np.random.rand(20),
+                    "B": np.random.rand(20),
+                    "index": np.arange(20, dtype="f8"),
+                }
             )
             _maybe_remove(store, "df_float")
             store.append("df_float", df)
@@ -2784,7 +2787,7 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             # floats w/o NaN
-            df = DataFrame(dict(cols=range(11), values=range(11)), dtype="float64")
+            df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
             df["cols"] = (df["cols"] + 10).apply(str)
 
             store.append("df1", df, data_columns=True)
@@ -2808,7 +2811,7 @@ class TestHDFStore:
             # tm.assert_frame_equal(expected, result)
 
             # not in first position float with NaN ok too
-            df = DataFrame(dict(cols=range(11), values=range(11)), dtype="float64")
+            df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
             df["cols"] = (df["cols"] + 10).apply(str)
 
             df.iloc[1] = np.nan
@@ -2835,15 +2838,15 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             df = DataFrame(
-                dict(
-                    ts=bdate_range("2012-01-01", periods=300),
-                    A=np.random.randn(300),
-                    B=range(300),
-                    users=["a"] * 50
+                {
+                    "ts": bdate_range("2012-01-01", periods=300),
+                    "A": np.random.randn(300),
+                    "B": range(300),
+                    "users": ["a"] * 50
                     + ["b"] * 50
                     + ["c"] * 100
                     + [f"a{i:03d}" for i in range(100)],
-                )
+                }
             )
             _maybe_remove(store, "df")
             store.append("df", df, data_columns=["ts", "A", "B", "users"])
@@ -3139,7 +3142,7 @@ class TestHDFStore:
 
         # GH 3499, losing frequency info on index recreation
         df = DataFrame(
-            dict(A=Series(range(3), index=date_range("2000-1-1", periods=3, freq="H")))
+            {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="H"))}
         )
 
         with ensure_clean_store(setup_path) as store:
@@ -3158,11 +3161,11 @@ class TestHDFStore:
             # try to append a table with a different frequency
             with catch_warnings(record=True):
                 df2 = DataFrame(
-                    dict(
-                        A=Series(
+                    {
+                        "A": Series(
                             range(3), index=date_range("2002-1-1", periods=3, freq="D")
                         )
-                    )
+                    }
                 )
                 store.append("data", df2)
 
@@ -3171,8 +3174,8 @@ class TestHDFStore:
             # this is ok
             _maybe_remove(store, "df2")
             df2 = DataFrame(
-                dict(
-                    A=Series(
+                {
+                    "A": Series(
                         range(3),
                         index=[
                             Timestamp("20010101"),
@@ -3180,15 +3183,15 @@ class TestHDFStore:
                             Timestamp("20020101"),
                         ],
                     )
-                )
+                }
             )
             store.append("df2", df2)
             df3 = DataFrame(
-                dict(
-                    A=Series(
+                {
+                    "A": Series(
                         range(3), index=date_range("2002-1-1", periods=3, freq="D")
                     )
-                )
+                }
             )
             store.append("df2", df3)
 
@@ -3201,25 +3204,26 @@ class TestHDFStore:
             with catch_warnings(record=True):
 
                 df = DataFrame(
-                    dict(
-                        A=Series(
+                    {
+                        "A": Series(
                             range(3), index=date_range("2000-1-1", periods=3, freq="H")
                         )
-                    )
+                    }
                 )
                 df.to_hdf(path, "data", mode="w", append=True)
                 df2 = DataFrame(
-                    dict(
-                        A=Series(
+                    {
+                        "A": Series(
                             range(3), index=date_range("2002-1-1", periods=3, freq="D")
                         )
-                    )
+                    }
                 )
+
                 df2.to_hdf(path, "data", append=True)
 
                 idx = date_range("2000-1-1", periods=3, freq="H")
                 idx.name = "foo"
-                df = DataFrame(dict(A=Series(range(3), index=idx)))
+                df = DataFrame({"A": Series(range(3), index=idx)})
                 df.to_hdf(path, "data", mode="w", append=True)
 
             assert read_hdf(path, "data").index.name == "foo"
@@ -3228,7 +3232,7 @@ class TestHDFStore:
 
                 idx2 = date_range("2001-1-1", periods=3, freq="H")
                 idx2.name = "bar"
-                df2 = DataFrame(dict(A=Series(range(3), index=idx2)))
+                df2 = DataFrame({"A": Series(range(3), index=idx2)})
                 df2.to_hdf(path, "data", append=True)
 
             assert read_hdf(path, "data").index.name is None
@@ -3529,7 +3533,7 @@ class TestHDFStore:
             # get coordinates back & test vs frame
             _maybe_remove(store, "df")
 
-            df = DataFrame(dict(A=range(5), B=range(5)))
+            df = DataFrame({"A": range(5), "B": range(5)})
             store.append("df", df)
             c = store.select_as_coordinates("df", ["index<3"])
             assert (c.values == np.arange(3)).all()
@@ -3791,12 +3795,12 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
 
-            df = DataFrame(dict(cols=range(6), values=range(6)), dtype="float64")
+            df = DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
             df["cols"] = (df["cols"] + 10).apply(str)
             df.iloc[0] = np.nan
 
             expected = DataFrame(
-                dict(cols=["13.0", "14.0", "15.0"], values=[3.0, 4.0, 5.0]),
+                {"cols": ["13.0", "14.0", "15.0"], "values": [3.0, 4.0, 5.0]},
                 index=[3, 4, 5],
             )
 
@@ -3810,7 +3814,7 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
 
             # table
-            df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
+            df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
             store.append("df", df)
 
             result = store.select("df", "columns=['A']", start=0, stop=5)
@@ -3845,7 +3849,7 @@ class TestHDFStore:
 
             # fixed, GH 8287
             df = DataFrame(
-                dict(A=np.random.rand(20), B=np.random.rand(20)),
+                {"A": np.random.rand(20), "B": np.random.rand(20)},
                 index=pd.date_range("20130101", periods=20),
             )
             store.put("df", df)
@@ -4478,7 +4482,7 @@ class TestHDFStore:
         data = [4.3, 9.8]
 
         # Test without categories
-        df = DataFrame(dict(obsids=obsids, imgids=imgids, data=data))
+        df = DataFrame({"obsids": obsids, "imgids": imgids, "data": data})
 
         # We are expecting an empty DataFrame matching types of df
         expected = df.iloc[[], :]
