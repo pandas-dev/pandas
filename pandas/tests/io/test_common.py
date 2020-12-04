@@ -527,8 +527,13 @@ class ParquetFastParquetUserAgentResponder(BaseUserAgentResponder):
 
         bio = BytesIO()
         bio.close = dummy_close
+        # windows py38 np18 doesn't have 'snappy' installed
         response_df.to_parquet(
-            "none", index=False, engine="fastparquet", open_with=lambda x, y: bio
+            "none",
+            index=False,
+            engine="fastparquet",
+            compression=None,
+            open_with=lambda x, y: bio,
         )
         response_bytes = bio.getvalue()
 
