@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -507,7 +508,23 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            result = maybe_cast_result(result=res_values, obj=orig_values, how=how)
+            if how in ["mean", "median", "var"]:
+                # preserve float64 dtype
+                return res_values
+
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            if is_extension_array_dtype(dtype):
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(res_values)
+            return res_values
+
+        elif is_float_dtype(values.dtype):
+            # FloatingArray
+            values = values.to_numpy(na_value=np.nan)
+            res_values = self._cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
+            result = type(orig_values)._from_sequence(res_values)
             return result
 
         raise NotImplementedError(values.dtype)
