@@ -84,6 +84,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         "axis",
         "on",
         "closed",
+        "method",
     ]
     exclusions: Set[str] = set()
 
@@ -97,6 +98,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
+        method: str = "column",
         **kwargs,
     ):
 
@@ -110,6 +112,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.win_type = win_type
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
+        self.method = method
         self.validate()
 
     @property
@@ -159,6 +162,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     f"{type(self.window).__name__} does not implement "
                     f"the correct signature for get_window_bounds"
                 )
+        if self.method not in ["table", "column"]:
+            raise ValueError("method must be 'table' or 'column")
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
@@ -1032,6 +1037,9 @@ class Window(BaseWindow):
                 raise ValueError(f"Invalid win_type {self.win_type}")
         else:
             raise ValueError(f"Invalid window {self.window}")
+
+        if self.method != "column":
+            raise NotImplementedError("'column' is the only supported method type.")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """

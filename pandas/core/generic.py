@@ -11216,6 +11216,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         on: Optional[str] = None,
         axis: Axis = 0,
         closed: Optional[str] = None,
+        method: str = "column",
     ):
         axis = self._get_axis_number(axis)
 
@@ -11229,6 +11230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 on=on,
                 axis=axis,
                 closed=closed,
+                method=method,
             )
 
         return Rolling(
@@ -11240,6 +11242,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             on=on,
             axis=axis,
             closed=closed,
+            method=method,
         )
 
     @final
