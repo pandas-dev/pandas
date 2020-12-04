@@ -5677,7 +5677,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is None:
             subset = self.columns.tolist()
 
-        counts = self.groupby(subset).grouper.size()
+        counts = self.groupby(subset, observed=True).grouper.size()
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
