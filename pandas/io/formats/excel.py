@@ -21,11 +21,10 @@ from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 from pandas.core import generic
 import pandas.core.common as com
 
+from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
-
-from ._color_data import CSS4_COLORS
 
 
 class ExcelCell:

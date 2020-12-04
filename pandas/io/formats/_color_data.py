@@ -1,3 +1,7 @@
+# GH37967: Enable the use of CSS named colors, as defined in
+# matplotlib.colors.CSS4_COLORS, when exporting to Excel.
+# This data has been copied here, instead of being imported from matplotlib,
+# not to have ``to_excel`` methods require matplotlib.
 # source: matplotlib._color_data (3.3.3)
 CSS4_COLORS = {
     "aliceblue": "F0F8FF",
