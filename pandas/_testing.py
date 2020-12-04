@@ -1755,18 +1755,6 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def assert_python_equal(left, right):
-    """
-    Check left and right are equal w.r.t the ``==`` operator.
-
-    Parameters
-    ----------
-    left : object
-    right : object
-    """
-    assert left == right
-
-
 def box_expected(expected, box_cls, transpose=True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
