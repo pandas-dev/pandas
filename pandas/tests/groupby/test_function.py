@@ -145,140 +145,158 @@ def test_builtins_apply(keys, f):
     tm.assert_series_equal(getattr(result, fname)(), getattr(df, fname)())
 
 
-def test_arg_passthru():
-    # make sure that we are passing thru kwargs
-    # to our agg functions
+class TestNumericOnly:
+    # make sure that we are passing thru kwargs to our agg functions
 
-    # GH3668
-    # GH5724
-    df = DataFrame(
-        {
-            "group": [1, 1, 2],
-            "int": [1, 2, 3],
-            "float": [4.0, 5.0, 6.0],
-            "string": list("abc"),
-            "category_string": Series(list("abc")).astype("category"),
-            "category_int": [7, 8, 9],
-            "datetime": pd.date_range("20130101", periods=3),
-            "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
-            "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
-        },
-        columns=[
-            "group",
-            "int",
-            "float",
-            "string",
-            "category_string",
-            "category_int",
-            "datetime",
-            "datetimetz",
-            "timedelta",
-        ],
-    )
-
-    expected_columns_numeric = Index(["int", "float", "category_int"])
-
-    # mean / median
-    expected = DataFrame(
-        {
-            "category_int": [7.5, 9],
-            "float": [4.5, 6.0],
-            "timedelta": [pd.Timedelta("1.5s"), pd.Timedelta("3s")],
-            "int": [1.5, 3],
-            "datetime": [
-                Timestamp("2013-01-01 12:00:00"),
-                Timestamp("2013-01-03 00:00:00"),
+    @pytest.fixture
+    def df(self):
+        # GH3668
+        # GH5724
+        df = DataFrame(
+            {
+                "group": [1, 1, 2],
+                "int": [1, 2, 3],
+                "float": [4.0, 5.0, 6.0],
+                "string": list("abc"),
+                "category_string": Series(list("abc")).astype("category"),
+                "category_int": [7, 8, 9],
+                "datetime": date_range("20130101", periods=3),
+                "datetimetz": date_range("20130101", periods=3, tz="US/Eastern"),
+                "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
+            },
+            columns=[
+                "group",
+                "int",
+                "float",
+                "string",
+                "category_string",
+                "category_int",
+                "datetime",
+                "datetimetz",
+                "timedelta",
             ],
-            "datetimetz": [
-                Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
-                Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
+        )
+        return df
+
+    @pytest.mark.parametrize("method", ["mean", "median"])
+    def test_averages(self, df, method):
+        # mean / median
+        expected_columns_numeric = Index(["int", "float", "category_int"])
+
+        gb = df.groupby("group")
+        expected = DataFrame(
+            {
+                "category_int": [7.5, 9],
+                "float": [4.5, 6.0],
+                "timedelta": [pd.Timedelta("1.5s"), pd.Timedelta("3s")],
+                "int": [1.5, 3],
+                "datetime": [
+                    Timestamp("2013-01-01 12:00:00"),
+                    Timestamp("2013-01-03 00:00:00"),
+                ],
+                "datetimetz": [
+                    Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
+                    Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
+                ],
+            },
+            index=Index([1, 2], name="group"),
+            columns=[
+                "int",
+                "float",
+                "category_int",
+                "datetime",
+                "datetimetz",
+                "timedelta",
             ],
-        },
-        index=Index([1, 2], name="group"),
-        columns=["int", "float", "category_int", "datetime", "datetimetz", "timedelta"],
-    )
+        )
 
-    for attr in ["mean", "median"]:
-        result = getattr(df.groupby("group"), attr)()
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
-
-        result = getattr(df.groupby("group"), attr)(numeric_only=False)
+        result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-    # TODO: min, max *should* handle
-    # categorical (ordered) dtype
-    expected_columns = Index(
-        [
-            "int",
-            "float",
-            "string",
-            "category_int",
-            "datetime",
-            "datetimetz",
-            "timedelta",
-        ]
-    )
-    for attr in ["min", "max"]:
-        result = getattr(df.groupby("group"), attr)()
-        tm.assert_index_equal(result.columns, expected_columns)
+        expected_columns = expected.columns
 
-        result = getattr(df.groupby("group"), attr)(numeric_only=False)
-        tm.assert_index_equal(result.columns, expected_columns)
+        self._check(df, method, expected_columns, expected_columns_numeric)
 
-    expected_columns = Index(
-        [
-            "int",
-            "float",
-            "string",
-            "category_string",
-            "category_int",
-            "datetime",
-            "datetimetz",
-            "timedelta",
-        ]
-    )
-    for attr in ["first", "last"]:
-        result = getattr(df.groupby("group"), attr)()
-        tm.assert_index_equal(result.columns, expected_columns)
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_extrema(self, df, method):
+        # TODO: min, max *should* handle
+        # categorical (ordered) dtype
 
-        result = getattr(df.groupby("group"), attr)(numeric_only=False)
-        tm.assert_index_equal(result.columns, expected_columns)
+        expected_columns = Index(
+            [
+                "int",
+                "float",
+                "string",
+                "category_int",
+                "datetime",
+                "datetimetz",
+                "timedelta",
+            ]
+        )
+        expected_columns_numeric = expected_columns
 
-    expected_columns = Index(["int", "float", "string", "category_int", "timedelta"])
+        self._check(df, method, expected_columns, expected_columns_numeric)
 
-    result = df.groupby("group").sum()
-    tm.assert_index_equal(result.columns, expected_columns_numeric)
+    @pytest.mark.parametrize("method", ["first", "last"])
+    def test_first_last(self, df, method):
 
-    result = df.groupby("group").sum(numeric_only=False)
-    tm.assert_index_equal(result.columns, expected_columns)
+        expected_columns = Index(
+            [
+                "int",
+                "float",
+                "string",
+                "category_string",
+                "category_int",
+                "datetime",
+                "datetimetz",
+                "timedelta",
+            ]
+        )
+        expected_columns_numeric = expected_columns
 
-    expected_columns = Index(["int", "float", "category_int"])
-    for attr in ["prod", "cumprod"]:
-        result = getattr(df.groupby("group"), attr)()
+        self._check(df, method, expected_columns, expected_columns_numeric)
+
+    @pytest.mark.parametrize("method", ["sum", "cumsum"])
+    def test_sum_cumsum(self, df, method):
+
+        expected_columns_numeric = Index(["int", "float", "category_int"])
+        expected_columns = Index(
+            ["int", "float", "string", "category_int", "timedelta"]
+        )
+        if method == "cumsum":
+            # cumsum loses string
+            expected_columns = Index(["int", "float", "category_int", "timedelta"])
+
+        self._check(df, method, expected_columns, expected_columns_numeric)
+
+    @pytest.mark.parametrize("method", ["prod", "cumprod"])
+    def test_prod_cumprod(self, df, method):
+
+        expected_columns = Index(["int", "float", "category_int"])
+        expected_columns_numeric = expected_columns
+
+        self._check(df, method, expected_columns, expected_columns_numeric)
+
+    @pytest.mark.parametrize("method", ["cummin", "cummax"])
+    def test_cummin_cummax(self, df, method):
+        # like min, max, but don't include strings
+        expected_columns = Index(
+            ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
+        )
+
+        # GH#15561: numeric_only=False set by default like min/max
+        expected_columns_numeric = expected_columns
+
+        self._check(df, method, expected_columns, expected_columns_numeric)
+
+    def _check(self, df, method, expected_columns, expected_columns_numeric):
+        gb = df.groupby("group")
+
+        result = getattr(gb, method)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = getattr(df.groupby("group"), attr)(numeric_only=False)
+        result = getattr(gb, method)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
-
-    # like min, max, but don't include strings
-    expected_columns = Index(
-        ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
-    )
-    for attr in ["cummin", "cummax"]:
-        result = getattr(df.groupby("group"), attr)()
-        # GH 15561: numeric_only=False set by default like min/max
-        tm.assert_index_equal(result.columns, expected_columns)
-
-        result = getattr(df.groupby("group"), attr)(numeric_only=False)
-        tm.assert_index_equal(result.columns, expected_columns)
-
-    expected_columns = Index(["int", "float", "category_int", "timedelta"])
-
-    result = getattr(df.groupby("group"), "cumsum")()
-    tm.assert_index_equal(result.columns, expected_columns_numeric)
-
-    result = getattr(df.groupby("group"), "cumsum")(numeric_only=False)
-    tm.assert_index_equal(result.columns, expected_columns)
 
 
 class TestGroupByNonCythonPaths:
