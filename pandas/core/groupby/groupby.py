@@ -11,7 +11,6 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import inspect
-import re
 import types
 from typing import (
     Callable,
@@ -797,23 +796,7 @@ b  2""",
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            try:
-                return self._python_apply_general(curried, self._obj_with_exclusions)
-            except TypeError as err:
-                if not re.search(
-                    "reduction operation '.*' not allowed for this dtype", str(err)
-                ):
-                    # We don't have a cython implementation
-                    # TODO: is the above comment accurate?
-                    raise
-
-            if self.obj.ndim == 1:
-                # this can be called recursively, so need to raise ValueError
-                raise ValueError
-
-            # GH#3688 try to operate item-by-item
-            result = self._aggregate_item_by_item(name, *args, **kwargs)
-            return result
+            return self._python_apply_general(curried, self._obj_with_exclusions)
 
         wrapper.__name__ = name
         return wrapper
