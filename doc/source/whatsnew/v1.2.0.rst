@@ -266,10 +266,10 @@ For example:
 
     headers = {"User-Agent": "pandas"}
     df = pd.read_csv(
-             "https://download.bls.gov/pub/time.series/cu/cu.item",
-             sep="\t",
-             storage_options=headers
-         )
+        "https://download.bls.gov/pub/time.series/cu/cu.item",
+        sep="\t",
+        storage_options=headers
+    )
 
 .. _whatsnew_120.enhancements.other:
 
