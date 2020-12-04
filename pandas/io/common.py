@@ -285,8 +285,8 @@ def _get_filepath_or_buffer(
         import urllib.request
 
         # assuming storage_options is to be interpretted as headers
-        req = urllib.request.Request(filepath_or_buffer, headers=storage_options)
-        req = urlopen(req)
+        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req = urlopen(req_info)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
