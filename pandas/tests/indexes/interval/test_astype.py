@@ -33,8 +33,15 @@ class AstypeTests:
 
     def test_astype_category(self, index):
         result = index.astype("category")
-        expected = CategoricalIndex(index.values)
+        # TODO astype doesn't preserve the exact interval dtype (eg uint64)
+        # while the CategoricalIndex constructor does -> temporarily also
+        # here convert to object dtype numpy array.
+        # Once this is fixed, the commented code can be uncommented
+        # -> https://github.com/pandas-dev/pandas/issues/38316
+        # expected = CategoricalIndex(index.values)
+        expected = CategoricalIndex(np.asarray(index.values))
         tm.assert_index_equal(result, expected)
+        # assert result.dtype.categories.dtype == index.dtype
 
         result = index.astype(CategoricalDtype())
         tm.assert_index_equal(result, expected)
