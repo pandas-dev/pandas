@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
     maybe_promote,
-    maybe_upcast,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
