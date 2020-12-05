@@ -302,6 +302,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return result
 
     @classmethod
+    def _from_scalars(cls, data, dtype):
+        # override because dtype.type is not always Timestamp
+        if not all(isinstance(v, Timestamp) or isna(v) for v in data):
+            raise TypeError("Requires timestamp scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 

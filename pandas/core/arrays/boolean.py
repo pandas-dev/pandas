@@ -273,6 +273,13 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
+    def _from_scalars(cls, data, dtype) -> "BooleanArray":
+        # override because dtype.type is only the numpy scalar
+        if not all(isinstance(v, (bool, np.bool_)) or isna(v) for v in data):
+            raise TypeError("Requires dtype scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "BooleanArray":

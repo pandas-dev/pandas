@@ -68,6 +68,13 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return self._dtype
 
     @classmethod
+    def _from_scalars(cls, data, dtype):
+        # TODO not needed if we keep the base class method
+        if not all(isinstance(v, dtype.type) or pd.isna(v) for v in data):
+            raise TypeError("Requires dtype scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 

@@ -274,6 +274,13 @@ class FloatingArray(NumericArray):
         super().__init__(values, mask, copy=copy)
 
     @classmethod
+    def _from_scalars(cls, data, dtype):
+        # override because dtype.type is only the numpy scalar
+        if not all(isinstance(v, (float, dtype.type)) or isna(v) for v in data):
+            raise TypeError("Requires dtype scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "FloatingArray":

@@ -171,6 +171,13 @@ class PandasArray(
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
+    def _from_scalars(cls, data, dtype):
+        # doesn't work for object dtype
+        # if not all(isinstance(v, dtype.type) or isna(v) for v in data):
+        #     raise TypeError("Requires dtype scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "PandasArray":

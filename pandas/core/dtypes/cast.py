@@ -320,6 +320,12 @@ def maybe_cast_result(
     """
     dtype = obj.dtype
     dtype = maybe_cast_result_dtype(dtype, how)
+    # result_dtype = maybe_cast_result_dtype(dtype, how)
+    # if result_dtype is not None:
+    #     # we know what the result dtypes needs to be -> be more permissive in casting
+    #     # (eg ints with nans became floats)
+    #     cls = result_dtype.construct_array_type()
+    #     return cls._from_sequence(obj, dtype=result_dtype)
 
     assert not is_scalar(result)
 
@@ -364,19 +370,20 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
         return Int64Dtype()
     return dtype
+    # return None
 
 
 def maybe_cast_to_extension_array(
     cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
-    Call to `_from_sequence` that returns the object unchanged on Exception.
+    Call to `_from_scalars` that returns the object unchanged on Exception.
 
     Parameters
     ----------
     cls : class, subclass of ExtensionArray
     obj : arraylike
-        Values to pass to cls._from_sequence
+        Values to pass to cls._from_scalars
     dtype : ExtensionDtype, optional
 
     Returns
@@ -398,7 +405,7 @@ def maybe_cast_to_extension_array(
         return obj
 
     try:
-        result = cls._from_sequence(obj, dtype=dtype)
+        result = cls._from_scalars(obj, dtype=dtype)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj

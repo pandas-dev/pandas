@@ -357,6 +357,16 @@ class IntegerArray(NumericArray):
         return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
+    def _from_scalars(cls, data, dtype):
+        # override because dtype.type is only the numpy scalar
+        # TODO accept float here?
+        if not all(
+            isinstance(v, (int, dtype.type, float, np.float_)) or isna(v) for v in data
+        ):
+            raise TypeError("Requires dtype scalars")
+        return cls._from_sequence(data, dtype=dtype)
+
+    @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
