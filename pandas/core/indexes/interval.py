@@ -1060,6 +1060,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _setop(op_name: str, sort=None):
         def func(self, other, sort=sort):
+            # At this point we are assured
+            #  isinstance(other, IntervalIndex)
+            #  other.closed == self.closed
+
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
             result_name = get_op_result_name(self, other)
 
@@ -1074,7 +1078,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         func.__name__ = op_name
         return setop_check(func)
 
-    union = _setop("union")
+    _union = _setop("union")
     difference = _setop("difference")
     symmetric_difference = _setop("symmetric_difference")
 

@@ -3569,6 +3569,11 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self.rename(result_names)
 
+        return self._union(other, sort=sort)
+
+    def _union(self, other, sort):
+        other, result_names = self._convert_can_do_setop(other)
+
         # TODO: Index.union returns other when `len(self)` is 0.
 
         if not is_object_dtype(other.dtype):
