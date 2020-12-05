@@ -11,7 +11,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import AnyArrayLike, Label
+from pandas._typing import AnyArrayLike, DtypeObj, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -50,6 +51,7 @@ from pandas.core.indexes.base import (
     default_pprint,
     ensure_index,
     maybe_extract_name,
+    unpack_nested_dtype,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
@@ -125,10 +127,6 @@ def setop_check(method):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
-
-        if op_name == "intersection":
-            if self.equals(other):
-                return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
             result = getattr(self.astype(object), op_name)(other)
@@ -807,6 +805,19 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return locs
 
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        if not isinstance(dtype, IntervalDtype):
+            return False
+        common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
+        return not is_object_dtype(common_subtype)
+
+    def _should_compare(self, other) -> bool:
+        if not super()._should_compare(other):
+            return False
+        other = unpack_nested_dtype(other)
+        return other.closed == self.closed
+
+    # TODO: use should_compare and get rid of _is_non_comparable_own_type
     def _is_non_comparable_own_type(self, other: "IntervalIndex") -> bool:
         # different closed or incompatible subtype -> no matches
 
@@ -814,8 +825,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  is_comparable_dtype GH#19371
         if self.closed != other.closed:
             return True
-        common_subtype = find_common_type([self.dtype.subtype, other.dtype.subtype])
-        return is_object_dtype(common_subtype)
+        return not self._is_comparable_dtype(other.dtype)
 
     # --------------------------------------------------------------------
 
@@ -965,7 +975,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             )
 
     @Appender(Index.intersection.__doc__)
-    @setop_check
     def intersection(self, other, sort=False) -> Index:
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -1051,6 +1060,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _setop(op_name: str, sort=None):
         def func(self, other, sort=sort):
+            # At this point we are assured
+            #  isinstance(other, IntervalIndex)
+            #  other.closed == self.closed
+
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
             result_name = get_op_result_name(self, other)
 
@@ -1065,7 +1078,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         func.__name__ = op_name
         return setop_check(func)
 
-    union = _setop("union")
+    _union = _setop("union")
     difference = _setop("difference")
     symmetric_difference = _setop("symmetric_difference")
 
