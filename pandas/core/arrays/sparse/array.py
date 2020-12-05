@@ -58,7 +58,7 @@ import pandas.io.formats.printing as printing
 
 SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
-_sparray_doc_kwargs = dict(klass="SparseArray")
+_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: "SparseArray") -> np.ndarray:

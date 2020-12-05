@@ -199,7 +199,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """

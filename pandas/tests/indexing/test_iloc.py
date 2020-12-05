@@ -560,15 +560,17 @@ class TestiLoc2:
         # GH 7551
         # list-of-list is set incorrectly in mixed vs. single dtyped frames
         df = DataFrame(
-            dict(A=np.arange(5, dtype="int64"), B=np.arange(5, 10, dtype="int64"))
+            {"A": np.arange(5, dtype="int64"), "B": np.arange(5, 10, dtype="int64")}
         )
         df.iloc[2:4] = [[10, 11], [12, 13]]
-        expected = DataFrame(dict(A=[0, 1, 10, 12, 4], B=[5, 6, 11, 13, 9]))
+        expected = DataFrame({"A": [0, 1, 10, 12, 4], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(dict(A=list("abcde"), B=np.arange(5, 10, dtype="int64")))
+        df = DataFrame(
+            {"A": ["a", "b", "c", "d", "e"], "B": np.arange(5, 10, dtype="int64")}
+        )
         df.iloc[2:4] = [["x", 11], ["y", 13]]
-        expected = DataFrame(dict(A=["a", "b", "x", "y", "e"], B=[5, 6, 11, 13, 9]))
+        expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
@@ -645,7 +647,10 @@ class TestiLoc2:
                     except (ValueError, IndexingError, NotImplementedError) as e:
                         ans = str(e)
 
-                    key = tuple([idx, method])
+                    key = (
+                        idx,
+                        method,
+                    )
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
@@ -859,7 +864,7 @@ class TestiLoc2:
     def test_iloc_setitem_dictionary_value(self):
         # GH#37728
         df = DataFrame({"x": [1, 2], "y": [2, 2]})
-        rhs = dict(x=9, y=99)
+        rhs = {"x": 9, "y": 99}
         df.iloc[1] = rhs
         expected = DataFrame({"x": [1, 9], "y": [2, 99]})
         tm.assert_frame_equal(df, expected)

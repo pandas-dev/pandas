@@ -1273,7 +1273,7 @@ def test_resample_timegrouper():
     dates3 = [pd.NaT] + dates1 + [pd.NaT]
 
     for dates in [dates1, dates2, dates3]:
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates))))
+        df = DataFrame({"A": dates, "B": np.arange(len(dates))})
         result = df.set_index("A").resample("M").count()
         exp_idx = DatetimeIndex(
             ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
@@ -1288,7 +1288,9 @@ def test_resample_timegrouper():
         result = df.groupby(Grouper(freq="M", key="A")).count()
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(dict(A=dates, B=np.arange(len(dates)), C=np.arange(len(dates))))
+        df = DataFrame(
+            {"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))}
+        )
         result = df.set_index("A").resample("M").count()
         expected = DataFrame(
             {"B": [1, 0, 2, 2, 1], "C": [1, 0, 2, 2, 1]},
@@ -1728,7 +1730,7 @@ def test_resample_apply_product():
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
-    df = DataFrame(dict(A=ts, B=ts + 2))
+    df = DataFrame({"A": ts, "B": ts + 2})
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
@@ -1783,5 +1785,18 @@ def test_resample_calendar_day_with_dst(
     result = ts.resample(freq_out).pad()
     expected = Series(
         1.0, pd.date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "first", "last"])
+def test_resample_aggregate_functions_min_count(func):
+    # GH#37768
+    index = date_range(start="2020", freq="M", periods=3)
+    ser = Series([1, np.nan, np.nan], index)
+    result = getattr(ser.resample("Q"), func)(min_count=2)
+    expected = Series(
+        [np.nan],
+        index=DatetimeIndex(["2020-03-31"], dtype="datetime64[ns]", freq="Q-DEC"),
     )
     tm.assert_series_equal(result, expected)

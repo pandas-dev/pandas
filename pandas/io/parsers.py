@@ -276,11 +276,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -451,12 +459,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        parser.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -1073,6 +1077,12 @@ class TextFileReader(abc.Iterator):
                 raise StopIteration
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 def _is_index_col(col):
@@ -1881,7 +1891,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2974,9 +2988,9 @@ class PythonParser(ParserBase):
         if self.comment is None:
             return lines
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for x in l:
+            for x in line:
                 if not isinstance(x, str) or self.comment not in x:
                     rl.append(x)
                 else:
@@ -3003,14 +3017,14 @@ class PythonParser(ParserBase):
             The same array of lines with the "empty" ones removed.
         """
         ret = []
-        for l in lines:
+        for line in lines:
             # Remove empty lines and lines with only one whitespace value
             if (
-                len(l) > 1
-                or len(l) == 1
-                and (not isinstance(l[0], str) or l[0].strip())
+                len(line) > 1
+                or len(line) == 1
+                and (not isinstance(line[0], str) or line[0].strip())
             ):
-                ret.append(l)
+                ret.append(line)
         return ret
 
     def _check_thousands(self, lines):
@@ -3023,9 +3037,9 @@ class PythonParser(ParserBase):
 
     def _search_replace_num_columns(self, lines, search, replace):
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for i, x in enumerate(l):
+            for i, x in enumerate(line):
                 if (
                     not isinstance(x, str)
                     or search not in x
