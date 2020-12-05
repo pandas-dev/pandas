@@ -678,6 +678,8 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
 - Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
+- Bug in :meth:`Series.loc` and :meth:`Series.iloc` raising ``ValueError`` when inserting a listlike ``np.array``, ``list`` or ``tuple`` in an ``object`` Series of equal length (:issue:`37748`, :issue:`37486`)
+- Bug in :meth:`Series.loc` and :meth:`Series.iloc` setting all the values of an ``object`` Series with those of a listlike ``ExtensionArray`` instead of inserting it (:issue:`38271`)
 
 Missing
 ^^^^^^^
