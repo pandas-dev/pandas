@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    np_issubclass_compat,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -3712,7 +3711,16 @@ class DataFrame(NDFrame, OpsMixin):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if np_issubclass_compat(unique_dtype, dtypes_set)
+                if (
+                    issubclass(
+                        unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                    )
+                    or (
+                        np.number in dtypes_set
+                        and hasattr(unique_dtype, "_is_numeric")  # is an extensionarray
+                        and unique_dtype._is_numeric
+                    )
+                )
             ]
             return extracted_dtypes
 
