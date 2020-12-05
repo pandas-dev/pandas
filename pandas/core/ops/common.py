@@ -7,7 +7,12 @@ from typing import Callable
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import F
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndexClass,
+    ABCSeries,
+    ABCMultiIndex,
+)
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
@@ -82,7 +87,9 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
+    if isinstance(left, ABCMultiIndex) and isinstance(right, ABCMultiIndex):
+        name = _maybe_match_names_multiindex(left, right)
+    elif isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name
@@ -93,7 +100,7 @@ def _maybe_match_name(a, b):
     """
     Try to find a name to attach to the result of an operation between
     a and b.  If only one of these has a `name` attribute, return that
-    name.  Otherwise return a consensus name if they match of None if
+    name.  Otherwise return a consensus name if they match or None if
     they have different names.
 
     Parameters
@@ -122,3 +129,30 @@ def _maybe_match_name(a, b):
     elif b_has:
         return b.name
     return None
+
+
+def _maybe_match_names_multiindex(a, b):
+    """
+    Try to find common names to attach to the result of an operation between
+    a and b.  Return a consensus list of names if they match at least partly
+    or None if they have completely different names.
+
+    Parameters
+    ----------
+    a : MultiIndex
+    b : MultiIndex
+
+    Returns
+    -------
+    name : list of optional str or None
+    """
+    if len(a.names) != len(b.names):
+        return None
+    names = []
+    for a_name, b_name in zip(a.names, b.names):
+        if a_name == b_name:
+            names.append(a_name)
+        else:
+            # TODO: what if they both have np.nan for their names?
+            names.append(None)
+    return names
