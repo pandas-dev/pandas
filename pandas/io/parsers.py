@@ -1465,9 +1465,14 @@ class ParserBase:
 
         # clean the index_names
         index_names = header.pop(-1)
-        index_names, names, index_col = _clean_index_names(
-            index_names, self.index_col, self.unnamed_cols
-        )
+        if not index_names:
+            # In case of no rows and multiindex columns we have to set index_names to
+            # list of Nones GH#38292
+            index_names = [None] * len(ic)
+        else:
+            index_names, _, _ = _clean_index_names(
+                index_names, self.index_col, self.unnamed_cols
+            )
 
         # extract the columns
         field_count = len(header[0])
