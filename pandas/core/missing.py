@@ -2,12 +2,12 @@
 Routines for filling missing data.
 """
 from functools import partial
-from typing import Any, List, Optional, Set, Union
+from typing import Any, Callable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, Axis, DtypeObj
+from pandas._typing import ArrayLike, Axis, DtypeObj, IndexLabel, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -20,7 +20,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
+def mask_missing(
+    arr: ArrayLike, values_to_mask: Union[List, Tuple, Scalar]
+) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
@@ -58,7 +60,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     return mask
 
 
-def clean_fill_method(method, allow_nearest: bool = False):
+def clean_fill_method(method: str, allow_nearest: bool = False) -> Optional[str]:
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
         return None
@@ -117,7 +119,7 @@ def clean_interp_method(method: str, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values: ArrayLike, how: str) -> Optional[int]:
     """
     Retrieves the index of the first valid value.
 
@@ -165,7 +167,7 @@ def interpolate_1d(
     bounds_error: bool = False,
     order: Optional[int] = None,
     **kwargs,
-):
+) -> np.ndarray:
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -218,8 +220,13 @@ def interpolate_1d(
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+
+    start_nan_idx = find_valid_index(yvalues, "first")
+    start_nans = set() if start_nan_idx is None else set(range(start_nan_idx))
+
+    end_nan_idx = find_valid_index(yvalues, "last")
+    end_nans = set() if end_nan_idx is None else set(range(1 + end_nan_idx, len(valid)))
+
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -294,8 +301,15 @@ def interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
-):
+    x,
+    y,
+    new_x,
+    method: Optional[str],
+    fill_value: Optional[Scalar] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
+    **kwargs,
+) -> np.ndarray:
     """
     Passed off to scipy.interpolate.interp1d. method is scipy's kind.
     Returns an array interpolated at new_x.  Add any new methods to
@@ -326,7 +340,7 @@ def _interpolate_scipy_wrapper(
     elif method == "cubicspline":
         alt_methods["cubicspline"] = _cubicspline_interpolate
 
-    interp1d_methods = [
+    interp1d_methods: List[str] = [
         "nearest",
         "zero",
         "slinear",
@@ -335,18 +349,18 @@ def _interpolate_scipy_wrapper(
         "polynomial",
     ]
     if method in interp1d_methods:
-        if method == "polynomial":
-            method = order
+        kind = order if method == "polynomial" else method
         terp = interpolate.interp1d(
-            x, y, kind=method, fill_value=fill_value, bounds_error=bounds_error
+            x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
         new_y = terp(new_x)
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
-            raise ValueError(
-                f"order needs to be specified and greater than 0; got order: {order}"
-            )
+        if isna(order):
+            raise ValueError(f"order needs to be specified; got order: {order}")
+        assert isinstance(order, int)
+        if order <= 0:
+            raise ValueError(f"order needs to be greater than 0; got order: {order}")
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
     else:
@@ -358,12 +372,21 @@ def _interpolate_scipy_wrapper(
             y = y.copy()
         if not new_x.flags.writeable:
             new_x = new_x.copy()
-        method = alt_methods[method]
-        new_y = method(x, y, new_x, **kwargs)
+
+        assert isinstance(method, str)
+        alt_method = alt_methods[method]
+        new_y = alt_method(x, y, new_x, **kwargs)
     return new_y
 
 
-def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
+def _from_derivatives(
+    xi: np.ndarray,
+    yi: np.ndarray,
+    x: Union[Scalar, ArrayLike],
+    order: Optional[Union[int, List[int]]] = None,
+    der: Union[int, List[int]] = 0,
+    extrapolate: bool = False,
+) -> np.ndarray:
     """
     Convenience function for interpolate.BPoly.from_derivatives.
 
@@ -406,7 +429,13 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     return m(x)
 
 
-def _akima_interpolate(xi, yi, x, der=0, axis=0):
+def _akima_interpolate(
+    xi: ArrayLike,
+    yi: ArrayLike,
+    x: Union[Scalar, ArrayLike],
+    der: Optional[int] = 0,
+    axis: Optional[int] = 0,
+) -> Union[Scalar, ArrayLike]:
     """
     Convenience function for akima interpolation.
     xi and yi are arrays of values used to approximate some function f,
@@ -449,7 +478,14 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     return P(x, nu=der)
 
 
-def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+def _cubicspline_interpolate(
+    xi: ArrayLike,
+    yi: ArrayLike,
+    x: Union[ArrayLike, Scalar],
+    axis: Optional[int] = 0,
+    bc_type: Union[str, Tuple] = "not-a-knot",
+    extrapolate: Optional[Union[bool, str]] = None,
+) -> Union[ArrayLike, Scalar]:
     """
     Convenience function for cubic spline data interpolator.
 
@@ -557,6 +593,8 @@ def _interpolate_with_limit_area(
         first = find_valid_index(values, "first")
         last = find_valid_index(values, "last")
 
+        assert first is not None and last is not None
+
         values = interpolate_2d(
             values,
             method=method,
@@ -574,12 +612,12 @@ def _interpolate_with_limit_area(
 
 
 def interpolate_2d(
-    values,
+    values: np.ndarray,
     method: str = "pad",
     axis: Axis = 0,
     limit: Optional[int] = None,
     limit_area: Optional[str] = None,
-):
+) -> np.ndarray:
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
@@ -625,7 +663,10 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    method = clean_fill_method(method)
+    method_cleaned = clean_fill_method(method)
+    assert isinstance(method_cleaned, str)
+    method = method_cleaned
+
     tvalues = transf(values)
     if method == "pad":
         result = _pad_2d(tvalues, limit=limit)
@@ -644,7 +685,9 @@ def interpolate_2d(
     return result
 
 
-def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
+def _cast_values_for_fillna(
+    values: ArrayLike, dtype: DtypeObj, has_mask: bool
+) -> ArrayLike:
     """
     Cast values to a dtype that algos.pad and algos.backfill can handle.
     """
@@ -663,34 +706,41 @@ def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
     return values
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(
+    values: np.ndarray, mask: Optional[np.ndarray] = None
+) -> Tuple[np.ndarray, np.ndarray]:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
-    dtype = values.dtype
 
     has_mask = mask is not None
-    if not has_mask:
-        # This needs to occur before datetime/timedeltas are cast to int64
-        mask = isna(values)
 
-    values = _cast_values_for_fillna(values, dtype, has_mask)
+    # This needs to occur before datetime/timedeltas are cast to int64
+    mask = isna(values) if mask is None else mask
 
+    values = _cast_values_for_fillna(values, values.dtype, has_mask)
     mask = mask.view(np.uint8)
+
     return values, mask
 
 
-def _pad_1d(values, limit=None, mask=None):
+def _pad_1d(
+    values: np.ndarray, limit: Optional[int] = None, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
     values, mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray, limit: Optional[int] = None, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
     values, mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
-def _pad_2d(values, limit=None, mask=None):
+def _pad_2d(
+    values: np.ndarray, limit: Optional[int] = None, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
     values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -701,7 +751,9 @@ def _pad_2d(values, limit=None, mask=None):
     return values
 
 
-def _backfill_2d(values, limit=None, mask=None):
+def _backfill_2d(
+    values: np.ndarray, limit: Optional[int] = None, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
     values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -715,16 +767,19 @@ def _backfill_2d(values, limit=None, mask=None):
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
-def get_fill_func(method):
-    method = clean_fill_method(method)
-    return _fill_methods[method]
+def get_fill_func(method: str) -> Callable:
+    method_cleaned = clean_fill_method(method)
+    assert isinstance(method_cleaned, str)
+    return _fill_methods[method_cleaned]
 
 
-def clean_reindex_fill_method(method):
+def clean_reindex_fill_method(method: str) -> Optional[str]:
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(
+    invalid: np.ndarray, fw_limit: Optional[int], bw_limit: Optional[int]
+) -> Set[IndexLabel]:
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
@@ -759,7 +814,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     f_idx = set()
     b_idx = set()
 
-    def inner(invalid, limit):
+    def inner(invalid: np.ndarray, limit: int) -> Set[IndexLabel]:
         limit = min(limit, N)
         windowed = _rolling_window(invalid, limit + 1).all(1)
         idx = set(np.where(windowed)[0] + limit) | set(
@@ -789,7 +844,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     return f_idx & b_idx
 
 
-def _rolling_window(a: np.ndarray, window: int):
+def _rolling_window(a: np.ndarray, window: int) -> np.ndarray:
     """
     [True, True, False, True, False], 2 ->
 
