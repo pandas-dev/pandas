@@ -864,7 +864,7 @@ class TestFrameArithmetic:
                 msg = "ufunc 'remainder' not supported for the input types"
                 warn = UserWarning  # "evaluating in Python space because ..."
             elif op is operator.sub:
-                msg = "numpy boolean subtract, the `-` operator, is not supported"
+                msg = "numpy boolean subtract, the `-` operator, is "
                 warn = UserWarning  # "evaluating in Python space because ..."
             else:
                 msg = (
