@@ -223,7 +223,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             else:
                 return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
         elif not isinstance(label, self._data._recognized_scalars):
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return label
 
