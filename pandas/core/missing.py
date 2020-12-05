@@ -254,17 +254,16 @@ def interpolate_1d(
 
     result = yvalues.copy()
 
-    # xvalues to pass to NumPy/SciPy
-
-    xvalues = xvalues._values
-    if needs_i8_conversion(xvalues.dtype):
+    # xarr to pass to NumPy/SciPy
+    xarr = xvalues._values
+    if needs_i8_conversion(xarr.dtype):
         # GH#1646 for dt64tz
-        xvalues = xvalues.view("i8")
+        xarr = xarr.view("i8")
 
     if method == "linear":
-        inds = xvalues
+        inds = xarr
     else:
-        inds = np.asarray(xvalues)
+        inds = np.asarray(xarr)
 
         if method in ("values", "index"):
             if inds.dtype == np.object_:
