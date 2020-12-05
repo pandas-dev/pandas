@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
@@ -116,61 +114,3 @@ def test_validate_stat_keepdims():
     )
     with pytest.raises(ValueError, match=msg):
         np.sum(ser, keepdims=True)
-
-
-@pytest.mark.parametrize(
-    "op_name, skipna, expected",
-    [
-        ("idxmax", True, "b"),
-        ("idxmin", True, "a"),
-        ("argmax", True, 1),
-        ("argmin", True, 0),
-        ("idxmax", False, np.nan),
-        ("idxmin", False, np.nan),
-        ("argmax", False, -1),
-        ("argmin", False, -1),
-    ],
-)
-def test_argminmax_idxminmax(any_numeric_dtype, op_name, skipna, expected):
-    ser = Series([1, 2, None], index=["a", "b", "c"], dtype=any_numeric_dtype)
-    result = getattr(ser, op_name)(skipna=skipna)
-    if pd.isna(expected):
-        assert np.isnan(result)
-    else:
-        assert result == expected
-
-
-@pytest.mark.parametrize(
-    "op_name, skipna, expected",
-    [
-        ("idxmax", True, "b"),
-        ("idxmin", True, "a"),
-        ("argmax", True, 1),
-        ("argmin", True, 0),
-        ("idxmax", False, np.nan),
-        ("idxmin", False, np.nan),
-        ("argmax", False, -1),
-        ("argmin", False, -1),
-    ],
-)
-def test_argminmax_idxminmax_with_datetime64_dtype(op_name, skipna, expected):
-    ser = Series(
-        [datetime(2020, 1, 1), datetime(2020, 1, 2), None], index=["a", "b", "c"]
-    )
-    result = getattr(ser, op_name)(skipna=skipna)
-    if pd.isna(expected):
-        assert np.isnan(result)
-    else:
-        assert result == expected
-
-
-def test_github_issues():
-    # GH#36566
-    ser = Series("a", dtype="string").value_counts()
-    assert ser.idxmax() == "a"
-
-    # GH#32749
-    from pandas.tests.extension.decimal import DecimalArray, make_data
-
-    ser = Series(DecimalArray(make_data()[:1]))
-    assert ser.idxmax() == 0

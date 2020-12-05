@@ -856,6 +856,16 @@ class TestSeriesReductions:
         result = s.idxmin()
         assert result == 1.1
 
+        # GH#36566
+        s = Series("a", dtype="string").value_counts()
+        assert s.idxmax() == "a"
+
+        # GH#32749
+        from pandas.tests.extension.decimal import DecimalArray, make_data
+
+        s = Series(DecimalArray(make_data()[:1]))
+        assert s.idxmax() == 0
+
     def test_all_any(self):
         ts = tm.makeTimeSeries()
         bool_series = ts > 0
@@ -1007,6 +1017,27 @@ class TestSeriesReductions:
             assert s.idxmax() == 0
             np.isnan(s.idxmax(skipna=False))
 
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, "b"),
+            ("idxmin", True, "a"),
+            ("argmax", True, 1),
+            ("argmin", True, 0),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argminmax_idxminmax(self, any_numeric_dtype, op_name, skipna, expected):
+        s = Series([1, 2, None], index=["a", "b", "c"], dtype=any_numeric_dtype)
+        result = getattr(s, op_name)(skipna=skipna)
+        if pd.isna(expected):
+            assert np.isnan(result)
+        else:
+            assert result == expected
+
 
 class TestDatetime64SeriesReductions:
     # Note: the name TestDatetime64SeriesReductions indicates these tests
@@ -1071,6 +1102,29 @@ class TestDatetime64SeriesReductions:
         exp = Timestamp(df.TS.iat[0])
         assert isinstance(result, Timestamp)
         assert result == exp
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, "b"),
+            ("idxmin", True, "a"),
+            ("argmax", True, 1),
+            ("argmin", True, 0),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argminmax_idxminmax(self, op_name, skipna, expected):
+        s = Series(
+            [datetime(2020, 1, 1), datetime(2020, 1, 2), None], index=["a", "b", "c"]
+        )
+        result = getattr(s, op_name)(skipna=skipna)
+        if pd.isna(expected):
+            assert np.isnan(result)
+        else:
+            assert result == expected
 
 
 class TestCategoricalSeriesReductions:
