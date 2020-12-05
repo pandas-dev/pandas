@@ -6,6 +6,8 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 import collections
 from typing import List
 
+from pandas._typing import final
+
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 from pandas.core.base import PandasObject
@@ -16,6 +18,7 @@ OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 class ShallowMixin(PandasObject):
     _attributes: List[str] = []
 
+    @final
     def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
@@ -35,6 +38,7 @@ class GotItemMixin(PandasObject):
 
     _attributes: List[str]
 
+    @final
     def _gotitem(self, key, ndim, subset=None):
         """
         Sub-classes to define. Return a sliced object.

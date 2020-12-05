@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape
+from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -146,6 +146,7 @@ class BaseGrouper:
         for key, (i, group) in zip(keys, splitter):
             yield key, group.__finalize__(data, method="groupby")
 
+    @final
     def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
         """
         Returns
@@ -166,6 +167,7 @@ class BaseGrouper:
         """
         return self.groupings[0].grouper
 
+    @final
     def _get_group_keys(self):
         if len(self.groupings) == 1:
             return self.levels[0]
@@ -175,6 +177,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
 
+    @final
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
@@ -256,6 +259,7 @@ class BaseGrouper:
     def names(self) -> List[Label]:
         return [ping.name for ping in self.groupings]
 
+    @final
     def size(self) -> Series:
         """
         Compute group sizes.
@@ -278,6 +282,7 @@ class BaseGrouper:
             to_groupby = Index(to_groupby)
             return self.axis.groupby(to_groupby)
 
+    @final
     @cache_readonly
     def is_monotonic(self) -> bool:
         # return if my group orderings are monotonic
@@ -291,6 +296,7 @@ class BaseGrouper:
         comp_ids = ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
+    @final
     @cache_readonly
     def codes_info(self) -> np.ndarray:
         # return the codes of items in original grouped axis
@@ -300,6 +306,7 @@ class BaseGrouper:
             codes = codes[sorter]
         return codes
 
+    @final
     def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
         all_codes = self.codes
         if len(all_codes) > 1:
@@ -309,6 +316,7 @@ class BaseGrouper:
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
 
+    @final
     @cache_readonly
     def ngroups(self) -> int:
         return len(self.result_index)
@@ -330,6 +338,7 @@ class BaseGrouper:
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
 
+    @final
     def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
@@ -370,6 +379,7 @@ class BaseGrouper:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
+    @final
     def _is_builtin_func(self, arg):
         """
         if we define a builtin function for this argument, return it,
@@ -377,6 +387,7 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
+    @final
     def _get_cython_function(
         self, kind: str, how: str, values: np.ndarray, is_numeric: bool
     ):
@@ -413,6 +424,7 @@ class BaseGrouper:
 
         return func
 
+    @final
     def _get_cython_func_and_vals(
         self, kind: str, how: str, values: np.ndarray, is_numeric: bool
     ):
@@ -447,6 +459,7 @@ class BaseGrouper:
                 raise
         return func, values
 
+    @final
     def _disallow_invalid_ops(self, values: ArrayLike, how: str):
         """
         Check if we can do this operation with our cython functions.
@@ -476,6 +489,7 @@ class BaseGrouper:
                     f"timedelta64 type does not support {how} operations"
                 )
 
+    @final
     def _ea_wrap_cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
@@ -512,6 +526,7 @@ class BaseGrouper:
 
         raise NotImplementedError(values.dtype)
 
+    @final
     def _cython_operation(
         self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> np.ndarray:
@@ -625,6 +640,7 @@ class BaseGrouper:
 
         return result
 
+    @final
     def _aggregate(
         self, result, counts, values, comp_ids, agg_func, min_count: int = -1
     ):
@@ -636,6 +652,7 @@ class BaseGrouper:
 
         return result
 
+    @final
     def _transform(
         self, result, values, comp_ids, transform_func, is_datetimelike: bool, **kwargs
     ):
@@ -674,6 +691,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
+    @final
     def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
@@ -693,6 +711,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
+    @final
     def _aggregate_series_pure_python(self, obj: Series, func: F):
         group_index, _, ngroups = self.group_info
 
