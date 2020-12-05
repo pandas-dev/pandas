@@ -3,7 +3,6 @@ from typing import Type, Union
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
@@ -269,18 +268,16 @@ class SharedTests:
             assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box):
+    def test_searchsorted_castable_strings(self, arr1d, box, request):
         if isinstance(arr1d, DatetimeArray):
             tz = arr1d.tz
-            if (
-                tz is not None
-                and tz is not pytz.UTC
-                and not isinstance(tz, pytz._FixedOffset)
-            ):
+            ts1, ts2 = arr1d[1:3]
+            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                pytest.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                request.node.add_marker(mark)
 
         arr = arr1d
         if box is None:
@@ -391,19 +388,17 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
-    def test_setitem_strs(self, arr1d):
+    def test_setitem_strs(self, arr1d, request):
         # Check that we parse strs in both scalar and listlike
         if isinstance(arr1d, DatetimeArray):
             tz = arr1d.tz
-            if (
-                tz is not None
-                and tz is not pytz.UTC
-                and not isinstance(tz, pytz._FixedOffset)
-            ):
+            ts1, ts2 = arr1d[-2:]
+            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                pytest.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                request.node.add_marker(mark)
 
         # Setting list-like of strs
         expected = arr1d.copy()

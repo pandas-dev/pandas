@@ -74,14 +74,16 @@ def test_numpy_ufuncs_basic(index, func):
 @pytest.mark.parametrize(
     "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
-def test_numpy_ufuncs_other(index, func):
+def test_numpy_ufuncs_other(index, func, request):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
         if isinstance(index, DatetimeIndex) and index.tz is not None:
             if func in [np.isfinite, np.isnan, np.isinf]:
-                pytest.xfail(reason="__array_ufunc__ is not defined")
+                if not np_version_under1p17:
+                    mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
+                    request.node.add_marker(mark)
 
         if not np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
             # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
