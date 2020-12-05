@@ -516,7 +516,7 @@ class BaseGrouper:
 
         elif is_float_dtype(values.dtype):
             # FloatingArray
-            values = values.to_numpy(na_value=np.nan)
+            values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
