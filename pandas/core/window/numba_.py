@@ -161,3 +161,60 @@ def generate_numba_groupby_ewma_func(
         return result
 
     return groupby_ewma
+
+
+def generate_numba_table_func(
+    args: Tuple,
+    kwargs: Dict[str, Any],
+    func: Callable[..., Scalar],
+    engine_kwargs: Optional[Dict[str, bool]],
+):
+    """
+    Generate a numba jitted function to apply window calculations table-wise
+
+    1. jit the user's function
+    2. Return a rolling apply function with the jitted function inline
+
+    Parameters
+    ----------
+    func : function
+        function to be applied to each window and will be JITed
+
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+
+    Returns
+    -------
+    Numba function
+    """
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
+
+    cache_key = (func, "rolling_apply")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
+
+    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba = import_optional_dependency("numba")
+    if parallel:
+        loop_range = numba.prange
+    else:
+        loop_range = range
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def roll_table(
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+    ):
+        # TODO: consider axis argument, len should be replaced with axis aware result
+        result = np.empty(values.shape)
+        for i in loop_range(len(result)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop, :]
+            count_nan = np.sum(np.isnan(window))
+            sub_result = numba_func(window, *args)
+            nan_mask = len(window) - count_nan >= minimum_periods
+            sub_result[~nan_mask] = np.nan
+            result[i, :] = sub_result
+        return result
+
+    return roll_table

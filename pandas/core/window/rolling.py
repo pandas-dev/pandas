@@ -412,6 +412,17 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self._insert_on_column(out, obj)
         return out
 
+    def _apply_tablewise(
+        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+    ) -> FrameOrSeriesUnion:
+        if self._selected_obj.ndim == 1:
+            raise ValueError("method='table' not applicable for Series objects.")
+        obj = self._create_data(self._selected_obj)
+        values = self._prep_values(obj)
+        # Need to ensure we wrap this correctly, will return ndarray
+        result = homogeneous_func(values)
+        return result
+
     def _apply(
         self,
         func: Callable[..., Any],
@@ -460,7 +471,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return func(x, start, end, min_periods)
 
             with np.errstate(all="ignore"):
-                if values.ndim > 1:
+                if values.ndim > 1 and self.method == "column":
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
