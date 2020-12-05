@@ -432,6 +432,15 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
+
+                                                     .. deprecated:: 1.2.0
+
+                                                        The `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        engine, the only engine that supports writing
+                                                        in an xls format, is no longer maintained and
+                                                        will be removed in a future version of pandas.
+                                                        This option will also be removed.
+
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:
                                                      'openpyxl' (the default).

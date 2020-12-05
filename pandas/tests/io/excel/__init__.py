@@ -9,4 +9,9 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:This method will be removed in future versions:DeprecationWarning"
     ),
+    # GH 26552
+    pytest.mark.filterwarnings(
+        "ignore:The xlwt engine, the only engine that supports writing in an xls "
+        "format, is no longer maintained"
+    ),
 ]
