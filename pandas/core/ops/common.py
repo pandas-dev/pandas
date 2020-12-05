@@ -10,8 +10,8 @@ from pandas._typing import F
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndexClass,
-    ABCSeries,
     ABCMultiIndex,
+    ABCSeries,
 )
 
 
