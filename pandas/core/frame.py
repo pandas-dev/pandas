@@ -615,9 +615,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
 
-                arr = np.atleast_2d(arr)
                 shape = (len(index), len(columns))
-                values = np.tile(arr, shape)
+                values = np.full(shape, arr)
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
