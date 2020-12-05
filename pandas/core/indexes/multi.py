@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
-    dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
+    {"klass": "MultiIndex", "target_klass": "MultiIndex or list of tuples"}
 )
 
 
@@ -2007,12 +2007,12 @@ class MultiIndex(Index):
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
-        d = dict(
-            levels=list(self.levels),
-            codes=list(self.codes),
-            sortorder=self.sortorder,
-            names=list(self.names),
-        )
+        d = {
+            "levels": list(self.levels),
+            "codes": list(self.codes),
+            "sortorder": self.sortorder,
+            "names": list(self.names),
+        }
         return ibase._new_Index, (type(self), d), None
 
     # --------------------------------------------------------------------
@@ -2052,7 +2052,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
         # only fill if we are passing a non-None fill_value
@@ -2116,7 +2116,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
@@ -3353,7 +3353,7 @@ class MultiIndex(Index):
                 return indexer
 
         n = len(self)
-        keys: Tuple[np.ndarray, ...] = tuple()
+        keys: Tuple[np.ndarray, ...] = ()
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
