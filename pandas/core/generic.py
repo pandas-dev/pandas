@@ -7182,6 +7182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if method == "linear":
             # prior default
             index = np.arange(len(obj.index))
+            index = Index(index)
         else:
             index = obj.index
             methods = {"index", "values", "nearest", "time"}
