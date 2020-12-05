@@ -162,3 +162,15 @@ def test_argminmax_idxminmax_with_datetime64_dtype(op_name, skipna, expected):
         assert np.isnan(result)
     else:
         assert result == expected
+
+
+def test_github_issues():
+    # GH#36566
+    ser = Series("a", dtype="string").value_counts()
+    assert ser.idxmax() == "a"
+
+    # GH#32749
+    from pandas.tests.extension.decimal import DecimalArray, make_data
+
+    ser = Series(DecimalArray(make_data()[:1]))
+    assert ser.idxmax() == 0
