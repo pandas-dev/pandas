@@ -124,6 +124,7 @@ def pivot_table(
                 v in data
                 and is_integer_dtype(data[v])
                 and v in agged
+                and not isinstance(agged[v], ABCDataFrame)
                 and not is_integer_dtype(agged[v])
             ):
                 agged[v] = maybe_downcast_numeric(agged[v], data[v].dtype)
