@@ -35,7 +35,7 @@ class PyTablesScope(_scope.Scope):
         queryables: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
-        self.queryables = queryables or dict()
+        self.queryables = queryables or {}
 
 
 class Term(ops.Term):
