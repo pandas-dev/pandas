@@ -645,7 +645,7 @@ class TestParquetPyArrow(Base):
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
             pytest.skip()
         s3 = s3fs.S3FileSystem(**s3so)
-        kw = dict(filesystem=s3)
+        kw = {"filesystem": s3}
         check_round_trip(
             df_compat,
             pa,
@@ -658,7 +658,7 @@ class TestParquetPyArrow(Base):
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
             pytest.skip()
         # GH #19134
-        s3so = dict(storage_options=s3so)
+        s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
             pa,
@@ -710,10 +710,12 @@ class TestParquetPyArrow(Base):
             pa,
             expected=expected_df,
             path="s3://pandas-test/parquet_dir",
-            read_kwargs=dict(storage_options=s3so),
-            write_kwargs=dict(
-                partition_cols=partition_col, compression=None, storage_options=s3so
-            ),
+            read_kwargs={"storage_options": s3so},
+            write_kwargs={
+                "partition_cols": partition_col,
+                "compression": None,
+                "storage_options": s3so,
+            },
             check_like=True,
             repeat=1,
         )
@@ -946,8 +948,8 @@ class TestParquetFastParquet(Base):
             df_compat,
             fp,
             path="s3://pandas-test/fastparquet.parquet",
-            read_kwargs=dict(storage_options=s3so),
-            write_kwargs=dict(compression=None, storage_options=s3so),
+            read_kwargs={"storage_options": s3so},
+            write_kwargs={"compression": None, "storage_options": s3so},
         )
 
     def test_partition_cols_supported(self, fp, df_full):
