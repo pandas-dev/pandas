@@ -49,7 +49,7 @@ from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = dict()
+_extension_array_shared_docs: Dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -952,7 +952,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat(tuple(), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
