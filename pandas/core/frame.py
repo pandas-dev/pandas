@@ -78,7 +78,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    cast_scalar_to_array,
     coerce_to_dtypes,
     construct_1d_arraylike_from_scalar,
     find_common_type,
@@ -616,9 +615,9 @@ class DataFrame(NDFrame, OpsMixin):
                 if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
 
-                values = cast_scalar_to_array(
-                    (len(index), len(columns)), data, dtype=dtype
-                )
+                arr = np.atleast_2d(arr)
+                shape = (len(index), len(columns))
+                values = np.tile(arr, shape)
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
@@ -3915,7 +3914,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+            infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
 
             # upcast
             if is_extension_array_dtype(infer_dtype):
@@ -3923,12 +3922,8 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                # pandas\core\frame.py:3827: error: Argument 1 to
-                # "cast_scalar_to_array" has incompatible type "int"; expected
-                # "Tuple[Any, ...]"  [arg-type]
-                value = cast_scalar_to_array(
-                    len(self.index), value  # type: ignore[arg-type]
-                )
+                value = np.empty(self.shape[:1], dtype=infer_dtype)
+                value.fill(fill_value)
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
