@@ -3143,8 +3143,14 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
+
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
+        return self._get_indexer(target, method, limit, tolerance)
+
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
