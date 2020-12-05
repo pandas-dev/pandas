@@ -106,15 +106,15 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_index_doc_kwargs = dict(
-    klass="Index",
-    inplace="",
-    target_klass="Index",
-    raises_section="",
-    unique="Index",
-    duplicated="np.ndarray",
-)
-_index_shared_docs = dict()
+_index_doc_kwargs = {
+    "klass": "Index",
+    "inplace": "",
+    "target_klass": "Index",
+    "raises_section": "",
+    "unique": "Index",
+    "duplicated": "np.ndarray",
+}
+_index_shared_docs = {}
 str_t = str
 
 
@@ -817,7 +817,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat(tuple(), {"axis": axis})
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
@@ -2155,7 +2155,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Pickle Methods
 
     def __reduce__(self):
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_Index, (type(self), d), None
 
@@ -4906,16 +4906,31 @@ class Index(IndexOpsMixin, PandasObject):
             # Treat boolean labels passed to a numeric index as not found. Without
             # this fix False and True would be treated as 0 and 1 respectively.
             # (GH #16877)
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
+            return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if not self._is_comparable_dtype(target.dtype):
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
+        if not self._should_compare(target):
+            return self._get_indexer_non_comparable(target, method=None, unique=False)
+
+        if not is_dtype_equal(self.dtype, target.dtype):
+            # TODO: if object, could use infer_dtype to pre-empt costly
+            #  conversion if still non-comparable?
+            dtype = find_common_type([self.dtype, target.dtype])
+            if (
+                dtype.kind in ["i", "u"]
+                and is_categorical_dtype(target.dtype)
+                and target.hasnans
+            ):
+                # FIXME: find_common_type incorrect with Categorical GH#38240
+                # FIXME: some cases where float64 cast can be lossy?
+                dtype = np.dtype(np.float64)
+
+            this = self.astype(dtype, copy=False)
+            that = target.astype(dtype, copy=False)
+            return this.get_indexer_non_unique(that)
 
         if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
@@ -4968,7 +4983,7 @@ class Index(IndexOpsMixin, PandasObject):
             If doing an inequality check, i.e. method is not None.
         """
         if method is not None:
-            other = _unpack_nested_dtype(target)
+            other = unpack_nested_dtype(target)
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -5019,7 +5034,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if `self == other` can ever have non-False entries.
         """
-        other = _unpack_nested_dtype(other)
+        other = unpack_nested_dtype(other)
         dtype = other.dtype
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
@@ -6172,7 +6187,7 @@ def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
     return names
 
 
-def _unpack_nested_dtype(other: Index) -> Index:
+def unpack_nested_dtype(other: Index) -> Index:
     """
     When checking if our dtype is comparable with another, we need
     to unpack CategoricalDtype to look at its categories.dtype.
