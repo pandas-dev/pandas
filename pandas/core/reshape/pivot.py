@@ -16,7 +16,7 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion, Label
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_numeric, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -126,7 +126,7 @@ def pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+                agged[v] = maybe_downcast_numeric(agged[v], data[v].dtype)
 
     table = agged
 
