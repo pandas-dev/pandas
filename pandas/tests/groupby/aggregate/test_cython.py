@@ -370,13 +370,13 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
         expected_dtype = data.dtype
 
     result = getattr(grouped, op_name)()
-    result["col"].dtype == expected_dtype
+    assert result["col"].dtype == expected_dtype
 
     result = grouped.aggregate(op_name)
-    result["col"].dtype == expected_dtype
+    assert result["col"].dtype == expected_dtype
 
     result = getattr(grouped["col"], op_name)()
-    result.dtype == expected_dtype
+    assert result.dtype == expected_dtype
 
     result = grouped["col"].aggregate(op_name)
-    result.dtype == expected_dtype
+    assert result.dtype == expected_dtype
