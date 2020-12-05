@@ -17,14 +17,17 @@ frame_kernels = [
 ]
 
 
-def test_transform_ufunc(axis, float_frame, frame_or_series):
-    # GH 35964
-    obj = float_frame
-    if frame_or_series is not DataFrame:
+def unpack_obj(obj, klass, axis):
+    if klass is not DataFrame:
         obj = obj["A"]
         if axis != 0:
-            # Test is only for DataFrame
-            return
+            pytest.skip(f"Test is only for DataFrame with axis={axis}")
+    return obj
+
+
+def test_transform_ufunc(axis, float_frame, frame_or_series):
+    # GH 35964
+    obj = unpack_obj(float_frame, frame_or_series, axis)
 
     with np.errstate(all="ignore"):
         f_sqrt = np.sqrt(obj)
@@ -73,9 +76,7 @@ def test_transform_listlike(axis, float_frame, ops, names):
 
 @pytest.mark.parametrize("ops", [[], np.array([])])
 def test_transform_empty_listlike(float_frame, ops, frame_or_series):
-    obj = float_frame
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
+    obj = unpack_obj(float_frame, frame_or_series, 0)
 
     with pytest.raises(ValueError, match="No transform functions were provided"):
         obj.transform(ops)
@@ -106,28 +107,28 @@ def test_transform_dictlike(axis, float_frame, box):
     ],
 )
 def test_transform_empty_dictlike(float_frame, ops, frame_or_series):
-    obj = float_frame
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
+    obj = unpack_obj(float_frame, frame_or_series, 0)
 
     with pytest.raises(ValueError, match="No transform functions were provided"):
         obj.transform(ops)
 
 
 @pytest.mark.parametrize("use_apply", [True, False])
-def test_transform_udf(axis, float_frame, use_apply):
+def test_transform_udf(axis, float_frame, use_apply, frame_or_series):
     # GH 35964
+    obj = unpack_obj(float_frame, frame_or_series, axis)
+
     # transform uses UDF either via apply or passing the entire DataFrame
     def func(x):
         # transform is using apply iff x is not a DataFrame
-        if use_apply == isinstance(x, DataFrame):
+        if use_apply == isinstance(x, frame_or_series):
             # Force transform to fallback
             raise ValueError
         return x + 1
 
-    result = float_frame.transform(func, axis=axis)
-    expected = float_frame + 1
-    tm.assert_frame_equal(result, expected)
+    result = obj.transform(func, axis=axis)
+    expected = obj + 1
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])

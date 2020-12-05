@@ -52,22 +52,6 @@ def test_transform_dictlike(string_series, box):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("use_apply", [True, False])
-def test_transform_udf(axis, string_series, use_apply):
-    # GH 35964
-    # via apply
-    def func(x):
-        # transform is using apply iff x is not a Series
-        if use_apply == isinstance(x, Series):
-            # Force transform to fallback
-            raise ValueError
-        return x + 1
-
-    result = string_series.transform(func)
-    expected = string_series + 1
-    tm.assert_series_equal(result, expected)
-
-
 def test_transform_wont_agg(string_series):
     # GH 35964
     # we are trying to transform with an aggregator
