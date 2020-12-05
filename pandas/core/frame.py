@@ -3916,14 +3916,9 @@ class DataFrame(NDFrame, OpsMixin):
             # cast ignores pandas dtypes. so save the dtype first
             infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
 
-            # upcast
-            if is_extension_array_dtype(infer_dtype):
-                value = construct_1d_arraylike_from_scalar(
-                    value, len(self.index), infer_dtype
-                )
-            else:
-                value = np.empty(self.shape[:1], dtype=infer_dtype)
-                value.fill(fill_value)
+            value = construct_1d_arraylike_from_scalar(
+                fill_value, len(self), infer_dtype
+            )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
