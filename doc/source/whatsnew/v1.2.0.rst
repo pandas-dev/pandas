@@ -538,6 +538,7 @@ Datetimelike
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
 - Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 - Bug in :func:`to_datetime` with a read-only array incorrectly raising (:issue:`34857`)
+- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 
 Timedelta
 ^^^^^^^^^
