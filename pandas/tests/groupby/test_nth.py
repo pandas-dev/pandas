@@ -91,13 +91,20 @@ def test_nth_with_na_object(index, nulls_fixture):
 
 
 @pytest.mark.parametrize("method", ["first", "last"])
+def test_first_last_with_None(method):
+    # https://github.com/pandas-dev/pandas/issues/32800
+    # None should be preserved as object dtype
+    df = DataFrame.from_dict({"id": ["a"], "value": [None]})
+    groups = df.groupby("id", as_index=False)
+    result = getattr(groups, method)()
+
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("method", ["first", "last"])
 @pytest.mark.parametrize(
     "df, expected",
     [
-        (
-            DataFrame({"id": ["a"], "value": [None]}),
-            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
-        ),
         (
             DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
             DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
@@ -108,7 +115,7 @@ def test_nth_with_na_object(index, nulls_fixture):
         ),
     ],
 )
-def test_first_last_with_none(method, df, expected):
+def test_first_last_with_None_expanded(method, df, expected):
     # GH 32800, 38286
     result = getattr(df.groupby("id"), method)()
     tm.assert_frame_equal(result, expected)
