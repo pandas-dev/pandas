@@ -125,10 +125,10 @@ def test_maybe_match_name(left, right, expected):
     ],
 )
 def test_maybe_match_names_multiindex(data, names, expected):
-    # GH#
+    # GH#38323
     mi = pd.MultiIndex.from_tuples([], names=["a", "b"])
     mi2 = pd.MultiIndex.from_tuples([data], names=names)
-    result = ops.common._maybe_match_names_multiindex(mi, mi2)
+    result = ops.common.maybe_match_names_multiindex(mi, mi2)
     assert result == expected
 
 

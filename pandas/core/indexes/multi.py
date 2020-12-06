@@ -22,6 +22,7 @@ from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
+from pandas.core.ops.common import maybe_match_names_multiindex
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -3590,6 +3591,17 @@ class MultiIndex(Index):
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
+
+    def _get_reconciled_name_object(self, other):
+        """
+        If the result of a set operation will be self,
+        return self, unless the names change, in which
+        case make a shallow copy of self.
+        """
+        names = maybe_match_names_multiindex(self, other)
+        if self.names != names:
+            return self.rename(names)
+        return self
 
     def intersection(self, other, sort=False):
         """

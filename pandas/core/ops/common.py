@@ -87,9 +87,7 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    if isinstance(left, ABCMultiIndex) and isinstance(right, ABCMultiIndex):
-        name = _maybe_match_names_multiindex(left, right)
-    elif isinstance(right, (ABCSeries, ABCIndexClass)):
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name
@@ -131,7 +129,7 @@ def _maybe_match_name(a, b):
     return None
 
 
-def _maybe_match_names_multiindex(a, b):
+def maybe_match_names_multiindex(a, b):
     """
     Try to find common names to attach to the result of an operation between
     a and b.  Return a consensus list of names if they match at least partly
