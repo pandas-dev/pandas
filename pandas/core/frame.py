@@ -5273,6 +5273,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.copy()
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         duplicated = self.duplicated(subset, keep=keep)
 
         result = self[-duplicated]
