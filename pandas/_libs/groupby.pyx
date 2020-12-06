@@ -903,13 +903,12 @@ def group_last(rank_t[:, :] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -939,7 +938,7 @@ def group_last(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -961,7 +960,7 @@ def group_last(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -986,7 +985,8 @@ def group_last(rank_t[:, :] out,
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               ndarray[rank_t, ndim=2] values,
-              const int64_t[:] labels, int64_t rank=1
+              const int64_t[:] labels,
+              int64_t min_count=-1, int64_t rank=1
               ):
     """
     Only aggregates on axis=0
@@ -1003,6 +1003,7 @@ def group_nth(rank_t[:, :] out,
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -1033,7 +1034,7 @@ def group_nth(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
@@ -1057,7 +1058,7 @@ def group_nth(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -1294,13 +1295,12 @@ def group_max(groupby_t[:, :] out,
         bint runtime_error = False
         int64_t[:, :] nobs
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     maxx = np.empty_like(out)
@@ -1337,11 +1337,12 @@ def group_max(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
                     else:
+
                         out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
@@ -1369,13 +1370,12 @@ def group_min(groupby_t[:, :] out,
         bint runtime_error = False
         int64_t[:, :] nobs
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     minx = np.empty_like(out)
@@ -1411,7 +1411,7 @@ def group_min(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break

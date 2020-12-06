@@ -1288,8 +1288,8 @@ class TestDatetime64DateOffsetArithmetic:
             ("seconds", 2),
             ("microseconds", 5),
         ]
-        for i, kwd in enumerate(relative_kwargs):
-            off = DateOffset(**dict([kwd]))
+        for i, (unit, value) in enumerate(relative_kwargs):
+            off = DateOffset(**{unit: value})
 
             expected = DatetimeIndex([x + off for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)

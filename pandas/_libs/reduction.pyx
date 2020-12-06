@@ -44,7 +44,9 @@ cdef class _BaseGrouper:
                                     Slider islider, Slider vslider):
         if cached_typ is None:
             cached_ityp = self.ityp(islider.buf)
-            cached_typ = self.typ(vslider.buf, index=cached_ityp, name=self.name)
+            cached_typ = self.typ(
+                vslider.buf, dtype=vslider.buf.dtype, index=cached_ityp, name=self.name
+            )
         else:
             # See the comment in indexes/base.py about _index_data.
             # We need this for EA-backed indexes that have a reference
@@ -365,9 +367,9 @@ def apply_frame_axis0(object frame, object f, object names,
 
             try:
                 piece = f(chunk)
-            except Exception:
+            except Exception as err:
                 # We can't be more specific without knowing something about `f`
-                raise InvalidApply('Let this error raise above us')
+                raise InvalidApply("Let this error raise above us") from err
 
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk

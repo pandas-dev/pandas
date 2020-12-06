@@ -376,10 +376,10 @@ def test_parse_trim_buffers(c_parser_only):
     )
 
     # Iterate over the CSV file in chunks of `chunksize` lines
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
 
     # Check for data corruption if there was no segfault
     tm.assert_frame_equal(result, expected)
@@ -387,14 +387,14 @@ def test_parse_trim_buffers(c_parser_only):
     # This extra test was added to replicate the fault in gh-5291.
     # Force 'utf-8' encoding, so that `_string_convert` would take
     # a different execution branch.
-    chunks_ = parser.read_csv(
+    with parser.read_csv(
         StringIO(csv_data),
         header=None,
         dtype=object,
         chunksize=chunksize,
         encoding="utf_8",
-    )
-    result = concat(chunks_, axis=0, ignore_index=True)
+    ) as chunks_:
+        result = concat(chunks_, axis=0, ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
 

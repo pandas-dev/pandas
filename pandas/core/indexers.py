@@ -79,6 +79,9 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     -------
     bool
     """
+    if ndim == 1 and is_integer(indexer):
+        # GH37748: allow indexer to be an integer for Series
+        return True
     if isinstance(indexer, tuple):
         if len(indexer) == ndim:
             return all(
@@ -105,7 +108,7 @@ def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
         return True
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
         return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 

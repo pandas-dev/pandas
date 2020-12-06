@@ -248,6 +248,10 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+        # overriding IndexOpsMixin improves performance GH#38083
+        return self._data.searchsorted(value, side=side, sorter=sorter)
+
     # ---------------------------------------------------------------------
 
     def _check_indexing_method(self, method):
@@ -269,7 +273,7 @@ class ExtensionIndex(Index):
         return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         result = self._data.repeat(repeats, axis=axis)
         return type(self)._simple_new(result, name=self.name)
 
@@ -377,6 +381,11 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
         return type(self)._simple_new(new_arr, name=self.name)
+
+    @doc(Index.where)
+    def where(self, cond, other=None):
+        res_values = self._data.where(cond, other)
+        return type(self)._simple_new(res_values, name=self.name)
 
     def putmask(self, mask, value):
         res_values = self._data.copy()

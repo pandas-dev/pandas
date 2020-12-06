@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List
+from typing import Any, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -461,6 +461,16 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
+    def factorize(
+        self, sort: bool = False, na_sentinel: Optional[int] = -1
+    ) -> Tuple[np.ndarray, "RangeIndex"]:
+        codes = np.arange(len(self), dtype=np.intp)
+        uniques = self
+        if sort and self.step < 0:
+            codes = codes[::-1]
+            uniques = uniques[::-1]
+        return codes, uniques
+
     def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
@@ -472,34 +482,11 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def intersection(self, other, sort=False):
-        """
-        Form the intersection of two Index objects.
-
-        Parameters
-        ----------
-        other : Index or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        intersection : Index
-        """
-        self._validate_sort_keyword(sort)
-
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
+    def _intersection(self, other, sort=False):
 
         if not isinstance(other, RangeIndex):
-            return super().intersection(other, sort=sort)
+            # Int64Index
+            return super()._intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)
@@ -541,7 +528,7 @@ class RangeIndex(Int64Index):
         if sort is None:
             new_index = new_index.sort_values()
 
-        return self._wrap_setop_result(other, new_index)
+        return new_index
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
@@ -642,6 +629,8 @@ class RangeIndex(Int64Index):
     def difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
             return super().difference(other, sort=sort)
@@ -660,13 +649,17 @@ class RangeIndex(Int64Index):
         if not isinstance(overlap, RangeIndex):
             # We wont end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
+        if overlap.step != first.step:
+            # In some cases we might be able to get a RangeIndex back,
+            #  but not worth the effort.
+            return super().difference(other, sort=sort)
 
         if overlap[0] == first.start:
             # The difference is everything after the intersection
             new_rng = range(overlap[-1] + first.step, first.stop, first.step)
-        elif overlap[-1] == first.stop:
+        elif overlap[-1] == first[-1]:
             # The difference is everything before the intersection
-            new_rng = range(first.start, overlap[0] - first.step, first.step)
+            new_rng = range(first.start, overlap[0], first.step)
         else:
             # The difference is not range-like
             return super().difference(other, sort=sort)
