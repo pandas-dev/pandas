@@ -2599,7 +2599,7 @@ class MultiIndex(Index):
     def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         # empty indexer
-        if is_list_like(target) and not len(target):
+        if not len(target):
             return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
@@ -2612,9 +2612,6 @@ class MultiIndex(Index):
                     return Index(self._values).get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
-
-        if not self.is_unique:
-            raise ValueError("Reindexing only valid with uniquely valued Index objects")
 
         if method == "pad" or method == "backfill":
             if tolerance is not None:

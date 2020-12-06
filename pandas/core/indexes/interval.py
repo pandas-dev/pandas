@@ -671,14 +671,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        self._check_indexing_method(method)
-
-        if self.is_overlapping:
-            raise InvalidIndexError(
-                "cannot handle overlapping indices; "
-                "use IntervalIndex.get_indexer_non_unique"
-            )
-
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
             if self.equals(target):
@@ -766,6 +758,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @property
     def _index_as_unique(self):
         return not self.is_overlapping
+
+    _requires_unique_msg = (
+        "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
+    )
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
