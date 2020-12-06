@@ -12,7 +12,7 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Timestamp
 import pandas._testing as tm
 
 
@@ -314,3 +314,19 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+def test_delimiter_with_usecols_and_parse_dates(python_parser_only):
+    # GH#35873
+    result = python_parser_only.read_csv(
+        StringIO('"dump","-9,1","-9,1",20101010'),
+        engine="python",
+        names=["col", "col1", "col2", "col3"],
+        usecols=["col1", "col2", "col3"],
+        parse_dates=["col3"],
+        decimal=",",
+    )
+    expected = DataFrame(
+        {"col1": [-9.1], "col2": [-9.1], "col3": [Timestamp("2010-10-10")]}
+    )
+    tm.assert_frame_equal(result, expected)
