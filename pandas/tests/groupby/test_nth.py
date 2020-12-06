@@ -105,6 +105,26 @@ def test_first_last_with_None(method):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_first_last_nth_dtypes(df_mixed_floats):
 
     df = df_mixed_floats.copy()
