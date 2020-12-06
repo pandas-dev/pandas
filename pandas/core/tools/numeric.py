@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
 
@@ -122,7 +122,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
             values = arg.asi8

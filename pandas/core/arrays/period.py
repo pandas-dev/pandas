@@ -40,7 +40,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCIndexClass,
+    ABCIndex,
     ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaArray,
@@ -964,14 +964,14 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         raise ValueError(f"Wrong dtype: {data.dtype}")
 
     if freq is None:
-        if isinstance(data, ABCIndexClass):
+        if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
             data, freq = data._values, data.dt.freq
 
     freq = Period._maybe_convert_freq(freq)
 
-    if isinstance(data, (ABCIndexClass, ABCSeries)):
+    if isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
     base = freq._period_dtype_code
