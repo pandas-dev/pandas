@@ -1,6 +1,6 @@
 .. _whatsnew_115:
 
-What's new in 1.1.5 (December 06, 2020)
+What's new in 1.1.5 (December 07, 2020)
 ---------------------------------------
 
 These are the changes in pandas 1.1.5. See :ref:`release` for a full changelog
