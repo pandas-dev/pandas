@@ -84,7 +84,13 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Float64Index,
+    Index,
+    MultiIndex,
+    ensure_index,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -105,21 +111,21 @@ if TYPE_CHECKING:
 
 __all__ = ["Series"]
 
-_shared_doc_kwargs = dict(
-    axes="index",
-    klass="Series",
-    axes_single_arg="{0 or 'index'}",
-    axis="""axis : {0 or 'index'}
+_shared_doc_kwargs = {
+    "axes": "index",
+    "klass": "Series",
+    "axes_single_arg": "{0 or 'index'}",
+    "axis": """axis : {0 or 'index'}
         Parameter needed for compatibility with DataFrame.""",
-    inplace="""inplace : boolean, default False
+    "inplace": """inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
-    unique="np.ndarray",
-    duplicated="Series",
-    optional_by="",
-    optional_mapper="",
-    optional_labels="",
-    optional_axis="",
-)
+    "unique": "np.ndarray",
+    "duplicated": "Series",
+    "optional_by": "",
+    "optional_mapper": "",
+    "optional_labels": "",
+    "optional_axis": "",
+}
 
 
 def _coerce_method(converter):
@@ -412,7 +418,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             labels = ensure_index(labels)
 
         if labels._is_all_dates:
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+            deep_labels = labels
+            if isinstance(labels, CategoricalIndex):
+                deep_labels = labels.categories
+
+            if not isinstance(
+                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+            ):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
@@ -904,7 +916,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
-            return self._values[indexer]
+            # the asarray is needed to avoid returning a 2D DatetimeArray
+            return np.asarray(self._values[indexer])
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1101,7 +1114,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat(tuple(), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(
@@ -4706,6 +4719,7 @@ Keep all original rows and also all original values
         convert_string: bool = True,
         convert_integer: bool = True,
         convert_boolean: bool = True,
+        convert_floating: bool = True,
     ) -> "Series":
         input_series = self
         if infer_objects:
@@ -4713,9 +4727,13 @@ Keep all original rows and also all original values
             if is_object_dtype(input_series):
                 input_series = input_series.copy()
 
-        if convert_string or convert_integer or convert_boolean:
+        if convert_string or convert_integer or convert_boolean or convert_floating:
             inferred_dtype = convert_dtypes(
-                input_series._values, convert_string, convert_integer, convert_boolean
+                input_series._values,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
             try:
                 result = input_series.astype(inferred_dtype)

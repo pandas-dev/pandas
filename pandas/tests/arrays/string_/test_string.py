@@ -366,6 +366,15 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_float(any_float_allowed_nullable_dtype):
+    # Don't compare arrays (37974)
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    result = ser.astype(any_float_allowed_nullable_dtype)
+    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
@@ -483,6 +492,18 @@ def test_value_counts_na(dtype, request):
 
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_normalize(dtype, request):
+    if dtype == "arrow_string":
+        reason = "TypeError: boolean value of NA is ambiguous"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
 

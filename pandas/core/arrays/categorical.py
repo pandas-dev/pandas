@@ -1269,15 +1269,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
         """
-        ret = take_1d(self.categories.values, self._codes)
+        ret = take_1d(self.categories._values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
-        if is_extension_array_dtype(ret):
-            # When we're a Categorical[ExtensionArray], like Interval,
-            # we need to ensure __array__ get's all the way to an
-            # ndarray.
-            ret = np.asarray(ret)
-        return ret
+        # When we're a Categorical[ExtensionArray], like Interval,
+        # we need to ensure __array__ gets all the way to an
+        # ndarray.
+        return np.asarray(ret)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
