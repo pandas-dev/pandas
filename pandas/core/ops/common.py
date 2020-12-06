@@ -7,12 +7,7 @@ from typing import Callable
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import F
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
