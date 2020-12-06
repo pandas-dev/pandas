@@ -57,10 +57,10 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex(list("aabbcaca"), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # invalid objects
-        msg = "cannot append a non-category item to a CategoricalIndex"
-        with pytest.raises(TypeError, match=msg):
-            ci.append(Index(["a", "d"]))
+        # invalid objects -> cast to object via concat_compat
+        result = ci.append(Index(["a", "d"]))
+        expected = Index(["a", "a", "b", "b", "c", "a", "a", "d"])
+        tm.assert_index_equal(result, expected, exact=True)
 
         # GH14298 - if base object is not categorical -> coerce to object
         result = Index(["c", "a"]).append(ci)

@@ -79,6 +79,9 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     -------
     bool
     """
+    if ndim == 1 and is_integer(indexer):
+        # GH37748: allow indexer to be an integer for Series
+        return True
     if isinstance(indexer, tuple):
         if len(indexer) == ndim:
             return all(

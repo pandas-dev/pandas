@@ -18,7 +18,7 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSe
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import array
+from pandas.core.construction import array, ensure_wrapped_if_datetimelike
 
 
 def _get_dtype_kinds(arrays) -> Set[str]:
@@ -360,12 +360,14 @@ def _concat_datetime(to_concat, axis=0):
     -------
     a single array, preserving the combined dtypes
     """
-    to_concat = [_wrap_datetimelike(x) for x in to_concat]
+    to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
+
     single_dtype = len({x.dtype for x in to_concat}) == 1
 
     # multiple types, need to coerce to object
     if not single_dtype:
-        # wrap_datetimelike ensures that astype(object) wraps in Timestamp/Timedelta
+        # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
+        #  in Timestamp/Timedelta
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
     if axis == 1:
@@ -379,17 +381,3 @@ def _concat_datetime(to_concat, axis=0):
         assert result.shape[0] == 1
         result = result[0]
     return result
-
-
-def _wrap_datetimelike(arr):
-    """
-    Wrap datetime64 and timedelta64 ndarrays in DatetimeArray/TimedeltaArray.
-
-    DTA/TDA handle .astype(object) correctly.
-    """
-    from pandas.core.construction import array as pd_array, extract_array
-
-    arr = extract_array(arr, extract_numpy=True)
-    if isinstance(arr, np.ndarray) and arr.dtype.kind in ["m", "M"]:
-        arr = pd_array(arr)
-    return arr
