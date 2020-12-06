@@ -22,7 +22,6 @@ from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
-from pandas.core.ops.common import maybe_match_names_multiindex
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -57,6 +56,7 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
+from pandas.core.ops.common import maybe_match_names_multiindex
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
