@@ -680,7 +680,7 @@ Indexing
 - Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
 - Bug in :meth:`Series.loc` and :meth:`Series.iloc` raising ``ValueError`` when inserting a listlike ``np.array``, ``list`` or ``tuple`` in an ``object`` Series of equal length (:issue:`37748`, :issue:`37486`)
 - Bug in :meth:`Series.loc` and :meth:`Series.iloc` setting all the values of an ``object`` Series with those of a listlike ``ExtensionArray`` instead of inserting it (:issue:`38271`)
-- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem with a ``dict`` when there are mixed dtypes (:issue:`????`)
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem with a ``dict`` when there are mixed dtypes (:issue:`38335`)
 
 Missing
 ^^^^^^^
