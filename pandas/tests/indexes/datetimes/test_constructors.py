@@ -102,8 +102,8 @@ class TestDatetimeIndex:
     def test_constructor_from_sparse_array(self):
         # https://github.com/pandas-dev/pandas/issues/35843
         values = [
-            pd.Timestamp("2012-05-01T01:00:00.000000"),
-            pd.Timestamp("2016-05-01T01:00:00.000000"),
+            Timestamp("2012-05-01T01:00:00.000000"),
+            Timestamp("2016-05-01T01:00:00.000000"),
         ]
         arr = pd.arrays.SparseArray(values)
         result = Index(arr)
