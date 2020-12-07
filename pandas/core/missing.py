@@ -434,7 +434,7 @@ def _akima_interpolate(
     yi: ArrayLike,
     x: Union[Scalar, ArrayLike],
     der: Optional[int] = 0,
-    axis: Optional[int] = 0,
+    axis: Axis = 0,
 ) -> Union[Scalar, ArrayLike]:
     """
     Convenience function for akima interpolation.
