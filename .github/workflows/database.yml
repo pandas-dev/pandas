@@ -29,7 +29,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: pandas_nosetest
 
         ports:
         - 5432/tcp
@@ -48,22 +48,29 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup MySQL
-      run: 
-        sudo systemctl enable mysql.service
-        sudo systemctl start mysql.service
+    # - name: Start MySQL
+    #   run: 
+    #     sudo systemctl enable mysql.service
+    #     sudo systemctl start mysql.service
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
+    - name: Cache conda
+      uses: actions/cache@v1
       env:
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }} 
-      if: always()
+        # Increase this value to reset cache if the environment file has not changed
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles(${{ env.ENV_FILE }}) }}
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Test
-      run: |
-        source activate pandas-dev
-        ci/run_tests.sh
+      run: ci/run_tests.sh
       if: always()
 
     - name: Publish test results
