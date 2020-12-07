@@ -370,9 +370,11 @@ def _interpolate_scipy_wrapper(
         if not new_x.flags.writeable:
             new_x = new_x.copy()
 
-        assert isinstance(method, str)
-        alt_method = alt_methods[method]
-        new_y = alt_method(x, y, new_x, **kwargs)
+        if isinstance(method, str):
+            alt_method = alt_methods[method]
+            new_y = alt_method(x, y, new_x, **kwargs)
+        else:
+            raise ValueError(f"{method} is not a valid interp method")
     return new_y
 
 
