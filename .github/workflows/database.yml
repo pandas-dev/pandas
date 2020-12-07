@@ -1,0 +1,74 @@
+name: Database
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches:
+      - master
+      - 1.1.x
+
+env:
+  PYTEST_WORKERS: "auto"
+  SQL: 1
+
+jobs:
+  Linux_py38_slow:
+    name: Checks
+    runs-on: ubuntu-latest
+
+    env:
+      CONDA_PY: "38"
+      ENV_FILE: ci/deps/actions-38-slow.yaml
+      PATTERN: slow
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ''
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      mariadb:
+        image: mysql:5.7
+        ports:
+          - 3306
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        options: >-
+          --health-cmd="mysqladmin ping" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+
+
+    steps:
+
+    - name: Setting conda path
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup environment and build pandas
+      run: ci/setup_env.sh
+      if: always()
+
+    - name: Test
+      run: |
+        source activate pandas-dev
+        ci/run_tests.sh
+      if: always()
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
