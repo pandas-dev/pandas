@@ -2336,6 +2336,9 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        if self._col_indices is None:
+            self._col_indices = list(range(len(self.columns)))
+
         self._validate_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
@@ -2354,16 +2357,12 @@ class PythonParser(ParserBase):
         # Create a set of column ids that are not to be stripped of thousands
         # operators.
         noconvert_columns = set()
-        if self._col_indices is not None:
-            col_indices = sorted(self._col_indices)
-        else:
-            col_indices = list(range(len(self.columns)))
 
         def _set(x):
             if is_integer(x):
                 noconvert_columns.add(x)
             else:
-                noconvert_columns.add(col_indices[self.columns.index(x)])
+                noconvert_columns.add(self._col_indices[self.columns.index(x)])
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -2795,7 +2794,7 @@ class PythonParser(ParserBase):
                 [n for i, n in enumerate(column) if i in col_indices]
                 for column in columns
             ]
-            self._col_indices = col_indices
+            self._col_indices = sorted(col_indices)
         return columns
 
     def _buffered_line(self):
