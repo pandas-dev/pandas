@@ -835,16 +835,9 @@ class TestFrameArithmetic:
     )
     def test_binop_other(self, op, value, dtype):
         skip = {
-            (operator.add, "bool"),
-            (operator.sub, "bool"),
-            (operator.mul, "bool"),
             (operator.truediv, "bool"),
-            (operator.mod, "i8"),
-            (operator.mod, "complex128"),
             (operator.pow, "bool"),
         }
-        if (op, dtype) in skip:
-            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
@@ -857,26 +850,46 @@ class TestFrameArithmetic:
             (operator.add, "<M8[ns]"),
             (operator.pow, "<m8[ns]"),
             (operator.mul, "<m8[ns]"),
+            (operator.sub, "bool"),
+            (operator.mod, "complex128"),
         }
 
         if (op, dtype) in invalid:
-            msg = (
-                None
-                if (dtype == "<M8[ns]" and op == operator.add)
-                or (dtype == "<m8[ns]" and op == operator.mul)
-                else (
+            warn = None
+            if (dtype == "<M8[ns]" and op == operator.add) or (
+                dtype == "<m8[ns]" and op == operator.mul
+            ):
+                msg = None
+            elif dtype == "complex128":
+                msg = "ufunc 'remainder' not supported for the input types"
+                warn = UserWarning  # "evaluating in Python space because ..."
+            elif op is operator.sub:
+                msg = "numpy boolean subtract, the `-` operator, is "
+                warn = UserWarning  # "evaluating in Python space because ..."
+            else:
+                msg = (
                     f"cannot perform __{op.__name__}__ with this "
                     "index type: (DatetimeArray|TimedeltaArray)"
                 )
-            )
 
             with pytest.raises(TypeError, match=msg):
-                op(s, e.value)
+                with tm.assert_produces_warning(warn):
+                    op(s, e.value)
+
+        elif (op, dtype) in skip:
+
+            msg = "operator '.*' not implemented for .* dtypes"
+            with pytest.raises(NotImplementedError, match=msg):
+                with tm.assert_produces_warning(UserWarning):
+                    # "evaluating in Python space because ..."
+                    op(s, e.value)
+
         else:
             # FIXME: Since dispatching to Series, this test no longer
             # asserts anything meaningful
-            result = op(s, e.value).dtypes
-            expected = op(s, value).dtypes
+            with tm.assert_produces_warning(None):
+                result = op(s, e.value).dtypes
+                expected = op(s, value).dtypes
             tm.assert_series_equal(result, expected)
 
 

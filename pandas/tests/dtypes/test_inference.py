@@ -66,7 +66,7 @@ ll_params = [
     ([1], True, "list"),
     ([], True, "list-empty"),
     ((1,), True, "tuple"),
-    (tuple(), True, "tuple-empty"),
+    ((), True, "tuple-empty"),
     ({"a": 1}, True, "dict"),
     ({}, True, "dict-empty"),
     ({"a", 1}, "set", "set"),
@@ -161,7 +161,7 @@ def test_is_array_like():
     assert inference.is_array_like(DtypeList())
 
     assert not inference.is_array_like([1, 2, 3])
-    assert not inference.is_array_like(tuple())
+    assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
 
@@ -326,7 +326,7 @@ def test_is_hashable():
         def __hash__(self):
             raise TypeError("Not hashable")
 
-    hashable = (1, 3.14, np.float64(3.14), "a", tuple(), (1,), HashableClass())
+    hashable = (1, 3.14, np.float64(3.14), "a", (), (1,), HashableClass())
     not_hashable = ([], UnhashableClass1())
     abc_hashable_not_really_hashable = (([],), UnhashableClass2())
 
