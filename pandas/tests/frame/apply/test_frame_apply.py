@@ -697,14 +697,14 @@ class TestDataFrameApply:
     def test_apply_non_numpy_dtype(self):
         # GH 12244
         df = DataFrame(
-            {"dt": pd.date_range("2015-01-01", periods=3, tz="Europe/Brussels")}
+            {"dt": date_range("2015-01-01", periods=3, tz="Europe/Brussels")}
         )
         result = df.apply(lambda x: x)
         tm.assert_frame_equal(result, df)
 
         result = df.apply(lambda x: x + pd.Timedelta("1day"))
         expected = DataFrame(
-            {"dt": pd.date_range("2015-01-02", periods=3, tz="Europe/Brussels")}
+            {"dt": date_range("2015-01-02", periods=3, tz="Europe/Brussels")}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1169,7 +1169,7 @@ class TestDataFrameAggregate:
                 "A": [1, 2, 3],
                 "B": [1.0, 2.0, 3.0],
                 "C": ["foo", "bar", "baz"],
-                "D": pd.date_range("20130101", periods=3),
+                "D": date_range("20130101", periods=3),
             }
         )
         expected = DataFrame(
@@ -1285,7 +1285,7 @@ class TestDataFrameAggregate:
                 "A": [1, 2, 3],
                 "B": [1.0, 2.0, 3.0],
                 "C": ["foo", "bar", "baz"],
-                "D": pd.date_range("20130101", periods=3),
+                "D": date_range("20130101", periods=3),
             }
         )
 

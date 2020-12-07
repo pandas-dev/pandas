@@ -229,11 +229,11 @@ class TestSeriesDatetimeValues:
 
         # 11295
         # ambiguous time error on the conversions
-        s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        s = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
-        exp_values = pd.date_range(
+        exp_values = date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
@@ -624,7 +624,7 @@ class TestSeriesDatetimeValues:
         assert not hasattr(ser, "dt")
 
     def test_dt_accessor_updates_on_inplace(self):
-        s = Series(pd.date_range("2018-01-01", periods=10))
+        s = Series(date_range("2018-01-01", periods=10))
         s[2] = None
         return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
         assert return_value is None

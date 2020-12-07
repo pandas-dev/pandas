@@ -41,7 +41,7 @@ class TestDataFrameToCSV:
         params = {"index_col": 0, "parse_dates": True}
         params.update(**kwargs)
 
-        return pd.read_csv(path, **params)
+        return read_csv(path, **params)
 
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
 
@@ -123,7 +123,7 @@ class TestDataFrameToCSV:
             df1.to_csv(path)
             df2.to_csv(path, mode="a", header=False)
             xp = pd.concat([df1, df2])
-            rs = pd.read_csv(path, index_col=0)
+            rs = read_csv(path, index_col=0)
             rs.columns = [int(label) for label in rs.columns]
             xp.columns = [int(label) for label in xp.columns]
             tm.assert_frame_equal(xp, rs)
@@ -139,7 +139,7 @@ class TestDataFrameToCSV:
             )
             df.to_csv(path)
 
-            result = pd.read_csv(path, index_col="dt_index")
+            result = read_csv(path, index_col="dt_index")
             result.index = pd.to_timedelta(result.index)
             # TODO: remove renaming when GH 10875 is solved
             result.index = result.index.rename("dt_index")
@@ -153,7 +153,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv5__") as path:
 
             timezone_frame.to_csv(path)
-            result = pd.read_csv(path, index_col=0, parse_dates=["A"])
+            result = read_csv(path, index_col=0, parse_dates=["A"])
 
             converter = (
                 lambda c: to_datetime(result[c])
@@ -166,7 +166,6 @@ class TestDataFrameToCSV:
 
     def test_to_csv_cols_reordering(self):
         # GH3454
-        import pandas as pd
 
         chunksize = 5
         N = int(chunksize * 2.5)
@@ -177,17 +176,15 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean() as path:
             df.to_csv(path, columns=cols, chunksize=chunksize)
-            rs_c = pd.read_csv(path, index_col=0)
+            rs_c = read_csv(path, index_col=0)
 
         tm.assert_frame_equal(df[cols], rs_c, check_names=False)
 
     def test_to_csv_new_dupe_cols(self):
-        import pandas as pd
-
         def _check_df(df, cols=None):
             with tm.ensure_clean() as path:
                 df.to_csv(path, columns=cols, chunksize=chunksize)
-                rs_c = pd.read_csv(path, index_col=0)
+                rs_c = read_csv(path, index_col=0)
 
                 # we wrote them in a different order
                 # so compare them in that order
@@ -999,7 +996,7 @@ class TestDataFrameToCSV:
         # Series.to_csv()
         csv_str = float_frame.to_csv(path_or_buf=None)
         assert isinstance(csv_str, str)
-        recons = pd.read_csv(StringIO(csv_str), index_col=0)
+        recons = read_csv(StringIO(csv_str), index_col=0)
         tm.assert_frame_equal(float_frame, recons)
 
     @pytest.mark.parametrize(
@@ -1040,7 +1037,7 @@ class TestDataFrameToCSV:
                 df.to_csv(handles.handle, encoding=encoding)
                 assert not handles.handle.closed
 
-            result = pd.read_csv(
+            result = read_csv(
                 filename,
                 compression=compression,
                 encoding=encoding,
@@ -1122,7 +1119,7 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             # make sure we are not failing on transitions
-            times = pd.date_range(
+            times = date_range(
                 "2013-10-26 23:00",
                 "2013-10-27 01:00",
                 tz="Europe/London",
@@ -1144,7 +1141,7 @@ class TestDataFrameToCSV:
                 tm.assert_frame_equal(result, df)
 
         # GH11619
-        idx = pd.date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
+        idx = date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
@@ -1250,7 +1247,7 @@ class TestDataFrameToCSV:
         # presents with encoding?
         text_rows = ["a,b,c", '1,"test \r\n",3']
         text = tm.convert_rows_list_to_csv_str(text_rows)
-        df = pd.read_csv(StringIO(text))
+        df = read_csv(StringIO(text))
 
         buf = StringIO()
         df.to_csv(buf, encoding="utf-8", index=False)

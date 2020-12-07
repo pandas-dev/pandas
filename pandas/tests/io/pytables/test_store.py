@@ -811,7 +811,7 @@ class TestHDFStore:
         # default value
         with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df", complevel=9)
-            result = pd.read_hdf(tmpfile, "df")
+            result = read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
 
             with tables.open_file(tmpfile, mode="r") as h5file:
@@ -822,7 +822,7 @@ class TestHDFStore:
         # Set complib and check to see if compression is disabled
         with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df", complib="zlib")
-            result = pd.read_hdf(tmpfile, "df")
+            result = read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
 
             with tables.open_file(tmpfile, mode="r") as h5file:
@@ -833,7 +833,7 @@ class TestHDFStore:
         # Check if not setting complib or complevel results in no compression
         with ensure_clean_path(setup_path) as tmpfile:
             df.to_hdf(tmpfile, "df")
-            result = pd.read_hdf(tmpfile, "df")
+            result = read_hdf(tmpfile, "df")
             tm.assert_frame_equal(result, df)
 
             with tables.open_file(tmpfile, mode="r") as h5file:
@@ -878,7 +878,7 @@ class TestHDFStore:
 
                 # Write and read file to see if data is consistent
                 df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
-                result = pd.read_hdf(tmpfile, gname)
+                result = read_hdf(tmpfile, gname)
                 tm.assert_frame_equal(result, df)
 
                 # Open file and check metadata
@@ -1286,7 +1286,7 @@ class TestHDFStore:
             df.to_hdf(path, "k1")
 
             with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(path, "k2")
+                read_hdf(path, "k2")
 
             # smoke test to test that file is properly closed after
             # read with KeyError before another write
@@ -1301,11 +1301,11 @@ class TestHDFStore:
             with HDFStore(path, "r") as store:
 
                 with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                    pd.read_hdf(store, "k2")
+                    read_hdf(store, "k2")
 
                 # Test that the file is still open after a KeyError and that we can
                 # still read from it.
-                pd.read_hdf(store, "k1")
+                read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
@@ -1429,14 +1429,12 @@ class TestHDFStore:
                 # just make sure there is a longer string:
                 df2 = df.copy().reset_index().assign(C="longer").set_index("C")
                 store.append("ss3", df2)
-                tm.assert_frame_equal(store.select("ss3"), pd.concat([df, df2]))
+                tm.assert_frame_equal(store.select("ss3"), concat([df, df2]))
 
                 # same as above, with a Series
                 store.put("ss4", df["B"], format="table", min_itemsize={"index": 6})
                 store.append("ss4", df2["B"])
-                tm.assert_series_equal(
-                    store.select("ss4"), pd.concat([df["B"], df2["B"]])
-                )
+                tm.assert_series_equal(store.select("ss4"), concat([df["B"], df2["B"]]))
 
                 # with nans
                 _maybe_remove(store, "df")
@@ -1511,14 +1509,12 @@ class TestHDFStore:
             # just make sure there is a longer string:
             df2 = df.copy().reset_index().assign(C="longer").set_index("C")
             df2.to_hdf(path, "ss3", append=True, format="table")
-            tm.assert_frame_equal(pd.read_hdf(path, "ss3"), pd.concat([df, df2]))
+            tm.assert_frame_equal(read_hdf(path, "ss3"), concat([df, df2]))
 
             # same as above, with a Series
             df["B"].to_hdf(path, "ss4", format="table", min_itemsize={"index": 6})
             df2["B"].to_hdf(path, "ss4", append=True, format="table")
-            tm.assert_series_equal(
-                pd.read_hdf(path, "ss4"), pd.concat([df["B"], df2["B"]])
-            )
+            tm.assert_series_equal(read_hdf(path, "ss4"), concat([df["B"], df2["B"]]))
 
     @pytest.mark.parametrize("format", ["fixed", "table"])
     def test_to_hdf_errors(self, format, setup_path):
@@ -1529,7 +1525,7 @@ class TestHDFStore:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
 
-            result = pd.read_hdf(path, "table", errors="surrogatepass")
+            result = read_hdf(path, "table", errors="surrogatepass")
             tm.assert_series_equal(result, ser)
 
     def test_append_with_data_columns(self, setup_path):
@@ -2327,11 +2323,8 @@ class TestHDFStore:
     def test_same_name_scoping(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
-
-            import pandas as pd
-
             df = DataFrame(
-                np.random.randn(20, 2), index=pd.date_range("20130101", periods=20)
+                np.random.randn(20, 2), index=date_range("20130101", periods=20)
             )
             store.put("df", df, format="table")
             expected = df[df.index > Timestamp("20130105")]
@@ -3852,7 +3845,7 @@ class TestHDFStore:
             # fixed, GH 8287
             df = DataFrame(
                 {"A": np.random.rand(20), "B": np.random.rand(20)},
-                index=pd.date_range("20130101", periods=20),
+                index=date_range("20130101", periods=20),
             )
             store.put("df", df)
 
@@ -3906,7 +3899,7 @@ class TestHDFStore:
         df = tm.makeDataFrame()
 
         result = tm.round_trip_pathlib(
-            lambda p: df.to_hdf(p, "df"), lambda p: pd.read_hdf(p, "df")
+            lambda p: df.to_hdf(p, "df"), lambda p: read_hdf(p, "df")
         )
         tm.assert_frame_equal(df, result)
 
@@ -3936,7 +3929,7 @@ class TestHDFStore:
 
         def reader(path):
             with HDFStore(path) as store:
-                return pd.read_hdf(store, "df")
+                return read_hdf(store, "df")
 
         result = tm.round_trip_pathlib(writer, reader)
         tm.assert_frame_equal(df, result)
@@ -3944,7 +3937,7 @@ class TestHDFStore:
     def test_pickle_path_localpath(self, setup_path):
         df = tm.makeDataFrame()
         result = tm.round_trip_pathlib(
-            lambda p: df.to_hdf(p, "df"), lambda p: pd.read_hdf(p, "df")
+            lambda p: df.to_hdf(p, "df"), lambda p: read_hdf(p, "df")
         )
         tm.assert_frame_equal(df, result)
 
@@ -3957,7 +3950,7 @@ class TestHDFStore:
 
         def reader(path):
             with HDFStore(path) as store:
-                return pd.read_hdf(store, "df")
+                return read_hdf(store, "df")
 
         result = tm.round_trip_localpath(writer, reader)
         tm.assert_frame_equal(df, result)
@@ -4618,7 +4611,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 with catch_warnings(record=True):
                     df.to_hdf(path, "df", format="table", data_columns=True)
-                    result = pd.read_hdf(path, "df", where=f"index = [{df.index[0]}]")
+                    result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                     assert len(result)
 
     def test_read_hdf_open_store(self, setup_path):
@@ -4820,7 +4813,7 @@ class TestHDFStore:
         series = tm.makeFloatSeries()
         with ensure_clean_path(setup_path) as path:
             series.to_hdf(path, key="data", format=format)
-            result = pd.read_hdf(path, key="data", mode="r")
+            result = read_hdf(path, key="data", mode="r")
         tm.assert_series_equal(result, series)
 
     def test_fspath(self):
@@ -4865,7 +4858,7 @@ class TestHDFStore:
         with ensure_clean_path("empty_where.h5") as path:
             with HDFStore(path) as store:
                 store.put("df", df, "t")
-                result = pd.read_hdf(store, "df", where=where)
+                result = read_hdf(store, "df", where=where)
                 tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
@@ -4892,7 +4885,7 @@ class TestHDFStore:
         )
 
         with pytest.raises(ValueError, match=message):
-            pd.read_hdf(data_path)
+            read_hdf(data_path)
 
 
 @pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])

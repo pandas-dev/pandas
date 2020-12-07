@@ -552,7 +552,7 @@ def test_idxmin_idxmax_axis1():
 
     tm.assert_series_equal(alt[indexer], res.droplevel("A"))
 
-    df["E"] = pd.date_range("2016-01-01", periods=10)
+    df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
     msg = "reduction operation 'argmax' not allowed for this dtype"

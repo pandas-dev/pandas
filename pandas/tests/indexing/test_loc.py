@@ -488,10 +488,10 @@ Region_1,Site_2,3977723249,A,5/20/2015 8:27,5/20/2015 8:41,Yes,
 Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df = pd.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1, 2])
-        df.loc[:, ("Respondent", "StartDate")] = pd.to_datetime(
+        df.loc[:, ("Respondent", "StartDate")] = to_datetime(
             df.loc[:, ("Respondent", "StartDate")]
         )
-        df.loc[:, ("Respondent", "EndDate")] = pd.to_datetime(
+        df.loc[:, ("Respondent", "EndDate")] = to_datetime(
             df.loc[:, ("Respondent", "EndDate")]
         )
         df.loc[:, ("Respondent", "Duration")] = (
@@ -531,7 +531,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = pd.to_datetime(df["date"], unit="ms", cache=True)
+        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True)
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
@@ -547,7 +547,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         )
 
         columns = ["date_dt", "date_dt_cp"]
-        expected[columns] = expected[columns].apply(pd.to_datetime)
+        expected[columns] = expected[columns].apply(to_datetime)
 
         tm.assert_frame_equal(df, expected)
 
@@ -765,8 +765,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_setitem_new_key_tz(self):
         # GH#12862 should not raise on assigning the second value
         vals = [
-            pd.to_datetime(42).tz_localize("UTC"),
-            pd.to_datetime(666).tz_localize("UTC"),
+            to_datetime(42).tz_localize("UTC"),
+            to_datetime(666).tz_localize("UTC"),
         ]
         expected = Series(vals, index=["foo", "bar"])
 
@@ -1865,7 +1865,7 @@ def test_loc_with_positional_slice_deprecation():
 
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
-    dti = pd.date_range("2016-01-01", periods=3)
+    dti = date_range("2016-01-01", periods=3)
     df = DataFrame(np.random.random((3, 2)), index=dti)
 
     ser = df[0]
@@ -1897,7 +1897,7 @@ def test_loc_datetimelike_mismatched_dtypes():
     df = DataFrame(
         np.random.randn(5, 3),
         columns=["a", "b", "c"],
-        index=pd.date_range("2012", freq="H", periods=5),
+        index=date_range("2012", freq="H", periods=5),
     )
     # create dataframe with non-unique DatetimeIndex
     df = df.iloc[[0, 2, 2, 3]].copy()

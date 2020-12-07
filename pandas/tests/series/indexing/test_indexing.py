@@ -70,7 +70,7 @@ def test_basic_getitem_with_labels(datetime_series):
     # GH12089
     # with tz for values
     s = Series(
-        pd.date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
+        date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
     )
     expected = Timestamp("2011-01-01", tz="US/Eastern")
     result = s.loc["a"]
@@ -178,12 +178,12 @@ def test_getitem_box_float64(datetime_series):
 
 
 def test_series_box_timestamp():
-    rng = pd.date_range("20090415", "20090519", freq="B")
+    rng = date_range("20090415", "20090519", freq="B")
     ser = Series(rng)
 
     assert isinstance(ser[5], Timestamp)
 
-    rng = pd.date_range("20090415", "20090519", freq="B")
+    rng = date_range("20090415", "20090519", freq="B")
     ser = Series(rng, index=rng)
     assert isinstance(ser[5], Timestamp)
 
@@ -191,7 +191,7 @@ def test_series_box_timestamp():
 
 
 def test_series_box_timedelta():
-    rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
+    rng = timedelta_range("1 day 1 s", periods=5, freq="h")
     ser = Series(rng)
     assert isinstance(ser[0], Timedelta)
     assert isinstance(ser.at[1], Timedelta)
@@ -348,7 +348,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
 def test_setitem_with_tz(tz):
-    orig = Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
+    orig = Series(date_range("2016-01-01", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
@@ -400,7 +400,7 @@ def test_setitem_with_tz(tz):
 def test_setitem_with_tz_dst():
     # GH XXX TODO: fill in GH ref
     tz = "US/Eastern"
-    orig = Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
+    orig = Series(date_range("2016-11-06", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
@@ -584,7 +584,7 @@ def test_dt64_series_assign_nat(nat_val, should_cast, tz):
     # some nat-like values should be cast to datetime64 when inserting
     #  into a datetime64 series.  Others should coerce to object
     #  and retain their dtypes.
-    dti = pd.date_range("2016-01-01", periods=3, tz=tz)
+    dti = date_range("2016-01-01", periods=3, tz=tz)
     base = Series(dti)
     expected = Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
     if not should_cast:

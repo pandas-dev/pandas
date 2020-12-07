@@ -819,7 +819,7 @@ class TestDataFrameAnalytics:
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [0, 0], "b": [0, np.nan], "c": [np.nan, np.nan]})
 
-        df2 = df.apply(pd.to_timedelta)
+        df2 = df.apply(to_timedelta)
 
         # 0 by default
         result = df2.sum()
@@ -849,9 +849,9 @@ class TestDataFrameAnalytics:
 
     def test_sum_mixed_datetime(self):
         # GH#30886
-        df = DataFrame(
-            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
-        ).reindex([2, 3, 4])
+        df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
+            [2, 3, 4]
+        )
         result = df.sum()
 
         expected = Series({"B": 7.0})
@@ -881,7 +881,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(
             {
                 "A": np.arange(3),
-                "B": pd.date_range("2016-01-01", periods=3),
+                "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
                 "D": pd.period_range("2016", periods=3, freq="A"),
             }
@@ -900,7 +900,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(
             {
                 "A": np.arange(3),
-                "B": pd.date_range("2016-01-01", periods=3),
+                "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
             }
         )
@@ -971,7 +971,7 @@ class TestDataFrameAnalytics:
 
     def test_idxmax_mixed_dtype(self):
         # don't cast to object, which would raise in nanops
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
 
         df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
@@ -1255,8 +1255,8 @@ class TestDataFrameReductions:
         # returned NaT for series. These tests check that the API is consistent in
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
         # information
-        df = DataFrame({"x": pd.to_datetime([])})
-        expected_dt_series = Series(pd.to_datetime([]))
+        df = DataFrame({"x": to_datetime([])})
+        expected_dt_series = Series(to_datetime([]))
         # check axis 0
         assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
         assert (df.max(axis=0).x is pd.NaT) == (expected_dt_series.max() is pd.NaT)
@@ -1284,7 +1284,7 @@ class TestDataFrameReductions:
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_preserve_timezone(self, initial: str, method):
         # GH 28552
-        initial_dt = pd.to_datetime(initial)
+        initial_dt = to_datetime(initial)
         expected = Series([initial_dt])
         df = DataFrame([expected])
         result = getattr(df, method)(axis=1)
@@ -1312,7 +1312,7 @@ class TestDataFrameReductions:
         df = DataFrame(
             {
                 "a": Series([0, 0]),
-                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+                "t": Series([to_timedelta(0, "s"), to_timedelta(1, "ms")]),
             }
         )
 

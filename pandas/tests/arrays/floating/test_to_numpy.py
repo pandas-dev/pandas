@@ -82,7 +82,7 @@ def test_to_numpy_na_value(box):
 
 
 def test_to_numpy_na_value_with_nan():
-    # array with both NaN and NA -> only fill NA with `na_value`
+    # aarray with both NaN and NA -> only fill NA with `na_value`
     arr = FloatingArray(np.array([0.0, np.nan, 0.0]), np.array([False, False, True]))
     result = arr.to_numpy(dtype="float64", na_value=-1)
     expected = np.array([0.0, np.nan, -1.0], dtype="float64")

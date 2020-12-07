@@ -54,7 +54,7 @@ class TestTimedelta64ArrayLikeComparisons:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        tdi = pd.timedelta_range("2H", periods=4)
+        tdi = timedelta_range("2H", periods=4)
         other = np.array(tdi.to_numpy()[0])
 
         tdi = tm.box_expected(tdi, box)
@@ -624,7 +624,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, exp)
         assert result.freq == "-2D"
 
-        rng = pd.timedelta_range("-2 days", periods=5, freq="D", name="x")
+        rng = timedelta_range("-2 days", periods=5, freq="D", name="x")
 
         result = abs(rng)
         exp = TimedeltaIndex(
@@ -1466,7 +1466,7 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
-        tdi = pd.timedelta_range("1 day", periods=3, freq="D")
+        tdi = timedelta_range("1 day", periods=3, freq="D")
         tdarr = tm.box_expected(tdi, box)
 
         other = np.array(
@@ -2185,7 +2185,7 @@ class TestTimedelta64ArrayLikeArithmetic:
 def test_add_timestamp_to_timedelta():
     # GH: 35897
     timestamp = Timestamp.now()
-    result = timestamp + pd.timedelta_range("0s", "1s", periods=31)
+    result = timestamp + timedelta_range("0s", "1s", periods=31)
     expected = DatetimeIndex(
         [
             timestamp

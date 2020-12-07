@@ -267,7 +267,7 @@ class TestSeriesArithmetic:
 
     def test_alignment_doesnt_change_tz(self):
         # GH#33671
-        dti = pd.date_range("2016-01-01", periods=10, tz="CET")
+        dti = date_range("2016-01-01", periods=10, tz="CET")
         dti_utc = dti.tz_convert("UTC")
         ser = Series(10, index=dti)
         ser_utc = Series(10, index=dti_utc)
@@ -399,7 +399,7 @@ class TestSeriesComparison:
     )
     def test_ser_cmp_result_names(self, names, op):
         # datetime64 dtype
-        dti = pd.date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
+        dti = date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
         assert result.name == names[2]
@@ -724,7 +724,7 @@ class TestTimeSeriesArithmetic:
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = Series(pd.date_range("2012-01-01", periods=3))
+        series = Series(date_range("2012-01-01", periods=3))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
         expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))

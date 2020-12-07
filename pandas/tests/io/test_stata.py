@@ -634,7 +634,7 @@ class TestStata:
         # Data obtained from:
         # http://go.worldbank.org/ZXY29PVJ21
         dpath = os.path.join(self.dirpath, "S4_EDUC1.dta")
-        df = pd.read_stata(dpath)
+        df = read_stata(dpath)
         df0 = [[1, 1, 3, -2], [2, 1, 2, -2], [4, 1, 1, -2]]
         df0 = DataFrame(df0)
         df0.columns = ["clustnum", "pri_schl", "psch_num", "psch_dis"]
@@ -1532,7 +1532,7 @@ The repeated labels are:\n-+\nwolof
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=write_index)
 
-            with pd.read_stata(path, iterator=True) as dta_iter:
+            with read_stata(path, iterator=True) as dta_iter:
                 value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
@@ -1542,7 +1542,7 @@ The repeated labels are:\n-+\nwolof
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(path)
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     @pytest.mark.parametrize(
@@ -1682,7 +1682,7 @@ The repeated labels are:\n-+\nwolof
             bio.seek(0)
             with open(path, "wb") as dta:
                 dta.write(bio.read())
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_gzip_writing(self):
@@ -1693,7 +1693,7 @@ The repeated labels are:\n-+\nwolof
             with gzip.GzipFile(path, "wb") as gz:
                 df.to_stata(gz, version=114)
             with gzip.GzipFile(path, "rb") as gz:
-                reread = pd.read_stata(gz, index_col="index")
+                reread = read_stata(gz, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_unicode_dta_118(self):
@@ -1864,8 +1864,8 @@ def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
     old = os.path.join(data_base, f"stata-compat-{version}.dta")
-    expected = pd.read_stata(ref)
-    old_dta = pd.read_stata(old)
+    expected = read_stata(ref)
+    old_dta = read_stata(old)
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 

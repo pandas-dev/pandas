@@ -109,7 +109,7 @@ c        ff         いいい"""
         adj = fmt.EastAsianTextAdjustment()
         assert adj.len("¡¡ab") == 4
 
-        with cf.option_context("display.unicode.ambiguous_as_wide", True):
+        with pd.option_context("display.unicode.ambiguous_as_wide", True):
             adj = fmt.EastAsianTextAdjustment()
             assert adj.len("¡¡ab") == 6
 

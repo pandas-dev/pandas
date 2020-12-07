@@ -663,7 +663,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])
-        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
         msg = "must be a string or a number, not 'datetime.time'"
 
         with pytest.raises(TypeError, match=msg):
@@ -671,7 +671,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatterplot_datetime_data(self):
         # GH 30391
-        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        dates = date_range(start=date(2019, 1, 1), periods=12, freq="W")
         vals = np.random.normal(0, 1, len(dates))
         df = DataFrame({"dates": dates, "vals": vals})
 
