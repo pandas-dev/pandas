@@ -742,7 +742,7 @@ def factorize(
     if isinstance(original, ABCIndex):
         if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
             original._data = cast(
-                "Union[DatetimeArray, TimedeltaArray, np.ndarray]", original._data
+                "Union[DatetimeArray, TimedeltaArray]", original._data
             )
             uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
