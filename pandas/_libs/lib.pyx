@@ -1483,7 +1483,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     return "mixed"
 
 
-def infer_datetimelike_array(arr: object) -> object:
+def infer_datetimelike_array(arr: ndarray[object]) -> str:
     """
     Infer if we have a datetime or timedelta array.
     - date: we have *only* date and maybe strings, nulls
@@ -1496,7 +1496,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     Parameters
     ----------
-    arr : object array
+    arr : ndarray[object]
 
     Returns
     -------
