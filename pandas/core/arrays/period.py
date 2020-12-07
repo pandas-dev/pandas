@@ -597,7 +597,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         value = self._validate_searchsorted_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
@@ -676,7 +676,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
         res_values = res_values.view("i8")
-        res_values[self._isnan] = iNaT
+        np.putmask(res_values, self._isnan, iNaT)
         return type(self)(res_values, freq=self.freq)
 
     def _add_offset(self, other: BaseOffset):
