@@ -2995,7 +2995,7 @@ class PythonParser(ParserBase):
         for line in lines:
             rl = []
             for x in line:
-                if not isinstance(x, str) or self.comment not in x:
+                if not isinstance(x, str) or self.comment not in x or x in self.na_values:
                     rl.append(x)
                 else:
                     x = x[: x.find(self.comment)]
