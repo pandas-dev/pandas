@@ -97,6 +97,17 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             to_datetime(pd.TimedeltaIndex(data))
 
+    def test_constructor_from_sparse_array(self):
+        # https://github.com/pandas-dev/pandas/issues/35843
+        values = [
+            Timestamp("2012-05-01T01:00:00.000000"),
+            Timestamp("2016-05-01T01:00:00.000000"),
+        ]
+        arr = pd.arrays.SparseArray(values)
+        result = Index(arr)
+        expected = DatetimeIndex(values)
+        tm.assert_index_equal(result, expected)
+
     def test_construction_caching(self):
 
         df = pd.DataFrame(
