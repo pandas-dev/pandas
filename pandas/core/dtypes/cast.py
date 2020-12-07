@@ -495,7 +495,7 @@ def maybe_casted_values(
     Parameters
     ----------
     index : Index
-    codes : sequence of integers (optional)
+    codes : np.ndarray[intp] or None, default None
 
     Returns
     -------
@@ -1330,7 +1330,7 @@ def maybe_infer_to_datetimelike(
         return value
 
     shape = v.shape
-    if not v.ndim == 1:
+    if v.ndim != 1:
         v = v.ravel()
 
     if not len(v):
@@ -1400,7 +1400,7 @@ def maybe_infer_to_datetimelike(
     return value
 
 
-def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
+def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1469,7 +1469,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)
+                            value = to_datetime(value, errors="raise")
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
                             if value.tz is not None:
@@ -1481,7 +1481,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            value = to_datetime(value, errors=errors).array
+                            value = to_datetime(value, errors="raise").array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
                                 value = value.tz_localize(dtype.tz)
@@ -1490,7 +1490,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                                 # so localize and convert
                                 value = value.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
-                            value = to_timedelta(value, errors=errors)._values
+                            value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
                     except (AttributeError, ValueError, TypeError):
@@ -1522,7 +1522,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                 value = conversion.ensure_datetime64ns(value)
 
             elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-                value = to_timedelta(value)
+                value = conversion.ensure_timedelta64ns(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
@@ -1659,7 +1659,7 @@ def construct_1d_arraylike_from_scalar(
             # GH36541: can't fill array directly with pd.NaT
             # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
             # ValueError: cannot convert float NaN to integer
-            value = np.datetime64("NaT")
+            value = dtype.type("NaT", "ns")
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
