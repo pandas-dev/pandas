@@ -14,7 +14,7 @@ env:
 
 jobs:
   Linux_py38_slow:
-    name: Checks
+    name: Linux_py38_slow
     runs-on: ubuntu-latest
 
     env:
@@ -26,7 +26,7 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: ''
+          POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -35,7 +35,7 @@ jobs:
         ports:
           - 5432:5432
       
-      mariadb:
+      mysql:
         image: mysql:5.7
         ports:
           - 3306
