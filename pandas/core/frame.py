@@ -79,7 +79,6 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
-    coerce_to_dtypes,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
@@ -8817,11 +8816,9 @@ NaN 12.3   33.0
         labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
 
-        def func(values):
-            if is_extension_array_dtype(values.dtype):
-                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
-            else:
-                return op(values, axis=axis, skipna=skipna, **kwds)
+        def func(values: np.ndarray):
+            # We only use this in the case that operates on self.values
+            return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values):
             if isinstance(values, ExtensionArray):
@@ -8859,10 +8856,6 @@ NaN 12.3   33.0
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
-            if axis == 0 and is_object_dtype(out.dtype):
-                # GH#35865 careful to cast explicitly to object
-                nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
-                out[:] = np.array(nvs, dtype=object)
             if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
                 # Even if we are object dtype, follow numpy and return
                 #  float64, see test_apply_funcs_over_empty
@@ -8894,8 +8887,7 @@ NaN 12.3   33.0
                 result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
-                if axis == 0:
-                    result = coerce_to_dtypes(result, data.dtypes)
+                pass
 
         result = self._constructor_sliced(result, index=labels)
         return result
