@@ -70,7 +70,9 @@ jobs:
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Test
-      run: ci/run_tests.sh
+      run:
+        sudo apt-get install xvfb 
+        ci/run_tests.sh
       if: always()
 
     - name: Publish test results
