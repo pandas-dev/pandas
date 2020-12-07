@@ -95,28 +95,28 @@ baz,7,8,9
         (
             [0, 1],
             {
-                "columns": ["z"], 
+                "columns": ["z"],
                 "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
             },
         ),
         (
             ["x", "y"],
             {
-                "columns": ["z"], 
+                "columns": ["z"],
                 "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
             },
         ),
         (
             [1, 0],
             {
-                "columns": ["z"], 
+                "columns": ["z"],
                 "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
             },
         ),
         (
             ["y", "x"],
             {
-                "columns": ["z"], 
+                "columns": ["z"],
                 "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
             },
         ),
