@@ -268,6 +268,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # If these share data, then setitem could corrupt our IA
             right = right.copy()
 
+        dtype = IntervalDtype(left.dtype, closed=closed)
+        result._dtype = dtype
+
         result._left = left
         result._right = right
         result._closed = closed
@@ -534,7 +537,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def dtype(self):
-        return IntervalDtype(self.left.dtype)
+        return self._dtype
 
     @property
     def nbytes(self) -> int:
@@ -1184,7 +1187,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
         """
-        return self._closed
+        return self.dtype.closed
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
@@ -1282,7 +1285,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = self._left
         right = self._right
         mask = self.isna()
-        closed = self._closed
+        closed = self.closed
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):
