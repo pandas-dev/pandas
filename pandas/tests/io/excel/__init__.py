@@ -11,7 +11,6 @@ pytestmark = [
     ),
     # GH 26552
     pytest.mark.filterwarnings(
-        "ignore:The xlwt engine, the only engine that supports writing in an xls "
-        "format, is no longer maintained"
+        "ignore:As the xlwt package is no longer maintained:FutureWarning"
     ),
 ]

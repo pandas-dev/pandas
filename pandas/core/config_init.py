@@ -583,10 +583,10 @@ with cf.config_prefix("io.excel.xls"):
     )
 cf.deprecate_option(
     "io.excel.xls.writer",
-    msg="The xlwt engine, the only engine that supports writing in "
-    "an xls format, is no longer maintained and will be removed in "
-    "a future version of pandas. This option will also be removed. "
-    "Install openpyxl and write to an xlsx file instead.",
+    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
+    "removed in a future version of pandas. This is the only engine in pandas that "
+    "supports writing in the xls format. Install openpyxl and write to an "
+    "xlsx file instead.",
 )
 
 with cf.config_prefix("io.excel.xlsm"):

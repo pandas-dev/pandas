@@ -3202,10 +3202,10 @@ Excel writer engines
 
 .. deprecated:: 1.2.0
 
-   The `xlwt <https://pypi.org/project/xlwt/>`__
-   engine, the only engine that supports writing
-   in an xls format, is no longer maintained and
-   will be removed in a future version of pandas.
+   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+   maintained, the ``xlwt`` engine will be removed from a future version
+   of pandas. This is the only engine in pandas that supports writing in
+   the ``xls`` format.
 
 pandas chooses an Excel writer via two methods:
 

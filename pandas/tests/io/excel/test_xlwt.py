@@ -77,7 +77,7 @@ def test_to_excel_xlwt_warning(ext):
     with tm.ensure_clean(ext) as path:
         with tm.assert_produces_warning(
             FutureWarning,
-            match="The xlwt engine",
+            match="As the xlwt package is no longer maintained",
         ):
             df.to_excel(path)
 
@@ -86,7 +86,7 @@ def test_option_xls_writer_deprecated(ext):
     # GH 26552
     with tm.assert_produces_warning(
         FutureWarning,
-        match="The xlwt engine",
+        match="As the xlwt package is no longer maintained",
         check_stacklevel=False,
     ):
         options.io.excel.xls.writer = "xlwt"

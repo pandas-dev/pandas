@@ -435,11 +435,12 @@ io.excel.xls.writer                     xlwt         The default Excel writer en
 
                                                      .. deprecated:: 1.2.0
 
-                                                        The `xlwt <https://pypi.org/project/xlwt/>`__
-                                                        engine, the only engine that supports writing
-                                                        in an xls format, is no longer maintained and
-                                                        will be removed in a future version of pandas.
-                                                        This option will also be removed.
+                                                        As `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        package is no longer maintained, the ``xlwt``
+                                                        engine will be removed in a future version of
+                                                        pandas. As this is the only engine in pandas
+                                                        that supports writing in the xls format,
+                                                        this option will also be removed.
 
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:

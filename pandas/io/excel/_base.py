@@ -590,9 +590,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         .. deprecated:: 1.2.0
 
-            The `xlwt <https://pypi.org/project/xlwt/>`__ engine, the only engine
-            that supports writing in an xls format, is no longer maintained and
-            will be removed in a future version of pandas.
+            The `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+            maintained and the ``xlwt`` engine will be removed in a future
+            version of pandas.
 
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
@@ -711,11 +711,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 # Don't warn a 2nd time if user has changed the default engine for xls
                 if xls_config_engine != "xlwt":
                     warnings.warn(
-                        "The xlwt engine, the only engine that supports writing in "
-                        "an xls format, is no longer maintained and will be removed in "
-                        "a future version of pandas. Install openpyxl and write to an "
-                        "xlsx file instead. You can set the option "
-                        "io.excel.xls.writer to 'xlwt' to silence this warning.",
+                        "As the xlwt package is no longer maintained, the xlwt "
+                        "engine will be removed in a future version of pandas. "
+                        "This is the only engine in pandas that supports writing "
+                        "in the xls format. Install openpyxl and write to an xlsx "
+                        "file instead. You can set the option io.excel.xls.writer "
+                        "to 'xlwt' to silence this warning. While this option is "
+                        "deprecated as well and will also raise a warning, it can "
+                        "be globally set and the warning suppressed.",
                         FutureWarning,
                         stacklevel=4,
                     )
