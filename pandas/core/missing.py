@@ -482,7 +482,7 @@ def _cubicspline_interpolate(
     xi: ArrayLike,
     yi: ArrayLike,
     x: Union[ArrayLike, Scalar],
-    axis: Optional[int] = 0,
+    axis: Axis = 0,
     bc_type: Union[str, Tuple] = "not-a-knot",
     extrapolate: Optional[Union[bool, str]] = None,
 ) -> Union[ArrayLike, Scalar]:
