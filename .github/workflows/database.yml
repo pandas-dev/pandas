@@ -25,28 +25,20 @@ jobs:
     services:
       postgres:
         image: postgres
+
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+
+        ports:
+        - 5432/tcp
+
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
-      
-      mysql:
-        image: mysql:5.7
-        ports:
-          - 3306
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        options: >-
-          --health-cmd="mysqladmin ping" 
-          --health-interval=10s 
-          --health-timeout=5s 
-          --health-retries=5
-
 
     steps:
 
@@ -56,8 +48,16 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Setup MySQL
+      run: 
+        sudo systemctl enable mysql.service
+        sudo systemctl start mysql.service
+
     - name: Setup environment and build pandas
       run: ci/setup_env.sh
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }} 
       if: always()
 
     - name: Test
