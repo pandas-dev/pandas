@@ -9,9 +9,12 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_float,
+    is_float_dtype,
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_number,
@@ -383,6 +386,20 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
+    def _convert_to_ndarray(self, data):
+        # GH32073: cast to float if values contain nulled integers
+        if (
+            is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
+        ) and is_extension_array_dtype(data.dtype):
+            return data.to_numpy(dtype="float", na_value=np.nan)
+
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        if len(data) > 0:
+            return np.asarray(data)
+
+        return data
+
     def _compute_plot_data(self):
         data = self.data
 
@@ -423,13 +440,7 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
-        # np.ndarray before plot.
-        numeric_data = numeric_data.copy()
-        for col in numeric_data:
-            numeric_data[col] = np.asarray(numeric_data[col])
-
-        self.data = numeric_data
+        self.data = numeric_data.apply(self._convert_to_ndarray)
 
     def _make_plot(self):
         raise AbstractMethodError(self)

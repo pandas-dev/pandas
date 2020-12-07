@@ -746,6 +746,7 @@ Plotting
   indexed by a :class:`.TimedeltaIndex` with a fixed frequency and the x-axis lower limit was greater than the upper limit (:issue:`37454`)
 - Bug in :meth:`.DataFrameGroupBy.boxplot` when ``subplots=False`` would raise a ``KeyError`` (:issue:`16748`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` was overwriting matplotlib's shared y axes behaviour when no ``sharey`` parameter was passed (:issue:`37942`)
+- Bug in :meth:`DataFrame.plot` was raising a ``TypeError`` with ``ExtensionDtype`` columns (:issue:`32073`)
 
 
 Groupby/resample/rolling
