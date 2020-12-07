@@ -635,9 +635,8 @@ even if some categories are not present in the data:
     )
     df.sum(axis=1, level=1)
 
-Groupby will also show "unused" categories, though this default is deprecated
-and will be changed in a future release. It is recommended to use the
-``observed`` keyword explicitly as below:
+Groupby will also show "unused" categories by default, though this behavior
+is deprecated. In a future release, users must specify a value for ``observed``:
 
 .. ipython:: python
 

@@ -7,9 +7,17 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
-import pandas._testing as tm
-import pandas.core.nanops as nanops
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    isna,
+)
+from pandas.core import nanops as nanops
 from pandas.util import _test_decorators as td
 
 
@@ -410,7 +418,7 @@ def test_cython_median():
     tm.assert_frame_equal(rs, xp)
 
 
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
 def test_median_empty_bins(observed):
     df = DataFrame(np.random.randint(0, 44, 500))
 

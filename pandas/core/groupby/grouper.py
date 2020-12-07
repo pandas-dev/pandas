@@ -34,12 +34,13 @@ from pandas.io.formats.printing import pprint_thing
 
 _observed_msg = textwrap.dedent(
     """\
-Using 'observed=False', because grouping on a categorical. A future version
-of pandas will change to 'observed=True'.
+Grouping by a categorical but 'observed' was not specified.
+Using 'observed=False', but in a future version of pandas
+not specifying 'observed' will raise an error. Pass
+'observed=True' or 'observed=False' to silence this warning.
 
-To silence the warning and switch to the future behavior, pass 'observed=True'.
-
-To keep the current behavior and silence the warning, pass 'observed=False'.
+See the `groupby` documentation for more information on the
+observed keyword.
 """
 )
 

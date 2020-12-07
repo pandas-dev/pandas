@@ -310,7 +310,7 @@ class TestGrouping:
         by_columns.columns = by_columns.columns.astype(np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_groupby_categorical_index_and_columns(self, observed):
         # GH18432, adapted for GH25871
         columns = ["A", "B", "A", "B"]
@@ -778,7 +778,7 @@ class TestGetGroup:
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo", "bar", "baz"))
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_get_group_empty_bins(self, observed):
 
         d = DataFrame([3, 1, 7, 6])

@@ -1153,7 +1153,7 @@ def test_transform_lambda_indexing():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
 def test_categorical_and_not_categorical_key(observed):
     # Checks that groupby-transform, when grouping by both a categorical
     # and a non-categorical key, doesn't try to expand the output to include

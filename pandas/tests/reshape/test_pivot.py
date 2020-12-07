@@ -108,7 +108,7 @@ class TestPivotTable:
         expected = self.data.groupby(index + [columns])["D"].agg(np.mean).unstack()
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_pivot_table_categorical_observed_equal(self, observed):
         # issue #24923
         df = DataFrame(
@@ -1763,7 +1763,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_pivot_with_categorical(self, observed, ordered):
         # gh-21370
         idx = [np.nan, "low", "high", "low", np.nan]
@@ -1799,7 +1799,7 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_categorical_aggfunc(self, observed):
         # GH 9534
         df = DataFrame(
@@ -1820,7 +1820,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
     def test_categorical_pivot_index_ordering(self, observed):
         # GH 8731
         df = DataFrame(

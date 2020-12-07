@@ -120,8 +120,10 @@ observed : bool, default False
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    The current default of ``observed=False`` is deprecated and will
-    change to ``observed=True`` in a future version of pandas.
+    The current default of ``observed=False`` is deprecated. In
+    the future this will be a required keyword in the presence
+    of a categorical grouper and a failure to specify a value will
+    result in an error.
 
     Explicitly pass ``observed=True`` to silence the warning and not
     show all observed values.

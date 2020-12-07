@@ -1,7 +1,6 @@
 """
 test all other .agg behavior
 """
-
 import datetime as dt
 from functools import partial
 
@@ -15,10 +14,10 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
+    _testing as tm,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 from pandas.io.formats.printing import pprint_thing
@@ -555,7 +554,7 @@ def test_agg_structs_series(structure, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Using 'observed:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Grouping by a categorical:FutureWarning")
 def test_agg_category_nansum(observed):
     categories = ["a", "b", "c"]
     df = DataFrame(
