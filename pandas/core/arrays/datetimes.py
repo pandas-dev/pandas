@@ -681,7 +681,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
         if self._hasnans or other._hasnans:
-            new_values[arr_mask] = iNaT
+            np.putmask(new_values, arr_mask, iNaT)
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset):
