@@ -127,6 +127,14 @@ def test_value_counts_empty():
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_with_normalize():
+    # GH 33172
+    s = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=[1, 2], dtype="Float64") / 3
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 4])
 def test_integer_array_sum(skipna, min_count, any_nullable_int_dtype):
