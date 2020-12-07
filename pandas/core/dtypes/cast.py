@@ -33,7 +33,7 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -495,7 +495,7 @@ def maybe_casted_values(
     Parameters
     ----------
     index : Index
-    codes : sequence of integers (optional)
+    codes : np.ndarray[intp] or None, default None
 
     Returns
     -------
@@ -987,36 +987,6 @@ def coerce_indexer_dtype(indexer, categories):
     return ensure_int64(indexer)
 
 
-def coerce_to_dtypes(result: Sequence[Scalar], dtypes: Sequence[Dtype]) -> List[Scalar]:
-    """
-    given a dtypes and a result set, coerce the result elements to the
-    dtypes
-    """
-    if len(result) != len(dtypes):
-        raise AssertionError("_coerce_to_dtypes requires equal len arrays")
-
-    def conv(r, dtype):
-        if np.any(isna(r)):
-            pass
-        elif dtype == DT64NS_DTYPE:
-            r = Timestamp(r)
-        elif dtype == TD64NS_DTYPE:
-            r = Timedelta(r)
-        elif dtype == np.bool_:
-            # messy. non 0/1 integers do not get converted.
-            if is_integer(r) and r not in [0, 1]:
-                return int(r)
-            r = bool(r)
-        elif dtype.kind == "f":
-            r = float(r)
-        elif dtype.kind == "i":
-            r = int(r)
-
-        return r
-
-    return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
-
-
 def astype_nansafe(
     arr, dtype: DtypeObj, copy: bool = True, skipna: bool = False
 ) -> ArrayLike:
@@ -1330,7 +1300,7 @@ def maybe_infer_to_datetimelike(
         return value
 
     shape = v.shape
-    if not v.ndim == 1:
+    if v.ndim != 1:
         v = v.ravel()
 
     if not len(v):
@@ -1400,7 +1370,7 @@ def maybe_infer_to_datetimelike(
     return value
 
 
-def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
+def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1469,7 +1439,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
                     try:
                         if is_datetime64:
-                            value = to_datetime(value, errors=errors)
+                            value = to_datetime(value, errors="raise")
                             # GH 25843: Remove tz information since the dtype
                             # didn't specify one
                             if value.tz is not None:
@@ -1481,7 +1451,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
                             is_dt_string = is_string_dtype(value.dtype)
-                            value = to_datetime(value, errors=errors).array
+                            value = to_datetime(value, errors="raise").array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
                                 value = value.tz_localize(dtype.tz)
@@ -1490,7 +1460,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                                 # so localize and convert
                                 value = value.tz_localize("UTC").tz_convert(dtype.tz)
                         elif is_timedelta64:
-                            value = to_timedelta(value, errors=errors)._values
+                            value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
                     except (AttributeError, ValueError, TypeError):
@@ -1522,7 +1492,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                 value = conversion.ensure_datetime64ns(value)
 
             elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-                value = to_timedelta(value)
+                value = conversion.ensure_timedelta64ns(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
@@ -1593,35 +1563,6 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     return np.find_common_type(types, [])
 
 
-def cast_scalar_to_array(
-    shape: Shape, value: Scalar, dtype: Optional[DtypeObj] = None
-) -> np.ndarray:
-    """
-    Create np.ndarray of specified shape and dtype, filled with values.
-
-    Parameters
-    ----------
-    shape : tuple
-    value : scalar value
-    dtype : np.dtype, optional
-        dtype to coerce
-
-    Returns
-    -------
-    ndarray of shape, filled with value, of specified / inferred dtype
-
-    """
-    if dtype is None:
-        dtype, fill_value = infer_dtype_from_scalar(value)
-    else:
-        fill_value = value
-
-    values = np.empty(shape, dtype=dtype)
-    values.fill(fill_value)
-
-    return values
-
-
 def construct_1d_arraylike_from_scalar(
     value: Scalar, length: int, dtype: DtypeObj
 ) -> ArrayLike:
@@ -1659,7 +1600,7 @@ def construct_1d_arraylike_from_scalar(
             # GH36541: can't fill array directly with pd.NaT
             # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
             # ValueError: cannot convert float NaN to integer
-            value = np.datetime64("NaT")
+            value = dtype.type("NaT", "ns")
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
