@@ -4888,50 +4888,6 @@ class TestHDFStore:
         with pytest.raises(ValueError, match=message):
             pd.read_hdf(data_path)
 
-    def test_supported_for_subclasses_dataframe(self):
-        class SubDataFrame(DataFrame):
-            @property
-            def _constructor(self):
-                return SubDataFrame
-
-        data = {"a": [1, 2], "b": [3, 4]}
-        sdf = SubDataFrame(data, dtype=np.intp)
-
-        expected = DataFrame(data, dtype=np.intp)
-
-        with ensure_clean_path("temp.h5") as path:
-            sdf.to_hdf(path, "df")
-            result = read_hdf(path, "df")
-            tm.assert_frame_equal(result, expected)
-
-        with ensure_clean_path("temp.h5") as path:
-            with HDFStore(path) as store:
-                store.put("df", sdf)
-            result = read_hdf(path, "df")
-            tm.assert_frame_equal(result, expected)
-
-    def test_supported_for_subclasses_series(self):
-        class SubSeries(Series):
-            @property
-            def _constructor(self):
-                return SubSeries
-
-        data = [1, 2, 3]
-        sser = SubSeries(data, dtype=np.intp)
-
-        expected = Series(data, dtype=np.intp)
-
-        with ensure_clean_path("temp.h5") as path:
-            sser.to_hdf(path, "ser")
-            result = read_hdf(path, "ser")
-            tm.assert_series_equal(result, expected)
-
-        with ensure_clean_path("temp.h5") as path:
-            with HDFStore(path) as store:
-                store.put("ser", sser)
-            result = read_hdf(path, "ser")
-            tm.assert_series_equal(result, expected)
-
 
 @pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
 def test_maybe_adjust_name_bad_version_raises(bad_version):
