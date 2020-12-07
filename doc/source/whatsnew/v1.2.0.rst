@@ -20,19 +20,17 @@ including other versions of pandas.
    `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
    many of these cases will now default to using the ``openpyxl`` engine.
    See the :func:`read_excel` documentation for more details. Attempting to read
-   xls files or specifying ``engine="xlrd"`` to
-   ``pd.read_excel`` will not raise
-   a warning. However users should be aware that ``xlrd`` is already
+   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
+   raise a warning. However users should be aware that ``xlrd`` is already
    broken with certain package configurations, for example with Python 3.9
    when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
    is anticipated to be unusable in the future.
 
-   Attempting to use the the ``xlwt`` engine will raise a
-   ``FutureWarning`` unless the option :attr:`io.excel.xls.writer` is set to
-   ``"xlwt"``. While this option is now deprecated and will also raise a
-   ``FutureWarning``, it can be globally set and the warning suppressed. Users
-   are recommended to write excel files in the ``xlsx`` format using the
-   ``openpyxl`` engine instead.
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. ---------------------------------------------------------------------------
 

@@ -2096,7 +2096,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. deprecated:: 1.2.0
 
-                As `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
                 maintained, the ``xlwt`` engine will be removed in a future version
                 of pandas.
 

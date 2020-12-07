@@ -590,8 +590,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         .. deprecated:: 1.2.0
 
-            The `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
-            maintained and the ``xlwt`` engine will be removed in a future
+            As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+            maintained, the ``xlwt`` engine will be removed in a future
             version of pandas.
 
     date_format : str, default None
@@ -717,7 +717,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "in the xls format. Install openpyxl and write to an xlsx "
                         "file instead. You can set the option io.excel.xls.writer "
                         "to 'xlwt' to silence this warning. While this option is "
-                        "deprecated as well and will also raise a warning, it can "
+                        "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
                         stacklevel=4,

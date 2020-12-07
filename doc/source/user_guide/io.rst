@@ -3204,8 +3204,8 @@ Excel writer engines
 
    As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
    maintained, the ``xlwt`` engine will be removed from a future version
-   of pandas. This is the only engine in pandas that supports writing in
-   the ``xls`` format.
+   of pandas. This is the only engine in pandas that supports writing to
+   ``.xls`` files.
 
 pandas chooses an Excel writer via two methods:
 
