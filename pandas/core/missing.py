@@ -398,15 +398,16 @@ def _from_derivatives(
         sorted 1D array of x-coordinates
     yi : array_like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    order: None or int or array_like of ints. Default: None.
+    x : scalar or array_like
+    order: None or int or array_like of ints, default: None
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
-    der : int or list
+    der : int or list, default: 0
         How many derivatives to extract; None for all potentially nonzero
         derivatives (that is a number equal to the number of points), or a
         list of derivatives to extract. This number includes the function
         value as 0th derivative.
-     extrapolate : bool, optional
+     extrapolate : bool, default False
         Whether to extrapolate to ouf-of-bounds points based on first and last
         intervals, or to return NaNs. Default: True.
 
