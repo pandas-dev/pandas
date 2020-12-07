@@ -162,7 +162,7 @@ def test_transform_axis_1(transformation_func):
     # GH 36308
     if transformation_func == "tshift":
         pytest.xfail("tshift is deprecated")
-    args = ("ffill",) if transformation_func == "fillna" else tuple()
+    args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
@@ -803,7 +803,7 @@ def test_group_fill_methods(
         keys = ["a", "b"] * len(vals)
 
         def interweave(list_obj):
-            temp = list()
+            temp = []
             for x in list_obj:
                 temp.extend([x, x])
 

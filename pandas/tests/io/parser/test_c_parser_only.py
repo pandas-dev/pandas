@@ -117,20 +117,20 @@ nan 2
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}),
+            {"dtype": {"A": "datetime64", "B": "float64"}},
         ),
         (
             (
                 "the dtype datetime64 is not supported for parsing, "
                 "pass this column using parse_dates instead"
             ),
-            dict(dtype={"A": "datetime64", "B": "float64"}, parse_dates=["B"]),
+            {"dtype": {"A": "datetime64", "B": "float64"}, "parse_dates": ["B"]},
         ),
         (
             "the dtype timedelta64 is not supported for parsing",
-            dict(dtype={"A": "timedelta64", "B": "float64"}),
+            {"dtype": {"A": "timedelta64", "B": "float64"}},
         ),
-        ("the dtype <U8 is not supported for parsing", dict(dtype={"A": "U8"})),
+        ("the dtype <U8 is not supported for parsing", {"dtype": {"A": "U8"}}),
     ],
     ids=["dt64-0", "dt64-1", "td64", "<U8"],
 )

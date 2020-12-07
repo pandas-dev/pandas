@@ -3569,7 +3569,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 stacklevel=2,
             )
 
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         self._consolidate_inplace()
 
@@ -10557,7 +10557,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _logical_func(
         self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
     ):
-        nv.validate_logical_func(tuple(), kwargs, fname=name)
+        nv.validate_logical_func((), kwargs, fname=name)
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError(
@@ -10644,7 +10644,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric_only=None,
         **kwargs,
     ):
-        nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
+        nv.validate_stat_ddof_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10690,9 +10690,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "median":
-            nv.validate_median(tuple(), kwargs)
+            nv.validate_median((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10748,11 +10748,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "sum":
-            nv.validate_sum(tuple(), kwargs)
+            nv.validate_sum((), kwargs)
         elif name == "prod":
-            nv.validate_prod(tuple(), kwargs)
+            nv.validate_prod((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:

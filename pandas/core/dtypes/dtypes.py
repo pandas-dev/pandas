@@ -53,7 +53,7 @@ class PandasExtensionDtype(ExtensionDtype):
     subdtype = None
     str: str_type
     num = 100
-    shape: Tuple[int, ...] = tuple()
+    shape: Tuple[int, ...] = ()
     itemsize = 8
     base = None
     isbuiltin = 0

@@ -742,7 +742,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         if kwargs:
-            nv.validate_take(tuple(), kwargs)
+            nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -817,7 +817,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
-        nv.validate_repeat(tuple(), {"axis": axis})
+        nv.validate_repeat((), {"axis": axis})
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
