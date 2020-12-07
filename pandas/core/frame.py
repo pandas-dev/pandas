@@ -3167,7 +3167,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.iloc._setitem_with_indexer(key, value)
+        self.iloc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3179,7 +3179,7 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.iloc._setitem_with_indexer(indexer, value)
+            self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -3192,7 +3192,7 @@ class DataFrame(NDFrame, OpsMixin):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.iloc._setitem_with_indexer((slice(None), indexer), value)
+                self.iloc[:, indexer] = value
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
