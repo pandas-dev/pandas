@@ -3619,7 +3619,7 @@ class MultiIndex(Index):
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique().rename(result_names)
-            return self._get_reconciled_name_object(other)
+            return self.rename(result_names)
 
         return self._intersection(other, sort=sort)
 
