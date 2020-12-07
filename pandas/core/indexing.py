@@ -11,6 +11,7 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
+from pandas.core.dtypes.cast import maybe_infer_dtype_type
 from pandas.core.dtypes.common import (
     is_array_like,
     is_hashable,
@@ -675,8 +676,22 @@ class _LocationIndexer(NDFrameIndexerBase):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
 
+            # Try to get the right dtype when we do this reindex.
+            fv = None
+            if is_scalar(value):
+                fv = value
+            else:
+                dtype = maybe_infer_dtype_type(value)
+                if dtype is not None:
+                    fv = dtype.type(0)  # TODO: or try to just do value[0]?
+
             self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys, axis=0, copy=False, consolidate=False, only_slice=True
+                keys,
+                axis=0,
+                copy=False,
+                consolidate=False,
+                only_slice=True,
+                fill_value=fv,
             )
 
     def __setitem__(self, key, value):
