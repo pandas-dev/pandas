@@ -238,10 +238,11 @@ class TestClipboard:
         tm.assert_frame_equal(res, exp)
 
     def test_invalid_encoding(self, df):
+        msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             pd.read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
