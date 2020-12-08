@@ -1011,7 +1011,10 @@ class IntervalDtype(PandasExtensionDtype):
     str = "|O08"
     base = np.dtype("O")
     num = 103
-    _metadata = ("subtype",)
+    _metadata = (
+        "subtype",
+        "closed",
+    )
     _match = re.compile(
         r"(I|i)nterval\[(?P<subtype>[^,]+)(, (?P<closed>(right|left|both|neither)))?\]"
     )
@@ -1019,6 +1022,9 @@ class IntervalDtype(PandasExtensionDtype):
 
     def __new__(cls, subtype=None, closed: Optional[str_type] = None):
         from pandas.core.dtypes.common import is_string_dtype, pandas_dtype
+
+        if closed is not None and closed not in {"right", "left", "both", "neither"}:
+            raise ValueError("closed must be one of 'right', 'left', 'both', 'neither'")
 
         if isinstance(subtype, IntervalDtype):
             if closed is not None and closed != subtype.closed:
@@ -1042,7 +1048,14 @@ class IntervalDtype(PandasExtensionDtype):
                 if m is not None:
                     gd = m.groupdict()
                     subtype = gd["subtype"]
-                    closed = gd.get("closed", closed)
+                    if "closed" in gd:
+                        closed = gd["closed"]
+                    elif closed is not None:
+                        # user passed eg. IntervalDtype("interval[int64]", "left")
+                        pass
+                    else:
+                        # default to "right"
+                        closed = "right"
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1057,6 +1070,7 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
+        closed = closed or "right"
         key = str(subtype) + str(closed)
         try:
             return cls._cache[key]

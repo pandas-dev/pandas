@@ -213,6 +213,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ):
         result = IntervalMixin.__new__(cls)
 
+        if closed is None and isinstance(dtype, IntervalDtype):
+            closed = dtype.closed
+
         closed = closed or "right"
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
@@ -226,6 +229,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             elif dtype.subtype is not None:
                 left = left.astype(dtype.subtype)
                 right = right.astype(dtype.subtype)
+
+            if dtype._closed is None:
+                # possibly loading an old pickle
+                dtype = IntervalDtype(dtype.subtype, closed)
 
         # coerce dtypes to match if needed
         if is_float_dtype(left) and is_integer_dtype(right):

@@ -594,6 +594,10 @@ class TestIntervalDtype(Base):
         with pytest.raises(ValueError, match=msg):
             IntervalDtype(dtype, closed="both")
 
+    def test_closed_invalid(self):
+        with pytest.raises(ValueError, match="closed must be one of"):
+            IntervalDtype(np.float64, "foo")
+
     def test_construction_from_string(self, dtype):
         result = IntervalDtype("interval[int64]")
         assert is_dtype_equal(dtype, result)
@@ -694,7 +698,7 @@ class TestIntervalDtype(Base):
     def test_name_repr(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
-        expected = f"interval[{subtype}, None]"
+        expected = f"interval[{subtype}, right]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 

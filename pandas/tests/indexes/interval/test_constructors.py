@@ -154,7 +154,7 @@ class ConstructorTests:
         filler = self.get_kwargs_from_breaks(range(10))
 
         # invalid closed
-        msg = "invalid option for 'closed': invalid"
+        msg = "closed must be one of 'right', 'left', 'both', 'neither'"
         with pytest.raises(ValueError, match=msg):
             constructor(closed="invalid", **filler)
 
