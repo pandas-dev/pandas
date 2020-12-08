@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO
+from io import StringIO, TextIOBase
 import itertools
 import re
 import sys
