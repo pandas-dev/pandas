@@ -74,6 +74,11 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
+    - name: Build Pandas
+      run: |
+        python setup.py build_ext -j 2
+        python -m pip install -e . --no-build-isolation --no-use-pep517
+
     - name: Test
       run: ci/run_tests.sh
       if: always()
