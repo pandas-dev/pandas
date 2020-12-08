@@ -2294,7 +2294,6 @@ class PythonParser(ParserBase):
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
-        self._col_indices = None
         try:
             (
                 self.columns,
@@ -2336,7 +2335,7 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
-        if self._col_indices is None:
+        if not hasattr(self, "_col_indices"):
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
@@ -2712,7 +2711,6 @@ class PythonParser(ParserBase):
                     # overwritten.
                     self._handle_usecols(columns, names)
                 else:
-                    self._col_indices = None
                     num_original_columns = len(names)
                 columns = [names]
             else:
@@ -3196,7 +3194,7 @@ class PythonParser(ParserBase):
                         i < len(self.index_col)
                         # pandas\io\parsers.py:3159: error: Unsupported right
                         # operand type for in ("Optional[Any]")  [operator]
-                        or i - len(self.index_col)  # type: ignore[operator]
+                        or i - len(self.index_col)
                         in self._col_indices
                     )
                 ]
@@ -3206,7 +3204,7 @@ class PythonParser(ParserBase):
                     # operand type for in ("Optional[Any]")  [operator]
                     a
                     for i, a in enumerate(zipped_content)
-                    if i in self._col_indices  # type: ignore[operator]
+                    if i in self._col_indices
                 ]
         return zipped_content
 
