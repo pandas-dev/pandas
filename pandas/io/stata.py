@@ -31,7 +31,7 @@ from pandas._typing import (
     Label,
     StorageOptions,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -49,6 +49,7 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
@@ -872,30 +873,26 @@ class StataParser:
                 (255, np.dtype(np.float64)),
             ]
         )
-        self.DTYPE_MAP_XML = dict(
-            [
-                (32768, np.dtype(np.uint8)),  # Keys to GSO
-                (65526, np.dtype(np.float64)),
-                (65527, np.dtype(np.float32)),
-                (65528, np.dtype(np.int32)),
-                (65529, np.dtype(np.int16)),
-                (65530, np.dtype(np.int8)),
-            ]
-        )
+        self.DTYPE_MAP_XML = {
+            32768: np.dtype(np.uint8),  # Keys to GSO
+            65526: np.dtype(np.float64),
+            65527: np.dtype(np.float32),
+            65528: np.dtype(np.int32),
+            65529: np.dtype(np.int16),
+            65530: np.dtype(np.int8),
+        }
         # error: Argument 1 to "list" has incompatible type "str";
         #  expected "Iterable[int]"  [arg-type]
         self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
-        self.TYPE_MAP_XML = dict(
-            [
-                # Not really a Q, unclear how to handle byteswap
-                (32768, "Q"),
-                (65526, "d"),
-                (65527, "f"),
-                (65528, "l"),
-                (65529, "h"),
-                (65530, "b"),
-            ]
-        )
+        self.TYPE_MAP_XML = {
+            # Not really a Q, unclear how to handle byteswap
+            32768: "Q",
+            65526: "d",
+            65527: "f",
+            65528: "l",
+            65529: "h",
+            65530: "b",
+        }
         # NOTE: technically, some of these are wrong. there are more numbers
         # that can be represented. it's the 27 ABOVE and BELOW the max listed
         # numeric data type in [U] 12.2.2 of the 11.2 manual
@@ -1467,7 +1464,7 @@ the string values returned are correct."""
             off = off[ii]
             val = val[ii]
             txt = self.path_or_buf.read(txtlen)
-            self.value_label_dict[labname] = dict()
+            self.value_label_dict[labname] = {}
             for i in range(n):
                 end = off[i + 1] if i < n - 1 else txtlen
                 self.value_label_dict[labname][val[i]] = self._decode(txt[off[i] : end])
@@ -2060,6 +2057,7 @@ def _dtype_to_default_stata_fmt(
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 class StataWriter(StataParser):
     """
     A class for writing Stata binary dta files
@@ -2094,22 +2092,16 @@ class StataWriter(StataParser):
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output dta. If string, specifies
         compression mode. If dict, value at key 'method' specifies compression
-        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
-        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        mode. Compression mode must be one of {{'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}}. If compression mode is 'infer' and `fname` is path-like,
         then detect compression from the following extensions: '.gz', '.bz2',
         '.zip', or '.xz' (otherwise no compression). If dict and compression
-        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
         other entries passed as additional compression options.
 
         .. versionadded:: 1.1.0
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -2137,14 +2129,14 @@ class StataWriter(StataParser):
     >>> writer.write_file()
 
     Directly write a zip file
-    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> compression = {{"method": "zip", "archive_name": "data_file.dta"}}
     >>> writer = StataWriter('./data_file.zip', data, compression=compression)
     >>> writer.write_file()
 
     Save a DataFrame with dates
     >>> from datetime import datetime
     >>> data = pd.DataFrame([[datetime(2000,1,1)]], columns=['date'])
-    >>> writer = StataWriter('./date_data_file.dta', data, {'date' : 'tw'})
+    >>> writer = StataWriter('./date_data_file.dta', data, {{'date' : 'tw'}})
     >>> writer.write_file()
     """
 
@@ -3142,24 +3134,22 @@ class StataWriter117(StataWriter):
         all blocks have been written.
         """
         if not self._map:
-            self._map = dict(
-                (
-                    ("stata_data", 0),
-                    ("map", self.handles.handle.tell()),
-                    ("variable_types", 0),
-                    ("varnames", 0),
-                    ("sortlist", 0),
-                    ("formats", 0),
-                    ("value_label_names", 0),
-                    ("variable_labels", 0),
-                    ("characteristics", 0),
-                    ("data", 0),
-                    ("strls", 0),
-                    ("value_labels", 0),
-                    ("stata_data_close", 0),
-                    ("end-of-file", 0),
-                )
-            )
+            self._map = {
+                "stata_data": 0,
+                "map": self.handles.handle.tell(),
+                "variable_types": 0,
+                "varnames": 0,
+                "sortlist": 0,
+                "formats": 0,
+                "value_label_names": 0,
+                "variable_labels": 0,
+                "characteristics": 0,
+                "data": 0,
+                "strls": 0,
+                "value_labels": 0,
+                "stata_data_close": 0,
+                "end-of-file": 0,
+            }
         # Move to start of map
         self.handles.handle.seek(self._map["map"])
         bio = BytesIO()

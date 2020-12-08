@@ -137,7 +137,7 @@ class _Unstacker:
     @cache_readonly
     def sorted_labels(self):
         indexer, to_sort = self._indexer_and_to_sort
-        return [l.take(indexer) for l in to_sort]
+        return [line.take(indexer) for line in to_sort]
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
@@ -399,6 +399,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj, level, fill_value=None):
+
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -416,6 +417,13 @@ def unstack(obj, level, fill_value=None):
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
+    elif not isinstance(obj.index, MultiIndex):
+        # GH 36113
+        # Give nicer error messages when unstack a  Series whose
+        # Index is not a MultiIndex.
+        raise ValueError(
+            f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
+        )
     else:
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
@@ -513,7 +521,7 @@ def stack(frame, level=-1, dropna=True):
             verify_integrity=False,
         )
 
-    if frame._is_homogeneous_type:
+    if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)

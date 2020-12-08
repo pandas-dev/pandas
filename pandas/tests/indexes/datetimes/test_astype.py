@@ -172,7 +172,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = pd.date_range(start="2013-01-01", periods=4, freq="M", name="idx", tz=tz)
+        idx = date_range(start="2013-01-01", periods=4, freq="M", name="idx", tz=tz)
         expected_list = [
             Timestamp("2013-01-31", tz=tz),
             Timestamp("2013-02-28", tz=tz),
@@ -288,7 +288,7 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
         expected = pd.CategoricalIndex(
             [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)],
@@ -302,7 +302,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
         expected = Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
