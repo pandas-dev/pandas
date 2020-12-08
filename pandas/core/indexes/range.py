@@ -355,9 +355,9 @@ class RangeIndex(Int64Index):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @Appender(_index_shared_docs["get_indexer"])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
         if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
-            return super().get_indexer(
+            return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
 
@@ -371,7 +371,7 @@ class RangeIndex(Int64Index):
         target_array = np.asarray(target)
         if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)

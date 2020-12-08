@@ -55,7 +55,6 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
-import pandas.core.missing as missing
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
@@ -2597,9 +2596,7 @@ class MultiIndex(Index):
         return key
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ensure_index(target)
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         # empty indexer
         if is_list_like(target) and not len(target):

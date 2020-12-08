@@ -3143,10 +3143,9 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
+
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
-        if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance, target)
 
         # Treat boolean labels passed to a numeric index as not found. Without
         # this fix False and True would be treated as 0 and 1 respectively.
@@ -3159,6 +3158,14 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer(
                 ptarget, method=method, limit=limit, tolerance=tolerance
             )
+
+        return self._get_indexer(target, method, limit, tolerance)
+
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, target)
 
         if not is_dtype_equal(self.dtype, target.dtype):
             this = self.astype(object)
