@@ -495,7 +495,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_200.api.other:
+.. _whatsnew_120.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -866,4 +866,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.4..v1.2.0|HEAD
+.. contributors:: v1.1.5..v1.2.0|HEAD
