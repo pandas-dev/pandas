@@ -218,9 +218,11 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
         assert axes.shape == (4, 1)
 
-        with pytest.raises(ValueError):
+        msg = "can't create subplots with layout (1,1) or (-1,-1)"
+
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(1, 1))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(-1, -1))
 
     @pytest.mark.parametrize(
@@ -272,7 +274,9 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
-        with pytest.raises(ValueError):
+        msg = "number of axes passed is different than the ones required"
+
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             df.plot(subplots=True, ax=axes)

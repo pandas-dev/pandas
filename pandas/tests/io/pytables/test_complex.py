@@ -149,8 +149,11 @@ def test_complex_indexing_error(setup_path):
         {"A": [1, 2, 3, 4], "B": ["a", "b", "c", "d"], "C": complex128},
         index=list("abcd"),
     )
+
+    msg = "indexing error with complex numbers"
+
     with ensure_clean_store(setup_path) as store:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             store.append("df", df, data_columns=["C"])
 
 
@@ -158,8 +161,10 @@ def test_complex_series_error(setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
 
+    msg = "type error in series of complex"
+
     with ensure_clean_path(setup_path) as path:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s.to_hdf(path, "obj", format="t")
 
     with ensure_clean_path(setup_path) as path:
