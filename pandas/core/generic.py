@@ -6398,18 +6398,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 )
 
             elif isinstance(value, (dict, ABCSeries)):
-                temp_data = self if inplace else self.copy()
+                tmp = self if inplace else self.copy()
 
-                for i, (label, content) in enumerate(temp_data.items()):
+                for i, (label, content) in enumerate(tmp.items()):
                     if axis == 0 and label not in value:
                         continue
-                    fill_val = value[label] if axis == 0 else value
-                    temp_data.iloc[:, i] = content.fillna(
-                        fill_val, limit=limit, inplace=False, downcast=downcast
+                    tmp.iloc[:, i] = content.fillna(
+                        value[label] if axis == 0 else value,
+                        limit=limit,
+                        inplace=False,
+                        downcast=downcast,
                     )
 
-                temp_data = temp_data.infer_objects()
-                new_data = temp_data._mgr
+                tmp = tmp.infer_objects()
+                new_data = tmp._mgr
 
             elif not is_list_like(value):
                 new_data = self._mgr.fillna(
