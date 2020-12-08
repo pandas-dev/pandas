@@ -488,10 +488,15 @@ class TestDataFrameNonuniqueIndexes:
         tm.assert_series_equal(df.iloc[:, 1], expected)
 
     def test_masking_duplicate_columns_mixed_dtypes(self):
-        # https://github.com/pandas-dev/pandas/issues/31954
-        df = DataFrame(np.array([[0.0, 1], [2.0, 3]]), columns=[0, 0])
-        expected = DataFrame(
-            np.array([[np.nan, np.nan], [np.nan, 3.0]]), columns=[0, 0]
-        )
+        # GH31954
+
+        df1 = DataFrame(np.array([[1, 2], [3, 4]]))
+        df2 = DataFrame(np.array([[0.5, 6], [7, 8]]))
+        df = pd.concat([df1, df2], axis=1)
+
         result = df[df > 2]
+        expected = DataFrame(
+            np.array([[np.nan, np.nan, np.nan, 6.0], [3.0, 4.0, 7.0, 8.0]]),
+            columns=pd.Int64Index([0, 1, 0, 1], dtype="int64"),
+        )
         tm.assert_frame_equal(result, expected)
