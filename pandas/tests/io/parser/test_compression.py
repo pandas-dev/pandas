@@ -150,6 +150,7 @@ def test_compression_utf_encoding(
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("invalid_compression", ["sfark", "bz3", "zipper"])
 def test_invalid_compression(all_parsers, invalid_compression):
     parser = all_parsers
