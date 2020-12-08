@@ -3194,8 +3194,7 @@ class PythonParser(ParserBase):
                         i < len(self.index_col)
                         # pandas\io\parsers.py:3159: error: Unsupported right
                         # operand type for in ("Optional[Any]")  [operator]
-                        or i - len(self.index_col)
-                        in self._col_indices
+                        or i - len(self.index_col) in self._col_indices
                     )
                 ]
             else:
