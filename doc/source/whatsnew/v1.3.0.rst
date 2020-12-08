@@ -127,7 +127,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`DataFrame.iloc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
+- Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
 -
 -
 
