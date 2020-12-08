@@ -389,10 +389,22 @@ def test_getitem_generator(string_series):
     tm.assert_series_equal(result2, expected)
 
 
-def test_getitem_ndim_deprecated():
-    s = Series([0, 1])
-    with tm.assert_produces_warning(FutureWarning):
-        s[:, None]
+@pytest.mark.parametrize(
+    "series",
+    [
+        Series([0, 1]),
+        Series(date_range("2012-01-01", periods=2)),
+        Series(date_range("2012-01-01", periods=2, tz="CET")),
+    ],
+)
+def test_getitem_ndim_deprecated(series):
+    with tm.assert_produces_warning(
+        FutureWarning, match="Support for multi-dimensional indexing"
+    ):
+        result = series[:, None]
+
+    expected = np.asarray(series)[:, None]
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_getitem_multilevel_scalar_slice_not_implemented(
@@ -427,3 +439,25 @@ def test_getitem_assignment_series_aligment():
     ser[idx] = Series([10, 11, 12])
     expected = Series([0, 1, 10, 3, 11, 5, 6, 7, 8, 12])
     tm.assert_series_equal(ser, expected)
+
+
+def test_getitem_duplicate_index_mistyped_key_raises_keyerror():
+    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
+    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    with pytest.raises(KeyError, match="None"):
+        ser[None]
+
+    with pytest.raises(KeyError, match="None"):
+        ser.index.get_loc(None)
+
+    with pytest.raises(KeyError, match="None"):
+        ser.index._engine.get_loc(None)
+
+
+def test_getitem_1tuple_slice_without_multiindex():
+    ser = Series(range(5))
+    key = (slice(3),)
+
+    result = ser[key]
+    expected = ser[key[0]]
+    tm.assert_series_equal(result, expected)

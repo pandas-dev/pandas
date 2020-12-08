@@ -290,6 +290,16 @@ class TestCategoricalConstructors:
         cat = Categorical([0, 1, 2], categories=range(3))
         tm.assert_categorical_equal(cat, exp)
 
+    def test_constructor_with_rangeindex(self):
+        # RangeIndex is preserved in Categories
+        rng = Index(range(3))
+
+        cat = Categorical(rng)
+        tm.assert_index_equal(cat.categories, rng, exact=True)
+
+        cat = Categorical([1, 2, 0], categories=rng)
+        tm.assert_index_equal(cat.categories, rng, exact=True)
+
     @pytest.mark.parametrize(
         "dtl",
         [
@@ -677,7 +687,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(cat.categories, idx)
 
         # overlapping
-        idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
+        idx = IntervalIndex([Interval(0, 2), Interval(0, 1)])
         cat = Categorical(idx, categories=idx)
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)

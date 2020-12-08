@@ -12,9 +12,7 @@ import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
-
-@xfail_pyarrow
-@pytest.mark.parametrize("kwargs", [dict(), dict(mangle_dupe_cols=True)])
+@pytest.mark.parametrize("kwargs", [{}, {"mangle_dupe_cols": True}])
 def test_basic(all_parsers, kwargs):
     # TODO: add test for condition "mangle_dupe_cols=False"
     # once it is actually supported (gh-12935)

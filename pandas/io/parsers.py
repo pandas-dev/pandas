@@ -63,7 +63,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import algorithms, generic
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
@@ -282,11 +282,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -361,13 +369,7 @@ float_precision : str, optional
 
     .. versionchanged:: 1.2
 
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2
 
@@ -475,12 +477,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        parser.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -573,6 +571,7 @@ _deprecated_args: Set[str] = set()
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_csv(
@@ -652,6 +651,7 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_table(
@@ -1139,6 +1139,12 @@ class TextFileReader(abc.Iterator):
                 raise StopIteration
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 def _is_index_col(col):
@@ -1947,7 +1953,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -3143,9 +3153,9 @@ class PythonParser(ParserBase):
         if self.comment is None:
             return lines
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for x in l:
+            for x in line:
                 if not isinstance(x, str) or self.comment not in x:
                     rl.append(x)
                 else:
@@ -3172,14 +3182,14 @@ class PythonParser(ParserBase):
             The same array of lines with the "empty" ones removed.
         """
         ret = []
-        for l in lines:
+        for line in lines:
             # Remove empty lines and lines with only one whitespace value
             if (
-                len(l) > 1
-                or len(l) == 1
-                and (not isinstance(l[0], str) or l[0].strip())
+                len(line) > 1
+                or len(line) == 1
+                and (not isinstance(line[0], str) or line[0].strip())
             ):
-                ret.append(l)
+                ret.append(line)
         return ret
 
     def _check_thousands(self, lines):
@@ -3192,9 +3202,9 @@ class PythonParser(ParserBase):
 
     def _search_replace_num_columns(self, lines, search, replace):
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for i, x in enumerate(l):
+            for i, x in enumerate(line):
                 if (
                     not isinstance(x, str)
                     or search not in x
