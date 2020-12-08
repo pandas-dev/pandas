@@ -1449,8 +1449,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 return np.zeros(self.shape, dtype=bool)
 
             if is_dtype_equal(self.dtype, values.dtype):
-                left = self._combined.view("complex128")
-                right = values._combined.view("complex128")
+                # error: "ArrayLike" has no attribute "view"  [attr-defined]
+                left = self._combined.view("complex128")  # type:ignore[attr-defined]
+                right = values._combined.view("complex128")  # type:ignore[attr-defined]
                 return np.in1d(left, right)
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(

@@ -64,6 +64,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
+    from pandas.core.arrays import IntervalArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -456,7 +457,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         return cast("Categorical", comps).isin(values)
 
     elif is_interval_dtype(comps.dtype):
-        return comps.isin(values)
+        return cast("IntervalArray", comps).isin(values)
 
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
