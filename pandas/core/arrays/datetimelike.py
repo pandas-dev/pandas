@@ -112,8 +112,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
-    ):
+        cls: Type[DatetimeLikeArrayT],
+        values: np.ndarray,
+        freq: Optional[BaseOffset] = None,
+        dtype=None,
+    ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
     @property
@@ -217,7 +220,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    def _box_values(self, values):
+    def _box_values(self, values) -> np.ndarray:
         """
         apply box func to passed values
         """
@@ -416,7 +419,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray, iNaT
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(
+        cls: Type[DatetimeLikeArrayT], values, original
+    ) -> DatetimeLikeArrayT:
         return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------
@@ -661,7 +666,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna=False):
+    def value_counts(self, dropna: bool = False):
         """
         Return a Series containing counts of unique values.
 
@@ -755,28 +760,30 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
+    def _isnan(self) -> np.ndarray:
         """
         return if each value is nan
         """
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self):
+    def _hasnans(self) -> np.ndarray:
         """
         return if I have any nans; enables various perf speedups
         """
         return bool(self._isnan.any())
 
-    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
+    def _maybe_mask_results(
+        self, result: np.ndarray, fill_value=iNaT, convert=None
+    ) -> np.ndarray:
         """
         Parameters
         ----------
-        result : a ndarray
+        result : np.ndarray
         fill_value : object, default iNaT
         convert : str, dtype or None
 
@@ -794,7 +801,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 result = result.astype(convert)
             if fill_value is None:
                 fill_value = np.nan
-            result[self._isnan] = fill_value
+            np.putmask(result, self._isnan, fill_value)
         return result
 
     # ------------------------------------------------------------------
@@ -893,22 +900,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             ) from e
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, *args, **kwargs):
+    def _generate_range(
+        cls: Type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
+    ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
 
     @property
-    def _is_monotonic_increasing(self):
+    def _is_monotonic_increasing(self) -> bool:
         return algos.is_monotonic(self.asi8, timelike=True)[0]
 
     @property
-    def _is_monotonic_decreasing(self):
+    def _is_monotonic_decreasing(self) -> bool:
         return algos.is_monotonic(self.asi8, timelike=True)[1]
 
     @property
-    def _is_unique(self):
+    def _is_unique(self) -> bool:
         return len(unique1d(self.asi8)) == len(self)
 
     # ------------------------------------------------------------------
@@ -940,9 +949,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = op(self._ndarray.view("i8"), other_vals.view("i8"))
 
         o_mask = isna(other)
-        if self._hasnans | np.any(o_mask):
+        mask = self._isnan | o_mask
+        if mask.any():
             nat_result = op is operator.ne
-            result[self._isnan | o_mask] = nat_result
+            np.putmask(result, mask, nat_result)
 
         return result
 
@@ -996,7 +1006,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isna(other):
             # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
             new_values = np.empty(self.shape, dtype="i8")
-            new_values[:] = iNaT
+            new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
@@ -1038,7 +1048,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         if self._hasnans or other._hasnans:
             mask = self._isnan | other._isnan
-            new_values[mask] = iNaT
+            np.putmask(new_values, mask, iNaT)
 
         return type(self)(new_values, dtype=self.dtype)
 
@@ -1053,7 +1063,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
-        result = np.zeros(self.shape, dtype=np.int64)
+        result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
@@ -1067,7 +1077,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # For datetime64 dtypes by convention we treat NaT as a datetime, so
         # this subtraction returns a timedelta64 dtype.
         # For period dtype, timedelta64 is a close-enough return dtype.
-        result = np.zeros(self.shape, dtype=np.int64)
+        result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return result.view("timedelta64[ns]")
 
