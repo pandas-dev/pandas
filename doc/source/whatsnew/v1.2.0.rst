@@ -525,7 +525,6 @@ Deprecations
 - Deprecated casting an object-dtype index of ``datetime`` objects to :class:`.DatetimeIndex` in the :class:`Series` constructor (:issue:`23598`)
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
 - The default value of ``regex`` for :meth:`Series.str.replace` will change from ``True`` to ``False`` in a future release. In addition, single character regular expressions will *not* be treated as literal strings when ``regex=True`` is set. (:issue:`24804`)
-- Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 - Deprecated automatic alignment on comparison operations between :class:`DataFrame` and :class:`Series`, do ``frame, ser = frame.align(ser, axis=1, copy=False)`` before e.g. ``frame == ser`` (:issue:`28759`)
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
 - Using "outer" ufuncs on DataFrames to return 4d ndarray is now deprecated. Convert to an ndarray first (:issue:`23743`)

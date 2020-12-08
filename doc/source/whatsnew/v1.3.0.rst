@@ -53,7 +53,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 -
 -
 
