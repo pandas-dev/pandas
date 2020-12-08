@@ -71,7 +71,7 @@ jobs:
 
     - name: Test
       run: |
-        sudo apt-get install xvfb 
+        conda activate pandas-dev
         ci/run_tests.sh
       if: always()
 
