@@ -109,29 +109,6 @@ def test_maybe_match_name(left, right, expected):
     assert ops.common._maybe_match_name(left, right) == expected
 
 
-@pytest.mark.parametrize(
-    "data, names, expected",
-    [
-        ((1,), None, None),
-        ((1,), ["a"], None),
-        ((1,), ["b"], None),
-        ((1, 2), ["c", "d"], [None, None]),
-        ((1, 2), ["b", "a"], [None, None]),
-        ((1, 2, 3), ["a", "b", "c"], None),
-        ((1, 2), ["a", "c"], ["a", None]),
-        ((1, 2), ["c", "b"], [None, "b"]),
-        ((1, 2), ["a", "b"], ["a", "b"]),
-        ((1, 2), [None, "b"], [None, "b"]),
-    ],
-)
-def test_maybe_match_names_multiindex(data, names, expected):
-    # GH#38323
-    mi = pd.MultiIndex.from_tuples([], names=["a", "b"])
-    mi2 = pd.MultiIndex.from_tuples([data], names=names)
-    result = ops.common.maybe_match_names_multiindex(mi, mi2)
-    assert result == expected
-
-
 def test_standardize_mapping():
     # No uninitialized defaultdicts
     msg = r"to_dict\(\) only accepts initialized defaultdicts"

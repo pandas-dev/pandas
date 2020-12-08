@@ -122,30 +122,3 @@ def _maybe_match_name(a, b):
     elif b_has:
         return b.name
     return None
-
-
-def maybe_match_names_multiindex(a, b):
-    """
-    Try to find common names to attach to the result of an operation between
-    a and b.  Return a consensus list of names if they match at least partly
-    or None if they have completely different names.
-
-    Parameters
-    ----------
-    a : MultiIndex
-    b : MultiIndex
-
-    Returns
-    -------
-    name : list of optional str or None
-    """
-    if len(a.names) != len(b.names):
-        return None
-    names = []
-    for a_name, b_name in zip(a.names, b.names):
-        if a_name == b_name:
-            names.append(a_name)
-        else:
-            # TODO: what if they both have np.nan for their names?
-            names.append(None)
-    return names
