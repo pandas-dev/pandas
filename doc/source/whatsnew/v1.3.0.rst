@@ -163,7 +163,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-
+- Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` with ``ExtensionDtype`` columns incorrectly casting results too aggressively (:issue:`38254`)
 -
 -
 

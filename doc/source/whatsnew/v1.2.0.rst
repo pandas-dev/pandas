@@ -794,7 +794,6 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.apply` dropped values on ``nan`` group when returning the same axes with the original frame (:issue:`38227`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` couldn't handle with arraylike ``q`` when grouping by columns (:issue:`33795`)
 - Bug in :meth:`DataFrameGroupBy.rank` with ``datetime64tz`` or period dtype incorrectly casting results to those dtypes instead of returning ``float64`` dtype (:issue:`38187`)
-- Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` with ``ExtensionDtype`` columns incorrectly casting results too aggressively (:issue:`38254`)
 
 Reshaping
 ^^^^^^^^^
