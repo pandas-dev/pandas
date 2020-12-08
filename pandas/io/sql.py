@@ -1462,6 +1462,7 @@ class SQLDatabase(PandasSQL):
         keys: Optional[List[str]] = None,
         dtype: Optional[dict] = None,
         schema: Optional[str] = None,
+        index: Optional[bool] = False,
     ):
         table = SQLTable(
             table_name,
