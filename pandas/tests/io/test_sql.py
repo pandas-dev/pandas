@@ -896,7 +896,7 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_get_schema_with_index(self):
         # GH 9084
-        df = pd.DataFrame({"one": [1, 2, 3], "two": [1, 2, 3]}, index=list("abc"))
+        df = DataFrame({"one": [1, 2, 3], "two": [1, 2, 3]}, index=list("abc"))
 
         schema_without_index = sql.get_schema(df, "test", con=self.conn)
         assert "index TEXT" not in schema_without_index
