@@ -150,7 +150,13 @@ def test_complex_indexing_error(setup_path):
         index=list("abcd"),
     )
 
-    msg = "indexing error with complex numbers"
+    msg = (
+        "Columns containing complex values can be stored "
+        "but cannot be indexed when using table format. "
+        "Either use fixed format, set index=False, "
+        "or do not include the columns containing complex "
+        "values to data_columns when initializing the table."
+    )
 
     with ensure_clean_store(setup_path) as store:
         with pytest.raises(TypeError, match=msg):
@@ -161,7 +167,13 @@ def test_complex_series_error(setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
 
-    msg = "type error in series of complex"
+    msg = (
+        "Columns containing complex values can be stored "
+        "but cannot be indexed when using table format. "
+        "Either use fixed format, set index=False, "
+        "or do not include the columns containing complex "
+        "values to data_columns when initializing the table."
+    )
 
     with ensure_clean_path(setup_path) as path:
         with pytest.raises(TypeError, match=msg):

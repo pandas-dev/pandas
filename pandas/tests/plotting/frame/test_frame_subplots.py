@@ -218,7 +218,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
         assert axes.shape == (4, 1)
 
-        msg = "can't create subplots with layout (1,1) or (-1,-1)"
+        msg = "Layout of 1x1 must be larger than required size 3"
 
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(1, 1))
@@ -274,7 +274,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
-        msg = "number of axes passed is different than the ones required"
+        msg = "The number of passed axes must be 3, the same as the output plot"
 
         with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
