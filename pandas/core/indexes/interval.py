@@ -65,17 +65,17 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
-    dict(
-        klass="IntervalIndex",
-        qualname="IntervalIndex",
-        target_klass="IntervalIndex or list of Intervals",
-        name=textwrap.dedent(
+    {
+        "klass": "IntervalIndex",
+        "qualname": "IntervalIndex",
+        "target_klass": "IntervalIndex or list of Intervals",
+        "name": textwrap.dedent(
             """\
          name : object, optional
               Name to be stored in the index.
          """
         ),
-    )
+    }
 )
 
 
@@ -141,14 +141,14 @@ def setop_check(method):
 
 @Appender(
     _interval_shared_docs["class"]
-    % dict(
-        klass="IntervalIndex",
-        summary="Immutable index of intervals that are closed on the same side.",
-        name=_index_doc_kwargs["name"],
-        versionadded="0.20.0",
-        extra_attributes="is_overlapping\nvalues\n",
-        extra_methods="",
-        examples=textwrap.dedent(
+    % {
+        "klass": "IntervalIndex",
+        "summary": "Immutable index of intervals that are closed on the same side.",
+        "name": _index_doc_kwargs["name"],
+        "versionadded": "0.20.0",
+        "extra_attributes": "is_overlapping\nvalues\n",
+        "extra_methods": "",
+        "examples": textwrap.dedent(
             """\
     Examples
     --------
@@ -168,7 +168,7 @@ def setop_check(method):
     mentioned constructor methods.
     """
         ),
-    )
+    }
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
@@ -234,9 +234,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_breaks"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -246,7 +246,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                       dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_breaks(
         cls, breaks, closed: str = "right", name=None, copy: bool = False, dtype=None
@@ -260,9 +260,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_arrays"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -272,7 +272,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                       dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_arrays(
         cls,
@@ -292,9 +292,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_tuples"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -304,7 +304,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                        dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_tuples(
         cls, data, closed: str = "right", name=None, copy: bool = False, dtype=None
@@ -360,7 +360,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return result
 
     def __reduce__(self):
-        d = dict(left=self.left, right=self.right)
+        d = {"left": self.left, "right": self.right}
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
@@ -980,7 +980,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other) and not self.has_duplicates:
+        if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
@@ -1060,6 +1062,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _setop(op_name: str, sort=None):
         def func(self, other, sort=sort):
+            # At this point we are assured
+            #  isinstance(other, IntervalIndex)
+            #  other.closed == self.closed
+
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
             result_name = get_op_result_name(self, other)
 
@@ -1074,7 +1080,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         func.__name__ = op_name
         return setop_check(func)
 
-    union = _setop("union")
+    _union = _setop("union")
     difference = _setop("difference")
     symmetric_difference = _setop("symmetric_difference")
 
