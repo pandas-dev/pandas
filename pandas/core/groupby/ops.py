@@ -525,7 +525,7 @@ class BaseGrouper:
             dtype = maybe_cast_result_dtype(orig_values.dtype, how)
             if is_extension_array_dtype(dtype):
                 cls = dtype.construct_array_type()
-                return cls._from_sequence(res_values)
+                return cls._from_sequence(res_values, dtype=dtype)
             return res_values
 
         elif is_float_dtype(values.dtype):
