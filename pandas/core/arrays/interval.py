@@ -1442,28 +1442,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if not hasattr(values, "dtype"):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)
-        if is_interval_dtype(values.dtype):
-            if is_dtype_equal(self.dtype, values.dtype):
-                if self.closed != values.closed:
-                    # not comparable -> no overlap
-                    return np.zeros(self.shape, dtype=bool)
 
-                # TODO: Do we need to rule out NAs?
+        if is_interval_dtype(values.dtype):
+            if self.closed != values.closed:
+                # not comparable -> no overlap
+                return np.zeros(self.shape, dtype=bool)
+
+            if is_dtype_equal(self.dtype, values.dtype):
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
                 return np.in1d(left, right)
 
-            elif needs_i8_conversion(self.dtype) or needs_i8_conversion(values.dtype):
+            elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
+                values.left.dtype
+            ):
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
-
-            else:
-                return isin(self.astype(object), values.astype(object))
-
-        elif not is_object_dtype(values.dtype):
-            # not comparable -> no overlap
-            return np.zeros(self.shape, dtype=bool)
-            # FIXME: not quite right, could also be Categorical
 
         return isin(self.astype(object), values.astype(object))
 
