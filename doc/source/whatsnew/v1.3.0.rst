@@ -127,7 +127,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`???`)
+- Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 -
 -
 
