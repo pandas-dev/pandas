@@ -10,12 +10,27 @@ including other versions of pandas.
 
 .. warning::
 
+   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
+   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
+   writing excel files are no longer maintained. These are the only engines in pandas
+   that support the xls format.
+
    Previously, the default argument ``engine=None`` to ``pd.read_excel``
-   would result in using the `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine in
-   many cases. The engine ``xlrd`` is no longer maintained, and is not supported with
-   python >= 3.9. If `openpyxl <https://pypi.org/project/openpyxl/>`_  is installed,
-   many of these  cases will now default to using the ``openpyxl`` engine. See the
-   :func:`read_excel` documentation for more details.
+   would result in using the ``xlrd`` engine in many cases. If
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details. Attempting to read
+   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
+   raise a warning. However users should be aware that ``xlrd`` is already
+   broken with certain package configurations, for example with Python 3.9
+   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
+   is anticipated to be unusable in the future.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. ---------------------------------------------------------------------------
 

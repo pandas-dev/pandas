@@ -587,6 +587,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
+
+        .. deprecated:: 1.2.0
+
+            As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+            maintained, the ``xlwt`` engine will be removed in a future
+            version of pandas.
+
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
@@ -691,11 +698,31 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
                     if engine == "auto":
                         engine = get_default_writer(ext)
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
+
+            if engine == "xlwt":
+                xls_config_engine = config.get_option(
+                    "io.excel.xls.writer", silent=True
+                )
+                # Don't warn a 2nd time if user has changed the default engine for xls
+                if xls_config_engine != "xlwt":
+                    warnings.warn(
+                        "As the xlwt package is no longer maintained, the xlwt "
+                        "engine will be removed in a future version of pandas. "
+                        "This is the only engine in pandas that supports writing "
+                        "in the xls format. Install openpyxl and write to an xlsx "
+                        "file instead. You can set the option io.excel.xls.writer "
+                        "to 'xlwt' to silence this warning. While this option is "
+                        "deprecated and will also raise a warning, it can "
+                        "be globally set and the warning suppressed.",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+
             cls = get_writer(engine)
 
         return object.__new__(cls)

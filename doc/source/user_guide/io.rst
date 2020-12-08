@@ -3200,6 +3200,13 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 Excel writer engines
 ''''''''''''''''''''
 
+.. deprecated:: 1.2.0
+
+   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+   maintained, the ``xlwt`` engine will be removed from a future version
+   of pandas. This is the only engine in pandas that supports writing to
+   ``.xls`` files.
+
 pandas chooses an Excel writer via two methods:
 
 1. the ``engine`` keyword argument
