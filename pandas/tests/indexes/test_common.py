@@ -13,7 +13,16 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    Int64Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -70,52 +79,6 @@ class TestCommon:
     def test_getitem_error(self, index, itm):
         with pytest.raises(IndexError):
             index[itm]
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_union(self, index, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
 
     def test_to_flat_index(self, index):
         # 22866
@@ -226,6 +189,10 @@ class TestCommon:
             vals[0] = np.nan
 
         vals_unique = vals[:2]
+        if index.dtype.kind in ["m", "M"]:
+            # i.e. needs_i8_conversion but not period_dtype, as above
+            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -237,13 +204,6 @@ class TestCommon:
             for i in [idx_nan, idx_unique_nan]:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
-
-    def test_mutability(self, index):
-        if not len(index):
-            pytest.skip("Skip check for empty Index")
-        msg = "Index does not support mutable operations"
-        with pytest.raises(TypeError, match=msg):
-            index[0] = index[0]
 
     def test_view(self, index):
         assert index.view().name == index.name
@@ -374,8 +334,7 @@ class TestCommon:
         "dtype",
         ["int64", "uint64", "float64", "category", "datetime64[ns]", "timedelta64[ns]"],
     )
-    @pytest.mark.parametrize("copy", [True, False])
-    def test_astype_preserves_name(self, index, dtype, copy):
+    def test_astype_preserves_name(self, index, dtype):
         # https://github.com/pandas-dev/pandas/issues/32013
         if isinstance(index, MultiIndex):
             index.names = ["idx" + str(i) for i in range(index.nlevels)]
@@ -384,10 +343,7 @@ class TestCommon:
 
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            if copy:
-                result = index.copy(dtype=dtype)
-            else:
-                result = index.astype(dtype)
+            result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -395,3 +351,51 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
+
+    def test_ravel_deprecation(self, index):
+        # GH#19956 ravel returning ndarray is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            index.ravel()
+
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(
+            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
+        ):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
+
+
+@pytest.mark.parametrize("na_position", [None, "middle"])
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
+    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
+
+    if na_position not in ["first", "last"]:
+        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+            index_with_missing.sort_values(na_position=na_position)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_values_with_missing(index_with_missing, na_position):
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and place missing according to na_position
+
+    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
+
+    missing_count = np.sum(index_with_missing.isna())
+    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    sorted_values = np.sort(not_na_vals)
+    if na_position == "first":
+        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    else:
+        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    expected = type(index_with_missing)(sorted_values)
+
+    result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)

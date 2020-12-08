@@ -137,7 +137,7 @@ def test_to_html_encoding(float_frame, tmp_path):
     # GH 28663
     path = tmp_path / "test.html"
     float_frame.to_html(path, encoding="gbk")
-    with open(str(path), "r", encoding="gbk") as f:
+    with open(str(path), encoding="gbk") as f:
         assert float_frame.to_html() == f.read()
 
 
@@ -152,8 +152,8 @@ def test_to_html_decimal(datapath):
 @pytest.mark.parametrize(
     "kwargs,string,expected",
     [
-        (dict(), "<type 'str'>", "escaped"),
-        (dict(escape=False), "<b>bold</b>", "escape_disabled"),
+        ({}, "<type 'str'>", "escaped"),
+        ({"escape": False}, "<b>bold</b>", "escape_disabled"),
     ],
 )
 def test_to_html_escaped(kwargs, string, expected, datapath):
@@ -246,6 +246,21 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
             ),
             {"hod": lambda x: x.strftime("%H:%M")},
             "datetime64_hourformatter",
+        ),
+        (
+            DataFrame(
+                {
+                    "i": pd.Series([1, 2], dtype="int64"),
+                    "f": pd.Series([1, 2], dtype="float64"),
+                    "I": pd.Series([1, 2], dtype="Int64"),
+                    "s": pd.Series([1, 2], dtype="string"),
+                    "b": pd.Series([True, False], dtype="boolean"),
+                    "c": pd.Series(["a", "b"], dtype=pd.CategoricalDtype(["a", "b"])),
+                    "o": pd.Series([1, "2"], dtype=object),
+                }
+            ),
+            [lambda x: "formatted"] * 7,
+            "various_dtypes_formatted",
         ),
     ],
 )
@@ -787,13 +802,13 @@ def test_html_repr_min_rows_default(datapath):
     # gh-27991
 
     # default setting no truncation even if above min_rows
-    df = pd.DataFrame({"a": range(20)})
+    df = DataFrame({"a": range(20)})
     result = df._repr_html_()
     expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
     assert result == expected
 
     # default of max_rows 60 triggers truncation if above
-    df = pd.DataFrame({"a": range(61)})
+    df = DataFrame({"a": range(61)})
     result = df._repr_html_()
     expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
     assert result == expected
@@ -815,8 +830,51 @@ def test_html_repr_min_rows_default(datapath):
 def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     # gh-27991
 
-    df = pd.DataFrame({"a": range(61)})
+    df = DataFrame({"a": range(61)})
     expected = expected_html(datapath, expected)
     with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
         result = df._repr_html_()
+    assert result == expected
+
+
+def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
+    ymd = multiindex_year_month_day_dataframe_random_data
+
+    ymd.columns.name = "foo"
+    ymd.to_html()
+    ymd.T.to_html()
+
+
+@pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
+def test_to_html_na_rep_and_float_format(na_rep):
+    # https://github.com/pandas-dev/pandas/issues/13828
+    df = DataFrame(
+        [
+            ["A", 1.2225],
+            ["A", None],
+        ],
+        columns=["Group", "Data"],
+    )
+    result = df.to_html(na_rep=na_rep, float_format="{:.2f}".format)
+    expected = f"""<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Group</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>A</td>
+      <td>1.22</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>A</td>
+      <td>{na_rep}</td>
+    </tr>
+  </tbody>
+</table>"""
     assert result == expected

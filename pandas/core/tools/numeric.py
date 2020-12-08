@@ -10,6 +10,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
@@ -40,13 +41,13 @@ def to_numeric(arg, errors="raise", downcast=None):
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
-    downcast : {'int', 'signed', 'unsigned', 'float'}, default None
+    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
         possible according to the following rules:
 
-        - 'int' or 'signed': smallest signed int dtype (min.: np.int8)
+        - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
         - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
         - 'float': smallest float dtype (min.: np.float32)
 
@@ -123,8 +124,9 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = arg.values
     elif isinstance(arg, ABCIndexClass):
         is_index = True
-        values = arg.asi8
-        if values is None:
+        if needs_i8_conversion(arg.dtype):
+            values = arg.asi8
+        else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
@@ -186,7 +188,7 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy

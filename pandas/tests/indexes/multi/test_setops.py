@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, Series
+from pandas import Index, MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -37,6 +37,7 @@ def test_intersection_base(idx, sort, klass):
         first.intersection([1, 2, 3], sort=sort)
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]
@@ -104,11 +105,13 @@ def test_symmetric_difference(idx, sort):
 def test_multiindex_symmetric_difference():
     # GH 13490
     idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-    result = idx ^ idx
+    with tm.assert_produces_warning(FutureWarning):
+        result = idx ^ idx
     assert result.names == idx.names
 
     idx2 = idx.copy().rename(["A", "B"])
-    result = idx ^ idx2
+    with tm.assert_produces_warning(FutureWarning):
+        result = idx ^ idx2
     assert result.names == [None, None]
 
 
@@ -242,10 +245,10 @@ def test_union(idx, sort):
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     the_union = idx.union(idx[:0], sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     # FIXME: dont leave commented-out
     # won't work in python 3
@@ -277,7 +280,7 @@ def test_intersection(idx, sort):
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
-    assert the_int is idx
+    tm.assert_index_equal(the_int, idx)
 
     # empty intersection: disjoint
     empty = idx[:2].intersection(idx[2:], sort=sort)
@@ -289,6 +292,24 @@ def test_intersection(idx, sort):
     # tuples = _index.values
     # result = _index & tuples
     # assert result.equals(tuples)
+
+
+def test_intersection_non_object(idx, sort):
+    other = Index(range(3), name="foo")
+
+    result = idx.intersection(other, sort=sort)
+    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
+    tm.assert_index_equal(result, expected, exact=True)
+
+    # if we pass a length-0 ndarray (i.e. no name, we retain our idx.name)
+    result = idx.intersection(np.asarray(other)[:0], sort=sort)
+    expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=idx.names)
+    tm.assert_index_equal(result, expected, exact=True)
+
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        # With non-zero length non-index, we try and fail to convert to tuples
+        idx.intersection(np.asarray(other), sort=sort)
 
 
 def test_intersect_equal_sort():
@@ -375,3 +396,36 @@ def test_setops_disallow_true(method):
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=True)
+
+
+@pytest.mark.parametrize(
+    ("tuples", "exp_tuples"),
+    [
+        ([("val1", "test1")], [("val1", "test1")]),
+        ([("val1", "test1"), ("val1", "test1")], [("val1", "test1")]),
+        (
+            [("val2", "test2"), ("val1", "test1")],
+            [("val2", "test2"), ("val1", "test1")],
+        ),
+    ],
+)
+def test_intersect_with_duplicates(tuples, exp_tuples):
+    # GH#36915
+    left = MultiIndex.from_tuples(tuples, names=["first", "second"])
+    right = MultiIndex.from_tuples(
+        [("val1", "test1"), ("val1", "test1"), ("val2", "test2")],
+        names=["first", "second"],
+    )
+    result = left.intersection(right)
+    expected = MultiIndex.from_tuples(exp_tuples, names=["first", "second"])
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_equal_different_names():
+    # GH#30302
+    mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["c", "b"])
+    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+
+    result = mi1.intersection(mi2)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=[None, "b"])
+    tm.assert_index_equal(result, expected)

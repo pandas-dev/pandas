@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_categorical_dtype
+
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, Series, crosstab
 import pandas._testing as tm
 
@@ -354,7 +356,7 @@ class TestCrosstab:
             crosstab(df.a, df.b, normalize="columns"),
         )
         tm.assert_frame_equal(
-            crosstab(df.a, df.b, normalize=0), crosstab(df.a, df.b, normalize="index"),
+            crosstab(df.a, df.b, normalize=0), crosstab(df.a, df.b, normalize="index")
         )
 
         row_normal_margins = DataFrame(
@@ -377,7 +379,7 @@ class TestCrosstab:
             crosstab(df.a, df.b, normalize="index", margins=True), row_normal_margins
         )
         tm.assert_frame_equal(
-            crosstab(df.a, df.b, normalize="columns", margins=True), col_normal_margins,
+            crosstab(df.a, df.b, normalize="columns", margins=True), col_normal_margins
         )
         tm.assert_frame_equal(
             crosstab(df.a, df.b, normalize=True, margins=True), all_normal_margins
@@ -533,15 +535,32 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_crosstab_dup_index_names(self):
-        # GH 13279
-        s = Series(range(3), name="foo")
+    def test_crosstab_duplicate_names(self):
+        # GH 13279 / 22529
 
-        result = crosstab(s, s)
-        expected_index = Index(range(3), name="foo")
-        expected = DataFrame(
-            np.eye(3, dtype=np.int64), index=expected_index, columns=expected_index
-        )
+        s1 = Series(range(3), name="foo")
+        s2_foo = Series(range(1, 4), name="foo")
+        s2_bar = Series(range(1, 4), name="bar")
+        s3 = Series(range(3), name="waldo")
+
+        # check result computed with duplicate labels against
+        # result computed with unique labels, then relabelled
+        mapper = {"bar": "foo"}
+
+        # duplicate row, column labels
+        result = crosstab(s1, s2_foo)
+        expected = crosstab(s1, s2_bar).rename_axis(columns=mapper, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # duplicate row, unique column labels
+        result = crosstab([s1, s2_foo], s3)
+        expected = crosstab([s1, s2_bar], s3).rename_axis(index=mapper, axis=0)
+        tm.assert_frame_equal(result, expected)
+
+        # unique row, duplicate column labels
+        result = crosstab(s3, [s1, s2_foo])
+        expected = crosstab(s3, [s1, s2_bar]).rename_axis(columns=mapper, axis=1)
+
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("names", [["a", ("b", "c")], [("a", "b"), "c"]])
@@ -698,3 +717,78 @@ class TestCrosstab:
             names=["A", "B"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_margin_normalize_multiple_columns(self):
+        # GH 35144
+        # use multiple columns with margins and normalization
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+            }
+        )
+        result = crosstab(
+            index=df.C,
+            columns=[df.A, df.B],
+            margins=True,
+            margins_name="margin",
+            normalize=True,
+        )
+        expected = DataFrame(
+            [
+                [0.111111, 0.111111, 0.222222, 0.000000, 0.444444],
+                [0.111111, 0.111111, 0.111111, 0.222222, 0.555556],
+                [0.222222, 0.222222, 0.333333, 0.222222, 1.0],
+            ],
+            index=["large", "small", "margin"],
+        )
+        expected.columns = MultiIndex(
+            levels=[["bar", "foo", "margin"], ["", "one", "two"]],
+            codes=[[0, 0, 1, 1, 2], [1, 2, 1, 2, 0]],
+            names=["A", "B"],
+        )
+        expected.index.name = "C"
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("a_dtype", ["category", "int64"])
+@pytest.mark.parametrize("b_dtype", ["category", "int64"])
+def test_categoricals(a_dtype, b_dtype):
+    # https://github.com/pandas-dev/pandas/issues/37465
+    g = np.random.RandomState(25982704)
+    a = Series(g.randint(0, 3, size=100)).astype(a_dtype)
+    b = Series(g.randint(0, 2, size=100)).astype(b_dtype)
+    result = crosstab(a, b, margins=True, dropna=False)
+    columns = Index([0, 1, "All"], dtype="object", name="col_0")
+    index = Index([0, 1, 2, "All"], dtype="object", name="row_0")
+    values = [[18, 16, 34], [18, 16, 34], [16, 16, 32], [52, 48, 100]]
+    expected = DataFrame(values, index, columns)
+    tm.assert_frame_equal(result, expected)
+
+    # Verify when categorical does not have all values present
+    a.loc[a == 1] = 2
+    a_is_cat = is_categorical_dtype(a.dtype)
+    assert not a_is_cat or a.value_counts().loc[1] == 0
+    result = crosstab(a, b, margins=True, dropna=False)
+    values = [[18, 16, 34], [0, 0, np.nan], [34, 32, 66], [52, 48, 100]]
+    expected = DataFrame(values, index, columns)
+    if not a_is_cat:
+        expected = expected.loc[[0, 2, "All"]]
+        expected["All"] = expected["All"].astype("int64")
+    print(result)
+    print(expected)
+    print(expected.loc[[0, 2, "All"]])
+    tm.assert_frame_equal(result, expected)

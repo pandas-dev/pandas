@@ -88,8 +88,8 @@ def test_win_type_not_implemented():
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
     [
-        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {},),
-        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
+        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {}),
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {}),
         (
             "max",
             np.max,
@@ -138,6 +138,7 @@ def test_win_type_not_implemented():
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
     # GH 32865
     values = np.arange(10.0)
@@ -148,12 +149,12 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
     match = "Forward-looking windows can't have center=True"
     with pytest.raises(ValueError, match=match):
         rolling = constructor(values).rolling(window=indexer, center=True)
-        result = getattr(rolling, func)()
+        getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
     with pytest.raises(ValueError, match=match):
         rolling = constructor(values).rolling(window=indexer, closed="right")
-        result = getattr(rolling, func)()
+        getattr(rolling, func)()
 
     rolling = constructor(values).rolling(window=indexer, min_periods=2)
     result = getattr(rolling, func)()
@@ -204,7 +205,7 @@ def test_rolling_forward_skewness(constructor):
 @pytest.mark.parametrize(
     "func,expected",
     [
-        ("cov", [2.0, 2.0, 2.0, 97.0, 2.0, -93.0, 2.0, 2.0, np.nan, np.nan],),
+        ("cov", [2.0, 2.0, 2.0, 97.0, 2.0, -93.0, 2.0, 2.0, np.nan, np.nan]),
         (
             "corr",
             [
@@ -252,4 +253,41 @@ def test_non_fixed_variable_window_indexer(closed, expected_data):
     indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
     result = df.rolling(indexer, closed=closed).sum()
     expected = DataFrame(expected_data, index=index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fixed_forward_indexer_count():
+    # GH: 35579
+    df = DataFrame({"b": [None, None, None, 7]})
+    indexer = FixedForwardWindowIndexer(window_size=2)
+    result = df.rolling(window=indexer, min_periods=0).count()
+    expected = DataFrame({"b": [0.0, 0.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("end_value", "values"), [(1, [0.0, 1, 1, 3, 2]), (-1, [0.0, 1, 0, 3, 1])]
+)
+@pytest.mark.parametrize(("func", "args"), [("median", []), ("quantile", [0.5])])
+def test_indexer_quantile_sum(end_value, values, func, args):
+    # GH 37153
+    class CustomIndexer(BaseIndexer):
+        def get_window_bounds(self, num_values, min_periods, center, closed):
+            start = np.empty(num_values, dtype=np.int64)
+            end = np.empty(num_values, dtype=np.int64)
+            for i in range(num_values):
+                if self.use_expanding[i]:
+                    start[i] = 0
+                    end[i] = max(i + end_value, 1)
+                else:
+                    start[i] = i
+                    end[i] = i + self.window_size
+            return start, end
+
+    use_expanding = [True, False, True, False, True]
+    df = DataFrame({"values": range(5)})
+
+    indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+    result = getattr(df.rolling(indexer), func)(*args)
+    expected = DataFrame({"values": values})
     tm.assert_frame_equal(result, expected)

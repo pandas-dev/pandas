@@ -1,7 +1,7 @@
 .. _whatsnew_0241:
 
-Whats new in 0.24.1 (February 3, 2019)
---------------------------------------
+What's new in 0.24.1 (February 3, 2019)
+---------------------------------------
 
 .. warning::
 
@@ -33,7 +33,7 @@ This change will allow ``sort=True`` to mean "always sort" in a future release.
 The same change applies to :meth:`Index.difference` and :meth:`Index.symmetric_difference`, which
 would not sort the result when the values could not be compared.
 
-The `sort` option for :meth:`Index.intersection` has changed in three ways.
+The ``sort`` option for :meth:`Index.intersection` has changed in three ways.
 
 1. The default has changed from ``True`` to ``False``, to restore the
    pandas 0.23.4 and earlier behavior of not sorting by default.
@@ -55,7 +55,7 @@ Fixed regressions
 - Fixed regression in :class:`Index.intersection` incorrectly sorting the values by default (:issue:`24959`).
 - Fixed regression in :func:`merge` when merging an empty ``DataFrame`` with multiple timezone-aware columns on one of the timezone-aware columns (:issue:`25014`).
 - Fixed regression in :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` where passing ``None`` failed to remove the axis name (:issue:`25034`)
-- Fixed regression in :func:`to_timedelta` with `box=False` incorrectly returning a ``datetime64`` object instead of a ``timedelta64`` object (:issue:`24961`)
+- Fixed regression in :func:`to_timedelta` with ``box=False`` incorrectly returning a ``datetime64`` object instead of a ``timedelta64`` object (:issue:`24961`)
 - Fixed regression where custom hashable types could not be used as column keys in :meth:`DataFrame.set_index` (:issue:`24969`)
 
 .. _whatsnew_0241.bug_fixes:

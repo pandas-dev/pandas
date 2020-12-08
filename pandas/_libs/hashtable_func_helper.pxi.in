@@ -8,9 +8,16 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 # dtype, ttype, c_type
 dtypes = [('float64', 'float64', 'float64_t'),
+          ('float32', 'float32', 'float32_t'),
           ('uint64', 'uint64', 'uint64_t'),
+          ('uint32', 'uint32', 'uint32_t'),
+          ('uint16', 'uint16', 'uint16_t'),
+          ('uint8', 'uint8', 'uint8_t'),
           ('object', 'pymap', 'object'),
-          ('int64', 'int64', 'int64_t')]
+          ('int64', 'int64', 'int64_t'),
+          ('int32', 'int32', 'int32_t'),
+          ('int16', 'int16', 'int16_t'),
+          ('int8', 'int8', 'int8_t')]
 
 }}
 
@@ -54,7 +61,7 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         for i in range(n):
             val = values[i]
 
-            {{if dtype == 'float64'}}
+            {{if dtype == 'float64' or dtype == 'float32'}}
             if val == val or not dropna:
             {{else}}
             if True:
@@ -138,7 +145,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
-    kh_resize_{{ttype}}(table, min(n, _SIZE_HINT_LIMIT))
+    kh_resize_{{ttype}}(table, min(n, SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
         raise ValueError('keep must be either "first", "last" or False')
@@ -208,7 +215,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{c_type}}[:] arr, {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
@@ -275,8 +282,15 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, {{c_type}}[:] values):
 
 # dtype, ctype, table_type, npy_dtype
 dtypes = [('float64', 'float64_t', 'float64', 'float64'),
+          ('float32', 'float32_t', 'float32', 'float32'),
           ('int64', 'int64_t', 'int64', 'int64'),
+          ('int32', 'int32_t', 'int32', 'int32'),
+          ('int16', 'int16_t', 'int16', 'int16'),
+          ('int8', 'int8_t', 'int8', 'int8'),
           ('uint64', 'uint64_t', 'uint64', 'uint64'),
+          ('uint32', 'uint32_t', 'uint32', 'uint32'),
+          ('uint16', 'uint16_t', 'uint16', 'uint16'),
+          ('uint8', 'uint8_t', 'uint8', 'uint8'),
           ('object', 'object', 'pymap', 'object_')]
 }}
 

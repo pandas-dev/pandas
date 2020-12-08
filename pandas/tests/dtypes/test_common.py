@@ -105,16 +105,16 @@ class TestPandasDtype:
         assert com.pandas_dtype(dtype) == dtype
 
 
-dtypes = dict(
-    datetime_tz=com.pandas_dtype("datetime64[ns, US/Eastern]"),
-    datetime=com.pandas_dtype("datetime64[ns]"),
-    timedelta=com.pandas_dtype("timedelta64[ns]"),
-    period=PeriodDtype("D"),
-    integer=np.dtype(np.int64),
-    float=np.dtype(np.float64),
-    object=np.dtype(object),
-    category=com.pandas_dtype("category"),
-)
+dtypes = {
+    "datetime_tz": com.pandas_dtype("datetime64[ns, US/Eastern]"),
+    "datetime": com.pandas_dtype("datetime64[ns]"),
+    "timedelta": com.pandas_dtype("timedelta64[ns]"),
+    "period": PeriodDtype("D"),
+    "integer": np.dtype(np.int64),
+    "float": np.dtype(np.float64),
+    "object": np.dtype(object),
+    "category": com.pandas_dtype("category"),
+}
 
 
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))
@@ -649,8 +649,8 @@ def test_is_complex_dtype():
         (IntervalDtype(), IntervalDtype()),
     ],
 )
-def test__get_dtype(input_param, result):
-    assert com._get_dtype(input_param) == result
+def test_get_dtype(input_param, result):
+    assert com.get_dtype(input_param) == result
 
 
 @pytest.mark.parametrize(
@@ -664,12 +664,12 @@ def test__get_dtype(input_param, result):
         (pd.DataFrame([1, 2]), "data type not understood"),
     ],
 )
-def test__get_dtype_fails(input_param, expected_error_message):
+def test_get_dtype_fails(input_param, expected_error_message):
     # python objects
     # 2020-02-02 npdev changed error message
     expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
-        com._get_dtype(input_param)
+        com.get_dtype(input_param)
 
 
 @pytest.mark.parametrize(

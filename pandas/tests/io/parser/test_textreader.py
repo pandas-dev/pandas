@@ -31,13 +31,10 @@ class TestTextReader:
             reader = TextReader(f)
             reader.read()
 
-    def test_string_filename(self):
-        reader = TextReader(self.csv1, header=None)
-        reader.read()
-
     def test_file_handle_mmap(self):
+        # this was never using memory_map=True
         with open(self.csv1, "rb") as f:
-            reader = TextReader(f, memory_map=True, header=None)
+            reader = TextReader(f, header=None)
             reader.read()
 
     def test_StringIO(self):
@@ -339,8 +336,10 @@ a,b,c
 
     def test_empty_csv_input(self):
         # GH14867
-        df = read_csv(StringIO(), chunksize=20, header=None, names=["a", "b", "c"])
-        assert isinstance(df, TextFileReader)
+        with read_csv(
+            StringIO(), chunksize=20, header=None, names=["a", "b", "c"]
+        ) as df:
+            assert isinstance(df, TextFileReader)
 
 
 def assert_array_dicts_equal(left, right):

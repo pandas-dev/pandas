@@ -7,6 +7,7 @@ import pytest
 
 import pandas._config.config as cf
 
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -28,6 +29,9 @@ except ImportError:
 
 pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
+
+
+pytestmark = pytest.mark.slow
 
 
 def test_registry_mpl_resets():
@@ -70,15 +74,24 @@ class TestRegistration:
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
         ax.plot(s.index, s.values)
+        plt.close()
 
+    @pytest.mark.xfail(
+        is_platform_windows(),
+        reason="Getting two warnings intermittently, see GH#37746",
+        strict=False,
+    )
     def test_pandas_plots_register(self):
-        pytest.importorskip("matplotlib.pyplot")
+        plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
-        assert len(w) == 0
+        try:
+            assert len(w) == 0
+        finally:
+            plt.close()
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")
@@ -108,6 +121,7 @@ class TestRegistration:
         register_matplotlib_converters()
         with ctx:
             ax.plot(s.index, s.values)
+        plt.close()
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")
@@ -361,3 +375,14 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter
         result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
         assert result == format_expected
+
+    @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])
+    def test_call_w_different_view_intervals(self, view_interval, monkeypatch):
+        # previously broke on reversed xlmits; see GH37454
+        class mock_axis:
+            def get_view_interval(self):
+                return view_interval
+
+        tdc = converter.TimeSeries_TimedeltaFormatter()
+        monkeypatch.setattr(tdc, "axis", mock_axis())
+        tdc(0.0, 0)

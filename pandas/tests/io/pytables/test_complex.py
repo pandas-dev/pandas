@@ -3,16 +3,12 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
 
 from pandas.io.pytables import read_hdf
-
-# GH10447
 
 
 def test_complex_fixed(setup_path):
@@ -62,7 +58,6 @@ def test_complex_table(setup_path):
         tm.assert_frame_equal(df, reread)
 
 
-@td.xfail_non_writeable
 def test_complex_mixed_fixed(setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64

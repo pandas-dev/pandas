@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_datetime64_any_dtype
 
 from pandas import (
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     NaT,
     Period,
@@ -308,10 +309,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
 
-    # "fromisoformat" was introduced in 3.7
-    if klass is Timestamp and not compat.PY37:
-        expected.remove("fromisoformat")
-
     # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
@@ -444,7 +441,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
         DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
+        DatetimeArray._from_sequence(
+            ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
+        ),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )

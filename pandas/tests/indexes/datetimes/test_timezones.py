@@ -400,10 +400,10 @@ class TestDatetimeIndexTimezones:
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
     def test_dti_tz_localize(self, prefix):
         tzstr = prefix + "US/Eastern"
-        dti = pd.date_range(start="1/1/2005", end="1/1/2005 0:00:30.256", freq="L")
+        dti = date_range(start="1/1/2005", end="1/1/2005 0:00:30.256", freq="L")
         dti2 = dti.tz_localize(tzstr)
 
-        dti_utc = pd.date_range(
+        dti_utc = date_range(
             start="1/1/2005 05:00", end="1/1/2005 5:00:30.256", freq="L", tz="utc"
         )
 
@@ -412,11 +412,11 @@ class TestDatetimeIndexTimezones:
         dti3 = dti2.tz_convert(prefix + "US/Pacific")
         tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
-        dti = pd.date_range(start="11/6/2011 1:59", end="11/6/2011 2:00", freq="L")
+        dti = date_range(start="11/6/2011 1:59", end="11/6/2011 2:00", freq="L")
         with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
             dti.tz_localize(tzstr)
 
-        dti = pd.date_range(start="3/13/2011 1:59", end="3/13/2011 2:00", freq="L")
+        dti = date_range(start="3/13/2011 1:59", end="3/13/2011 2:00", freq="L")
         with pytest.raises(pytz.NonExistentTimeError, match="2011-03-13 02:00:00"):
             dti.tz_localize(tzstr)
 
@@ -606,8 +606,8 @@ class TestDatetimeIndexTimezones:
         assert times[-1] == Timestamp(expected, tz=tz, freq="H")
 
     def test_dti_tz_localize_bdate_range(self):
-        dr = pd.bdate_range("1/1/2009", "1/1/2010")
-        dr_utc = pd.bdate_range("1/1/2009", "1/1/2010", tz=pytz.utc)
+        dr = bdate_range("1/1/2009", "1/1/2010")
+        dr_utc = bdate_range("1/1/2009", "1/1/2010", tz=pytz.utc)
         localized = dr.tz_localize(pytz.utc)
         tm.assert_index_equal(dr_utc, localized)
 
@@ -799,13 +799,13 @@ class TestDatetimeIndexTimezones:
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_dti_tz_constructors(self, tzstr):
-        """ Test different DatetimeIndex constructions with timezone
+        """Test different DatetimeIndex constructions with timezone
         Follow-up of GH#4229
         """
         arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
 
         idx1 = to_datetime(arr).tz_localize(tzstr)
-        idx2 = pd.date_range(start="2005-11-10 08:00:00", freq="H", periods=2, tz=tzstr)
+        idx2 = date_range(start="2005-11-10 08:00:00", freq="H", periods=2, tz=tzstr)
         idx2 = idx2._with_freq(None)  # the others all have freq=None
         idx3 = DatetimeIndex(arr, tz=tzstr)
         idx4 = DatetimeIndex(np.array(arr), tz=tzstr)
@@ -872,9 +872,9 @@ class TestDatetimeIndexTimezones:
         tz = "Europe/Brussels"
         freq = "15min"
 
-        start = pd.Timestamp("201710290100", tz=tz)
-        end = pd.Timestamp("201710290300", tz=tz)
-        index = pd.date_range(start=start, end=end, freq=freq)
+        start = Timestamp("201710290100", tz=tz)
+        end = Timestamp("201710290300", tz=tz)
+        index = date_range(start=start, end=end, freq=freq)
 
         expected = DatetimeIndex(
             [
@@ -1142,15 +1142,15 @@ class TestDatetimeIndexTimezones:
 
     def test_dti_union_mixed(self):
         # GH 21671
-        rng = DatetimeIndex([pd.Timestamp("2011-01-01"), pd.NaT])
-        rng2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
+        rng = DatetimeIndex([Timestamp("2011-01-01"), pd.NaT])
+        rng2 = DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
         result = rng.union(rng2)
         expected = Index(
             [
-                pd.Timestamp("2011-01-01"),
+                Timestamp("2011-01-01"),
                 pd.NaT,
-                pd.Timestamp("2012-01-01", tz="Asia/Tokyo"),
-                pd.Timestamp("2012-01-02", tz="Asia/Tokyo"),
+                Timestamp("2012-01-01", tz="Asia/Tokyo"),
+                Timestamp("2012-01-02", tz="Asia/Tokyo"),
             ],
             dtype=object,
         )
