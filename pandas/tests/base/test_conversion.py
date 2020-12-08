@@ -328,7 +328,7 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series_or_array):
+def test_to_numpy(array, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
     thing = box(array)
 
@@ -336,7 +336,8 @@ def test_to_numpy(array, expected, index_or_series_or_array):
         pytest.skip(f"No index type for {array.dtype}")
 
     if array.dtype.name == "int64" and box is pd.array:
-        pytest.xfail("thing is Int64 and to_numpy() returns object")
+        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
+        request.node.add_marker(mark)
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

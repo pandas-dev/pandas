@@ -78,8 +78,6 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    cast_scalar_to_array,
-    coerce_to_dtypes,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
@@ -616,9 +614,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
 
-                values = cast_scalar_to_array(
-                    (len(index), len(columns)), data, dtype=dtype
-                )
+                shape = (len(index), len(columns))
+                values = np.full(shape, arr)
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
@@ -3170,7 +3167,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.iloc._setitem_with_indexer(key, value)
+        self.iloc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3182,7 +3179,7 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.iloc._setitem_with_indexer(indexer, value)
+            self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -3195,7 +3192,7 @@ class DataFrame(NDFrame, OpsMixin):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.iloc._setitem_with_indexer((slice(None), indexer), value)
+                self.iloc[:, indexer] = value
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -3915,20 +3912,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+            infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
 
-            # upcast
-            if is_extension_array_dtype(infer_dtype):
-                value = construct_1d_arraylike_from_scalar(
-                    value, len(self.index), infer_dtype
-                )
-            else:
-                # pandas\core\frame.py:3827: error: Argument 1 to
-                # "cast_scalar_to_array" has incompatible type "int"; expected
-                # "Tuple[Any, ...]"  [arg-type]
-                value = cast_scalar_to_array(
-                    len(self.index), value  # type: ignore[arg-type]
-                )
+            value = construct_1d_arraylike_from_scalar(
+                fill_value, len(self), infer_dtype
+            )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
@@ -5273,6 +5261,7 @@ class DataFrame(NDFrame, OpsMixin):
             return self.copy()
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         duplicated = self.duplicated(subset, keep=keep)
 
         result = self[-duplicated]
@@ -8816,11 +8805,9 @@ NaN 12.3   33.0
         labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
 
-        def func(values):
-            if is_extension_array_dtype(values.dtype):
-                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
-            else:
-                return op(values, axis=axis, skipna=skipna, **kwds)
+        def func(values: np.ndarray):
+            # We only use this in the case that operates on self.values
+            return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values):
             if isinstance(values, ExtensionArray):
@@ -8858,10 +8845,6 @@ NaN 12.3   33.0
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
-            if axis == 0 and is_object_dtype(out.dtype):
-                # GH#35865 careful to cast explicitly to object
-                nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
-                out[:] = np.array(nvs, dtype=object)
             if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
                 # Even if we are object dtype, follow numpy and return
                 #  float64, see test_apply_funcs_over_empty
@@ -8893,8 +8876,7 @@ NaN 12.3   33.0
                 result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
-                if axis == 0:
-                    result = coerce_to_dtypes(result, data.dtypes)
+                pass
 
         result = self._constructor_sliced(result, index=labels)
         return result
