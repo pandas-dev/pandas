@@ -1902,14 +1902,14 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, schema=None, index=
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
-    schema: str, default: None
+    schema : str, default: None
         Optional specifying the schema to be used in creating the table.
 
         .. versionadded:: 1.2.0
     index : boolean, default: False
-         Whether to include the index of the DataFrame in the sql schema.
+        Whether to include the index of the DataFrame in the sql schema.
 
-         .. versionadded:: 1.2.0
+        .. versionadded:: 1.2.0
 
     Returns
     -------
