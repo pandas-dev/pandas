@@ -286,7 +286,6 @@ Other enhancements
 - Calling a NumPy ufunc on a ``DataFrame`` with extension types now preserves the extension types when possible (:issue:`23743`).
 - Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
-- Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 - :meth:`DataFrame.to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
 - :func:`read_parquet` gained a ``use_nullable_dtypes=True`` option to use
   nullable dtypes that use ``pd.NA`` as missing value indicator where possible
