@@ -109,6 +109,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
+@skip_pyarrow
 def test_read_csv_local(all_parsers, csv1):
     prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
@@ -915,6 +916,7 @@ bar"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @tm.network
 def test_url(all_parsers, csv_dir_path):
     # TODO: FTP testing
@@ -932,6 +934,7 @@ def test_url(all_parsers, csv_dir_path):
     tm.assert_frame_equal(url_result, local_result)
 
 
+@skip_pyarrow
 @pytest.mark.slow
 def test_local_file(all_parsers, csv_dir_path):
     parser = all_parsers
@@ -1986,6 +1989,7 @@ def test_file_handles_with_open(all_parsers, csv1):
             assert not f.closed
 
 
+@skip_pyarrow
 def test_invalid_file_buffer_class(all_parsers):
     # see gh-15337
     class InvalidBuffer:
@@ -1998,6 +2002,7 @@ def test_invalid_file_buffer_class(all_parsers):
         parser.read_csv(InvalidBuffer())
 
 
+@skip_pyarrow
 def test_invalid_file_buffer_mock(all_parsers):
     # see gh-15337
     parser = all_parsers
@@ -2332,6 +2337,7 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
+@skip_pyarrow
 def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
     """
     Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
@@ -2351,6 +2357,7 @@ def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
     )
 
 
+@skip_pyarrow
 def test_memory_map_compression(all_parsers, compression):
     """
     Support memory map for compressed files.
@@ -2369,6 +2376,7 @@ def test_memory_map_compression(all_parsers, compression):
         )
 
 
+@skip_pyarrow
 def test_context_manager(all_parsers, datapath):
     # make sure that opened files are closed
     parser = all_parsers
@@ -2385,6 +2393,7 @@ def test_context_manager(all_parsers, datapath):
         assert reader._engine.handles.handle.closed
 
 
+@skip_pyarrow
 def test_context_manageri_user_provided(all_parsers, datapath):
     # make sure that user-provided handles are not closed
     parser = all_parsers
