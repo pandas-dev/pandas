@@ -1863,12 +1863,12 @@ class SQLiteDatabase(PandasSQL):
         self.execute(drop_sql)
 
     def _create_sql_schema(
-        self, 
-        frame, 
-        table_name, 
-        keys=None, 
-        dtype=None, 
-        schema=None, 
+        self,
+        frame,
+        table_name,
+        keys=None,
+        dtype=None,
+        schema=None,
         index=False,
     ):
         table = SQLiteTable(
