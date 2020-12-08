@@ -33,7 +33,7 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -357,12 +357,18 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
         The desired dtype of the result.
     """
     from pandas.core.arrays.boolean import BooleanDtype
-    from pandas.core.arrays.integer import Int64Dtype
+    from pandas.core.arrays.floating import Float64Dtype
+    from pandas.core.arrays.integer import Int64Dtype, _IntegerDtype
 
-    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
-        return np.dtype(np.int64)
-    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
-        return Int64Dtype()
+    if how in ["add", "cumsum", "sum", "prod"]:
+        if dtype == np.dtype(bool):
+            return np.dtype(np.int64)
+        elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+            return Int64Dtype()
+    elif how in ["mean", "median", "var"] and isinstance(
+        dtype, (BooleanDtype, _IntegerDtype)
+    ):
+        return Float64Dtype()
     return dtype
 
 
@@ -1561,35 +1567,6 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
                 return np.dtype("object")
 
     return np.find_common_type(types, [])
-
-
-def cast_scalar_to_array(
-    shape: Shape, value: Scalar, dtype: Optional[DtypeObj] = None
-) -> np.ndarray:
-    """
-    Create np.ndarray of specified shape and dtype, filled with values.
-
-    Parameters
-    ----------
-    shape : tuple
-    value : scalar value
-    dtype : np.dtype, optional
-        dtype to coerce
-
-    Returns
-    -------
-    ndarray of shape, filled with value, of specified / inferred dtype
-
-    """
-    if dtype is None:
-        dtype, fill_value = infer_dtype_from_scalar(value)
-    else:
-        fill_value = value
-
-    values = np.empty(shape, dtype=dtype)
-    values.fill(fill_value)
-
-    return values
 
 
 def construct_1d_arraylike_from_scalar(
