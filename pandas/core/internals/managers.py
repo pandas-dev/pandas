@@ -442,7 +442,6 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
-        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -471,9 +470,6 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
-
-        if consolidate:
-            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
@@ -1455,7 +1451,6 @@ class BlockManager(PandasObject):
         """
         Take items along any axis.
         """
-        self._consolidate_inplace()
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1472,7 +1467,11 @@ class BlockManager(PandasObject):
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
-            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+            new_axis=new_labels,
+            indexer=indexer,
+            axis=axis,
+            allow_dups=True,
+            consolidate=False,
         )
 
     def equals(self, other: object) -> bool:
