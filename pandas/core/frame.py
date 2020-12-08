@@ -3212,7 +3212,6 @@ class DataFrame(NDFrame, OpsMixin):
         self._where(-key, value, inplace=True)
 
     def _iset_item(self, loc: int, value):
-        self._ensure_valid_index(value)
 
         # technically _sanitize_column expects a label, not a position,
         #  but the behavior is the same as long as we pass broadcast=False
@@ -3235,7 +3234,6 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        self._ensure_valid_index(value)
         value = self._sanitize_column(key, value)
         NDFrame._set_item(self, key, value)
 
@@ -3755,7 +3753,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
-        self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
@@ -3846,6 +3843,7 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         numpy.ndarray
         """
+        self._ensure_valid_index(value)
 
         def reindexer(value):
             # reindex if necessary
