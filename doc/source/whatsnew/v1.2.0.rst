@@ -10,12 +10,27 @@ including other versions of pandas.
 
 .. warning::
 
+   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
+   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
+   writing excel files are no longer maintained. These are the only engines in pandas
+   that support the xls format.
+
    Previously, the default argument ``engine=None`` to ``pd.read_excel``
-   would result in using the `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine in
-   many cases. The engine ``xlrd`` is no longer maintained, and is not supported with
-   python >= 3.9. If `openpyxl <https://pypi.org/project/openpyxl/>`_  is installed,
-   many of these  cases will now default to using the ``openpyxl`` engine. See the
-   :func:`read_excel` documentation for more details.
+   would result in using the ``xlrd`` engine in many cases. If
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details. Attempting to read
+   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
+   raise a warning. However users should be aware that ``xlrd`` is already
+   broken with certain package configurations, for example with Python 3.9
+   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
+   is anticipated to be unusable in the future.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. ---------------------------------------------------------------------------
 
@@ -260,6 +275,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a Series or DataFrame (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`io.sql.get_schema` now supports a ``schema`` keyword argument that will add a schema into the create table statement (:issue:`28486`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 - :meth:`.Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
@@ -466,7 +482,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.2.8           |    X    |
 +-----------------+-----------------+---------+
-| xarray          | 0.12.0          |    X    |
+| xarray          | 0.12.3          |    X    |
 +-----------------+-----------------+---------+
 | xlrd            | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
@@ -479,7 +495,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_200.api.other:
+.. _whatsnew_120.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -850,4 +866,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.4..v1.2.0|HEAD
+.. contributors:: v1.1.5..v1.2.0|HEAD
