@@ -104,6 +104,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _scalar_type = Timedelta
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype = is_timedelta64_dtype
+    _infer_matches = ("timedelta", "timedelta64")
 
     __array_priority__ = 1000
     # define my properties & methods for delegation
@@ -313,9 +314,6 @@ class TimedeltaArray(dtl.TimelikeOps):
         # we don't have anything to validate.
         pass
 
-    def _maybe_clear_freq(self):
-        self._freq = None
-
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
@@ -375,7 +373,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         min_count: int = 0,
     ):
         nv.validate_sum(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
 
         result = nanops.nansum(
@@ -385,6 +383,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def std(
         self,
+        *,
         axis=None,
         dtype=None,
         out=None,
@@ -393,7 +392,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
         )
 
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
@@ -629,7 +628,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             # at this point we should only have numeric scalars; anything
             #  else will raise
             result = self.asi8 // other
-            result[self._isnan] = iNaT
+            np.putmask(result, self._isnan, iNaT)
             freq = None
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
@@ -655,7 +654,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             mask = self._isnan | other._isnan
             if mask.any():
                 result = result.astype(np.float64)
-                result[mask] = np.nan
+                np.putmask(result, mask, np.nan)
             return result
 
         elif is_object_dtype(other.dtype):
@@ -709,7 +708,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             mask = self._isnan | other._isnan
             if mask.any():
                 result = result.astype(np.float64)
-                result[mask] = np.nan
+                np.putmask(result, mask, np.nan)
             return result
 
         elif is_object_dtype(other.dtype):

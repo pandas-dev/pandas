@@ -75,17 +75,26 @@ class TestTimedeltaIndex(DatetimeLike):
         arr, idx = idx1.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
+        assert idx.freq == exp_idx.freq
 
         arr, idx = idx1.factorize(sort=True)
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
+        assert idx.freq == exp_idx.freq
 
-        # freq must be preserved
+    def test_factorize_preserves_freq(self):
+        # GH#38120 freq should be preserved
         idx3 = timedelta_range("1 day", periods=4, freq="s")
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
+        assert idx.freq == idx3.freq
+
+        arr, idx = pd.factorize(idx3)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(idx, idx3)
+        assert idx.freq == idx3.freq
 
     def test_sort_values(self):
 
@@ -117,12 +126,6 @@ class TestTimedeltaIndex(DatetimeLike):
         rng = timedelta_range("1 day", periods=5)
         result = rng.groupby(rng.days)
         assert isinstance(list(result.values())[0][0], Timedelta)
-
-        idx = TimedeltaIndex(["3d", "1d", "2d"])
-        assert not idx.equals(list(idx))
-
-        non_td = Index(list("abc"))
-        assert not idx.equals(list(non_td))
 
     def test_map(self):
         # test_map_dictlike generally tests

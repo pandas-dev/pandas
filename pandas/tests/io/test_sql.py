@@ -346,13 +346,13 @@ class PandasSQLTest:
 
     def _load_test2_data(self):
         df = DataFrame(
-            dict(
-                A=[4, 1, 3, 6],
-                B=["asd", "gsq", "ylt", "jkl"],
-                C=[1.1, 3.1, 6.9, 5.3],
-                D=[False, True, True, False],
-                E=["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
-            )
+            {
+                "A": [4, 1, 3, 6],
+                "B": ["asd", "gsq", "ylt", "jkl"],
+                "C": [1.1, 3.1, 6.9, 5.3],
+                "D": [False, True, True, False],
+                "E": ["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
+            }
         )
         df["E"] = to_datetime(df["E"])
 
@@ -864,6 +864,13 @@ class _TestSQLApi(PandasSQLTest):
     def test_get_schema(self):
         create_sql = sql.get_schema(self.test_frame1, "test", con=self.conn)
         assert "CREATE" in create_sql
+
+    def test_get_schema_with_schema(self):
+        # GH28486
+        create_sql = sql.get_schema(
+            self.test_frame1, "test", con=self.conn, schema="pypi"
+        )
+        assert "CREATE TABLE pypi." in create_sql
 
     def test_get_schema_dtypes(self):
         float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
@@ -2439,8 +2446,8 @@ class TestXSQLite(SQLiteMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 
@@ -2720,8 +2727,8 @@ class TestXMySQL(MySQLMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 

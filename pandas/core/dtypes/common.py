@@ -1727,7 +1727,7 @@ def _validate_date_like_dtype(dtype) -> None:
     ------
     TypeError : The dtype could not be casted to a date-like dtype.
     ValueError : The dtype is an illegal date-like dtype (e.g. the
-                 the frequency provided is too specific)
+                 frequency provided is too specific)
     """
     try:
         typ = np.datetime_data(dtype)[0]

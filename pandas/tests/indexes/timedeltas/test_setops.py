@@ -82,7 +82,7 @@ class TestTimedeltaIndex:
         # When taking the union of two TimedeltaIndexes, we infer
         #  a freq even if the arguments don't have freq.  This matches
         #  DatetimeIndex behavior.
-        tdi = pd.timedelta_range("1 Day", periods=5)
+        tdi = timedelta_range("1 Day", periods=5)
         left = tdi[[0, 1, 3, 4]]
         right = tdi[[2, 3, 1]]
 

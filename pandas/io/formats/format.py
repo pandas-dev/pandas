@@ -829,7 +829,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(l.is_floating for l in columns.levels)
+            restrict_formatting = any(level.is_floating for level in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -1537,7 +1537,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         values = extract_array(self.values, extract_numpy=True)
 
-        formatter = values._formatter(boxed=True)
+        formatter = self.formatter
+        if formatter is None:
+            formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1553,7 +1555,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             digits=self.digits,
             space=self.space,
             justify=self.justify,
+            decimal=self.decimal,
             leading_space=self.leading_space,
+            quoting=self.quoting,
         )
         return fmt_values
 
