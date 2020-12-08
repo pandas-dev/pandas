@@ -187,7 +187,8 @@ def create_data():
                 tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
             ),
         ),
-        "dup" : Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
+        "dup" : Series(np.arange(5).astype(np.float64), index=["A", "B", "C",
+                                                               "D", "A"]),
         "cat" : Series(Categorical(["foo", "bar", "baz"])),
         "dt" : Series(date_range("20130101", periods=5)),
         "dt_tz" : Series(date_range("20130101", periods=5, tz="US/Eastern")),
