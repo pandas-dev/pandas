@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p20
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
@@ -116,9 +118,15 @@ class TestSparseArrayArithmetics:
     @pytest.mark.parametrize("scalar", [0, 1, 3])
     @pytest.mark.parametrize("fill_value", [None, 0, 2])
     def test_float_scalar(
-        self, kind, mix, all_arithmetic_functions, fill_value, scalar
+        self, kind, mix, all_arithmetic_functions, fill_value, scalar, request
     ):
         op = all_arithmetic_functions
+
+        if not _np_version_under1p20:
+            if op in [operator.floordiv, ops.rfloordiv]:
+                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
+                request.node.add_marker(mark)
+
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
         a = self._klass(values, kind=kind, fill_value=fill_value)
@@ -142,21 +150,35 @@ class TestSparseArrayArithmetics:
         self._check_comparison_ops(a, 0, values, 0)
         self._check_comparison_ops(a, 3, values, 3)
 
-    def test_float_same_index(self, kind, mix, all_arithmetic_functions):
+    def test_float_same_index_without_nans(
+        self, kind, mix, all_arithmetic_functions, request
+    ):
         # when sp_index are the same
         op = all_arithmetic_functions
-        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
-        rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
-
-        a = self._klass(values, kind=kind)
-        b = self._klass(rvalues, kind=kind)
-        self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         values = self._base([0.0, 1.0, 2.0, 6.0, 0.0, 0.0, 1.0, 2.0, 1.0, 0.0])
         rvalues = self._base([0.0, 2.0, 3.0, 4.0, 0.0, 0.0, 1.0, 3.0, 2.0, 0.0])
 
         a = self._klass(values, kind=kind, fill_value=0)
         b = self._klass(rvalues, kind=kind, fill_value=0)
+        self._check_numeric_ops(a, b, values, rvalues, mix, op)
+
+    def test_float_same_index_with_nans(
+        self, kind, mix, all_arithmetic_functions, request
+    ):
+        # when sp_index are the same
+        op = all_arithmetic_functions
+
+        if not _np_version_under1p20:
+            if op in [operator.floordiv, ops.rfloordiv]:
+                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
+                request.node.add_marker(mark)
+
+        values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
+        rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
+
+        a = self._klass(values, kind=kind)
+        b = self._klass(rvalues, kind=kind)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_float_same_index_comparison(self, kind):
@@ -324,8 +346,13 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, dtype=np.bool_, fill_value=fill_value)
         self._check_logical_ops(a, b, values, rvalues)
 
-    def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions):
+    def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions, request):
         op = all_arithmetic_functions
+
+        if not _np_version_under1p20:
+            if op in [operator.floordiv, ops.rfloordiv] and mix:
+                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
+                request.node.add_marker(mark)
 
         rdtype = "int64"
 

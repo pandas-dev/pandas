@@ -45,7 +45,7 @@ class TestInvalidConcat:
                   bar2,12,13,14,15
                """
 
-        reader = read_csv(StringIO(data), chunksize=1)
-        result = concat(reader, ignore_index=True)
+        with read_csv(StringIO(data), chunksize=1) as reader:
+            result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)

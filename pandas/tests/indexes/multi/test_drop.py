@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -147,6 +149,16 @@ def test_drop_with_nan_in_index(nulls_fixture):
     msg = r"labels \[Timestamp\('2001-01-01 00:00:00'\)\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(pd.Timestamp("2001"), level="date")
+
+
+def test_drop_with_non_monotonic_duplicates():
+    # GH#33494
+    mi = MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", PerformanceWarning)
+        result = mi.drop((1, 2))
+    expected = MultiIndex.from_tuples([(2, 3)])
+    tm.assert_index_equal(result, expected)
 
 
 def test_single_level_drop_partially_missing_elements():
