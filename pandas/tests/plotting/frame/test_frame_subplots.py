@@ -222,6 +222,8 @@ class TestDataFramePlotsSubplots(TestPlotBase):
 
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(1, 1))
+
+        msg = "At least one dimension of layout must be positive"
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(-1, -1))
 
