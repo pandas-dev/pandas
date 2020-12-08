@@ -277,7 +277,10 @@ def test_reduce_to_float(op):
     result = getattr(df.groupby("A"), op)()
 
     expected = pd.DataFrame(
-        {"B": np.array([1.0, 3.0]), "C": integer_array([1, 3], dtype="Int64")},
+        {
+            "B": np.array([1.0, 3.0]),
+            "C": pd.array([1, 3], dtype="Float64"),
+        },
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
