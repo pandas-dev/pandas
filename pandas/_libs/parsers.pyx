@@ -161,7 +161,6 @@ cdef extern from "parser/tokenizer.h":
 
         char commentchar
         int allow_embedded_newline
-        int strict                 # raise exception on bad CSV */
 
         int usecols
 
