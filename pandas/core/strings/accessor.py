@@ -26,7 +26,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
 
-_shared_docs: Dict[str, str] = dict()
+_shared_docs: Dict[str, str] = {}
 _cpython_optimized_encoders = (
     "utf-8",
     "utf8",
@@ -1446,17 +1446,17 @@ class StringMethods(NoNewAttributesMixin):
     filled : Series/Index of objects.
     """
 
-    @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
+    @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
     def center(self, width, fillchar=" "):
         return self.pad(width, side="both", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % dict(side="right", method="ljust"))
+    @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
     def ljust(self, width, fillchar=" "):
         return self.pad(width, side="right", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % dict(side="left", method="rjust"))
+    @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
     def rjust(self, width, fillchar=" "):
         return self.pad(width, side="left", fillchar=fillchar)
@@ -1790,9 +1790,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(
-            side="left and right sides", method="strip", position="leading and trailing"
-        )
+        % {
+            "side": "left and right sides",
+            "method": "strip",
+            "position": "leading and trailing",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
@@ -1801,7 +1803,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(side="left side", method="lstrip", position="leading")
+        % {"side": "left side", "method": "lstrip", "position": "leading"}
     )
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
@@ -1810,7 +1812,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(side="right side", method="rstrip", position="trailing")
+        % {"side": "right side", "method": "rstrip", "position": "trailing"}
     )
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
@@ -2412,11 +2414,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["find"]
-        % dict(
-            side="lowest",
-            method="find",
-            also="rfind : Return highest indexes in each strings.",
-        )
+        % {
+            "side": "lowest",
+            "method": "find",
+            "also": "rfind : Return highest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def find(self, sub, start=0, end=None):
@@ -2429,11 +2431,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["find"]
-        % dict(
-            side="highest",
-            method="rfind",
-            also="find : Return lowest indexes in each strings.",
-        )
+        % {
+            "side": "highest",
+            "method": "rfind",
+            "also": "find : Return lowest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def rfind(self, sub, start=0, end=None):
@@ -2495,12 +2497,12 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["index"]
-        % dict(
-            side="lowest",
-            similar="find",
-            method="index",
-            also="rindex : Return highest indexes in each strings.",
-        )
+        % {
+            "side": "lowest",
+            "similar": "find",
+            "method": "index",
+            "also": "rindex : Return highest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def index(self, sub, start=0, end=None):
@@ -2513,12 +2515,12 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["index"]
-        % dict(
-            side="highest",
-            similar="rfind",
-            method="rindex",
-            also="index : Return lowest indexes in each strings.",
-        )
+        % {
+            "side": "highest",
+            "similar": "rfind",
+            "method": "rindex",
+            "also": "index : Return lowest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def rindex(self, sub, start=0, end=None):
@@ -2653,18 +2655,24 @@ class StringMethods(NoNewAttributesMixin):
     #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower isupper istitle
     # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args: Dict[str, Dict[str, str]] = {}
-    _doc_args["lower"] = dict(type="lowercase", method="lower", version="")
-    _doc_args["upper"] = dict(type="uppercase", method="upper", version="")
-    _doc_args["title"] = dict(type="titlecase", method="title", version="")
-    _doc_args["capitalize"] = dict(
-        type="be capitalized", method="capitalize", version=""
-    )
-    _doc_args["swapcase"] = dict(type="be swapcased", method="swapcase", version="")
-    _doc_args["casefold"] = dict(
-        type="be casefolded",
-        method="casefold",
-        version="\n    .. versionadded:: 0.25.0\n",
-    )
+    _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
+    _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
+    _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
+    _doc_args["capitalize"] = {
+        "type": "be capitalized",
+        "method": "capitalize",
+        "version": "",
+    }
+    _doc_args["swapcase"] = {
+        "type": "be swapcased",
+        "method": "swapcase",
+        "version": "",
+    }
+    _doc_args["casefold"] = {
+        "type": "be casefolded",
+        "method": "casefold",
+        "version": "\n    .. versionadded:: 0.25.0\n",
+    }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])
     @forbid_nonstring_types(["bytes"])
@@ -2844,15 +2852,15 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """
-    _doc_args["isalnum"] = dict(type="alphanumeric", method="isalnum")
-    _doc_args["isalpha"] = dict(type="alphabetic", method="isalpha")
-    _doc_args["isdigit"] = dict(type="digits", method="isdigit")
-    _doc_args["isspace"] = dict(type="whitespace", method="isspace")
-    _doc_args["islower"] = dict(type="lowercase", method="islower")
-    _doc_args["isupper"] = dict(type="uppercase", method="isupper")
-    _doc_args["istitle"] = dict(type="titlecase", method="istitle")
-    _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
-    _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
+    _doc_args["isalnum"] = {"type": "alphanumeric", "method": "isalnum"}
+    _doc_args["isalpha"] = {"type": "alphabetic", "method": "isalpha"}
+    _doc_args["isdigit"] = {"type": "digits", "method": "isdigit"}
+    _doc_args["isspace"] = {"type": "whitespace", "method": "isspace"}
+    _doc_args["islower"] = {"type": "lowercase", "method": "islower"}
+    _doc_args["isupper"] = {"type": "uppercase", "method": "isupper"}
+    _doc_args["istitle"] = {"type": "titlecase", "method": "istitle"}
+    _doc_args["isnumeric"] = {"type": "numeric", "method": "isnumeric"}
+    _doc_args["isdecimal"] = {"type": "decimal", "method": "isdecimal"}
     # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
 
     isalnum = _map_and_wrap(
