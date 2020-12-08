@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype as DateTimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex
@@ -29,13 +29,17 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
-def test_get_dtypes(idx_multitype):
+def test_get_dtypes():
     # Test MultiIndex.dtypes (# Gh37062)
+    idx_multitype = MultiIndex.from_product(
+        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        names=["int", "string", "dt"],
+    )
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
             "string": np.dtype("O"),
-            "dt": DateTimeTZDtype(tz="utc"),
+            "dt": DatetimeTZDtype(tz="utc"),
         }
     )
     tm.assert_series_equal(expected, idx_multitype.dtypes)

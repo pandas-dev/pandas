@@ -25,16 +25,6 @@ def idx():
 
 
 @pytest.fixture
-def idx_multitype():
-    # a MultiIndex with several dtypes
-    mi = MultiIndex.from_product(
-        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
-        names=["int", "string", "dt"],
-    )
-    return mi
-
-
-@pytest.fixture
 def idx_dup():
     # compare tests/indexes/multi/conftest.py
     major_axis = Index(["foo", "bar", "baz", "qux"])
