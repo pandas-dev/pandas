@@ -757,10 +757,10 @@ class TestNumpyJSONTests:
     def test_array_list(self):
         arr_list = [
             "a",
-            list(),
-            dict(),
-            dict(),
-            list(),
+            [],
+            {},
+            {},
+            [],
             42,
             97.8,
             ["a", "b"],
@@ -797,9 +797,9 @@ class TestNumpyJSONTests:
             ([42, {}, "a"], TypeError, {}),
             ([42, ["a"], 42], ValueError, {}),
             (["a", "b", [], "c"], ValueError, {}),
-            ([{"a": "b"}], ValueError, dict(labelled=True)),
-            ({"a": {"b": {"c": 42}}}, ValueError, dict(labelled=True)),
-            ([{"a": 42, "b": 23}, {"c": 17}], ValueError, dict(labelled=True)),
+            ([{"a": "b"}], ValueError, {"labelled": True}),
+            ({"a": {"b": {"c": 42}}}, ValueError, {"labelled": True}),
+            ([{"a": 42, "b": 23}, {"c": 17}], ValueError, {"labelled": True}),
         ],
     )
     def test_array_numpy_except(self, bad_input, exc_type, kwargs):
@@ -852,8 +852,8 @@ class TestPandasJSONTests:
             columns=["x", "y", "z"],
             dtype=dtype,
         )
-        encode_kwargs = {} if orient is None else dict(orient=orient)
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        encode_kwargs = {} if orient is None else {"orient": orient}
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
         assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
@@ -884,7 +884,7 @@ class TestPandasJSONTests:
         )
 
         nested = {"df1": df, "df2": df.copy()}
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
             "df1": ujson.decode(ujson.encode(df, **kwargs)),
@@ -902,7 +902,7 @@ class TestPandasJSONTests:
             columns=["x", "y", "z"],
             dtype=int,
         )
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         output = DataFrame(
             *ujson.decode(ujson.encode(df, **kwargs), numpy=True, labelled=True)
@@ -925,8 +925,8 @@ class TestPandasJSONTests:
         ).sort_values()
         assert s.dtype == dtype
 
-        encode_kwargs = {} if orient is None else dict(orient=orient)
-        decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        encode_kwargs = {} if orient is None else {"orient": orient}
+        decode_kwargs = {} if numpy is None else {"numpy": numpy}
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
         assert s.dtype == dtype
@@ -953,7 +953,7 @@ class TestPandasJSONTests:
             [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
         ).sort_values()
         nested = {"s1": s, "s2": s.copy()}
-        kwargs = {} if orient is None else dict(orient=orient)
+        kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
             "s1": ujson.decode(ujson.encode(s, **kwargs)),

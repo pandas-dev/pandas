@@ -20,7 +20,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, Label, Scalar, Shape
+from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
-    dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
+    {"klass": "MultiIndex", "target_klass": "MultiIndex or list of tuples"}
 )
 
 
@@ -2007,12 +2007,12 @@ class MultiIndex(Index):
 
     def __reduce__(self):
         """Necessary for making this object picklable"""
-        d = dict(
-            levels=list(self.levels),
-            codes=list(self.codes),
-            sortorder=self.sortorder,
-            names=list(self.names),
-        )
+        d = {
+            "levels": list(self.levels),
+            "codes": list(self.codes),
+            "sortorder": self.sortorder,
+            "names": list(self.names),
+        }
         return ibase._new_Index, (type(self), d), None
 
     # --------------------------------------------------------------------
@@ -2052,7 +2052,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
         # only fill if we are passing a non-None fill_value
@@ -2116,7 +2116,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
@@ -3353,7 +3353,7 @@ class MultiIndex(Index):
                 return indexer
 
         n = len(self)
-        keys: Tuple[np.ndarray, ...] = tuple()
+        keys: Tuple[np.ndarray, ...] = ()
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
@@ -3569,6 +3569,11 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self.rename(result_names)
 
+        return self._union(other, sort=sort)
+
+    def _union(self, other, sort):
+        other, result_names = self._convert_can_do_setop(other)
+
         # TODO: Index.union returns other when `len(self)` is 0.
 
         if not is_object_dtype(other.dtype):
@@ -3582,6 +3587,9 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(
             zip(*uniq_tuples), sortorder=0, names=result_names
         )
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        return is_object_dtype(dtype)
 
     def intersection(self, other, sort=False):
         """
@@ -3611,22 +3619,16 @@ class MultiIndex(Index):
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique().rename(result_names)
-            return self._get_reconciled_name_object(other)
+            return self.rename(result_names)
 
         return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
         other, result_names = self._convert_can_do_setop(other)
 
-        if not is_object_dtype(other.dtype):
+        if not self._is_comparable_dtype(other.dtype):
             # The intersection is empty
-            # TODO: we have no tests that get here
-            return MultiIndex(
-                levels=self.levels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
+            return self[:0].rename(result_names)
 
         lvals = self._values
         rvals = other._values

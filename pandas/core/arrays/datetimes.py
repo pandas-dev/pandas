@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_object_dtype,
     is_period_dtype,
+    is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -680,7 +681,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         arr_mask = self._isnan | other._isnan
         new_values = checked_add_with_arr(self_i8, -other_i8, arr_mask=arr_mask)
         if self._hasnans or other._hasnans:
-            new_values[arr_mask] = iNaT
+            np.putmask(new_values, arr_mask, iNaT)
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset):
@@ -1956,7 +1957,11 @@ def sequence_to_dt64ns(
     data, copy = maybe_convert_dtype(data, copy)
     data_dtype = getattr(data, "dtype", None)
 
-    if is_object_dtype(data_dtype) or is_string_dtype(data_dtype):
+    if (
+        is_object_dtype(data_dtype)
+        or is_string_dtype(data_dtype)
+        or is_sparse(data_dtype)
+    ):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
