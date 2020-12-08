@@ -86,7 +86,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 -
 -
 
