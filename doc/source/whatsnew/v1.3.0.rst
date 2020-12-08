@@ -146,7 +146,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :meth:`read_csv` returning object dtype when ``delimiter=","`` with ``usecols`` and ``parse_dates`` specified for ``engine="python"`` (:issue:`35873`)
 -
 
 Period
