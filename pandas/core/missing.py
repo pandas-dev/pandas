@@ -299,9 +299,9 @@ def interpolate_1d(
 
 
 def _interpolate_scipy_wrapper(
-    x,
-    y,
-    new_x,
+    x: np.ndarray,
+    y: np.ndarray,
+    new_x: Union[Scalar, np.ndarray],
     method: Optional[str],
     fill_value: Optional[Scalar] = None,
     bounds_error: bool = False,
