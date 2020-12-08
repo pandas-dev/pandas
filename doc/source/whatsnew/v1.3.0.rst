@@ -146,7 +146,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 -
 
 Period
