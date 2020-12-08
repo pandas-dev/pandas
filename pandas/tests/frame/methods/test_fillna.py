@@ -612,6 +612,7 @@ class TestFillNA:
         result = df.fillna(fill_value)
         tm.assert_frame_equal(result, expected)
 
+
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495
     df = DataFrame(
