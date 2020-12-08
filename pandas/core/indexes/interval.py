@@ -20,7 +20,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
-    maybe_downcast_to_dtype,
+    maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -1276,7 +1276,7 @@ def interval_range(
         breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
-            breaks = maybe_downcast_to_dtype(breaks, "int64")
+            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
