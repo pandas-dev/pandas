@@ -10,13 +10,8 @@ from pandas.io.pytables import HDFStore, read_hdf
 class TestHDFStoreSubclass:
     # GH 33748
     def test_supported_for_subclass_dataframe(self):
-        class SubDataFrame(DataFrame):
-            @property
-            def _constructor(self):
-                return SubDataFrame
-
         data = {"a": [1, 2], "b": [3, 4]}
-        sdf = SubDataFrame(data, dtype=np.intp)
+        sdf = tm.SubclassedDataFrame(data, dtype=np.intp)
 
         expected = DataFrame(data, dtype=np.intp)
 
@@ -32,13 +27,8 @@ class TestHDFStoreSubclass:
             tm.assert_frame_equal(result, expected)
 
     def test_supported_for_subclass_series(self):
-        class SubSeries(Series):
-            @property
-            def _constructor(self):
-                return SubSeries
-
         data = [1, 2, 3]
-        sser = SubSeries(data, dtype=np.intp)
+        sser = tm.SubclassedSeries(data, dtype=np.intp)
 
         expected = Series(data, dtype=np.intp)
 
