@@ -317,7 +317,6 @@ of columns could result in a larger Series result. See (:issue:`37799`).
     df = pd.DataFrame({"A": ["foo", "bar"], "B": [True, False]}, dtype=object)
     df["C"] = pd.Series([True, True])
 
->>>>>>> 862cd05df4452592a99dd1a4fa10ce8cfb3766f7
 
 *Previous behavior*:
 
