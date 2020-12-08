@@ -494,7 +494,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _maybe_cast_indexer(self, key) -> int:
         return self._data._unbox_scalar(key)
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(
         self, target: "Index", method=None, limit=None, tolerance=None
     ) -> np.ndarray:

@@ -13,7 +13,7 @@ from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, DtypeObj, Label
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -646,23 +646,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return mask.argmax()
         return lib.maybe_booleans_to_slice(mask.view("u1"))
 
-    @Substitution(
-        **dict(
-            _index_doc_kwargs,
-            **{
-                "raises_section": textwrap.dedent(
-                    """
-        Raises
-        ------
-        NotImplementedError
-            If any method argument other than the default of
-            None is specified as these are not yet implemented.
-        """
-                )
-            },
-        )
-    )
-    @Appender(_index_shared_docs["get_indexer"])
     def _get_indexer(
         self,
         target: Index,

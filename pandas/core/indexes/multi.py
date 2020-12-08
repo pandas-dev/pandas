@@ -2595,7 +2595,6 @@ class MultiIndex(Index):
 
         return key
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         # empty indexer
