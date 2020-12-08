@@ -1,0 +1,199 @@
+.. _whatsnew_130:
+
+What's new in 1.3.0 (??)
+------------------------
+
+These are the changes in pandas 1.3.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+
+.. _whatsnew_130.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_130.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+
+
+.. _whatsnew_130.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+.. _whatsnew_130.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_130.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+
+.. _whatsnew_130.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_130.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Period
+^^^^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+
+Other
+^^^^^
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_130.contributors:
+
+Contributors
+~~~~~~~~~~~~
