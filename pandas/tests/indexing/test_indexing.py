@@ -751,7 +751,6 @@ class TestMisc:
 
         # GH#38335 same thing, mixed dtypes
         df = DataFrame({"x": [1, 2, 6], "y": [2.0, 2.0, 8.0]}, index=index)
-        expected = df.copy()
         df.loc[5] = rhs
         expected = DataFrame({"x": [1, 2, 9], "y": [2.0, 2.0, 99.0]}, index=index)
         tm.assert_frame_equal(df, expected)
