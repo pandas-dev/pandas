@@ -1862,7 +1862,15 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None, index=False):
+    def _create_sql_schema(
+        self, 
+        frame, 
+        table_name, 
+        keys=None, 
+        dtype=None, 
+        schema=None, 
+        index=False,
+    ):
         table = SQLiteTable(
             table_name,
             self,
