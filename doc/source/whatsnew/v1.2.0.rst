@@ -260,6 +260,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a Series or DataFrame (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`io.sql.get_schema` now supports a ``schema`` keyword argument that will add a schema into the create table statement (:issue:`28486`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 - :meth:`.Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
