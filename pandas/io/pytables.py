@@ -28,7 +28,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -44,8 +44,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_string_dtype,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -63,6 +63,7 @@ from pandas import (
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -268,6 +269,7 @@ def to_hdf(
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
+            dropna=dropna,
         )
 
     path_or_buf = stringify_path(path_or_buf)
@@ -1051,6 +1053,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
+        dropna: bool = False,
     ):
         """
         Store object in HDFStore.
@@ -1100,6 +1103,7 @@ class HDFStore:
             encoding=encoding,
             errors=errors,
             track_times=track_times,
+            dropna=dropna,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -2033,7 +2037,7 @@ class IndexCol:
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
 
-        kwargs = dict()
+        kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
         if self.freq is not None:
@@ -2968,11 +2972,12 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, value: ArrayLike, items: Optional[Index] = None):
-        # TODO: we only have one test that gets here, the only EA
+    def write_array(self, key: str, obj: FrameOrSeries, items: Optional[Index] = None):
+        # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-        assert isinstance(value, (np.ndarray, ABCExtensionArray)), type(value)
+
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3027,8 +3032,6 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif empty_array:
-            self.write_array_empty(key, value)
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
@@ -3043,6 +3046,8 @@ class GenericFixed(Fixed):
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif empty_array:
+            self.write_array_empty(key, value)
         else:
             self._handle.create_array(self.group, key, value)
 
@@ -3077,7 +3082,7 @@ class SeriesFixed(GenericFixed):
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
-        self.write_array("values", obj.values)
+        self.write_array("values", obj)
         self.attrs.name = obj.name
 
 
@@ -3087,7 +3092,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self):
+    def shape(self) -> Optional[Shape]:
         try:
             ndim = self.ndim
 
@@ -3232,7 +3237,7 @@ class Table(Fixed):
         self.non_index_axes = non_index_axes or []
         self.values_axes = values_axes or []
         self.data_columns = data_columns or []
-        self.info = info or dict()
+        self.info = info or {}
         self.nan_rep = nan_rep
 
     @property
@@ -3441,7 +3446,7 @@ class Table(Fixed):
         """ retrieve our attributes """
         self.non_index_axes = getattr(self.attrs, "non_index_axes", None) or []
         self.data_columns = getattr(self.attrs, "data_columns", None) or []
-        self.info = getattr(self.attrs, "info", None) or dict()
+        self.info = getattr(self.attrs, "info", None) or {}
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
@@ -3591,7 +3596,7 @@ class Table(Fixed):
         if not isinstance(columns, (tuple, list)):
             columns = [columns]
 
-        kw = dict()
+        kw = {}
         if optlevel is not None:
             kw["optlevel"] = optlevel
         if kind is not None:
@@ -3684,7 +3689,7 @@ class Table(Fixed):
             return []
 
         axis, axis_labels = non_index_axes[0]
-        info = self.info.get(axis, dict())
+        info = self.info.get(axis, {})
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
                 f"cannot use a multi-index on axis [{axis}] with "
@@ -4066,7 +4071,7 @@ class Table(Fixed):
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
 
-        d = dict(name="table", expectedrows=expectedrows)
+        d = {"name": "table", "expectedrows": expectedrows}
 
         # description from the axes & values
         d["description"] = {a.cname: a.typ for a in self.axes}
@@ -4453,9 +4458,9 @@ class AppendableFrameTable(AppendableTable):
         result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
-            self.info.get(self.non_index_axes[0][0], dict())
+            self.info.get(self.non_index_axes[0][0], {})
             if len(self.non_index_axes)
-            else dict()
+            else {}
         )
 
         inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
@@ -4685,7 +4690,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
 
         # remove names for 'level_%d'
         df.index = df.index.set_names(
-            [None if self._re_levels.search(l) else l for l in df.index.names]
+            [None if self._re_levels.search(name) else name for name in df.index.names]
         )
 
         return df
@@ -4767,7 +4772,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index):
+    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.

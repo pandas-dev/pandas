@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import re
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
 from pandas._libs import lib
@@ -132,7 +131,7 @@ def any_string_method(request):
     Examples
     --------
     >>> def test_something(any_string_method):
-    ...     s = pd.Series(['a', 'b', np.nan, 'd'])
+    ...     s = Series(['a', 'b', np.nan, 'd'])
     ...
     ...     method_name, args, kwargs = any_string_method
     ...     method = getattr(s.str, method_name)
@@ -183,7 +182,7 @@ def any_allowed_skipna_inferred_dtype(request):
     ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     ...
     ...     # constructor for .str-accessor will also pass
-    ...     pd.Series(values).str
+    ...     Series(values).str
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
@@ -367,7 +366,12 @@ class TestStringMethods:
         tm.assert_series_equal(ds, s)
 
     def test_iter_object_try_string(self):
-        ds = Series([slice(None, randint(10), randint(10, 20)) for _ in range(4)])
+        ds = Series(
+            [
+                slice(None, np.random.randint(10), np.random.randint(10, 20))
+                for _ in range(4)
+            ]
+        )
 
         i, s = 100, "h"
 
@@ -641,7 +645,9 @@ class TestStringMethods:
         u = np.array(["A", "B", "C", "D"])
         expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
         # joint index of rhs [t, u]; u will be forced have index of s
-        rhs_idx = t.index & s.index if join == "inner" else t.index | s.index
+        rhs_idx = (
+            t.index.intersection(s.index) if join == "inner" else t.index.union(s.index)
+        )
 
         expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
         result = s.str.cat([t, u], join=join, na_rep="-")
@@ -2546,8 +2552,8 @@ class TestStringMethods:
     @pytest.mark.parametrize("dtype", [object, "string"])
     @pytest.mark.parametrize("method", ["split", "rsplit"])
     def test_split_n(self, dtype, method):
-        s = pd.Series(["a b", pd.NA, "b c"], dtype=dtype)
-        expected = pd.Series([["a", "b"], pd.NA, ["b", "c"]])
+        s = Series(["a b", pd.NA, "b c"], dtype=dtype)
+        expected = Series([["a", "b"], pd.NA, ["b", "c"]])
 
         result = getattr(s.str, method)(" ", n=None)
         tm.assert_series_equal(result, expected)
@@ -3653,14 +3659,14 @@ def test_string_array_extract():
 @pytest.mark.parametrize("klass", [tuple, list, np.array, pd.Series, pd.Index])
 def test_cat_different_classes(klass):
     # https://github.com/pandas-dev/pandas/issues/33425
-    s = pd.Series(["a", "b", "c"])
+    s = Series(["a", "b", "c"])
     result = s.str.cat(klass(["x", "y", "z"]))
-    expected = pd.Series(["ax", "by", "cz"])
+    expected = Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
 
 
 def test_str_get_stringarray_multiple_nans():
-    s = pd.Series(pd.array(["a", "ab", pd.NA, "abc"]))
+    s = Series(pd.array(["a", "ab", pd.NA, "abc"]))
     result = s.str.get(2)
-    expected = pd.Series(pd.array([pd.NA, pd.NA, pd.NA, "c"]))
+    expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"]))
     tm.assert_series_equal(result, expected)

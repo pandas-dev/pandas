@@ -21,8 +21,9 @@ class ExtensionDtype:
 
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    extensions.register_extension_dtype: Register an ExtensionType
+        with pandas as class decorator.
+    extensions.ExtensionArray: Abstract base class for custom 1-D array types.
 
     Notes
     -----
@@ -98,9 +99,8 @@ class ExtensionDtype:
         By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type and all of the
-          the attributes in ``self._metadata`` are equal between
-          `self` and `other`.
+        * it's an instance of this type and all of the attributes
+          in ``self._metadata`` are equal between `self` and `other`.
 
         Parameters
         ----------

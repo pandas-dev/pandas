@@ -23,7 +23,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
@@ -1024,9 +1024,10 @@ Writing CSVs to binary file objects
 
 .. versionadded:: 1.2.0
 
-``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
-opened binary mode. For this to work, it is necessary that ``mode``
-contains a "b":
+``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
+opened binary mode. In most cases, it is not necessary to specify
+``mode`` as Pandas will auto-detect whether the file object is
+opened in text or binary mode.
 
 .. ipython:: python
 
@@ -1034,7 +1035,7 @@ contains a "b":
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1576,19 +1577,21 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", chunksize=4)
-   reader
+   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
+       reader
+       for chunk in reader:
+           print(chunk)
 
-   for chunk in reader:
-       print(chunk)
+.. versionchanged:: 1.2
 
+  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", iterator=True)
-   reader.get_chunk(5)
+   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
+       reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
@@ -2237,10 +2240,10 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df.to_json(orient="records", lines=True)
 
   # reader is an iterator that returns ``chunksize`` lines each iteration
-  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
-  reader
-  for chunk in reader:
-      print(chunk)
+  with pd.read_json(StringIO(jsonl), lines=True, chunksize=1) as reader:
+      reader
+      for chunk in reader:
+          print(chunk)
 
 .. _io.table_schema:
 
@@ -5470,9 +5473,9 @@ object can be used as an iterator.
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", chunksize=3)
-  for df in reader:
-      print(df.shape)
+  with pd.read_stata("stata.dta", chunksize=3) as reader:
+      for df in reader:
+          print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -5480,9 +5483,9 @@ For more fine-grained control, use ``iterator=True`` and specify
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", iterator=True)
-  chunk1 = reader.read(5)
-  chunk2 = reader.read(5)
+  with pd.read_stata("stata.dta", iterator=True) as reader:
+      chunk1 = reader.read(5)
+      chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -5594,9 +5597,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    rdr = pd.read_sas("sas_xport.xpt", chunk=100000)
-    for chunk in rdr:
-        do_something(chunk)
+    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+        for chunk in rdr:
+            do_something(chunk)
 
 The specification_ for the xport file format is available from the SAS
 web site.
@@ -5686,7 +5689,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-Given the next test set:
+The following test functions will be used below to compare the performance of several IO methods:
 
 .. code-block:: python
 
@@ -5791,7 +5794,7 @@ Given the next test set:
    def test_parquet_read():
        pd.read_parquet("test.parquet")
 
-When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
+When writing, the top three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
@@ -5825,7 +5828,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    In [13]: %timeit test_parquet_write(df)
    67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
+When reading, the top three functions in terms of speed are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
 
@@ -5862,8 +5865,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 
-For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
-Space on disk (in bytes)
+The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk (in bytes).
 
 .. code-block:: none
 

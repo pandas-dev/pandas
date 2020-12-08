@@ -533,7 +533,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 

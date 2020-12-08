@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series
 
 
-@Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
+@Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})
 def melt(
     frame: "DataFrame",
     id_vars=None,
@@ -42,7 +42,7 @@ def melt(
     if value_name in frame.columns:
         warnings.warn(
             "This dataframe has a column name that matches the 'value_name' column "
-            "name of the resultiing Dataframe. "
+            "name of the resulting Dataframe. "
             "In the future this will raise an error, please set the 'value_name' "
             "parameter of DataFrame.melt to a unique name.",
             FutureWarning,

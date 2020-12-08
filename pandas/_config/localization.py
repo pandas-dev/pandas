@@ -99,8 +99,7 @@ def _valid_locales(locales, normalize):
 
 
 def _default_locale_getter():
-    raw_locales = subprocess.check_output(["locale -a"], shell=True)
-    return raw_locales
+    return subprocess.check_output(["locale -a"], shell=True)
 
 
 def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_getter):

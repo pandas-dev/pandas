@@ -12,11 +12,10 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
+from typing import IO, Callable, Iterable, List, Set, Tuple
 
 PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_extension_array_shared_docs",
@@ -403,8 +402,6 @@ def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
     output_format: str,
-    file_extensions_to_check: str,
-    excluded_file_paths: str,
 ) -> bool:
     """
     Main entry point of the script.
@@ -432,20 +429,10 @@ def main(
     ValueError
         If the `source_path` is not pointing to existing file/directory.
     """
-    if not os.path.exists(source_path):
-        raise ValueError("Please enter a valid path, pointing to a file/directory.")
-
     is_failed: bool = False
-    file_path: str = ""
 
-    FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
-        file_extensions_to_check.split(",")
-    )
-    PATHS_TO_IGNORE = frozenset(excluded_file_paths.split(","))
-
-    if os.path.isfile(source_path):
-        file_path = source_path
-        with open(file_path) as file_obj:
+    for file_path in source_path:
+        with open(file_path, encoding="utf-8") as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
@@ -453,25 +440,6 @@ def main(
                         source_path=file_path, line_number=line_number, msg=msg
                     )
                 )
-
-    for subdir, _, files in os.walk(source_path):
-        if any(path in subdir for path in PATHS_TO_IGNORE):
-            continue
-        for file_name in files:
-            if not any(
-                file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
-            ):
-                continue
-
-            file_path = os.path.join(subdir, file_name)
-            with open(file_path) as file_obj:
-                for line_number, msg in function(file_obj):
-                    is_failed = True
-                    print(
-                        output_format.format(
-                            source_path=file_path, line_number=line_number, msg=msg
-                        )
-                    )
 
     return is_failed
 
@@ -487,9 +455,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
 
-    parser.add_argument(
-        "path", nargs="?", default=".", help="Source path of file/directory to check."
-    )
+    parser.add_argument("paths", nargs="*", help="Source paths of files to check.")
     parser.add_argument(
         "--format",
         "-f",
@@ -503,25 +469,13 @@ if __name__ == "__main__":
         required=True,
         help="Validation test case to check.",
     )
-    parser.add_argument(
-        "--included-file-extensions",
-        default="py,pyx,pxd,pxi",
-        help="Comma separated file extensions to check.",
-    )
-    parser.add_argument(
-        "--excluded-file-paths",
-        default="asv_bench/env",
-        help="Comma separated file paths to exclude.",
-    )
 
     args = parser.parse_args()
 
     sys.exit(
         main(
-            function=globals().get(args.validation_type),  # type: ignore
-            source_path=args.path,
+            function=globals().get(args.validation_type),
+            source_path=args.paths,
             output_format=args.format,
-            file_extensions_to_check=args.included_file_extensions,
-            excluded_file_paths=args.excluded_file_paths,
         )
     )

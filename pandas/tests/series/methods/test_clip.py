@@ -62,9 +62,9 @@ class TestSeriesClip:
     @pytest.mark.parametrize("upper", [[1, 2, 3], np.asarray([1, 2, 3])])
     def test_clip_against_list_like(self, inplace, upper):
         # GH#15390
-        original = pd.Series([5, 6, 7])
+        original = Series([5, 6, 7])
         result = original.clip(upper=upper, inplace=inplace)
-        expected = pd.Series([1, 2, 3])
+        expected = Series([1, 2, 3])
 
         if inplace:
             result = original

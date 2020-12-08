@@ -1,7 +1,6 @@
 from textwrap import dedent
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
 import pandas as pd
@@ -38,11 +37,11 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return pd.DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return pd.DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
     elif data_type == "utf16":
-        return pd.DataFrame(
+        return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
@@ -54,14 +53,14 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
             r_idx_names=[None],
         )
     elif data_type == "nonascii":
-        return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
+        return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
         return tm.makeCustomDataframe(
@@ -95,7 +94,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -200,7 +199,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """

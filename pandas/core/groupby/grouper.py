@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeries, Label, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -290,6 +289,7 @@ class Grouper:
         self._grouper = None
         self.dropna = dropna
 
+    @final
     @property
     def ax(self):
         return self.grouper
@@ -307,7 +307,10 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        self.grouper, _, self.obj = get_grouper(
+        # pandas\core\groupby\grouper.py:310: error: Value of type variable
+        # "FrameOrSeries" of "get_grouper" cannot be "Optional[Any]"
+        # [type-var]
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -318,6 +321,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
+    @final
     def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
@@ -342,10 +346,10 @@ class Grouper:
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(
-                obj, ABCSeries
-            ):
-                ax = self._grouper.take(obj.index)
+            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
+                # pandas\core\groupby\grouper.py:348: error: Item "None" of
+                # "Optional[Any]" has no attribute "take"  [union-attr]
+                ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
@@ -377,10 +381,14 @@ class Grouper:
         self.grouper = ax
         return self.grouper
 
+    @final
     @property
     def groups(self):
-        return self.grouper.groups
+        # pandas\core\groupby\grouper.py:382: error: Item "None" of
+        # "Optional[Any]" has no attribute "groups"  [union-attr]
+        return self.grouper.groups  # type: ignore[union-attr]
 
+    @final
     def __repr__(self) -> str:
         attrs_list = (
             f"{attr_name}={repr(getattr(self, attr_name))}"
@@ -392,6 +400,7 @@ class Grouper:
         return f"{cls_name}({attrs})"
 
 
+@final
 class Grouping:
     """
     Holds the grouping information for a single key
@@ -593,23 +602,25 @@ class Grouping:
         return self._group_index
 
     def _make_codes(self) -> None:
-        if self._codes is None or self._group_index is None:
-            # we have a list of groupers
-            if isinstance(self.grouper, ops.BaseGrouper):
-                codes = self.grouper.codes_info
-                uniques = self.grouper.result_index
+        if self._codes is not None and self._group_index is not None:
+            return
+
+        # we have a list of groupers
+        if isinstance(self.grouper, ops.BaseGrouper):
+            codes = self.grouper.codes_info
+            uniques = self.grouper.result_index
+        else:
+            # GH35667, replace dropna=False with na_sentinel=None
+            if not self.dropna:
+                na_sentinel = None
             else:
-                # GH35667, replace dropna=False with na_sentinel=None
-                if not self.dropna:
-                    na_sentinel = None
-                else:
-                    na_sentinel = -1
-                codes, uniques = algorithms.factorize(
-                    self.grouper, sort=self.sort, na_sentinel=na_sentinel
-                )
-                uniques = Index(uniques, name=self.name)
-            self._codes = codes
-            self._group_index = uniques
+                na_sentinel = -1
+            codes, uniques = algorithms.factorize(
+                self.grouper, sort=self.sort, na_sentinel=na_sentinel
+            )
+            uniques = Index(uniques, name=self.name)
+        self._codes = codes
+        self._group_index = uniques
 
     @cache_readonly
     def groups(self) -> Dict[Hashable, np.ndarray]:
