@@ -28,11 +28,7 @@ from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import (
-    maybe_cast_result,
-    maybe_cast_result_dtype,
-    maybe_downcast_to_dtype,
-)
+from pandas.core.dtypes.cast import maybe_cast_result_dtype, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     ensure_float64,
