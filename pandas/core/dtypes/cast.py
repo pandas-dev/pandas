@@ -241,10 +241,6 @@ def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
         # e.g. SparseDtype has no itemsize attr
         return result
 
-    if isinstance(result, list):
-        # reached via groupby.agg._ohlc; really this should be handled earlier
-        result = np.array(result)
-
     def trans(x):
         if do_round:
             return x.round()
