@@ -22,6 +22,10 @@ jobs:
       ENV_FILE: ci/deps/actions-38-slow.yaml
       PATTERN: slow
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     services:
       postgres:
         image: postgres
@@ -62,6 +66,7 @@ jobs:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
           hashFiles('ci/deps/actions-38-slow.yaml') }}
+
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
@@ -70,9 +75,7 @@ jobs:
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Test
-      run: |
-        conda activate pandas-dev
-        ci/run_tests.sh
+      run: ci/run_tests.sh
       if: always()
 
     - name: Publish test results
