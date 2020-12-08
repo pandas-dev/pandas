@@ -30,7 +30,7 @@ def test_get_level_number_integer(idx):
 
 
 def test_get_dtypes(idx_multitype):
-    # Test MultiIndex.dtypes (GH-37062)
+    # Test MultiIndex.dtypes (# Gh37062)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
@@ -38,7 +38,7 @@ def test_get_dtypes(idx_multitype):
             "dt": DateTimeTZDtype(tz="utc"),
         }
     )
-    assert expected.equals(idx_multitype.dtypes)
+    tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):

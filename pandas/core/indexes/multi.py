@@ -702,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @cache_readonly
-    def dtypes(self):
+    def dtypes(self) -> "Series":
         """
         Return the dtypes as a Series for the underlying MultiIndex
         """

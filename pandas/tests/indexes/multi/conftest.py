@@ -27,11 +27,9 @@ def idx():
 @pytest.fixture
 def idx_multitype():
     # a MultiIndex with several dtypes
-    first_axis = [1, 2, 3]
-    second_axis = list("abc")
-    third_axis = pd.date_range("20200101", periods=2, tz="UTC")
     mi = MultiIndex.from_product(
-        [first_axis, second_axis, third_axis], names=["int", "string", "dt"]
+        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        names=["int", "string", "dt"],
     )
     return mi
 
