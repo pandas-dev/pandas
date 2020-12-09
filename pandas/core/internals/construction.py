@@ -505,6 +505,7 @@ def to_arrays(
     """
     Return list of arrays, columns.
     """
+
     if isinstance(data, ABCDataFrame):
         if columns is not None:
             arrays = [
@@ -558,18 +559,13 @@ def _list_to_arrays(
     coerce_float: bool = False,
     dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
-    if len(data) > 0 and isinstance(data[0], tuple):
-        content = list(lib.to_object_array_tuples(data).T)
+    # Note: we already check len(data) > 0 before getting hre
+    if isinstance(data[0], tuple):
+        content = lib.to_object_array_tuples(data)
     else:
         # list of lists
-        content = list(lib.to_object_array(data).T)
-    # gh-26429 do not raise user-facing AssertionError
-    try:
-        columns = _validate_or_indexify_columns(content, columns)
-        result = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
-    except AssertionError as e:
-        raise ValueError(e) from e
-    return result, columns
+        content = lib.to_object_array(data)
+    return _finalize_columns_and_data(content, columns, dtype, coerce_float)
 
 
 def _list_of_series_to_arrays(
@@ -599,15 +595,10 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
-    values = np.vstack(aligned_values)
+    content = np.vstack(aligned_values)
 
-    if values.dtype == np.object_:
-        content = list(values.T)
-        columns = _validate_or_indexify_columns(content, columns)
-        content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
-        return content, columns
-    else:
-        return values.T, columns
+    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
+    return content, columns
 
 
 def _list_of_dict_to_arrays(
@@ -646,9 +637,30 @@ def _list_of_dict_to_arrays(
     # classes
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
-    content = list(lib.dicts_to_array(data, list(columns)).T)
-    columns = _validate_or_indexify_columns(content, columns)
-    content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+    content = lib.dicts_to_array(data, list(columns))
+    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
+    return content, columns
+
+
+def _finalize_columns_and_data(
+    content: np.ndarray,
+    columns,
+    dtype: Optional[DtypeObj],
+    coerce_float: bool,
+) -> Tuple[List[np.ndarray], Index]:
+    """
+    Ensure we have valid columns, cast object dtypes if possible.
+    """
+    content = list(content.T)
+
+    try:
+        columns = _validate_or_indexify_columns(content, columns)
+    except AssertionError as err:
+        # GH#26429 do not raise user-facing AssertionError
+        raise ValueError(err) from err
+
+    if len(content) and content[0].dtype == np.object_:
+        content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
     return content, columns
 
 
