@@ -15,6 +15,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 import pytz
@@ -1048,12 +1049,20 @@ class IntervalDtype(PandasExtensionDtype):
                 if m is not None:
                     gd = m.groupdict()
                     subtype = gd["subtype"]
-                    if "closed" in gd:
+                    if gd.get("closed", None) is not None:
                         closed = gd["closed"]
                     elif closed is not None:
                         # user passed eg. IntervalDtype("interval[int64]", "left")
                         pass
                     else:
+                        warnings.warn(
+                            "Constructing an IntervalDtype from a string without "
+                            "specifying 'closed' is deprecated and will raise in "
+                            "a future version. "
+                            f"Use e.g. 'interval[{subtype}, left]'. "
+                            "Defaulting to closed='right'.",
+                            FutureWarning,
+                        )
                         # default to "right"
                         closed = "right"
 
@@ -1070,7 +1079,17 @@ class IntervalDtype(PandasExtensionDtype):
             )
             raise TypeError(msg)
 
-        closed = closed or "right"
+        if closed is None and subtype is not None:
+            warnings.warn(
+                "Constructing an IntervalDtype without "
+                "specifying 'closed' is deprecated and will raise in "
+                "a future version. "
+                "Use e.g. IntervalDtype(np.int64, 'left'). "
+                "Defaulting to closed='right'.",
+                FutureWarning,
+            )
+            closed = "right"
+
         key = str(subtype) + str(closed)
         try:
             return cls._cache[key]
@@ -1162,6 +1181,13 @@ class IntervalDtype(PandasExtensionDtype):
         self._subtype = state["subtype"]
         # backward-compat older pickles won't have "closed" key
         self._closed = state.pop("closed", None)
+        if self._closed is None:
+            warnings.warn(
+                "Unpickled legacy IntervalDtype does not specify 'closed' "
+                "attribute.  Set dtype._closed to one of 'left', 'right', 'both', "
+                "'neither' before using this IntervalDtype object.",
+                UserWarning,
+            )
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
