@@ -552,6 +552,17 @@ class TestIntervalDtype(Base):
         assert i.subtype == np.dtype("int64")
         assert is_interval_dtype(i)
 
+    @pytest.mark.parametrize(
+        "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
+    )
+    def test_construction_requires_closed(self, subtype):
+
+        with tm.assert_produces_warning(FutureWarning):
+            # need to specify "closed"
+            dtype = IntervalDtype(subtype)
+
+        assert dtype.closed == "right"  # default
+
     @pytest.mark.parametrize("subtype", [None, "interval", "Interval"])
     def test_construction_generic(self, subtype):
         # generic

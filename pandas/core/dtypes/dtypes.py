@@ -1062,6 +1062,7 @@ class IntervalDtype(PandasExtensionDtype):
                             f"Use e.g. 'interval[{subtype}, left]'. "
                             "Defaulting to closed='right'.",
                             FutureWarning,
+                            stacklevel=2,
                         )
                         # default to "right"
                         closed = "right"
@@ -1087,6 +1088,7 @@ class IntervalDtype(PandasExtensionDtype):
                 "Use e.g. IntervalDtype(np.int64, 'left'). "
                 "Defaulting to closed='right'.",
                 FutureWarning,
+                stacklevel=2,
             )
             closed = "right"
 
