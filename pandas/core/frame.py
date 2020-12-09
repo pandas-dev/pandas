@@ -83,7 +83,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_datetimelike,
-    maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
@@ -3942,14 +3941,7 @@ class DataFrame(NDFrame, OpsMixin):
                 value = maybe_infer_to_datetimelike(value)
 
         else:
-            # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            value = construct_1d_arraylike_from_scalar(
-                fill_value, len(self), infer_dtype
-            )
-
-            value = maybe_cast_to_datetime(value, infer_dtype)
+            value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
 
         # return internal types directly
         if is_extension_array_dtype(value):

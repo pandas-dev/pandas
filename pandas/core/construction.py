@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
-    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_castable,
@@ -503,10 +502,10 @@ def sanitize_array(
             value = data
 
             # figure out the dtype from the value (upcast if necessary)
-            if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
-            else:
+            if dtype is not None:
                 # need to possibly convert the value here
+                # TODO: there are no tests where this is needed; can we prove it
+                #  is never needed?
                 value = maybe_cast_to_datetime(value, dtype)
 
             subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
