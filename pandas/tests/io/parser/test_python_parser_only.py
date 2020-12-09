@@ -8,6 +8,7 @@ arguments when parsing.
 import csv
 from io import BytesIO, StringIO
 
+import numpy as np
 import pytest
 
 from pandas.errors import ParserError
@@ -328,5 +329,28 @@ def test_delimiter_with_usecols_and_parse_dates(python_parser_only):
     )
     expected = DataFrame(
         {"col1": [-9.1], "col2": [-9.1], "col3": [Timestamp("2010-10-10")]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_comment_char_in_default_value(python_parser_only):
+    # GH#34002
+    from io import StringIO
+
+    data = (
+        "# this is a comment\n"
+        "1,2,3,4\n"
+        "1,2,3,4#inline comment\n"
+        "1,2#,3,4\n"
+        "1,2,#N/A,4\n"
+    )
+    result = python_parser_only.read_csv(StringIO(data), comment="#", na_values="#N/A")
+    expected = DataFrame(
+        {
+            "1": [1] * 3,
+            "2": [2] * 3,
+            "3": [3.0, np.nan, np.nan],
+            "4": [4.0, np.nan, 4.0],
+        }
     )
     tm.assert_frame_equal(result, expected)
