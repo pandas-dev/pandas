@@ -1515,17 +1515,26 @@ class Datetime64Formatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have DO NOT have a TZ """
         values = self.values
+        flat_values = values.ravel()
 
-        if not isinstance(values, DatetimeIndex):
-            values = DatetimeIndex(values)
+        if not isinstance(flat_values, DatetimeIndex):
+            flat_values = DatetimeIndex(flat_values)
 
         if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in values]
+            flat_str_values = np.array([self.formatter(x) for x in flat_values])
+            fmt_values = flat_str_values.reshape(values.shape)
+        else:
+            fmt_values = flat_values._data._format_native_types(
+                na_rep=self.nat_rep, date_format=self.date_format
+            ).reshape(values.shape)
 
-        fmt_values = values._data._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format
-        )
-        return fmt_values.tolist()
+        if len(fmt_values.shape) > 1:
+            nested_string_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_string_formatter.get_result()
+        else:
+            fmt_values = fmt_values.tolist()
+
+        return fmt_values
 
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
