@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Set, Tuple, Uni
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, Axis, DtypeObj, IndexLabel, Scalar
+from pandas._typing import ArrayLike, DtypeObj, IndexLabel, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -63,7 +63,9 @@ def mask_missing(
     return mask
 
 
-def clean_fill_method(method: str, allow_nearest: bool = False) -> Optional[str]:
+def clean_fill_method(
+    method: Optional[str], allow_nearest: bool = False
+) -> Optional[str]:
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
         return None
@@ -162,7 +164,7 @@ def find_valid_index(values: ArrayLike, how: str) -> Optional[int]:
 def interpolate_1d(
     xvalues: "Index",
     yvalues: np.ndarray,
-    method: Optional[str] = "linear",
+    method: str = "linear",
     limit: Optional[int] = None,
     limit_direction: str = "forward",
     limit_area: Optional[str] = None,
@@ -302,7 +304,7 @@ def _interpolate_scipy_wrapper(
     x: np.ndarray,
     y: np.ndarray,
     new_x: Union[Scalar, np.ndarray],
-    method: Optional[str],
+    method: str,
     fill_value: Optional[Scalar] = None,
     bounds_error: bool = False,
     order: Optional[int] = None,
@@ -338,7 +340,7 @@ def _interpolate_scipy_wrapper(
     elif method == "cubicspline":
         alt_methods["cubicspline"] = _cubicspline_interpolate
 
-    interp1d_methods: List[str] = [
+    interp1d_methods = [
         "nearest",
         "zero",
         "slinear",
@@ -430,11 +432,11 @@ def _from_derivatives(
 
 
 def _akima_interpolate(
-    xi: ArrayLike,
-    yi: ArrayLike,
+    xi: np.ndarray,
+    yi: np.ndarray,
     x: Union[Scalar, ArrayLike],
-    der: Optional[int] = 0,
-    axis: Axis = 0,
+    der: int = 0,
+    axis: int = 0,
 ) -> Union[Scalar, ArrayLike]:
     """
     Convenience function for akima interpolation.
@@ -445,9 +447,9 @@ def _akima_interpolate(
 
     Parameters
     ----------
-    xi : array_like
+    xi : np.ndarray
         A sorted list of x-coordinates, of length N.
-    yi : array_like
+    yi : np.ndarray
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
@@ -482,7 +484,7 @@ def _cubicspline_interpolate(
     xi: ArrayLike,
     yi: ArrayLike,
     x: Union[ArrayLike, Scalar],
-    axis: Axis = 0,
+    axis: int = 0,
     bc_type: Union[str, Tuple] = "not-a-knot",
     extrapolate: Optional[Union[bool, str]] = None,
 ) -> Union[ArrayLike, Scalar]:
@@ -614,7 +616,7 @@ def _interpolate_with_limit_area(
 def interpolate_2d(
     values: np.ndarray,
     method: str = "pad",
-    axis: Axis = 0,
+    axis: int = 0,
     limit: Optional[int] = None,
     limit_area: Optional[str] = None,
 ) -> np.ndarray:
