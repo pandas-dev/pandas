@@ -954,6 +954,7 @@ class ExtensionArray:
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
+        
         return self.take(ind)
 
     # ------------------------------------------------------------------------
