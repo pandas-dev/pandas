@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -428,7 +427,7 @@ def test_agg_misc():
     msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
-            t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
+            t[["A", "B"]].agg({"result1": np.sum, "result2": np.mean})
 
     # agg with different hows
     expected = pd.concat(
@@ -438,7 +437,7 @@ def test_agg_misc():
         [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )
     for t in cases:
-        result = t.agg(OrderedDict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
+        result = t.agg({"A": ["sum", "std"], "B": ["mean", "std"]})
         tm.assert_frame_equal(result, expected, check_like=True)
 
     # equivalent of using a selection list / or not
@@ -572,7 +571,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # date parser. Some would result in OutOfBoundsError (ValueError) while
     # others would result in OverflowError when passed into Timestamp.
     # We catch these errors and move on to the correct branch.
-    df = pd.DataFrame(
+    df = DataFrame(
         list(range(200)),
         index=pd.date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
@@ -580,7 +579,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=pd.date_range(
             start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
@@ -596,10 +595,10 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = pd.Series(arr, index=index)
+    ser = Series(arr, index=index)
     rs = ser.resample("1D")
 
-    expected = pd.Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)

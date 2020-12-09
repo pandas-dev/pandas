@@ -9,7 +9,7 @@ from pandas.core.arrays.integer import Int8Dtype, Int32Dtype, Int64Dtype
 
 
 def test_uses_pandas_na():
-    a = pd.array([1, None], dtype=pd.Int64Dtype())
+    a = pd.array([1, None], dtype=Int64Dtype())
     assert a[1] is pd.NA
 
 
@@ -29,7 +29,7 @@ def test_from_dtype_from_float(data):
 
     # from int / array
     expected = pd.Series(data).dropna().reset_index(drop=True)
-    dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
+    dropped = np.array(data.dropna()).astype(np.dtype(dtype.type))
     result = pd.Series(dropped, dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 

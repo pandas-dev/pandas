@@ -1,19 +1,24 @@
 """ pickle compat """
 import pickle
-from typing import Any, Optional
+from typing import Any
 import warnings
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
+from pandas.util._decorators import doc
 
-from pandas.io.common import get_filepath_or_buffer, get_handle
+from pandas.core import generic
+
+from pandas.io.common import get_handle
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePathOrBuffer,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
+    storage_options: StorageOptions = None,
 ):
     """
     Pickle (serialize) object to file.
@@ -28,7 +33,7 @@ def to_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
@@ -42,6 +47,10 @@ def to_pickle(
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
 
+    {storage_options}
+
+        .. versionadded:: 1.2.0
+
         .. [1] https://docs.python.org/3/library/pickle.html
 
     See Also
@@ -53,7 +62,7 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -75,29 +84,24 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression, mode="wb"
-    )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
-        compression = None
-    f, fh = get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
-    try:
-        f.write(pickle.dumps(obj, protocol=protocol))
-    finally:
-        f.close()
-        for _f in fh:
-            _f.close()
-        if should_close:
-            try:
-                fp_or_buf.close()
-            except ValueError:
-                pass
+
+    with get_handle(
+        filepath_or_buffer,
+        "wb",
+        compression=compression,
+        is_text=False,
+        storage_options=storage_options,
+    ) as handles:
+        pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def read_pickle(
-    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str] = "infer"
+    filepath_or_buffer: FilePathOrBuffer,
+    compression: CompressionOptions = "infer",
+    storage_options: StorageOptions = None,
 ):
     """
     Load pickled pandas object (or any object) from file.
@@ -115,11 +119,15 @@ def read_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
+
+    {storage_options}
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -139,7 +147,7 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -161,39 +169,31 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression
-    )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
-        compression = None
-    f, fh = get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
+    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+    with get_handle(
+        filepath_or_buffer,
+        "rb",
+        compression=compression,
+        is_text=False,
+        storage_options=storage_options,
+    ) as handles:
 
-    # 1) try standard library Pickle
-    # 2) try pickle_compat (older pandas version) to handle subclass changes
-    # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
+        # 1) try standard library Pickle
+        # 2) try pickle_compat (older pandas version) to handle subclass changes
+        # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
 
-    try:
-        excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
-        # TypeError for Cython complaints about object.__new__ vs Tick.__new__
         try:
-            with warnings.catch_warnings(record=True):
-                # We want to silence any warnings about, e.g. moved modules.
-                warnings.simplefilter("ignore", Warning)
-                return pickle.load(f)
-        except excs_to_catch:
-            # e.g.
-            #  "No module named 'pandas.core.sparse.series'"
-            #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(f, encoding=None)
-    except UnicodeDecodeError:
-        # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-        return pc.load(f, encoding="latin-1")
-    finally:
-        f.close()
-        for _f in fh:
-            _f.close()
-        if should_close:
+            # TypeError for Cython complaints about object.__new__ vs Tick.__new__
             try:
-                fp_or_buf.close()
-            except ValueError:
-                pass
+                with warnings.catch_warnings(record=True):
+                    # We want to silence any warnings about, e.g. moved modules.
+                    warnings.simplefilter("ignore", Warning)
+                    return pickle.load(handles.handle)  # type: ignore[arg-type]
+            except excs_to_catch:
+                # e.g.
+                #  "No module named 'pandas.core.sparse.series'"
+                #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+                return pc.load(handles.handle, encoding=None)
+        except UnicodeDecodeError:
+            # e.g. can occur for files written in py27; see GH#28645 and GH#31988
+            return pc.load(handles.handle, encoding="latin-1")

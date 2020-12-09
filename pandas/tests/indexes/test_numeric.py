@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -6,36 +6,23 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, UInt64Index
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
 
-class Numeric(Base):
-    def test_where(self):
-        # Tested in numeric.test_indexing
-        pass
-
-    def test_can_hold_identifiers(self):
-        idx = self.create_index()
-        key = idx[0]
-        assert idx._can_hold_identifiers_and_holds_name(key) is False
-
-    def test_format(self):
-        # GH35439
-        idx = self.create_index()
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        assert idx.format() == expected
-
-    def test_numeric_compat(self):
-        pass  # override Base method
-
-    def test_explicit_conversions(self):
+class TestArithmetic:
+    @pytest.mark.parametrize(
+        "klass", [Float64Index, Int64Index, UInt64Index, RangeIndex]
+    )
+    def test_arithmetic_explicit_conversions(self, klass):
 
         # GH 8608
         # add/sub are overridden explicitly for Float/Int Index
-        idx = self._holder(np.arange(5, dtype="int64"))
+        if klass is RangeIndex:
+            idx = RangeIndex(5)
+        else:
+            idx = klass(np.arange(5, dtype="int64"))
 
         # float conversions
         arr = np.arange(5, dtype="int64") * 3.2
@@ -56,6 +43,8 @@ class Numeric(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
+
+class TestNumericIndex:
     def test_index_groupby(self):
         int_idx = Index(range(6))
         float_idx = Index(np.arange(0, 0.6, 0.1))
@@ -84,10 +73,35 @@ class Numeric(Base):
             expected = {ex_keys[0]: idx[[0, 5]], ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_insert(self, nulls_fixture):
+
+class Numeric(Base):
+    def test_where(self):
+        # Tested in numeric.test_indexing
+        pass
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
+
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
+    def test_numeric_compat(self):
+        pass  # override Base method
+
+    def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
-        expected = Float64Index([index[0], np.nan] + list(index[1:]))
+
+        if nulls_fixture is pd.NaT:
+            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        else:
+            expected = Float64Index([index[0], np.nan] + list(index[1:]))
         result = index.insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -167,10 +181,10 @@ class TestFloat64Index(Numeric):
     @pytest.mark.parametrize(
         "index, dtype",
         [
-            (pd.Int64Index, "float64"),
-            (pd.UInt64Index, "categorical"),
-            (pd.Float64Index, "datetime64"),
-            (pd.RangeIndex, "float64"),
+            (Int64Index, "float64"),
+            (UInt64Index, "categorical"),
+            (Float64Index, "datetime64"),
+            (RangeIndex, "float64"),
         ],
     )
     def test_invalid_dtype(self, index, dtype):
@@ -269,7 +283,7 @@ class TestFloat64Index(Numeric):
     def test_lookups_datetimelike_values(self, vals):
         # If we have datetime64 or timedelta64 values, make sure they are
         #  wrappped correctly  GH#31163
-        ser = pd.Series(vals, index=range(3, 6))
+        ser = Series(vals, index=range(3, 6))
         ser.index = ser.index.astype("float64")
 
         expected = vals[1]
@@ -394,7 +408,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -402,19 +416,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
-
-    def test_union_noncomparable(self):
-        # corner case, non-Int64Index
-        index = self.create_index()
-        other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
-        result = index.union(other)
-        expected = Index(np.concatenate((index, other)))
-        tm.assert_index_equal(result, expected)
-
-        result = other.union(index)
-        expected = Index(np.concatenate((other, index)))
-        tm.assert_index_equal(result, expected)
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
@@ -517,8 +519,8 @@ class TestInt64Index(NumericInt):
             Index([-1], dtype=uint_dtype)
 
     def test_constructor_unwraps_index(self):
-        idx = pd.Index([1, 2])
-        result = pd.Int64Index(idx)
+        idx = Index([1, 2])
+        result = Int64Index(idx)
         expected = np.array([1, 2], dtype="int64")
         tm.assert_numpy_array_equal(result._data, expected)
 
@@ -530,19 +532,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_intersection(self):
-        index = self.create_index()
-        other = Index([1, 2, 3, 4, 5])
-        result = index.intersection(other)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
-
-        result = other.intersection(index)
-        expected = Index(
-            np.sort(np.asarray(np.intersect1d(index.values, other.values)))
-        )
-        tm.assert_index_equal(result, expected)
 
 
 class TestUInt64Index(NumericInt):
@@ -560,14 +549,8 @@ class TestUInt64Index(NumericInt):
     def index(self, request):
         return UInt64Index(request.param)
 
-    @pytest.fixture
-    def index_large(self):
-        # large values used in TestUInt64Index where no compat needed with Int64/Float64
-        large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
-        return UInt64Index(large)
-
     def create_index(self) -> UInt64Index:
-        # compat with shared Int64/Float64 tests; use index_large for UInt64 only tests
+        # compat with shared Int64/Float64 tests
         return UInt64Index(np.arange(5, dtype="uint64"))
 
     def test_constructor(self):
@@ -592,49 +575,15 @@ class TestUInt64Index(NumericInt):
         res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
         tm.assert_index_equal(res, idx)
 
-    def test_intersection(self, index_large):
-        other = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20])
-        result = index_large.intersection(other)
-        expected = Index(np.sort(np.intersect1d(index_large.values, other.values)))
-        tm.assert_index_equal(result, expected)
 
-        result = other.intersection(index_large)
-        expected = Index(
-            np.sort(np.asarray(np.intersect1d(index_large.values, other.values)))
-        )
-        tm.assert_index_equal(result, expected)
-
-
-@pytest.mark.parametrize("dtype", ["int64", "uint64"])
-def test_int_float_union_dtype(dtype):
-    # https://github.com/pandas-dev/pandas/issues/26778
-    # [u]int | float -> float
-    index = pd.Index([0, 2, 3], dtype=dtype)
-    other = pd.Float64Index([0.5, 1.5])
-    expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
-    result = index.union(other)
-    tm.assert_index_equal(result, expected)
-
-    result = other.union(index)
-    tm.assert_index_equal(result, expected)
-
-
-def test_range_float_union_dtype():
-    # https://github.com/pandas-dev/pandas/issues/26778
-    index = pd.RangeIndex(start=0, stop=3)
-    other = pd.Float64Index([0.5, 1.5])
-    result = index.union(other)
-    expected = pd.Float64Index([0.0, 0.5, 1, 1.5, 2.0])
-    tm.assert_index_equal(result, expected)
-
-    result = other.union(index)
-    tm.assert_index_equal(result, expected)
-
-
-def test_uint_index_does_not_convert_to_float64():
+@pytest.mark.parametrize(
+    "box",
+    [list, lambda x: np.array(x, dtype=object), lambda x: Index(x, dtype=object)],
+)
+def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
-    series = pd.Series(
+    series = Series(
         [0, 1, 2, 3, 4, 5],
         index=[
             7606741985629028552,
@@ -646,7 +595,7 @@ def test_uint_index_does_not_convert_to_float64():
         ],
     )
 
-    result = series.loc[[7606741985629028552, 17876870360202815256]]
+    result = series.loc[box([7606741985629028552, 17876870360202815256])]
 
     expected = UInt64Index(
         [7606741985629028552, 17876870360202815256, 17876870360202815256],
@@ -659,23 +608,11 @@ def test_uint_index_does_not_convert_to_float64():
 
 def test_float64_index_equals():
     # https://github.com/pandas-dev/pandas/issues/35217
-    float_index = pd.Index([1.0, 2, 3])
-    string_index = pd.Index(["1", "2", "3"])
+    float_index = Index([1.0, 2, 3])
+    string_index = Index(["1", "2", "3"])
 
     result = float_index.equals(string_index)
     assert result is False
 
     result = string_index.equals(float_index)
     assert result is False
-
-
-def test_float64_index_difference():
-    # https://github.com/pandas-dev/pandas/issues/35217
-    float_index = pd.Index([1.0, 2, 3])
-    string_index = pd.Index(["1", "2", "3"])
-
-    result = float_index.difference(string_index)
-    tm.assert_index_equal(result, float_index)
-
-    result = string_index.difference(float_index)
-    tm.assert_index_equal(result, string_index)

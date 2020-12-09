@@ -321,13 +321,7 @@ class _FrequencyInferer:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
         if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                day = int_to_weekday[self.rep_stamp.weekday()]
-                return _maybe_add_count(f"W-{day}", days / 7)
-            else:
-                return _maybe_add_count("D", days)
+            return self._get_daily_rule()
 
         if self._is_business_daily():
             return "B"
@@ -337,6 +331,16 @@ class _FrequencyInferer:
             return wom_rule
 
         return None
+
+    def _get_daily_rule(self) -> Optional[str]:
+        days = self.deltas[0] / _ONE_DAY
+        if days % 7 == 0:
+            # Weekly
+            wd = int_to_weekday[self.rep_stamp.weekday()]
+            alias = f"W-{wd}"
+            return _maybe_add_count(alias, days / 7)
+        else:
+            return _maybe_add_count("D", days)
 
     def _get_annual_rule(self) -> Optional[str]:
         if len(self.ydiffs) > 1:
@@ -406,14 +410,7 @@ class _FrequencyInferer:
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
     def _infer_daily_rule(self):
         if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                wd = int_to_weekday[self.rep_stamp.weekday()]
-                alias = f"W-{wd}"
-                return _maybe_add_count(alias, days / 7)
-            else:
-                return _maybe_add_count("D", days)
+            return self._get_daily_rule()
 
 
 def _is_multiple(us, mult: int) -> bool:
@@ -548,7 +545,7 @@ def is_superperiod(source, target) -> bool:
 
 
 def _maybe_coerce_freq(code) -> str:
-    """ we might need to coerce a code to a rule_code
+    """we might need to coerce a code to a rule_code
     and uppercase it
 
     Parameters

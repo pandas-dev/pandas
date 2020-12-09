@@ -3,18 +3,24 @@ import datetime
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import pandas._libs.json as json
+from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 from pandas.io.formats.excel import ExcelCell
 
 
-class _ODSWriter(ExcelWriter):
+class ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 
     def __init__(
-        self, path: str, engine: Optional[str] = None, mode: str = "w", **engine_kwargs
+        self,
+        path: str,
+        engine: Optional[str] = None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        **engine_kwargs,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
 
@@ -23,9 +29,11 @@ class _ODSWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
-        super().__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(
+            path, mode=mode, storage_options=storage_options, **engine_kwargs
+        )
 
-        self.book: OpenDocumentSpreadsheet = OpenDocumentSpreadsheet()
+        self.book = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
 
     def save(self) -> None:
@@ -34,7 +42,7 @@ class _ODSWriter(ExcelWriter):
         """
         for sheet in self.sheets.values():
             self.book.spreadsheet.addElement(sheet)
-        self.book.save(self.path)
+        self.book.save(self.handles.handle)
 
     def write_cells(
         self,
@@ -42,7 +50,7 @@ class _ODSWriter(ExcelWriter):
         sheet_name: Optional[str] = None,
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes: Optional[List] = None,
+        freeze_panes: Optional[Tuple[int, int]] = None,
     ) -> None:
         """
         Write the frame cells using odf
@@ -59,7 +67,7 @@ class _ODSWriter(ExcelWriter):
             wks = Table(name=sheet_name)
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             assert freeze_panes is not None
             self._create_freeze_panes(sheet_name, freeze_panes)
 
@@ -174,7 +182,7 @@ class _ODSWriter(ExcelWriter):
         Returns
         -------
         style_key : str
-            Unique style key for for later reference in sheet
+            Unique style key for later reference in sheet
         """
         from odf.style import (
             ParagraphProperties,
@@ -215,14 +223,17 @@ class _ODSWriter(ExcelWriter):
         self.book.styles.addElement(odf_style)
         return name
 
-    def _create_freeze_panes(self, sheet_name: str, freeze_panes: List[int]) -> None:
-        """Create freeze panes in the sheet
+    def _create_freeze_panes(
+        self, sheet_name: str, freeze_panes: Tuple[int, int]
+    ) -> None:
+        """
+        Create freeze panes in the sheet.
 
         Parameters
         ----------
         sheet_name : str
             Name of the spreadsheet
-        freeze_panes : list
+        freeze_panes : tuple of (int, int)
             Freeze pane location x and y
         """
         from odf.config import (

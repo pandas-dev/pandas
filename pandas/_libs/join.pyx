@@ -268,7 +268,7 @@ ctypedef fused join_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique(join_t[:] left, join_t[:] right):
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer

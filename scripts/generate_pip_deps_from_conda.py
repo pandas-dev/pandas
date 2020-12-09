@@ -6,11 +6,11 @@ or check that they have the same packages (for the CI)
 Usage:
 
     Generate `requirements-dev.txt`
-    $ ./conda_to_pip
+    $ python scripts/generate_pip_deps_from_conda.py
 
     Compare and fail (exit status != 0) if `requirements-dev.txt` has not been
     generated with this script:
-    $ ./conda_to_pip --compare
+    $ python scripts/generate_pip_deps_from_conda.py --compare
 """
 import argparse
 import os
@@ -19,7 +19,7 @@ import sys
 
 import yaml
 
-EXCLUDE = {"python"}
+EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 RENAME = {"pytables": "tables", "pyqt": "pyqt5", "dask-core": "dask"}
 
 
@@ -47,6 +47,9 @@ def conda_package_to_pip(package):
             return "".join((RENAME[pkg], compare, version))
 
         break
+
+    if package in EXCLUDE:
+        return
 
     if package in RENAME:
         return RENAME[package]
@@ -94,7 +97,7 @@ def main(conda_fname, pip_fname, compare=False):
         f"# This file is auto-generated from {fname}, do not modify.\n"
         "# See that file for comments about the need/usage of each dependency.\n\n"
     )
-    pip_content = header + "\n".join(pip_deps)
+    pip_content = header + "\n".join(pip_deps) + "\n"
 
     if compare:
         with open(pip_fname) as pip_fd:

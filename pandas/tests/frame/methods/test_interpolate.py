@@ -34,6 +34,14 @@ class TestDataFrameInterpolate:
         expected.loc[5, "B"] = 9
         tm.assert_frame_equal(result, expected)
 
+    def test_interp_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/35598
+        df = DataFrame()
+        result = df.interpolate()
+        assert result is not df
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
     def test_interp_bad_method(self):
         df = DataFrame(
             {

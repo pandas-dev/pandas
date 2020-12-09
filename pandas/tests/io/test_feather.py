@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
+from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
 pyarrow = pytest.importorskip("pyarrow")
 
@@ -76,7 +76,7 @@ class TestFeather:
                     pd.Timestamp("20130103"),
                 ],
                 "dtns": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None,
+                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None
                 ),
             }
         )
@@ -173,7 +173,7 @@ class TestFeather:
     @td.skip_if_no("pyarrow", min_version="0.16.1.dev")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
-        self.check_round_trip(df, write_kwargs=dict(version=1))
+        self.check_round_trip(df, write_kwargs={"version": 1})
 
     @td.skip_if_no("pyarrow")
     @tm.network

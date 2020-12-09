@@ -5,7 +5,7 @@ from typing import Dict, List
 import numpy as np
 import pytest
 
-import pandas.compat as compat
+from pandas.compat import IS64, is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm
@@ -29,11 +29,21 @@ def check_comprehensiveness(request):
             klass in x.name and dtype in x.name and method in x.name for x in cls_funcs
         )
 
-    for combo in combos:
-        if not has_test(combo):
-            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
+    opts = request.config.option
+    if opts.lf or opts.keyword:
+        # If we are running with "last-failed" or -k foo, we expect to only
+        #  run a subset of tests.
+        yield
 
-    yield
+    else:
+
+        for combo in combos:
+            if not has_test(combo):
+                raise AssertionError(
+                    f"test method is not defined: {cls.__name__}, {combo}"
+                )
+
+        yield
 
 
 class CoercionBase:
@@ -87,7 +97,7 @@ class TestSetitemCoercion(CoercionBase):
         # tm.assert_series_equal(temp, expected_series)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)],
+        "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)]
     )
     def test_setitem_series_object(self, val, exp_dtype):
         obj = pd.Series(list("abcd"))
@@ -124,7 +134,7 @@ class TestSetitemCoercion(CoercionBase):
             exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
             self._assert_setitem_series_conversion(obj, val, exp, np.int8)
             mark = pytest.mark.xfail(
-                reason="BUG: it must be Series([1, 1, 3, 4], dtype=np.int16"
+                reason="BUG: it must be pd.Series([1, 1, 3, 4], dtype=np.int16"
             )
             request.node.add_marker(mark)
 
@@ -383,7 +393,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1, np.int64),
             (1.1, 1.1, np.float64),
-            (False, 0, np.int64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -399,7 +409,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1.0, np.float64),
             (1.1, 1.1, np.float64),
-            (False, 0.0, np.float64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -444,7 +454,7 @@ class TestInsertIndexCoercion(CoercionBase):
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
-        msg = "cannot insert DatetimeArray with incompatible label"
+        msg = "value should be a 'Timestamp' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -461,12 +471,12 @@ class TestInsertIndexCoercion(CoercionBase):
         )
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaArray with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'Timestamp' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp("2012-01-01"))
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaArray with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -770,7 +780,7 @@ class TestWhereCoercion(CoercionBase):
         result = tdi.where(cond, value)
         tm.assert_index_equal(result, expected)
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Timedelta', 'NaT', or array of thos"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             tdi.where(cond, np.datetime64("NaT", "ns"))
@@ -794,11 +804,12 @@ class TestWhereCoercion(CoercionBase):
         tm.assert_index_equal(result, expected)
 
         # Passing a mismatched scalar
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Period', 'NaT', or array of those"
         with pytest.raises(TypeError, match=msg):
             pi.where(cond, pd.Timedelta(days=4))
 
-        with pytest.raises(TypeError, match=msg):
+        msg = r"Input has different freq=D from PeriodArray\(freq=Q-DEC\)"
+        with pytest.raises(ValueError, match=msg):
             pi.where(cond, pd.Period("2020-04-21", "D"))
 
 
@@ -1041,7 +1052,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
 
-            if compat.is_platform_32bit() or compat.is_platform_windows():
+            if not IS64 or is_platform_windows():
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement

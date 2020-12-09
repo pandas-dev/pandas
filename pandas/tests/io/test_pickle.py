@@ -12,26 +12,30 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 import bz2
 import datetime
+import functools
 import glob
 import gzip
+import io
 import os
+from pathlib import Path
 import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
 import zipfile
 
+import numpy as np
 import pytest
 
-from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index
+from pandas import Index, Series, period_range
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 
 @pytest.fixture(scope="module")
@@ -153,34 +157,58 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
-def test_round_trip_current(current_pickle_data):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
+def python_pickler(obj, path):
+    with open(path, "wb") as fh:
+        pickle.dump(obj, fh, protocol=-1)
 
-    def python_unpickler(path):
-        with open(path, "rb") as fh:
-            fh.seek(0)
-            return pickle.load(fh)
 
+def python_unpickler(path):
+    with open(path, "rb") as fh:
+        fh.seek(0)
+        return pickle.load(fh)
+
+
+@pytest.mark.parametrize(
+    "pickle_writer",
+    [
+        pytest.param(python_pickler, id="python"),
+        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            id="pandas_proto_highest",
+        ),
+        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=5),
+            id="pandas_proto_5",
+            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
+        ),
+    ],
+)
+def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
             for writer in [pd.to_pickle, python_pickler]:
-                if writer is None:
-                    continue
-
                 with tm.ensure_clean() as path:
-
                     # test writing with each pickler
-                    writer(expected, path)
+                    pickle_writer(expected, path)
 
                     # test reading with each unpickler
                     result = pd.read_pickle(path)
                     compare_element(result, expected, typ)
 
                     result = python_unpickler(path)
+                    compare_element(result, expected, typ)
+
+                    # and the same for file objects (GH 35679)
+                    with open(path, mode="wb") as handle:
+                        writer(expected, path)
+                        handle.seek(0)  # shouldn't close file handle
+                    with open(path, mode="rb") as handle:
+                        result = pd.read_pickle(handle)
+                        handle.seek(0)  # shouldn't close file handle
                     compare_element(result, expected, typ)
 
 
@@ -257,7 +285,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = _get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file(lzma)(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -472,8 +500,91 @@ class MyTz(datetime.tzinfo):
 
 def test_read_pickle_with_subclass():
     # GH 12163
-    expected = pd.Series(dtype=object), MyTz()
+    expected = Series(dtype=object), MyTz()
     result = tm.round_trip_pickle(expected)
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
+
+
+def test_pickle_binary_object_compression(compression):
+    """
+    Read/write from binary file-objects w/wo compression.
+
+    GH 26237, GH 29054, and GH 29570
+    """
+    df = tm.makeDataFrame()
+
+    # reference for compression
+    with tm.ensure_clean() as path:
+        df.to_pickle(path, compression=compression)
+        reference = Path(path).read_bytes()
+
+    # write
+    buffer = io.BytesIO()
+    df.to_pickle(buffer, compression=compression)
+    buffer.seek(0)
+
+    # gzip  and zip safe the filename: cannot compare the compressed content
+    assert buffer.getvalue() == reference or compression in ("gzip", "zip")
+
+    # read
+    read_df = pd.read_pickle(buffer, compression=compression)
+    buffer.seek(0)
+    tm.assert_frame_equal(df, read_df)
+
+
+def test_pickle_dataframe_with_multilevel_index(
+    multiindex_year_month_day_dataframe_random_data,
+    multiindex_dataframe_random_data,
+):
+    ymd = multiindex_year_month_day_dataframe_random_data
+    frame = multiindex_dataframe_random_data
+
+    def _test_roundtrip(frame):
+        unpickled = tm.round_trip_pickle(frame)
+        tm.assert_frame_equal(frame, unpickled)
+
+    _test_roundtrip(frame)
+    _test_roundtrip(frame.T)
+    _test_roundtrip(ymd)
+    _test_roundtrip(ymd.T)
+
+
+def test_pickle_timeseries_periodindex():
+    # GH#2891
+    prng = period_range("1/1/2011", "1/1/2012", freq="M")
+    ts = Series(np.random.randn(len(prng)), prng)
+    new_ts = tm.round_trip_pickle(ts)
+    assert new_ts.index.freq == "M"
+
+
+@pytest.mark.parametrize(
+    "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
+)
+def test_pickle_preserve_name(name):
+
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
+    assert unpickled.name == name
+
+
+def test_pickle_datetimes(datetime_series):
+    unp_ts = tm.round_trip_pickle(datetime_series)
+    tm.assert_series_equal(unp_ts, datetime_series)
+
+
+def test_pickle_strings(string_series):
+    unp_series = tm.round_trip_pickle(string_series)
+    tm.assert_series_equal(unp_series, string_series)
+
+
+def test_pickle_preserves_block_ndim():
+    # GH#37631
+    ser = Series(list("abc")).astype("category").iloc[[0]]
+    res = tm.round_trip_pickle(ser)
+
+    assert res._mgr.blocks[0].ndim == 1
+    assert res._mgr.blocks[0].shape == (1,)
+
+    # GH#37631 OP issue was about indexing, underlying problem was pickle
+    tm.assert_series_equal(res[[True]], ser)

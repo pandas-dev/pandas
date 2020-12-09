@@ -85,8 +85,9 @@ with cf.config_prefix("compute"):
 
 pc_precision_doc = """
 : int
-    Floating point output precision (number of significant digits). This is
-    only a suggestion
+    Floating point output precision in terms of number of places after the
+    decimal, for regular formatting as well as scientific notation. Similar
+    to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
 pc_colspace_doc = """
@@ -249,7 +250,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    when pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
@@ -314,9 +315,9 @@ pc_latex_multirow = """
 
 
 def table_schema_cb(key):
-    from pandas.io.formats.printing import _enable_data_resource_formatter
+    from pandas.io.formats.printing import enable_data_resource_formatter
 
-    _enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf.get_option(key))
 
 
 def is_terminal() -> bool:
@@ -327,7 +328,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -580,6 +581,13 @@ with cf.config_prefix("io.excel.xls"):
         writer_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
         validator=str,
     )
+cf.deprecate_option(
+    "io.excel.xls.writer",
+    msg="As the xlwt package is no longer maintained, the xlwt engine will be "
+    "removed in a future version of pandas. This is the only engine in pandas that "
+    "supports writing in the xls format. Install openpyxl and write to an "
+    "xlsx file instead.",
+)
 
 with cf.config_prefix("io.excel.xlsm"):
     cf.register_option(

@@ -4,12 +4,12 @@ from typing import List, Set
 from pandas._libs import NaT, lib
 from pandas.errors import InvalidIndexError
 
-import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
+    get_unanimous_names,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -57,7 +57,7 @@ __all__ = [
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
     "union_indexes",
-    "get_consensus_names",
+    "get_unanimous_names",
     "all_indexes_same",
 ]
 
@@ -218,13 +218,12 @@ def union_indexes(indexes, sort=True) -> Index:
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
-        name = get_consensus_names(indexes)[0]
+        name = get_unanimous_names(*indexes)[0]
         if name != index.name:
-            index = index._shallow_copy(name=name)
+            index = index.rename(name)
         return index
     else:  # kind='list'
         return _unique_indices(indexes)
@@ -268,45 +267,22 @@ def _sanitize_and_check(indexes):
         return indexes, "array"
 
 
-def get_consensus_names(indexes):
-    """
-    Give a consensus 'names' to indexes.
-
-    If there's exactly one non-empty 'names', return this,
-    otherwise, return empty.
-
-    Parameters
-    ----------
-    indexes : list of Index objects
-
-    Returns
-    -------
-    list
-        A list representing the consensus 'names' found.
-    """
-    # find the non-none names, need to tupleify to make
-    # the set hashable, then reverse on return
-    consensus_names = {tuple(i.names) for i in indexes if com.any_not_none(*i.names)}
-    if len(consensus_names) == 1:
-        return list(list(consensus_names)[0])
-    return [None] * indexes[0].nlevels
-
-
 def all_indexes_same(indexes):
     """
     Determine if all indexes contain the same elements.
 
     Parameters
     ----------
-    indexes : list of Index objects
+    indexes : iterable of Index objects
 
     Returns
     -------
     bool
         True if all indexes contain the same elements, False otherwise.
     """
-    first = indexes[0]
-    for index in indexes[1:]:
+    itr = iter(indexes)
+    first = next(itr)
+    for index in itr:
         if not first.equals(index):
             return False
     return True

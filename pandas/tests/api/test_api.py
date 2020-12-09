@@ -5,7 +5,7 @@ from typing import List
 import pytest
 
 import pandas as pd
-from pandas import api, compat
+from pandas import api
 import pandas._testing as tm
 
 
@@ -61,6 +61,7 @@ class TestPDApi(Base):
         "ExcelFile",
         "ExcelWriter",
         "Float64Index",
+        "Flags",
         "Grouper",
         "HDFStore",
         "Index",
@@ -91,6 +92,8 @@ class TestPDApi(Base):
         "UInt16Dtype",
         "UInt32Dtype",
         "UInt64Dtype",
+        "Float32Dtype",
+        "Float64Dtype",
         "NamedAgg",
     ]
 
@@ -99,11 +102,6 @@ class TestPDApi(Base):
 
     # these should be deprecated in the future
     deprecated_classes_in_future: List[str] = ["SparseArray"]
-
-    if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
-        # deprecated_modules.extend(["np", "datetime"])
-        # deprecated_classes_in_future.extend(["SparseArray"])
 
     # external modules exposed in pandas namespace
     modules: List[str] = []
@@ -193,7 +191,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
         "_is_numpy_dev",
@@ -217,14 +214,6 @@ class TestPDApi(Base):
             + self.funcs_to
             + self.private_modules
         )
-        if not compat.PY37:
-            checkthese.extend(
-                self.deprecated_modules
-                + self.deprecated_classes
-                + self.deprecated_classes_in_future
-                + self.deprecated_funcs_in_future
-                + self.deprecated_funcs
-            )
         self.check(pd, checkthese, self.ignored)
 
     def test_depr(self):
@@ -237,14 +226,7 @@ class TestPDApi(Base):
         )
         for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
-                deprecated = getattr(pd, depr)
-                if not compat.PY37:
-                    if depr == "datetime":
-                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
-                    elif depr == "SparseArray":
-                        deprecated([])
-                    else:
-                        deprecated.__getattr__(dir(deprecated)[-1])
+                _ = getattr(pd, depr)
 
 
 def test_datetime():

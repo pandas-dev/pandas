@@ -4,7 +4,7 @@ Templating for ops docstrings
 from typing import Dict, Optional
 
 
-def _make_flex_doc(op_name, typ):
+def make_flex_doc(op_name: str, typ: str) -> str:
     """
     Make the appropriate substitutions for the given operation and class-typ
     into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
@@ -22,16 +22,20 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace("__", "")
     op_desc = _op_descriptions[op_name]
 
+    op_desc_op = op_desc["op"]
+    assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc["op"] + " " + typ
+        equiv = "other " + op_desc_op + " " + typ
+    elif op_name == "divmod":
+        equiv = f"{op_name}({typ}, other)"
     else:
-        equiv = typ + " " + op_desc["op"] + " other"
+        equiv = typ + " " + op_desc_op + " other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
         if op_desc["reverse"]:
             base_doc += _see_also_reverse_SERIES.format(
-                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"]
             )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
@@ -39,8 +43,9 @@ def _make_flex_doc(op_name, typ):
             equiv=equiv,
             series_returns=op_desc["series_returns"],
         )
-        if op_desc["series_examples"]:
-            doc = doc_no_examples + op_desc["series_examples"]
+        ser_example = op_desc["series_examples"]
+        if ser_example:
+            doc = doc_no_examples + ser_example
         else:
             doc = doc_no_examples
     elif typ == "dataframe":
@@ -156,6 +161,25 @@ c    NaN
 d    0.0
 e    NaN
 dtype: float64
+"""
+)
+
+_divmod_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.divmod(b, fill_value=0)
+(a    1.0
+ b    NaN
+ c    NaN
+ d    0.0
+ e    NaN
+ dtype: float64,
+ a    0.0
+ b    NaN
+ c    NaN
+ d    0.0
+ e    NaN
+ dtype: float64)
 """
 )
 
@@ -329,7 +353,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "divmod",
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
-        "series_examples": None,
+        "series_examples": _divmod_example_SERIES,
         "series_returns": _returns_tuple,
         "df_examples": None,
     },
@@ -422,33 +446,6 @@ _see_also_reverse_SERIES = """
 See Also
 --------
 Series.{reverse} : {see_also_desc}.
-"""
-
-_arith_doc_FRAME = """
-Binary operator %s with support to substitute a fill_value for missing data in
-one of the inputs
-
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill existing missing (NaN) values, and any new element needed for
-    successful DataFrame alignment, with this value before computation.
-    If data in both corresponding DataFrame locations is missing
-    the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Returns
--------
-result : DataFrame
-
-Notes
------
-Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """
@@ -611,7 +608,7 @@ Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
 
-Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
 (rows or columns) and level for comparison.
 
 Parameters

@@ -5,11 +5,6 @@ from pandas import Index, IntervalIndex, Timestamp, interval_range
 import pandas._testing as tm
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
-def name(request):
-    return request.param
-
-
 def monotonic_index(start, end, dtype="int64", closed="right"):
     return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype), closed=closed)
 
@@ -37,15 +32,17 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.union(index, sort=sort), index)
         tm.assert_index_equal(index.union(index[:1], sort=sort), index)
 
+    def test_union_empty_result(self, closed, sort):
         # GH 19101: empty result, same dtype
         index = empty_index(dtype="int64", closed=closed)
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
-        # GH 19101: empty result, different dtypes
+        # GH 19101: empty result, different dtypes -> common dtype is object
         other = empty_index(dtype="float64", closed=closed)
         result = index.union(other, sort=sort)
-        tm.assert_index_equal(result, index)
+        expected = Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
@@ -164,18 +161,18 @@ class TestIntervalIndex:
         # mixed closed
         msg = (
             "can only do set operations between two IntervalIndex objects "
-            "that are closed on the same side"
+            "that are closed on the same side and have compatible dtypes"
         )
         for other_closed in {"right", "left", "both", "neither"} - {closed}:
             other = monotonic_index(0, 11, closed=other_closed)
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 set_op(other, sort=sort)
 
         # GH 19016: incompatible dtypes
         other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
         msg = (
-            f"can only do {op_name} between two IntervalIndex objects that have "
-            "compatible dtypes"
+            "can only do set operations between two IntervalIndex objects "
+            "that are closed on the same side and have compatible dtypes"
         )
         with pytest.raises(TypeError, match=msg):
             set_op(other, sort=sort)

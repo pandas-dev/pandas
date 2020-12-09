@@ -64,7 +64,7 @@ class _LoadSparseSeries:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "Series", but must return
     # a subtype of "_LoadSparseSeries")
-    def __new__(cls) -> "Series":  # type: ignore
+    def __new__(cls) -> "Series":  # type: ignore[misc]
         from pandas import Series
 
         warnings.warn(
@@ -82,7 +82,7 @@ class _LoadSparseFrame:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "DataFrame", but must
     # return a subtype of "_LoadSparseFrame")
-    def __new__(cls) -> "DataFrame":  # type: ignore
+    def __new__(cls) -> "DataFrame":  # type: ignore[misc]
         from pandas import DataFrame
 
         warnings.warn(
@@ -181,7 +181,7 @@ _class_locations_map = {
 # functions for compat and uses a non-public class of the pickle module.
 
 # error: Name 'pkl._Unpickler' is not defined
-class Unpickler(pkl._Unpickler):  # type: ignore
+class Unpickler(pkl._Unpickler):  # type: ignore[name-defined]
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
@@ -274,7 +274,7 @@ def patch_pickle():
     """
     orig_loads = pkl.loads
     try:
-        pkl.loads = loads
+        setattr(pkl, "loads", loads)
         yield
     finally:
-        pkl.loads = orig_loads
+        setattr(pkl, "loads", orig_loads)

@@ -9,10 +9,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Scalar
+from pandas._typing import Axis, DtypeObj, Label, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_1d_ndarray_preserving_na,
+    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -51,7 +53,7 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -189,15 +191,16 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     # the dtypes will be coerced to a single dtype
     values = _prep_ndarray(values, copy=copy)
 
-    if dtype is not None:
-        if not is_dtype_equal(values.dtype, dtype):
-            try:
-                values = values.astype(dtype)
-            except Exception as orig:
-                # e.g. ValueError when trying to cast object dtype to float64
-                raise ValueError(
-                    f"failed to cast to '{dtype}' (Exception was: {orig})"
-                ) from orig
+    if dtype is not None and not is_dtype_equal(values.dtype, dtype):
+        try:
+            values = construct_1d_ndarray_preserving_na(
+                values.ravel(), dtype=dtype, copy=False
+            ).reshape(values.shape)
+        except Exception as orig:
+            # e.g. ValueError when trying to cast object dtype to float64
+            raise ValueError(
+                f"failed to cast to '{dtype}' (Exception was: {orig})"
+            ) from orig
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -222,7 +225,8 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
             # TODO: What about re-joining object columns?
             block_values = [
-                make_block(dvals_list[n], placement=[n]) for n in range(len(dvals_list))
+                make_block(dvals_list[n], placement=[n], ndim=2)
+                for n in range(len(dvals_list))
             ]
 
         else:
@@ -242,7 +246,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     arrays: Union[Sequence[Any], "Series"]
 
     if columns is not None:
-        from pandas.core.series import Series  # noqa:F811
+        from pandas.core.series import Series
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
@@ -344,7 +348,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     oindex = index.astype("O")
 
                 if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
-                    val = com.dict_compat(val)
+                    val = dict_compat(val)
                 else:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
@@ -366,7 +370,7 @@ def extract_index(data) -> Index:
         index = Index([])
     elif len(data) > 0:
         raw_lengths = []
-        indexes = []
+        indexes: List[Union[List[Label], Index]] = []
 
         have_raw_arrays = False
         have_series = False
@@ -434,7 +438,7 @@ def get_names_from_index(data):
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index = list(range(len(data)))
+    index: List[Label] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)
@@ -607,7 +611,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List,
+    data: List[Dict],
     columns: Union[Index, List],
     coerce_float: bool = False,
     dtype: Optional[DtypeObj] = None,

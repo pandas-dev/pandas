@@ -228,6 +228,14 @@ def test_overflow_on_construction():
         ("P0DT0H0M0.001S", Timedelta(milliseconds=1)),
         ("P0DT0H1M0S", Timedelta(minutes=1)),
         ("P1DT25H61M61S", Timedelta(days=1, hours=25, minutes=61, seconds=61)),
+        ("PT1S", Timedelta(seconds=1)),
+        ("PT0S", Timedelta(seconds=0)),
+        ("P1WT0S", Timedelta(days=7, seconds=0)),
+        ("P1D", Timedelta(days=1)),
+        ("P1DT1H", Timedelta(days=1, hours=1)),
+        ("P1W", Timedelta(days=7)),
+        ("PT300S", Timedelta(seconds=300)),
+        ("P1DT0H0M00000000000S", Timedelta(days=1)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -241,7 +249,6 @@ def test_iso_constructor(fmt, exp):
         "PDTHMS",
         "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
-        "P1DT0H0M00000000000S",
         "P1DT0H0M0.S",
     ],
 )

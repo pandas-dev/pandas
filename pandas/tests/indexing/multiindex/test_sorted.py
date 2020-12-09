@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series
@@ -43,9 +42,13 @@ class TestMultiIndexSorted:
         df2 = df.set_index(["col1", "col2"])
         df2_original = df2.copy()
 
-        return_value = df2.index.set_levels(["b", "d", "a"], level="col1", inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            return_value = df2.index.set_levels(
+                ["b", "d", "a"], level="col1", inplace=True
+            )
         assert return_value is None
-        return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
         assert return_value is None
         assert not df2.index.is_lexsorted()
         assert not df2.index.is_monotonic
@@ -111,7 +114,7 @@ class TestMultiIndexSorted:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        s = Series(randn(8), index=index)
+        s = Series(np.random.randn(8), index=index)
 
         arrays = [np.array(x) for x in zip(*index.values)]
 

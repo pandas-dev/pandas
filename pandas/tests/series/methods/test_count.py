@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, MultiIndex, Series
@@ -6,6 +7,51 @@ import pandas._testing as tm
 
 
 class TestSeriesCount:
+    def test_count_level_series(self):
+        index = MultiIndex(
+            levels=[["foo", "bar", "baz"], ["one", "two", "three", "four"]],
+            codes=[[0, 0, 0, 2, 2], [2, 0, 1, 1, 2]],
+        )
+
+        ser = Series(np.random.randn(len(index)), index=index)
+
+        result = ser.count(level=0)
+        expected = ser.groupby(level=0).count()
+        tm.assert_series_equal(
+            result.astype("f8"), expected.reindex(result.index).fillna(0)
+        )
+
+        result = ser.count(level=1)
+        expected = ser.groupby(level=1).count()
+        tm.assert_series_equal(
+            result.astype("f8"), expected.reindex(result.index).fillna(0)
+        )
+
+    def test_count_multiindex(self, series_with_multilevel_index):
+        ser = series_with_multilevel_index
+
+        series = ser.copy()
+        series.index.names = ["a", "b"]
+
+        result = series.count(level="b")
+        expect = ser.count(level=1).rename_axis("b")
+        tm.assert_series_equal(result, expect)
+
+        result = series.count(level="a")
+        expect = ser.count(level=0).rename_axis("a")
+        tm.assert_series_equal(result, expect)
+
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count("x")
+
+    def test_count_level_without_multiindex(self):
+        ser = Series(range(3))
+
+        msg = "Series.count level is only valid with a MultiIndex"
+        with pytest.raises(ValueError, match=msg):
+            ser.count(level=1)
+
     def test_count(self, datetime_series):
         assert datetime_series.count() == len(datetime_series)
 
@@ -25,7 +71,7 @@ class TestSeriesCount:
 
         # GH#29478
         with pd.option_context("use_inf_as_na", True):
-            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+            assert Series([pd.Timestamp("1990/1/1")]).count() == 1
 
     def test_count_categorical(self):
 

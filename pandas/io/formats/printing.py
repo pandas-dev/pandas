@@ -12,6 +12,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Sized,
     Tuple,
     TypeVar,
     Union,
@@ -205,7 +206,7 @@ def pprint_thing(
                 translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
-            escape_chars = escape_chars or tuple()
+            escape_chars = escape_chars or ()
 
         result = str(thing)
         for c in escape_chars:
@@ -243,7 +244,7 @@ def pprint_thing_encoded(
     return value.encode(encoding, errors)
 
 
-def _enable_data_resource_formatter(enable: bool) -> None:
+def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
@@ -307,7 +308,7 @@ def format_object_summary(
     name : name, optional
         defaults to the class name of the obj
     indent_for_name : bool, default True
-        Whether subsequent lines should be be indented to
+        Whether subsequent lines should be indented to
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
@@ -321,7 +322,7 @@ def format_object_summary(
     summary string
     """
     from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import _get_adjustment
+    from pandas.io.formats.format import get_adjustment
 
     display_width, _ = get_console_size()
     if display_width is None:
@@ -350,7 +351,7 @@ def format_object_summary(
     is_truncated = n > max_seq_items
 
     # adj can optionally handle unicode eastern asian width
-    adj = _get_adjustment()
+    adj = get_adjustment()
 
     def _extend_line(
         s: str, line: str, value: str, display_width: int, next_line_prefix: str
@@ -499,11 +500,11 @@ def _justify(
     # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
     #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
     #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore
+    return head, tail  # type: ignore[return-value]
 
 
 def format_object_attrs(
-    obj: Sequence, include_dtype: bool = True
+    obj: Sized, include_dtype: bool = True
 ) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
@@ -512,7 +513,7 @@ def format_object_attrs(
     Parameters
     ----------
     obj : object
-        must be iterable
+        Must be sized.
     include_dtype : bool
         If False, dtype won't be in the returned list
 
@@ -523,15 +524,17 @@ def format_object_attrs(
     """
     attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
-        # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore
+        # error: "Sized" has no attribute "dtype"
+        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
     if getattr(obj, "name", None) is not None:
-        # error: "Sequence[Any]" has no attribute "name"
-        attrs.append(("name", default_pprint(obj.name)))  # type: ignore
-    # error: "Sequence[Any]" has no attribute "names"
-    elif getattr(obj, "names", None) is not None and any(obj.names):  # type: ignore
-        # error: "Sequence[Any]" has no attribute "names"
-        attrs.append(("names", default_pprint(obj.names)))  # type: ignore
+        # error: "Sized" has no attribute "name"
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
+    # error: "Sized" has no attribute "names"
+    elif getattr(obj, "names", None) is not None and any(
+        obj.names  # type: ignore[attr-defined]
+    ):
+        # error: "Sized" has no attribute "names"
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))

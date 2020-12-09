@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -162,6 +162,47 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dropna", (False, True))
+def test_grouper_dropna_propagation(dropna):
+    # GH 36604
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    gb = df.groupby("A", dropna=dropna)
+    assert gb.grouper.dropna == dropna
+
+
+@pytest.mark.parametrize(
+    "dropna,df_expected,s_expected",
+    [
+        pytest.param(
+            True,
+            pd.DataFrame({"B": [2, 2, 1]}),
+            pd.Series(data=[2, 2, 1], name="B"),
+            marks=pytest.mark.xfail(raises=ValueError),
+        ),
+        (
+            False,
+            pd.DataFrame({"B": [2, 2, 1, 1]}),
+            pd.Series(data=[2, 2, 1, 1], name="B"),
+        ),
+    ],
+)
+def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
+    # GH35014
+
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    gb = df.groupby("A", dropna=dropna)
+
+    res = gb.transform(len)
+    tm.assert_frame_equal(res, df_expected)
+
+    gb_slice = gb[["B"]]
+    res = gb_slice.transform(len)
+    tm.assert_frame_equal(res, df_expected)
+
+    res = gb["B"].transform(len)
+    tm.assert_series_equal(res, s_expected)
+
+
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
@@ -204,6 +245,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
     tm.assert_frame_equal(grouped, expected)
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize(
     "datetime1, datetime2",
     [
@@ -212,9 +254,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         (pd.Period("2020-01-01"), pd.Period("2020-02-01")),
     ],
 )
-@pytest.mark.parametrize(
-    "dropna, values", [(True, [12, 3]), (False, [12, 3, 6],)],
-)
+@pytest.mark.parametrize("dropna, values", [(True, [12, 3]), (False, [12, 3, 6])])
 def test_groupby_dropna_datetime_like_data(
     dropna, values, datetime1, datetime2, unique_nulls_fixture, unique_nulls_fixture2
 ):
@@ -242,3 +282,74 @@ def test_groupby_dropna_datetime_like_data(
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
+
+
+@pytest.mark.parametrize(
+    "dropna, data, selected_data, levels",
+    [
+        pytest.param(
+            False,
+            {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            ["a", "b", np.nan],
+            id="dropna_false_has_nan",
+        ),
+        pytest.param(
+            True,
+            {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0]},
+            None,
+            id="dropna_true_has_nan",
+        ),
+        pytest.param(
+            # no nan in "groups"; dropna=True|False should be same.
+            False,
+            {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            None,
+            id="dropna_false_no_nan",
+        ),
+        pytest.param(
+            # no nan in "groups"; dropna=True|False should be same.
+            True,
+            {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            None,
+            id="dropna_true_no_nan",
+        ),
+    ],
+)
+def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, levels):
+    # GH 35889
+
+    df = pd.DataFrame(data)
+    gb = df.groupby("groups", dropna=dropna)
+    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
+
+    mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
+    mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
+    # Since right now, by default MI will drop NA from levels when we create MI
+    # via `from_*`, so we need to add NA for level manually afterwards.
+    if not dropna and levels:
+        mi = mi.set_levels(levels, level="groups")
+
+    expected = pd.DataFrame(selected_data, index=mi)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_nan_included():
+    # GH 35646
+    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    df = pd.DataFrame(data)
+    grouped = df.groupby("group", dropna=False)
+    result = grouped.indices
+    dtype = np.intp
+    expected = {
+        "g1": np.array([0, 2], dtype=dtype),
+        "g2": np.array([3], dtype=dtype),
+        np.nan: np.array([1, 4], dtype=dtype),
+    }
+    for result_values, expected_values in zip(result.values(), expected.values()):
+        tm.assert_numpy_array_equal(result_values, expected_values)
+    assert np.isnan(list(result.keys())[2])
+    assert list(result.keys())[0:2] == ["g1", "g2"]

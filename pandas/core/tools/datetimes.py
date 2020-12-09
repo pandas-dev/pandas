@@ -16,12 +16,20 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs import Timestamp, conversion, parsing
+from pandas._libs import tslib
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    conversion,
+    iNaT,
+    nat_strings,
+    parsing,
+)
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
-    _format_is_iso,
-    _guess_datetime_format,
+    format_is_iso,
+    guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike, Label, Timezone
@@ -53,9 +61,9 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs.nattype import NaTType  # noqa:F401
+    from pandas._libs.tslibs.nattype import NaTType
 
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -73,7 +81,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
-        return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
+        return guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
 def should_cache(
@@ -307,9 +315,7 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
-            # no attribute "tz_convert"
-            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
+            arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg_dtype):
@@ -389,7 +395,7 @@ def _convert_listlike_datetimes(
         # datetime strings, so in those cases don't use the inferred
         # format because this path makes process slower in this
         # special case
-        format_is_iso8601 = _format_is_iso(format)
+        format_is_iso8601 = format_is_iso(format)
         if format_is_iso8601:
             require_iso8601 = not infer_datetime_format
             format = None
@@ -406,7 +412,7 @@ def _convert_listlike_datetimes(
                     # datetime64[ns]
                     orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime) as err:
+                except (ValueError, TypeError, OutOfBoundsDatetime) as err:
                     raise ValueError(
                         "cannot convert the input to '%Y%m%d' date format"
                     ) from err
@@ -421,13 +427,13 @@ def _convert_listlike_datetimes(
                         return _return_parsed_timezone_results(
                             result, timezones, tz, name
                         )
-                except tslibs.OutOfBoundsDatetime:
+                except OutOfBoundsDatetime:
                     if errors == "raise":
                         raise
                     elif errors == "coerce":
                         result = np.empty(arg.shape, dtype="M8[ns]")
                         iresult = result.view("i8")
-                        iresult.fill(tslibs.iNaT)
+                        iresult.fill(iNaT)
                     else:
                         result = arg
                 except ValueError:
@@ -440,7 +446,7 @@ def _convert_listlike_datetimes(
                         elif errors == "coerce":
                             result = np.empty(arg.shape, dtype="M8[ns]")
                             iresult = result.view("i8")
-                            iresult.fill(tslibs.iNaT)
+                            iresult.fill(iNaT)
                         else:
                             result = arg
         except ValueError as e:
@@ -510,7 +516,7 @@ def _adjust_to_origin(arg, origin, unit):
         j_max = Timestamp.max.to_julian_date() - j0
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
-            raise tslibs.OutOfBoundsDatetime(
+            raise OutOfBoundsDatetime(
                 f"{original} is Out of Bounds for origin='julian'"
             )
     else:
@@ -527,10 +533,8 @@ def _adjust_to_origin(arg, origin, unit):
         # we are going to offset back to unix / epoch time
         try:
             offset = Timestamp(origin)
-        except tslibs.OutOfBoundsDatetime as err:
-            raise tslibs.OutOfBoundsDatetime(
-                f"origin {origin} is Out of Bounds"
-            ) from err
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:
             raise ValueError(
                 f"origin {origin} cannot be converted to a Timestamp"
@@ -542,7 +546,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        offset = offset // tslibs.Timedelta(1, unit=unit)
+        offset = offset // Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
@@ -682,8 +686,6 @@ def to_datetime(
         used when there are at least 50 values. The presence of out-of-bounds
         values will render the cache unusable and may slow down parsing.
 
-        .. versionadded:: 0.23.0
-
         .. versionchanged:: 0.25.0
             - changed default value from False to True.
 
@@ -813,7 +815,7 @@ dtype='datetime64[ns]', freq=None)
     elif is_list_like(arg):
         try:
             cache_array = _maybe_cache(arg, format, cache, convert_listlike)
-        except tslibs.OutOfBoundsDatetime:
+        except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
             if errors == "raise":
@@ -969,7 +971,7 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype="M8[ns]")
         iresult = result.view("i8")
-        iresult[~mask] = tslibs.iNaT
+        iresult[~mask] = iNaT
 
         masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
         result[mask] = masked_result.astype("M8[ns]")
@@ -990,7 +992,7 @@ def _attempt_YYYYMMDD(arg, errors):
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(tslibs.nat_strings))
+        mask = ~algorithms.isin(arg, list(nat_strings))
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

@@ -1,8 +1,15 @@
+"""
+Module consolidating common testing functions for checking plotting.
+
+Currently all plotting tests are marked as slow via
+``pytestmark = pytest.mark.slow`` at the module level.
+"""
+
 import os
+from typing import TYPE_CHECKING, Sequence, Union
 import warnings
 
 import numpy as np
-from numpy import random
 
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
@@ -10,16 +17,19 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
 
-"""
-This is a common base class used for various plotting tests
-"""
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
@@ -28,10 +38,13 @@ class TestPlotBase:
 
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
-        self.mpl_ge_3_2_0 = compat._mpl_ge_3_2_0()
+        self.start_date_to_int64 = 812419200000000000
+        self.end_date_to_int64 = 819331200000000000
+
+        self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = compat.mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat.mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -47,9 +60,17 @@ class TestPlotBase:
                 {
                     "gender": gender,
                     "classroom": classroom,
-                    "height": random.normal(66, 4, size=n),
-                    "weight": random.normal(161, 32, size=n),
-                    "category": random.randint(4, size=n),
+                    "height": np.random.normal(66, 4, size=n),
+                    "weight": np.random.normal(161, 32, size=n),
+                    "category": np.random.randint(4, size=n),
+                    "datetime": to_datetime(
+                        np.random.randint(
+                            self.start_date_to_int64,
+                            self.end_date_to_int64,
+                            size=n,
+                            dtype=np.int64,
+                        )
+                    ),
                 }
             )
 
@@ -161,6 +182,24 @@ class TestPlotBase:
 
         for patch in collections:
             assert patch.get_visible() == visible
+
+    def _check_patches_all_filled(
+        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
+    ) -> None:
+        """
+        Check for each artist whether it is filled or not
+
+        Parameters
+        ----------
+        axes : matplotlib Axes object, or its list-like
+        filled : bool
+            expected filling
+        """
+
+        axes = self._flatten_visible(axes)
+        for ax in axes:
+            for patch in ax.patches:
+                assert patch.fill == filled
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()
@@ -330,7 +369,7 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
             figsize = self.default_figsize
@@ -343,7 +382,7 @@ class TestPlotBase:
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(_flatten(axes))
+            result = self._get_axes_layout(flatten_axes(axes))
             assert result == layout
 
         tm.assert_numpy_array_equal(
@@ -370,9 +409,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 
@@ -518,39 +557,83 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
 
-def _check_plot_works(f, filterwarnings="always", **kwargs):
+def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
+    """
+    Create plot and ensure that plot return object is valid.
+
+    Parameters
+    ----------
+    f : func
+        Plotting function.
+    filterwarnings : str
+        Warnings filter.
+        See https://docs.python.org/3/library/warnings.html#warning-filter
+    default_axes : bool, optional
+        If False (default):
+            - If `ax` not in `kwargs`, then create subplot(211) and plot there
+            - Create new subplot(212) and plot there as well
+            - Mind special corner case for bootstrap_plot (see `_gen_two_subplots`)
+        If True:
+            - Simply run plotting function with kwargs provided
+            - All required axes instances will be created automatically
+            - It is recommended to use it when the plotting function
+            creates multiple axes itself. It helps avoid warnings like
+            'UserWarning: To output multiple subplots,
+            the figure containing the passed axes is being cleared'
+    **kwargs
+        Keyword arguments passed to the plotting function.
+
+    Returns
+    -------
+    Plot object returned by the last plotting.
+    """
     import matplotlib.pyplot as plt
+
+    if default_axes:
+        gen_plots = _gen_default_plot
+    else:
+        gen_plots = _gen_two_subplots
 
     ret = None
     with warnings.catch_warnings():
         warnings.simplefilter(filterwarnings)
         try:
-            try:
-                fig = kwargs["figure"]
-            except KeyError:
-                fig = plt.gcf()
-
+            fig = kwargs.get("figure", plt.gcf())
             plt.clf()
 
-            kwargs.get("ax", fig.add_subplot(211))
-            ret = f(**kwargs)
-
-            tm.assert_is_valid_plot_return_object(ret)
-
-            if f is pd.plotting.bootstrap_plot:
-                assert "ax" not in kwargs
-            else:
-                kwargs["ax"] = fig.add_subplot(212)
-
-            ret = f(**kwargs)
-            tm.assert_is_valid_plot_return_object(ret)
+            for ret in gen_plots(f, fig, **kwargs):
+                tm.assert_is_valid_plot_return_object(ret)
 
             with tm.ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
+
+        except Exception as err:
+            raise err
         finally:
             tm.close(fig)
 
         return ret
+
+
+def _gen_default_plot(f, fig, **kwargs):
+    """
+    Create plot in a default way.
+    """
+    yield f(**kwargs)
+
+
+def _gen_two_subplots(f, fig, **kwargs):
+    """
+    Create plot on two subplots forcefully created.
+    """
+    kwargs.get("ax", fig.add_subplot(211))
+    yield f(**kwargs)
+
+    if f is pd.plotting.bootstrap_plot:
+        assert "ax" not in kwargs
+    else:
+        kwargs["ax"] = fig.add_subplot(212)
+    yield f(**kwargs)
 
 
 def curpath():

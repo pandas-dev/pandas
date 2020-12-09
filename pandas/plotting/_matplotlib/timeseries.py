@@ -1,7 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 import numpy as np
 
@@ -24,14 +24,15 @@ from pandas.plotting._matplotlib.converter import (
 from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
 
 if TYPE_CHECKING:
-    from pandas import Index, Series  # noqa:F401
+    from matplotlib.axes import Axes
 
+    from pandas import DatetimeIndex, Index, Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
 
 
-def _maybe_resample(series: "Series", ax, kwargs):
+def maybe_resample(series: "Series", ax: "Axes", kwargs):
     # resample against axes freq if necessary
     freq, ax_freq = _get_freq(ax, series)
 
@@ -45,7 +46,10 @@ def _maybe_resample(series: "Series", ax, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            series.index = series.index.asfreq(ax_freq, how="s")  # type: ignore
+            # error: "Index" has no attribute "asfreq"
+            series.index = series.index.asfreq(  # type: ignore[attr-defined]
+                ax_freq, how="s"
+            )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop("how", "last")
@@ -59,19 +63,19 @@ def _maybe_resample(series: "Series", ax, kwargs):
     return freq, series
 
 
-def _is_sub(f1, f2):
+def _is_sub(f1: str, f2: str) -> bool:
     return (f1.startswith("W") and is_subperiod("D", f2)) or (
         f2.startswith("W") and is_subperiod(f1, "D")
     )
 
 
-def _is_sup(f1, f2):
+def _is_sup(f1: str, f2: str) -> bool:
     return (f1.startswith("W") and is_superperiod("D", f2)) or (
         f2.startswith("W") and is_superperiod(f1, "D")
     )
 
 
-def _upsample_others(ax, freq, kwargs):
+def _upsample_others(ax: "Axes", freq, kwargs):
     legend = ax.get_legend()
     lines, labels = _replot_ax(ax, freq, kwargs)
     _replot_ax(ax, freq, kwargs)
@@ -94,14 +98,14 @@ def _upsample_others(ax, freq, kwargs):
         ax.legend(lines, labels, loc="best", title=title)
 
 
-def _replot_ax(ax, freq, kwargs):
+def _replot_ax(ax: "Axes", freq, kwargs):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
     ax._plot_data = []
     ax.clear()
 
-    _decorate_axes(ax, freq, kwargs)
+    decorate_axes(ax, freq, kwargs)
 
     lines = []
     labels = []
@@ -124,7 +128,7 @@ def _replot_ax(ax, freq, kwargs):
     return lines, labels
 
 
-def _decorate_axes(ax, freq, kwargs):
+def decorate_axes(ax: "Axes", freq, kwargs):
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
@@ -140,7 +144,7 @@ def _decorate_axes(ax, freq, kwargs):
     ax.date_axis_info = None
 
 
-def _get_ax_freq(ax):
+def _get_ax_freq(ax: "Axes"):
     """
     Get the freq attribute of the ax object if set.
     Also checks shared axes (eg when using secondary yaxis, sharex=True
@@ -171,7 +175,7 @@ def _get_period_alias(freq) -> Optional[str]:
     return freq
 
 
-def _get_freq(ax, series: "Series"):
+def _get_freq(ax: "Axes", series: "Series"):
     # get frequency from data
     freq = getattr(series.index, "freq", None)
     if freq is None:
@@ -189,7 +193,7 @@ def _get_freq(ax, series: "Series"):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
+def use_dynamic_x(ax: "Axes", data: FrameOrSeriesUnion) -> bool:
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
@@ -222,7 +226,8 @@ def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
         if freq == "B":
-            weekdays = np.unique(index.dayofweek)  # type: ignore
+            # error: "Index" has no attribute "dayofweek"
+            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
 
@@ -230,7 +235,7 @@ def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     return freq
 
 
-def _maybe_convert_index(ax, data):
+def maybe_convert_index(ax: "Axes", data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
@@ -238,6 +243,7 @@ def _maybe_convert_index(ax, data):
 
         if freq is None:
             # We only get here for DatetimeIndex
+            data.index = cast("DatetimeIndex", data.index)
             freq = data.index.inferred_freq
             freq = to_offset(freq)
 
@@ -260,7 +266,7 @@ def _maybe_convert_index(ax, data):
 # Do we need the rest for convenience?
 
 
-def _format_coord(freq, t, y):
+def _format_coord(freq, t, y) -> str:
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 

@@ -316,7 +316,9 @@ class BaseReshapingTests(BaseExtensionTests):
                 alt = df.unstack(level=level).droplevel(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
-            expected = ser.astype(object).unstack(level=level)
+            expected = ser.astype(object).unstack(
+                level=level, fill_value=data.dtype.na_value
+            )
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
@@ -331,6 +333,20 @@ class BaseReshapingTests(BaseExtensionTests):
         assert data[0] == data[1]
 
     def test_transpose(self, data):
+        result = data.transpose()
+        assert type(result) == type(data)
+
+        # check we get a new object
+        assert result is not data
+
+        # If we ever _did_ support 2D, shape should be reversed
+        assert result.shape == data.shape[::-1]
+
+        # Check that we have a view, not a copy
+        result[0] = result[1]
+        assert data[0] == data[1]
+
+    def test_transpose_frame(self, data):
         df = pd.DataFrame({"A": data[:4], "B": data[:4]}, index=["a", "b", "c", "d"])
         result = df.T
         expected = pd.DataFrame(

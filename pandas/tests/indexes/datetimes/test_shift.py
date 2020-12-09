@@ -20,25 +20,25 @@ class TestDatetimeIndexShift:
     def test_dti_shift_tzaware(self, tz_naive_fixture):
         # GH#9903
         tz = tz_naive_fixture
-        idx = pd.DatetimeIndex([], name="xxx", tz=tz)
+        idx = DatetimeIndex([], name="xxx", tz=tz)
         tm.assert_index_equal(idx.shift(0, freq="H"), idx)
         tm.assert_index_equal(idx.shift(3, freq="H"), idx)
 
-        idx = pd.DatetimeIndex(
+        idx = DatetimeIndex(
             ["2011-01-01 10:00", "2011-01-01 11:00", "2011-01-01 12:00"],
             name="xxx",
             tz=tz,
             freq="H",
         )
         tm.assert_index_equal(idx.shift(0, freq="H"), idx)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2011-01-01 13:00", "2011-01-01 14:00", "2011-01-01 15:00"],
             name="xxx",
             tz=tz,
             freq="H",
         )
         tm.assert_index_equal(idx.shift(3, freq="H"), exp)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2011-01-01 07:00", "2011-01-01 08:00", "2011-01-01 09:00"],
             name="xxx",
             tz=tz,
@@ -49,23 +49,23 @@ class TestDatetimeIndexShift:
     def test_dti_shift_freqs(self):
         # test shift for DatetimeIndex and non DatetimeIndex
         # GH#8083
-        drange = pd.date_range("20130101", periods=5)
+        drange = date_range("20130101", periods=5)
         result = drange.shift(1)
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2013-01-02", "2013-01-03", "2013-01-04", "2013-01-05", "2013-01-06"],
             freq="D",
         )
         tm.assert_index_equal(result, expected)
 
         result = drange.shift(-1)
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2012-12-31", "2013-01-01", "2013-01-02", "2013-01-03", "2013-01-04"],
             freq="D",
         )
         tm.assert_index_equal(result, expected)
 
         result = drange.shift(3, freq="2D")
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2013-01-07", "2013-01-08", "2013-01-09", "2013-01-10", "2013-01-11"],
             freq="D",
         )
@@ -84,7 +84,7 @@ class TestDatetimeIndexShift:
 
     def test_dti_shift_no_freq(self):
         # GH#19147
-        dti = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
+        dti = DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
         with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
             dti.shift(2)
 
@@ -123,7 +123,7 @@ class TestDatetimeIndexShift:
 
     def test_shift_periods(self):
         # GH#22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = pd.date_range(start=START, end=END, periods=3)
+        idx = date_range(start=START, end=END, periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
 
@@ -151,3 +151,9 @@ class TestDatetimeIndexShift:
         with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             shifted = rng.shift(1, freq=pd.offsets.CDay())
             assert shifted[0] == rng[0] + pd.offsets.CDay()
+
+    def test_shift_empty(self):
+        # GH#14811
+        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BM")
+        result = dti.shift(1)
+        tm.assert_index_equal(result, dti)

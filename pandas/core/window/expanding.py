@@ -1,14 +1,18 @@
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
+import numpy as np
+
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
-from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import _Rolling_and_Expanding
+from pandas.core.window.common import _doc_template, _shared_docs
+from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
-class Expanding(_Rolling_and_Expanding):
+class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding transformations.
 
@@ -64,9 +68,17 @@ class Expanding(_Rolling_and_Expanding):
     def _constructor(self):
         return Expanding
 
-    def _get_window(self, other=None, **kwargs):
+    def _get_window_indexer(self) -> BaseIndexer:
         """
-        Get the window length over which to perform some operation.
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExpandingIndexer()
+
+    def _get_cov_corr_window(
+        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
+    ) -> int:
+        """
+        Get the window length over which to perform cov and corr operations.
 
         Parameters
         ----------
@@ -117,7 +129,6 @@ class Expanding(_Rolling_and_Expanding):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="Series/Dataframe",
         axis="",
     )
@@ -128,19 +139,19 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
-    def count(self, **kwargs):
-        return super().count(**kwargs)
+    def count(self):
+        return super().count()
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
     def apply(
         self,
-        func,
+        func: Callable[..., Any],
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
-        args=None,
-        kwargs=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,
@@ -183,15 +194,20 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
+
+    @Substitution(name="expanding")
+    @Appender(_shared_docs["sem"])
+    def sem(self, ddof: int = 1, *args, **kwargs):
+        return super().sem(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", func_name="skew")
     @Appender(_doc_template)
@@ -240,20 +256,41 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name="expanding", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["corr"])
-    def corr(self, other=None, pairwise=None, **kwargs):
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
-class ExpandingGroupby(WindowGroupByMixin, Expanding):
+class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Expanding
+    def _get_window_indexer(self) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._groupby.indices,
+            window_indexer=ExpandingIndexer,
+        )
+        return window_indexer

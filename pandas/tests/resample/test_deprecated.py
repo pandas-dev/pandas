@@ -41,7 +41,7 @@ def test_deprecating_on_loffset_and_base():
     # GH 31809
 
     idx = pd.date_range("2001-01-01", periods=4, freq="T")
-    df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
+    df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", base=0)
@@ -226,7 +226,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
 )
 def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, offset):
     # GH 23882
-    s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+    s = Series(0, index=pd.period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(end_freq, base=base).mean()

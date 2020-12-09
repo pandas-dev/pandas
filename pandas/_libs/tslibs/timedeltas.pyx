@@ -1,4 +1,5 @@
 import collections
+import warnings
 
 import cython
 
@@ -226,7 +227,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, str unit=None, str errors="raise"):
+def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="raise"):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -404,9 +405,11 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
             m = 10**(3 -len(frac)) * 1000 * 1000
         elif len(frac) > 3 and len(frac) <= 6:
             m = 10**(6 -len(frac)) * 1000
-        else:
+        elif len(frac) > 6 and len(frac) <= 9:
             m = 10**(9 -len(frac))
-
+        else:
+            m = 1
+            frac = frac[:9]
         r = <int64_t>int(''.join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
@@ -466,6 +469,15 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     try:
         unit = ''.join(unit)
+
+        if unit in ["M", "Y", "y"]:
+            warnings.warn(
+                "Units 'M', 'Y' and 'y' do not represent unambiguous "
+                "timedelta values and will be removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if unit == 'M':
             # To parse ISO 8601 string, 'M' should be treated as minute,
             # not month
@@ -604,7 +616,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
 
     for c in ts:
         # number (ascii codes)
-        if ord(c) >= 48 and ord(c) <= 57:
+        if 48 <= ord(c) <= 57:
 
             have_value = 1
             if have_dot:
@@ -620,27 +632,30 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
             if not len(unit):
                 number.append(c)
             else:
-                # if in days, pop trailing T
-                if unit[-1] == 'T':
-                    unit.pop()
-                elif 'H' in unit or 'M' in unit:
-                    if len(number) > 2:
-                        raise ValueError(err_msg)
                 r = timedelta_from_spec(number, '0', unit)
                 result += timedelta_as_neg(r, neg)
 
                 neg = 0
                 unit, number = [], [c]
         else:
-            if c == 'P':
-                pass  # ignore leading character
+            if c == 'P' or c == 'T':
+                pass  # ignore marking characters P and T
             elif c == '-':
                 if neg or have_value:
                     raise ValueError(err_msg)
                 else:
                     neg = 1
-            elif c in ['D', 'T', 'H', 'M']:
+            elif c in ['W', 'D', 'H', 'M']:
+                if c in ['H', 'M'] and len(number) > 2:
+                    raise ValueError(err_msg)
+                if c == 'M':
+                    c = 'min'
                 unit.append(c)
+                r = timedelta_from_spec(number, '0', unit)
+                result += timedelta_as_neg(r, neg)
+
+                neg = 0
+                unit, number = [], []
             elif c == '.':
                 # append any seconds
                 if len(number):
@@ -661,11 +676,8 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                     r = timedelta_from_spec(number, '0', dec_unit)
                     result += timedelta_as_neg(r, neg)
                 else:  # seconds
-                    if len(number) <= 2:
-                        r = timedelta_from_spec(number, '0', 'S')
-                        result += timedelta_as_neg(r, neg)
-                    else:
-                        raise ValueError(err_msg)
+                    r = timedelta_from_spec(number, '0', 'S')
+                    result += timedelta_as_neg(r, neg)
             else:
                 raise ValueError(err_msg)
 
@@ -1058,7 +1070,8 @@ cdef class _Timedelta(timedelta):
 
         See Also
         --------
-        Timestamp.isoformat
+        Timestamp.isoformat : Function is used to convert the given
+            Timestamp object into the ISO format.
 
         Notes
         -----
@@ -1132,6 +1145,9 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
+
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds.
     """
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):

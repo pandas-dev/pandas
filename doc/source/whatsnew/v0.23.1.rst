@@ -74,10 +74,10 @@ In addition, ordering comparisons will raise a ``TypeError`` in the future.
   a tz-aware time instead of tz-naive (:issue:`21267`) and :attr:`DatetimeIndex.date`
   returned incorrect date when the input date has a non-UTC timezone (:issue:`21230`).
 - Fixed regression in :meth:`pandas.io.json.json_normalize` when called with ``None`` values
-  in nested levels in JSON, and to not drop keys with value as `None` (:issue:`21158`, :issue:`21356`).
+  in nested levels in JSON, and to not drop keys with value as ``None`` (:issue:`21158`, :issue:`21356`).
 - Bug in :meth:`~DataFrame.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
 - Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
-- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
+- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when ``value`` the individual categories are iterable and ``value`` is an iterable (:issue:`21097`, :issue:`19788`)
 - Fixed regression in constructors coercing NA values like ``None`` to strings when passing ``dtype=str`` (:issue:`21083`)
 - Regression in :func:`pivot_table` where an ordered ``Categorical`` with missing
   values for the pivot's ``index`` would give a mis-aligned result (:issue:`21133`)
@@ -106,7 +106,7 @@ Bug fixes
 
 **Data-type specific**
 
-- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue:`21078`)
+- Bug in :meth:`Series.str.replace()` where the method throws ``TypeError`` on Python 3.5.2 (:issue:`21078`)
 - Bug in :class:`Timedelta` where passing a float with a unit would prematurely round the float precision (:issue:`14156`)
 - Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
 

@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, options
 import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _XlwtWriter
@@ -32,7 +31,7 @@ def test_excel_multiindex_columns_and_index_true(ext):
     cols = MultiIndex.from_tuples(
         [("site", ""), ("2014", "height"), ("2014", "weight")]
     )
-    df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
+    df = DataFrame(np.random.randn(10, 3), columns=cols)
     with tm.ensure_clean(ext) as path:
         df.to_excel(path, index=True)
 
@@ -70,3 +69,24 @@ def test_write_append_mode_raises(ext):
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlwt", mode="a")
+
+
+def test_to_excel_xlwt_warning(ext):
+    # GH 26552
+    df = DataFrame(np.random.randn(3, 10))
+    with tm.ensure_clean(ext) as path:
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="As the xlwt package is no longer maintained",
+        ):
+            df.to_excel(path)
+
+
+def test_option_xls_writer_deprecated(ext):
+    # GH 26552
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="As the xlwt package is no longer maintained",
+        check_stacklevel=False,
+    ):
+        options.io.excel.xls.writer = "xlwt"

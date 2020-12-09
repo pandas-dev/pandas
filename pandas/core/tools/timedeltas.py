@@ -26,6 +26,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     ----------
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
+
+        .. deprecated:: 1.2
+            Strings with units 'M', 'Y' and 'y' do not represent
+            unambiguous timedelta values and will be removed in a future version
+
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
@@ -61,6 +66,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     to_datetime : Convert argument to datetime.
     convert_dtypes : Convert dtypes.
 
+    Notes
+    -----
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds for string inputs.
+
     Examples
     --------
     Parsing a single string to a Timedelta:
@@ -90,7 +100,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         unit = parse_timedelta_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(

@@ -199,7 +199,7 @@ def test_usecols_with_whitespace(all_parsers):
         # Column selection by index.
         ([0, 1], DataFrame(data=[[1000, 2000], [4000, 5000]], columns=["2", "0"])),
         # Column selection by name.
-        (["0", "1"], DataFrame(data=[[2000, 3000], [5000, 6000]], columns=["0", "1"]),),
+        (["0", "1"], DataFrame(data=[[2000, 3000], [5000, 6000]], columns=["0", "1"])),
     ],
 )
 def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
@@ -477,14 +477,14 @@ def test_incomplete_first_row(all_parsers, usecols):
         (
             "19,29,39\n" * 2 + "10,20,30,40",
             [0, 1, 2],
-            dict(header=None),
+            {"header": None},
             DataFrame([[19, 29, 39], [19, 29, 39], [10, 20, 30]]),
         ),
         # see gh-9549
         (
             ("A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n1,2,3,,,1,\n1,2,3\n5,6,7"),
             ["A", "B", "C"],
-            dict(),
+            {},
             DataFrame(
                 {
                     "A": [1, 3, 1, 1, 1, 5],
@@ -507,39 +507,39 @@ def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
     [
         (
             ["a", "b", "c", "d"],
-            dict(),
+            {},
             DataFrame({"a": [1, 5], "b": [2, 6], "c": [3, 7], "d": [4, 8]}),
             None,
         ),
         (
             ["a", "b", "c", "f"],
-            dict(),
+            {},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),
-        (["a", "b", "f"], dict(), None, _msg_validate_usecols_names.format(r"\['f'\]")),
+        (["a", "b", "f"], {}, None, _msg_validate_usecols_names.format(r"\['f'\]")),
         (
             ["a", "b", "f", "g"],
-            dict(),
+            {},
             None,
             _msg_validate_usecols_names.format(r"\[('f', 'g'|'g', 'f')\]"),
         ),
         # see gh-14671
         (
             None,
-            dict(header=0, names=["A", "B", "C", "D"]),
+            {"header": 0, "names": ["A", "B", "C", "D"]},
             DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 7], "D": [4, 8]}),
             None,
         ),
         (
             ["A", "B", "C", "f"],
-            dict(header=0, names=["A", "B", "C", "D"]),
+            {"header": 0, "names": ["A", "B", "C", "D"]},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),
         (
             ["A", "B", "f"],
-            dict(names=["A", "B", "C", "D"]),
+            {"names": ["A", "B", "C", "D"]},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),

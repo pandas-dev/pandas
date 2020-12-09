@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import timedelta, timezone
 
 from cpython.datetime cimport datetime, timedelta, tzinfo
 
@@ -102,6 +102,14 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
+        elif tz[0] in {'-', '+'}:
+            hours = int(tz[0:3])
+            minutes = int(tz[0] + tz[4:6])
+            tz = timezone(timedelta(hours=hours, minutes=minutes))
+        elif tz[0:4] in {'UTC-', 'UTC+'}:
+            hours = int(tz[3:6])
+            minutes = int(tz[3] + tz[7:9])
+            tz = timezone(timedelta(hours=hours, minutes=minutes))
         else:
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
