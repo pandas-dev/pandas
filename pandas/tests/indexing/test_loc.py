@@ -1557,9 +1557,9 @@ class TestPartialStringSlicing:
         self, indexer_end, frame_or_series
     ):
         # GH#33146
-        df = frame_or_series(
+        obj = frame_or_series(
             [1] * 5,
-            index=pd.Index(
+            index=Index(
                 [
                     Timestamp("2019-12-30"),
                     Timestamp("2020-01-01"),
@@ -1571,7 +1571,7 @@ class TestPartialStringSlicing:
         )
         expected = frame_or_series(
             [1] * 2,
-            index=pd.Index(
+            index=Index(
                 [
                     Timestamp("2020-01-01"),
                     Timestamp("2020-01-02 23:59:59.999999999"),
@@ -1580,10 +1580,10 @@ class TestPartialStringSlicing:
         )
         indexer = slice("2020-01-01", indexer_end)
 
-        result = df[indexer]
+        result = obj[indexer]
         tm.assert_equal(result, expected)
 
-        result = df.loc[indexer]
+        result = obj.loc[indexer]
         tm.assert_equal(result, expected)
 
 
@@ -1878,7 +1878,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
