@@ -1,14 +1,17 @@
 import abc
 import datetime
+import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
 from typing import Any, Dict, Mapping, Union, cast
+import warnings
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -99,12 +102,32 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
     Engine compatibility :
+
     - "xlrd" supports most old/new Excel file formats.
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
+
+    .. versionchanged:: 1.2.0
+        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+        is no longer maintained, and is not supported with
+        python >= 3.9. When ``engine=None``, the following logic will be
+        used to determine the engine.
+
+        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
+          extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd`` will
+          be used.
+        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+          then ``openpyxl`` will be used.
+        - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+
+        Specifying ``engine="xlrd"`` will continue to be allowed for the
+        indefinite future.
+
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -564,6 +587,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
+
+        .. deprecated:: 1.2.0
+
+            As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+            maintained, the ``xlwt`` engine will be removed in a future
+            version of pandas.
+
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
@@ -668,11 +698,31 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
                     if engine == "auto":
                         engine = get_default_writer(ext)
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
+
+            if engine == "xlwt":
+                xls_config_engine = config.get_option(
+                    "io.excel.xls.writer", silent=True
+                )
+                # Don't warn a 2nd time if user has changed the default engine for xls
+                if xls_config_engine != "xlwt":
+                    warnings.warn(
+                        "As the xlwt package is no longer maintained, the xlwt "
+                        "engine will be removed in a future version of pandas. "
+                        "This is the only engine in pandas that supports writing "
+                        "in the xls format. Install openpyxl and write to an xlsx "
+                        "file instead. You can set the option io.excel.xls.writer "
+                        "to 'xlwt' to silence this warning. While this option is "
+                        "deprecated and will also raise a warning, it can "
+                        "be globally set and the warning suppressed.",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -880,13 +930,32 @@ class ExcelFile:
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-        default ``xlrd``.
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
         Engine compatibility :
+
         - ``xlrd`` supports most old/new Excel file formats.
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
+
+        .. versionchanged:: 1.2.0
+
+           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+           is no longer maintained, and is not supported with
+           python >= 3.9. When ``engine=None``, the following logic will be
+           used to determine the engine.
+
+           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+           - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
+             extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd``
+             will be used.
+           - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+             then ``openpyxl`` will be used.
+           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+
+           Specifying ``engine="xlrd"`` will continue to be allowed for the
+           indefinite future.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -905,14 +974,59 @@ class ExcelFile:
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            engine = "xlrd"
+            # Determine ext and use odf for ods stream/file
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+                ext = None
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
                 ext = os.path.splitext(str(path_or_buffer))[-1]
                 if ext == ".ods":
                     engine = "odf"
+
+            if (
+                import_optional_dependency(
+                    "xlrd", raise_on_missing=False, on_version="ignore"
+                )
+                is not None
+            ):
+                from xlrd import Book
+
+                if isinstance(path_or_buffer, Book):
+                    engine = "xlrd"
+
+            # GH 35029 - Prefer openpyxl except for xls files
+            if engine is None:
+                if ext is None or isinstance(path_or_buffer, bytes) or ext == ".xls":
+                    engine = "xlrd"
+                elif (
+                    import_optional_dependency(
+                        "openpyxl", raise_on_missing=False, on_version="ignore"
+                    )
+                    is not None
+                ):
+                    engine = "openpyxl"
+                else:
+                    caller = inspect.stack()[1]
+                    if (
+                        caller.filename.endswith("pandas/io/excel/_base.py")
+                        and caller.function == "read_excel"
+                    ):
+                        stacklevel = 4
+                    else:
+                        stacklevel = 2
+                    warnings.warn(
+                        "The xlrd engine is no longer maintained and is not "
+                        "supported when using pandas with python >= 3.9. However, "
+                        "the engine xlrd will continue to be allowed for the "
+                        "indefinite future. Beginning with pandas 1.2.0, the "
+                        "openpyxl engine will be used if it is installed and the "
+                        "engine argument is not specified. Either install openpyxl "
+                        "or specify engine='xlrd' to silence this warning.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    engine = "xlrd"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 

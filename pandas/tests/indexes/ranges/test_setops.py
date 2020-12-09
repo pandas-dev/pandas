@@ -37,6 +37,18 @@ class TestRangeIndexSetOps:
         result = flt[:0].intersection(index)
         tm.assert_index_equal(result, flt[:0], exact=True)
 
+    def test_intersection_empty(self, sort, names):
+        # name retention on empty intersections
+        index = RangeIndex(start=0, stop=20, step=2, name=names[0])
+
+        # empty other
+        result = index.intersection(index[:0].rename(names[1]), sort=sort)
+        tm.assert_index_equal(result, index[:0].rename(names[2]), exact=True)
+
+        # empty self
+        result = index[:0].intersection(index.rename(names[1]), sort=sort)
+        tm.assert_index_equal(result, index[:0].rename(names[2]), exact=True)
+
     def test_intersection(self, sort):
         # intersect with Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
@@ -78,12 +90,12 @@ class TestRangeIndexSetOps:
         result = other.intersection(first, sort=sort).astype(int)
         tm.assert_index_equal(result, expected)
 
-        index = RangeIndex(5)
+        index = RangeIndex(5, name="foo")
 
         # intersect of non-overlapping indices
-        other = RangeIndex(5, 10, 1)
+        other = RangeIndex(5, 10, 1, name="foo")
         result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
+        expected = RangeIndex(0, 0, 1, name="foo")
         tm.assert_index_equal(result, expected)
 
         other = RangeIndex(-1, -5, -1)
@@ -100,11 +112,12 @@ class TestRangeIndexSetOps:
         result = other.intersection(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
+    def test_intersection_non_overlapping_gcd(self, sort, names):
         # intersection of non-overlapping values based on start value and gcd
-        index = RangeIndex(1, 10, 2)
-        other = RangeIndex(0, 10, 4)
+        index = RangeIndex(1, 10, 2, name=names[0])
+        other = RangeIndex(0, 10, 4, name=names[1])
         result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
+        expected = RangeIndex(0, 0, 1, name=names[2])
         tm.assert_index_equal(result, expected)
 
     def test_union_noncomparable(self, sort):

@@ -351,11 +351,14 @@ class TestExcelWriter:
             msg = "sheet 0 not found"
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, "0")
-        else:
+        elif engine == "xlwt":
             import xlrd
 
             msg = "No sheet named <'0'>"
             with pytest.raises(xlrd.XLRDError, match=msg):
+                pd.read_excel(xl, sheet_name="0")
+        else:
+            with pytest.raises(KeyError, match="Worksheet 0 does not exist."):
                 pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -469,12 +472,12 @@ class TestExcelWriter:
 
         # Test with convert_float=False comes back as float.
         float_frame = df.astype(float)
+        float_frame.columns = float_frame.columns.astype(float)
+        float_frame.index = float_frame.index.astype(float)
         recons = pd.read_excel(
             path, sheet_name="test1", convert_float=False, index_col=0
         )
-        tm.assert_frame_equal(
-            recons, float_frame, check_index_type=False, check_column_type=False
-        )
+        tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
@@ -1192,7 +1195,9 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
+        # GH 35029 - Default changed to openpyxl, but test is for odf/xlrd
+        engine = "odf" if path.endswith("ods") else "xlrd"
+        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0, engine=engine)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
 
