@@ -168,7 +168,7 @@ class TestDataFrameIndexing:
                 DataFrame(
                     [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
                     columns=["A", "B", "C", "D"],
-                    dtype=np.intp,
+                    dtype=np.int64,
                 ),
             ),
             (
