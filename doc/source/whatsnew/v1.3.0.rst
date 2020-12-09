@@ -146,7 +146,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 -
 
 Period
