@@ -505,7 +505,6 @@ def to_arrays(
     """
     Return list of arrays, columns.
     """
-
     if isinstance(data, ABCDataFrame):
         if columns is not None:
             arrays = [
