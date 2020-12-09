@@ -2657,7 +2657,8 @@ Name: Max Speed, dtype: float64
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            to_concat = [self, *to_append]
+            to_concat = [self]
+            to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):

@@ -636,7 +636,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
-            if "cannot do" in str(e) or "unhashable type" in str(e):
+            if "cannot do" in str(e):
+                raise
+            elif "unhashable type" in str(e):
                 raise
             raise IndexingError(key) from e
 
