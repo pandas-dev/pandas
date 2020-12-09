@@ -3408,7 +3408,9 @@ class Index(IndexOpsMixin, PandasObject):
         keyarr : numpy.ndarray
             Return tuple-safe keys.
         """
-        if not isinstance(keyarr, Index):
+        if isinstance(keyarr, Index):
+            pass
+        else:
             keyarr = self._convert_arr_indexer(keyarr)
 
         indexer = self._convert_list_indexer(keyarr)
@@ -5925,10 +5927,18 @@ def ensure_has_len(seq):
 def trim_front(strings: List[str]) -> List[str]:
     """
     Trims zeros and decimal points.
+
+    Examples
+    --------
+    >>> trim_front([" a", " b"])
+    ['a', 'b']
+
+    >>> trim_front([" a", " "])
+    ['a', '']
     """
     if not strings:
         return strings
-    while all(x[0] == " " for x in strings):
+    while all(strings) and all(x[0] == " " for x in strings):
         strings = [x[1:] for x in strings]
     return strings
 
