@@ -2292,7 +2292,7 @@ class ArrowParserWrapper(ParserBase):
         parse_options = {k: v for k, v in kwdscopy.items() if k in parseoptions}
         convert_options = {k: v for k, v in kwdscopy.items() if k in convertoptions}
         headerexists = True if self.header is not None else False
-        read_options = dict()
+        read_options = {}
 
         skiprows = self.kwds.get("skiprows")
         if headerexists:
