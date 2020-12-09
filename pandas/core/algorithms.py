@@ -15,6 +15,7 @@ from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
 from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
+from pandas.core.arrays import IntegerArray
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
@@ -447,6 +448,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     else:
         values = extract_array(values, extract_numpy=True)
 
+    if isinstance(comps, IntegerArray):
+        comps = comps._data
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps.dtype):

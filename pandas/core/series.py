@@ -70,7 +70,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core import algorithms, base, generic, missing, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
-from pandas.core.arrays import ExtensionArray, IntegerArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -4630,10 +4630,7 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
         """
-        if isinstance(self._values, IntegerArray):
-            result = algorithms.isin(self._values._data, values)
-        else:
-            result = algorithms.isin(self._values, values)
+        result = algorithms.isin(self._values, values)
         return self._constructor(result, index=self.index).__finalize__(
             self, method="isin"
         )
