@@ -53,7 +53,9 @@ cdef dict _parse_code_table = {'y': 0,
 
 def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='raise'):
     """
-    Calculates the datetime structs represented by the passed array of strings
+    Calculates the datetime structs represented by the passed array of strings.
+    When 'ignore' error is being used it can return an object array when some value is
+    not fitting the format.
 
     Parameters
     ----------
