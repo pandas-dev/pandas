@@ -144,7 +144,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
     "kwargs,msg",
     [
         (
-            dict(index_col=["foo", "bar"]),
+            {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
                 "row numbers when specifying "
@@ -152,11 +152,11 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             ),
         ),
         (
-            dict(index_col=[0, 1], names=["foo", "bar"]),
+            {"index_col": [0, 1], "names": ["foo", "bar"]},
             ("cannot specify names when specifying a multi-index header"),
         ),
         (
-            dict(index_col=[0, 1], usecols=["foo", "bar"]),
+            {"index_col": [0, 1], "usecols": ["foo", "bar"]},
             ("cannot specify usecols when specifying a multi-index header"),
         ),
     ],
@@ -187,10 +187,10 @@ _TestTuple = namedtuple("names", ["first", "second"])
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=3,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 3,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -198,10 +198,10 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=3,
-            names=[
+        },
+        {
+            "skiprows": 3,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -209,7 +209,7 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format1(all_parsers, kwargs):
@@ -234,10 +234,10 @@ two,7,8,9,10,11,12"""
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -245,10 +245,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -256,7 +256,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format2(all_parsers, kwargs):
@@ -280,10 +280,10 @@ two,7,8,9,10,11,12"""
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -291,10 +291,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -302,7 +302,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format3(all_parsers, kwargs):
@@ -397,7 +397,7 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col=False)])
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
     parser = all_parsers
@@ -410,10 +410,10 @@ def test_read_only_header_no_rows(all_parsers, kwargs):
 @pytest.mark.parametrize(
     "kwargs,names",
     [
-        (dict(), [0, 1, 2, 3, 4]),
-        (dict(prefix="X"), ["X0", "X1", "X2", "X3", "X4"]),
+        ({}, [0, 1, 2, 3, 4]),
+        ({"prefix": "X"}, ["X0", "X1", "X2", "X3", "X4"]),
         (
-            dict(names=["foo", "bar", "baz", "quux", "panda"]),
+            {"names": ["foo", "bar", "baz", "quux", "panda"]},
             ["foo", "bar", "baz", "quux", "panda"],
         ),
     ],
