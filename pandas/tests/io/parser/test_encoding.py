@@ -17,7 +17,7 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_bytes_io_input(all_parsers):
     encoding = "cp1255"
     parser = all_parsers
@@ -29,7 +29,7 @@ def test_bytes_io_input(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -39,7 +39,7 @@ def test_read_csv_unicode(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
@@ -74,7 +74,7 @@ A,B,C
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_utf16_example(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
@@ -82,7 +82,7 @@ def test_utf16_example(all_parsers, csv_dir_path):
     assert len(result) == 50
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_unicode_encoding(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "unicode_series.csv")
     parser = all_parsers
@@ -194,7 +194,7 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_encoding_named_temp_file(all_parsers):
     # see gh-31819
     parser = all_parsers

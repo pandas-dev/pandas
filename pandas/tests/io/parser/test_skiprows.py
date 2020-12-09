@@ -14,10 +14,10 @@ from pandas.errors import EmptyDataError
 from pandas import DataFrame, Index
 import pandas._testing as tm
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
 def test_skip_rows_bug(all_parsers, skiprows):
     # see gh-505
@@ -45,7 +45,7 @@ def test_skip_rows_bug(all_parsers, skiprows):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_deep_skip_rows(all_parsers):
     # see gh-4382
     parser = all_parsers
@@ -61,7 +61,7 @@ def test_deep_skip_rows(all_parsers):
     tm.assert_frame_equal(result, condensed_result)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_skip_rows_blank(all_parsers):
     # see gh-9832
     parser = all_parsers
@@ -88,7 +88,7 @@ def test_skip_rows_blank(all_parsers):
     tm.assert_frame_equal(data, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -129,7 +129,7 @@ def test_skip_row_with_newline(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_skip_row_with_quote(all_parsers):
     # see gh-12775 and gh-10911
     parser = all_parsers
@@ -145,7 +145,7 @@ def test_skip_row_with_quote(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,exp_data",
     [
@@ -181,7 +181,7 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "line_terminator", ["\n", "\r\n", "\r"]  # "LF"  # "CRLF"  # "CR"
 )
@@ -218,7 +218,7 @@ def test_skiprows_lineterminator(all_parsers, line_terminator):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_skiprows_infield_quote(all_parsers):
     # see gh-14459
     parser = all_parsers
@@ -229,7 +229,7 @@ def test_skiprows_infield_quote(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -245,7 +245,7 @@ def test_skip_rows_callable(all_parsers, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_skip_rows_skip_all(all_parsers):
     parser = all_parsers
     data = "a\n1\n2\n3\n4\n5"
@@ -255,7 +255,7 @@ def test_skip_rows_skip_all(all_parsers):
         parser.read_csv(StringIO(data), skiprows=lambda x: True)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_skip_rows_bad_callable(all_parsers):
     msg = "by zero"
     parser = all_parsers

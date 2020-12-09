@@ -70,7 +70,7 @@ def test_index_col_is_true(all_parsers):
         parser.read_csv(StringIO(data), index_col=True)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_infer_index_col(all_parsers):
     data = """A,B,C
 foo,1,2,3
@@ -88,7 +88,7 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -137,7 +137,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_index_col_false(all_parsers):
     # see gh-10413
     data = "x,y"
@@ -173,7 +173,7 @@ def test_multi_index_naming(all_parsers, index_names):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_multi_index_naming_not_all_at_beginning(all_parsers):
     parser = all_parsers
     data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
@@ -188,7 +188,7 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_no_multi_index_level_names_empty(all_parsers):
     # GH 10984
     parser = all_parsers
@@ -200,7 +200,7 @@ def test_no_multi_index_level_names_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_header_with_index_col(all_parsers):
     # GH 33476
     parser = all_parsers
@@ -224,6 +224,7 @@ I2,1,3
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.slow
 def test_index_col_large_csv(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/37094

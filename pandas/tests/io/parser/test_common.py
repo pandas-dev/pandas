@@ -73,6 +73,7 @@ def test_override_set_noconvert_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_empty_decimal_marker(all_parsers, pyarrow_xfail):
     data = """A|B|C
 1|2,334|5
