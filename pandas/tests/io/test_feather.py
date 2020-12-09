@@ -88,7 +88,9 @@ class TestFeather:
             # df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
-        self.check_round_trip(df)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#38134 until pyarrow updates to pass ndim to Block constructor
+            self.check_round_trip(df)
 
     def test_duplicate_columns(self):
 
