@@ -21,7 +21,7 @@ Assuming you are on a Unix-like operating system, you can use either lldb or gdb
 
 After installing a debugger you can create a script that hits the extension module you are looking to debug. For demonstration purposes, let's assume you have a script called ``debug_testing.py`` with the following contents:
 
-.. code-block::
+.. code-block:: python
 
    import pandas as pd
 
