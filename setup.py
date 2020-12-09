@@ -425,7 +425,6 @@ else:
         extra_compile_args.append("-g")
         extra_compile_args.append("-UNDEBUG")
         extra_compile_args.append("-O0")
->>>>>>> upstream/master
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that

@@ -17,7 +17,7 @@ Development
     maintaining
     internals
     test_writing
-    debugging_extensions    
+    debugging_extensions
     extending
     developer
     policies
