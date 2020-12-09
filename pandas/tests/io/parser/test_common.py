@@ -378,12 +378,12 @@ bar,12,13,14,15
     [
         (
             "A,B\nTrue,1\nFalse,2\nTrue,3",
-            dict(),
+            {},
             DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
         ),
         (
             "A,B\nYES,1\nno,2\nyes,3\nNo,3\nYes,3",
-            dict(true_values=["yes", "Yes", "YES"], false_values=["no", "NO", "No"]),
+            {"true_values": ["yes", "Yes", "YES"], "false_values": ["no", "NO", "No"]},
             DataFrame(
                 [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
                 columns=["A", "B"],
@@ -391,12 +391,12 @@ bar,12,13,14,15
         ),
         (
             "A,B\nTRUE,1\nFALSE,2\nTRUE,3",
-            dict(),
+            {},
             DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
         ),
         (
             "A,B\nfoo,bar\nbar,foo",
-            dict(true_values=["foo"], false_values=["bar"]),
+            {"true_values": ["foo"], "false_values": ["bar"]},
             DataFrame([[True, False], [False, True]], columns=["A", "B"]),
         ),
     ],
@@ -520,7 +520,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0, nrows=5)
+    kwargs = {"index_col": 0, "nrows": 5}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
@@ -537,7 +537,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0, nrows=5)
+    kwargs = {"index_col": 0, "nrows": 5}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), chunksize=8, **kwargs) as reader:
@@ -563,7 +563,7 @@ def test_get_chunk_passed_chunksize(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col=0)])
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": 0}])
 def test_read_chunksize_compat(all_parsers, kwargs):
     # see gh-12185
     data = """index,A,B,C,D
@@ -593,7 +593,7 @@ def test_read_chunksize_jagged_names(all_parsers):
 
 def test_read_data_list(all_parsers):
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
     data = "A,B,C\nfoo,1,2,3\nbar,4,5,6"
 
     data_list = [["A", "B", "C"], ["foo", "1", "2", "3"], ["bar", "4", "5", "6"]]
@@ -616,7 +616,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), iterator=True, **kwargs) as reader:
@@ -657,7 +657,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     lines = list(csv.reader(StringIO(data)))
     with TextParser(lines, chunksize=2, **kwargs) as reader:
@@ -680,7 +680,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     lines = list(csv.reader(StringIO(data)))
     with TextParser(lines, chunksize=2, skiprows=[1], **kwargs) as reader:
@@ -713,7 +713,7 @@ baz,7,8,9
 
 
 @pytest.mark.parametrize(
-    "kwargs", [dict(iterator=True, chunksize=1), dict(iterator=True), dict(chunksize=1)]
+    "kwargs", [{"iterator": True, "chunksize": 1}, {"iterator": True}, {"chunksize": 1}]
 )
 def test_iterator_skipfooter_errors(all_parsers, kwargs):
     msg = "'skipfooter' not supported for iteration"
@@ -745,7 +745,7 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """,
-            dict(index_col=0, names=["index", "A", "B", "C", "D"]),
+            {"index_col": 0, "names": ["index", "A", "B", "C", "D"]},
             DataFrame(
                 [
                     [2, 3, 4, 5],
@@ -766,7 +766,7 @@ foo,three,12,13,14,15
 bar,one,12,13,14,15
 bar,two,12,13,14,15
 """,
-            dict(index_col=[0, 1], names=["index1", "index2", "A", "B", "C", "D"]),
+            {"index_col": [0, 1], "names": ["index1", "index2", "A", "B", "C", "D"]},
             DataFrame(
                 [
                     [2, 3, 4, 5],
@@ -906,7 +906,7 @@ bar"""
 def test_url(all_parsers, csv_dir_path):
     # TODO: FTP testing
     parser = all_parsers
-    kwargs = dict(sep="\t")
+    kwargs = {"sep": "\t"}
 
     url = (
         "https://raw.github.com/pandas-dev/pandas/master/"
@@ -922,7 +922,7 @@ def test_url(all_parsers, csv_dir_path):
 @pytest.mark.slow
 def test_local_file(all_parsers, csv_dir_path):
     parser = all_parsers
-    kwargs = dict(sep="\t")
+    kwargs = {"sep": "\t"}
 
     local_path = os.path.join(csv_dir_path, "salaries.csv")
     local_result = parser.read_csv(local_path, **kwargs)
@@ -1374,77 +1374,77 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
         # gh-10728: WHITESPACE_LINE
         (
             "a,b,c\n4,5,6\n ",
-            dict(),
+            {},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # gh-10548: EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
-            dict(comment="#"),
+            {"comment": "#"},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL_NOP
         (
             "a,b,c\n4,5,6\n\r",
-            dict(),
+            {},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_COMMENT
         (
             "a,b,c\n4,5,6#comment",
-            dict(comment="#"),
+            {"comment": "#"},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # SKIP_LINE
         (
             "a,b,c\n4,5,6\nskipme",
-            dict(skiprows=[2]),
+            {"skiprows": [2]},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
-            dict(comment="#", skip_blank_lines=False),
+            {"comment": "#", "skip_blank_lines": False},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # IN_FIELD
         (
             "a,b,c\n4,5,6\n ",
-            dict(skip_blank_lines=False),
+            {"skip_blank_lines": False},
             DataFrame([["4", 5, 6], [" ", None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL
         (
             "a,b,c\n4,5,6\n\r",
-            dict(skip_blank_lines=False),
+            {"skip_blank_lines": False},
             DataFrame([[4, 5, 6], [None, None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # ESCAPED_CHAR
         (
             "a,b,c\n4,5,6\n\\",
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF following escape character)|(unexpected end of data)",
         ),
         # ESCAPE_IN_QUOTED_FIELD
         (
             'a,b,c\n4,5,6\n"\\',
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF inside string starting at row 2)|(unexpected end of data)",
         ),
         # IN_QUOTED_FIELD
         (
             'a,b,c\n4,5,6\n"',
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF inside string starting at row 2)|(unexpected end of data)",
         ),
@@ -1502,16 +1502,16 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
     [
         # First, check to see that the response of parser when faced with no
         # provided columns raises the correct error, with or without usecols.
-        ("", dict(), None),
-        ("", dict(usecols=["X"]), None),
+        ("", {}, None),
+        ("", {"usecols": ["X"]}, None),
         (
             ",,",
-            dict(names=["Dummy", "X", "Dummy_2"], usecols=["X"]),
+            {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
             DataFrame(columns=["X"], index=[0], dtype=np.float64),
         ),
         (
             "",
-            dict(names=["Dummy", "X", "Dummy_2"], usecols=["X"]),
+            {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
             DataFrame(columns=["X"]),
         ),
     ],
@@ -1535,19 +1535,21 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
         # gh-8661, gh-8679: this should ignore six lines, including
         # lines with trailing whitespace and blank lines.
         (
-            dict(
-                header=None,
-                delim_whitespace=True,
-                skiprows=[0, 1, 2, 3, 5, 6],
-                skip_blank_lines=True,
-            ),
+            {
+                "header": None,
+                "delim_whitespace": True,
+                "skiprows": [0, 1, 2, 3, 5, 6],
+                "skip_blank_lines": True,
+            },
             DataFrame([[1.0, 2.0, 4.0], [5.1, np.nan, 10.0]]),
         ),
         # gh-8983: test skipping set of rows after a row with trailing spaces.
         (
-            dict(
-                delim_whitespace=True, skiprows=[1, 2, 3, 5, 6], skip_blank_lines=True
-            ),
+            {
+                "delim_whitespace": True,
+                "skiprows": [1, 2, 3, 5, 6],
+                "skip_blank_lines": True,
+            },
             DataFrame({"A": [1.0, 5.1], "B": [2.0, np.nan], "C": [4.0, 10]}),
         ),
     ],
@@ -1717,7 +1719,7 @@ eight,1,2,3"""
 
 def test_iteration_open_handle(all_parsers):
     parser = all_parsers
-    kwargs = dict(squeeze=True, header=None)
+    kwargs = {"squeeze": True, "header": None}
 
     with tm.ensure_clean() as path:
         with open(path, "w") as f:
@@ -1985,10 +1987,10 @@ def test_valid_file_buffer_seems_invalid(all_parsers):
 
 @pytest.mark.parametrize(
     "kwargs",
-    [dict(), dict(error_bad_lines=True)],  # Default is True.  # Explicitly pass in.
+    [{}, {"error_bad_lines": True}],  # Default is True.  # Explicitly pass in.
 )
 @pytest.mark.parametrize(
-    "warn_kwargs", [dict(), dict(warn_bad_lines=True), dict(warn_bad_lines=False)]
+    "warn_kwargs", [{}, {"warn_bad_lines": True}, {"warn_bad_lines": False}]
 )
 def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
     # see gh-15925
