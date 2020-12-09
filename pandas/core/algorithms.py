@@ -447,8 +447,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    if comps.__class__.__name__ == "IntegerArray":
-        comps = comps._data
+    if type(comps).__name__ == "IntegerArray":
+        comps = comps._data  # type: ignore[attr-defined, assignment]
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps.dtype):
