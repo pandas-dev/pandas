@@ -118,6 +118,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
     result_timezone = np.empty(n, dtype='object')
+    new_result = np.empty(n, dtype='O8')
 
     dts.us = dts.ps = dts.as = 0
 
@@ -141,11 +142,17 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
+                if is_ignore:
+                    new_result[i] = int(val)
+                    continue
                 raise ValueError(f"time data '{val}' does not match "
                                  f"format '{fmt}' (match)")
             if len(val) != found.end():
                 if is_coerce:
                     iresult[i] = NPY_NAT
+                    continue
+                if is_ignore:
+                    new_result[i] = int(val)
                     continue
                 raise ValueError(f"unconverted data remains: {val[found.end():]}")
 
@@ -155,6 +162,9 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             if not found:
                 if is_coerce:
                     iresult[i] = NPY_NAT
+                    continue
+                if is_ignore:
+                    new_result[i] = int(val)
                     continue
                 raise ValueError(f"time data {repr(val)} does not match format "
                                  f"{repr(fmt)} (search)")
@@ -315,6 +325,9 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
+            if is_ignore:
+                new_result[i] = int(val)
+                continue
             raise
         if weekday == -1:
             weekday = date(year, month, day).weekday()
@@ -335,11 +348,15 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
+            if is_ignore:
+                new_result[i] = int(val)
+                continue
             raise
 
         result_timezone[i] = timezone
+        new_result[i] = result[i]
 
-    return result, result_timezone.base
+    return new_result, result_timezone.base
 
 
 """
