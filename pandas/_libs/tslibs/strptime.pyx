@@ -77,6 +77,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
+        bint return_object_array = False
 
     assert is_raise or is_ignore or is_coerce
 
@@ -144,6 +145,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                     continue
                 if is_ignore:
                     new_result[i] = int(val)
+                    return_object_array = True
                     continue
                 raise ValueError(f"time data '{val}' does not match "
                                  f"format '{fmt}' (match)")
@@ -153,6 +155,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                     continue
                 if is_ignore:
                     new_result[i] = int(val)
+                    return_object_array = True
                     continue
                 raise ValueError(f"unconverted data remains: {val[found.end():]}")
 
@@ -165,6 +168,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                     continue
                 if is_ignore:
                     new_result[i] = int(val)
+                    return_object_array = True
                     continue
                 raise ValueError(f"time data {repr(val)} does not match format "
                                  f"{repr(fmt)} (search)")
@@ -327,6 +331,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 continue
             if is_ignore:
                 new_result[i] = int(val)
+                return_object_array = True
                 continue
             raise
         if weekday == -1:
@@ -350,13 +355,15 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 continue
             if is_ignore:
                 new_result[i] = int(val)
+                return_object_array = True
                 continue
             raise
 
         result_timezone[i] = timezone
         new_result[i] = result[i]
 
-    return new_result, result_timezone.base
+    if return_object_array: return new_result, result_timezone.base
+    return result, result_timezone.base
 
 
 """
