@@ -403,12 +403,10 @@ if debugging_symbols_requested:
     sys.argv.remove("--with-debugging-symbols")
 
 
-
 if sys.byteorder == "big":
     endian_macro = [("__BIG_ENDIAN__", "1")]
 else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
-
 
 
 extra_compile_args = []
