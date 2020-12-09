@@ -22,12 +22,14 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    Callable,
     Dict,
     FrozenSet,
     Hashable,
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -48,6 +50,7 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axes,
     Axis,
@@ -59,6 +62,8 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    Scalar,
+    Shape,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -643,7 +648,7 @@ class DataFrame(NDFrame, OpsMixin):
         return [self.index, self.columns]
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Shape:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
@@ -1071,7 +1076,9 @@ class DataFrame(NDFrame, OpsMixin):
             s = klass(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index: bool = True, name: Optional[str] = "Pandas"):
+    def itertuples(
+        self, index: bool = True, name: Optional[str] = "Pandas"
+    ) -> Iterable[Tuple]:
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -1161,7 +1168,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    def dot(self, other):
+    def dot(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1271,13 +1278,13 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
         return self.dot(other)
 
-    def __rmatmul__(self, other):
+    def __rmatmul__(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
@@ -1294,7 +1301,13 @@ class DataFrame(NDFrame, OpsMixin):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient="columns", dtype=None, columns=None) -> DataFrame:
+    def from_dict(
+        cls,
+        data,
+        orient: str = "columns",
+        dtype: Optional[Dtype] = None,
+        columns: Optional[List] = None,
+    ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1373,7 +1386,10 @@ class DataFrame(NDFrame, OpsMixin):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
@@ -1440,7 +1456,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def to_dict(self, orient="dict", into=dict):
+    def to_dict(self, orient: str = "dict", into=dict) -> Union[Dict, List, Mapping]:
         """
         Convert the DataFrame to a dictionary.
 
@@ -1615,15 +1631,15 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_gbq(
         self,
-        destination_table,
-        project_id=None,
-        chunksize=None,
-        reauth=False,
-        if_exists="fail",
-        auth_local_webserver=False,
-        table_schema=None,
-        location=None,
-        progress_bar=True,
+        destination_table: str,
+        project_id: Optional[str] = None,
+        chunksize: Optional[int] = None,
+        reauth: bool = False,
+        if_exists: str = "fail",
+        auth_local_webserver: bool = False,
+        table_schema: Optional[List[Dict]] = None,
+        location: Optional[str] = None,
+        progress_bar: bool = True,
         credentials=None,
     ) -> None:
         """
@@ -2478,25 +2494,25 @@ class DataFrame(NDFrame, OpsMixin):
         buf=None,
         columns=None,
         col_space=None,
-        header=True,
-        index=True,
+        header: bool = True,
+        index: bool = True,
         na_rep="NaN",
         formatters=None,
         float_format=None,
         sparsify=None,
-        index_names=True,
+        index_names: bool = True,
         justify=None,
         max_rows=None,
         max_cols=None,
-        show_dimensions=False,
+        show_dimensions: bool = False,
         decimal=".",
-        bold_rows=True,
+        bold_rows: bool = True,
         classes=None,
-        escape=True,
-        notebook=False,
-        border=None,
-        table_id=None,
-        render_links=False,
+        escape: bool = True,
+        notebook: bool = False,
+        border: Optional[int] = None,
+        table_id: Optional[str] = None,
+        render_links: bool = False,
         encoding=None,
     ):
         """
@@ -2708,7 +2724,7 @@ class DataFrame(NDFrame, OpsMixin):
             show_counts=show_counts,
         )
 
-    def memory_usage(self, index=True, deep=False) -> Series:
+    def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
         """
         Return the memory usage of each column in bytes.
 
@@ -2931,7 +2947,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: int = 0):
+    def _ixs(self, i: int, axis: Axis = 0):
         """
         Parameters
         ----------
@@ -3108,7 +3124,7 @@ class DataFrame(NDFrame, OpsMixin):
             # loc is neither a slice nor ndarray, so must be an int
             return self._ixs(loc, axis=1)
 
-    def _get_value(self, index, col, takeable: bool = False):
+    def _get_value(self, index, col, takeable: bool = False) -> Scalar:
         """
         Quickly retrieve single value at passed column and index.
 
@@ -3224,7 +3240,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _set_item(self, key, value):
+    def _set_item(self, key, value) -> None:
         """
         Add series to DataFrame in specified column.
 
@@ -3243,7 +3259,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _set_value(self, index, col, value, takeable: bool = False):
+    def _set_value(self, index, col, value: Scalar, takeable: bool = False) -> None:
         """
         Put single value at passed column and index.
 
@@ -3276,7 +3292,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self.loc[index, col] = value
             self._item_cache.pop(col, None)
 
-    def _ensure_valid_index(self, value):
+    def _ensure_valid_index(self, value) -> None:
         """
         Ensure that if we don't have an index, that we can create one from the
         passed value.
@@ -3311,7 +3327,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def query(self, expr, inplace=False, **kwargs):
+    def query(self, expr: str, inplace: bool = False, **kwargs) -> Optional[DataFrame]:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -3472,10 +3488,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         if inplace:
             self._update_inplace(result)
+            return None
         else:
             return result
 
-    def eval(self, expr, inplace=False, **kwargs):
+    def eval(
+        self, expr: str, inplace: bool = False, **kwargs
+    ) -> Optional[Union[AnyArrayLike, Scalar]]:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -3732,7 +3751,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.iloc[:, keep_these.values]
 
-    def insert(self, loc, column, value, allow_duplicates=False) -> None:
+    def insert(self, loc: int, column, value, allow_duplicates: bool = False) -> None:
         """
         Insert column into DataFrame at specified location.
 
@@ -3846,7 +3865,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, key, value, broadcast=True):
+    def _sanitize_column(self, key, value, broadcast: bool = True) -> np.ndarray:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
@@ -3954,7 +3973,7 @@ class DataFrame(NDFrame, OpsMixin):
         return np.atleast_2d(np.asarray(value))
 
     @property
-    def _series(self):
+    def _series(self) -> "Dict[int, Series]":
         return {
             item: Series(
                 self._mgr.iget(idx), index=self.index, name=item, fastpath=True
@@ -3962,7 +3981,9 @@ class DataFrame(NDFrame, OpsMixin):
             for idx, item in enumerate(self.columns)
         }
 
-    def lookup(self, row_labels, col_labels) -> np.ndarray:
+    def lookup(
+        self, row_labels: Sequence[Label], col_labels: Sequence[Label]
+    ) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
         Given equal-length arrays of row and column labels, return an
@@ -4109,7 +4130,7 @@ class DataFrame(NDFrame, OpsMixin):
         join="outer",
         axis=None,
         level=None,
-        copy=True,
+        copy: bool = True,
         fill_value=None,
         method=None,
         limit=None,
@@ -5912,7 +5933,9 @@ class DataFrame(NDFrame, OpsMixin):
             self, n=n, keep=keep, columns=columns
         ).nsmallest()
 
-    def swaplevel(self, i=-2, j=-1, axis=0) -> DataFrame:
+    def swaplevel(
+        self, i: Union[int, str] = -2, j: Union[int, str] = -1, axis: Axis = 0
+    ) -> DataFrame:
         """
         Swap levels i and j in a MultiIndex on a particular axis.
 
@@ -5943,7 +5966,9 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order, axis=0) -> DataFrame:
+    def reorder_levels(
+        self, order: Union[List[int], List[str]], axis: Axis = 0
+    ) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -6234,7 +6259,11 @@ Keep all original rows and columns and also all original values
         )
 
     def combine(
-        self, other: DataFrame, func, fill_value=None, overwrite=True
+        self,
+        other: DataFrame,
+        func: Callable,
+        fill_value: Optional[Scalar] = None,
+        overwrite: bool = True,
     ) -> DataFrame:
         """
         Perform column-wise combine with another DataFrame.
@@ -6462,7 +6491,12 @@ Keep all original rows and columns and also all original values
         return self.combine(other, combiner, overwrite=False)
 
     def update(
-        self, other, join="left", overwrite=True, filter_func=None, errors="ignore"
+        self,
+        other,
+        join: str = "left",
+        overwrite: bool = True,
+        filter_func: Optional[Callable] = None,
+        errors: str = "ignore",
     ) -> None:
         """
         Modify in place using non-NA values from another DataFrame.
