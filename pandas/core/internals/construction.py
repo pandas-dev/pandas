@@ -644,10 +644,10 @@ def _list_of_dict_to_arrays(
 
 def _finalize_columns_and_data(
     content: np.ndarray,
-    columns,
+    columns: Optional[Union[Index, List]],
     dtype: Optional[DtypeObj],
     coerce_float: bool,
-) -> Tuple[List[np.ndarray], Index]:
+) -> Tuple[List[np.ndarray], Union[Index, List[Axis]]]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
     """
