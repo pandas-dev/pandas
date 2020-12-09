@@ -71,6 +71,15 @@ class TestTimeConversionFormats:
                 else:
                     tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_format_some_invalid_numbers(self):
+        s = Series([20181223, 20161017,20171220,20170511])
+        expected = Series(['2018-12-23', '2016-10-17', '2017-12-20', '2017-05-11'])
+        expected = expected
+        result = to_datetime(s, format="%Y%m%d", errors='ignore')
+        print(result)
+        print(expected)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format_YYYYMMDD(self, cache):
         s = Series([19801222, 19801222] + [19810105] * 5)
