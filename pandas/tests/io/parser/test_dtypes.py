@@ -17,10 +17,9 @@ from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp,
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
 def test_dtype_all_columns(all_parsers, dtype, check_orig):
@@ -47,7 +46,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048
     parser = all_parsers
@@ -57,7 +56,7 @@ def test_dtype_all_columns_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -76,7 +75,7 @@ one,two
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_invalid_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -90,7 +89,7 @@ one,two
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -133,7 +132,7 @@ def test_categorical_dtype_single(all_parsers, dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_dtype_unsorted(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -152,7 +151,7 @@ def test_categorical_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_dtype_missing(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -171,7 +170,7 @@ def test_categorical_dtype_missing(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.slow
 def test_categorical_dtype_high_cardinality_numeric(all_parsers):
     # see gh-18186
@@ -199,7 +198,7 @@ def test_categorical_dtype_latin1(all_parsers, csv_dir_path):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     # see gh-10153
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
@@ -214,7 +213,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_dtype_chunksize_infer_categories(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -234,7 +233,7 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
             tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -335,7 +334,7 @@ def test_categorical_coerces_timestamp(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_categorical_coerces_timedelta(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype(pd.to_timedelta(["1H", "2H", "3H"]))}
@@ -377,7 +376,7 @@ def test_categorical_unexpected_categories(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -391,7 +390,7 @@ def test_empty_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -406,7 +405,7 @@ def test_empty_with_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_multi_index_pass_dtype(all_parsers):
     parser = all_parsers
 
@@ -435,7 +434,7 @@ def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers, pyarrow_xfai
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
     parser = all_parsers
 
@@ -449,7 +448,7 @@ def test_empty_with_mangled_column_pass_dtype_by_indexes(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_dup_column_pass_dtype_by_indexes(all_parsers):
     # see gh-9424
     parser = all_parsers
@@ -478,7 +477,7 @@ def test_empty_with_dup_column_pass_dtype_by_indexes_raises(all_parsers):
         parser.read_csv(StringIO(data), names=["one", "one"], dtype={0: "u1", 1: "f"})
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
     # see gh-2631
     parser = all_parsers
@@ -496,7 +495,7 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_dtype_with_converters(all_parsers):
     parser = all_parsers
     data = """a,b
@@ -512,7 +511,7 @@ def test_dtype_with_converters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "dtype,expected",
     [
@@ -577,7 +576,7 @@ def test_numeric_dtype(all_parsers, dtype):
     tm.assert_frame_equal(expected, result)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
     data = "\n".join(
