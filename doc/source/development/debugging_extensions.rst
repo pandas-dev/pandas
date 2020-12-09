@@ -6,7 +6,7 @@
 Debugging C extensions
 ======================
 
-Pandas uses select C extensions for high performance IO operations. In case you need to debug segfaults or general issues with those extensions, the following steps may be helpful. These steps are geared towards using lldb as a debugger, though the steps for gdb will be similar.
+Pandas uses select C extensions for high performance IO operations. In case you need to debug segfaults or general issues with those extensions, the following steps may be helpful.
 
 First, be sure to compile the extensions with the appropriate flags to generate debug symbols and remove optimizations. This can be achieved as follows:
 
@@ -17,21 +17,45 @@ First, be sure to compile the extensions with the appropriate flags to generate 
 Using a debugger
 ================
 
-You can create a script that hits the extension module you are looking to debug and place it in the project root. Thereafter launch a Python process under lldb:
+Assuming you are on a Unix-like operating system, you can use either lldb or gdb to debug. The choice between either is largely dependent on your compilation toolchain - typically you would use lldb if using clang and gdb if using gcc. For macOS users, please note that ``gcc`` is on modern systems an alias for ``clang``, so if using Xcode you usually opt for lldb. Regardless of which debugger you choose, please refer to your operating systems instructions on how to install.
+
+After installing a debugger you can create a script that hits the extension module you are looking to debug. For demonstration purposes, let's assume you have a script called ``debug_testing.py`` with the following contents:
+
+.. code-block::
+
+   import pandas as pd
+
+   pd.DataFrame([[1, 2]]).to_json()
+
+Place the ``debug_testing.py`` script in the project root and launch a Python process under your debugger. If using lldb:
 
 .. code-block:: sh
 
    lldb python
 
-If desired, set breakpoints at various file locations using the below syntax:
+If using gdb:
 
 .. code-block:: sh
 
-   breakpoint set --file pandas/_libs/src/ujson/python/objToJSON.c --line 1547
+   gdb python
 
-At this point you may get *WARNING:  Unable to resolve breakpoint to any actual locations.*. If you have not yet executed anything it is possible that this module has not been loaded into memory, which is why the location cannot be resolved. You can simply ignore for now as it will bind when we actually execute code.
+Before executing our script, let's set a breakpoint in our JSON serializer in its entry function called ``objToJSON``. The lldb syntax would look as follows:
 
-Finally go ahead and execute your script:
+.. code-block:: sh
+
+   breakpoint set --name objToJSON
+
+Similarly for gdb:
+
+.. code-block:: sh
+
+   break objToJSON
+
+.. note::
+
+   You may get a warning that this breakpoint cannot be resolved in lldb. gdb may give a similar warning and prompt you to make the breakpoint on a future library load, which you should say yes to. This should only happen on the very first invocation as the module you wish to debug has not yet been loaded into memory.
+
+Now go ahead and execute your script:
 
 .. code-block:: sh
 
@@ -39,7 +63,7 @@ Finally go ahead and execute your script:
 
 Code execution will halt at the breakpoint defined or at the occurance of any segfault. LLDB's `GDB to LLDB command map <https://lldb.llvm.org/use/map.html>`_ provides a listing of debugger command that you can execute using either debugger.
 
-Another option to execute the entire test suite under the debugger would be to run the following:
+Another option to execute the entire test suite under lldb would be to run the following:
 
 .. code-block:: sh
 
