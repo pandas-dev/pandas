@@ -1559,7 +1559,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [make_block(new_values, placement=new_placement)]
+        blocks = [make_block(new_values, placement=new_placement, ndim=2)]
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0):
