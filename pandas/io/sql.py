@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, Optional, Union, overload
+from typing import Iterator, List, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -1455,9 +1455,22 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: Optional[List[str]] = None,
+        dtype: Optional[dict] = None,
+        schema: Optional[str] = None,
+    ):
         table = SQLTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
@@ -1588,9 +1601,13 @@ class SQLiteTable(SQLTable):
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
-
+        if self.schema:
+            schema_name = self.schema + "."
+        else:
+            schema_name = ""
         create_stmts = [
             "CREATE TABLE "
+            + schema_name
             + escape(self.name)
             + " (\n"
             + ",\n  ".join(create_tbl_stmts)
@@ -1845,14 +1862,20 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
         table = SQLiteTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None, schema=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1870,7 +1893,12 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+    schema: str, default: None
+        Optional specifying the schema to be used in creating the table.
 
+        .. versionadded:: 1.2.0
     """
     pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(
+        frame, name, keys=keys, dtype=dtype, schema=schema
+    )

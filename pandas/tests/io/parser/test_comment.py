@@ -26,7 +26,7 @@ def test_comment(all_parsers, na_values):
 
 
 @pytest.mark.parametrize(
-    "read_kwargs", [dict(), dict(lineterminator="*"), dict(delim_whitespace=True)]
+    "read_kwargs", [{}, {"lineterminator": "*"}, {"delim_whitespace": True}]
 )
 def test_line_comment(all_parsers, read_kwargs):
     parser = all_parsers
