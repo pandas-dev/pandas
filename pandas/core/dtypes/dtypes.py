@@ -1179,7 +1179,7 @@ class IntervalDtype(PandasExtensionDtype):
 
         from pandas.core.dtypes.cast import find_common_type
 
-        common = find_common_type([x.subtype for x in dtypes])
+        common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:
             return np.dtype(object)
         return IntervalDtype(common)
