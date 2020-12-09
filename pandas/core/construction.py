@@ -520,9 +520,7 @@ def sanitize_array(
 
             # a 1-element ndarray
             if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = construct_1d_arraylike_from_scalar(
-                    subarr[0], len(index), subarr.dtype
-                )
+                subarr = subarr.repeat(len(index))
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
