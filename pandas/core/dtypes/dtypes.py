@@ -47,7 +47,7 @@ class PandasExtensionDtype(ExtensionDtype):
     type: Any
     kind: Any
     # The Any type annotations above are here only because mypy seems to have a
-    # problem dealing with with multiple inheritance from PandasExtensionDtype
+    # problem dealing with multiple inheritance from PandasExtensionDtype
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
     subdtype = None
@@ -399,10 +399,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     def __repr__(self) -> str_type:
         if self.categories is None:
-            data = "None, "
+            data = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
-        return f"CategoricalDtype(categories={data}ordered={self.ordered})"
+            if data is None:
+                # self.categories is RangeIndex
+                data = str(self.categories._range)
+            data = data.rstrip(", ")
+        return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:

@@ -35,7 +35,7 @@ class PyTablesScope(_scope.Scope):
         queryables: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
-        self.queryables = queryables or dict()
+        self.queryables = queryables or {}
 
 
 class Term(ops.Term):
@@ -429,6 +429,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
             value = value.value
         except AttributeError:
             pass
+
+        if isinstance(slobj, Term):
+            # In py39 np.ndarray lookups with Term containing int raise
+            slobj = slobj.value
 
         try:
             return self.const_type(value[slobj], self.env)

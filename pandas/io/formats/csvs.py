@@ -144,7 +144,7 @@ class CSVFormatter:
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
+        # and make sure cols is just a list of labels
         new_cols = self.obj.columns
         if isinstance(new_cols, ABCIndexClass):
             return new_cols._format_native_types(**self._number_format)
@@ -159,13 +159,13 @@ class CSVFormatter:
     @property
     def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
-        return dict(
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            date_format=self.date_format,
-            quoting=self.quoting,
-            decimal=self.decimal,
-        )
+        return {
+            "na_rep": self.na_rep,
+            "float_format": self.float_format,
+            "date_format": self.date_format,
+            "quoting": self.quoting,
+            "decimal": self.decimal,
+        }
 
     @property
     def data_index(self) -> Index:

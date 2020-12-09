@@ -463,12 +463,12 @@ class TestFancy:
 
         # broadcasting on the rhs is required
         df = DataFrame(
-            dict(
-                A=[1, 2, 0, 0, 0],
-                B=[0, 0, 0, 10, 11],
-                C=[0, 0, 0, 10, 11],
-                D=[3, 4, 5, 6, 7],
-            )
+            {
+                "A": [1, 2, 0, 0, 0],
+                "B": [0, 0, 0, 10, 11],
+                "C": [0, 0, 0, 10, 11],
+                "D": [3, 4, 5, 6, 7],
+            }
         )
 
         expected = df.copy()
@@ -743,7 +743,7 @@ class TestMisc:
     def test_indexing_assignment_dict_already_exists(self):
         df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]}).set_index("z")
         expected = df.copy()
-        rhs = dict(x=9, y=99)
+        rhs = {"x": 9, "y": 99}
         df.loc[5] = rhs
         expected.loc[5] = [9, 99]
         tm.assert_frame_equal(df, expected)

@@ -68,7 +68,7 @@ ll_params = [
     ((1,), True, "tuple"),
     (tuple(), True, "tuple-empty"),
     ({"a": 1}, True, "dict"),
-    (dict(), True, "dict-empty"),
+    ({}, True, "dict-empty"),
     ({"a", 1}, "set", "set"),
     (set(), "set", "set-empty"),
     (frozenset({"a", 1}), "set", "frozenset"),
@@ -126,7 +126,7 @@ def test_is_list_like_disallow_sets(maybe_list_like):
 
 def test_is_list_like_recursion():
     # GH 33721
-    # interpreter would crash with with SIGABRT
+    # interpreter would crash with SIGABRT
     def foo():
         inference.is_list_like([])
         foo()
@@ -1489,7 +1489,7 @@ def test_datetimeindex_from_empty_datetime64_array():
 def test_nan_to_nat_conversions():
 
     df = DataFrame(
-        dict({"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")})
+        {"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")}
     )
     df.iloc[3:6, :] = np.nan
     result = df.loc[4, "B"]
