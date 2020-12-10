@@ -124,7 +124,9 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64"
+        [1, 4, 7],
+        index=pd.date_range("1/1/2000", periods=3, freq="3T"),
+        dtype="Float64",
     )
     tm.assert_series_equal(result, expected)
 

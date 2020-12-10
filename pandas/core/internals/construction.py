@@ -398,7 +398,7 @@ def extract_index(data) -> Index:
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
             if len(lengths) > 1:
-                raise ValueError("arrays must all be same length")
+                raise ValueError("All arrays must be of the same length")
 
             if have_dicts:
                 raise ValueError(
@@ -611,7 +611,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: List,
+    data: List[Dict],
     columns: Union[Index, List],
     coerce_float: bool = False,
     dtype: Optional[DtypeObj] = None,
