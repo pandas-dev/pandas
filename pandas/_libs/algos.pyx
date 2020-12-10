@@ -835,11 +835,6 @@ def rank_1d(
     elif rank_t is int64_t:
         mask = values == NPY_NAT
 
-        # create copy in case of NPY_NAT
-        # values are mutated inplace
-        if mask.any():
-            values = values.copy()
-
     # double sort first by mask and then by values to ensure nan values are
     # either at the beginning or the end. mask/(~mask) controls padding at
     # tail or the head
