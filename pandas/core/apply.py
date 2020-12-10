@@ -360,7 +360,7 @@ class FrameRowApply(FrameApply):
         try:
             result = self.obj._constructor(data=results)
         except ValueError as err:
-            if "arrays must all be same length" in str(err):
+            if "All arrays must be of the same length" in str(err):
                 # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
                 #  see test_agg_listlike_result GH#29587
                 res = self.obj._constructor_sliced(results)
