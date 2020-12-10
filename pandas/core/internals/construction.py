@@ -524,39 +524,36 @@ def to_arrays(
             if columns is not None:
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
-    if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
-    elif isinstance(data[0], abc.Mapping):
-        return _list_of_dict_to_arrays(
-            data, columns, coerce_float=coerce_float, dtype=dtype
-        )
-    elif isinstance(data[0], ABCSeries):
-        return _list_of_series_to_arrays(
-            data, columns, coerce_float=coerce_float, dtype=dtype
-        )
+
     elif isinstance(data[0], Categorical):
         if columns is None:
             columns = ibase.default_index(len(data))
         return data, columns
-    elif (
-        isinstance(data, (np.ndarray, ABCSeries, Index))
-        and data.dtype.names is not None
-    ):
 
+    elif isinstance(data, np.ndarray) and data.dtype.names is not None:
+        # e.g. recarray
         columns = list(data.dtype.names)
         arrays = [data[k] for k in columns]
         return arrays, columns
+
+    if isinstance(data[0], (list, tuple)):
+        content, columns = _list_to_arrays(data, columns)
+    elif isinstance(data[0], abc.Mapping):
+        content, columns = _list_of_dict_to_arrays(data, columns)
+    elif isinstance(data[0], ABCSeries):
+        content, columns = _list_of_series_to_arrays(data, columns)
     else:
         # last ditch effort
         data = [tuple(x) for x in data]
-        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
+        content, columns = _list_to_arrays(data, columns)
+
+    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
+    return content, columns
 
 
 def _list_to_arrays(
     data: List[Scalar],
     columns: Union[Index, List],
-    coerce_float: bool = False,
-    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     # Note: we already check len(data) > 0 before getting hre
     if isinstance(data[0], tuple):
@@ -564,14 +561,12 @@ def _list_to_arrays(
     else:
         # list of lists
         content = lib.to_object_array(data)
-    return _finalize_columns_and_data(content, columns, dtype, coerce_float)
+    return content, columns
 
 
 def _list_of_series_to_arrays(
     data: List,
     columns: Union[Index, List],
-    coerce_float: bool = False,
-    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
@@ -596,15 +591,12 @@ def _list_of_series_to_arrays(
 
     content = np.vstack(aligned_values)
 
-    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
     return content, columns
 
 
 def _list_of_dict_to_arrays(
     data: List[Dict],
     columns: Union[Index, List],
-    coerce_float: bool = False,
-    dtype: Optional[DtypeObj] = None,
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     """
     Convert list of dicts to numpy arrays
@@ -619,8 +611,6 @@ def _list_of_dict_to_arrays(
     data : iterable
         collection of records (OrderedDict, dict)
     columns: iterables or None
-    coerce_float : bool
-    dtype : np.dtype
 
     Returns
     -------
@@ -637,7 +627,6 @@ def _list_of_dict_to_arrays(
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
     content = lib.dicts_to_array(data, list(columns))
-    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
     return content, columns
 
 
