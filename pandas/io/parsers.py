@@ -2259,7 +2259,16 @@ class ArrowParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
+        self._validate_kwds()
+
+        if isinstance(self.src, TextIOBase):
+            self.src = BytesIOWrapper(self.src, encoding=self.encoding)
+
+    def _validate_kwds(self):
+        kwds = self.kwds
+        self.encoding = (
+            kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
+        )
 
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         na_values = kwds["na_values"]
@@ -2272,8 +2281,6 @@ class ArrowParserWrapper(ParserBase):
                 kwds["na_values"], keep_default_na=kwds["keep_default_na"]
             )[0]
         )
-        if isinstance(self.src, TextIOBase):
-            self.src = BytesIOWrapper(self.src, encoding=encoding)
 
     def read(self):
         pyarrow = import_optional_dependency("pyarrow.csv")
