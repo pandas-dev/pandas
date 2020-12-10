@@ -10,7 +10,7 @@ on:
 
 env:
   PYTEST_WORKERS: "auto"
-  SQL: 1
+  # SQL: 1
 
 jobs:
   Linux_py38_slow:
@@ -26,23 +26,23 @@ jobs:
       run:
         shell: bash -l {0}
 
-    services:
-      postgres:
-        image: postgres
+    # services:
+    #   postgres:
+    #     image: postgres
 
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pandas_nosetest
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: postgres
+    #       POSTGRES_DB: pandas_nosetest
 
-        ports:
-        - 5432/tcp
+    #     ports:
+    #     - 5432/tcp
 
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    #     options: >-
+    #       --health-cmd pg_isready
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
 
     steps:
 
