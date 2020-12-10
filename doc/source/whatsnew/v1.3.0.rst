@@ -146,7 +146,8 @@ MultiIndex
 I/O
 ^^^
 
--
+- Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`GH35185`)
+
 -
 
 Period

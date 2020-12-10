@@ -764,6 +764,7 @@ class _TestSQLApi(PandasSQLTest):
                     "DateCol": {"errors": error},
                 },
             )
+
             assert issubclass(df.DateCol.dtype.type, np.datetime64)
             assert df.DateCol.tolist() == [
                 Timestamp(2000, 1, 3, 0, 0, 0),
