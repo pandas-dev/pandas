@@ -72,14 +72,12 @@ class TestTimeConversionFormats:
                     tm.assert_index_equal(result, expected)
 
     def test_to_datetime_format_some_invalid_numbers(self):
-        s = Series([20181223, 20161017, -9900, 20171220, 20170511])
-        expected = Series(['2018-12-23', '2016-10-17', -9900,
-                           '2017-12-20', '2017-05-11'])
-        expected = Series([Timestamp(x) if isinstance(x, str) else x for x in expected])
-        result = to_datetime(s, format="%Y%m%d", errors='ignore')
-        print(result)
-        print(expected)
-        tm.assert_series_equal(result, expected, check_dtype=False)
+        ser = Series([20181223, 20161017, -9900, 20171220, 20170511])
+        expected = Series([Timestamp('2018-12-23'), Timestamp('2016-10-17'),
+                           -9900,
+                           Timestamp('2017-12-20'), Timestamp('2017-05-11')])
+        result = to_datetime(ser, format="%Y%m%d", errors='ignore')
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format_YYYYMMDD(self, cache):
