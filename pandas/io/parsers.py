@@ -936,7 +936,7 @@ class TextFileReader(abc.Iterator):
         delim_whitespace = options["delim_whitespace"]
 
         if sep is None and not delim_whitespace:
-            if engine == "c" or engine == "pyarrow":
+            if engine in ("c", "pyarrow"):
                 fallback_reason = (
                     f"the {engine} engine does not support "
                     "sep=None with delim_whitespace=False"
