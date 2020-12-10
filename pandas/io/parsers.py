@@ -868,14 +868,17 @@ class TextFileReader(abc.Iterator):
 
         for argname, default in _parser_defaults.items():
             value = kwds.get(argname, default)
-            if argname in _pyarrow_unsupported:
-                if engine == "pyarrow" and value != default:
-                    raise ValueError(
-                        f"The {repr(argname)} option is not supported with the "
-                        f"'pyarrow' engine"
-                    )
-            # see gh-12935
-            if argname == "mangle_dupe_cols" and not value:
+            if (
+                engine == "pyarrow"
+                and argname in _pyarrow_unsupported
+                and value != default
+            ):
+                raise ValueError(
+                    f"The {repr(argname)} option is not supported with the "
+                    f"'pyarrow' engine"
+                )
+            elif argname == "mangle_dupe_cols" and value is False:
+                # GH12935
                 raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             else:
                 options[argname] = value
