@@ -66,7 +66,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
     VariableWindowIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_apply_func
+from pandas.core.window.numba_ import (
+    generate_numba_apply_func,
+    generate_numba_table_func,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
@@ -418,10 +421,17 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         if self._selected_obj.ndim == 1:
             raise ValueError("method='table' not applicable for Series objects.")
         obj = self._create_data(self._selected_obj)
-        values = self._prep_values(obj)
-        # Need to ensure we wrap this correctly, will return ndarray
+        values = self._prep_values(obj.to_numpy())
         result = homogeneous_func(values)
-        return result
+        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+
+        if out.shape[1] == 0 and obj.shape[1] > 0:
+            raise DataError("No numeric types to aggregate")
+        elif out.shape[1] == 0:
+            return obj.astype("float64")
+
+        self._insert_on_column(out, obj)
+        return out
 
     def _apply(
         self,
@@ -482,7 +492,10 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name)
+        if self.method == "column":
+            return self._apply_blockwise(homogeneous_func, name)
+        else:
+            return self._apply_tablewise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = aggregate(self, func, *args, **kwargs)
@@ -1326,8 +1339,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
-            numba_cache_key = (func, "rolling_apply")
+            if self.method == "column":
+                apply_func = generate_numba_apply_func(
+                    args, kwargs, func, engine_kwargs
+                )
+                numba_cache_key = (func, "rolling_apply_column")
+            else:
+                apply_func = generate_numba_table_func(
+                    args, kwargs, func, engine_kwargs
+                )
+                numba_cache_key = (func, "rolling_apply_table")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
