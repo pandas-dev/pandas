@@ -53,6 +53,8 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from numpy.ma.mrecords import MaskedRecords
+
     from pandas import Series
 
 # ---------------------------------------------------------------------
@@ -96,13 +98,12 @@ def arrays_to_mgr(
 
 
 def masked_rec_array_to_mgr(
-    data, index, columns, dtype: Optional[DtypeObj], copy: bool
+    data: "MaskedRecords", index, columns, dtype: Optional[DtypeObj], copy: bool
 ):
     """
     Extract from a masked rec array and create the manager.
     """
     # essentially process a record array then fill it
-    fill_value = data.fill_value
     fdata = ma.getdata(data)
     if index is None:
         index = get_names_from_index(fdata)
@@ -116,11 +117,11 @@ def masked_rec_array_to_mgr(
 
     # fill if needed
     new_arrays = []
-    for fv, arr, col in zip(fill_value, arrays, arr_columns):
-        # TODO: numpy docs suggest fv must be scalar, but could it be
-        #  non-scalar for object dtype?
-        assert lib.is_scalar(fv), fv
-        mask = ma.getmaskarray(data[col])
+    for col in arr_columns:
+        arr = data[col]
+        fv = arr.fill_value
+
+        mask = ma.getmaskarray(arr)
         if mask.any():
             arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
             arr[mask] = fv
