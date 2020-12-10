@@ -44,7 +44,7 @@ def generate_numba_apply_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    cache_key = (func, "rolling_apply")
+    cache_key = (func, "rolling_apply_column")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
@@ -168,6 +168,7 @@ def generate_numba_table_func(
     kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
+    name: str,
 ):
     """
     Generate a numba jitted function to apply window calculations table-wise
@@ -177,11 +178,16 @@ def generate_numba_table_func(
 
     Parameters
     ----------
+    args : tuple
+        *args to be passed into the function
+    kwargs : dict
+        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
-
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
+    name : str
+        original method name for numba cache key
 
     Returns
     -------
@@ -189,8 +195,7 @@ def generate_numba_table_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    # TODO: change this key
-    cache_key = (func, "rolling_apply")
+    cache_key = (func, f"rolling_{name}_table")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 

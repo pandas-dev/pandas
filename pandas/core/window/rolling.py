@@ -1346,7 +1346,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 numba_cache_key = (func, "rolling_apply_column")
             else:
                 apply_func = generate_numba_table_func(
-                    args, kwargs, func, engine_kwargs
+                    args, kwargs, func, engine_kwargs, "apply"
                 )
                 numba_cache_key = (func, "rolling_apply_table")
         elif engine in ("cython", None):
