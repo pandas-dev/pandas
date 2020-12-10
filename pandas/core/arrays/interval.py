@@ -1449,6 +1449,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 return np.zeros(self.shape, dtype=bool)
 
             if is_dtype_equal(self.dtype, values.dtype):
+                # GH#38353 instead of casting to object, operating on a
+                #  complex128 ndarray is much more performant.
+
                 # error: "ArrayLike" has no attribute "view"  [attr-defined]
                 left = self._combined.view("complex128")  # type:ignore[attr-defined]
                 right = values._combined.view("complex128")
