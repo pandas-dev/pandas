@@ -23,9 +23,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-def mask_missing(
-    arr: ArrayLike, values_to_mask: Union[List, Tuple, Scalar]
-) -> np.ndarray:
+def mask_missing(arr: ArrayLike, values_to_mask: ArrayLike) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True

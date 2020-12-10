@@ -33,7 +33,14 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    Dtype,
+    DtypeObj,
+    PandasScalar,
+    Scalar,
+)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -834,8 +841,8 @@ def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
 
 
 def infer_dtype_from_array(
-    arr, pandas_dtype: bool = False
-) -> Tuple[DtypeObj, ArrayLike]:
+    arr: Union[ArrayLike, PandasScalar], pandas_dtype: bool = False
+) -> Tuple[Dtype, ArrayLike]:
     """
     Infer the dtype from an array.
 
