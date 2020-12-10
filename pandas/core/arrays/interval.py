@@ -280,7 +280,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         result._left = left
         result._right = right
-        result._closed = closed
         if verify_integrity:
             result._validate()
         return result
