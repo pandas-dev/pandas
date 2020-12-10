@@ -149,8 +149,13 @@ class SpecificationError(Exception):
 
 class SelectionMixin:
     """
-    mixin implementing the selection & aggregation interface on a group-like
+    Mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
+
+    obj : FrameOrSeries
+        Target object for the selection and aggregation.
+    exclusions : set, optional
+        Columns to exclude.
     """
 
     obj: Any
