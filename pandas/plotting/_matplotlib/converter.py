@@ -1072,12 +1072,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        # pandas\plotting\_matplotlib\converter.py:1075: error: Argument 1 to
-        # "int" has incompatible type "Union[ndarray, generic]"; expected
-        # "Union[str, bytes, SupportsInt, _SupportsIndex]"  [arg-type]
-        n_decimals = int(
-            np.ceil(np.log10(100 * 1e9 / abs(vmax - vmin)))  # type: ignore[arg-type]
-        )
+        n_decimals = int(np.ceil(np.log10(100 * 1e9 / abs(vmax - vmin))))
         if n_decimals > 9:
             n_decimals = 9
         return self.format_timedelta_ticks(x, pos, n_decimals)

@@ -4057,11 +4057,7 @@ class DataFrame(NDFrame, OpsMixin):
             if (cidx == -1).any():
                 raise KeyError("One or more column labels was not found")
             flat_index = ridx * len(self.columns) + cidx
-            # pandas\core\frame.py:4011: error: Invalid index type
-            # "Union[ndarray, generic]" for "flatiter[ndarray]"; expected type
-            # "Union[int, integer, Sequence[Union[int, integer]],
-            # Sequence[Sequence[Any]], ndarray, slice, ellipsis]"  [index]
-            result = values.flat[flat_index]  # type: ignore[index]
+            result = values.flat[flat_index]
         else:
             result = np.empty(n, dtype="O")
             for i, (r, c) in enumerate(zip(row_labels, col_labels)):

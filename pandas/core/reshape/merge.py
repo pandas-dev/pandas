@@ -1114,12 +1114,7 @@ class _MergeOperation:
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
-                    # pandas\core\reshape\merge.py:1116: error: Unsupported
-                    # operand type for ~ ("Union[ndarray, generic]")
-                    # [operator]
-                    if not (lk == lk.astype(rk.dtype))[
-                        ~np.isnan(lk)  # type: ignore[operator]
-                    ].all():
+                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
@@ -1129,12 +1124,7 @@ class _MergeOperation:
                     continue
 
                 elif is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
-                    # pandas\core\reshape\merge.py:1126: error: Unsupported
-                    # operand type for ~ ("Union[ndarray, generic]")
-                    # [operator]
-                    if not (rk == rk.astype(lk.dtype))[
-                        ~np.isnan(rk)  # type: ignore[operator]
-                    ].all():
+                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "

@@ -105,13 +105,7 @@ def _generate_range_overflow_safe(
         # if periods * strides cannot be multiplied within the *uint64* bounds,
         #  we cannot salvage the operation by recursing, so raise
         try:
-            # pandas\core\arrays\_ranges.py:108: error: Argument 1 to
-            # "unsignedinteger" has incompatible type "Union[ndarray,
-            # generic]"; expected "Union[SupportsInt, Union[str, bytes],
-            # SupportsIndex]"  [arg-type]
-            addend = np.uint64(periods) * np.uint64(
-                np.abs(stride)  # type: ignore[arg-type]
-            )
+            addend = np.uint64(periods) * np.uint64(np.abs(stride))
         except FloatingPointError as err:
             raise OutOfBoundsDatetime(msg) from err
 

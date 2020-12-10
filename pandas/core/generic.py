@@ -10010,9 +10010,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # error: Incompatible return value type (got "Union[ndarray, generic]",
-        # expected "FrameOrSeries")
-        return np.abs(self)  # type: ignore[return-value]
+        return np.abs(self)
 
     @final
     def describe(
@@ -10840,12 +10838,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             demeaned = data - data.mean(axis=0)
         else:
             demeaned = data.sub(data.mean(axis=1), axis=0)
-        # pandas\core\generic.py:10698: error: No overload variant of "mean" of
-        # "_ArrayOrScalarCommon" matches argument types "Any", "Any"
-        # [call-overload]
-        return np.abs(demeaned).mean(
-            axis=axis, skipna=skipna  # type: ignore[call-overload]
-        )
+        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
     @classmethod
     def _add_numeric_operations(cls):

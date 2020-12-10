@@ -3253,11 +3253,7 @@ class MultiIndex(Index):
                 # Set order as given in the indexer list
                 level_indexer = self.levels[i].get_indexer(k)
                 level_indexer = level_indexer[level_indexer >= 0]  # Filter absent keys
-                # pandas\core\indexes\multi.py:3236: error: Unsupported target
-                # for indexed assignment ("Union[ndarray, generic]")  [index]
-                key_order_map[level_indexer] = np.arange(  # type: ignore[index]
-                    len(level_indexer)
-                )
+                key_order_map[level_indexer] = np.arange(len(level_indexer))
 
                 new_order = key_order_map[self.codes[i][indexer]]
             else:

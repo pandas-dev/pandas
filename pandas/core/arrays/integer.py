@@ -359,18 +359,13 @@ class IntegerArray(BaseMaskedArray):
         super().__init__(values, mask, copy=copy)
 
     def __neg__(self):
-        # pandas\core\arrays\integer.py:362: error: Argument 1 to
-        # "IntegerArray" has incompatible type "Union[ndarray, generic]";
-        # expected "ndarray"  [arg-type]
-        return type(self)(-self._data, self._mask)  # type: ignore[arg-type]
+        return type(self)(-self._data, self._mask)
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        # error: Argument 1 to "IntegerArray" has incompatible type
-        # "Union[ndarray, generic]"; expected "ndarray"
-        return type(self)(np.abs(self._data), self._mask)  # type: ignore[arg-type]
+        return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
     def _from_sequence(

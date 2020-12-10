@@ -160,10 +160,15 @@ jobs:
       run: |
         conda env update -n pandas-dev --file=environment.yml
         conda list
-    - name: Update numpy using wheel from nightly
+    # - name: Update numpy using wheel from nightly
+    #   run: |
+    #     source activate pandas-dev
+    #     pip install -U --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple --pre numpy
+    #     conda list
+    - name: Update numpy to release candidate
       run: |
         source activate pandas-dev
-        pip install -U --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple --pre numpy
+        pip install numpy==1.20.0rc1
         conda list
     - name: Remove pandas
       run: |

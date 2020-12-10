@@ -1607,13 +1607,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             )
             # TODO(GH-22046) - setting with iloc broken if labels are not unique
             # .values to remove labels
-
-            # pandas\core\groupby\groupby.py:1567: error: Item "ndarray" of
-            # "Union[ndarray, generic]" has no attribute "values"  [union-attr]
-
-            # pandas\core\groupby\groupby.py:1567: error: Item "generic" of
-            # "Union[ndarray, generic]" has no attribute "values"  [union-attr]
-            tmp = np.sqrt(self.count().iloc[:, cols]).values  # type: ignore[union-attr]
+            tmp = np.sqrt(self.count().iloc[:, cols]).values
             result.iloc[:, cols] = result.iloc[:, cols].values / tmp
         return result
 

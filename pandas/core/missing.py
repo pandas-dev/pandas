@@ -729,10 +729,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             return f_idx
         else:
             b_idx_inv = list(inner(invalid[::-1], bw_limit))
-            # pandas\core\missing.py:721: error: Argument 1 to "set" has
-            # incompatible type "Union[ndarray, generic]"; expected
-            # "Iterable[Any]"  [arg-type]
-            b_idx = set(N - 1 - np.asarray(b_idx_inv))  # type: ignore[arg-type]
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))
             if fw_limit == 0:
                 return b_idx
 

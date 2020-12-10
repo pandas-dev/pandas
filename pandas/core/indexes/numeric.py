@@ -427,10 +427,7 @@ class Float64Index(NumericIndex):
         if super().__contains__(other):
             return True
 
-        # error: Incompatible return value type (got "Union[Any, ndarray,
-        # generic]", expected "bool")
-        tmp = is_float(other) and np.isnan(other) and self.hasnans
-        return tmp  # type: ignore[return-value]
+        return is_float(other) and np.isnan(other) and self.hasnans
 
     @cache_readonly
     def is_unique(self) -> bool:

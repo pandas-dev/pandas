@@ -866,10 +866,7 @@ class Block(PandasObject):
             an element-wise regular expression matching
             """
             if isna(s):
-                # pandas\core\internals\blocks.py:844: error: Incompatible
-                # return value type (got "Union[ndarray, integer, bool_]",
-                # expected "ndarray")  [return-value]
-                return ~mask  # type: ignore[return-value]
+                return ~mask
 
             s = maybe_box_datetimelike(s)
             # error: Incompatible return value type (got "Union[ndarray,
@@ -1530,16 +1527,7 @@ class Block(PandasObject):
             if m.any():
                 result = cast(np.ndarray, result)  # EABlock overrides where
 
-                # pandas\core\internals\blocks.py:1478: error: Item "integer"
-                # of "Union[ndarray, integer, bool_]" has no attribute
-                # "nonzero"  [union-attr]
-
-                # pandas\core\internals\blocks.py:1478: error: Item "bool_" of
-                # "Union[ndarray, integer, bool_]" has no attribute "nonzero"
-                # [union-attr]
-                taken = result.take(
-                    m.nonzero()[0], axis=axis  # type: ignore[union-attr]
-                )
+                taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)

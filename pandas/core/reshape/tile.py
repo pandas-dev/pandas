@@ -604,17 +604,9 @@ def _round_frac(x, precision: int):
     if not np.isfinite(x) or x == 0:
         return x
     else:
-        # error: 'numpy.generic' object is not iterable
-        frac, whole = np.modf(x)  # type: ignore[misc]
+        frac, whole = np.modf(x)
         if whole == 0:
-            # pandas\core\reshape\tile.py:610: error: Argument 1 to "int" has
-            # incompatible type "Union[ndarray, generic]"; expected "Union[str,
-            # bytes, SupportsInt, _SupportsIndex]"  [arg-type]
-            digits = (
-                -int(np.floor(np.log10(abs(frac))))  # type: ignore[arg-type]
-                - 1
-                + precision
-            )
+            digits = -int(np.floor(np.log10(abs(frac)))) - 1 + precision
         else:
             digits = precision
         return np.around(x, digits)

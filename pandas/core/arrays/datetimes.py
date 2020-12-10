@@ -1849,15 +1849,7 @@ default 'raise'
         month[testarr] += 12
         return (
             day
-            # pandas\core\arrays\datetimes.py:1845: error: Unsupported operand
-            # types for / ("generic" and "int")  [operator]
-            # pandas\core\arrays\datetimes.py:1845: error: Unsupported operand
-            # types for - ("generic" and "int")  [operator]
-            # pandas\core\arrays\datetimes.py:1845: note: Left operand is of
-            # type "Union[ndarray, generic]"
-            # pandas\core\arrays\datetimes.py:1845: note: Left operand is of
-            # type "Union[ndarray, generic, int]"
-            + np.fix((153 * month - 457) / 5)  # type: ignore[operator]
+            + np.fix((153 * month - 457) / 5)
             + 365 * year
             + np.floor(year / 4)
             - np.floor(year / 100)

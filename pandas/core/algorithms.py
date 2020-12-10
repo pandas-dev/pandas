@@ -1256,24 +1256,13 @@ class SelectNSeries(SelectN):
         # fast method
         arr, pandas_dtype = _ensure_data(dropped.values)
         if method == "nlargest":
-            # pandas\core\algorithms.py:1264: error: Incompatible types in
-            # assignment (expression has type "Union[ndarray, generic]",
-            # variable has type "ndarray")  [assignment]
-            arr = -arr  # type: ignore[assignment]
+            arr = -arr
             if is_integer_dtype(pandas_dtype):
                 # GH 21426: ensure reverse ordering at boundaries
                 arr -= 1
 
             elif is_bool_dtype(pandas_dtype):
-                # GH 26154: ensure False is smaller than True
-
-                # pandas\core\algorithms.py:1269: error: Incompatible types in
-                # assignment (expression has type "Union[ndarray, generic]",
-                # variable has type "ndarray")  [assignment]
-
-                # pandas\core\algorithms.py:1275: error: Unsupported operand
-                # types for - ("int" and "generic")  [operator]
-                arr = 1 - (-arr)  # type: ignore[assignment,operator]
+                arr = 1 - (-arr)
 
         if self.keep == "last":
             arr = arr[::-1]

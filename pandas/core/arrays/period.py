@@ -682,10 +682,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
-            # pandas\core\arrays\period.py:679: error: Incompatible types in
-            # assignment (expression has type "Union[ndarray, generic]",
-            # variable has type "ndarray")  [assignment]
-            other = -other  # type: ignore[assignment]
+            other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
         res_values = res_values.view("i8")
         res_values[self._isnan] = iNaT

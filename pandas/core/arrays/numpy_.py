@@ -389,10 +389,7 @@ class PandasArray(
     # Ops
 
     def __invert__(self):
-        # pandas\core\arrays\numpy_.py:376: error: Argument 1 to "PandasArray"
-        # has incompatible type "Union[ndarray, integer, bool_]"; expected
-        # "Union[ndarray, PandasArray]"  [arg-type]
-        return type(self)(~self._ndarray)  # type: ignore[arg-type]
+        return type(self)(~self._ndarray)
 
     def _cmp_method(self, other, op):
         if isinstance(other, PandasArray):
