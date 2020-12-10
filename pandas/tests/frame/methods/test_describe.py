@@ -363,7 +363,7 @@ class TestDataFrameDescribe:
 
     def test_describe_does_not_raise_error(self):
         # GH#32409
-        df = pd.DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
+        df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
         expected = DataFrame(
             {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
         )
