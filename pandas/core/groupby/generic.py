@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import algorithms, nanops
 from pandas.core.aggregation import (
     agg_list_like,
     aggregate,
@@ -57,13 +58,12 @@ from pandas.core.aggregation import (
     reconstruct_func,
     validate_func_kwargs,
 )
-import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
-from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame
+from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
@@ -531,7 +531,7 @@ class SeriesGroupBy(GroupBy[Series]):
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
 
-            if isinstance(res, (ABCDataFrame, ABCSeries)):
+            if isinstance(res, (DataFrame, Series)):
                 res = res._values
 
             results.append(klass(res, index=group.index))
@@ -1087,7 +1087,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
             try:
-                result, _ = self.grouper._cython_operation(
+                result = self.grouper._cython_operation(
                     "aggregate", bvalues, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
@@ -1825,5 +1825,47 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             results.index = ibase.default_index(len(results))
             self._insert_inaxis_grouper_inplace(results)
         return results
+
+    @Appender(DataFrame.idxmax.__doc__)
+    def idxmax(self, axis=0, skipna: bool = True):
+        axis = DataFrame._get_axis_number(axis)
+        numeric_only = None if axis == 0 else False
+
+        def func(df):
+            # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
+            res = df._reduce(
+                nanops.nanargmax,
+                "argmax",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+            )
+            indices = res._values
+            index = df._get_axis(axis)
+            result = [index[i] if i >= 0 else np.nan for i in indices]
+            return df._constructor_sliced(result, index=res.index)
+
+        return self._python_apply_general(func, self._obj_with_exclusions)
+
+    @Appender(DataFrame.idxmin.__doc__)
+    def idxmin(self, axis=0, skipna: bool = True):
+        axis = DataFrame._get_axis_number(axis)
+        numeric_only = None if axis == 0 else False
+
+        def func(df):
+            # NB: here we use numeric_only=None, in DataFrame it is False GH#38217
+            res = df._reduce(
+                nanops.nanargmin,
+                "argmin",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+            )
+            indices = res._values
+            index = df._get_axis(axis)
+            result = [index[i] if i >= 0 else np.nan for i in indices]
+            return df._constructor_sliced(result, index=res.index)
+
+        return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby

@@ -15,7 +15,6 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_dtype_equal,
     is_float,
     is_integer,
     is_list_like,
@@ -356,9 +355,9 @@ class RangeIndex(Int64Index):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @Appender(_index_shared_docs["get_indexer"])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
         if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
-            return super().get_indexer(
+            return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
 
@@ -372,7 +371,7 @@ class RangeIndex(Int64Index):
         target_array = np.asarray(target)
         if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
@@ -482,42 +481,6 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
     # Set Operations
-
-    def intersection(self, other, sort=False):
-        """
-        Form the intersection of two Index objects.
-
-        Parameters
-        ----------
-        other : Index or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        intersection : Index
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other) and not self.has_duplicates:
-            # has_duplicates check is unnecessary for RangeIndex, but
-            #  used to match other subclasses.
-            return self._get_reconciled_name_object(other)
-
-        if not is_dtype_equal(self.dtype, other.dtype):
-            return super().intersection(other, sort=sort)
-
-        result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
 
     def _intersection(self, other, sort=False):
 
@@ -666,6 +629,8 @@ class RangeIndex(Int64Index):
     def difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
             return super().difference(other, sort=sort)

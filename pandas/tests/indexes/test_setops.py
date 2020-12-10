@@ -424,6 +424,18 @@ class TestSetOps:
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_difference_name_retention_equals(self, index, sort, names):
+        if isinstance(index, MultiIndex):
+            names = [[x] * index.nlevels for x in names]
+        index = index.rename(names[0])
+        other = index.rename(names[1])
+
+        assert index.equals(other)
+
+        result = index.difference(other)
+        expected = index[:0].rename(names[2])
+        tm.assert_index_equal(result, expected)
+
     def test_intersection_difference_match_empty(self, index, sort):
         # GH#20040
         # Test that the intersection of an index with an
