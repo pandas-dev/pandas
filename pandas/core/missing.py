@@ -481,8 +481,8 @@ def _akima_interpolate(
 
 
 def _cubicspline_interpolate(
-    xi: ArrayLike,
-    yi: ArrayLike,
+    xi: np.ndarray,
+    yi: np.ndarray,
     x: Union[ArrayLike, Scalar],
     axis: int = 0,
     bc_type: Union[str, Tuple] = "not-a-knot",
