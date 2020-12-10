@@ -2273,7 +2273,7 @@ class ArrowParserWrapper(ParserBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
 
     def read(self):
-        pyarrow = import_optional_dependency("pyarrow.csv", min_version="0.15.0")
+        pyarrow = import_optional_dependency("pyarrow.csv")
         kwdscopy = {k: v for k, v in self.kwds.items() if v is not None}
         # these are kwargs passed to pyarrow
         parseoptions = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
