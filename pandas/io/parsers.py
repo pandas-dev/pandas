@@ -452,20 +452,20 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
             kwds["parse_dates"] = True
 
     # Extract some of the arguments (pass chunksize on).
+
     iterator = kwds.get("iterator", False)
+    if kwds.get("engine") == "pyarrow" and iterator is True:
+        raise ValueError(
+            "The 'iterator' option is not supported with the 'pyarrow' engine"
+        )
+
     chunksize = kwds.get("chunksize", None)
-    # chunksize and iterator not supported for pyarrow
-    if kwds.get("engine") == "pyarrow":
-        if iterator:
-            raise ValueError(
-                "The 'iterator' option is not supported with the 'pyarrow' engine"
-            )
-        if chunksize is not None:
-            raise ValueError(
-                "The 'chunksize' option is not supported with the 'pyarrow' engine"
-            )
-    else:
-        chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    if kwds.get("engine") == "pyarrow" and chunksize is not None:
+        raise ValueError(
+            "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        )
+    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
