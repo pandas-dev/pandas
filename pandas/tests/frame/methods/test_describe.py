@@ -385,5 +385,11 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         tm.assert_frame_equal(result, expected)
-        exp_repr = " test\n" "count 2\n" "unique 2\n" "top {'a': '1'}\n" "freq 1"
+        exp_repr = (
+            "              test\n" 
+            "count            2\n" 
+            "unique           2\n" 
+            "top     {'a': '1'}\n" 
+            "freq               1"
+        )
         assert repr(result) == exp_repr
