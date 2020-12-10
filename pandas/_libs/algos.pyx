@@ -824,7 +824,7 @@ def rank_1d(
         if values.dtype != np.object_:
             values = values.astype('O')
     else:
-        values = np.asarray(in_arr)
+        values = np.asarray(in_arr).copy()
 
     keep_na = na_option == 'keep'
 
