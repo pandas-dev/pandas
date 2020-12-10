@@ -24,7 +24,6 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
-import pandas.core.missing as missing
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
@@ -496,9 +495,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ibase.ensure_index(target)
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
 
         self._check_indexing_method(method)
 
