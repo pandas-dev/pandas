@@ -3211,12 +3211,17 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _iset_item(self, loc: int, value, inplace: bool = False):
+    def _iset_item_mgr(self, loc: int, value, inplace: bool = False) -> None:
+        self._mgr.iset(loc, value, inplace=inplace)
+        self._clear_item_cache()
 
+    def _iset_item(
+        self, loc: int, value, *, broadcast: bool = False, inplace: bool = False
+    ):
         # technically _sanitize_column expects a label, not a position,
         #  but the behavior is the same as long as we pass broadcast=False
-        value = self._sanitize_column(loc, value, broadcast=False)
-        NDFrame._iset_item(self, loc, value, inplace=inplace)
+        value = self._sanitize_column(loc, value, broadcast=broadcast)
+        self._iset_item_mgr(loc, value, inplace=inplace)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3235,7 +3240,14 @@ class DataFrame(NDFrame, OpsMixin):
         ensure homogeneity.
         """
         value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
+
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+        else:
+            self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
