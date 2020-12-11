@@ -121,29 +121,6 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
-    """
-    Infer and return an integer array of the values.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : dtype, optional
-        dtype to coerce
-    copy : bool, default False
-
-    Returns
-    -------
-    IntegerArray
-
-    Raises
-    ------
-    TypeError if incompatible types
-    """
-    values, mask = coerce_to_array(values, dtype=dtype, copy=copy)
-    return IntegerArray(values, mask)
-
-
 def safe_cast(values, dtype, copy: bool):
     """
     Safely cast the values to the dtype if they
@@ -360,7 +337,8 @@ class IntegerArray(NumericArray):
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
-        return integer_array(scalars, dtype=dtype, copy=copy)
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
