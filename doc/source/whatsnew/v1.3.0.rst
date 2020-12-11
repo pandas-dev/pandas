@@ -202,6 +202,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`35417`)
 -
 -
