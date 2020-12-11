@@ -2,12 +2,22 @@
 Routines for filling missing data.
 """
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, DtypeObj, IndexLabel, Scalar
+from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, IndexLabel, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -20,11 +30,11 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas import Index, Series
+    from pandas import Index
 
 
 def mask_missing(
-    arr: ArrayLike, values_to_mask: "Union[ArrayLike, Scalar, Series]"
+    arr: ArrayLike, values_to_mask: Union[AnyArrayLike, Scalar, Sequence[Any]]
 ) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
