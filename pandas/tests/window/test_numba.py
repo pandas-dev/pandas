@@ -124,28 +124,29 @@ def test_invalid_kwargs_nopython():
 
 
 @td.skip_if_no("numba", "0.46.0")
-def test_table_series_valueerror():
-    def f(x):
-        return np.sum(x, axis=0) + 1
+class TestTableMethod:
+    def test_table_series_valueerror(self):
+        def f(x):
+            return np.sum(x, axis=0) + 1
 
-    with pytest.raises(
-        ValueError, match="method='table' not applicable for Series objects."
-    ):
-        Series(range(1)).rolling(1, method="table").apply(f, engine="numba", raw=True)
+        with pytest.raises(
+            ValueError, match="method='table' not applicable for Series objects."
+        ):
+            Series(range(1)).rolling(1, method="table").apply(
+                f, engine="numba", raw=True
+            )
 
+    def test_table_method(self, axis, center, closed, nogil, parallel, nopython):
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-@td.skip_if_no("numba", "0.46.0")
-def test_table_method(axis, center, closed, nogil, parallel, nopython):
-    engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        def f(x):
+            return np.sum(x, axis=0) + 1
 
-    def f(x):
-        return np.sum(x, axis=0) + 1
-
-    df = DataFrame(np.eye(3))
-    result = df.rolling(
-        2, method="table", axis=axis, center=center, closed=closed
-    ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
-    expected = df.rolling(
-        2, method="column", axis=axis, center=center, closed=closed
-    ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
-    tm.assert_frame_equal(result, expected)
+        df = DataFrame(np.eye(3))
+        result = df.rolling(
+            2, method="table", axis=axis, center=center, closed=closed
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+        expected = df.rolling(
+            2, method="column", axis=axis, center=center, closed=closed
+        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+        tm.assert_frame_equal(result, expected)
