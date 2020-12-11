@@ -127,7 +127,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.loc`, :meth:`Series.loc`, :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` returning incorrect elements for non-monotonic :class:`DatetimeIndex` for string slices (:issue:`33146`)
 -
 
