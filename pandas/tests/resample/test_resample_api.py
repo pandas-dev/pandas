@@ -614,8 +614,7 @@ def test_resample_agg_readonly():
 
 
 @pytest.mark.parametrize(
-    "start,end,freq,data,resample_freq,origin,closed,"
-    "exp_data,exp_end,exp_periods",
+    "start,end,freq,data,resample_freq,origin,closed,exp_data,exp_end,exp_periods",
     [
         (
             "2000-10-01 23:30:00",
@@ -679,17 +678,13 @@ def test_end_and_end_day_origin(
     exp_end,
     exp_periods,
 ):
-    rng = pd.date_range(start, end, freq=freq)
-    ts = pd.Series(data, index=rng)
+    rng = date_range(start, end, freq=freq)
+    ts = Series(data, index=rng)
 
     res = ts.resample(resample_freq, origin=origin, closed=closed).sum()
-    expected = pd.Series(
+    expected = Series(
         exp_data,
-        index=pd.date_range(
-            end=exp_end,
-            freq=resample_freq,
-            periods=exp_periods
-        ),
+        index=date_range(end=exp_end, freq=resample_freq, periods=exp_periods),
     )
 
     tm.assert_series_equal(res, expected)
