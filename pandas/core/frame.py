@@ -645,6 +645,7 @@ class DataFrame(NDFrame, OpsMixin):
             New DataFrame using specified manager type. Is not guaranteed
             to be a copy or not.
         """
+        new_mgr: Union[BlockManager, ArrayManager]
         mgr = self._mgr
         if typ == "block":
             if isinstance(mgr, BlockManager):
@@ -6087,7 +6088,10 @@ class DataFrame(NDFrame, OpsMixin):
             #  fails in cases with empty columns reached via
             #  _frame_arith_method_with_reindex
 
-            bm = self._mgr.operate_blockwise(right._mgr, array_op)
+            # TODO operate_blockwise expects a manager of the same type
+            bm = self._mgr.operate_blockwise(
+                right._mgr, array_op  # type: ignore[arg-type]
+            )
             return type(self)(bm)
 
         elif isinstance(right, Series) and axis == 1:

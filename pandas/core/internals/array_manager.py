@@ -1,7 +1,7 @@
 """
 Experimental manager based on storing a collection of 1D arrays
 """
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar, Union
 
 import numpy as np
 
@@ -59,12 +59,12 @@ class ArrayManager(DataManager):
     ]
 
     arrays: List[Union[np.ndarray, ExtensionArray]]
-    axes: Sequence[Index]
+    _axes: List[Index]
 
     def __init__(
         self,
         arrays: List[Union[np.ndarray, ExtensionArray]],
-        axes: Sequence[Index],
+        axes: List[Index],
         do_integrity_check: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
@@ -81,7 +81,7 @@ class ArrayManager(DataManager):
         if axes is None:
             axes = [self.axes[1:], Index([])]
 
-        arrays = []
+        arrays: List[Union[np.ndarray, ExtensionArray]] = []
         return type(self)(arrays, axes)
 
     @property
@@ -89,7 +89,9 @@ class ArrayManager(DataManager):
         return self._axes[1]
 
     @property
-    def axes(self) -> Sequence[Index]:
+    def axes(self) -> List[Index]:  # type: ignore[override]
+        # mypy doesn't work to override attribute with property
+        # see https://github.com/python/mypy/issues/4125
         """Axes is BlockManager-compatible order (columns, rows)"""
         return [self._axes[1], self._axes[0]]
 
@@ -166,8 +168,11 @@ class ArrayManager(DataManager):
                     f"got {type(arr)} instead"
                 )
 
-    def reduce(self: T, func) -> T:
+    def reduce(
+        self: T, func: Callable, ignore_failures: bool = False
+    ) -> Tuple[T, np.ndarray]:
         # TODO this still fails because `func` assumes to work on 2D arrays
+        # TODO implement ignore_failures
         assert self.ndim == 2
 
         res_arrays = []
@@ -177,7 +182,8 @@ class ArrayManager(DataManager):
 
         index = Index([0])  # placeholder
         new_mgr = type(self)(res_arrays, [index, self.items])
-        return new_mgr
+        indexer = np.arange(self.shape[0])
+        return new_mgr, indexer
 
     def operate_blockwise(self, other: "ArrayManager", array_op) -> "ArrayManager":
         """
@@ -186,7 +192,9 @@ class ArrayManager(DataManager):
         # TODO what if `other` is BlockManager ?
         left_arrays = self.arrays
         right_arrays = other.arrays
-        result_arrays = [array_op(l, r) for l, r in zip(left_arrays, right_arrays)]
+        result_arrays = [
+            array_op(left, right) for left, right in zip(left_arrays, right_arrays)
+        ]
         return type(self)(result_arrays, self._axes)
 
     def apply(
@@ -255,6 +263,7 @@ class ArrayManager(DataManager):
             result_arrays.append(applied)
             result_indices.append(i)
 
+        new_axes: List[Index]
         if ignore_failures:
             # TODO copy?
             new_axes = [self._axes[0], self._axes[1][result_indices]]
@@ -288,9 +297,9 @@ class ArrayManager(DataManager):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[[i]]
 
-            if hasattr(arr, "tz") and arr.tz is None:
+            if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
-                arr = arr._data
+                arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
@@ -720,6 +729,9 @@ class ArrayManager(DataManager):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        # ignored keywords
+        consolidate: bool = True,
+        only_slice: bool = False,
     ) -> T:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
@@ -823,6 +835,10 @@ class ArrayManager(DataManager):
         values = np.empty(self.shape_proper[0], dtype=dtype)
         values.fill(fill_value)
         return values
+
+    def equals(self, other: object) -> bool:
+        # TODO
+        raise NotImplementedError
 
     def unstack(self, unstacker, fill_value) -> "ArrayManager":
         """

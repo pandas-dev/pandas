@@ -5700,11 +5700,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY
+        Internal ONLY - only works for BlockManager
         """
+        mgr = self._mgr
+        mgr = cast(BlockManager, mgr)
         return {
             k: self._constructor(v).__finalize__(self)
-            for k, v, in self._mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict(copy=copy).items()
         }
 
     def astype(

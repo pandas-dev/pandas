@@ -1,7 +1,7 @@
 from collections import defaultdict
 import copy
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 def concatenate_block_managers(
     mgrs_indexers, axes, concat_axis: int, copy: bool
-) -> BlockManager:
+) -> Union[ArrayManager, BlockManager]:
     """
     Concatenate block managers into one.
 
