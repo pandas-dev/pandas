@@ -18,6 +18,7 @@ import numpy as np
 
 from pandas._libs import internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label, Shape
+from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -1222,7 +1223,14 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
 
         if len(self.blocks) > 100:
-            self._consolidate_inplace()
+            warnings.warn(
+                "DataFrame is highly fragmented.  This is usually the result "
+                "of calling `frame.insert` many times, which has poor performance.  "
+                "Consider using pd.concat instead.  To get a de-fragmented frame, "
+                "use `newframe = frame.copy()`",
+                PerformanceWarning,
+                stacklevel=5,
+            )
 
     def reindex_axis(
         self,

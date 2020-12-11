@@ -5,6 +5,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -329,12 +331,13 @@ class TestDataFrameBlockInternals:
         df[0] = np.nan
         wasCol = {}
 
-        for i, dt in enumerate(df.index):
-            for col in range(100, 200):
-                if col not in wasCol:
-                    wasCol[col] = 1
-                    df[col] = np.nan
-                df[col][dt] = i
+        with tm.assert_produces_warning(PerformanceWarning):
+            for i, dt in enumerate(df.index):
+                for col in range(100, 200):
+                    if col not in wasCol:
+                        wasCol[col] = 1
+                        df[col] = np.nan
+                    df[col][dt] = i
 
         myid = 100
 

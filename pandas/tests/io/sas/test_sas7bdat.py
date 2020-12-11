@@ -7,7 +7,7 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import EmptyDataError, PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -194,7 +194,10 @@ def test_compact_numerical_values(datapath):
 def test_many_columns(datapath):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
-    df = pd.read_sas(fname, encoding="latin-1")
+    with tm.assert_produces_warning(PerformanceWarning):
+        # Many DataFrame.insert calls
+        df = pd.read_sas(fname, encoding="latin-1")
+
     fname = datapath("io", "sas", "data", "many_columns.csv")
     df0 = pd.read_csv(fname, encoding="latin-1")
     tm.assert_frame_equal(df, df0)
