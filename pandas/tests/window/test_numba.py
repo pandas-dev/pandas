@@ -63,7 +63,7 @@ class TestRollingApply:
         tm.assert_series_equal(result, expected)
 
         # func_1 should be in the cache now
-        assert (func_1, "rolling_apply") in NUMBA_FUNC_CACHE
+        assert (func_1, "rolling_apply_column") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
