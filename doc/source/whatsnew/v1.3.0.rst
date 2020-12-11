@@ -127,7 +127,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 -
 -
 
