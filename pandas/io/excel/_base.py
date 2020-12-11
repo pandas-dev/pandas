@@ -458,7 +458,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         sheets = list(dict.fromkeys(sheets).keys())
 
         output = {}
-
+        header_input = header
         for asheetname in sheets:
             if verbose:
                 print(f"Reading sheet {asheetname}")
@@ -469,6 +469,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            # print("this is the data", data)
+            # print("this is header", header)
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -478,9 +480,13 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             if is_list_like(header) and len(header) == 1:
                 header = header[0]
 
+            if isinstance(header_input, dict):
+                header = header_input[asheetname]
+
             # forward fill and pull out names for MultiIndex column
             header_names = None
             if header is not None and is_list_like(header):
+                print("I am here!!!!!!!")
                 header_names = []
                 control_row = [True] * len(data[0])
 
@@ -493,6 +499,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     if index_col is not None:
                         header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
+
+            print("Debug: this is the header", header)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.

@@ -1310,12 +1310,17 @@ class ParserBase:
         # validate header options for mi
         self.header = kwds.get("header")
         if isinstance(self.header, (list, tuple, np.ndarray)):
-            if not all(map(is_integer, self.header)):
-                raise ValueError("header must be integer or list of integers")
-            if any(i < 0 for i in self.header):
-                raise ValueError(
-                    "cannot specify multi-index header with negative integers"
-                )
+            # if not all(map(is_integer, self.header)):
+                # raise ValueError("header must be integer or list of integers")
+            for i in self.header:
+                if i and i < 0:
+                   raise ValueError(
+                        "cannot specify multi-index header with negative integers"
+                    )
+            # if any(i < 0 for i in self.header):
+            #     raise ValueError(
+            #         "cannot specify multi-index header with negative integers"
+            #     )
             if kwds.get("usecols"):
                 raise ValueError(
                     "cannot specify usecols when specifying a multi-index header"
@@ -2599,6 +2604,7 @@ class PythonParser(ParserBase):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
                     header = list(header) + [header[-1] + 1]
+                    print("new header:debug!!!", header)
             else:
                 have_mi_columns = False
                 header = [header]
