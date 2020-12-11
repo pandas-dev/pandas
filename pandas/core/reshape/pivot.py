@@ -612,7 +612,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
