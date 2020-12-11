@@ -822,7 +822,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_series_equal(rs, xp)
         assert rs.dtype == "timedelta64[ns]"
 
-        df = DataFrame(dict(A=v1))
+        df = DataFrame({"A": v1})
         td = Series([timedelta(days=i) for i in range(3)])
         assert td.dtype == "timedelta64[ns]"
 

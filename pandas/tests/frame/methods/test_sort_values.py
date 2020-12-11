@@ -305,11 +305,11 @@ class TestDataFrameSortValues:
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
-            dict(int=int_values, float=float_values), columns=["int", "float"]
+            {"int": int_values, "float": float_values}, columns=["int", "float"]
         )
 
         df_reversed = DataFrame(
-            dict(int=int_values[::-1], float=float_values[::-1]),
+            {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
             index=[1, 0],
         )
@@ -329,12 +329,12 @@ class TestDataFrameSortValues:
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
         df = DataFrame(
-            dict(datetime=[Timestamp("2016-01-01"), NaT], float=float_values),
+            {"datetime": [Timestamp("2016-01-01"), NaT], "float": float_values},
             columns=["datetime", "float"],
         )
 
         df_reversed = DataFrame(
-            dict(datetime=[NaT, Timestamp("2016-01-01")], float=float_values[::-1]),
+            {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
             index=[1, 0],
         )
@@ -543,6 +543,18 @@ class TestDataFrameSortValues:
         )
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_item_cache(self):
+        # previous behavior incorrect retained an invalid _item_cache entry
+        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df["D"] = df["A"] * 2
+        ser = df["A"]
+        assert len(df._mgr.blocks) == 2
+
+        df.sort_values(by="A")
+        ser.values[0] = 99
+
+        assert df.iloc[0, 0] == df["A"][0]
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)

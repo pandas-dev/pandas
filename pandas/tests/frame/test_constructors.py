@@ -352,7 +352,7 @@ class TestDataFrameConstructors:
 
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
-        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
+        tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
         # GH 14381
         # Dict with None value
@@ -802,14 +802,14 @@ class TestDataFrameConstructors:
 
         # automatic labeling
         frame = DataFrame(mat)
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, index=[1, 2])
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, columns=["A", "B", "C"])
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -1238,32 +1238,34 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_preserve_order(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_preserve_order(self, dict_type):
         # see gh-13304
         expected = DataFrame([[2, 1]], columns=["b", "a"])
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = [2]
         data["a"] = [1]
 
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = 2
         data["a"] = 1
 
         result = DataFrame([data])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_conflicting_orders(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_conflicting_orders(self, dict_type):
         # the first dict element sets the ordering for the DataFrame,
         # even if there are conflicting orders from subsequent ones
-        row_one = OrderedDict()
+        row_one = dict_type()
         row_one["b"] = 2
         row_one["a"] = 1
 
-        row_two = OrderedDict()
+        row_two = dict_type()
         row_two["a"] = 1
         row_two["b"] = 2
 
@@ -1367,7 +1369,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_ragged(self):
         data = {"A": np.random.randn(10), "B": np.random.randn(8)}
-        with pytest.raises(ValueError, match="arrays must all be same length"):
+        with pytest.raises(ValueError, match="All arrays must be of the same length"):
             DataFrame(data)
 
     def test_constructor_scalar(self):

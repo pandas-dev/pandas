@@ -336,19 +336,19 @@ class TestDataFrameReshape:
     def test_unstack_preserve_dtypes(self):
         # Checks fix for #11847
         df = DataFrame(
-            dict(
-                state=["IL", "MI", "NC"],
-                index=["a", "b", "c"],
-                some_categories=Series(["a", "b", "c"]).astype("category"),
-                A=np.random.rand(3),
-                B=1,
-                C="foo",
-                D=pd.Timestamp("20010102"),
-                E=Series([1.0, 50.0, 100.0]).astype("float32"),
-                F=Series([3.0, 4.0, 5.0]).astype("float64"),
-                G=False,
-                H=Series([1, 200, 923442], dtype="int8"),
-            )
+            {
+                "state": ["IL", "MI", "NC"],
+                "index": ["a", "b", "c"],
+                "some_categories": Series(["a", "b", "c"]).astype("category"),
+                "A": np.random.rand(3),
+                "B": 1,
+                "C": "foo",
+                "D": pd.Timestamp("20010102"),
+                "E": Series([1.0, 50.0, 100.0]).astype("float32"),
+                "F": Series([3.0, 4.0, 5.0]).astype("float64"),
+                "G": False,
+                "H": Series([1, 200, 923442], dtype="int8"),
+            }
         )
 
         def unstack_and_compare(df, column_name):
@@ -1689,7 +1689,7 @@ Thur,Lunch,Yes,51.51,17"""
         name = (["a"] * 3) + (["b"] * 3)
         date = pd.to_datetime(["2013-01-03", "2013-01-04", "2013-01-05"] * 2)
         var1 = np.random.randint(0, 100, 6)
-        df = DataFrame(dict(ID=id_col, NAME=name, DATE=date, VAR1=var1))
+        df = DataFrame({"ID": id_col, "NAME": name, "DATE": date, "VAR1": var1})
 
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
@@ -1880,3 +1880,30 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_unstack_with_missing_int_cast_to_float(self):
+        # https://github.com/pandas-dev/pandas/issues/37115
+        df = DataFrame(
+            {
+                "a": ["A", "A", "B"],
+                "b": ["ca", "cb", "cb"],
+                "v": [10] * 3,
+            }
+        ).set_index(["a", "b"])
+
+        # add another int column to get 2 blocks
+        df["is_"] = 1
+        assert len(df._mgr.blocks) == 2
+
+        result = df.unstack("b")
+        result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
+
+        expected = DataFrame(
+            [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
+            index=Index(["A", "B"], dtype="object", name="a"),
+            columns=MultiIndex.from_tuples(
+                [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
+                names=[None, "b"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

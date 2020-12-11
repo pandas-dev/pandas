@@ -24,10 +24,9 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
-import pandas.core.missing as missing
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
+_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
@@ -399,10 +398,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
 
-    def _to_safe_for_reshape(self):
-        """ convert to object if we are a categorical """
-        return self.astype("object")
-
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -500,9 +495,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ibase.ensure_index(target)
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
 
         self._check_indexing_method(method)
 
@@ -557,6 +552,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return super()._maybe_cast_slice_bound(label, side, kind)
 
     # --------------------------------------------------------------------
+
+    def _is_comparable_dtype(self, dtype):
+        return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
@@ -637,11 +635,19 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> "CategoricalIndex":
+    def _concat(self, to_concat: List["Index"], name: Label) -> Index:
         # if calling index is category, don't check dtype of others
-        codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=name)
+        try:
+            codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
+        except TypeError:
+            # not all to_concat elements are among our categories (or NA)
+            from pandas.core.dtypes.concat import concat_compat
+
+            res = concat_compat(to_concat)
+            return Index(res, name=name)
+        else:
+            cat = self._data._from_backing_data(codes)
+            return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
