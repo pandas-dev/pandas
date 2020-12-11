@@ -117,3 +117,10 @@ def test_window_with_args():
     expected.columns = ["a", "b"]
     result = r.aggregate([a, b])
     tm.assert_frame_equal(result, expected)
+
+
+def test_win_type_with_method_invalid():
+    with pytest.raises(
+        NotImplementedError, match="'column' is the only supported method type."
+    ):
+        Series(range(1)).rolling(1, win_type="triang", method="table")
