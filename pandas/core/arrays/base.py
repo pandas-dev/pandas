@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -48,7 +49,7 @@ from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = dict()
+_extension_array_shared_docs: Dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -354,8 +355,24 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    # error: Signature of "__eq__" incompatible with supertype "object"
-    def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
+    def __contains__(self, item) -> bool:
+        """
+        Return for `item in self`.
+        """
+        # GH37867
+        # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
+        # would raise a TypeError. The implementation below works around that.
+        if is_scalar(item) and isna(item):
+            if not self._can_hold_na:
+                return False
+            elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
+                return self.isna().any()
+            else:
+                return False
+        else:
+            return (item == self).any()
+
+    def __eq__(self, other: Any) -> ArrayLike:
         """
         Return for `self == other` (element-wise equality).
         """
@@ -474,6 +491,7 @@ class ExtensionArray:
             NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -481,7 +499,11 @@ class ExtensionArray:
                 return self
             else:
                 return self.copy()
-        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+
+        # FIXME: Really hard-code here?
+        if isinstance(
+            dtype, (ArrowStringDtype, StringDtype)
+        ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
@@ -939,7 +961,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 

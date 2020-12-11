@@ -146,7 +146,7 @@ class PandasArray(
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
     # ExtensionBlock, search for `ABCPandasArray`. We check for
-    # that _typ to ensure that that users don't unnecessarily use EAs inside
+    # that _typ to ensure that users don't unnecessarily use EAs inside
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
@@ -277,12 +277,12 @@ class PandasArray(
     # Reductions
 
     def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_any((), dict(out=out, keepdims=keepdims))
+        nv.validate_any((), {"out": out, "keepdims": keepdims})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
-        nv.validate_all((), dict(out=out, keepdims=keepdims))
+        nv.validate_all((), {"out": out, "keepdims": keepdims})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
@@ -315,7 +315,7 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
-        nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))
+        nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
@@ -323,7 +323,7 @@ class PandasArray(
         self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
     ):
         nv.validate_median(
-            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+            (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
         )
         result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
@@ -332,7 +332,7 @@ class PandasArray(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
     ):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
         )
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
@@ -341,7 +341,7 @@ class PandasArray(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
     ):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="var"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
         )
         result = nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
@@ -350,21 +350,21 @@ class PandasArray(
         self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
     ):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="sem"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
         )
         result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
 
     def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="kurt"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
         )
         result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
-            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="skew"
+            (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
         )
         result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)

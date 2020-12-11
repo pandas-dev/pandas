@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series, option_context
@@ -112,3 +113,11 @@ def test_use_global_config():
         result = s.rolling(2).apply(f, engine=None, raw=True)
     expected = s.rolling(2).apply(f, engine="numba", raw=True)
     tm.assert_series_equal(expected, result)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_invalid_kwargs_nopython():
+    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
+        Series(range(1)).rolling(1).apply(
+            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+        )

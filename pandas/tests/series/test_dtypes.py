@@ -60,7 +60,7 @@ class TestSeriesDtypes:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"could not convert string to float|invalid literal for float\(\)"
+        msg = r"Cannot cast object dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
@@ -68,7 +68,7 @@ class TestSeriesDtypes:
         exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
-        exp2 = Series([1, 2, 3, 4]).astype(int)
+        exp2 = Series([1, 2, 3, 4]).astype("int64")
         tm.assert_series_equal(s2.astype("int"), exp2)
 
         # object don't sort correctly, so just compare that we have the same

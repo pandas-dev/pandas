@@ -78,7 +78,7 @@ def in_interactive_session():
 
 def in_ipython_frontend():
     """
-    Check if we're inside an an IPython zmq frontend.
+    Check if we're inside an IPython zmq frontend.
 
     Returns
     -------

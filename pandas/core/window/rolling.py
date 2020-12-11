@@ -50,7 +50,6 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
@@ -354,6 +353,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             )
         return window_func
 
+    @property
+    def _index_array(self):
+        # TODO: why do we get here with e.g. MultiIndex?
+        if needs_i8_conversion(self._on.dtype):
+            return self._on.asi8
+        return None
+
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -362,7 +368,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return self.window
         if self.is_freq_type:
             return VariableWindowIndexer(
-                index_array=self._on.asi8, window_size=self.window
+                index_array=self._index_array, window_size=self.window
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -801,22 +807,29 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             # Our result will have still kept the column in the result
             result = result.drop(columns=column_keys, errors="ignore")
 
-        result_index_data = []
-        for key, values in self._groupby.grouper.indices.items():
-            for value in values:
-                data = [
-                    *com.maybe_make_list(key),
-                    *com.maybe_make_list(
-                        grouped_object_index[value]
-                        if grouped_object_index is not None
-                        else []
-                    ),
-                ]
-                result_index_data.append(tuple(data))
+        codes = self._groupby.grouper.codes
+        levels = self._groupby.grouper.levels
 
-        result_index = MultiIndex.from_tuples(
-            result_index_data, names=result_index_names
+        group_indices = self._groupby.grouper.indices.values()
+        if group_indices:
+            indexer = np.concatenate(list(group_indices))
+        else:
+            indexer = np.array([], dtype=np.intp)
+        codes = [c.take(indexer) for c in codes]
+
+        # if the index of the original dataframe needs to be preserved, append
+        # this index (but reordered) to the codes/levels from the groupby
+        if grouped_object_index is not None:
+            idx = grouped_object_index.take(indexer)
+            if not isinstance(idx, MultiIndex):
+                idx = MultiIndex.from_arrays([idx])
+            codes.extend(list(idx.codes))
+            levels.extend(list(idx.levels))
+
+        result_index = MultiIndex(
+            levels, codes, names=result_index_names, verify_integrity=False
         )
+
         result.index = result_index
         return result
 
@@ -2157,7 +2170,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
-        index_array = self._on.asi8
+        index_array = self._index_array
         window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
