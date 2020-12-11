@@ -3143,6 +3143,46 @@ class TestDatetime64Formatter:
         assert result[3].strip() == "[[18-01, 19-01, 20-01], [21-01, 22-01, 23-01]]"
 
 
+class TestDatetime64TZFormatter:
+    def test_mixed(self):
+        utc = dateutil.tz.tzutc()
+        x = Series([datetime(2013, 1, 1, tzinfo=utc), datetime(2013, 1, 1, 12, tzinfo=utc), pd.NaT])
+        result = fmt.Datetime64TZFormatter(x).get_result()
+        assert len(result) == 3
+        assert result[0].strip() == "2013-01-01 00:00:00+00:00"
+        assert result[1].strip() == "2013-01-01 12:00:00+00:00"
+        assert result[2].strip() == "NaT"
+
+    def test_datetime64formatter_1d_array(self):
+        x = pd.date_range("2018-01-01", periods=3, freq="H", tz="US/Pacific").to_numpy()
+        formatter = fmt.Datetime64TZFormatter(x)
+        result = formatter.get_result()
+        assert len(result) == 3
+        assert result[0].strip() == "2018-01-01 00:00:00-08:00"
+        assert result[1].strip() == "2018-01-01 01:00:00-08:00"
+        assert result[2].strip() == "2018-01-01 02:00:00-08:00"
+
+    def test_datetime64formatter_2d_array(self):
+        x = pd.date_range("2018-01-01", periods=10, freq="H", tz="US/Pacific").to_numpy()
+        formatter = fmt.Datetime64TZFormatter(x.reshape((5, 2)))
+        result = formatter.get_result()
+        assert len(result) == 5
+        assert result[0].strip() == "[2018-01-01 00:00:00-08:00, 2018-01-01 01:00:00-08:00]"
+        assert result[4].strip() == "[2018-01-01 08:00:00-08:00, 2018-01-01 09:00:00-08:00]"
+
+    def test_datetime64formatter_2d_array_format_func(self):
+        x = pd.date_range("2018-01-01", periods=16, freq="H", tz="US/Pacific").to_numpy()
+
+        def format_func(t):
+            return t.strftime("%H-%m %Z")
+
+        formatter = fmt.Datetime64TZFormatter(x.reshape((4, 2, 2)), formatter=format_func)
+        result = formatter.get_result()
+        assert len(result) == 4
+        assert result[0].strip() == "[[00-01, 01-01, 02-01], [03-01, 04-01, 05-01]]"
+        assert result[3].strip() == "[[18-01, 19-01, 20-01], [21-01, 22-01, 23-01]]"
+
+
 class TestNaTFormatting:
     def test_repr(self):
         assert repr(pd.NaT) == "NaT"
