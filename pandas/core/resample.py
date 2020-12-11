@@ -1388,15 +1388,15 @@ class TimeGrouper(Grouper):
             if label is None:
                 label = "right"
         else:
-            if closed is None:
-                if origin in ["end", "end_day"]:
+            if origin in ["end", "end_day"]:
+                if closed is None:
                     closed = "right"
-                else:
-                    closed = "left"
-            if label is None:
-                if origin in ["end", "end_day"]:
+                if label is None:
                     label = "right"
-                else:
+            else:
+                if closed is None:
+                    closed = "left"
+                if label is None:
                     label = "left"
 
         self.closed = closed
