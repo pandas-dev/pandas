@@ -121,3 +121,20 @@ def test_invalid_kwargs_nopython():
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_table_method(axis, center, closed, nogil, parallel, nopython):
+    engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+    def f(x):
+        return np.sum(x, axis=0) + 1
+
+    df = DataFrame(np.eye(3))
+    result = df.rolling(
+        2, method="table", axis=axis, center=center, closed=closed
+    ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+    expected = df.rolling(
+        2, method="column", axis=axis, center=center, closed=closed
+    ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+    tm.assert_frame_equal(result, expected)
