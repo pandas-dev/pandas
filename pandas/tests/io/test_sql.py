@@ -369,6 +369,54 @@ class PandasSQLTest:
 
         self.test_frame3 = DataFrame(data, columns=columns)
 
+    def _load_types_test_data(self, data):
+        def _filter_to_flavor(flavor, df):
+            flavor_dtypes = {
+                "sqlite": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int",
+                    "IntDateOnlyCol": "int",
+                    "FloatCol": "float",
+                    "IntCol": "int",
+                    "BoolCol": "int",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "mysql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int",
+                    "IntDateOnlyCol": "int",
+                    "FloatCol": "float",
+                    "IntCol": "int",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "postgresql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "DateColWithTz": "str",
+                    "IntDateCol": "int",
+                    "IntDateOnlyCol": "int",
+                    "FloatCol": "float",
+                    "IntCol": "int",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+            }
+
+            dtypes = flavor_dtypes[flavor]
+            return df[dtypes.keys()].astype(dtypes)
+
+        df = DataFrame(data)
+        self.types_test = {
+            flavor: _filter_to_flavor(flavor, df)
+            for flavor in ("sqlite", "mysql", "postgresql")
+        }
+
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
         self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
@@ -404,6 +452,8 @@ class PandasSQLTest:
             self._get_exec().execute(
                 ins["query"], [d[field] for field in ins["fields"]]
             )
+
+        self._load_types_test_data(data)
 
     def _count_rows(self, table_name):
         result = (
@@ -757,7 +807,11 @@ class _TestSQLApi(PandasSQLTest):
     )
     def test_custom_dateparsing_error(self, read_sql, text, mode, error):
         if self.mode in mode:
-            df = read_sql(
+            expected = self.types_test[self.flavor].astype(
+                {"DateCol": "datetime64[ns]"}
+            )
+
+            result = read_sql(
                 text,
                 con=self.conn,
                 parse_dates={
@@ -765,11 +819,7 @@ class _TestSQLApi(PandasSQLTest):
                 },
             )
 
-            assert issubclass(df.DateCol.dtype.type, np.datetime64)
-            assert df.DateCol.tolist() == [
-                Timestamp(2000, 1, 3, 0, 0, 0),
-                Timestamp(2000, 1, 4, 0, 0, 0),
-            ]
+            tm.assert_frame_equal(result, expected)
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
