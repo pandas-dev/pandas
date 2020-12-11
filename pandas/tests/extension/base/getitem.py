@@ -306,15 +306,7 @@ class BaseGetitemTests(BaseExtensionTests):
         result = empty.take([-1], allow_fill=True)
         assert na_cmp(result[0], na_value)
 
-        if empty.dtype.name == "arrow_string":
-            msg = "Index -1 out of bounds"
-        elif empty.dtype.name == "json":
-            msg = (
-                "Index is out of bounds or cannot do a non-empty take "
-                "from an empty array."
-            )
-        else:
-            msg = "cannot do a non-empty take from an empty axes."
+        msg = "cannot do a non-empty take from an empty axes|out of bounds"
 
         with pytest.raises(IndexError, match=msg):
             empty.take([-1])
@@ -347,25 +339,8 @@ class BaseGetitemTests(BaseExtensionTests):
     @pytest.mark.parametrize("allow_fill", [True, False])
     def test_take_out_of_bounds_raises(self, data, allow_fill):
         arr = data[:3]
-        if (arr.dtype.name == "arrow_string") | ("Sparse" in arr.dtype.name):
-            msg = "out of bounds value in 'indices'."
-        elif arr.dtype.name == "json":
-            msg = (
-                "Index is out of bounds or cannot do a non-empty take "
-                "from an empty array."
-            )
-        else:
-            if allow_fill:
-                msg = "indices are out-of-bounds"
-            else:
-                if ("numpy" not in str(type(arr))) | (
-                    arr.dtype.name not in ["string"]
-                ):
-                    msg = "index 3 is out of bounds for axis 0 with size 3"
-                else:
-                    msg = "index 3 is out of bounds for size 3"
 
-        with pytest.raises(IndexError, match=msg):
+        with pytest.raises(IndexError, match="out of bounds|out-of-bounds"):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
     def test_take_series(self, data):
