@@ -59,6 +59,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeriesUnion,
     IndexKeyFunc,
+    IndexLabel,
     Label,
     Level,
     Renamer,
@@ -1744,8 +1745,8 @@ class DataFrame(NDFrame, OpsMixin):
         index=None,
         exclude=None,
         columns=None,
-        coerce_float=False,
-        nrows=None,
+        coerce_float: bool = False,
+        nrows: Optional[bool] = None,
     ) -> DataFrame:
         """
         Convert structured or record ndarray to DataFrame.
@@ -3259,7 +3260,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _set_value(self, index, col, value: Scalar, takeable: bool = False) -> None:
+    def _set_value(
+        self, index: int, col, value: Scalar, takeable: bool = False
+    ) -> None:
         """
         Put single value at passed column and index.
 
@@ -4216,12 +4219,12 @@ class DataFrame(NDFrame, OpsMixin):
     def drop(
         self,
         labels=None,
-        axis=0,
-        index=None,
+        axis: Axis = 0,
+        index: IndexLabel = None,
         columns=None,
-        level=None,
-        inplace=False,
-        errors="raise",
+        level: Level = None,
+        inplace: bool = False,
+        errors: str = "raise",
     ):
         """
         Drop specified labels from rows or columns.
@@ -5515,8 +5518,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def sort_index(
         self,
-        axis=0,
-        level=None,
+        axis: Axis = 0,
+        level: Level = None,
         ascending: bool = True,
         inplace: bool = False,
         kind: str = "quicksort",
@@ -7070,7 +7073,7 @@ NaN 12.3   33.0
         aggfunc: AggFuncType = "mean",
         fill_value=None,
         margins: bool = False,
-        dropna: bool = True,
+        dropna=True,
         margins_name="All",
         observed: bool = False,
     ) -> DataFrame:
@@ -7089,7 +7092,7 @@ NaN 12.3   33.0
             observed=observed,
         )
 
-    def stack(self, level: Union[int, str, List] = -1, dropna: bool = True):
+    def stack(self, level: Level = -1, dropna: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -7616,7 +7619,7 @@ NaN 12.3   33.0
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
     )
-    def aggregate(self, func=None, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -8260,7 +8263,7 @@ NaN 12.3   33.0
         suffixes=("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate=None,
+        validate: Optional[str] = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
@@ -8280,7 +8283,9 @@ NaN 12.3   33.0
             validate=validate,
         )
 
-    def round(self, decimals=0, *args, **kwargs) -> DataFrame:
+    def round(
+        self, decimals: Union[int, Dict, Series] = 0, *args, **kwargs
+    ) -> DataFrame:
         """
         Round a DataFrame to a variable number of decimal places.
 
@@ -8394,7 +8399,9 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method="pearson", min_periods=1) -> DataFrame:
+    def corr(
+        self, method: Union[str, Callable] = "pearson", min_periods: int = 1
+    ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
 
@@ -8601,7 +8608,13 @@ NaN 12.3   33.0
 
         return self._constructor(base_cov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False, method="pearson") -> Series:
+    def corrwith(
+        self,
+        other: FrameOrSeriesUnion,
+        axis: Axis = 0,
+        drop: bool = False,
+        method: Union[str, Callable] = "pearson",
+    ) -> Series:
         """
         Compute pairwise correlation.
 
@@ -8851,9 +8864,9 @@ NaN 12.3   33.0
         op,
         name: str,
         *,
-        axis=0,
-        skipna=True,
-        numeric_only=None,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: Optional[bool] = None,
         filter_type=None,
         **kwds,
     ):
@@ -8959,7 +8972,7 @@ NaN 12.3   33.0
         result = self._constructor_sliced(result, index=labels)
         return result
 
-    def nunique(self, axis=0, dropna=True) -> Series:
+    def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
         Count distinct observations over requested axis.
 
@@ -8999,7 +9012,7 @@ NaN 12.3   33.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True) -> Series:
+    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -9076,7 +9089,7 @@ NaN 12.3   33.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True) -> Series:
+    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -9164,7 +9177,9 @@ NaN 12.3   33.0
         else:
             raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
-    def mode(self, axis=0, numeric_only=False, dropna=True) -> DataFrame:
+    def mode(
+        self, axis: Axis = 0, numeric_only: bool = False, dropna: bool = True
+    ) -> DataFrame:
         """
         Get the mode(s) of each element along the selected axis.
 
@@ -9251,7 +9266,9 @@ NaN 12.3   33.0
 
         return data.apply(f, axis=axis)
 
-    def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
+    def quantile(
+        self, q=0.5, axis: Axis = 0, numeric_only: bool = True, interpolation="linear"
+    ) -> FrameOrSeriesUnion:
         """
         Return values at the given quantile over requested axis.
 
@@ -9348,7 +9365,11 @@ NaN 12.3   33.0
         return result
 
     def to_timestamp(
-        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+        self,
+        freq: Optional[str] = None,
+        how: str = "start",
+        axis: Axis = 0,
+        copy: bool = True,
     ) -> DataFrame:
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
@@ -9381,7 +9402,9 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> DataFrame:
+    def to_period(
+        self, freq: Optional[str] = None, axis: Axis = 0, copy: bool = True
+    ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -9413,7 +9436,7 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values) -> DataFrame:
+    def isin(self, values: Union[FrameOrSeriesUnion, Dict, Iterable]) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 
