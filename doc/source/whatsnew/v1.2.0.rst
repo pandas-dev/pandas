@@ -742,7 +742,7 @@ I/O
 - :meth:`DataFrame.to_excel`, :meth:`Series.to_excel`, :meth:`DataFrame.to_markdown`, and :meth:`Series.to_markdown` now support writing to fsspec URLs such as S3 and Google Cloud Storage (:issue:`33987`)
 - Bug in :func:`read_fwf` with ``skip_blank_lines=True`` was not skipping blank lines (:issue:`37758`)
 - Parse missing values using :func:`read_json` with ``dtype=False`` to ``NaN`` instead of ``None`` (:issue:`28501`)
-- :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:`read_*` functions (:issue:`37909`)
+- :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 
