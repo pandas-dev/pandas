@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv
+from pandas import DataFrame, date_range, read_csv, read_excel, read_json, read_parquet
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
@@ -24,13 +24,23 @@ def gcs_buffer(monkeypatch):
             gcs_buffer.seek(0)
             return gcs_buffer
 
+        def ls(self, path, **kwargs):
+            # needed for pyarrow
+            return [{"name": path, "type": "file"}]
+
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
 
     return gcs_buffer
 
 
 @td.skip_if_no("gcsfs")
-def test_read_csv_gcs(gcs_buffer):
+@pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
+def test_to_read_gcs(gcs_buffer, format):
+    """
+    Test that many to/read functions support GCS.
+
+    GH 33987
+    """
     from fsspec import registry
 
     registry.target.clear()  # remove state
@@ -44,31 +54,26 @@ def test_read_csv_gcs(gcs_buffer):
         }
     )
 
-    gcs_buffer.write(df1.to_csv(index=False).encode())
+    path = f"gs://test/test.{format}"
 
-    df2 = read_csv("gs://test/test.csv", parse_dates=["dt"])
-
-    tm.assert_frame_equal(df1, df2)
-
-
-@td.skip_if_no("gcsfs")
-def test_to_csv_gcs(gcs_buffer):
-    from fsspec import registry
-
-    registry.target.clear()  # remove state
-
-    df1 = DataFrame(
-        {
-            "int": [1, 3],
-            "float": [2.0, np.nan],
-            "str": ["t", "s"],
-            "dt": date_range("2018-06-18", periods=2),
-        }
-    )
-
-    df1.to_csv("gs://test/test.csv", index=True)
-
-    df2 = read_csv("gs://test/test.csv", parse_dates=["dt"], index_col=0)
+    if format == "csv":
+        df1.to_csv(path, index=True)
+        df2 = read_csv(path, parse_dates=["dt"], index_col=0)
+    elif format == "excel":
+        path = "gs://test/test.xls"
+        df1.to_excel(path)
+        df2 = read_excel(path, parse_dates=["dt"], index_col=0)
+    elif format == "json":
+        df1.to_json(path)
+        df2 = read_json(path, convert_dates=["dt"])
+    elif format == "parquet":
+        pytest.importorskip("pyarrow")
+        df1.to_parquet(path)
+        df2 = read_parquet(path)
+    elif format == "markdown":
+        pytest.importorskip("tabulate")
+        df1.to_markdown(path)
+        df2 = df1
 
     tm.assert_frame_equal(df1, df2)
 

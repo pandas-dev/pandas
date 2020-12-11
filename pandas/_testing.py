@@ -739,22 +739,29 @@ def assert_index_equal(
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_index_equal
+    >>> a = pd.Index([1, 2, 3])
+    >>> b = pd.Index([1, 2, 3])
+    >>> assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
-    def _check_types(l, r, obj="Index"):
+    def _check_types(left, right, obj="Index"):
         if exact:
-            assert_class_equal(l, r, exact=exact, obj=obj)
+            assert_class_equal(left, right, exact=exact, obj=obj)
 
             # Skip exact dtype checking when `check_categorical` is False
             if check_categorical:
-                assert_attr_equal("dtype", l, r, obj=obj)
+                assert_attr_equal("dtype", left, right, obj=obj)
 
             # allow string-like to have different inferred_types
-            if l.inferred_type in ("string"):
-                assert r.inferred_type in ("string")
+            if left.inferred_type in ("string"):
+                assert right.inferred_type in ("string")
             else:
-                assert_attr_equal("inferred_type", l, r, obj=obj)
+                assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -1140,9 +1147,9 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for l, r in zip(left, right):
+            for left_arr, right_arr in zip(left, right):
                 # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
+                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
@@ -1205,6 +1212,13 @@ def assert_extension_array_equal(
     Missing values are checked separately from valid values.
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_extension_array_equal
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b, c = a.array, a.array
+    >>> assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
@@ -1334,6 +1348,13 @@ def assert_series_equal(
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    Examples
+    --------
+    >>> from pandas.testing import assert_series_equal
+    >>> a = pd.Series([1, 2, 3, 4])
+    >>> b = pd.Series([1, 2, 3, 4])
+    >>> assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -1435,7 +1456,16 @@ def assert_series_equal(
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
-    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+    elif is_extension_array_dtype_and_needs_i8_conversion(
+        left.dtype, right.dtype
+    ) or is_extension_array_dtype_and_needs_i8_conversion(right.dtype, left.dtype):
+        assert_extension_array_equal(
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
+        )
+    elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
             left._values,
@@ -1747,7 +1777,7 @@ def box_expected(expected, box_cls, transpose=True):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
         if transpose:
-            # for vector operations, we we need a DataFrame to be a single-row,
+            # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
             #  vectors of the same length.
             expected = expected.T
@@ -1843,6 +1873,20 @@ def assert_copy(iter1, iter2, **eql_kwargs):
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg
+
+
+def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+    """
+    Checks that we have the combination of an ExtensionArraydtype and
+    a dtype that should be converted to int64
+
+    Returns
+    -------
+    bool
+
+    Related to issue #37609
+    """
+    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
 
 
 def getCols(k):
@@ -2146,15 +2190,15 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = dict(
-        i=makeIntIndex,
-        f=makeFloatIndex,
-        s=makeStringIndex,
-        u=makeUnicodeIndex,
-        dt=makeDateIndex,
-        td=makeTimedeltaIndex,
-        p=makePeriodIndex,
-    ).get(idx_type)
+    idx_func = {
+        "i": makeIntIndex,
+        "f": makeFloatIndex,
+        "s": makeStringIndex,
+        "u": makeUnicodeIndex,
+        "dt": makeDateIndex,
+        "td": makeTimedeltaIndex,
+        "p": makePeriodIndex,
+    }.get(idx_type)
     if idx_func:
         # pandas\_testing.py:2120: error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]

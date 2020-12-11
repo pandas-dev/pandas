@@ -101,6 +101,26 @@ def test_first_last_with_None(method):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_first_last_nth_dtypes(df_mixed_floats):
 
     df = df_mixed_floats.copy()
@@ -509,6 +529,30 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     if columns is not None:
         g = g[columns]
         expected = expected[columns]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op, n, expected_cols",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+def test_groupby_head_tail_axis_1(op, n, expected_cols):
+    # GH 9772
+    df = DataFrame(
+        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
+    )
+    g = df.groupby([0, 0, 1], axis=1)
+    expected = df.iloc[:, expected_cols]
     result = getattr(g, op)(n)
     tm.assert_frame_equal(result, expected)
 

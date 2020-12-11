@@ -10,7 +10,18 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Type,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -51,7 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import algorithms, generic
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
@@ -63,7 +74,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
+from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -265,11 +276,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -344,13 +363,7 @@ float_precision : str, optional
 
     .. versionchanged:: 1.2
 
-storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a local path or
-    a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values.
+{storage_options}
 
     .. versionadded:: 1.2
 
@@ -428,17 +441,6 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    storage_options = kwds.get("storage_options", None)
-
-    ioargs = get_filepath_or_buffer(
-        filepath_or_buffer,
-        kwds.get("encoding", None),
-        kwds.get("compression", "infer"),
-        storage_options=storage_options,
-    )
-    kwds["compression"] = ioargs.compression
-    kwds["encoding"] = ioargs.encoding
-
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
             kwds["parse_dates"] = True
@@ -452,20 +454,13 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(ioargs.filepath_or_buffer, **kwds)
+    parser = TextFileReader(filepath_or_buffer, **kwds)
 
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        # close compression and byte/text wrapper
-        parser.close()
-        # close any fsspec-like objects
-        ioargs.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -535,6 +530,7 @@ _deprecated_args: Set[str] = set()
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_csv(
@@ -614,6 +610,7 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
+        storage_options=generic._shared_docs["storage_options"],
     )
 )
 def read_table(
@@ -777,7 +774,7 @@ class TextFileReader(abc.Iterator):
 
     def __init__(self, f, engine=None, **kwds):
 
-        self.f = f
+        self.f = stringify_path(f)
 
         if engine is not None:
             engine_specified = True
@@ -802,6 +799,7 @@ class TextFileReader(abc.Iterator):
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
+        options["storage_options"] = kwds.get("storage_options", None)
 
         self.chunksize = options.pop("chunksize", None)
         self.nrows = options.pop("nrows", None)
@@ -862,14 +860,11 @@ class TextFileReader(abc.Iterator):
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
         if is_file_like(f):
-            next_attr = "__next__"
-
-            # The C engine doesn't need the file-like to have the "next" or
-            # "__next__" attribute. However, the Python engine explicitly calls
-            # "next(...)" when iterating through such an object, meaning it
-            # needs to have that attribute ("next" for Python 2.x, "__next__"
-            # for Python 3.x)
-            if engine != "c" and not hasattr(f, next_attr):
+            # The C engine doesn't need the file-like to have the "__next__"
+            # attribute. However, the Python engine explicitly calls
+            # "__next__(...)" when iterating through such an object, meaning it
+            # needs to have that attribute
+            if engine != "c" and not hasattr(f, "__next__"):
                 msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
@@ -1037,28 +1032,17 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        mapping = {
-            # pandas\io\parsers.py:1099: error: Dict entry 0 has incompatible
-            # type "str": "Type[CParserWrapper]"; expected "str":
-            # "Type[ParserBase]"  [dict-item]
-            "c": CParserWrapper,  # type: ignore[dict-item]
-            # pandas\io\parsers.py:1100: error: Dict entry 1 has incompatible
-            # type "str": "Type[PythonParser]"; expected "str":
-            # "Type[ParserBase]"  [dict-item]
-            "python": PythonParser,  # type: ignore[dict-item]
-            # pandas\io\parsers.py:1101: error: Dict entry 2 has incompatible
-            # type "str": "Type[FixedWidthFieldParser]"; expected "str":
-            # "Type[ParserBase]"  [dict-item]
-            "python-fwf": FixedWidthFieldParser,  # type: ignore[dict-item]
+        mapping: Dict[str, Type[ParserBase]] = {
+            "c": CParserWrapper,
+            "python": PythonParser,
+            "python-fwf": FixedWidthFieldParser,
         }
-        try:
-            klass = mapping[engine]
-        except KeyError:
+        if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        else:
-            return klass(self.f, **self.options)
+        # error: Too many arguments for "ParserBase"
+        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1093,6 +1077,12 @@ class TextFileReader(abc.Iterator):
                 raise StopIteration
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 def _is_index_col(col):
@@ -1275,13 +1265,14 @@ def _validate_parse_dates_arg(parse_dates):
 
 class ParserBase:
     def __init__(self, kwds):
+
         self.names = kwds.get("names")
-        self.orig_names = None
+        self.orig_names: Optional[List] = None
         self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
-        self.unnamed_cols = set()
-        self.index_names = None
+        self.unnamed_cols: Set = set()
+        self.index_names: Optional[List] = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -1357,6 +1348,21 @@ class ParserBase:
 
         self._first_chunk = True
 
+        self.handles: Optional[IOHandles] = None
+
+    def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
+        """
+        Let the readers open IOHanldes after they are done with their potential raises.
+        """
+        self.handles = get_handle(
+            src,
+            "r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            storage_options=kwds.get("storage_options", None),
+        )
+
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1406,9 +1412,8 @@ class ParserBase:
             )
 
     def close(self):
-        # pandas\io\parsers.py:1409: error: "ParserBase" has no attribute
-        # "handles"  [attr-defined]
-        self.handles.close()  # type: ignore[attr-defined]
+        if self.handles is not None:
+            self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1842,23 +1847,24 @@ class ParserBase:
 
 
 class CParserWrapper(ParserBase):
-    def __init__(self, src, **kwds):
+    def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
 
         ParserBase.__init__(self, kwds)
 
-        self.handles = get_handle(
-            src,
-            mode="r",
-            encoding=kwds.get("encoding", None),
-            compression=kwds.get("compression", None),
-            memory_map=kwds.get("memory_map", False),
-            is_text=True,
-        )
-        kwds.pop("encoding", None)
-        kwds.pop("memory_map", None)
-        kwds.pop("compression", None)
+        # #2442
+        kwds["allow_leading_cols"] = self.index_col is not False
+
+        # GH20529, validate usecol arg before TextReader
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
+        kwds["usecols"] = self.usecols
+
+        # open handles
+        self._open_handles(src, kwds)
+        assert self.handles is not None
+        for key in ("storage_options", "encoding", "memory_map", "compression"):
+            kwds.pop(key, None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
             # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
             # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
@@ -1885,14 +1891,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        # #2442
-        kwds["allow_leading_cols"] = self.index_col is not False
-
-        # GH20529, validate usecol arg before TextReader
-        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
-        kwds["usecols"] = self.usecols
-
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1935,6 +1938,8 @@ class CParserWrapper(ParserBase):
             usecols = _evaluate_usecols(self.usecols, self.orig_names)
 
             # GH 14671
+            # assert for mypy, orig_names is List or None, None would error in issubset
+            assert self.orig_names is not None
             if self.usecols_dtype == "string" and not set(usecols).issubset(
                 self.orig_names
             ):
@@ -2015,9 +2020,10 @@ class CParserWrapper(ParserBase):
                 x = usecols[x]
 
             if not is_integer(x):
-                # pandas\io\parsers.py:2037: error: Item "None" of
-                # "Optional[Any]" has no attribute "index"  [union-attr]
-                x = names.index(x)  # type: ignore[union-attr]
+                # assert for mypy, names is List or None, None would error when calling
+                # .index()
+                assert names is not None
+                x = names.index(x)
 
             self._reader.set_noconvert(x)
 
@@ -2070,6 +2076,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self.close()
                 raise
 
         # Done with first read, next time raise StopIteration
@@ -2112,10 +2119,9 @@ class CParserWrapper(ParserBase):
 
             # ugh, mutation
 
-            # pandas\io\parsers.py:2131: error: Argument 1 to "list" has
-            # incompatible type "Optional[Any]"; expected "Iterable[Any]"
-            # [arg-type]
-            names = list(self.orig_names)  # type: ignore[arg-type]
+            # assert for mypy, orig_names is List or None, None would error in list(...)
+            assert self.orig_names is not None
+            names = list(self.orig_names)
             names = self._maybe_dedup_names(names)
 
             if self.usecols is not None:
@@ -2225,20 +2231,17 @@ def count_empty_vals(vals) -> int:
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f, **kwds):
+    def __init__(self, f: Union[FilePathOrBuffer, List], **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
         ParserBase.__init__(self, kwds)
 
-        self.data = None
-        self.buf = []
+        self.data: Optional[Iterator[str]] = None
+        self.buf: List = []
         self.pos = 0
         self.line_pos = 0
 
-        self.encoding = kwds["encoding"]
-        self.compression = kwds["compression"]
-        self.memory_map = kwds["memory_map"]
         self.skiprows = kwds["skiprows"]
 
         if callable(self.skiprows):
@@ -2278,21 +2281,16 @@ class PythonParser(ParserBase):
         self.decimal = kwds["decimal"]
 
         self.comment = kwds["comment"]
-        self._comment_lines = []
-
-        self.handles = get_handle(
-            f,
-            "r",
-            encoding=self.encoding,
-            compression=self.compression,
-            memory_map=self.memory_map,
-        )
 
         # Set self.data to something that can read lines.
-        if hasattr(self.handles.handle, "readline"):
-            self._make_reader(self.handles.handle)
+        if isinstance(f, list):
+            # read_excel: f is a list
+            self.data = cast(Iterator[str], f)
         else:
-            self.data = self.handles.handle
+            self._open_handles(f, kwds)
+            assert self.handles is not None
+            assert hasattr(self.handles.handle, "readline")
+            self._make_reader(self.handles.handle)
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -2429,11 +2427,11 @@ class PythonParser(ParserBase):
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
 
-                # Note: self.encoding is irrelevant here
+                # Note: encoding is irrelevant here
                 line_rdr = csv.reader(StringIO(line), dialect=dia)
                 self.buf.extend(list(line_rdr))
 
-            # Note: self.encoding is irrelevant here
+            # Note: encoding is irrelevant here
             reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
@@ -2462,6 +2460,7 @@ class PythonParser(ParserBase):
             if self._first_chunk:
                 content = []
             else:
+                self.close()
                 raise
 
         # done with first read, next time raise StopIteration
@@ -2894,10 +2893,9 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                # pandas\io\parsers.py:2865: error: Argument 1 to "next" has
-                # incompatible type "Optional[Any]"; expected "Iterator[Any]"
-                # [arg-type]
-                next(self.data)  # type: ignore[arg-type]
+                # assert for mypy, data is Iterator[str] or None, would error in next
+                assert self.data is not None
+                next(self.data)
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
@@ -2958,10 +2956,9 @@ class PythonParser(ParserBase):
         row_num : The row number of the line being parsed.
         """
         try:
-            # pandas\io\parsers.py:2926: error: Argument 1 to "next" has
-            # incompatible type "Optional[Any]"; expected "Iterator[Any]"
-            # [arg-type]
-            return next(self.data)  # type: ignore[arg-type]
+            # assert for mypy, data is Iterator[str] or None, would error in next
+            assert self.data is not None
+            return next(self.data)
         except csv.Error as e:
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
@@ -2991,9 +2988,9 @@ class PythonParser(ParserBase):
         if self.comment is None:
             return lines
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for x in l:
+            for x in line:
                 if not isinstance(x, str) or self.comment not in x:
                     rl.append(x)
                 else:
@@ -3020,14 +3017,14 @@ class PythonParser(ParserBase):
             The same array of lines with the "empty" ones removed.
         """
         ret = []
-        for l in lines:
+        for line in lines:
             # Remove empty lines and lines with only one whitespace value
             if (
-                len(l) > 1
-                or len(l) == 1
-                and (not isinstance(l[0], str) or l[0].strip())
+                len(line) > 1
+                or len(line) == 1
+                and (not isinstance(line[0], str) or line[0].strip())
             ):
-                ret.append(l)
+                ret.append(line)
         return ret
 
     def _check_thousands(self, lines):
@@ -3040,9 +3037,9 @@ class PythonParser(ParserBase):
 
     def _search_replace_num_columns(self, lines, search, replace):
         ret = []
-        for l in lines:
+        for line in lines:
             rl = []
-            for i, x in enumerate(l):
+            for i, x in enumerate(line):
                 if (
                     not isinstance(x, str)
                     or search not in x
@@ -3251,10 +3248,10 @@ class PythonParser(ParserBase):
                 try:
                     if rows is not None:
                         for _ in range(rows):
-                            # pandas\io\parsers.py:3209: error: Argument 1 to
-                            # "next" has incompatible type "Optional[Any]";
-                            # expected "Iterator[Any]"  [arg-type]
-                            new_rows.append(next(self.data))  # type: ignore[arg-type]
+                            # assert for mypy, data is Iterator[str] or None, would
+                            # error in next
+                            assert self.data is not None
+                            new_rows.append(next(self.data))
                         lines.extend(new_rows)
                     else:
                         rows = 0
@@ -3756,11 +3753,7 @@ class FixedWidthFieldParser(PythonParser):
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
-        # pandas\io\parsers.py:3730: error: Incompatible types in assignment
-        # (expression has type "FixedWidthReader", variable has type
-        # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
-        # mmap, None]")  [assignment]
-        self.data = FixedWidthReader(  # type: ignore[assignment]
+        self.data = FixedWidthReader(
             f,
             self.colspecs,
             self.delimiter,
@@ -3768,6 +3761,19 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+    def _remove_empty_lines(self, lines) -> List:
+        """
+        Returns the list of lines without the empty ones. With fixed-width
+        fields, empty lines become arrays of empty strings.
+
+        See PythonParser._remove_empty_lines.
+        """
+        return [
+            line
+            for line in lines
+            if any(not isinstance(e, str) or e.strip() for e in line)
+        ]
 
 
 def _refine_defaults_read(

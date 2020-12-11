@@ -55,7 +55,7 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
+            expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
         if getattr(obj, "tz", None) is not None:
             # We need to de-localize before comparing to the numpy-produced result
@@ -470,19 +470,19 @@ class TestIndexReductions:
     def test_minmax_period(self):
 
         # monotonic
-        idx1 = pd.PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         assert not idx1.is_monotonic
         assert idx1[1:].is_monotonic
 
         # non-monotonic
-        idx2 = pd.PeriodIndex(
+        idx2 = PeriodIndex(
             ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], freq="D"
         )
         assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
-            assert idx.min() == pd.Period("2011-01-01", freq="D")
-            assert idx.max() == pd.Period("2011-01-03", freq="D")
+            assert idx.min() == Period("2011-01-01", freq="D")
+            assert idx.max() == Period("2011-01-03", freq="D")
         assert idx1.argmin() == 1
         assert idx2.argmin() == 0
         assert idx1.argmax() == 3
