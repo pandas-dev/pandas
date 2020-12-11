@@ -446,7 +446,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = np.array(values)
     else:
         values = extract_array(values, extract_numpy=True)
-    
+
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps.dtype):
