@@ -499,9 +499,7 @@ def dataclasses_to_dicts(data):
 # Conversion of Inputs to Arrays
 
 
-def to_arrays(
-    data, columns, coerce_float: bool = False, dtype: Optional[DtypeObj] = None
-):
+def to_arrays(data, columns, dtype: Optional[DtypeObj] = None):
     """
     Return list of arrays, columns.
     """
@@ -547,7 +545,7 @@ def to_arrays(
         data = [tuple(x) for x in data]
         content, columns = _list_to_arrays(data, columns)
 
-    content, columns = _finalize_columns_and_data(content, columns, dtype, coerce_float)
+    content, columns = _finalize_columns_and_data(content, columns, dtype)
     return content, columns
 
 
@@ -634,7 +632,6 @@ def _finalize_columns_and_data(
     content: np.ndarray,
     columns: Optional[Union[Index, List]],
     dtype: Optional[DtypeObj],
-    coerce_float: bool,
 ) -> Tuple[List[np.ndarray], Union[Index, List[Axis]]]:
     """
     Ensure we have valid columns, cast object dtypes if possible.
@@ -648,7 +645,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(content) and content[0].dtype == np.object_:
-        content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+        content = _convert_object_array(content, dtype=dtype)
     return content, columns
 
 
@@ -711,7 +708,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: List[Scalar], coerce_float: bool = False, dtype: Optional[DtypeObj] = None
+    content: List[Scalar], dtype: Optional[DtypeObj] = None
 ) -> List[Scalar]:
     """
     Internal function ot convert object array.
@@ -719,7 +716,6 @@ def _convert_object_array(
     Parameters
     ----------
     content: list of processed data records
-    coerce_float: bool, to coerce floats or not, default is False
     dtype: np.dtype, default is None
 
     Returns
@@ -729,7 +725,7 @@ def _convert_object_array(
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != np.dtype("O"):
-            arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
+            arr = lib.maybe_convert_objects(arr)
             arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
