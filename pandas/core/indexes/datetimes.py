@@ -227,6 +227,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
+    inferred_freq: Optional[str]
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
@@ -337,7 +338,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # we use a special reduce here because we need
         # to simply set the .tz (and not reinterpret it)
 
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 

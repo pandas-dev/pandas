@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeries, Label, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -315,6 +314,7 @@ class Grouper:
         self._grouper = None
         self.dropna = dropna
 
+    @final
     @property
     def ax(self):
         return self.grouper
@@ -346,6 +346,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
+    @final
     def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
@@ -370,9 +371,7 @@ class Grouper:
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(
-                obj, ABCSeries
-            ):
+            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
                 # pandas\core\groupby\grouper.py:348: error: Item "None" of
                 # "Optional[Any]" has no attribute "take"  [union-attr]
                 ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
@@ -407,12 +406,14 @@ class Grouper:
         self.grouper = ax
         return self.grouper
 
+    @final
     @property
     def groups(self):
         # pandas\core\groupby\grouper.py:382: error: Item "None" of
         # "Optional[Any]" has no attribute "groups"  [union-attr]
         return self.grouper.groups  # type: ignore[union-attr]
 
+    @final
     def __repr__(self) -> str:
         attrs_list = (
             f"{attr_name}={repr(getattr(self, attr_name))}"
@@ -424,6 +425,7 @@ class Grouper:
         return f"{cls_name}({attrs})"
 
 
+@final
 class Grouping:
     """
     Holds the grouping information for a single key

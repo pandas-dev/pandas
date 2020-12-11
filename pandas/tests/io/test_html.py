@@ -14,7 +14,15 @@ from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    read_csv,
+    to_datetime,
+)
 import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
@@ -610,7 +618,7 @@ class TestReadHtml:
         gtnew = ground_truth.applymap(try_remove_ws)
         converted = dfnew._convert(datetime=True, numeric=True)
         date_cols = ["Closing Date", "Updated Date"]
-        converted[date_cols] = converted[date_cols]._convert(datetime=True, coerce=True)
+        converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
 
     @pytest.mark.slow
