@@ -205,9 +205,10 @@ class Base:
     def test_get_indexer_consistency(self, index):
         # See GH 16819
         if isinstance(index, IntervalIndex):
+            # requires index.is_non_overlapping
             return
 
-        if index.is_unique or isinstance(index, CategoricalIndex):
+        if index.is_unique:
             indexer = index.get_indexer(index[0:2])
             assert isinstance(indexer, np.ndarray)
             assert indexer.dtype == np.intp
