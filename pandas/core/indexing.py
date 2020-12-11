@@ -678,12 +678,14 @@ class _LocationIndexer(NDFrameIndexerBase):
 
             # Try to get the right dtype when we do this reindex.
             fv = None
-            if is_scalar(value):
+            if not is_list_like(value):
                 fv = value
+            elif len(value) and not is_list_like(value[0]):
+                fv = value[0]
             else:
                 dtype = maybe_infer_dtype_type(value)
                 if dtype is not None:
-                    fv = dtype.type(0)  # TODO: or try to just do value[0]?
+                    fv = dtype.type(0)
 
             self.obj._mgr = self.obj._mgr.reindex_axis(
                 keys,
