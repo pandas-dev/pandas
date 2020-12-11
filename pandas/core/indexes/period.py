@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 import warnings
 
 import numpy as np
@@ -449,14 +449,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # Indexing Methods
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        target = ensure_index(target)
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         if not self._should_compare(target):
             return self._get_indexer_non_comparable(target, method, unique=True)
 
         if isinstance(target, PeriodIndex):
-            target = target._get_engine_target()  # i.e. target.asi8
+            target = target._int64index  # i.e. target.asi8
             self_index = self._int64index
         else:
             self_index = self
@@ -467,7 +466,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 # convert tolerance to i8
                 tolerance = self._maybe_convert_timedelta(tolerance)
 
-        return Index.get_indexer(self_index, target, method, limit, tolerance)
+        return Index._get_indexer(self_index, target, method, limit, tolerance)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -639,6 +638,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
         return self._intersection(other, sort=sort)
@@ -660,14 +661,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def difference(self, other, sort=None):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            # pass an empty PeriodArray with the appropriate dtype
+            return self[:0].rename(result_name)
 
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            values = cast(PeriodArray, self._data[:0])
-            return type(self)._simple_new(values, name=self.name)
+        return self._difference(other, sort=sort)
+
+    def _difference(self, other, sort):
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
