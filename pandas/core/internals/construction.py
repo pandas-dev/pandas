@@ -612,10 +612,7 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
-    # pandas\core\internals\construction.py:613: error: Incompatible types in
-    # assignment (expression has type "ndarray", variable has type
-    # "ExtensionArray")  [assignment]
-    values = np.vstack(aligned_values)  # type: ignore[assignment]
+    values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
         content = list(values.T)
@@ -751,11 +748,7 @@ def _convert_object_array(
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
-            # pandas\core\internals\construction.py:742: error: Argument 2 to
-            # "maybe_cast_to_datetime" has incompatible type "Union[dtype,
-            # ExtensionDtype, None]"; expected "Union[dtype, ExtensionDtype]"
-            # [arg-type]
-            arr = maybe_cast_to_datetime(arr, dtype)  # type: ignore[arg-type]
+            arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
     arrays = [convert(arr) for arr in content]

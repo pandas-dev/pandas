@@ -704,7 +704,10 @@ class DataFrame(NDFrame, OpsMixin):
                     raise ValueError("DataFrame constructor not properly called!")
 
                 shape = (len(index), len(columns))
-                values = np.full(shape, arr)
+                # pandas/core/frame.py:707: error: Incompatible types in assignment
+                # (expression has type "ndarray", variable has type
+                # "List[ExtensionArray]")  [assignment]
+                values = np.full(shape, arr)  # type: ignore[assignment]
 
                 mgr = init_ndarray(
                     # error: "List[ExtensionArray]" has no attribute "dtype"

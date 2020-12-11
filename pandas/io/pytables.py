@@ -2980,11 +2980,7 @@ class GenericFixed(Fixed):
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-
-        # pandas\io\pytables.py:2980: error: Value of type variable
-        # "AnyArrayLike" of "extract_array" cannot be "FrameOrSeries"
-        # [type-var]
-        value = extract_array(obj, extract_numpy=True)  # type: ignore[type-var]
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3046,18 +3042,16 @@ class GenericFixed(Fixed):
             # store as UTC
             # with a zone
 
-            # error: "ndarray" has no attribute "asi8"
+            # pandas/io/pytables.py:3045: error: Item "ExtensionArray" of "Union[Any,
+            # ExtensionArray]" has no attribute "asi8"  [union-attr]
             self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[attr-defined]
+                self.group, key, value.asi8  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)
-            # pandas\io\pytables.py:3061: error: "ExtensionArray" has no
-            # attribute "tz"  [attr-defined]
-
-            # pandas\io\pytables.py:3061: error: "ndarray" has no attribute
-            # "tz"  [attr-defined]
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
+            # pandas/io/pytables.py:3048: error: Item "ExtensionArray" of "Union[Any,
+            # ExtensionArray]" has no attribute "tz"  [union-attr]
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))

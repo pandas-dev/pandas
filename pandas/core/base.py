@@ -1313,4 +1313,6 @@ class IndexOpsMixin(OpsMixin):
         return result
 
     def duplicated(self, keep="first"):
-        return duplicated(self._values, keep=keep)
+        # pandas/core/base.py:1316: error: Value of type variable "ArrayLike" of
+        # "duplicated" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        return duplicated(self._values, keep=keep)  # type: ignore[type-var]

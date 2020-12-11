@@ -296,7 +296,10 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
-            arr = self.copy()
+            # pandas/core/arrays/string_.py:299: error: Incompatible types in assignment
+            # (expression has type "StringArray", variable has type "ndarray")
+            # [assignment]
+            arr = self.copy()  # type: ignore[assignment]
             mask = self.isna()
             arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)

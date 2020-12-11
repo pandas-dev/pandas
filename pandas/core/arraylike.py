@@ -168,7 +168,13 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     # Determine if we should defer.
-    no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
+
+    # pandas/core/arraylike.py:171: error: "Type[ndarray]" has no attribute
+    # "__array_ufunc__"  [attr-defined]
+    no_defer = (
+        np.ndarray.__array_ufunc__,  # type: ignore[attr-defined]
+        cls.__array_ufunc__,
+    )
 
     for item in inputs:
         higher_priority = (

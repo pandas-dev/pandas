@@ -498,11 +498,7 @@ def sanitize_array(
         else:
             subarr = maybe_convert_platform(data)
 
-        # pandas\core\construction.py:485: error: Argument 2 to
-        # "maybe_cast_to_datetime" has incompatible type "Union[dtype,
-        # ExtensionDtype, None]"; expected "Union[dtype, ExtensionDtype]"
-        # [arg-type]
-        subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[arg-type]
+        subarr = maybe_cast_to_datetime(subarr, dtype)
 
     elif isinstance(data, range):
         # GH#16804
@@ -619,11 +615,7 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
             maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
             subarr = arr
         else:
-            # pandas\core\construction.py:598: error: Argument 2 to
-            # "maybe_cast_to_datetime" has incompatible type "Union[dtype,
-            # ExtensionDtype, None]"; expected "Union[dtype, ExtensionDtype]"
-            # [arg-type]
-            subarr = maybe_cast_to_datetime(arr, dtype)  # type: ignore[arg-type]
+            subarr = maybe_cast_to_datetime(arr, dtype)
 
         # Take care in creating object arrays (but iterators are not
         # supported):

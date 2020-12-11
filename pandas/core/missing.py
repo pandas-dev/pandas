@@ -41,7 +41,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
-    values_to_mask = np.array(values_to_mask, dtype=dtype)
+    # pandas/core/missing.py:44: error: Argument "dtype" to "array" has incompatible
+    # type "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
+    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+    # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
@@ -271,7 +275,12 @@ def interpolate_1d(
 
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
-        indexer = np.argsort(inds[valid])
+
+        # pandas/core/missing.py:274: error: Argument 1 to "argsort" has incompatible
+        # type "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex,
+        # str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
+        # generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )

@@ -518,7 +518,10 @@ class _Concatenator:
                         # in new labels to make them unique, otherwise we would
                         # duplicate or duplicates again
                         if not obj_labels.is_unique:
-                            new_labels = algos.make_duplicates_of_left_unique_in_right(
+                            # pandas/core/reshape/concat.py:521: error: Incompatible
+                            # types in assignment (expression has type "ndarray",
+                            # variable has type "Index")  [assignment]
+                            new_labels = algos.make_duplicates_of_left_unique_in_right(  # type: ignore[assignment]  # noqa
                                 np.asarray(obj_labels), np.asarray(new_labels)
                             )
                         indexers[ax] = obj_labels.reindex(new_labels)[1]

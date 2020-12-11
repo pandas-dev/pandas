@@ -1431,10 +1431,18 @@ class BarPlot(MPLPlot):
 
             if self.orientation == "vertical":
                 ax.xaxis.update_units(self.ax_index)
-                self.tick_pos = ax.convert_xunits(self.ax_index).astype(np.int)
+                # pandas/plotting/_matplotlib/core.py:1434: error: Module has no
+                # attribute "int"; maybe "uint", "rint", or "intp"?  [attr-defined]
+                self.tick_pos = ax.convert_xunits(self.ax_index).astype(
+                    np.int  # type: ignore[attr-defined]
+                )
             elif self.orientation == "horizontal":
                 ax.yaxis.update_units(self.ax_index)
-                self.tick_pos = ax.convert_yunits(self.ax_index).astype(np.int)
+                # pandas/plotting/_matplotlib/core.py:1437: error: Module has no
+                # attribute "int"; maybe "uint", "rint", or "intp"?  [attr-defined]
+                self.tick_pos = ax.convert_yunits(self.ax_index).astype(
+                    np.int  # type: ignore[attr-defined]
+                )
             self.ax_pos = self.tick_pos - self.tickoffset
 
             kwds = self.kwds.copy()

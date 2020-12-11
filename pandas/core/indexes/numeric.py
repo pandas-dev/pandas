@@ -284,7 +284,9 @@ class IntegerIndex(NumericIndex):
             FutureWarning,
             stacklevel=2,
         )
-        return self._values.view(self._default_dtype)
+        # pandas/core/indexes/numeric.py:287: error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ndarray")  [return-value]
+        return self._values.view(self._default_dtype)  # type: ignore[return-value]
 
 
 class Int64Index(IntegerIndex):

@@ -305,7 +305,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                return self.take(item)
+                # pandas/core/arrays/string_arrow.py:308: error: Argument 1 to "take" of
+                # "ArrowStringArray" has incompatible type "ndarray"; expected
+                # "Sequence[int]"  [arg-type]
+                return self.take(item)  # type: ignore[arg-type]
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -394,7 +397,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """
         return self._data.nbytes
 
-    def isna(self) -> np.ndarray:
+    # pandas/core/arrays/string_arrow.py:397: error: Return type "ndarray" of "isna"
+    # incompatible with return type "ArrayLike" in supertype "ExtensionArray"
+    # [override]
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         """
         Boolean NumPy array indicating if each value is missing.
 
@@ -469,7 +475,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
             # Slice data and insert inbetween
             new_data = [
-                *self._data[0:key].chunks,
+                # pandas/core/arrays/string_arrow.py:472: error: Slice index must be an
+                # integer or None  [misc]
+                *self._data[0:key].chunks,  # type: ignore[misc]
                 pa.array([value], type=pa.string()),
                 *self._data[(key + 1) :].chunks,
             ]
@@ -560,7 +568,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if not is_array_like(indices):
             indices_array = np.asanyarray(indices)
         else:
-            indices_array = indices
+            # pandas/core/arrays/string_arrow.py:563: error: Incompatible types in
+            # assignment (expression has type "Sequence[int]", variable has type
+            # "ndarray")  [assignment]
+            indices_array = indices  # type: ignore[assignment]
 
         if len(self._data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")

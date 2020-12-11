@@ -715,11 +715,16 @@ class SeriesGroupBy(GroupBy[Series]):
             lab = cut(Series(val), bins, include_lowest=True)
             # error: "ndarray" has no attribute "cat"
             lev = lab.cat.categories  # type: ignore[attr-defined]
-            # error: "ndarray" has no attribute "cat"
-            lab = lev.take(
+            # pandas/core/groupby/generic.py:719: error: No overload variant of "take"
+            # of "_ArrayOrScalarCommon" matches argument types "Any", "bool",
+            # "Union[Any, float]"  [call-overload]
+            lab = lev.take(  # type: ignore[call-overload]
+                # error: "ndarray" has no attribute "cat"
                 lab.cat.codes,  # type: ignore[attr-defined]
                 allow_fill=True,
-                fill_value=lev._na_value,
+                # pandas/core/groupby/generic.py:722: error: Item "ndarray" of
+                # "Union[ndarray, Index]" has no attribute "_na_value"  [union-attr]
+                fill_value=lev._na_value,  # type: ignore[union-attr]
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
@@ -1125,7 +1130,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                result = py_fallback(bvalues)
+                # pandas/core/groupby/generic.py:1128: error: Incompatible types in
+                # assignment (expression has type "ExtensionArray", variable has type
+                # "ndarray")  [assignment]
+                result = py_fallback(bvalues)  # type: ignore[assignment]
 
             return cast_agg_result(result, bvalues, how)
 

@@ -394,7 +394,9 @@ class FloatingArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            kwargs = {"na_value": np.datetime64("NaT")}
+            # pandas/core/arrays/floating.py:397: error: Dict entry 0 has incompatible
+            # type "str": "datetime64"; expected "str": "float"  [dict-item]
+            kwargs = {"na_value": np.datetime64("NaT")}  # type: ignore[dict-item]
         else:
             kwargs = {}
 

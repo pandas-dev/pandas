@@ -366,13 +366,17 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self.isna().any()
+                # pandas/core/arrays/base.py:369: error: "ExtensionArray" has no
+                # attribute "any"  [attr-defined]
+                return self.isna().any()  # type: ignore[attr-defined]
             else:
                 return False
         else:
             return (item == self).any()
 
-    def __eq__(self, other: Any) -> ArrayLike:
+    # pandas/core/arrays/base.py:375: error: Signature of "__eq__" incompatible with
+    # supertype "object"  [override]
+    def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self == other` (element-wise equality).
         """

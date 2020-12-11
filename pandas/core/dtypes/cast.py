@@ -334,11 +334,22 @@ def maybe_cast_result(
     ):
         # We have to special case categorical so as not to upcast
         # things like counts back to categorical
-        cls = dtype.construct_array_type()
-        result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+
+        # pandas/core/dtypes/cast.py:337: error: Item "dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "construct_array_type"  [union-attr]
+        cls = dtype.construct_array_type()  # type: ignore[union-attr]
+        # pandas/core/dtypes/cast.py:338: error: Argument "dtype" to
+        # "maybe_cast_to_extension_array" has incompatible type "Union[dtype[Any],
+        # ExtensionDtype]"; expected "Optional[ExtensionDtype]"  [arg-type]
+        result = maybe_cast_to_extension_array(
+            cls, result, dtype=dtype  # type: ignore[arg-type]
+        )
 
     elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
-        result = maybe_downcast_to_dtype(result, dtype)
+        # pandas/core/dtypes/cast.py:341: error: Argument 2 to "maybe_downcast_to_dtype"
+        # has incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+        # "Union[str, dtype[Any]]"  [arg-type]
+        result = maybe_downcast_to_dtype(result, dtype)  # type: ignore[arg-type]
 
     return result
 
@@ -1447,8 +1458,14 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
 
                     # pandas supports dtype whose granularity is less than [ns]
                     # e.g., [ps], [fs], [as]
-                    if dtype <= np.dtype("M8[ns]"):
-                        if dtype.name == "datetime64":
+
+                    # pandas/core/dtypes/cast.py:1450: error: Unsupported operand types
+                    # for >= ("dtype[Any]" and "ExtensionDtype")  [operator]
+                    if dtype <= np.dtype("M8[ns]"):  # type: ignore[operator]
+                        # pandas/core/dtypes/cast.py:1451: error: Item "None" of
+                        # "Union[dtype[Any], ExtensionDtype, None]" has no attribute
+                        # "name"  [union-attr]
+                        if dtype.name == "datetime64":  # type: ignore[union-attr]
                             raise ValueError(msg)
                         dtype = DT64NS_DTYPE
                     else:

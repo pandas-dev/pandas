@@ -1544,8 +1544,10 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
 
-            # error: "ExtensionArray" has no attribute "_internal_get_values"
-            array = values._internal_get_values()  # type: ignore[attr-defined]
+            # pandas/io/formats/format.py:1546: error: Item "ExtensionArray" of
+            # "Union[Any, ExtensionArray]" has no attribute "_internal_get_values"
+            # [union-attr]
+            array = values._internal_get_values()  # type: ignore[union-attr]
         else:
             array = np.asarray(values)
 

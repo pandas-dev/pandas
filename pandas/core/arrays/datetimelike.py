@@ -763,7 +763,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self) -> np.ndarray:
+    # pandas/core/arrays/datetimelike.py:766: error: Return type "ndarray" of "isna"
+    # incompatible with return type "ArrayLike" in supertype "ExtensionArray"
+    # [override]
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
@@ -778,7 +781,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         return if I have any nans; enables various perf speedups
         """
-        return bool(self._isnan.any())
+        # pandas/core/arrays/datetimelike.py:781: error: Incompatible return value type
+        # (got "bool", expected "ndarray")  [return-value]
+        return bool(self._isnan.any())  # type: ignore[return-value]
 
     def _maybe_mask_results(
         self, result: np.ndarray, fill_value=iNaT, convert=None
@@ -1119,9 +1124,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         res_values = op(self.astype("O"), np.asarray(other))
         result = array(res_values.ravel())
-        # error: "ExtensionArray" has no attribute "reshape"; maybe "shape"?
-        tmp = extract_array(result, extract_numpy=True)
-        result = tmp.reshape(self.shape)  # type: ignore[attr-defined]
+        # pandas/core/arrays/datetimelike.py:1122: error: Item "ExtensionArray" of
+        # "Union[Any, ExtensionArray]" has no attribute "reshape"  [union-attr]
+        result = extract_array(result, extract_numpy=True).reshape(  # type: ignore[union-attr]  # noqa
+            self.shape
+        )
         return result
 
     def _time_shift(self, periods, freq=None):

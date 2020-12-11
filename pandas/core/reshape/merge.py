@@ -2010,13 +2010,8 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    lk = extract_array(lk, extract_numpy=True)  # type: ignore[assignment]
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    rk = extract_array(rk, extract_numpy=True)  # type: ignore[assignment]
+    lk = extract_array(lk, extract_numpy=True)
+    rk = extract_array(rk, extract_numpy=True)
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
@@ -2032,25 +2027,33 @@ def _factorize_keys(
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
-        rk = lk._encode_with_my_categories(rk)
 
-        lk = ensure_int64(lk.codes)
-        rk = ensure_int64(rk.codes)
+        # pandas/core/reshape/merge.py:2035: error: <nothing> has no attribute
+        # "_encode_with_my_categories"  [attr-defined]
+        rk = lk._encode_with_my_categories(rk)  # type: ignore[attr-defined]
+
+        # pandas/core/reshape/merge.py:2037: error: <nothing> has no attribute "codes"
+        # [attr-defined]
+        lk = ensure_int64(lk.codes)  # type: ignore[attr-defined]
+        # pandas/core/reshape/merge.py:2038: error: "ndarray" has no attribute "codes"
+        # [attr-defined]
+        rk = ensure_int64(rk.codes)  # type: ignore[attr-defined]
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # pandas\core\reshape\merge.py:1967: error: Incompatible types in
         # assignment (expression has type "ndarray", variable has type
         # "ExtensionArray")  [assignment]
 
-        # pandas\core\reshape\merge.py:1967: error: "ndarray" has no attribute
-        # "_values_for_factorize"  [attr-defined]
-        lk, _ = lk._values_for_factorize()  # type: ignore[attr-defined,assignment]
+        # pandas/core/reshape/merge.py:2047: error: Item "ndarray" of "Union[Any,
+        # ndarray]" has no attribute "_values_for_factorize"  [union-attr]
+        lk, _ = lk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
         # error: Incompatible types in assignment (expression has type
         # "ndarray", variable has type "ExtensionArray")
 
-        # error: "ndarray" has no attribute "_values_for_factorize"
-        rk, _ = rk._values_for_factorize()  # type: ignore[attr-defined,assignment]
+        # pandas/core/reshape/merge.py:2053: error: Item "ndarray" of "Union[Any,
+        # ndarray]" has no attribute "_values_for_factorize"  [union-attr]
+        rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
 
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype

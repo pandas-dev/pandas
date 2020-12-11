@@ -336,7 +336,13 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
-                data = _maybe_cast_with_dtype(data, dtype, copy)
+
+                # pandas/core/indexes/base.py:339: error: Argument 1 to
+                # "_maybe_cast_with_dtype" has incompatible type "Union[ndarray, Index,
+                # Series]"; expected "ndarray"  [arg-type]
+                data = _maybe_cast_with_dtype(
+                    data, dtype, copy  # type: ignore[arg-type]
+                )
                 dtype = data.dtype  # TODO: maybe not for object?
 
             # maybe coerce to a sub-class
@@ -3842,7 +3848,11 @@ class Index(IndexOpsMixin, PandasObject):
         mask = left_idx == -1
         np.putmask(join_index, mask, rvalues.take(right_idx))
 
-        join_index = self._wrap_joined_index(join_index, other)
+        # pandas/core/indexes/base.py:3845: error: Incompatible types in assignment
+        # (expression has type "Index", variable has type "ndarray")  [assignment]
+        join_index = self._wrap_joined_index(
+            join_index, other  # type: ignore[assignment]
+        )
 
         if return_indexers:
             return join_index, left_idx, right_idx
@@ -4020,10 +4030,20 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             elif how == "inner":
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                # pandas/core/indexes/base.py:4023: error: Argument 1 to
+                # "_wrap_joined_index" of "Index" has incompatible type "Index";
+                # expected "ndarray"  [arg-type]
+                join_index = self._wrap_joined_index(
+                    join_index, other  # type: ignore[arg-type]
+                )
             elif how == "outer":
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                # pandas/core/indexes/base.py:4026: error: Argument 1 to
+                # "_wrap_joined_index" of "Index" has incompatible type "Index";
+                # expected "ndarray"  [arg-type]
+                join_index = self._wrap_joined_index(
+                    join_index, other  # type: ignore[arg-type]
+                )
         else:
             if how == "left":
                 join_index, lidx, ridx = self._left_indexer(sv, ov)
@@ -4033,7 +4053,12 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == "outer":
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-            join_index = self._wrap_joined_index(join_index, other)
+            # pandas/core/indexes/base.py:4036: error: Argument 1 to
+            # "_wrap_joined_index" of "Index" has incompatible type "Index"; expected
+            # "ndarray"  [arg-type]
+            join_index = self._wrap_joined_index(
+                join_index, other  # type: ignore[arg-type]
+            )
 
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -5250,7 +5275,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(self._values, values)
+        # pandas/core/indexes/base.py:5253: error: Value of type variable "AnyArrayLike"
+        # of "isin" cannot be "Union[ExtensionArray, ndarray]"  [type-var]
+        return algos.isin(self._values, values)  # type: ignore[type-var]
 
     def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,

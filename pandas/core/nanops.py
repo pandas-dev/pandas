@@ -285,9 +285,7 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  np.where call below
     assert is_scalar(fill_value)
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
+    values = extract_array(values, extract_numpy=True)
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -1163,9 +1161,7 @@ def nanskew(
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1250,9 +1246,7 @@ def nankurt(
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")

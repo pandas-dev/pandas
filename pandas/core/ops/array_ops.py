@@ -355,10 +355,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-
-        # error: Argument 1 to "na_logical_op" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        res_values = na_logical_op(lvalues, rvalues, op)  # type: ignore[arg-type]
+        res_values = na_logical_op(lvalues, rvalues, op)
         # error: Cannot call function of unknown type
         res_values = filler(res_values)  # type: ignore[operator]
 

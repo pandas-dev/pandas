@@ -788,7 +788,9 @@ class Block(PandasObject):
             #  so does not get here.
             to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
-        mask = missing.mask_missing(values, to_replace)
+        # pandas/core/internals/blocks.py:791: error: Value of type variable "ArrayLike"
+        # of "mask_missing" cannot be "Union[ndarray, ExtensionArray]"  [type-var]
+        mask = missing.mask_missing(values, to_replace)  # type: ignore[type-var]
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
@@ -903,7 +905,14 @@ class Block(PandasObject):
             masks = [comp(s[0], mask, regex) for s in pairs]
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(self.values, s[0]) for s in pairs]
+
+            # pandas/core/internals/blocks.py:906: error: Value of type variable
+            # "ArrayLike" of "mask_missing" cannot be "Union[ndarray, ExtensionArray]"
+            # [type-var]
+            masks = [
+                missing.mask_missing(self.values, s[0])  # type: ignore[type-var]
+                for s in pairs
+            ]
 
         masks = [_extract_bool_array(x) for x in masks]
 
@@ -1372,11 +1381,8 @@ class Block(PandasObject):
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
-
-            # error: Argument "xvalues" to "interpolate_1d" has incompatible
-            # type "Index"; expected "ndarray"
             return missing.interpolate_1d(
-                xvalues=index,  # type: ignore[arg-type]
+                xvalues=index,
                 yvalues=yvalues,
                 method=method,
                 limit=limit,

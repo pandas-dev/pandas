@@ -719,7 +719,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
         codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
-        uniques = SparseArray(uniques, dtype=self.dtype)
+        # pandas/core/arrays/sparse/array.py:722: error: Incompatible types in
+        # assignment (expression has type "SparseArray", variable has type
+        # "Union[ndarray, Index]")  [assignment]
+        uniques = SparseArray(uniques, dtype=self.dtype)  # type: ignore[assignment]
         return codes, uniques
 
     def value_counts(self, dropna=True):
