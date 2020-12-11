@@ -819,7 +819,7 @@ class _TestSQLApi(PandasSQLTest):
                 },
             )
 
-            tm.assert_frame_equal(result, expected, check_dtype=False)
+            tm.assert_frame_equal(result, expected)
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
