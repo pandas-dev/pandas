@@ -8426,7 +8426,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         offset = to_offset(offset)
-        if offset._day_opt == "end" and offset.is_on_offset(self.index[0]):
+        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
             end_date = end = self.index[0]
         else:
             end_date = end = self.index[0] + offset
