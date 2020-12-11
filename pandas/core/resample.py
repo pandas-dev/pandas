@@ -1366,7 +1366,6 @@ class TimeGrouper(Grouper):
         convention: Optional[str] = None,
         base: Optional[int] = None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        backward: Optional[bool] = None,
         offset: Optional[TimedeltaConvertibleTypes] = None,
         **kwargs,
     ):
@@ -1390,15 +1389,9 @@ class TimeGrouper(Grouper):
                 label = "right"
         else:
             if closed is None:
-                if origin in ["end", "end_day"] or backward:
-                    closed = "right"
-                else:
-                    closed = "left"
+                closed = "left"
             if label is None:
-                if origin in ["end", "end_day"] or backward:
-                    label = "right"
-                else:
-                    label = "left"
+                label = "left"
 
         self.closed = closed
         self.label = label
@@ -1411,31 +1404,19 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in ("epoch", "start", "start_day", "end", "end_day"):
+        if origin in ("epoch", "start", "start_day", "end"):
+            if origin == "end" and self.closed == "left":
+                raise ValueError("'closed' has to be 'right' when 'origin' is 'end'.")
             self.origin = origin
         else:
             try:
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day', 'end', 'end_day' "
+                    "'origin' should be equal to 'epoch', 'start', 'start_day', 'end' "
                     f"or should be a Timestamp convertible type. Got '{origin}' "
                     "instead."
                 ) from e
-
-        if backward is None:
-            if self.origin in ("end", "end_day"):
-                self.backward = True
-            else:
-                self.backward = False
-        elif backward:
-            if origin in ("start", "start_day"):
-                raise ValueError(f"`start` or `start_day` origin isn't allowed when `backward` is True")
-            self.backward = backward
-        else:
-            if origin in ("end", "end_day"):
-                raise ValueError(f"`end` or `end_day` origin isn't allowed when `backward` is False")
-            self.backward = backward
 
         try:
             self.offset = Timedelta(offset) if offset is not None else None
@@ -1524,7 +1505,6 @@ class TimeGrouper(Grouper):
             self.freq,
             closed=self.closed,
             origin=self.origin,
-            backward=self.backward,
             offset=self.offset,
         )
         # GH #12037
@@ -1678,7 +1658,6 @@ class TimeGrouper(Grouper):
                 self.freq,
                 closed=self.closed,
                 origin=self.origin,
-                backward=self.backward,
                 offset=self.offset,
             )
 
@@ -1732,7 +1711,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", origin="start_day", backward=False, offset=None
+    first, last, freq, closed="left", origin="start_day", offset=None
 ):
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
@@ -1785,7 +1764,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, backward=backward, offset=offset
+            first, last, freq, closed=closed, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1805,7 +1784,7 @@ def _get_timestamp_range_edges(
 
 
 def _get_period_range_edges(
-    first, last, freq, closed="left", origin="start_day", backward=False, offset=None
+    first, last, freq, closed="left", origin="start_day", offset=None
 ):
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
@@ -1847,7 +1826,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, backward=backward, offset=offset
+        first, last, freq, closed=closed, origin=origin, offset=offset
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
@@ -1856,7 +1835,7 @@ def _get_period_range_edges(
 
 
 def _adjust_dates_anchored(
-    first, last, freq, closed="right", origin="start_day", backward=False, offset=None
+    first, last, freq, closed="right", origin="start_day", offset=None
 ):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -1868,19 +1847,12 @@ def _adjust_dates_anchored(
         origin_nanos = first.normalize().value
     elif origin == "start":
         origin_nanos = first.value
-    elif isinstance(origin, Timestamp) or origin in ("end", "end_day"):
-        if backward:
-            if origin == "end":
-                origin = last
-            elif origin == "end_day":
-                origin = last.ceil('D')
-            sub_freq_times = (origin.value - first.value) // freq.nanos
-            if closed == "left":
-                sub_freq_times += 1
-            first = origin - sub_freq_times * freq
-            origin_nanos = first.value
-        else:
-            origin_nanos = origin.value
+    elif isinstance(origin, Timestamp):
+        origin_nanos = origin.value
+    elif origin == "end":
+        sub_freq_times = (last.value - first.value) // freq.nanos
+        first = last - sub_freq_times * freq
+        origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
