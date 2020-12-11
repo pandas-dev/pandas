@@ -6023,7 +6023,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _logical_method = _arith_method
 
-    def _dispatch_frame_op(self, right, func, axis: Optional[int] = None):
+    def _dispatch_frame_op(self, right, func: Callable, axis: Optional[int] = None):
         """
         Evaluate the frame operation func(left, right) by evaluating
         column-by-column, dispatching to the Series implementation.
@@ -6104,7 +6104,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
 
-    def _construct_result(self, result) -> DataFrame:
+    def _construct_result(self, result: DataFrame) -> DataFrame:
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
@@ -6735,8 +6735,8 @@ NaN 12.3   33.0
     def groupby(
         self,
         by=None,
-        axis=0,
-        level=None,
+        axis: int = 0,
+        level: Optional[Level] = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -7067,12 +7067,12 @@ NaN 12.3   33.0
         values=None,
         index=None,
         columns=None,
-        aggfunc="mean",
+        aggfunc: AggFuncType = "mean",
         fill_value=None,
-        margins=False,
-        dropna=True,
+        margins: bool = False,
+        dropna: bool = True,
         margins_name="All",
-        observed=False,
+        observed: bool = False,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
@@ -7089,7 +7089,7 @@ NaN 12.3   33.0
             observed=observed,
         )
 
-    def stack(self, level=-1, dropna=True):
+    def stack(self, level: Union[int, str, List] = -1, dropna: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -7338,7 +7338,7 @@ NaN 12.3   33.0
 
         return result
 
-    def unstack(self, level=-1, fill_value=None):
+    def unstack(self, level: Level = -1, fill_value=None):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -7409,7 +7409,7 @@ NaN 12.3   33.0
         var_name=None,
         value_name="value",
         col_level=None,
-        ignore_index=True,
+        ignore_index: bool = True,
     ) -> DataFrame:
 
         return melt(
@@ -7670,7 +7670,15 @@ NaN 12.3   33.0
         assert isinstance(result, DataFrame)
         return result
 
-    def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwds):
+    def apply(
+        self,
+        func: Callable,
+        axis: Axis = 0,
+        raw: bool = False,
+        result_type: Optional[str] = None,
+        args: Tuple = (),
+        **kwds,
+    ):
         """
         Apply a function along an axis of the DataFrame.
 
@@ -7815,7 +7823,7 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func, na_action: Optional[str] = None) -> DataFrame:
+    def applymap(self, func: Callable, na_action: Optional[str] = None) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
 
@@ -7895,7 +7903,11 @@ NaN 12.3   33.0
     # Merging / joining methods
 
     def append(
-        self, other, ignore_index=False, verify_integrity=False, sort=False
+        self,
+        other,
+        ignore_index: bool = False,
+        verify_integrity: bool = False,
+        sort: bool = False,
     ) -> DataFrame:
         """
         Append rows of `other` to the end of caller, returning a new object.
@@ -8036,7 +8048,13 @@ NaN 12.3   33.0
         ).__finalize__(self, method="append")
 
     def join(
-        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+        self,
+        other,
+        on=None,
+        how: str = "left",
+        lsuffix: str = "",
+        rsuffix: str = "",
+        sort: bool = False,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -8160,7 +8178,13 @@ NaN 12.3   33.0
         )
 
     def _join_compat(
-        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+        self,
+        other,
+        on=None,
+        how: str = "left",
+        lsuffix: str = "",
+        rsuffix: str = "",
+        sort: bool = False,
     ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
@@ -8226,16 +8250,16 @@ NaN 12.3   33.0
     def merge(
         self,
         right,
-        how="inner",
+        how: str = "inner",
         on=None,
         left_on=None,
         right_on=None,
-        left_index=False,
-        right_index=False,
-        sort=False,
+        left_index: bool = False,
+        right_index: bool = False,
+        sort: bool = False,
         suffixes=("_x", "_y"),
-        copy=True,
-        indicator=False,
+        copy: bool = True,
+        indicator: bool = False,
         validate=None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
