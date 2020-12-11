@@ -2238,7 +2238,11 @@ class BytesIOWrapper:
     Allows the pyarrow engine for read_csv() to read from string buffers
     """
 
-    def __init__(self, string_buffer: StringIO, encoding: str = "utf-8"):
+    def __init__(
+        self,
+        string_buffer: Union[StringIO, TextIOBase],
+        encoding: Optional[str] = "utf-8",
+    ):
         self.string_buffer = string_buffer
         self.encoding = encoding
 
