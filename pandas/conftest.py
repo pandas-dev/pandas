@@ -75,6 +75,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="Fail if a test is skipped for missing data file.",
     )
+    parser.addoption(
+        "--array-manager",
+        action="store_true",
+        help="Use the experimental ArrayManager as default data manager.",
+    )
 
 
 def pytest_runtest_setup(item):
@@ -94,6 +99,8 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
+    if item.config.getoption("--array-manager"):
+        pd.options.mode.data_manager = "array"
 
 
 # Hypothesis
