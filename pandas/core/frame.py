@@ -64,7 +64,6 @@ from pandas._typing import (
     Level,
     Renamer,
     Scalar,
-    Shape,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -649,7 +648,7 @@ class DataFrame(NDFrame, OpsMixin):
         return [self.index, self.columns]
 
     @property
-    def shape(self) -> Shape:
+    def shape(self) -> Tuple[int, int]:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
@@ -4091,7 +4090,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_columns,
         method,
         copy,
-        level,
+        level: Level,
         fill_value=None,
         limit=None,
         tolerance=None,
@@ -4130,15 +4129,15 @@ class DataFrame(NDFrame, OpsMixin):
     def align(
         self,
         other,
-        join="outer",
-        axis=None,
-        level=None,
+        join: str = "outer",
+        axis: Optional[Axis] = None,
+        level: Optional[Level] = None,
         copy: bool = True,
         fill_value=None,
-        method=None,
-        limit=None,
-        fill_axis=0,
-        broadcast_axis=None,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        fill_axis: Axis = 0,
+        broadcast_axis: Optional[Axis] = None,
     ) -> DataFrame:
         return super().align(
             other,
@@ -4494,10 +4493,10 @@ class DataFrame(NDFrame, OpsMixin):
     def fillna(
         self,
         value=None,
-        method=None,
-        axis=None,
-        inplace=False,
-        limit=None,
+        method: Optional[str] = None,
+        axis: Optional[Axis] = None,
+        inplace: bool = False,
+        limit: Optional[int] = None,
         downcast=None,
     ) -> Optional[DataFrame]:
         return super().fillna(
@@ -4557,9 +4556,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         to_replace=None,
         value=None,
-        inplace=False,
+        inplace: bool = False,
         limit=None,
-        regex=False,
+        regex: bool = False,
         method="pad",
     ):
         return super().replace(
@@ -4608,7 +4607,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
-        self, periods=1, freq=None, axis=0, fill_value=lib.no_default
+        self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=lib.no_default
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -4640,7 +4639,12 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     def set_index(
-        self, keys, drop=True, append=False, inplace=False, verify_integrity=False
+        self,
+        keys,
+        drop: bool = True,
+        append: bool = False,
+        inplace: bool = False,
+        verify_integrity: bool = False,
     ):
         """
         Set the DataFrame index using existing columns.
