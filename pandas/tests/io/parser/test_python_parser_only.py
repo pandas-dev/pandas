@@ -49,7 +49,7 @@ def test_invalid_skipfooter_negative(python_parser_only):
         parser.read_csv(StringIO(data), skipfooter=-1)
 
 
-@pytest.mark.parametrize("kwargs", [dict(sep=None), dict(delimiter="|")])
+@pytest.mark.parametrize("kwargs", [{"sep": None}, {"delimiter": "|"}])
 def test_sniff_delimiter(python_parser_only, kwargs):
     data = """index|A|B|C
 foo|1|2|3
@@ -122,7 +122,7 @@ def test_single_line(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(skipfooter=2), dict(nrows=3)])
+@pytest.mark.parametrize("kwargs", [{"skipfooter": 2}, {"nrows": 3}])
 def test_skipfooter(python_parser_only, kwargs):
     # see gh-6607
     data = """A,B,C
@@ -213,10 +213,10 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     if add_footer:
         # The stray footer line should not mess with the
         # casting of the first two lines if we skip it.
-        kwargs = dict(skipfooter=1)
+        kwargs = {"skipfooter": 1}
         data += "\nFooter"
     else:
-        kwargs = dict()
+        kwargs = {}
 
     result = parser.read_csv(StringIO(data), names=["a"], decimal="#", **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -245,7 +245,7 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 def test_multi_char_sep_quotes(python_parser_only, quoting):
     # see gh-13374
-    kwargs = dict(sep=",,")
+    kwargs = {"sep": ",,"}
     parser = python_parser_only
 
     data = 'a,,b\n1,,a\n2,,"2,,b"'
