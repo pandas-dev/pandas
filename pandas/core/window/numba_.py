@@ -210,7 +210,6 @@ def generate_numba_table_func(
     def roll_table(
         values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ):
-        # TODO: consider axis argument, len should be replaced with axis aware result
         result = np.empty(values.shape)
         min_periods_mask = np.empty(values.shape)
         for i in loop_range(len(result)):
