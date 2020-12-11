@@ -2290,7 +2290,7 @@ class ArrowParserWrapper(ParserBase):
 
     def read(self):
         pyarrow = import_optional_dependency("pyarrow.csv")
-        kwdscopy = {k: v for k, v in self.kwds.items() if v is not None}
+        self.kwds = {k: v for k, v in self.kwds.items() if v is not None}
         # these are kwargs passed to pyarrow
         parseoptions = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
         convertoptions = {
@@ -2300,13 +2300,13 @@ class ArrowParserWrapper(ParserBase):
             "false_values",
         }
         # rename some arguments to pass to pyarrow
-        kwdscopy["include_columns"] = kwdscopy.get("usecols")
-        kwdscopy["null_values"] = kwdscopy.get("na_values")
-        kwdscopy["escape_char"] = kwdscopy.get("escapechar")
-        kwdscopy["ignore_empty_lines"] = kwdscopy.get("skip_blank_lines")
+        self.kwds["include_columns"] = self.kwds.pop("usecols")
+        self.kwds["null_values"] = self.kwds.pop("na_values")
+        self.kwds["escape_char"] = self.kwds.pop("escapechar")
+        self.kwds["ignore_empty_lines"] = self.kwds.pop("skip_blank_lines")
 
-        parse_options = {k: v for k, v in kwdscopy.items() if k in parseoptions}
-        convert_options = {k: v for k, v in kwdscopy.items() if k in convertoptions}
+        parse_options = {k: v for k, v in self.kwds.items() if k in parseoptions}
+        convert_options = {k: v for k, v in self.kwds.items() if k in convertoptions}
         headerexists = True if self.header is not None else False
         read_options = {}
 
