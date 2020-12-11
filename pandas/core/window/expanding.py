@@ -59,10 +59,14 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis"]
+    _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, method='column', **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis, method=method)
+    def __init__(
+        self, obj, min_periods=1, center=None, axis=0, method="column", **kwargs
+    ):
+        super().__init__(
+            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
     @property
     def _constructor(self):

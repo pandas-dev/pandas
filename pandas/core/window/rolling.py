@@ -1341,16 +1341,17 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
+            caller_name = type(self).__name__
             if self.method == "column":
                 apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs
+                    args, kwargs, func, engine_kwargs, caller_name
                 )
-                numba_cache_key = (func, "rolling_apply_column")
+                numba_cache_key = (func, f"{caller_name}_apply_column")
             else:
                 apply_func = generate_numba_table_func(
-                    args, kwargs, func, engine_kwargs, "apply"
+                    args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
                 )
-                numba_cache_key = (func, "rolling_apply_table")
+                numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")

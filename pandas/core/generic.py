@@ -11242,7 +11242,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     @doc(Expanding)
     def expanding(
-        self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
+        self,
+        min_periods: int = 1,
+        center: Optional[bool_t] = None,
+        axis: Axis = 0,
+        method: str = "method",
     ) -> Expanding:
         axis = self._get_axis_number(axis)
         if center is not None:
@@ -11254,7 +11258,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             center = False
 
-        return Expanding(self, min_periods=min_periods, center=center, axis=axis)
+        return Expanding(
+            self, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
     @final
     @doc(ExponentialMovingWindow)

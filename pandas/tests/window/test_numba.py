@@ -63,7 +63,7 @@ class TestRollingApply:
         tm.assert_series_equal(result, expected)
 
         # func_1 should be in the cache now
-        assert (func_1, "rolling_apply_column") in NUMBA_FUNC_CACHE
+        assert (func_1, "Rolling_apply_column") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
@@ -124,6 +124,8 @@ def test_invalid_kwargs_nopython():
 
 
 @td.skip_if_no("numba", "0.46.0")
+@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+# Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
     def test_table_series_valueerror(self):
         def f(x):
@@ -136,7 +138,9 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
-    def test_table_method(self, axis, center, closed, nogil, parallel, nopython):
+    def test_table_method_rolling(
+        self, axis, center, closed, nogil, parallel, nopython
+    ):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
