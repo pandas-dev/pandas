@@ -1366,7 +1366,7 @@ class TimeGrouper(Grouper):
         convention: Optional[str] = None,
         base: Optional[int] = None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
-        backward: Optional[bool_t] = None,
+        backward: Optional[bool] = None,
         offset: Optional[TimedeltaConvertibleTypes] = None,
         **kwargs,
     ):
