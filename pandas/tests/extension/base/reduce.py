@@ -30,7 +30,7 @@ class BaseNoReduceTests(BaseReduceTests):
 
         msg = (
             "[Cc]annot perform|Categorical is not ordered for operation|"
-            "'Categorical' does not implement reduction"
+            "'Categorical' does not implement reduction|"
         )
 
         with pytest.raises(TypeError, match=msg):
@@ -43,7 +43,7 @@ class BaseNoReduceTests(BaseReduceTests):
 
         msg = (
             "[Cc]annot perform|Categorical is not ordered for operation|"
-            "'Categorical' does not implement reduction"
+            "'Categorical' does not implement reduction|"
         )
 
         with pytest.raises(TypeError, match=msg):
