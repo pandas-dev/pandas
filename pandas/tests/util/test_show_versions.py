@@ -39,7 +39,8 @@ def test_show_versions(capsys):
     assert re.search(r"commit\s*:\s[0-9a-f]{40}\n", result)
 
     # check required dependency
-    assert re.search(r"numpy\s*:\s([0-9\.\+a-f\_]|dev)+\n", result)
+    # 2020-12-09 npdev has "dirty" in the tag
+    assert re.search(r"numpy\s*:\s([0-9\.\+a-g\_]|dev)+(dirty)?\n", result)
 
     # check optional dependency
     assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)
