@@ -1560,7 +1560,6 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 result = cast(np.ndarray, result)  # EABlock overrides where
-
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])

@@ -2980,6 +2980,7 @@ class GenericFixed(Fixed):
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
+
         value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:

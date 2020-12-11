@@ -46,13 +46,7 @@ class TestSparseArrayConcat:
         (pd.Series([3, 4, 5], dtype="category"), np.dtype("int64")),
         (pd.Series([1.5, 2.5, 3.5], dtype="category"), np.dtype("float64")),
         # categorical with incompatible categories -> object dtype
-        (
-            pd.Series(["a", "b", "c"], dtype="category"),
-            # pandas\tests\arrays\sparse\test_combine_concat.py:49: error: Value
-            # of type variable "_DTypeScalar" of "dtype" cannot be "object"
-            # [type-var]
-            np.dtype(object),  # type: ignore[type-var]
-        ),
+        (pd.Series(["a", "b", "c"], dtype="category"), np.dtype(object)),
     ],
 )
 def test_concat_with_non_sparse(other, expected_dtype):

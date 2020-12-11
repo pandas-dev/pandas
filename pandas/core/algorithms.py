@@ -1329,6 +1329,7 @@ class SelectNSeries(SelectN):
                 arr -= 1
 
             elif is_bool_dtype(pandas_dtype):
+                # GH 26154: ensure False is smaller than True
                 arr = 1 - (-arr)
 
         if self.keep == "last":

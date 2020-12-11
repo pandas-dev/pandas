@@ -559,8 +559,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
-                if c_data[2] == np.int64:
-                    # Warn if necessary
+                if c_data[2] == np.int64:  # Warn if necessary
                     if data[col].max() >= 2 ** 53:
                         ws = precision_loss_doc.format("uint64", "float64")
 
