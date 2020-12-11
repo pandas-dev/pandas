@@ -429,7 +429,7 @@ class TestConcatenate:
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
-        a = Series(pd.core.arrays.integer_array([1, 2]))
+        a = Series(pd.array([1, 2], dtype="Int64"))
         b = Series(to_decimal([1, 2]))
 
         result = pd.concat([a, b], ignore_index=True)

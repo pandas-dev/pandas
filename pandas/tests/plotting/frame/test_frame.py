@@ -15,7 +15,6 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
@@ -173,7 +172,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_integer_array_plot(self):
         # GH 25587
-        arr = integer_array([1, 2, 3, 4], dtype="UInt32")
+        arr = pd.array([1, 2, 3, 4], dtype="UInt32")
 
         s = Series(arr)
         _check_plot_works(s.plot.line)

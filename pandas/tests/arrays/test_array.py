@@ -21,7 +21,7 @@ from pandas.arrays import (
     StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, integer_array, period_array
+from pandas.core.arrays import PandasArray, period_array
 from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
 
 
@@ -122,7 +122,7 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
-        ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
+        ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
         (["a", None], "string", StringArray._from_sequence(["a", None])),

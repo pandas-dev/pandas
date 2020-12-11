@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     CategoricalDtype,
@@ -20,7 +21,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 
 
 def _check_cast(df, v):
@@ -296,8 +296,8 @@ class TestAstype:
 
         expected1 = DataFrame(
             {
-                "a": integer_array([1, 3, 5], dtype=dtype),
-                "b": integer_array([2, 4, 6], dtype=dtype),
+                "a": pd.array([1, 3, 5], dtype=dtype),
+                "b": pd.array([2, 4, 6], dtype=dtype),
             }
         )
         tm.assert_frame_equal(df.astype(dtype), expected1)
@@ -307,7 +307,7 @@ class TestAstype:
         df = DataFrame([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], columns=["a", "b"])
         df["b"] = df["b"].astype(dtype)
         expected2 = DataFrame(
-            {"a": [1.0, 3.0, 5.0], "b": integer_array([2, 4, 6], dtype=dtype)}
+            {"a": [1.0, 3.0, 5.0], "b": pd.array([2, 4, 6], dtype=dtype)}
         )
         tm.assert_frame_equal(df, expected2)
 
@@ -319,13 +319,13 @@ class TestAstype:
         # GH#22578
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
 
-        expected1 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected1 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
         df["a"] = df["a"].astype(dtype)
-        expected2 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected2 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df, expected2)
 
         tm.assert_frame_equal(df.astype(dtype), expected1)
