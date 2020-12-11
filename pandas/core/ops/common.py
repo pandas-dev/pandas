@@ -93,7 +93,7 @@ def _maybe_match_name(a, b):
     """
     Try to find a name to attach to the result of an operation between
     a and b.  If only one of these has a `name` attribute, return that
-    name.  Otherwise return a consensus name if they match of None if
+    name.  Otherwise return a consensus name if they match or None if
     they have different names.
 
     Parameters

@@ -2580,7 +2580,6 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    @final
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,

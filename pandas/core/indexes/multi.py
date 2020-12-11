@@ -3593,6 +3593,34 @@ class MultiIndex(Index):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
 
+    def _get_reconciled_name_object(self, other):
+        """
+        If the result of a set operation will be self,
+        return self, unless the names change, in which
+        case make a shallow copy of self.
+        """
+        names = self._maybe_match_names(other)
+        if self.names != names:
+            return self.rename(names)
+        return self
+
+    def _maybe_match_names(self, other):
+        """
+        Try to find common names to attach to the result of an operation between
+        a and b.  Return a consensus list of names if they match at least partly
+        or None if they have completely different names.
+        """
+        if len(self.names) != len(other.names):
+            return None
+        names = []
+        for a_name, b_name in zip(self.names, other.names):
+            if a_name == b_name:
+                names.append(a_name)
+            else:
+                # TODO: what if they both have np.nan for their names?
+                names.append(None)
+        return names
+
     def intersection(self, other, sort=False):
         """
         Form the intersection of two MultiIndex objects.
@@ -3616,12 +3644,12 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
-                return self.unique().rename(result_names)
-            return self.rename(result_names)
+                return self.unique()._get_reconciled_name_object(other)
+            return self._get_reconciled_name_object(other)
 
         return self._intersection(other, sort=sort)
 

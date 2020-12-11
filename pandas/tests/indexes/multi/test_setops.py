@@ -421,6 +421,29 @@ def test_intersect_with_duplicates(tuples, exp_tuples):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data, names, expected",
+    [
+        ((1,), None, None),
+        ((1,), ["a"], None),
+        ((1,), ["b"], None),
+        ((1, 2), ["c", "d"], [None, None]),
+        ((1, 2), ["b", "a"], [None, None]),
+        ((1, 2, 3), ["a", "b", "c"], None),
+        ((1, 2), ["a", "c"], ["a", None]),
+        ((1, 2), ["c", "b"], [None, "b"]),
+        ((1, 2), ["a", "b"], ["a", "b"]),
+        ((1, 2), [None, "b"], [None, "b"]),
+    ],
+)
+def test_maybe_match_names(data, names, expected):
+    # GH#38323
+    mi = pd.MultiIndex.from_tuples([], names=["a", "b"])
+    mi2 = pd.MultiIndex.from_tuples([data], names=names)
+    result = mi._maybe_match_names(mi2)
+    assert result == expected
+
+
 def test_intersection_equal_different_names():
     # GH#30302
     mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["c", "b"])
@@ -429,3 +452,11 @@ def test_intersection_equal_different_names():
     result = mi1.intersection(mi2)
     expected = MultiIndex.from_arrays([[1, 2], [3, 4]], names=[None, "b"])
     tm.assert_index_equal(result, expected)
+
+
+def test_intersection_different_names():
+    # GH#38323
+    mi = MultiIndex.from_arrays([[1], [3]], names=["c", "b"])
+    mi2 = MultiIndex.from_arrays([[1], [3]])
+    result = mi.intersection(mi2)
+    tm.assert_index_equal(result, mi2)
