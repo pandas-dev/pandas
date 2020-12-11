@@ -446,9 +446,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         values = np.array(values)
     else:
         values = extract_array(values, extract_numpy=True)
-
-    if type(comps).__name__ == "IntegerArray":
-        comps = comps._data  # type: ignore[attr-defined, assignment]
+    
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps.dtype):
@@ -469,6 +467,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     elif is_extension_array_dtype(comps.dtype) or is_extension_array_dtype(
         values.dtype
     ):
+        if type(comps).__name__ == "IntegerArray":
+            comps = comps._data  # type: ignore[attr-defined, assignment]
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
