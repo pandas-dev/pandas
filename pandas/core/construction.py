@@ -419,6 +419,20 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
+def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
+    """
+    Convert numpy MaskedArray to ensure mask is softened.
+    """
+    mask = ma.getmaskarray(data)
+    if mask.any():
+        data, fill_value = maybe_upcast(data, copy=True)
+        data.soften_mask()  # set hardmask False if it was True
+        data[mask] = fill_value
+    else:
+        data = data.copy()
+    return data
+
+
 def sanitize_array(
     data,
     index: Optional[Index],
@@ -432,13 +446,7 @@ def sanitize_array(
     """
 
     if isinstance(data, ma.MaskedArray):
-        mask = ma.getmaskarray(data)
-        if mask.any():
-            data, fill_value = maybe_upcast(data, copy=True)
-            data.soften_mask()  # set hardmask False if it was True
-            data[mask] = fill_value
-        else:
-            data = data.copy()
+        data = sanitize_masked_array(data)
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)

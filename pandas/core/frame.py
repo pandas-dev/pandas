@@ -87,7 +87,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -126,7 +125,7 @@ from pandas.core.aggregation import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -535,13 +534,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # a masked array
             else:
-                mask = ma.getmaskarray(data)
-                if mask.any():
-                    data, fill_value = maybe_upcast(data, copy=True)
-                    data.soften_mask()  # set hardmask False if it was True
-                    data[mask] = fill_value
-                else:
-                    data = data.copy()
+                data = sanitize_masked_array(data)
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
