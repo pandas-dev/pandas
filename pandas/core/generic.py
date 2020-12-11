@@ -8027,7 +8027,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        origin : {'epoch', 'start', 'start_day', 'end', 'end_day'}, Timestamp \
+        or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
@@ -8037,6 +8038,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'start_day': `origin` is the first day at midnight of the timeseries
 
             .. versionadded:: 1.1.0
+
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.2.0
 
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.

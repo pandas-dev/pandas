@@ -1389,9 +1389,15 @@ class TimeGrouper(Grouper):
                 label = "right"
         else:
             if closed is None:
-                closed = "left"
+                if origin in ["end", "end_day"]:
+                    closed = "right"
+                else:
+                    closed = "left"
             if label is None:
-                label = "left"
+                if origin in ["end", "end_day"]:
+                    label = "right"
+                else:
+                    label = "left"
 
         self.closed = closed
         self.label = label
@@ -1404,14 +1410,15 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in ("epoch", "start", "start_day"):
+        if origin in ("epoch", "start", "start_day", "end", "end_day"):
             self.origin = origin
         else:
             try:
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day' or "
+                    "'origin' should be equal to 'epoch', 'start', 'start_day', "
+                    "'end' or 'end_day' "
                     f"should be a Timestamp convertible type. Got '{origin}' instead."
                 ) from e
 
@@ -1846,6 +1853,13 @@ def _adjust_dates_anchored(
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
+    elif origin in ["end", "end_day"]:
+        origin = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin.value - first.value) // freq.nanos
+        if closed == "left":
+            sub_freq_times += 1
+        first = origin - sub_freq_times * freq
+        origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,

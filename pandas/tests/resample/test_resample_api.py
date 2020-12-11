@@ -611,3 +611,76 @@ def test_resample_agg_readonly():
 
     result = rs.agg("min")
     tm.assert_series_equal(result, expected)
+
+
+def test_end_origin():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
+
+    res = ts.resample("17min", origin="end").sum().astype("int64")
+    data = [0, 18, 27, 63]
+    expected = Series(
+        data,
+        index=date_range(
+            end="20001002 00:26:00",
+            freq="17min",
+            periods=4,
+        ),
+    )
+
+    tm.assert_series_equal(res, expected)
+
+    # an extra test case
+    idx = date_range("20200101 8:26:35", "20200101 9:31:58", freq="77s")
+    data = np.ones(len(idx))
+    s = Series(data, index=idx)
+    result = s.resample("7min", origin="end", closed="right").sum()
+
+    exp_idx = date_range("2020-01-01 08:27:45", "2020-01-01 09:30:45", freq="7T")
+    exp_data = [1.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0, 5.0, 6.0]
+    expected = Series(exp_data, index=exp_idx)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_end_with_left_closed():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
+
+    res = ts.resample("17min", origin="end", closed="left").sum().astype("int64")
+    data = [0, 18, 27, 39, 24]
+    expected = Series(
+        data,
+        index=date_range(
+            end="20001002 00:43:00",
+            freq="17min",
+            periods=5,
+        ),
+    )
+
+    tm.assert_series_equal(res, expected)
+
+
+def test_end_day_origin():
+
+    start, end = "2000-10-01 23:30:00", "2000-10-02 00:26:00"
+    rng = date_range(start, end, freq="7min")
+    ts = Series(np.arange(len(rng)) * 3, index=rng)
+
+    # 12 == 24 * 60 - 84 * 17 <= 26 (last value) <= 24 * 60 - 83 * 17 == 29
+    res = ts.resample("17min", origin="end_day").sum().astype("int64")
+    data = [3, 15, 45, 45]
+    expected = Series(
+        data,
+        index=date_range(
+            end="2000-10-02 00:29:00",
+            freq="17min",
+            periods=4,
+        ),
+    )
+
+    tm.assert_series_equal(res, expected)
