@@ -1,4 +1,3 @@
-import re
 import warnings
 
 import pytest
