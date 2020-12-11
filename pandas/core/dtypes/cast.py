@@ -841,7 +841,7 @@ def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
 
 
 def infer_dtype_from_array(
-    arr: Union[ArrayLike, Series, PandasScalar], pandas_dtype: bool = False
+    arr: "Union[ArrayLike, Series, PandasScalar]", pandas_dtype: bool = False
 ) -> "Tuple[DtypeObj, Union[ArrayLike, Series]]":
     """
     Infer the dtype from an array.
