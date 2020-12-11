@@ -841,8 +841,8 @@ def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
 
 
 def infer_dtype_from_array(
-    arr: Union[ArrayLike, PandasScalar], pandas_dtype: bool = False
-) -> Tuple[Dtype, ArrayLike]:
+    arr: Union[ArrayLike, Series, PandasScalar], pandas_dtype: bool = False
+) -> Tuple[DtypeObj, Union[ArrayLike, Series]]:
     """
     Infer the dtype from an array.
 
@@ -890,7 +890,7 @@ def infer_dtype_from_array(
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
     if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
-        return (np.dtype(np.object_), arr)
+        return np.dtype(np.object_), arr
 
     arr = np.asarray(arr)
     return arr.dtype, arr

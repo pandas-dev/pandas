@@ -20,10 +20,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import Index, Series
 
 
-def mask_missing(arr: ArrayLike, values_to_mask: ArrayLike) -> np.ndarray:
+def mask_missing(
+    arr: ArrayLike, values_to_mask: "Union[ArrayLike, Scalar, Series]"
+) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
