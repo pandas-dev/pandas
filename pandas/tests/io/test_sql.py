@@ -375,21 +375,21 @@ class PandasSQLTest:
                 "sqlite": {
                     "TextCol": "str",
                     "DateCol": "str",
-                    "IntDateCol": "int",
-                    "IntDateOnlyCol": "int",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
                     "FloatCol": "float",
-                    "IntCol": "int",
-                    "BoolCol": "int",
+                    "IntCol": "int64",
+                    "BoolCol": "int64",
                     "IntColWithNull": "float",
                     "BoolColWithNull": "float",
                 },
                 "mysql": {
                     "TextCol": "str",
                     "DateCol": "str",
-                    "IntDateCol": "int",
-                    "IntDateOnlyCol": "int",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
                     "FloatCol": "float",
-                    "IntCol": "int",
+                    "IntCol": "int64",
                     "BoolCol": "bool",
                     "IntColWithNull": "float",
                     "BoolColWithNull": "float",
@@ -398,10 +398,10 @@ class PandasSQLTest:
                     "TextCol": "str",
                     "DateCol": "str",
                     "DateColWithTz": "str",
-                    "IntDateCol": "int",
-                    "IntDateOnlyCol": "int",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
                     "FloatCol": "float",
-                    "IntCol": "int",
+                    "IntCol": "int64",
                     "BoolCol": "bool",
                     "IntColWithNull": "float",
                     "BoolColWithNull": "float",
@@ -819,7 +819,7 @@ class _TestSQLApi(PandasSQLTest):
                 },
             )
 
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
