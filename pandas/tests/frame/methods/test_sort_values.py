@@ -305,11 +305,11 @@ class TestDataFrameSortValues:
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
-            {"int": int_values, "float": float_values}, columns=["int", "float"]
+            dict(int=int_values, float=float_values), columns=["int", "float"]
         )
 
         df_reversed = DataFrame(
-            {"int": int_values[::-1], "float": float_values[::-1]},
+            dict(int=int_values[::-1], float=float_values[::-1]),
             columns=["int", "float"],
             index=[1, 0],
         )
@@ -329,12 +329,12 @@ class TestDataFrameSortValues:
         # and now check if NaT is still considered as "na" for datetime64
         # columns:
         df = DataFrame(
-            {"datetime": [Timestamp("2016-01-01"), NaT], "float": float_values},
+            dict(datetime=[Timestamp("2016-01-01"), NaT], float=float_values),
             columns=["datetime", "float"],
         )
 
         df_reversed = DataFrame(
-            {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
+            dict(datetime=[NaT, Timestamp("2016-01-01")], float=float_values[::-1]),
             columns=["datetime", "float"],
             index=[1, 0],
         )

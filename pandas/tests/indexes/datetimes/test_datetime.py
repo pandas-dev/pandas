@@ -265,12 +265,10 @@ class TestDatetimeIndex:
         arr, idx = idx1.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
-        assert idx.freq == exp_idx.freq
 
         arr, idx = idx1.factorize(sort=True)
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
-        assert idx.freq == exp_idx.freq
 
         # tz must be preserved
         idx1 = idx1.tz_localize("Asia/Tokyo")
@@ -279,7 +277,6 @@ class TestDatetimeIndex:
         arr, idx = idx1.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
-        assert idx.freq == exp_idx.freq
 
         idx2 = DatetimeIndex(
             ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"]
@@ -290,31 +287,21 @@ class TestDatetimeIndex:
         arr, idx = idx2.factorize(sort=True)
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
-        assert idx.freq == exp_idx.freq
 
         exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(["2014-03", "2014-02", "2014-01"])
         arr, idx = idx2.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
-        assert idx.freq == exp_idx.freq
 
-    def test_factorize_preserves_freq(self):
-        # GH#38120 freq should be preserved
+        # freq must be preserved
         idx3 = date_range("2000-01", periods=4, freq="M", tz="Asia/Tokyo")
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
-
         arr, idx = idx3.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
-        assert idx.freq == idx3.freq
 
-        arr, idx = pd.factorize(idx3)
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        tm.assert_index_equal(idx, idx3)
-        assert idx.freq == idx3.freq
-
-    def test_factorize_tz(self, tz_naive_fixture, index_or_series):
+    def test_factorize_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH#13750
         base = date_range("2016-11-05", freq="H", periods=100, tz=tz)
@@ -322,33 +309,27 @@ class TestDatetimeIndex:
 
         exp_arr = np.arange(100, dtype=np.intp).repeat(5)
 
-        obj = index_or_series(idx)
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            tm.assert_numpy_array_equal(arr, exp_arr)
+            expected = base._with_freq(None)
+            tm.assert_index_equal(res, expected)
 
-        arr, res = obj.factorize()
-        tm.assert_numpy_array_equal(arr, exp_arr)
-        expected = base._with_freq(None)
-        tm.assert_index_equal(res, expected)
-        assert res.freq == expected.freq
-
-    def test_factorize_dst(self, index_or_series):
+    def test_factorize_dst(self):
         # GH 13750
         idx = date_range("2016-11-06", freq="H", periods=12, tz="US/Eastern")
-        obj = index_or_series(idx)
 
-        arr, res = obj.factorize()
-        tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
-        if index_or_series is Index:
-            assert res.freq == idx.freq
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_index_equal(res, idx)
 
         idx = date_range("2016-06-13", freq="H", periods=12, tz="US/Eastern")
-        obj = index_or_series(idx)
 
-        arr, res = obj.factorize()
-        tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
-        if index_or_series is Index:
-            assert res.freq == idx.freq
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_index_equal(res, idx)
 
     @pytest.mark.parametrize(
         "arr, expected",

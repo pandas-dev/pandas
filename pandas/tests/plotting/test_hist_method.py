@@ -9,8 +9,6 @@ from pandas import DataFrame, Index, Series, to_datetime
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
-pytestmark = pytest.mark.slow
-
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
@@ -23,6 +21,7 @@ class TestSeriesPlots(TestPlotBase):
         self.ts = tm.makeTimeSeries()
         self.ts.name = "ts"
 
+    @pytest.mark.slow
     def test_hist_legacy(self):
         _check_plot_works(self.ts.hist)
         _check_plot_works(self.ts.hist, grid=False)
@@ -46,11 +45,13 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
+    @pytest.mark.slow
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
+    @pytest.mark.slow
     def test_hist_layout(self):
         df = self.hist_df
         with pytest.raises(ValueError):
@@ -59,6 +60,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.height.hist(layout=[1, 1])
 
+    @pytest.mark.slow
     def test_hist_layout_with_by(self):
         df = self.hist_df
 
@@ -96,6 +98,7 @@ class TestSeriesPlots(TestPlotBase):
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
+    @pytest.mark.slow
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import gcf, subplot
 
@@ -109,11 +112,13 @@ class TestSeriesPlots(TestPlotBase):
         axes = fig.axes
         assert len(axes) == 2
 
+    @pytest.mark.slow
     def test_hist_by_no_extra_plots(self):
         df = self.hist_df
         axes = df.height.hist(by=df.gender)  # noqa
         assert len(self.plt.get_fignums()) == 1
 
+    @pytest.mark.slow
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure
 
@@ -165,6 +170,7 @@ class TestSeriesPlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.slow
     def test_hist_df_legacy(self):
         from matplotlib.patches import Rectangle
 
@@ -250,6 +256,7 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(AttributeError):
             ser.hist(foo="bar")
 
+    @pytest.mark.slow
     def test_hist_non_numerical_or_datetime_raises(self):
         # gh-10444, GH32590
         df = DataFrame(
@@ -275,6 +282,7 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df_o.hist()
 
+    @pytest.mark.slow
     def test_hist_layout(self):
         df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
@@ -313,6 +321,7 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.hist(layout=(-1, -1))
 
+    @pytest.mark.slow
     # GH 9351
     def test_tight_layout(self):
         df = DataFrame(np.random.randn(100, 2))
@@ -435,6 +444,7 @@ class TestDataFramePlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
+    @pytest.mark.slow
     def test_grouped_hist_legacy(self):
         from matplotlib.patches import Rectangle
 
@@ -504,6 +514,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.hist(by="C", figsize="default")
 
+    @pytest.mark.slow
     def test_grouped_hist_legacy2(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
@@ -517,6 +528,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert len(self.plt.get_fignums()) == 2
         tm.close()
 
+    @pytest.mark.slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
         msg = "Layout of 1x1 must be larger than required size 2"
@@ -571,6 +583,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = df.hist(column=["height", "weight", "category"])
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
+    @pytest.mark.slow
     def test_grouped_hist_multiple_axes(self):
         # GH 6970, GH 7069
         df = self.hist_df
@@ -590,6 +603,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             # pass different number of axes from required
             axes = df.hist(column="height", ax=axes)
 
+    @pytest.mark.slow
     def test_axis_share_x(self):
         df = self.hist_df
         # GH4089
@@ -603,6 +617,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert not ax1._shared_y_axes.joined(ax1, ax2)
         assert not ax2._shared_y_axes.joined(ax1, ax2)
 
+    @pytest.mark.slow
     def test_axis_share_y(self):
         df = self.hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharey=True)
@@ -615,6 +630,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert not ax1._shared_x_axes.joined(ax1, ax2)
         assert not ax2._shared_x_axes.joined(ax1, ax2)
 
+    @pytest.mark.slow
     def test_axis_share_xy(self):
         df = self.hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True, sharey=True)

@@ -351,14 +351,11 @@ class TestExcelWriter:
             msg = "sheet 0 not found"
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, "0")
-        elif engine == "xlwt":
+        else:
             import xlrd
 
             msg = "No sheet named <'0'>"
             with pytest.raises(xlrd.XLRDError, match=msg):
-                pd.read_excel(xl, sheet_name="0")
-        else:
-            with pytest.raises(KeyError, match="Worksheet 0 does not exist."):
                 pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -472,12 +469,12 @@ class TestExcelWriter:
 
         # Test with convert_float=False comes back as float.
         float_frame = df.astype(float)
-        float_frame.columns = float_frame.columns.astype(float)
-        float_frame.index = float_frame.index.astype(float)
         recons = pd.read_excel(
             path, sheet_name="test1", convert_float=False, index_col=0
         )
-        tm.assert_frame_equal(recons, float_frame)
+        tm.assert_frame_equal(
+            recons, float_frame, check_index_type=False, check_column_type=False
+        )
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
@@ -525,9 +522,10 @@ class TestExcelWriter:
         frame.to_excel(path, "test1", index=False)
 
         # Test writing to separate sheets
-        with ExcelWriter(path) as writer:
-            frame.to_excel(writer, "test1")
-            tsframe.to_excel(writer, "test2")
+        writer = ExcelWriter(path)
+        frame.to_excel(writer, "test1")
+        tsframe.to_excel(writer, "test2")
+        writer.close()
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(frame, recons)
@@ -1195,24 +1193,23 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        # GH 35029 - Default changed to openpyxl, but test is for odf/xlrd
-        engine = "odf" if path.endswith("ods") else "xlrd"
-        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0, engine=engine)
+        read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
 
     def test_bytes_io(self, engine):
         # see gh-7074
-        with BytesIO() as bio:
-            df = DataFrame(np.random.randn(10, 2))
+        bio = BytesIO()
+        df = DataFrame(np.random.randn(10, 2))
 
-            # Pass engine explicitly, as there is no file path to infer from.
-            with ExcelWriter(bio, engine=engine) as writer:
-                df.to_excel(writer)
+        # Pass engine explicitly, as there is no file path to infer from.
+        writer = ExcelWriter(bio, engine=engine)
+        df.to_excel(writer)
+        writer.save()
 
-            bio.seek(0)
-            reread_df = pd.read_excel(bio, index_col=0)
-            tm.assert_frame_equal(df, reread_df)
+        bio.seek(0)
+        reread_df = pd.read_excel(bio, index_col=0)
+        tm.assert_frame_equal(df, reread_df)
 
     def test_write_lists_dict(self, path):
         # see gh-8188.
@@ -1320,12 +1317,12 @@ class TestExcelWriterEngineTests:
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
         with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path) as writer:
-                if ext == ".xlsx" and td.safe_import("xlsxwriter"):
-                    # xlsxwriter has preference over openpyxl if both installed
-                    assert isinstance(writer, _XlsxWriter)
-                else:
-                    assert isinstance(writer, klass)
+            writer = ExcelWriter(path)
+            if ext == ".xlsx" and td.safe_import("xlsxwriter"):
+                # xlsxwriter has preference over openpyxl if both installed
+                assert isinstance(writer, _XlsxWriter)
+            else:
+                assert isinstance(writer, klass)
 
     def test_ExcelWriter_dispatch_raises(self):
         with pytest.raises(ValueError, match="No engine"):
@@ -1359,8 +1356,8 @@ class TestExcelWriterEngineTests:
             path = "something.xlsx"
             with tm.ensure_clean(path) as filepath:
                 register_writer(DummyClass)
-                with ExcelWriter(filepath) as writer:
-                    assert isinstance(writer, DummyClass)
+                writer = ExcelWriter(filepath)
+                assert isinstance(writer, DummyClass)
                 df = tm.makeCustomDataframe(1, 1)
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
@@ -1380,5 +1377,5 @@ class TestFSPath:
 
     def test_excelwriter_fspath(self):
         with tm.ensure_clean("foo.xlsx") as path:
-            with ExcelWriter(path) as writer:
-                assert os.fspath(writer) == str(path)
+            writer = ExcelWriter(path)
+            assert os.fspath(writer) == str(path)

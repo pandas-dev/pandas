@@ -130,7 +130,10 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = s.combine(other, op)
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                expected = expected.fillna(np.nan).astype("Float64")
+                expected = expected.fillna(np.nan).astype(float)
+                if op_name == "__rtruediv__":
+                    # TODO reverse operators result in object dtype
+                    result = result.astype(float)
             elif op_name.startswith("__r"):
                 # TODO reverse operators result in object dtype
                 # see https://github.com/pandas-dev/pandas/issues/22024
@@ -220,10 +223,6 @@ class TestMethods(base.BaseMethodsTests):
         expected.index = expected.index.astype(all_data.dtype)
 
         self.assert_series_equal(result, expected)
-
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        pass
 
 
 class TestCasting(base.BaseCastingTests):

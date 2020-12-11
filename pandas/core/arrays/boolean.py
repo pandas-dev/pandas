@@ -706,11 +706,10 @@ class BooleanArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            from pandas.core.arrays import FloatingArray
+            result[mask] = np.nan
+            return result
 
-            return FloatingArray(result, mask, copy=False)
-
-        elif is_bool_dtype(result):
+        if is_bool_dtype(result):
             return BooleanArray(result, mask, copy=False)
 
         elif is_integer_dtype(result):

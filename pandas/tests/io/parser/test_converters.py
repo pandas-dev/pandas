@@ -57,7 +57,7 @@ def test_converters_no_implicit_conv(all_parsers):
 
 def test_converters_euro_decimal_format(all_parsers):
     # see gh-583
-    converters = {}
+    converters = dict()
     parser = all_parsers
 
     data = """Id;Number1;Number2;Text1;Text2;Number3

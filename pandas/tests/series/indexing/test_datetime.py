@@ -561,7 +561,7 @@ def test_indexing():
     expected = ts["2001"]
     expected.name = "A"
 
-    df = DataFrame({"A": ts})
+    df = DataFrame(dict(A=ts))
     with tm.assert_produces_warning(FutureWarning):
         # GH#36179 string indexing on rows for DataFrame deprecated
         result = df["2001"]["A"]

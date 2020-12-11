@@ -32,17 +32,15 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.union(index, sort=sort), index)
         tm.assert_index_equal(index.union(index[:1], sort=sort), index)
 
-    def test_union_empty_result(self, closed, sort):
         # GH 19101: empty result, same dtype
         index = empty_index(dtype="int64", closed=closed)
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
-        # GH 19101: empty result, different dtypes -> common dtype is object
+        # GH 19101: empty result, different dtypes
         other = empty_index(dtype="float64", closed=closed)
         result = index.union(other, sort=sort)
-        expected = Index([], dtype=object)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, index)
 
     def test_intersection(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)

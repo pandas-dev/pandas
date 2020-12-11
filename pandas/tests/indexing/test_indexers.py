@@ -28,12 +28,6 @@ def test_is_scalar_indexer():
 
     assert not is_scalar_indexer(slice(None), 1)
 
-    indexer = 0
-    assert is_scalar_indexer(indexer, 1)
-
-    indexer = (0,)
-    assert is_scalar_indexer(indexer, 1)
-
 
 class TestValidateIndices:
     def test_validate_indices_ok(self):

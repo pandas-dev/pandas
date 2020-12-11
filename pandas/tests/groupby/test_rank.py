@@ -42,10 +42,7 @@ def test_rank_apply():
 @pytest.mark.parametrize(
     "vals",
     [
-        np.array([2, 2, 8, 2, 6], dtype=dtype)
-        for dtype in ["i8", "i4", "i2", "i1", "u8", "u4", "u2", "u1", "f8", "f4", "f2"]
-    ]
-    + [
+        [2, 2, 8, 2, 6],
         [
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-02"),
@@ -53,29 +50,7 @@ def test_rank_apply():
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-06"),
         ],
-        [
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            pd.Timestamp("2018-01-08", tz="US/Pacific"),
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            pd.Timestamp("2018-01-06", tz="US/Pacific"),
-        ],
-        [
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-08") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-06") - pd.Timestamp(0),
-        ],
-        [
-            pd.Timestamp("2018-01-02").to_period("D"),
-            pd.Timestamp("2018-01-02").to_period("D"),
-            pd.Timestamp("2018-01-08").to_period("D"),
-            pd.Timestamp("2018-01-02").to_period("D"),
-            pd.Timestamp("2018-01-06").to_period("D"),
-        ],
     ],
-    ids=lambda x: type(x[0]),
 )
 @pytest.mark.parametrize(
     "ties_method,ascending,pct,exp",
@@ -104,12 +79,7 @@ def test_rank_apply():
 )
 def test_rank_args(grps, vals, ties_method, ascending, pct, exp):
     key = np.repeat(grps, len(vals))
-
-    orig_vals = vals
-    vals = list(vals) * len(grps)
-    if isinstance(orig_vals, np.ndarray):
-        vals = np.array(vals, dtype=orig_vals.dtype)
-
+    vals = vals * len(grps)
     df = DataFrame({"key": key, "val": vals})
     result = df.groupby("key").rank(method=ties_method, ascending=ascending, pct=pct)
 
@@ -172,10 +142,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 @pytest.mark.parametrize(
     "vals",
     [
-        np.array([2, 2, np.nan, 8, 2, 6, np.nan, np.nan], dtype=dtype)
-        for dtype in ["f8", "f4", "f2"]
-    ]
-    + [
+        [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],
         [
             pd.Timestamp("2018-01-02"),
             pd.Timestamp("2018-01-02"),
@@ -186,38 +153,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
             np.nan,
             np.nan,
         ],
-        [
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            np.nan,
-            pd.Timestamp("2018-01-08", tz="US/Pacific"),
-            pd.Timestamp("2018-01-02", tz="US/Pacific"),
-            pd.Timestamp("2018-01-06", tz="US/Pacific"),
-            np.nan,
-            np.nan,
-        ],
-        [
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            np.nan,
-            pd.Timestamp("2018-01-08") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-02") - pd.Timestamp(0),
-            pd.Timestamp("2018-01-06") - pd.Timestamp(0),
-            np.nan,
-            np.nan,
-        ],
-        [
-            pd.Timestamp("2018-01-02").to_period("D"),
-            pd.Timestamp("2018-01-02").to_period("D"),
-            np.nan,
-            pd.Timestamp("2018-01-08").to_period("D"),
-            pd.Timestamp("2018-01-02").to_period("D"),
-            pd.Timestamp("2018-01-06").to_period("D"),
-            np.nan,
-            np.nan,
-        ],
     ],
-    ids=lambda x: type(x[0]),
 )
 @pytest.mark.parametrize(
     "ties_method,ascending,na_option,pct,exp",
@@ -410,12 +346,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 )
 def test_rank_args_missing(grps, vals, ties_method, ascending, na_option, pct, exp):
     key = np.repeat(grps, len(vals))
-
-    orig_vals = vals
-    vals = list(vals) * len(grps)
-    if isinstance(orig_vals, np.ndarray):
-        vals = np.array(vals, dtype=orig_vals.dtype)
-
+    vals = vals * len(grps)
     df = DataFrame({"key": key, "val": vals})
     result = df.groupby("key").rank(
         method=ties_method, ascending=ascending, na_option=na_option, pct=pct

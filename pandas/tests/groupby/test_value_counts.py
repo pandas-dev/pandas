@@ -65,13 +65,9 @@ def test_series_groupby_value_counts(
         df.index = MultiIndex.from_arrays(arr, names=df.index.names)
         return df
 
-    kwargs = {
-        "normalize": normalize,
-        "sort": sort,
-        "ascending": ascending,
-        "dropna": dropna,
-        "bins": bins,
-    }
+    kwargs = dict(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna, bins=bins
+    )
 
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)

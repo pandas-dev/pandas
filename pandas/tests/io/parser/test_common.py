@@ -195,11 +195,12 @@ skip
 """
     parser = all_parsers
     msg = "Expected 3 fields in line 6, saw 5"
-    with parser.read_csv(
+    reader = parser.read_csv(
         StringIO(data), header=1, comment="#", iterator=True, chunksize=1, skiprows=[2]
-    ) as reader:
-        with pytest.raises(ParserError, match=msg):
-            reader.read(nrows)
+    )
+
+    with pytest.raises(ParserError, match=msg):
+        reader.read(nrows)
 
 
 def test_unnamed_columns(all_parsers):
@@ -470,6 +471,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
+    reader = parser.read_csv(StringIO(data), index_col=0, chunksize=2)
     expected = DataFrame(
         [
             ["foo", 2, 3, 4, 5],
@@ -483,8 +485,7 @@ bar2,12,13,14,15
     )
     expected = expected.set_index("index")
 
-    with parser.read_csv(StringIO(data), index_col=0, chunksize=2) as reader:
-        chunks = list(reader)
+    chunks = list(reader)
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
     tm.assert_frame_equal(chunks[2], expected[4:])
@@ -504,8 +505,7 @@ bar2,12,13,14,15
     msg = r"'chunksize' must be an integer >=1"
 
     with pytest.raises(ValueError, match=msg):
-        with parser.read_csv(StringIO(data), chunksize=chunksize) as _:
-            pass
+        parser.read_csv(StringIO(data), chunksize=chunksize)
 
 
 @pytest.mark.parametrize("chunksize", [2, 8])
@@ -522,9 +522,9 @@ bar2,12,13,14,15
     parser = all_parsers
     kwargs = dict(index_col=0, nrows=5)
 
+    reader = parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs)
     expected = parser.read_csv(StringIO(data), **kwargs)
-    with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
-        tm.assert_frame_equal(concat(reader), expected)
+    tm.assert_frame_equal(concat(reader), expected)
 
 
 def test_read_chunksize_and_nrows_changing_size(all_parsers):
@@ -539,13 +539,14 @@ bar2,12,13,14,15
     parser = all_parsers
     kwargs = dict(index_col=0, nrows=5)
 
+    reader = parser.read_csv(StringIO(data), chunksize=8, **kwargs)
     expected = parser.read_csv(StringIO(data), **kwargs)
-    with parser.read_csv(StringIO(data), chunksize=8, **kwargs) as reader:
-        tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
-        tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-        with pytest.raises(StopIteration, match=""):
-            reader.get_chunk(size=3)
+    tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
+    tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
+
+    with pytest.raises(StopIteration, match=""):
+        reader.get_chunk(size=3)
 
 
 def test_get_chunk_passed_chunksize(all_parsers):
@@ -556,8 +557,8 @@ def test_get_chunk_passed_chunksize(all_parsers):
 7,8,9
 1,2,3"""
 
-    with parser.read_csv(StringIO(data), chunksize=2) as reader:
-        result = reader.get_chunk()
+    reader = parser.read_csv(StringIO(data), chunksize=2)
+    result = reader.get_chunk()
 
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
@@ -575,9 +576,10 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
+    reader = parser.read_csv(StringIO(data), chunksize=2, **kwargs)
+
     result = parser.read_csv(StringIO(data), **kwargs)
-    with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
-        tm.assert_frame_equal(concat(reader), result)
+    tm.assert_frame_equal(concat(reader), result)
 
 
 def test_read_chunksize_jagged_names(all_parsers):
@@ -586,8 +588,9 @@ def test_read_chunksize_jagged_names(all_parsers):
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
     expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
-    with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
-        result = concat(reader)
+    reader = parser.read_csv(StringIO(data), names=range(10), chunksize=4)
+
+    result = concat(reader)
     tm.assert_frame_equal(result, expected)
 
 
@@ -599,8 +602,8 @@ def test_read_data_list(all_parsers):
     data_list = [["A", "B", "C"], ["foo", "1", "2", "3"], ["bar", "4", "5", "6"]]
     expected = parser.read_csv(StringIO(data), **kwargs)
 
-    with TextParser(data_list, chunksize=2, **kwargs) as parser:
-        result = parser.read()
+    parser = TextParser(data_list, chunksize=2, **kwargs)
+    result = parser.read()
 
     tm.assert_frame_equal(result, expected)
 
@@ -619,12 +622,12 @@ bar2,12,13,14,15
     kwargs = dict(index_col=0)
 
     expected = parser.read_csv(StringIO(data), **kwargs)
-    with parser.read_csv(StringIO(data), iterator=True, **kwargs) as reader:
+    reader = parser.read_csv(StringIO(data), iterator=True, **kwargs)
 
-        first_chunk = reader.read(3)
-        tm.assert_frame_equal(first_chunk, expected[:3])
+    first_chunk = reader.read(3)
+    tm.assert_frame_equal(first_chunk, expected[:3])
 
-        last_chunk = reader.read(5)
+    last_chunk = reader.read(5)
     tm.assert_frame_equal(last_chunk, expected[3:])
 
 
@@ -636,8 +639,8 @@ bar,4,5,6
 baz,7,8,9
 """
 
-    with parser.read_csv(StringIO(data), iterator=True) as reader:
-        result = list(reader)
+    reader = parser.read_csv(StringIO(data), iterator=True)
+    result = list(reader)
 
     expected = DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
@@ -660,10 +663,10 @@ bar2,12,13,14,15
     kwargs = dict(index_col=0)
 
     lines = list(csv.reader(StringIO(data)))
-    with TextParser(lines, chunksize=2, **kwargs) as reader:
-        chunks = list(reader)
+    reader = TextParser(lines, chunksize=2, **kwargs)
 
     expected = parser.read_csv(StringIO(data), **kwargs)
+    chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
@@ -683,10 +686,10 @@ bar2,12,13,14,15
     kwargs = dict(index_col=0)
 
     lines = list(csv.reader(StringIO(data)))
-    with TextParser(lines, chunksize=2, skiprows=[1], **kwargs) as reader:
-        chunks = list(reader)
+    reader = TextParser(lines, chunksize=2, skiprows=[1], **kwargs)
 
     expected = parser.read_csv(StringIO(data), **kwargs)
+    chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[1:3])
 
@@ -700,8 +703,8 @@ bar,4,5,6
 baz,7,8,9
 """
 
-    with parser.read_csv(StringIO(data), chunksize=1) as reader:
-        result = list(reader)
+    reader = parser.read_csv(StringIO(data), chunksize=1)
+    result = list(reader)
 
     assert len(result) == 3
     expected = DataFrame(
@@ -721,8 +724,7 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs):
     data = "a\n1\n2"
 
     with pytest.raises(ValueError, match=msg):
-        with parser.read_csv(StringIO(data), skipfooter=1, **kwargs) as _:
-            pass
+        parser.read_csv(StringIO(data), skipfooter=1, **kwargs)
 
 
 def test_nrows_skipfooter_errors(all_parsers):
@@ -1360,8 +1362,7 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     data = StringIO("foo,bar\n")
 
     if iterator:
-        with parser.read_csv(data, chunksize=nrows) as reader:
-            result = next(iter(reader))
+        result = next(iter(parser.read_csv(data, chunksize=nrows)))
     else:
         result = parser.read_csv(data, nrows=nrows)
 
@@ -2055,9 +2056,10 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
             for i in range(1000):
                 f.write(str(i) + "\n")
 
-        with parser.read_csv(path, chunksize=20) as result:
-            for _ in result:
-                pass
+        result = parser.read_csv(path, chunksize=20)
+
+        for _ in result:
+            pass
 
 
 def test_read_csv_raises_on_header_prefix(all_parsers):
@@ -2308,35 +2310,3 @@ def test_memory_map_compression(all_parsers, compression):
             parser.read_csv(path, memory_map=True, compression=compression),
             expected,
         )
-
-
-def test_context_manager(all_parsers, datapath):
-    # make sure that opened files are closed
-    parser = all_parsers
-
-    path = datapath("io", "data", "csv", "iris.csv")
-
-    reader = parser.read_csv(path, chunksize=1)
-    assert not reader._engine.handles.handle.closed
-    try:
-        with reader:
-            next(reader)
-            assert False
-    except AssertionError:
-        assert reader._engine.handles.handle.closed
-
-
-def test_context_manageri_user_provided(all_parsers, datapath):
-    # make sure that user-provided handles are not closed
-    parser = all_parsers
-
-    with open(datapath("io", "data", "csv", "iris.csv"), mode="r") as path:
-
-        reader = parser.read_csv(path, chunksize=1)
-        assert not reader._engine.handles.handle.closed
-        try:
-            with reader:
-                next(reader)
-                assert False
-        except AssertionError:
-            assert not reader._engine.handles.handle.closed

@@ -143,13 +143,6 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
-    @pytest.mark.xfail(
-        reason="comparison method not implemented for JSONArray (GH-37867)"
-    )
-    def test_contains(self, data):
-        # GH-37867
-        super().test_contains(data)
-
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="not implemented constructor from dtype")

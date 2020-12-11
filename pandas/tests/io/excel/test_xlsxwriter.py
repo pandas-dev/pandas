@@ -23,15 +23,16 @@ def test_column_format(ext):
     with tm.ensure_clean(ext) as path:
         frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
 
-        with ExcelWriter(path) as writer:
-            frame.to_excel(writer)
+        writer = ExcelWriter(path)
+        frame.to_excel(writer)
 
-            # Add a number format to col B and ensure it is applied to cells.
-            num_format = "#,##0"
-            write_workbook = writer.book
-            write_worksheet = write_workbook.worksheets()[0]
-            col_format = write_workbook.add_format({"num_format": num_format})
-            write_worksheet.set_column("B:B", None, col_format)
+        # Add a number format to col B and ensure it is applied to cells.
+        num_format = "#,##0"
+        write_workbook = writer.book
+        write_worksheet = write_workbook.worksheets()[0]
+        col_format = write_workbook.add_format({"num_format": num_format})
+        write_worksheet.set_column("B:B", None, col_format)
+        writer.save()
 
         read_workbook = openpyxl.load_workbook(path)
         try:

@@ -577,10 +577,6 @@ class TestReaders:
         if pd.read_excel.keywords["engine"] == "openpyxl":
             pytest.xfail("Maybe not supported by openpyxl")
 
-        if pd.read_excel.keywords["engine"] is None:
-            # GH 35029
-            pytest.xfail("Defaults to openpyxl, maybe not supported")
-
         result = pd.read_excel("testdateoverflow" + read_ext)
         tm.assert_frame_equal(result, expected)
 
@@ -1163,7 +1159,7 @@ class TestExcelFileRead:
         expected = DataFrame(["\udc88"], columns=["Column1"])
 
         # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx", engine="xlrd")
+        actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])

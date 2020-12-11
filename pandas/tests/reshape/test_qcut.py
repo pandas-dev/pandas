@@ -166,10 +166,10 @@ def test_qcut_list_like_labels(labels, expected):
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
-        ({"duplicates": "drop"}, None),
-        ({}, "Bin edges must be unique"),
-        ({"duplicates": "raise"}, "Bin edges must be unique"),
-        ({"duplicates": "foo"}, "invalid value for 'duplicates' parameter"),
+        (dict(duplicates="drop"), None),
+        (dict(), "Bin edges must be unique"),
+        (dict(duplicates="raise"), "Bin edges must be unique"),
+        (dict(duplicates="foo"), "invalid value for 'duplicates' parameter"),
     ],
 )
 def test_qcut_duplicates_bin(kwargs, msg):

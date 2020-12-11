@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 import warnings
 
 import numpy as np
@@ -43,7 +43,7 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
+_index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
 
 # --- Period index sketch
 
@@ -452,10 +452,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if not self._should_compare(target):
-            return self._get_indexer_non_comparable(target, method, unique=True)
-
         if isinstance(target, PeriodIndex):
+            if not self._is_comparable_dtype(target.dtype):
+                # i.e. target.freq != self.freq
+                # No matches
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches
+
             target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
@@ -636,19 +639,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other = ensure_index(other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
-        return self._intersection(other, sort=sort)
-
-    def _intersection(self, other, sort=False):
-
-        if is_object_dtype(other.dtype):
+        elif is_object_dtype(other.dtype):
             return self.astype("O").intersection(other, sort=sort)
 
-        elif not self._is_comparable_dtype(other.dtype):
+        elif not is_dtype_equal(self.dtype, other.dtype):
             # We can infer that the intersection is empty.
             # assert_can_do_setop ensures that this is not just a mismatched freq
             this = self[:0].astype("O")
@@ -660,14 +659,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def difference(self, other, sort=None):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
+        other = ensure_index(other)
 
         if self.equals(other):
-            return self[:0].rename(result_name)
+            # pass an empty PeriodArray with the appropriate dtype
 
-        return self._difference(other, sort=sort)
-
-    def _difference(self, other, sort):
+            # TODO: overload DatetimeLikeArrayMixin.__getitem__
+            values = cast(PeriodArray, self._data[:0])
+            return type(self)._simple_new(values, name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)

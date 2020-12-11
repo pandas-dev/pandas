@@ -48,8 +48,8 @@ def transform_assert_equal(request):
 @pytest.mark.parametrize(
     "input_kwargs,result_kwargs",
     [
-        ({}, {"dtype": np.int64}),
-        ({"errors": "coerce", "downcast": "integer"}, {"dtype": np.int8}),
+        (dict(), dict(dtype=np.int64)),
+        (dict(errors="coerce", downcast="integer"), dict(dtype=np.int8)),
     ],
 )
 def test_empty(input_kwargs, result_kwargs):
@@ -147,10 +147,10 @@ def test_list():
 @pytest.mark.parametrize(
     "data,arr_kwargs",
     [
-        ([1, 3, 4, 5], {"dtype": np.int64}),
-        ([1.0, 3.0, 4.0, 5.0], {}),
+        ([1, 3, 4, 5], dict(dtype=np.int64)),
+        ([1.0, 3.0, 4.0, 5.0], dict()),
         # Boolean is regarded as numeric.
-        ([True, False, True, True], {}),
+        ([True, False, True, True], dict()),
     ],
 )
 def test_list_numeric(data, arr_kwargs):
@@ -159,7 +159,7 @@ def test_list_numeric(data, arr_kwargs):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [{"dtype": "O"}, {}])
+@pytest.mark.parametrize("kwargs", [dict(dtype="O"), dict()])
 def test_numeric(kwargs):
     data = [1, -3.14, 7]
 
@@ -182,13 +182,13 @@ def test_numeric(kwargs):
 def test_numeric_df_columns(columns):
     # see gh-14827
     df = DataFrame(
-        {
-            "a": [1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
-            "b": [1.0, 2.0, 3.0, 4.0],
-        }
+        dict(
+            a=[1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
+            b=[1.0, 2.0, 3.0, 4.0],
+        )
     )
 
-    expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
+    expected = DataFrame(dict(a=[1.2, 3.14, np.inf, 0.1], b=[1.0, 2.0, 3.0, 4.0]))
 
     df_copy = df.copy()
     df_copy[columns] = df_copy[columns].apply(to_numeric)
@@ -208,10 +208,10 @@ def test_numeric_df_columns(columns):
 )
 def test_numeric_embedded_arr_likes(data, exp_data):
     # Test to_numeric with embedded lists and arrays
-    df = DataFrame({"a": data})
+    df = DataFrame(dict(a=data))
     df["a"] = df["a"].apply(to_numeric)
 
-    expected = DataFrame({"a": exp_data})
+    expected = DataFrame(dict(a=exp_data))
     tm.assert_frame_equal(df, expected)
 
 
@@ -226,7 +226,7 @@ def test_all_nan():
 def test_type_check(errors):
     # see gh-11776
     df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
-    kwargs = {"errors": errors} if errors is not None else {}
+    kwargs = dict(errors=errors) if errors is not None else dict()
     error_ctx = pytest.raises(TypeError, match="1-d array")
 
     with error_ctx:
@@ -241,7 +241,7 @@ def test_scalar(val, signed, transform):
 
 def test_really_large_scalar(large_val, signed, transform, errors):
     # see gh-24910
-    kwargs = {"errors": errors} if errors is not None else {}
+    kwargs = dict(errors=errors) if errors is not None else dict()
     val = -large_val if signed else large_val
 
     val = transform(val)
@@ -258,7 +258,7 @@ def test_really_large_scalar(large_val, signed, transform, errors):
 
 def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors):
     # see gh-24910
-    kwargs = {"errors": errors} if errors is not None else {}
+    kwargs = dict(errors=errors) if errors is not None else dict()
     val = -large_val if signed else large_val
     val = transform(val)
 
@@ -300,7 +300,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     #
     # Even if we discover that we have to hold float, does not mean
     # we should be lenient on subsequent elements that fail to be integer.
-    kwargs = {"errors": errors} if errors is not None else {}
+    kwargs = dict(errors=errors) if errors is not None else dict()
     arr = [str(-large_val if signed else large_val)]
 
     if multiple_elts:
@@ -452,12 +452,12 @@ def test_errors_invalid_value():
     "kwargs,exp_dtype",
     [
         # Basic function tests.
-        ({}, np.int64),
-        ({"downcast": None}, np.int64),
+        (dict(), np.int64),
+        (dict(downcast=None), np.int64),
         # Support below np.float32 is rare and far between.
-        ({"downcast": "float"}, np.dtype(np.float32).char),
+        (dict(downcast="float"), np.dtype(np.float32).char),
         # Basic dtype support.
-        ({"downcast": "unsigned"}, np.dtype(np.typecodes["UnsignedInteger"][0])),
+        (dict(downcast="unsigned"), np.dtype(np.typecodes["UnsignedInteger"][0])),
     ],
 )
 def test_downcast_basic(data, kwargs, exp_dtype):

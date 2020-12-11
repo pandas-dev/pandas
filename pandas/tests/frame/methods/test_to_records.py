@@ -131,7 +131,7 @@ class TestDataFrameToRecords:
         [
             # No dtypes --> default to array dtypes.
             (
-                {},
+                dict(),
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[("index", "<i8"), ("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -139,7 +139,7 @@ class TestDataFrameToRecords:
             ),
             # Should have no effect in this case.
             (
-                {"index": True},
+                dict(index=True),
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[("index", "<i8"), ("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -147,7 +147,7 @@ class TestDataFrameToRecords:
             ),
             # Column dtype applied across the board. Index unaffected.
             (
-                {"column_dtypes": "<U4"},
+                dict(column_dtypes="<U4"),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U4"), ("B", "<U4"), ("C", "<U4")],
@@ -155,7 +155,7 @@ class TestDataFrameToRecords:
             ),
             # Index dtype applied across the board. Columns unaffected.
             (
-                {"index_dtypes": "<U1"},
+                dict(index_dtypes="<U1"),
                 np.rec.array(
                     [("0", 1, 0.2, "a"), ("1", 2, 1.5, "bc")],
                     dtype=[("index", "<U1"), ("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -163,7 +163,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a type instance.
             (
-                {"column_dtypes": str},
+                dict(column_dtypes=str),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
@@ -171,7 +171,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dtype instance.
             (
-                {"column_dtypes": np.dtype("unicode")},
+                dict(column_dtypes=np.dtype("unicode")),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
@@ -179,7 +179,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dictionary (name-only).
             (
-                {"column_dtypes": {"A": np.int8, "B": np.float32, "C": "<U2"}},
+                dict(column_dtypes={"A": np.int8, "B": np.float32, "C": "<U2"}),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "i1"), ("B", "<f4"), ("C", "<U2")],
@@ -187,7 +187,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dictionary (indices-only).
             (
-                {"index_dtypes": {0: "int16"}},
+                dict(index_dtypes={0: "int16"}),
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[("index", "i2"), ("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -195,7 +195,7 @@ class TestDataFrameToRecords:
             ),
             # Ignore index mappings if index is not True.
             (
-                {"index": False, "index_dtypes": "<U2"},
+                dict(index=False, index_dtypes="<U2"),
                 np.rec.array(
                     [(1, 0.2, "a"), (2, 1.5, "bc")],
                     dtype=[("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -203,7 +203,7 @@ class TestDataFrameToRecords:
             ),
             # Non-existent names / indices in mapping should not error.
             (
-                {"index_dtypes": {0: "int16", "not-there": "float32"}},
+                dict(index_dtypes={0: "int16", "not-there": "float32"}),
                 np.rec.array(
                     [(0, 1, 0.2, "a"), (1, 2, 1.5, "bc")],
                     dtype=[("index", "i2"), ("A", "<i8"), ("B", "<f8"), ("C", "O")],
@@ -211,7 +211,7 @@ class TestDataFrameToRecords:
             ),
             # Names / indices not in mapping default to array dtype.
             (
-                {"column_dtypes": {"A": np.int8, "B": np.float32}},
+                dict(column_dtypes={"A": np.int8, "B": np.float32}),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "i1"), ("B", "<f4"), ("C", "O")],
@@ -219,7 +219,7 @@ class TestDataFrameToRecords:
             ),
             # Names / indices not in dtype mapping default to array dtype.
             (
-                {"column_dtypes": {"A": np.dtype("int8"), "B": np.dtype("float32")}},
+                dict(column_dtypes={"A": np.dtype("int8"), "B": np.dtype("float32")}),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "i1"), ("B", "<f4"), ("C", "O")],
@@ -227,10 +227,7 @@ class TestDataFrameToRecords:
             ),
             # Mixture of everything.
             (
-                {
-                    "column_dtypes": {"A": np.int8, "B": np.float32},
-                    "index_dtypes": "<U2",
-                },
+                dict(column_dtypes={"A": np.int8, "B": np.float32}, index_dtypes="<U2"),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<U2"), ("A", "i1"), ("B", "<f4"), ("C", "O")],
@@ -238,24 +235,24 @@ class TestDataFrameToRecords:
             ),
             # Invalid dype values.
             (
-                {"index": False, "column_dtypes": list()},
+                dict(index=False, column_dtypes=list()),
                 (ValueError, "Invalid dtype \\[\\] specified for column A"),
             ),
             (
-                {"index": False, "column_dtypes": {"A": "int32", "B": 5}},
+                dict(index=False, column_dtypes={"A": "int32", "B": 5}),
                 (ValueError, "Invalid dtype 5 specified for column B"),
             ),
             # Numpy can't handle EA types, so check error is raised
             (
-                {
-                    "index": False,
-                    "column_dtypes": {"A": "int32", "B": CategoricalDtype(["a", "b"])},
-                },
+                dict(
+                    index=False,
+                    column_dtypes={"A": "int32", "B": CategoricalDtype(["a", "b"])},
+                ),
                 (ValueError, "Invalid dtype category specified for column B"),
             ),
             # Check that bad types raise
             (
-                {"index": False, "column_dtypes": {"A": "int32", "B": "foo"}},
+                dict(index=False, column_dtypes={"A": "int32", "B": "foo"}),
                 (TypeError, "data type [\"']foo[\"'] not understood"),
             ),
         ],
@@ -279,7 +276,7 @@ class TestDataFrameToRecords:
                 DataFrame(
                     [[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=list("abc")
                 ).set_index(["a", "b"]),
-                {"column_dtypes": "float64", "index_dtypes": {0: "int32", 1: "int8"}},
+                dict(column_dtypes="float64", index_dtypes={0: "int32", 1: "int8"}),
                 np.rec.array(
                     [(1, 2, 3.0), (4, 5, 6.0), (7, 8, 9.0)],
                     dtype=[("a", "<i4"), ("b", "i1"), ("c", "<f8")],
@@ -293,7 +290,7 @@ class TestDataFrameToRecords:
                         [("a", "d"), ("b", "e"), ("c", "f")]
                     ),
                 ),
-                {"column_dtypes": {0: "<U1", 2: "float32"}, "index_dtypes": "float32"},
+                dict(column_dtypes={0: "<U1", 2: "float32"}, index_dtypes="float32"),
                 np.rec.array(
                     [(0.0, "1", 2, 3.0), (1.0, "4", 5, 6.0), (2.0, "7", 8, 9.0)],
                     dtype=[
@@ -315,7 +312,7 @@ class TestDataFrameToRecords:
                         [("d", -4), ("d", -5), ("f", -6)], names=list("cd")
                     ),
                 ),
-                {"column_dtypes": "float64", "index_dtypes": {0: "<U2", 1: "int8"}},
+                dict(column_dtypes="float64", index_dtypes={0: "<U2", 1: "int8"}),
                 np.rec.array(
                     [
                         ("d", -4, 1.0, 2.0, 3.0),
@@ -355,10 +352,10 @@ class TestDataFrameToRecords:
 
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        dtype_mappings = {
-            "column_dtypes": DictLike(**{"A": np.int8, "B": np.float32}),
-            "index_dtypes": "<U2",
-        }
+        dtype_mappings = dict(
+            column_dtypes=DictLike(**{"A": np.int8, "B": np.float32}),
+            index_dtypes="<U2",
+        )
 
         result = df.to_records(**dtype_mappings)
         expected = np.rec.array(

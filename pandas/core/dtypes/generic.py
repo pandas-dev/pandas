@@ -4,20 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Type, cast
 
 if TYPE_CHECKING:
-    from pandas import (
-        CategoricalIndex,
-        DataFrame,
-        DatetimeIndex,
-        Float64Index,
-        Int64Index,
-        IntervalIndex,
-        MultiIndex,
-        PeriodIndex,
-        RangeIndex,
-        Series,
-        TimedeltaIndex,
-        UInt64Index,
-    )
+    from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
 
@@ -31,50 +18,28 @@ def create_pandas_abc_type(name, attr, comp):
     def _check(cls, inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
-    dct = {"__instancecheck__": _check, "__subclasscheck__": _check}
+    dct = dict(__instancecheck__=_check, __subclasscheck__=_check)
     meta = type("ABCBase", (type,), dct)
-    return meta(name, (), dct)
+    return meta(name, tuple(), dct)
 
 
-ABCInt64Index = cast(
-    "Type[Int64Index]",
-    create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",)),
+ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ", ("int64index",))
+ABCUInt64Index = create_pandas_abc_type("ABCUInt64Index", "_typ", ("uint64index",))
+ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",))
+ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",))
+ABCMultiIndex = create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",))
+ABCDatetimeIndex = create_pandas_abc_type(
+    "ABCDatetimeIndex", "_typ", ("datetimeindex",)
 )
-ABCUInt64Index = cast(
-    "Type[UInt64Index]",
-    create_pandas_abc_type("ABCUInt64Index", "_typ", ("uint64index",)),
+ABCTimedeltaIndex = create_pandas_abc_type(
+    "ABCTimedeltaIndex", "_typ", ("timedeltaindex",)
 )
-ABCRangeIndex = cast(
-    "Type[RangeIndex]",
-    create_pandas_abc_type("ABCRangeIndex", "_typ", ("rangeindex",)),
+ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
+ABCCategoricalIndex = create_pandas_abc_type(
+    "ABCCategoricalIndex", "_typ", ("categoricalindex",)
 )
-ABCFloat64Index = cast(
-    "Type[Float64Index]",
-    create_pandas_abc_type("ABCFloat64Index", "_typ", ("float64index",)),
-)
-ABCMultiIndex = cast(
-    "Type[MultiIndex]",
-    create_pandas_abc_type("ABCMultiIndex", "_typ", ("multiindex",)),
-)
-ABCDatetimeIndex = cast(
-    "Type[DatetimeIndex]",
-    create_pandas_abc_type("ABCDatetimeIndex", "_typ", ("datetimeindex",)),
-)
-ABCTimedeltaIndex = cast(
-    "Type[TimedeltaIndex]",
-    create_pandas_abc_type("ABCTimedeltaIndex", "_typ", ("timedeltaindex",)),
-)
-ABCPeriodIndex = cast(
-    "Type[PeriodIndex]",
-    create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",)),
-)
-ABCCategoricalIndex = cast(
-    "Type[CategoricalIndex]",
-    create_pandas_abc_type("ABCCategoricalIndex", "_typ", ("categoricalindex",)),
-)
-ABCIntervalIndex = cast(
-    "Type[IntervalIndex]",
-    create_pandas_abc_type("ABCIntervalIndex", "_typ", ("intervalindex",)),
+ABCIntervalIndex = create_pandas_abc_type(
+    "ABCIntervalIndex", "_typ", ("intervalindex",)
 )
 ABCIndexClass = create_pandas_abc_type(
     "ABCIndexClass",

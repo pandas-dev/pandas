@@ -152,8 +152,8 @@ def test_to_html_decimal(datapath):
 @pytest.mark.parametrize(
     "kwargs,string,expected",
     [
-        ({}, "<type 'str'>", "escaped"),
-        ({"escape": False}, "<b>bold</b>", "escape_disabled"),
+        (dict(), "<type 'str'>", "escaped"),
+        (dict(escape=False), "<b>bold</b>", "escape_disabled"),
     ],
 )
 def test_to_html_escaped(kwargs, string, expected, datapath):

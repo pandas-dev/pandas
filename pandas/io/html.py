@@ -794,8 +794,9 @@ def _data_to_frame(**kwargs):
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-    with TextParser(body, header=header, **kwargs) as tp:
-        return tp.read()
+    tp = TextParser(body, header=header, **kwargs)
+    df = tp.read()
+    return df
 
 
 _valid_parsers = {

@@ -22,7 +22,6 @@ _SATURDAY = datetime(2014, 4, 12)
 _SUNDAY = datetime(2014, 4, 13)
 _MONDAY = datetime(2014, 4, 14)
 _TUESDAY = datetime(2014, 4, 15)
-_NEXT_WEDNESDAY = datetime(2014, 4, 16)
 
 
 @pytest.mark.parametrize("day", [_SATURDAY, _SUNDAY])
@@ -61,15 +60,7 @@ def test_weekend_to_monday(day, expected):
 
 
 @pytest.mark.parametrize(
-    "day,expected",
-    [
-        (_WEDNESDAY, _THURSDAY),
-        (_THURSDAY, _FRIDAY),
-        (_SATURDAY, _MONDAY),
-        (_SUNDAY, _MONDAY),
-        (_MONDAY, _TUESDAY),
-        (_TUESDAY, _NEXT_WEDNESDAY),  # WED is same week as TUE
-    ],
+    "day,expected", [(_SATURDAY, _MONDAY), (_SUNDAY, _MONDAY), (_MONDAY, _TUESDAY)]
 )
 def test_next_workday(day, expected):
     assert next_workday(day) == expected
@@ -83,16 +74,7 @@ def test_previous_workday(day, expected):
 
 
 @pytest.mark.parametrize(
-    "day,expected",
-    [
-        (_THURSDAY, _WEDNESDAY),
-        (_FRIDAY, _THURSDAY),
-        (_SATURDAY, _THURSDAY),
-        (_SUNDAY, _FRIDAY),
-        (_MONDAY, _FRIDAY),  # last week Friday
-        (_TUESDAY, _MONDAY),
-        (_NEXT_WEDNESDAY, _TUESDAY),  # WED is same week as TUE
-    ],
+    "day,expected", [(_SATURDAY, _THURSDAY), (_SUNDAY, _FRIDAY), (_TUESDAY, _MONDAY)]
 )
 def test_before_nearest_workday(day, expected):
     assert before_nearest_workday(day) == expected

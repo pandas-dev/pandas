@@ -367,9 +367,9 @@ def apply_frame_axis0(object frame, object f, object names,
 
             try:
                 piece = f(chunk)
-            except Exception as err:
+            except Exception:
                 # We can't be more specific without knowing something about `f`
-                raise InvalidApply("Let this error raise above us") from err
+                raise InvalidApply('Let this error raise above us')
 
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk

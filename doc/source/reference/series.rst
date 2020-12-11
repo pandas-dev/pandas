@@ -252,6 +252,7 @@ Combining / comparing / joining / merging
 
    Series.append
    Series.compare
+   Series.replace
    Series.update
 
 Time Series-related

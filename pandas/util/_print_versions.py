@@ -106,7 +106,7 @@ def show_versions(as_json: Union[str, bool] = False) -> None:
     deps = _get_dependency_info()
 
     if as_json:
-        j = {"system": sys_info, "dependencies": deps}
+        j = dict(system=sys_info, dependencies=deps)
 
         if as_json is True:
             print(j)

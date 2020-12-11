@@ -68,14 +68,15 @@ def test_styler_to_excel(engine):
 
     df = DataFrame(np.random.randn(11, 3))
     with tm.ensure_clean(".xlsx" if engine != "xlwt" else ".xls") as path:
-        with ExcelWriter(path, engine=engine) as writer:
-            df.to_excel(writer, sheet_name="frame")
-            df.style.to_excel(writer, sheet_name="unstyled")
-            styled = df.style.apply(style, axis=None)
-            styled.to_excel(writer, sheet_name="styled")
-            ExcelFormatter(styled, style_converter=custom_converter).write(
-                writer, sheet_name="custom"
-            )
+        writer = ExcelWriter(path, engine=engine)
+        df.to_excel(writer, sheet_name="frame")
+        df.style.to_excel(writer, sheet_name="unstyled")
+        styled = df.style.apply(style, axis=None)
+        styled.to_excel(writer, sheet_name="styled")
+        ExcelFormatter(styled, style_converter=custom_converter).write(
+            writer, sheet_name="custom"
+        )
+        writer.save()
 
         if engine not in ("openpyxl", "xlsxwriter"):
             # For other engines, we only smoke test

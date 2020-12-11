@@ -437,10 +437,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
 
-        .. versionchanged:: 1.2
-
-           ``JsonReader`` is a context manager.
-
     compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
@@ -559,8 +555,7 @@ def read_json(
     if chunksize:
         return json_reader
 
-    with json_reader:
-        return json_reader.read()
+    return json_reader.read()
 
 
 class JsonReader(abc.Iterator):
@@ -751,12 +746,6 @@ class JsonReader(abc.Iterator):
 
         self.close()
         raise StopIteration
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
 
 
 class Parser:
@@ -1109,7 +1098,7 @@ class FrameParser(Parser):
         assert obj is not None  # for mypy
 
         needs_new_obj = False
-        new_obj = {}
+        new_obj = dict()
         for i, (col, c) in enumerate(obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)

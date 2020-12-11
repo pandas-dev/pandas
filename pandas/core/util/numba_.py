@@ -9,7 +9,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
 GLOBAL_USE_NUMBA: bool = False
-NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = {}
+NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
 
 def maybe_use_numba(engine: Optional[str]) -> bool:

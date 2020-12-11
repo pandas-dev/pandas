@@ -41,7 +41,7 @@ def test_validation():
     # No exceptions should be raised.
     compat_args = {"f": None, "b": 1, "ba": "s"}
 
-    kwargs = {"f": None, "b": 1}
+    kwargs = dict(f=None, b=1)
     validate_kwargs(_fname, kwargs, compat_args)
 
 

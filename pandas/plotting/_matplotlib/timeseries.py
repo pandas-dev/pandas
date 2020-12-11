@@ -1,7 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superp
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from pandas import DatetimeIndex, Index, Series
+    from pandas import Index, Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -243,7 +243,6 @@ def maybe_convert_index(ax: "Axes", data):
 
         if freq is None:
             # We only get here for DatetimeIndex
-            data.index = cast("DatetimeIndex", data.index)
             freq = data.index.inferred_freq
             freq = to_offset(freq)
 

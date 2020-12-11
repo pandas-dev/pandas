@@ -130,7 +130,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             elif op_name in ("__truediv__", "__rtruediv__"):
                 # combine with bools does not generate the correct result
                 #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = s.astype(float).combine(other, op).astype("Float64")
+                expected = s.astype(float).combine(other, op)
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
@@ -234,10 +234,6 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
-
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        pass
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values

@@ -521,13 +521,13 @@ class TestJSONNormalize:
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
-        recs = [{"flat1": 1, "flat2": 2}, {"flat3": 3, "flat2": 4}]
+        recs = [dict(flat1=1, flat2=2), dict(flat1=3, flat2=4)]
         result = nested_to_record(recs)
         expected = recs
         assert result == expected
 
     def test_one_level_deep_flattens(self):
-        data = {"flat1": 1, "dict1": {"c": 1, "d": 2}}
+        data = dict(flat1=1, dict1=dict(c=1, d=2))
 
         result = nested_to_record(data)
         expected = {"dict1.c": 1, "dict1.d": 2, "flat1": 1}
@@ -535,11 +535,7 @@ class TestNestedToRecord:
         assert result == expected
 
     def test_nested_flattens(self):
-        data = {
-            "flat1": 1,
-            "dict1": {"c": 1, "d": 2},
-            "nested": {"e": {"c": 1, "d": 2}, "d": 2},
-        }
+        data = dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
 
         result = nested_to_record(data)
         expected = {

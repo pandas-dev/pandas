@@ -184,10 +184,6 @@ class TestMethods(base.BaseMethodsTests):
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="uses nullable integer")
-    def test_value_counts_with_normalize(self, data):
-        pass
-
 
 class TestCasting(base.BaseCastingTests):
     pass

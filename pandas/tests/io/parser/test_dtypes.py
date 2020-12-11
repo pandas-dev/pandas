@@ -213,11 +213,10 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
         DataFrame({"a": [1, 1], "b": Categorical(["a", "b"])}),
         DataFrame({"a": [1, 2], "b": Categorical(["b", "c"])}, index=[2, 3]),
     ]
-    with parser.read_csv(
-        StringIO(data), dtype={"b": "category"}, chunksize=2
-    ) as actuals:
-        for actual, expected in zip(actuals, expecteds):
-            tm.assert_frame_equal(actual, expected)
+    actuals = parser.read_csv(StringIO(data), dtype={"b": "category"}, chunksize=2)
+
+    for actual, expected in zip(actuals, expecteds):
+        tm.assert_frame_equal(actual, expected)
 
 
 def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
@@ -236,9 +235,10 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
         ),
     ]
     dtype = CategoricalDtype(cats)
-    with parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2) as actuals:
-        for actual, expected in zip(actuals, expecteds):
-            tm.assert_frame_equal(actual, expected)
+    actuals = parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2)
+
+    for actual, expected in zip(actuals, expecteds):
+        tm.assert_frame_equal(actual, expected)
 
 
 @pytest.mark.parametrize("ordered", [False, True])
@@ -495,7 +495,7 @@ def test_dtype_with_converters(all_parsers):
         (np.float64, DataFrame(columns=["a", "b"], dtype=np.float64)),
         ("category", DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[])),
         (
-            {"a": "category", "b": "category"},
+            dict(a="category", b="category"),
             DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
         ),
         ("datetime64[ns]", DataFrame(columns=["a", "b"], dtype="datetime64[ns]")),
@@ -510,7 +510,7 @@ def test_dtype_with_converters(all_parsers):
             ),
         ),
         (
-            {"a": np.int64, "b": np.int32},
+            dict(a=np.int64, b=np.int32),
             DataFrame(
                 {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
                 index=[],

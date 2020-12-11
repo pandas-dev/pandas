@@ -1577,21 +1577,19 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
-       reader
-       for chunk in reader:
-           print(chunk)
+   reader = pd.read_csv("tmp.sv", sep="|", chunksize=4)
+   reader
 
-.. versionchanged:: 1.2
+   for chunk in reader:
+       print(chunk)
 
-  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
-       reader.get_chunk(5)
+   reader = pd.read_csv("tmp.sv", sep="|", iterator=True)
+   reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
@@ -2240,10 +2238,10 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df.to_json(orient="records", lines=True)
 
   # reader is an iterator that returns ``chunksize`` lines each iteration
-  with pd.read_json(StringIO(jsonl), lines=True, chunksize=1) as reader:
-      reader
-      for chunk in reader:
-          print(chunk)
+  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
+  reader
+  for chunk in reader:
+      print(chunk)
 
 .. _io.table_schema:
 
@@ -5473,9 +5471,9 @@ object can be used as an iterator.
 
 .. ipython:: python
 
-  with pd.read_stata("stata.dta", chunksize=3) as reader:
-      for df in reader:
-          print(df.shape)
+  reader = pd.read_stata("stata.dta", chunksize=3)
+  for df in reader:
+      print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -5483,9 +5481,9 @@ For more fine-grained control, use ``iterator=True`` and specify
 
 .. ipython:: python
 
-  with pd.read_stata("stata.dta", iterator=True) as reader:
-      chunk1 = reader.read(5)
-      chunk2 = reader.read(5)
+  reader = pd.read_stata("stata.dta", iterator=True)
+  chunk1 = reader.read(5)
+  chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -5597,9 +5595,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
-        for chunk in rdr:
-            do_something(chunk)
+    rdr = pd.read_sas("sas_xport.xpt", chunk=100000)
+    for chunk in rdr:
+        do_something(chunk)
 
 The specification_ for the xport file format is available from the SAS
 web site.

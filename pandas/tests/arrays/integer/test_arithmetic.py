@@ -3,11 +3,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
-
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray, integer_array
+from pandas.core.arrays import integer_array
 import pandas.core.ops as ops
 
 # Basic test for the arithmetic array ops
@@ -45,12 +43,13 @@ def test_sub(dtype):
 
 
 def test_div(dtype):
+    # for now division gives a float numpy array
     a = pd.array([1, 2, 3, None, 5], dtype=dtype)
     b = pd.array([0, 1, None, 3, 4], dtype=dtype)
 
     result = a / b
-    expected = pd.array([np.inf, 2, None, None, 1.25], dtype="Float64")
-    tm.assert_extension_array_equal(result, expected)
+    expected = np.array([np.inf, 2, np.nan, np.nan, 1.25], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
@@ -58,13 +57,10 @@ def test_divide_by_zero(zero, negative):
     # https://github.com/pandas-dev/pandas/issues/27398
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
-    expected = FloatingArray(
-        np.array([np.nan, np.inf, -np.inf, 1], dtype="float64"),
-        np.array([False, False, False, True]),
-    )
+    expected = np.array([np.nan, np.inf, -np.inf, np.nan])
     if negative:
         expected *= -1
-    tm.assert_extension_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_floordiv(dtype):
@@ -101,11 +97,8 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = a ** np.nan
-    expected = FloatingArray(
-        np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, False, True, False]),
-    )
-    tm.assert_extension_array_equal(result, expected)
+    expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
 
     # reversed
     a = a[1:]  # Can't raise integers to negative powers.
@@ -123,11 +116,8 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = np.nan ** a
-    expected = FloatingArray(
-        np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, True, False]),
-    )
-    tm.assert_extension_array_equal(result, expected)
+    expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_pow_array():
@@ -141,10 +131,10 @@ def test_pow_array():
 def test_rpow_one_to_na():
     # https://github.com/pandas-dev/pandas/issues/22022
     # https://github.com/pandas-dev/pandas/issues/29997
-    arr = pd.array([np.nan, np.nan], dtype="Int64")
+    arr = integer_array([np.nan, np.nan])
     result = np.array([1.0, 2.0]) ** arr
-    expected = pd.array([1.0, np.nan], dtype="Float64")
-    tm.assert_extension_array_equal(result, expected)
+    expected = np.array([1.0, np.nan])
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("other", [0, 0.5])
@@ -206,19 +196,9 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
 
     result = op(s, other)
     expected = op(s.astype(float), other)
-    expected = expected.astype("Float64")
     # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__" and _np_version_under1p20:
-        # for numpy 1.20 https://github.com/numpy/numpy/pull/16161
-        #  updated floordiv, now matches our behavior defined in core.ops
-        mask = (
-            ((expected == np.inf) | (expected == -np.inf)).fillna(False).to_numpy(bool)
-        )
-        expected.array._data[mask] = np.nan
-    # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    elif all_arithmetic_operators == "__rmod__":
-        mask = (s == 0).fillna(False).to_numpy(bool)
-        expected.array._mask[mask] = False
+    if all_arithmetic_operators == "__rfloordiv__":
+        expected[(expected == np.inf) | (expected == -np.inf)] = np.nan
 
     tm.assert_series_equal(result, expected)
 
@@ -231,7 +211,7 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 
     s = pd.Series([1, 2, 3], dtype="Int64")
     result = op(s, other)
-    assert result.dtype == "Float64"
+    assert result.dtype is np.dtype("float")
 
 
 def test_cross_type_arithmetic():
