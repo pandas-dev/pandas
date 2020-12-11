@@ -2292,21 +2292,26 @@ class ArrowParserWrapper(ParserBase):
         pyarrow = import_optional_dependency("pyarrow.csv")
         self.kwds = {k: v for k, v in self.kwds.items() if v is not None}
         # these are kwargs passed to pyarrow
-        parseoptions = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
-        convertoptions = {
+        parse_kwargs = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
+        convert_kwargs = {
             "include_columns",
             "null_values",
             "true_values",
             "false_values",
         }
         # rename some arguments to pass to pyarrow
-        self.kwds["include_columns"] = self.kwds.pop("usecols")
-        self.kwds["null_values"] = self.kwds.pop("na_values")
-        self.kwds["escape_char"] = self.kwds.pop("escapechar")
-        self.kwds["ignore_empty_lines"] = self.kwds.pop("skip_blank_lines")
+        mapping = {
+            "usecols": "include_columns",
+            "na_values": "null_values",
+            "escapechar": "escape_char",
+            "skip_blank_lines": "ignore_empty_lines",
+        }
+        for pandas_name, pyarrow_name in mapping.items():
+            if pandas_name in self.kwds:
+                self.kwds[pyarrow_name] = self.kwds.pop(pandas_name)
 
-        parse_options = {k: v for k, v in self.kwds.items() if k in parseoptions}
-        convert_options = {k: v for k, v in self.kwds.items() if k in convertoptions}
+        parse_options = {k: v for k, v in self.kwds.items() if k in parse_kwargs}
+        convert_options = {k: v for k, v in self.kwds.items() if k in convert_kwargs}
         headerexists = True if self.header is not None else False
         read_options = {}
 
