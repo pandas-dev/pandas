@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "NumericArray":
+    ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
