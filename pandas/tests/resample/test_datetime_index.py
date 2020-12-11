@@ -773,7 +773,7 @@ def test_resample_bad_origin(origin):
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = (
         "'origin' should be equal to 'epoch', 'start', 'start_day', "
-        "'end' or 'end_day' should be a Timestamp convertible type. Got "
+        "'end', 'end_day' or should be a Timestamp convertible type. Got "
         f"'{origin}' instead."
     )
     with pytest.raises(ValueError, match=msg):
