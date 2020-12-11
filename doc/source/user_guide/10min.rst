@@ -239,13 +239,13 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-By integer slices, acting similar to numpy/Python:
+By integer slices, acting similar to numpy/python:
 
 .. ipython:: python
 
    df.iloc[3:5, 0:2]
 
-By lists of integer position locations, similar to the NumPy/Python style:
+By lists of integer position locations, similar to the numpy/python style:
 
 .. ipython:: python
 

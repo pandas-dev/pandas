@@ -99,8 +99,9 @@ class ExtensionDtype:
         By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type and all of the attributes
-          in ``self._metadata`` are equal between `self` and `other`.
+        * it's an instance of this type and all of the
+          the attributes in ``self._metadata`` are equal between
+          `self` and `other`.
 
         Parameters
         ----------

@@ -138,6 +138,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "Google",
     "CategoricalDtype",
     "UTC",
+    "Panel",
     "False",
     "Styler",
     "os",

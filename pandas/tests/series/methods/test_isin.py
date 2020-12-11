@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import Series, date_range
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
 
 
 class TestSeriesIsIn:
@@ -90,60 +89,6 @@ class TestSeriesIsIn:
         result = s.isin(arr)
         expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", [object, None])
-    def test_isin_dt64_values_vs_ints(self, dtype):
-        # GH#36621 dont cast integers to datetimes for isin
-        dti = date_range("2013-01-01", "2013-01-05")
-        ser = Series(dti)
-
-        comps = np.asarray([1356998400000000000], dtype=dtype)
-
-        res = dti.isin(comps)
-        expected = np.array([False] * len(dti), dtype=bool)
-        tm.assert_numpy_array_equal(res, expected)
-
-        res = ser.isin(comps)
-        tm.assert_series_equal(res, Series(expected))
-
-        res = pd.core.algorithms.isin(ser, comps)
-        tm.assert_numpy_array_equal(res, expected)
-
-    def test_isin_tzawareness_mismatch(self):
-        dti = date_range("2013-01-01", "2013-01-05")
-        ser = Series(dti)
-
-        other = dti.tz_localize("UTC")
-
-        res = dti.isin(other)
-        expected = np.array([False] * len(dti), dtype=bool)
-        tm.assert_numpy_array_equal(res, expected)
-
-        res = ser.isin(other)
-        tm.assert_series_equal(res, Series(expected))
-
-        res = pd.core.algorithms.isin(ser, other)
-        tm.assert_numpy_array_equal(res, expected)
-
-    def test_isin_period_freq_mismatch(self):
-        dti = date_range("2013-01-01", "2013-01-05")
-        pi = dti.to_period("M")
-        ser = Series(pi)
-
-        # We construct another PeriodIndex with the same i8 values
-        #  but different dtype
-        dtype = dti.to_period("Y").dtype
-        other = PeriodArray._simple_new(pi.asi8, dtype=dtype)
-
-        res = pi.isin(other)
-        expected = np.array([False] * len(pi), dtype=bool)
-        tm.assert_numpy_array_equal(res, expected)
-
-        res = ser.isin(other)
-        tm.assert_series_equal(res, Series(expected))
-
-        res = pd.core.algorithms.isin(ser, other)
-        tm.assert_numpy_array_equal(res, expected)
 
 
 @pytest.mark.slow

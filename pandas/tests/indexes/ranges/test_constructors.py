@@ -12,13 +12,13 @@ class TestRangeIndexConstructors:
     @pytest.mark.parametrize(
         "args, kwargs, start, stop, step",
         [
-            ((5,), {}, 0, 5, 1),
-            ((1, 5), {}, 1, 5, 1),
-            ((1, 5, 2), {}, 1, 5, 2),
-            ((0,), {}, 0, 0, 1),
-            ((0, 0), {}, 0, 0, 1),
-            ((), {"start": 0}, 0, 0, 1),
-            ((), {"stop": 0}, 0, 0, 1),
+            ((5,), dict(), 0, 5, 1),
+            ((1, 5), dict(), 1, 5, 1),
+            ((1, 5, 2), dict(), 1, 5, 2),
+            ((0,), dict(), 0, 0, 1),
+            ((0, 0), dict(), 0, 0, 1),
+            (tuple(), dict(start=0), 0, 0, 1),
+            (tuple(), dict(stop=0), 0, 0, 1),
         ],
     )
     def test_constructor(self, args, kwargs, start, stop, step, name):

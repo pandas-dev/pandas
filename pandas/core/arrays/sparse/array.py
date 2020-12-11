@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
@@ -56,7 +56,6 @@ import pandas.io.formats.printing as printing
 # ----------------------------------------------------------------------------
 # Array
 
-SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
 _sparray_doc_kwargs = dict(klass="SparseArray")
 
@@ -398,11 +397,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls: Type[SparseArrayT],
-        sparse_array: np.ndarray,
-        sparse_index: SparseIndex,
-        dtype: SparseDtype,
-    ) -> SparseArrayT:
+        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
+    ) -> "SparseArray":
         new = object.__new__(cls)
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -941,14 +937,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
-    def copy(self: SparseArrayT) -> SparseArrayT:
+    def copy(self):
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(
-        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
-    ) -> SparseArrayT:
+    def _concat_same_type(cls, to_concat):
         fill_value = to_concat[0].fill_value
 
         values = []

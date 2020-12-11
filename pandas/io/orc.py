@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import get_handle
+from pandas.io.common import get_filepath_or_buffer
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -48,6 +48,10 @@ def read_orc(
     if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
         raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
 
-    with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = pyarrow.orc.ORCFile(handles.handle)
-        return orc_file.read(columns=columns, **kwargs).to_pandas()
+    import pyarrow.orc
+
+    ioargs = get_filepath_or_buffer(path)
+    orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
+    result = orc_file.read(columns=columns, **kwargs).to_pandas()
+    ioargs.close()
+    return result

@@ -23,12 +23,7 @@ class TestMultiIndexSlicers:
         result = df.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
             ]
@@ -37,12 +32,7 @@ class TestMultiIndexSlicers:
 
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (a == "A1" or a == "A2" or a == "A3")
                 and (c == "C1" or c == "C2" or c == "C3")
@@ -94,7 +84,7 @@ class TestMultiIndexSlicers:
 
         result = df.loc["A", "a"]
         expected = DataFrame(
-            {"bar": [1, 5, 9], "foo": [0, 4, 8]},
+            dict(bar=[1, 5, 9], foo=[0, 4, 8]),
             index=Index([1, 2, 3], name="two"),
             columns=Index(["bar", "foo"], name="lvl1"),
         )
@@ -109,12 +99,7 @@ class TestMultiIndexSlicers:
         result = s.loc["A1":"A3", :, ["C1", "C3"]]
         expected = s.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in s.index.values
                 if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
             ]
@@ -165,19 +150,19 @@ class TestMultiIndexSlicers:
         # non-unique mi index support
         df = (
             DataFrame(
-                {
-                    "A": ["foo", "foo", "foo", "foo"],
-                    "B": ["a", "a", "a", "a"],
-                    "C": [1, 2, 1, 3],
-                    "D": [1, 2, 3, 4],
-                }
+                dict(
+                    A=["foo", "foo", "foo", "foo"],
+                    B=["a", "a", "a", "a"],
+                    C=[1, 2, 1, 3],
+                    D=[1, 2, 3, 4],
+                )
             )
             .set_index(["A", "B", "C"])
             .sort_index()
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
+            DataFrame(dict(A=["foo", "foo"], B=["a", "a"], C=[1, 1], D=[1, 3]))
             .set_index(["A", "B", "C"])
             .sort_index()
         )
@@ -190,19 +175,19 @@ class TestMultiIndexSlicers:
 
         df = (
             DataFrame(
-                {
-                    "A": ["foo", "foo", "foo", "foo"],
-                    "B": ["a", "a", "a", "a"],
-                    "C": [1, 2, 1, 2],
-                    "D": [1, 2, 3, 4],
-                }
+                dict(
+                    A=["foo", "foo", "foo", "foo"],
+                    B=["a", "a", "a", "a"],
+                    C=[1, 2, 1, 2],
+                    D=[1, 2, 3, 4],
+                )
             )
             .set_index(["A", "B", "C"])
             .sort_index()
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
+            DataFrame(dict(A=["foo", "foo"], B=["a", "a"], C=[1, 1], D=[1, 3]))
             .set_index(["A", "B", "C"])
             .sort_index()
         )
@@ -408,12 +393,7 @@ class TestMultiIndexSlicers:
         result = df.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
             ]
@@ -425,12 +405,7 @@ class TestMultiIndexSlicers:
         result = df.loc[(slice(None), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (c == "C1" or c == "C3")
             ]
@@ -486,12 +461,7 @@ class TestMultiIndexSlicers:
         result = df.loc(axis=0)["A1":"A3", :, ["C1", "C3"]]
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (a == "A1" or a == "A2" or a == "A3") and (c == "C1" or c == "C3")
             ]
@@ -501,12 +471,7 @@ class TestMultiIndexSlicers:
         result = df.loc(axis="index")[:, :, ["C1", "C3"]]
         expected = df.loc[
             [
-                (
-                    a,
-                    b,
-                    c,
-                    d,
-                )
+                tuple([a, b, c, d])
                 for a, b, c, d in df.index.values
                 if (c == "C1" or c == "C3")
             ]

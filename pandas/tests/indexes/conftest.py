@@ -13,7 +13,7 @@ def sort(request):
         parameters [True, False].
 
         We can't combine them as sort=True is not permitted
-        in the Index setops methods.
+        in in the Index setops methods.
     """
     return request.param
 

@@ -450,9 +450,10 @@ def pivot(
             cols = com.convert_to_list_like(index)
         else:
             cols = []
+        cols.extend(columns)
 
         append = index is None
-        indexed = data.set_index(cols + columns, append=append)
+        indexed = data.set_index(cols, append=append)
     else:
         if index is None:
             index = [Series(data.index, name=data.index.name)]

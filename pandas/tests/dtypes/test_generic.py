@@ -22,6 +22,7 @@ class TestABCClasses:
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
     def test_abc_types(self):
+        assert isinstance(pd.Index(["a", "b", "c"]), gt.ABCIndex)
         assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCInt64Index)
         assert isinstance(pd.UInt64Index([1, 2, 3]), gt.ABCUInt64Index)
         assert isinstance(pd.Float64Index([1, 2, 3]), gt.ABCFloat64Index)

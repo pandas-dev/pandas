@@ -29,7 +29,7 @@ def name(request):
     return request.param
 
 
-class ConstructorTests:
+class Base:
     """
     Common tests for all variations of IntervalIndex construction. Input data
     to be supplied in breaks format, then converted by the subclass method
@@ -182,7 +182,7 @@ class ConstructorTests:
             constructor(**decreasing_kwargs)
 
 
-class TestFromArrays(ConstructorTests):
+class TestFromArrays(Base):
     """Tests specific to IntervalIndex.from_arrays"""
 
     @pytest.fixture
@@ -231,7 +231,7 @@ class TestFromArrays(ConstructorTests):
         assert result.dtype.subtype == expected_subtype
 
 
-class TestFromBreaks(ConstructorTests):
+class TestFromBreaks(Base):
     """Tests specific to IntervalIndex.from_breaks"""
 
     @pytest.fixture
@@ -266,10 +266,14 @@ class TestFromBreaks(ConstructorTests):
         # GH#36310
         breaks = np.arange(5)
         result = IntervalIndex.from_breaks(breaks)._data
-        assert result._left.base is None or result._left.base is not result._right.base
+        left = result._left
+        right = result._right
+
+        left[:] = 10000
+        assert not (right == 10000).any()
 
 
-class TestFromTuples(ConstructorTests):
+class TestFromTuples(Base):
     """Tests specific to IntervalIndex.from_tuples"""
 
     @pytest.fixture
@@ -316,7 +320,7 @@ class TestFromTuples(ConstructorTests):
         tm.assert_index_equal(idx_na_tuple, idx_na_element)
 
 
-class TestClassConstructors(ConstructorTests):
+class TestClassConstructors(Base):
     """Tests specific to the IntervalIndex/Index constructors"""
 
     @pytest.fixture(
@@ -335,8 +339,8 @@ class TestClassConstructors(ConstructorTests):
             return {"data": breaks}
 
         ivs = [
-            Interval(left, right, closed) if notna(left) else left
-            for left, right in zip(breaks[:-1], breaks[1:])
+            Interval(l, r, closed) if notna(l) else l
+            for l, r in zip(breaks[:-1], breaks[1:])
         ]
 
         if isinstance(breaks, list):

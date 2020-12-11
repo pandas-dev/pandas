@@ -10,7 +10,6 @@ from pandas import DataFrame, Series, bdate_range, notna
 
 @pytest.fixture(params=[True, False])
 def raw(request):
-    """raw keyword argument for rolling.apply"""
     return request.param
 
 
@@ -36,18 +35,7 @@ def win_types_special(request):
 
 
 @pytest.fixture(
-    params=[
-        "sum",
-        "mean",
-        "median",
-        "max",
-        "min",
-        "var",
-        "std",
-        "kurt",
-        "skew",
-        "count",
-    ]
+    params=["sum", "mean", "median", "max", "min", "var", "std", "kurt", "skew"]
 )
 def arithmetic_win_operators(request):
     return request.param
@@ -83,18 +71,6 @@ def nogil(request):
 @pytest.fixture(params=[True, False])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def adjust(request):
-    """adjust keyword argument for ewm"""
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def ignore_na(request):
-    """ignore_na keyword argument for ewm"""
     return request.param
 
 
@@ -275,24 +251,61 @@ def consistency_data(request):
     return request.param
 
 
+def _create_arr():
+    """Internal function to mock an array."""
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+    return arr
+
+
+def _create_rng():
+    """Internal function to mock date range."""
+    rng = bdate_range(datetime(2009, 1, 1), periods=100)
+    return rng
+
+
+def _create_series():
+    """Internal function to mock Series."""
+    arr = _create_arr()
+    series = Series(arr.copy(), index=_create_rng())
+    return series
+
+
+def _create_frame():
+    """Internal function to mock DataFrame."""
+    rng = _create_rng()
+    return DataFrame(np.random.randn(100, 10), index=rng, columns=np.arange(10))
+
+
+@pytest.fixture
+def nan_locs():
+    """Make a range as loc fixture."""
+    return np.arange(20, 40)
+
+
+@pytest.fixture
+def arr():
+    """Make an array as fixture."""
+    return _create_arr()
+
+
 @pytest.fixture
 def frame():
     """Make mocked frame as fixture."""
-    return DataFrame(
-        np.random.randn(100, 10),
-        index=bdate_range(datetime(2009, 1, 1), periods=100),
-        columns=np.arange(10),
-    )
+    return _create_frame()
 
 
 @pytest.fixture
 def series():
     """Make mocked series as fixture."""
-    arr = np.random.randn(100)
-    locs = np.arange(20, 40)
-    arr[locs] = np.NaN
-    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
-    return series
+    return _create_series()
+
+
+@pytest.fixture(params=[_create_series(), _create_frame()])
+def which(request):
+    """Turn parametrized which as fixture for series and frame"""
+    return request.param
 
 
 @pytest.fixture(params=["1 day", timedelta(days=1)])

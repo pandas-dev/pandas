@@ -3,12 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Dict, Mapping, Union, cast
+from typing import Any, Mapping, Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
+from pandas._typing import StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -16,7 +16,14 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import (
+    IOArgs,
+    get_filepath_or_buffer,
+    is_url,
+    stringify_path,
+    urlopen,
+    validate_header_arg,
+)
 from pandas.io.excel._util import (
     fill_mi_header,
     get_default_writer,
@@ -306,9 +313,7 @@ def read_excel(
     storage_options: StorageOptions = None,
 ):
 
-    should_close = False
     if not isinstance(io, ExcelFile):
-        should_close = True
         io = ExcelFile(io, storage_options=storage_options, engine=engine)
     elif engine and engine != io.engine:
         raise ValueError(
@@ -316,57 +321,66 @@ def read_excel(
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
-    try:
-        data = io.parse(
-            sheet_name=sheet_name,
-            header=header,
-            names=names,
-            index_col=index_col,
-            usecols=usecols,
-            squeeze=squeeze,
-            dtype=dtype,
-            converters=converters,
-            true_values=true_values,
-            false_values=false_values,
-            skiprows=skiprows,
-            nrows=nrows,
-            na_values=na_values,
-            keep_default_na=keep_default_na,
-            na_filter=na_filter,
-            verbose=verbose,
-            parse_dates=parse_dates,
-            date_parser=date_parser,
-            thousands=thousands,
-            comment=comment,
-            skipfooter=skipfooter,
-            convert_float=convert_float,
-            mangle_dupe_cols=mangle_dupe_cols,
-        )
-    finally:
-        # make sure to close opened file handles
-        if should_close:
-            io.close()
-    return data
+    return io.parse(
+        sheet_name=sheet_name,
+        header=header,
+        names=names,
+        index_col=index_col,
+        usecols=usecols,
+        squeeze=squeeze,
+        dtype=dtype,
+        converters=converters,
+        true_values=true_values,
+        false_values=false_values,
+        skiprows=skiprows,
+        nrows=nrows,
+        na_values=na_values,
+        keep_default_na=keep_default_na,
+        na_filter=na_filter,
+        verbose=verbose,
+        parse_dates=parse_dates,
+        date_parser=date_parser,
+        thousands=thousands,
+        comment=comment,
+        skipfooter=skipfooter,
+        convert_float=convert_float,
+        mangle_dupe_cols=mangle_dupe_cols,
+    )
 
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
-        self.handles = IOHandles(
-            handle=filepath_or_buffer, compression={"method": None}
+        self.ioargs = IOArgs(
+            filepath_or_buffer=filepath_or_buffer,
+            encoding=None,
+            mode=None,
+            compression={"method": None},
         )
-        if not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            self.handles = get_handle(
-                filepath_or_buffer, "rb", storage_options=storage_options, is_text=False
+        # If filepath_or_buffer is a url, load the data into a BytesIO
+        if is_url(filepath_or_buffer):
+            self.ioargs = IOArgs(
+                filepath_or_buffer=BytesIO(urlopen(filepath_or_buffer).read()),
+                should_close=True,
+                encoding=None,
+                mode=None,
+                compression={"method": None},
+            )
+        elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
+            self.ioargs = get_filepath_or_buffer(
+                filepath_or_buffer, storage_options=storage_options
             )
 
-        if isinstance(self.handles.handle, self._workbook_class):
-            self.book = self.handles.handle
-        elif hasattr(self.handles.handle, "read"):
+        if isinstance(self.ioargs.filepath_or_buffer, self._workbook_class):
+            self.book = self.ioargs.filepath_or_buffer
+        elif hasattr(self.ioargs.filepath_or_buffer, "read"):
             # N.B. xlrd.Book has a read attribute too
-            self.handles.handle.seek(0)
-            self.book = self.load_workbook(self.handles.handle)
-        elif isinstance(self.handles.handle, bytes):
-            self.book = self.load_workbook(BytesIO(self.handles.handle))
+            assert not isinstance(self.ioargs.filepath_or_buffer, str)
+            self.ioargs.filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(self.ioargs.filepath_or_buffer)
+        elif isinstance(self.ioargs.filepath_or_buffer, str):
+            self.book = self.load_workbook(self.ioargs.filepath_or_buffer)
+        elif isinstance(self.ioargs.filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(self.ioargs.filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -382,7 +396,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
-        self.handles.close()
+        self.ioargs.close()
 
     @property
     @abc.abstractmethod
@@ -567,15 +581,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
-        File mode to use (write or append). Append does not work with fsspec URLs.
+        File mode to use (write or append).
 
         .. versionadded:: 0.24.0
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
-
-        .. versionadded:: 1.2.0
 
     Attributes
     ----------
@@ -719,12 +727,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: Union[FilePathOrBuffer, "ExcelWriter"],
+        path,
         engine=None,
         date_format=None,
         datetime_format=None,
-        mode: str = "w",
-        storage_options: StorageOptions = None,
+        mode="w",
         **engine_kwargs,
     ):
         # validate that this engine can handle the extension
@@ -732,20 +739,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             ext = os.path.splitext(path)[-1]
             self.check_extension(ext)
 
-        # use mode to open the file
-        if "b" not in mode:
-            mode += "b"
-        # use "a" for the user to append data to excel but internally use "r+" to let
-        # the excel backend first read the existing file and then write any data to it
-        mode = mode.replace("a", "r+")
-
-        # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
-        if not isinstance(path, ExcelWriter):
-            self.handles = get_handle(
-                path, mode, storage_options=storage_options, is_text=False
-            )
-        self.sheets: Dict[str, Any] = {}
+        self.path = path
+        self.sheets = {}
         self.cur_sheet = None
 
         if date_format is None:
@@ -760,7 +755,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
-        return getattr(self.handles.handle, "name", "")
+        # pandas\io\excel\_base.py:744: error: Argument 1 to "stringify_path"
+        # has incompatible type "Optional[Any]"; expected "Union[str, Path,
+        # IO[Any], IOBase]"  [arg-type]
+        return stringify_path(self.path)  # type: ignore[arg-type]
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -830,9 +828,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def close(self):
         """synonym for save, to make it more file-like"""
-        content = self.save()
-        self.handles.close()
-        return content
+        return self.save()
 
 
 def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:

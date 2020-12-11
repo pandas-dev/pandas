@@ -30,6 +30,7 @@ public functions related to data types in pandas.
    series
    frame
    arrays
+   panel
    indexing
    offset_frequency
    window

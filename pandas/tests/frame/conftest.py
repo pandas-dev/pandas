@@ -76,11 +76,6 @@ def bool_frame_with_na():
     # set some NAs
     df.iloc[5:10] = np.nan
     df.iloc[15:20, -2:] = np.nan
-
-    # For `any` tests we need to have at least one True before the first NaN
-    #  in each column
-    for i in range(4):
-        df.iloc[i, i] = True
     return df
 
 

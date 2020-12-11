@@ -21,6 +21,34 @@ class TestBase(Base):
     def create_index(self, closed="right"):
         return IntervalIndex.from_breaks(range(11), closed=closed)
 
+    def test_equals(self, closed):
+        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
+        assert expected.equals(expected)
+        assert expected.equals(expected.copy())
+
+        assert not expected.equals(expected.astype(object))
+        assert not expected.equals(np.array(expected))
+        assert not expected.equals(list(expected))
+
+        assert not expected.equals([1, 2])
+        assert not expected.equals(np.array([1, 2]))
+        assert not expected.equals(date_range("20130101", periods=2))
+
+        expected_name1 = IntervalIndex.from_breaks(
+            np.arange(5), closed=closed, name="foo"
+        )
+        expected_name2 = IntervalIndex.from_breaks(
+            np.arange(5), closed=closed, name="bar"
+        )
+        assert expected.equals(expected_name1)
+        assert expected_name1.equals(expected_name2)
+
+        for other_closed in {"left", "right", "both", "neither"} - {closed}:
+            expected_other_closed = IntervalIndex.from_breaks(
+                np.arange(5), closed=other_closed
+            )
+            assert not expected.equals(expected_other_closed)
+
     def test_repr_max_seq_item_setting(self):
         # override base test: not a valid repr as we use interval notation
         pass
@@ -58,29 +86,3 @@ class TestBase(Base):
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
             with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 idx[:, None]
-
-
-class TestPutmask:
-    @pytest.mark.parametrize("tz", ["US/Pacific", None])
-    def test_putmask_dt64(self, tz):
-        # GH#37968
-        dti = date_range("2016-01-01", periods=9, tz=tz)
-        idx = IntervalIndex.from_breaks(dti)
-        mask = np.zeros(idx.shape, dtype=bool)
-        mask[0:3] = True
-
-        result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
-        tm.assert_index_equal(result, expected)
-
-    def test_putmask_td64(self):
-        # GH#37968
-        dti = date_range("2016-01-01", periods=9)
-        tdi = dti - dti[0]
-        idx = IntervalIndex.from_breaks(tdi)
-        mask = np.zeros(idx.shape, dtype=bool)
-        mask[0:3] = True
-
-        result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
-        tm.assert_index_equal(result, expected)

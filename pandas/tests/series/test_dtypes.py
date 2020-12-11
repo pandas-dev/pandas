@@ -53,22 +53,30 @@ class TestSeriesDtypes:
         tm.assert_series_equal(res, exp)
 
     def test_astype_categorical_to_other(self):
-        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.RandomState(0).randint(0, 10000, 100)).sort_values()
-        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
-        expected = ser
-        tm.assert_series_equal(ser.astype("category"), expected)
-        tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object dtype to float64"
+        value = np.random.RandomState(0).randint(0, 10000, 100)
+        df = DataFrame({"value": value})
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=["value"], ascending=True)
+        df["value_group"] = pd.cut(
+            df.value, range(0, 10500, 500), right=False, labels=cat_labels
+        )
+
+        s = df["value_group"]
+        expected = s
+        tm.assert_series_equal(s.astype("category"), expected)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
+        msg = r"could not convert string to float|invalid literal for float\(\)"
         with pytest.raises(ValueError, match=msg):
-            ser.astype("float64")
+            s.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
         exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
-        exp2 = Series([1, 2, 3, 4]).astype("int64")
+        exp2 = Series([1, 2, 3, 4]).astype(int)
         tm.assert_series_equal(s2.astype("int"), exp2)
 
         # object don't sort correctly, so just compare that we have the same
@@ -76,38 +84,25 @@ class TestSeriesDtypes:
         def cmp(a, b):
             tm.assert_almost_equal(np.sort(np.unique(a)), np.sort(np.unique(b)))
 
-        expected = Series(np.array(ser.values), name="value_group")
-        cmp(ser.astype("object"), expected)
-        cmp(ser.astype(np.object_), expected)
+        expected = Series(np.array(s.values), name="value_group")
+        cmp(s.astype("object"), expected)
+        cmp(s.astype(np.object_), expected)
 
         # array conversion
-        tm.assert_almost_equal(np.array(ser), np.array(ser.values))
+        tm.assert_almost_equal(np.array(s), np.array(s.values))
 
-        tm.assert_series_equal(ser.astype("category"), ser)
-        tm.assert_series_equal(ser.astype(CategoricalDtype()), ser)
+        tm.assert_series_equal(s.astype("category"), s)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), s)
 
-        roundtrip_expected = ser.cat.set_categories(
-            ser.cat.categories.sort_values()
+        roundtrip_expected = s.cat.set_categories(
+            s.cat.categories.sort_values()
         ).cat.remove_unused_categories()
-        result = ser.astype("object").astype("category")
-        tm.assert_series_equal(result, roundtrip_expected)
-        result = ser.astype("object").astype(CategoricalDtype())
-        tm.assert_series_equal(result, roundtrip_expected)
-
-    def test_astype_categorical_invalid_conversions(self):
-        # invalid conversion (these are NOT a dtype)
-        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.RandomState(0).randint(0, 10000, 100)).sort_values()
-        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
-
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
+        tm.assert_series_equal(
+            s.astype("object").astype("category"), roundtrip_expected
         )
-        with pytest.raises(TypeError, match=msg):
-            ser.astype(Categorical)
-        with pytest.raises(TypeError, match=msg):
-            ser.astype("object").astype(Categorical)
+        tm.assert_series_equal(
+            s.astype("object").astype(CategoricalDtype()), roundtrip_expected
+        )
 
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical

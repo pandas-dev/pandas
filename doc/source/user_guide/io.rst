@@ -1024,10 +1024,9 @@ Writing CSVs to binary file objects
 
 .. versionadded:: 1.2.0
 
-``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
-opened binary mode. In most cases, it is not necessary to specify
-``mode`` as Pandas will auto-detect whether the file object is
-opened in text or binary mode.
+``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
+opened binary mode. For this to work, it is necessary that ``mode``
+contains a "b":
 
 .. ipython:: python
 
@@ -1035,7 +1034,7 @@ opened in text or binary mode.
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 

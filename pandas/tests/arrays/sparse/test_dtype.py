@@ -200,10 +200,10 @@ def test_update_dtype_raises(original, dtype, expected_error_msg):
 
 def test_repr():
     # GH-34352
-    result = str(SparseDtype("int64", fill_value=0))
+    result = str(pd.SparseDtype("int64", fill_value=0))
     expected = "Sparse[int64, 0]"
     assert result == expected
 
-    result = str(SparseDtype(object, fill_value="0"))
+    result = str(pd.SparseDtype(object, fill_value="0"))
     expected = "Sparse[object, '0']"
     assert result == expected

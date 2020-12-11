@@ -12,13 +12,13 @@ class TestToFrame:
         datetime_series.name = "testname"
         rs = datetime_series.to_frame()
         xp = DataFrame(
-            {"testname": datetime_series.values}, index=datetime_series.index
+            dict(testname=datetime_series.values), index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
 
         rs = datetime_series.to_frame(name="testdifferent")
         xp = DataFrame(
-            {"testdifferent": datetime_series.values}, index=datetime_series.index
+            dict(testdifferent=datetime_series.values), index=datetime_series.index
         )
         tm.assert_frame_equal(rs, xp)
 

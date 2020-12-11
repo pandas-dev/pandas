@@ -37,8 +37,8 @@ class TestPreserves:
             operator.methodcaller("add", 1),
             operator.methodcaller("rename", str.upper),
             operator.methodcaller("rename", "name"),
-            operator.methodcaller("abs"),
-            np.abs,
+            pytest.param(operator.methodcaller("abs"), marks=not_implemented),
+            # TODO: test np.abs
         ],
     )
     def test_preserved_series(self, func):
@@ -312,7 +312,9 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
             ),
-            (operator.itemgetter((["a", "a"], "A")), "loc"),
+            pytest.param(
+                operator.itemgetter((["a", "a"], "A")), "loc", marks=not_implemented
+            ),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
             pytest.param(

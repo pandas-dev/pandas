@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Optional, Sequence, TypeVar
 
 import numpy as np
 
@@ -22,9 +20,7 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 
-NDArrayBackedExtensionArrayT = TypeVar(
-    "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
-)
+_T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
 
 
 class NDArrayBackedExtensionArray(ExtensionArray):
@@ -34,9 +30,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     _ndarray: np.ndarray
 
-    def _from_backing_data(
-        self: NDArrayBackedExtensionArrayT, arr: np.ndarray
-    ) -> NDArrayBackedExtensionArrayT:
+    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         """
         Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
 
@@ -58,13 +52,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
 
     def take(
-        self: NDArrayBackedExtensionArrayT,
+        self: _T,
         indices: Sequence[int],
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
-    ) -> NDArrayBackedExtensionArrayT:
+    ) -> _T:
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
@@ -80,7 +74,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising TypeError if this is not possible.
+        suitable for self._ndarray, raising ValueError if this is not possible.
 
         Parameters
         ----------
@@ -92,7 +86,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         Raises
         ------
-        TypeError
+        ValueError
         """
         raise AbstractMethodError(self)
 
@@ -119,20 +113,16 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 
-    def reshape(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
+    def reshape(self: _T, *args, **kwargs) -> _T:
         new_data = self._ndarray.reshape(*args, **kwargs)
         return self._from_backing_data(new_data)
 
-    def ravel(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
+    def ravel(self: _T, *args, **kwargs) -> _T:
         new_data = self._ndarray.ravel(*args, **kwargs)
         return self._from_backing_data(new_data)
 
     @property
-    def T(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
+    def T(self: _T) -> _T:
         new_data = self._ndarray.T
         return self._from_backing_data(new_data)
 
@@ -148,13 +138,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _values_for_argsort(self):
         return self._ndarray
 
-    def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
+    def copy(self: _T) -> _T:
         new_data = self._ndarray.copy()
         return self._from_backing_data(new_data)
 
-    def repeat(
-        self: NDArrayBackedExtensionArrayT, repeats, axis=None
-    ) -> NDArrayBackedExtensionArrayT:
+    def repeat(self: _T, repeats, axis=None) -> _T:
         """
         Repeat elements of an array.
 
@@ -166,17 +154,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         new_data = self._ndarray.repeat(repeats, axis=axis)
         return self._from_backing_data(new_data)
 
-    def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
+    def unique(self: _T) -> _T:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
 
     @classmethod
     @doc(ExtensionArray._concat_same_type)
-    def _concat_same_type(
-        cls: Type[NDArrayBackedExtensionArrayT],
-        to_concat: Sequence[NDArrayBackedExtensionArrayT],
-        axis: int = 0,
-    ) -> NDArrayBackedExtensionArrayT:
+    def _concat_same_type(cls, to_concat, axis: int = 0):
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
@@ -214,9 +198,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_setitem_value(self, value):
         return value
 
-    def __getitem__(
-        self: NDArrayBackedExtensionArrayT, key: Union[int, slice, np.ndarray]
-    ) -> Union[NDArrayBackedExtensionArrayT, Any]:
+    def __getitem__(self, key):
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -234,9 +216,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return result
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
-    ) -> NDArrayBackedExtensionArrayT:
+    def fillna(self: _T, value=None, method=None, limit=None) -> _T:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
@@ -300,43 +280,3 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
         return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
-
-    # ------------------------------------------------------------------------
-    # __array_function__ methods
-
-    def putmask(self, mask, value):
-        """
-        Analogue to np.putmask(self, mask, value)
-
-        Parameters
-        ----------
-        mask : np.ndarray[bool]
-        value : scalar or listlike
-
-        Raises
-        ------
-        TypeError
-            If value cannot be cast to self.dtype.
-        """
-        value = self._validate_setitem_value(value)
-
-        np.putmask(self._ndarray, mask, value)
-
-    def where(self, mask, value):
-        """
-        Analogue to np.where(mask, self, value)
-
-        Parameters
-        ----------
-        mask : np.ndarray[bool]
-        value : scalar or listlike
-
-        Raises
-        ------
-        TypeError
-            If value cannot be cast to self.dtype.
-        """
-        value = self._validate_setitem_value(value)
-
-        res_values = np.where(mask, self._ndarray, value)
-        return self._from_backing_data(res_values)

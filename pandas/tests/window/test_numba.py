@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, option_context
+from pandas import Series, option_context
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
@@ -12,7 +11,7 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 @td.skip_if_no("numba", "0.46.0")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
-class TestRollingApply:
+class TestApply:
     @pytest.mark.parametrize("jit", [True, False])
     def test_numba_vs_cython(self, jit, nogil, parallel, nopython, center):
         def f(x, *args):
@@ -79,31 +78,6 @@ class TestRollingApply:
 
 
 @td.skip_if_no("numba", "0.46.0")
-class TestGroupbyEWMMean:
-    def test_invalid_engine(self):
-        df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        with pytest.raises(ValueError, match="engine must be either"):
-            df.groupby("A").ewm(com=1.0).mean(engine="foo")
-
-    def test_invalid_engine_kwargs(self):
-        df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        with pytest.raises(ValueError, match="cython engine does not"):
-            df.groupby("A").ewm(com=1.0).mean(
-                engine="cython", engine_kwargs={"nopython": True}
-            )
-
-    def test_cython_vs_numba(self, nogil, parallel, nopython, ignore_na, adjust):
-        df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
-
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = gb_ewm.mean(engine="cython")
-
-        tm.assert_frame_equal(result, expected)
-
-
-@td.skip_if_no("numba", "0.46.0")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -113,11 +87,3 @@ def test_use_global_config():
         result = s.rolling(2).apply(f, engine=None, raw=True)
     expected = s.rolling(2).apply(f, engine="numba", raw=True)
     tm.assert_series_equal(expected, result)
-
-
-@td.skip_if_no("numba", "0.46.0")
-def test_invalid_kwargs_nopython():
-    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
-        Series(range(1)).rolling(1).apply(
-            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
-        )

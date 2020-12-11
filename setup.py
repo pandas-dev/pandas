@@ -7,7 +7,6 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import argparse
-from distutils.command.build import build
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import multiprocessing
@@ -17,10 +16,10 @@ import platform
 import shutil
 import sys
 
-import numpy
-from setuptools import Command, Extension, find_packages, setup
-from setuptools.command.build_ext import build_ext as _build_ext
+import pkg_resources
+from setuptools import Command, find_packages, setup
 
+# versioning
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
@@ -38,7 +37,9 @@ min_numpy_ver = "1.16.5"
 min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
-    from Cython import Tempita, __version__ as _CYTHON_VERSION
+    import Cython
+
+    _CYTHON_VERSION = Cython.__version__
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
@@ -47,13 +48,28 @@ except ImportError:
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
+# The import of Extension must be after the import of Cython, otherwise
+# we do not get the appropriately patched class.
+# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
+from distutils.extension import Extension  # isort:skip
+from distutils.command.build import build  # isort:skip
+
+if _CYTHON_INSTALLED:
+    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+
+    cython = True
+    from Cython import Tempita as tempita
+else:
+    from distutils.command.build_ext import build_ext as _build_ext
+
+    cython = False
+
 
 _pxi_dep_template = {
     "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
-        "_libs/khash_for_primitive_helper.pxi.in",
     ],
     "index": ["_libs/index_class_helper.pxi.in"],
     "sparse": ["_libs/sparse_op_helper.pxi.in"],
@@ -85,7 +101,7 @@ class build_ext(_build_ext):
 
             with open(pxifile) as f:
                 tmpl = f.read()
-            pyxcontent = Tempita.sub(tmpl)
+            pyxcontent = tempita.sub(tmpl)
 
             with open(outfile, "w") as f:
                 f.write(pyxcontent)
@@ -93,7 +109,7 @@ class build_ext(_build_ext):
     def build_extensions(self):
         # if building from c files, don't need to
         # generate template output
-        if _CYTHON_INSTALLED:
+        if cython:
             self.render_templates(_pxifiles)
 
         super().build_extensions()
@@ -388,7 +404,7 @@ class DummyBuildSrc(Command):
 cmdclass.update({"clean": CleanCommand, "build": build})
 cmdclass["build_ext"] = CheckingBuildExt
 
-if _CYTHON_INSTALLED:
+if cython:
     suffix = ".pyx"
     cmdclass["cython"] = CythonCommand
 else:
@@ -409,16 +425,15 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
-extra_compile_args = []
-extra_link_args = []
 if is_platform_windows():
+    extra_compile_args = []
+    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    # PANDAS_CI=1 is set by ci/setup_env.sh
-    if os.environ.get("PANDAS_CI", "0") == "1":
-        extra_compile_args.append("-Werror")
+    extra_compile_args = ["-Werror"]
+    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
 
@@ -462,10 +477,18 @@ if linetrace:
     directives["linetrace"] = True
     macros = [("CYTHON_TRACE", "1"), ("CYTHON_TRACE_NOGIL", "1")]
 
-# silence build warnings about deprecated API usage
-# we can't do anything about these warnings because they stem from
-# cython+numpy version mismatches.
+# in numpy>=1.16.0, silence build warnings about deprecated API usage
+#  we can't do anything about these warnings because they stem from
+#  cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ < LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
@@ -484,7 +507,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
-    elif not _CYTHON_INSTALLED:
+    elif not cython:
         # GH#28836 raise a helfpul error message
         if _CYTHON_VERSION:
             raise RuntimeError(
@@ -493,12 +516,25 @@ def maybe_cythonize(extensions, *args, **kwargs):
             )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
+    numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
+    # TODO: Is this really necessary here?
+    for ext in extensions:
+        if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
+            ext.include_dirs.append(numpy_incl)
+
     # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
-    parser.add_argument("--parallel", "-j", type=int, default=1)
+    parser.add_argument("-j", type=int)
+    parser.add_argument("--parallel", type=int)
     parsed, _ = parser.parse_known_args()
 
-    kwargs["nthreads"] = parsed.parallel
+    nthreads = 0
+    if parsed.parallel:
+        nthreads = parsed.parallel
+    elif parsed.j:
+        nthreads = parsed.j
+
+    kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -527,10 +563,7 @@ ext_data = {
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
         "include": klib_include,
-        "depends": (
-            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
-            + _pxi_dep["hashtable"]
-        ),
+        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
@@ -646,8 +679,7 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include", [])
-    include.append(numpy.get_include())
+    include = data.get("include")
 
     obj = Extension(
         f"pandas.{name}",
@@ -696,7 +728,6 @@ ujson_ext = Extension(
         "pandas/_libs/src/ujson/python",
         "pandas/_libs/src/ujson/lib",
         "pandas/_libs/src/datetime",
-        numpy.get_include(),
     ],
     extra_compile_args=(["-D_GNU_SOURCE"] + extra_compile_args),
     extra_link_args=extra_link_args,

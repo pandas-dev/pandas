@@ -124,7 +124,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     _scalar_type = Period
     _recognized_scalars = (Period,)
     _is_recognized_dtype = is_period_dtype
-    _infer_matches = ("period",)
 
     # Names others delegate to us
     _other_ops: List[str] = []

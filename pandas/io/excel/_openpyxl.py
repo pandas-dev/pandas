@@ -16,27 +16,16 @@ class OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
 
-    def __init__(
-        self,
-        path,
-        engine=None,
-        mode: str = "w",
-        storage_options: StorageOptions = None,
-        **engine_kwargs,
-    ):
+    def __init__(self, path, engine=None, mode="w", **engine_kwargs):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super().__init__(
-            path, mode=mode, storage_options=storage_options, **engine_kwargs
-        )
+        super().__init__(path, mode=mode, **engine_kwargs)
 
-        # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
-        # the file and later write to it
-        if "r+" in self.mode:  # Load from existing workbook
+        if self.mode == "a":  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self.book = load_workbook(self.handles.handle)
+            self.book = load_workbook(self.path)
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
@@ -48,7 +37,7 @@ class OpenpyxlWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        self.book.save(self.handles.handle)
+        self.book.save(self.path)
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, "Serialisable"]:
@@ -463,7 +452,7 @@ class OpenpyxlReader(BaseExcelReader):
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
         storage_options : dict, optional
-            passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
+            passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         import_optional_dependency("openpyxl")
         super().__init__(filepath_or_buffer, storage_options=storage_options)
@@ -485,7 +474,6 @@ class OpenpyxlReader(BaseExcelReader):
         # https://stackoverflow.com/questions/31416842/
         #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
         self.book.close()
-        super().close()
 
     @property
     def sheet_names(self) -> List[str]:

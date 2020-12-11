@@ -94,7 +94,7 @@ class Base:
 
         # form agglomerates
         for kind in self._kinds:
-            d = {}
+            d = dict()
             for typ in self._typs:
                 d[typ] = getattr(self, f"{kind}_{typ}")
 

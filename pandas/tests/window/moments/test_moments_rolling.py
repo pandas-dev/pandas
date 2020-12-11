@@ -3,7 +3,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, date_range
+import pandas as pd
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
@@ -545,7 +546,7 @@ def test_rolling_quantile_np_percentile():
     # is analogous to Numpy's percentile
     row = 10
     col = 5
-    idx = date_range("20100101", periods=row, freq="B")
+    idx = pd.date_range("20100101", periods=row, freq="B")
     df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
 
     df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)

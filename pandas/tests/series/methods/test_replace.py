@@ -75,9 +75,10 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace([1, 2, 3], [np.nan, 0])
 
-        # ser is dt64 so can't hold 1 or 2, so this replace is a no-op
-        result = ser.replace([1, 2], [np.nan, 0])
-        tm.assert_series_equal(result, ser)
+        # make sure that we aren't just masking a TypeError because bools don't
+        # implement indexing
+        with pytest.raises(TypeError, match="Cannot compare types .+"):
+            ser.replace([1, 2], [np.nan, 0])
 
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -141,6 +142,19 @@ class TestSeriesReplace:
             return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
             assert return_value is None
         tm.assert_series_equal(s, ser)
+
+    def test_replace_with_empty_list(self):
+        # GH 21977
+        s = pd.Series([[1], [2, 3], [], np.nan, [4]])
+        expected = s
+        result = s.replace([], np.nan)
+        tm.assert_series_equal(result, expected)
+
+        # GH 19266
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
+            s.replace({np.nan: []})
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
+            s.replace({np.nan: ["dummy", "alt"]})
 
     def test_replace_mixed_types(self):
         s = pd.Series(np.arange(5), dtype="int64")
@@ -252,7 +266,7 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace({}))
+        tm.assert_series_equal(s, s.replace(dict()))
 
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = pd.Series([])
@@ -423,12 +437,10 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
-    def test_replace_extension_other(self, frame_or_series):
+    def test_replace_extension_other(self):
         # https://github.com/pandas-dev/pandas/issues/34530
-        obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
-        result = obj.replace("", "")  # no exception
-        # should not have changed dtype
-        tm.assert_equal(obj, result)
+        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+        ser.replace("", "")  # no exception
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680

@@ -103,10 +103,7 @@ class WideToLong:
         nidvars = 20
         N = 5000
         self.letters = list("ABCD")
-        yrvars = [
-            letter + str(num)
-            for letter, num in product(self.letters, range(1, nyrs + 1))
-        ]
+        yrvars = [l + str(num) for l, num in product(self.letters, range(1, nyrs + 1))]
         columns = [str(i) for i in range(nidvars)] + yrvars
         self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)), columns=columns)
         self.df["id"] = self.df.index

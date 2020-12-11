@@ -16,60 +16,8 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
-from pandas import (
-    DatetimeIndex,
-    Float64Index,
-    Index,
-    Int64Index,
-    PeriodIndex,
-    TimedeltaIndex,
-    UInt64Index,
-)
+from pandas import Float64Index, Index, Int64Index, UInt64Index
 import pandas._testing as tm
-
-
-class TestTake:
-    def test_take_invalid_kwargs(self, index):
-        indices = [1, 2]
-
-        msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        with pytest.raises(TypeError, match=msg):
-            index.take(indices, foo=2)
-
-        msg = "the 'out' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            index.take(indices, out=indices)
-
-        msg = "the 'mode' parameter is not supported"
-        with pytest.raises(ValueError, match=msg):
-            index.take(indices, mode="clip")
-
-    def test_take(self, index):
-        indexer = [4, 3, 0, 2]
-        if len(index) < 5:
-            # not enough elements; ignore
-            return
-
-        result = index.take(indexer)
-        expected = index[indexer]
-        assert result.equals(expected)
-
-        if not isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-            # GH 10791
-            msg = r"'(.*Index)' object has no attribute 'freq'"
-            with pytest.raises(AttributeError, match=msg):
-                index.freq
-
-    def test_take_minus1_without_fill(self, index):
-        # -1 does not get treated as NA unless allow_fill=True is passed
-        if len(index) == 0:
-            # Test is not applicable
-            return
-
-        result = index.take([0, 0, -1])
-
-        expected = index.take([0, 0, len(index) - 1])
-        tm.assert_index_equal(result, expected)
 
 
 class TestContains:

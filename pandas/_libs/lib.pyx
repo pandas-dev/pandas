@@ -118,8 +118,6 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
 def is_scalar(val: object) -> bool:
     """
-    Return True if given object is scalar.
-
     Parameters
     ----------
     val : object
@@ -636,7 +634,7 @@ cpdef ndarray[object] ensure_string_array(
     ----------
     arr : array-like
         The values to be converted to str, if needed.
-    na_value : Any, default np.nan
+    na_value : Any
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
@@ -929,8 +927,6 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
 def is_float(obj: object) -> bool:
     """
-    Return True if given object is float.
-
     Returns
     -------
     bool
@@ -940,8 +936,6 @@ def is_float(obj: object) -> bool:
 
 def is_integer(obj: object) -> bool:
     """
-    Return True if given object is integer.
-
     Returns
     -------
     bool
@@ -951,8 +945,6 @@ def is_integer(obj: object) -> bool:
 
 def is_bool(obj: object) -> bool:
     """
-    Return True if given object is boolean.
-
     Returns
     -------
     bool
@@ -962,8 +954,6 @@ def is_bool(obj: object) -> bool:
 
 def is_complex(obj: object) -> bool:
     """
-    Return True if given object is complex.
-
     Returns
     -------
     bool
@@ -981,7 +971,7 @@ cpdef bint is_interval(object obj):
 
 def is_period(val: object) -> bool:
     """
-    Return True if given object is Period.
+    Return a boolean if this is a Period object.
 
     Returns
     -------

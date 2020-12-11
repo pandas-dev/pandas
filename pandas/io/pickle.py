@@ -5,14 +5,10 @@ import warnings
 
 from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
-from pandas.util._decorators import doc
 
-from pandas.core import generic
-
-from pandas.io.common import get_handle
+from pandas.io.common import get_filepath_or_buffer, get_handle
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePathOrBuffer,
@@ -33,7 +29,7 @@ def to_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
@@ -47,7 +43,13 @@ def to_pickle(
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -62,7 +64,7 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
@@ -84,20 +86,26 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
+    ioargs = get_filepath_or_buffer(
+        filepath_or_buffer,
+        compression=compression,
+        mode="wb",
+        storage_options=storage_options,
+    )
+    handles = get_handle(
+        ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
+    )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
-
-    with get_handle(
-        filepath_or_buffer,
-        "wb",
-        compression=compression,
-        is_text=False,
-        storage_options=storage_options,
-    ) as handles:
+    try:
         pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
+    finally:
+        # close compression and byte/text wrapper
+        handles.close()
+        # close any fsspec-like objects
+        ioargs.close()
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
 def read_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: CompressionOptions = "infer",
@@ -119,13 +127,19 @@ def read_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -147,7 +161,7 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
@@ -169,31 +183,35 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
-    with get_handle(
-        filepath_or_buffer,
-        "rb",
-        compression=compression,
-        is_text=False,
-        storage_options=storage_options,
-    ) as handles:
+    ioargs = get_filepath_or_buffer(
+        filepath_or_buffer, compression=compression, storage_options=storage_options
+    )
+    handles = get_handle(
+        ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
+    )
 
-        # 1) try standard library Pickle
-        # 2) try pickle_compat (older pandas version) to handle subclass changes
-        # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
+    # 1) try standard library Pickle
+    # 2) try pickle_compat (older pandas version) to handle subclass changes
+    # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
 
+    try:
+        excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
+        # TypeError for Cython complaints about object.__new__ vs Tick.__new__
         try:
-            # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-            try:
-                with warnings.catch_warnings(record=True):
-                    # We want to silence any warnings about, e.g. moved modules.
-                    warnings.simplefilter("ignore", Warning)
-                    return pickle.load(handles.handle)  # type: ignore[arg-type]
-            except excs_to_catch:
-                # e.g.
-                #  "No module named 'pandas.core.sparse.series'"
-                #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-                return pc.load(handles.handle, encoding=None)
-        except UnicodeDecodeError:
-            # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-            return pc.load(handles.handle, encoding="latin-1")
+            with warnings.catch_warnings(record=True):
+                # We want to silence any warnings about, e.g. moved modules.
+                warnings.simplefilter("ignore", Warning)
+                return pickle.load(handles.handle)  # type: ignore[arg-type]
+        except excs_to_catch:
+            # e.g.
+            #  "No module named 'pandas.core.sparse.series'"
+            #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
+            return pc.load(handles.handle, encoding=None)
+    except UnicodeDecodeError:
+        # e.g. can occur for files written in py27; see GH#28645 and GH#31988
+        return pc.load(handles.handle, encoding="latin-1")
+    finally:
+        # close compression and byte/text wrapper
+        handles.close()
+        # close any fsspec-like objects
+        ioargs.close()

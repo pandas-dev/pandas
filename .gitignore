@@ -12,7 +12,6 @@
 *.log
 *.swp
 *.pdb
-*.zip
 .project
 .pydevproject
 .settings

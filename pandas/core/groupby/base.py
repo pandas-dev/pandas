@@ -192,7 +192,6 @@ groupby_other_methods = frozenset(
         "describe",
         "dtypes",
         "expanding",
-        "ewm",
         "filter",
         "get_group",
         "groups",

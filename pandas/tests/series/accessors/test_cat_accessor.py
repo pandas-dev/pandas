@@ -81,10 +81,7 @@ class TestCatAccessor:
         ser = Series(list("abc")).astype("category")
         return_value = ser.drop(0, inplace=True)
         assert return_value is None
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            return_value = ser.cat.remove_unused_categories(inplace=True)
-
+        return_value = ser.cat.remove_unused_categories(inplace=True)
         assert return_value is None
         assert len(ser.cat.categories) == 2
 

@@ -15,9 +15,9 @@ def test_doc_string():
     df.ewm(com=0.5).mean()
 
 
-def test_constructor(frame_or_series):
+def test_constructor(which):
 
-    c = frame_or_series(range(5)).ewm
+    c = which.ewm
 
     # valid
     c(com=0.5)

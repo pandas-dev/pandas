@@ -1,17 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    timedelta_range,
-)
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DataFrame, Index, Series, Timestamp, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -87,7 +80,7 @@ def test_agg():
 
     result = r.aggregate([np.mean, np.std])
     expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
-    expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "std"]])
+    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     tm.assert_frame_equal(result, expected)
 
     result = r.aggregate({"A": np.mean, "B": np.std})
@@ -97,7 +90,7 @@ def test_agg():
 
     result = r.aggregate({"A": ["mean", "std"]})
     expected = concat([a_mean, a_std], axis=1)
-    expected.columns = MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
+    expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     tm.assert_frame_equal(result, expected)
 
     result = r["A"].aggregate(["mean", "sum"])
@@ -119,7 +112,7 @@ def test_agg():
     expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
 
     exp_cols = [("A", "mean"), ("A", "std"), ("B", "mean"), ("B", "std")]
-    expected.columns = MultiIndex.from_tuples(exp_cols)
+    expected.columns = pd.MultiIndex.from_tuples(exp_cols)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -143,7 +136,7 @@ def test_agg_consistency():
     r = df.rolling(window=3)
 
     result = r.agg([np.sum, np.mean]).columns
-    expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])
+    expected = pd.MultiIndex.from_product([list("AB"), ["sum", "mean"]])
     tm.assert_index_equal(result, expected)
 
     result = r["A"].agg([np.sum, np.mean]).columns
@@ -151,7 +144,7 @@ def test_agg_consistency():
     tm.assert_index_equal(result, expected)
 
     result = r.agg({"A": [np.sum, np.mean]}).columns
-    expected = MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
+    expected = pd.MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
     tm.assert_index_equal(result, expected)
 
 
@@ -168,7 +161,7 @@ def test_agg_nested_dicts():
     expected = concat(
         [r["A"].mean(), r["A"].std(), r["B"].mean(), r["B"].std()], axis=1
     )
-    expected.columns = MultiIndex.from_tuples(
+    expected.columns = pd.MultiIndex.from_tuples(
         [("ra", "mean"), ("ra", "std"), ("rb", "mean"), ("rb", "std")]
     )
     with pytest.raises(SpecificationError, match=msg):
@@ -200,21 +193,21 @@ def test_count_nonnumeric_types():
             "int": [1, 2, 3],
             "float": [4.0, 5.0, 6.0],
             "string": list("abc"),
-            "datetime": date_range("20170101", periods=3),
-            "timedelta": timedelta_range("1 s", periods=3, freq="s"),
+            "datetime": pd.date_range("20170101", periods=3),
+            "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
             "periods": [
-                Period("2012-01"),
-                Period("2012-02"),
-                Period("2012-03"),
+                pd.Period("2012-01"),
+                pd.Period("2012-02"),
+                pd.Period("2012-03"),
             ],
             "fl_inf": [1.0, 2.0, np.Inf],
             "fl_nan": [1.0, 2.0, np.NaN],
             "str_nan": ["aa", "bb", np.NaN],
             "dt_nat": dt_nat_col,
             "periods_nat": [
-                Period("2012-01"),
-                Period("2012-02"),
-                Period(None),
+                pd.Period("2012-01"),
+                pd.Period("2012-02"),
+                pd.Period(None),
             ],
         },
         columns=cols,
@@ -242,6 +235,30 @@ def test_count_nonnumeric_types():
 
     result = df.rolling(1, min_periods=0).count()
     expected = df.notna().astype(float)
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no_scipy
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+def test_window_with_args():
+    # make sure that we are aggregating window functions correctly with arg
+    r = Series(np.random.randn(100)).rolling(
+        window=10, min_periods=1, win_type="gaussian"
+    )
+    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected.columns = ["<lambda>", "<lambda>"]
+    result = r.aggregate([lambda x: x.mean(std=10), lambda x: x.mean(std=0.01)])
+    tm.assert_frame_equal(result, expected)
+
+    def a(x):
+        return x.mean(std=10)
+
+    def b(x):
+        return x.mean(std=0.01)
+
+    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected.columns = ["a", "b"]
+    result = r.aggregate([a, b])
     tm.assert_frame_equal(result, expected)
 
 
@@ -307,15 +324,15 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     else:
         window = f()
 
-    index = MultiIndex.from_tuples(
+    index = pd.MultiIndex.from_tuples(
         [("A", 0), ("A", 1), ("A", 2), ("B", 3), ("B", 4), ("B", 5), ("B", 6)],
         names=["stock", None],
     )
-    columns = MultiIndex.from_tuples(
+    columns = pd.MultiIndex.from_tuples(
         [("low", "mean"), ("low", "max"), ("high", "mean"), ("high", "min")]
     )
     expected = DataFrame(expected_vals, index=index, columns=columns)
 
-    result = window.agg({"low": ["mean", "max"], "high": ["mean", "min"]})
+    result = window.agg(dict((("low", ["mean", "max"]), ("high", ["mean", "min"]))))
 
     tm.assert_frame_equal(result, expected)

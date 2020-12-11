@@ -1,10 +1,9 @@
 """
 Core eval alignment algorithms.
 """
-from __future__ import annotations
 
 from functools import partial, wraps
-from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Type, Union
+from typing import Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -18,16 +17,13 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
-if TYPE_CHECKING:
-    from pandas.core.indexes.api import Index
-
 
 def _align_core_single_unary_op(
     term,
-) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, Index]]]:
+) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
 
     typ: Union[partial, Type[FrameOrSeries]]
-    axes: Optional[Dict[str, Index]] = None
+    axes: Optional[Dict[str, int]] = None
 
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
@@ -40,8 +36,8 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: Type[FrameOrSeries], new_axes: Sequence[Index]
-) -> Dict[str, Index]:
+    typ: Type[FrameOrSeries], new_axes: Sequence[int]
+) -> Dict[str, int]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 
 

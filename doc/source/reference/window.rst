@@ -10,10 +10,8 @@ Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.roll
 Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
 ExponentialMovingWindow objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:`pandas.Series.ewm`, etc.
 
-.. _api.functions_rolling:
-
-Rolling window functions
-------------------------
+Standard moving window functions
+--------------------------------
 .. currentmodule:: pandas.core.window.rolling
 
 .. autosummary::
@@ -35,16 +33,6 @@ Rolling window functions
    Rolling.aggregate
    Rolling.quantile
    Rolling.sem
-
-.. _api.functions_window:
-
-Weighted window functions
--------------------------
-.. currentmodule:: pandas.core.window.rolling
-
-.. autosummary::
-   :toctree: api/
-
    Window.mean
    Window.sum
    Window.var
@@ -52,8 +40,8 @@ Weighted window functions
 
 .. _api.functions_expanding:
 
-Expanding window functions
---------------------------
+Standard expanding window functions
+-----------------------------------
 .. currentmodule:: pandas.core.window.expanding
 
 .. autosummary::
@@ -76,10 +64,8 @@ Expanding window functions
    Expanding.quantile
    Expanding.sem
 
-.. _api.functions_ewm:
-
-Exponentially-weighted window functions
----------------------------------------
+Exponentially-weighted moving window functions
+----------------------------------------------
 .. currentmodule:: pandas.core.window.ewm
 
 .. autosummary::
@@ -90,8 +76,6 @@ Exponentially-weighted window functions
    ExponentialMovingWindow.var
    ExponentialMovingWindow.corr
    ExponentialMovingWindow.cov
-
-.. _api.indexers_window:
 
 Window indexer
 --------------

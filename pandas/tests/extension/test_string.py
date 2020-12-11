@@ -3,49 +3,39 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import ArrowStringDtype
+from pandas.core.arrays.string_ import StringArray, StringDtype
 from pandas.tests.extension import base
 
 
-@pytest.fixture(
-    params=[
-        StringDtype,
-        pytest.param(
-            ArrowStringDtype, marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
-    ]
-)
-def dtype(request):
-    return request.param()
+@pytest.fixture
+def dtype():
+    return StringDtype()
 
 
 @pytest.fixture
-def data(dtype):
+def data():
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
 
-    return dtype.construct_array_type()._from_sequence(strings)
+    return StringArray._from_sequence(strings)
 
 
 @pytest.fixture
-def data_missing(dtype):
+def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return dtype.construct_array_type()._from_sequence([pd.NA, "A"])
+    return StringArray._from_sequence([pd.NA, "A"])
 
 
 @pytest.fixture
-def data_for_sorting(dtype):
-    return dtype.construct_array_type()._from_sequence(["B", "C", "A"])
+def data_for_sorting():
+    return StringArray._from_sequence(["B", "C", "A"])
 
 
 @pytest.fixture
-def data_missing_for_sorting(dtype):
-    return dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
+def data_missing_for_sorting():
+    return StringArray._from_sequence(["B", pd.NA, "A"])
 
 
 @pytest.fixture
@@ -54,10 +44,8 @@ def na_value():
 
 
 @pytest.fixture
-def data_for_grouping(dtype):
-    return dtype.construct_array_type()._from_sequence(
-        ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
-    )
+def data_for_grouping():
+    return StringArray._from_sequence(["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"])
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -65,11 +53,7 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, request):
-        if isinstance(data.dtype, ArrowStringDtype):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
-        super().test_view(data)
+    pass
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -77,11 +61,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
-        super().test_transpose(data)
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -89,11 +69,7 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
-            mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
-        super().test_setitem_preserves_views(data)
+    pass
 
 
 class TestMissing(base.BaseMissingTests):

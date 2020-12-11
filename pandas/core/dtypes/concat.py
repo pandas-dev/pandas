@@ -21,11 +21,11 @@ from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array
 
 
-def _get_dtype_kinds(arrays) -> Set[str]:
+def _get_dtype_kinds(l) -> Set[str]:
     """
     Parameters
     ----------
-    arrays : list of arrays
+    l : list of arrays
 
     Returns
     -------
@@ -33,7 +33,7 @@ def _get_dtype_kinds(arrays) -> Set[str]:
         A set of kinds that exist in this list of arrays.
     """
     typs: Set[str] = set()
-    for arr in arrays:
+    for arr in l:
         # Note: we use dtype.kind checks because they are much more performant
         #  than is_foo_dtype
 

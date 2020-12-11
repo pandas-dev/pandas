@@ -13,7 +13,7 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"squeeze": True, "index_col": 0, "header": None, "parse_dates": True}
+        params = dict(squeeze=True, index_col=0, header=None, parse_dates=True)
         params.update(**kwargs)
 
         header = params.get("header")
@@ -143,11 +143,11 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            with get_handle(
+            handles = get_handle(
                 filename, "w", compression=compression, encoding=encoding
-            ) as handles:
-                s.to_csv(handles.handle, encoding=encoding, header=True)
-
+            )
+            s.to_csv(handles.handle, encoding=encoding, header=True)
+            handles.close()
             result = pd.read_csv(
                 filename,
                 compression=compression,

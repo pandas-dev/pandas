@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+from pandas import Float64Index, Int64Index, Series, UInt64Index
 import pandas._testing as tm
 
 
@@ -241,20 +241,3 @@ class TestContains:
     def test_contains_float64_not_nans(self):
         index = Float64Index([1.0, 2.0, np.nan])
         assert 1.0 in index
-
-
-class TestGetSliceBounds:
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
-    def test_get_slice_bounds_within(self, kind, side, expected):
-        index = Index(range(6))
-        result = index.get_slice_bound(4, kind=kind, side=side)
-        assert result == expected
-
-    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
-    @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
-    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
-        index = Index(range(6))
-        result = index.get_slice_bound(bound, kind=kind, side=side)
-        assert result == expected

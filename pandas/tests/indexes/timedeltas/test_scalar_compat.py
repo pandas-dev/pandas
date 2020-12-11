@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
+import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
 
@@ -42,7 +43,7 @@ class TestVectorizedTimedelta:
         )
 
     def test_tdi_round(self):
-        td = timedelta_range(start="16801 days", periods=5, freq="30Min")
+        td = pd.timedelta_range(start="16801 days", periods=5, freq="30Min")
         elt = td[1]
 
         expected_rng = TimedeltaIndex(

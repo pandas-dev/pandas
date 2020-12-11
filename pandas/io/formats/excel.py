@@ -5,22 +5,21 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import Callable, Dict, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs.lib import is_list_like
-from pandas._typing import Label, StorageOptions
-from pandas.util._decorators import doc
+from pandas._typing import Label
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
+from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
-from pandas.core import generic
 import pandas.core.common as com
 
+from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -31,13 +30,7 @@ class ExcelCell:
     __slots__ = __fields__
 
     def __init__(
-        self,
-        row: int,
-        col: int,
-        val,
-        style=None,
-        mergestart: Optional[int] = None,
-        mergeend: Optional[int] = None,
+        self, row: int, col: int, val, style=None, mergestart=None, mergeend=None
     ):
         self.row = row
         self.col = col
@@ -431,7 +424,7 @@ class ExcelFormatter:
             Format string for floating point numbers
     cols : sequence, optional
         Columns to write
-    header : boolean or sequence of str, default True
+    header : boolean or list of string, default True
         Write out column names. If a list of string is given it is
         assumed to be aliases for the column names
     index : boolean, default True
@@ -530,7 +523,7 @@ class ExcelFormatter:
             )
         return val
 
-    def _format_header_mi(self) -> Iterable[ExcelCell]:
+    def _format_header_mi(self):
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError(
@@ -538,7 +531,8 @@ class ExcelFormatter:
                     "index ('index'=False) is not yet implemented."
                 )
 
-        if not (self._has_aliases or self.header):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
+        if not (has_aliases or self.header):
             return
 
         columns = self.columns
@@ -554,30 +548,28 @@ class ExcelFormatter:
 
         if self.merge_cells:
             # Format multi-index as a merged cells.
-            for lnum, name in enumerate(columns.names):
-                yield ExcelCell(
-                    row=lnum,
-                    col=coloffset,
-                    val=name,
-                    style=self.header_style,
-                )
+            for lnum in range(len(level_lengths)):
+                name = columns.names[lnum]
+                yield ExcelCell(lnum, coloffset, name, self.header_style)
 
             for lnum, (spans, levels, level_codes) in enumerate(
                 zip(level_lengths, columns.levels, columns.codes)
             ):
                 values = levels.take(level_codes)
-                for i, span_val in spans.items():
-                    spans_multiple_cells = span_val > 1
-                    yield ExcelCell(
-                        row=lnum,
-                        col=coloffset + i + 1,
-                        val=values[i],
-                        style=self.header_style,
-                        mergestart=lnum if spans_multiple_cells else None,
-                        mergeend=(
-                            coloffset + i + span_val if spans_multiple_cells else None
-                        ),
-                    )
+                for i in spans:
+                    if spans[i] > 1:
+                        yield ExcelCell(
+                            lnum,
+                            coloffset + i + 1,
+                            values[i],
+                            self.header_style,
+                            lnum,
+                            coloffset + i + spans[i],
+                        )
+                    else:
+                        yield ExcelCell(
+                            lnum, coloffset + i + 1, values[i], self.header_style
+                        )
         else:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
@@ -586,8 +578,9 @@ class ExcelFormatter:
 
         self.rowcounter = lnum
 
-    def _format_header_regular(self) -> Iterable[ExcelCell]:
-        if self._has_aliases or self.header:
+    def _format_header_regular(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
+        if has_aliases or self.header:
             coloffset = 0
 
             if self.index:
@@ -596,11 +589,17 @@ class ExcelFormatter:
                     coloffset = len(self.df.index[0])
 
             colnames = self.columns
-            if self._has_aliases:
-                self.header = cast(Sequence, self.header)
-                if len(self.header) != len(self.columns):
+            if has_aliases:
+                # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
+                # has incompatible type "Union[Sequence[Optional[Hashable]],
+                # bool]"; expected "Sized"  [arg-type]
+                if len(self.header) != len(self.columns):  # type: ignore[arg-type]
+                    # pandas\io\formats\excel.py:602: error: Argument 1 to
+                    # "len" has incompatible type
+                    # "Union[Sequence[Optional[Hashable]], bool]"; expected
+                    # "Sized"  [arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols "
+                        f"Writing {len(self.columns)} cols "  # type: ignore[arg-type]
                         f"but got {len(self.header)} aliases"
                     )
                 else:
@@ -611,7 +610,7 @@ class ExcelFormatter:
                     self.rowcounter, colindex + coloffset, colname, self.header_style
                 )
 
-    def _format_header(self) -> Iterable[ExcelCell]:
+    def _format_header(self):
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
@@ -633,14 +632,15 @@ class ExcelFormatter:
                 self.rowcounter += 1
         return itertools.chain(gen, gen2)
 
-    def _format_body(self) -> Iterable[ExcelCell]:
+    def _format_body(self):
         if isinstance(self.df.index, MultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
 
-    def _format_regular_rows(self) -> Iterable[ExcelCell]:
-        if self._has_aliases or self.header:
+    def _format_regular_rows(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
+        if has_aliases or self.header:
             self.rowcounter += 1
 
         # output index and index_label?
@@ -677,8 +677,9 @@ class ExcelFormatter:
 
         yield from self._generate_body(coloffset)
 
-    def _format_hierarchical_rows(self) -> Iterable[ExcelCell]:
-        if self._has_aliases or self.header:
+    def _format_hierarchical_rows(self):
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
+        if has_aliases or self.header:
             self.rowcounter += 1
 
         gcolidx = 0
@@ -721,20 +722,23 @@ class ExcelFormatter:
                         fill_value=levels._na_value,
                     )
 
-                    for i, span_val in spans.items():
-                        spans_multiple_cells = span_val > 1
-                        yield ExcelCell(
-                            row=self.rowcounter + i,
-                            col=gcolidx,
-                            val=values[i],
-                            style=self.header_style,
-                            mergestart=(
-                                self.rowcounter + i + span_val - 1
-                                if spans_multiple_cells
-                                else None
-                            ),
-                            mergeend=gcolidx if spans_multiple_cells else None,
-                        )
+                    for i in spans:
+                        if spans[i] > 1:
+                            yield ExcelCell(
+                                self.rowcounter + i,
+                                gcolidx,
+                                values[i],
+                                self.header_style,
+                                self.rowcounter + i + spans[i] - 1,
+                                gcolidx,
+                            )
+                        else:
+                            yield ExcelCell(
+                                self.rowcounter + i,
+                                gcolidx,
+                                values[i],
+                                self.header_style,
+                            )
                     gcolidx += 1
 
             else:
@@ -742,21 +746,16 @@ class ExcelFormatter:
                 for indexcolvals in zip(*self.df.index):
                     for idx, indexcolval in enumerate(indexcolvals):
                         yield ExcelCell(
-                            row=self.rowcounter + idx,
-                            col=gcolidx,
-                            val=indexcolval,
-                            style=self.header_style,
+                            self.rowcounter + idx,
+                            gcolidx,
+                            indexcolval,
+                            self.header_style,
                         )
                     gcolidx += 1
 
         yield from self._generate_body(gcolidx)
 
-    @property
-    def _has_aliases(self) -> bool:
-        """Whether the aliases for column names are present."""
-        return is_list_like(self.header)
-
-    def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
+    def _generate_body(self, coloffset: int):
         if self.styler is None:
             styles = None
         else:
@@ -773,12 +772,11 @@ class ExcelFormatter:
                     xlstyle = self.style_converter(";".join(styles[i, colidx]))
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
-    def get_formatted_cells(self) -> Iterable[ExcelCell]:
+    def get_formatted_cells(self):
         for cell in itertools.chain(self._format_header(), self._format_body()):
             cell.val = self._format_value(cell.val)
             yield cell
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
     def write(
         self,
         writer,
@@ -787,10 +785,9 @@ class ExcelFormatter:
         startcol=0,
         freeze_panes=None,
         engine=None,
-        storage_options: StorageOptions = None,
     ):
         """
-        writer : path-like, file-like, or ExcelWriter object
+        writer : string or ExcelWriter object
             File path or existing ExcelWriter
         sheet_name : string, default 'Sheet1'
             Name of sheet which will contain DataFrame
@@ -805,9 +802,6 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
-        {storage_options}
-
-            .. versionadded:: 1.2.0
         """
         from pandas.io.excel import ExcelWriter
 
@@ -818,7 +812,6 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
-        formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
@@ -826,19 +819,17 @@ class ExcelFormatter:
             # abstract class 'ExcelWriter' with abstract attributes 'engine',
             # 'save', 'supported_extensions' and 'write_cells'  [abstract]
             writer = ExcelWriter(  # type: ignore[abstract]
-                writer, engine=engine, storage_options=storage_options
+                stringify_path(writer), engine=engine
             )
             need_save = True
 
-        try:
-            writer.write_cells(
-                formatted_cells,
-                sheet_name,
-                startrow=startrow,
-                startcol=startcol,
-                freeze_panes=freeze_panes,
-            )
-        finally:
-            # make sure to close opened file handles
-            if need_save:
-                writer.close()
+        formatted_cells = self.get_formatted_cells()
+        writer.write_cells(
+            formatted_cells,
+            sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+        )
+        if need_save:
+            writer.save()

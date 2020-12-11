@@ -269,14 +269,12 @@ class SelectionMixin:
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
-            if key not in self.obj.columns:  # type: ignore[attr-defined]
+            if key not in self.obj.columns:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            # error: "SelectionMixin" has no attribute "obj"  [attr-defined]
-            if key not in self.obj:  # type: ignore[attr-defined]
+            if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
@@ -921,9 +919,10 @@ class IndexOpsMixin(OpsMixin):
             # "astype"  [attr-defined]
             values = self.astype(object)._values  # type: ignore[attr-defined]
             if na_action == "ignore":
-                map_f = lambda values, f: lib.map_infer_mask(
-                    values, f, isna(values).view(np.uint8)
-                )
+
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
+
             elif na_action is None:
                 map_f = lib.map_infer
             else:
@@ -983,9 +982,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
+        1.0    1
         2.0    1
         4.0    1
-        1.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -994,9 +993,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
+        1.0    0.2
         2.0    0.2
         4.0    0.2
-        1.0    0.2
         dtype: float64
 
         **bins**
@@ -1018,10 +1017,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        2.0    1
-        NaN    1
-        4.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
         result = value_counts(
