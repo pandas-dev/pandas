@@ -149,6 +149,28 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
+    def test_nullable_int_plot(self):
+        # GH 32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
+                "C": [7, 5, np.nan, 3, 2],
+                "D": pd.to_datetime(dates, format="%Y"),
+                "E": pd.to_datetime(dates, format="%Y", utc=True),
+            },
+            dtype=np.int64,
+        )
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].plot, x="A", y="B")
+        _check_plot_works(df[["C", "A"]].plot, x="C", y="A")  # nullable value on x-axis
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+        _check_plot_works(df[["B", "C"]].plot, x="B", y="C")
+        _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
+        _check_plot_works(df[["A", "E"]].plot, x="A", y="E")
+
     def test_integer_array_plot(self):
         # GH 25587
         arr = integer_array([1, 2, 3, 4], dtype="UInt32")
@@ -456,22 +478,28 @@ class TestDataFramePlots(TestPlotBase):
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
-    def test_area_lim(self):
+    @pytest.mark.xfail(
+        strict=False,
+        reason="2020-12-01 this has been failing periodically on the "
+        "ymin==0 assertion for a week or so.",
+    )
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_area_lim(self, stacked):
         df = DataFrame(np.random.rand(6, 4), columns=["x", "y", "z", "four"])
 
         neg_df = -df
-        for stacked in [True, False]:
-            ax = _check_plot_works(df.plot.area, stacked=stacked)
-            xmin, xmax = ax.get_xlim()
-            ymin, ymax = ax.get_ylim()
-            lines = ax.get_lines()
-            assert xmin <= lines[0].get_data()[0][0]
-            assert xmax >= lines[0].get_data()[0][-1]
-            assert ymin == 0
 
-            ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
-            ymin, ymax = ax.get_ylim()
-            assert ymax == 0
+        ax = _check_plot_works(df.plot.area, stacked=stacked)
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        lines = ax.get_lines()
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
+        assert ymin == 0
+
+        ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
+        ymin, ymax = ax.get_ylim()
+        assert ymax == 0
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
