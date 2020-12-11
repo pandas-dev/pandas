@@ -19,7 +19,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 -
 
 .. ---------------------------------------------------------------------------

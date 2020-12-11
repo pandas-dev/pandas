@@ -700,6 +700,15 @@ class MultiIndex(Index):
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
 
+    @cache_readonly
+    def dtypes(self) -> "Series":
+        """
+        Return the dtypes as a Series for the underlying MultiIndex
+        """
+        from pandas import Series
+
+        return Series({level.name: level.dtype for level in self.levels})
+
     @property
     def shape(self) -> Shape:
         """
