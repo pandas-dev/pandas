@@ -1566,7 +1566,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
 
 
 def construct_1d_arraylike_from_scalar(
-    value: Scalar, length: int, dtype: DtypeObj
+    value: Scalar, length: int, dtype: Optional[DtypeObj]
 ) -> ArrayLike:
     """
     create a np.ndarray / pandas type of specified shape and dtype
@@ -1583,6 +1583,10 @@ def construct_1d_arraylike_from_scalar(
     np.ndarray / pandas type of length, filled with value
 
     """
+
+    if dtype is None:
+        dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
+
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()
         subarr = cls._from_sequence([value] * length, dtype=dtype)

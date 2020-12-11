@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
-    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_castable,
@@ -480,17 +479,13 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
-
-        subarr = maybe_cast_to_datetime(subarr, dtype)
+            subarr = maybe_cast_to_datetime(subarr, dtype)
 
     elif isinstance(data, range):
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     elif lib.is_scalar(data) and index is not None and dtype is not None:
-        data = maybe_cast_to_datetime(data, dtype)
-        if not lib.is_scalar(data):
-            data = data[0]
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
@@ -500,16 +495,7 @@ def sanitize_array(
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
         elif index is not None:
-            value = data
-
-            # figure out the dtype from the value (upcast if necessary)
-            if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
-            else:
-                # need to possibly convert the value here
-                value = maybe_cast_to_datetime(value, dtype)
-
-            subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
+            subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         else:
             return subarr.item()
