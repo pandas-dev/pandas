@@ -3147,6 +3147,11 @@ class Index(IndexOpsMixin, PandasObject):
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
 
+        self._check_indexing_method(method)
+
+        if not self._index_as_unique:
+            raise InvalidIndexError(self._requires_unique_msg)
+
         # Treat boolean labels passed to a numeric index as not found. Without
         # this fix False and True would be treated as 0 and 1 respectively.
         # (GH #16877)
@@ -3174,11 +3179,6 @@ class Index(IndexOpsMixin, PandasObject):
                 target, method=method, limit=limit, tolerance=tolerance
             )
 
-        if not self.is_unique:
-            raise InvalidIndexError(
-                "Reindexing only valid with uniquely valued Index objects"
-            )
-
         if method == "pad" or method == "backfill":
             indexer = self._get_fill_indexer(target, method, limit, tolerance)
         elif method == "nearest":
@@ -3198,6 +3198,24 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._engine.get_indexer(target._get_engine_target())
 
         return ensure_platform_int(indexer)
+
+    def _check_indexing_method(self, method):
+        """
+        Raise if we have a get_indexer `method` that is not supported or valid.
+        """
+        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
+        if not (is_interval_dtype(self.dtype) or is_categorical_dtype(self.dtype)):
+            return
+
+        if method is None:
+            return
+
+        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
+            raise NotImplementedError(
+                f"method {method} not yet implemented for {type(self).__name__}"
+            )
+
+        raise ValueError("Invalid fill method")
 
     def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
@@ -5013,6 +5031,8 @@ class Index(IndexOpsMixin, PandasObject):
         For IntervalIndex compat.
         """
         return self.is_unique
+
+    _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
     def _maybe_promote(self, other: "Index"):
