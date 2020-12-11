@@ -49,7 +49,11 @@ class NumericDtype(BaseMaskedDtype):
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
-        return array_class._concat_same_type(results)
+        if len(results) == 1:
+            # avoid additional copy in _concat_same_type
+            return results[0]
+        else:
+            return array_class._concat_same_type(results)
 
 
 class NumericArray(BaseMaskedArray):
