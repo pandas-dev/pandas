@@ -700,6 +700,15 @@ class MultiIndex(Index):
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
 
+    @cache_readonly
+    def dtypes(self) -> "Series":
+        """
+        Return the dtypes as a Series for the underlying MultiIndex
+        """
+        from pandas import Series
+
+        return Series({level.name: level.dtype for level in self.levels})
+
     @property
     def shape(self) -> Shape:
         """
@@ -2595,11 +2604,10 @@ class MultiIndex(Index):
 
         return key
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         # empty indexer
-        if is_list_like(target) and not len(target):
+        if not len(target):
             return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
@@ -2612,9 +2620,6 @@ class MultiIndex(Index):
                     return Index(self._values).get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
-
-        if not self.is_unique:
-            raise ValueError("Reindexing only valid with uniquely valued Index objects")
 
         if method == "pad" or method == "backfill":
             if tolerance is not None:
