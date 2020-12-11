@@ -19,7 +19,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- Add support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
 -
 
 .. ---------------------------------------------------------------------------
