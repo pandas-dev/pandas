@@ -857,3 +857,14 @@ class TestDataFrameSortIndexKey:
         result = expected.sort_index(level=0)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_sorting_remaining(self):
+        # GH#25831
+        # Create a DataFrame with a MultiIndex.
+        df = DataFrame({"a": [0, 2, 1], "b": [3, 0, 2], "c": [0, 0, 1]}).set_index(
+            ["a", "b"]
+        )
+
+        result = df.sort_index(level=[], sort_remaining=False)
+        expected = df.sort_index(level=[], sort_remaining=True)
+        tm.assert_frame_equal(result, expected)

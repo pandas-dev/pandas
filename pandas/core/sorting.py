@@ -68,7 +68,11 @@ def get_indexer_indexer(
     target = ensure_key_mapped(target, key, levels=level)
     target = target._sort_levels_monotonic()
 
-    if level is not None:
+    if isinstance(level, (str, int)) and level is not None:
+        _, indexer = target.sortlevel(
+            level, ascending=ascending, sort_remaining=sort_remaining
+        )
+    elif isinstance(level, list) and len(level) != 0:
         _, indexer = target.sortlevel(
             level, ascending=ascending, sort_remaining=sort_remaining
         )
@@ -446,12 +450,11 @@ def _ensure_key_mapped_multiindex(
         Resulting MultiIndex with modified levels.
     """
 
-    if level is not None:
-        if isinstance(level, (str, int)):
-            sort_levels = [level]
-        else:
-            sort_levels = level
-
+    if isinstance(level, (str, int)) and level is not None:
+        sort_levels = [level]
+        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+    elif isinstance(level, list) and len(level) != 0:
+        sort_levels = level
         sort_levels = [index._get_level_number(lev) for lev in sort_levels]
     else:
         sort_levels = list(range(index.nlevels))  # satisfies mypy
