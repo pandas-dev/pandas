@@ -156,7 +156,6 @@ class TestTableMethod:
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self):
-
         def weighted_mean(x):
             arr = np.ones((1, x.shape[1]))
             arr[:, :2] = (x[:, :2] * x[:, 2]).sum(axis=0) / x[:, 2].sum()
