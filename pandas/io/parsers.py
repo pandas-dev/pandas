@@ -1431,7 +1431,7 @@ class ParserBase:
                 name = self.index_names[i]
             else:
                 name = None
-            j = self.index_col[i]
+            j = i if self.index_col is None else self.index_col[i]
 
             if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (
