@@ -1689,9 +1689,8 @@ class ParserBase:
                     values, set(col_na_values) | col_na_fvalues, try_num_bool=False
                 )
             else:
-                is_str_or_ea_dtype = is_string_dtype(
-                    cast_type
-                ) or is_extension_array_dtype(cast_type)
+                is_ea = is_extension_array_dtype(cast_type)
+                is_str_or_ea_dtype = is_string_dtype(cast_type) or is_ea
                 # skip inference if specified dtype is object
                 # or casting to an EA
                 try_num_bool = not (cast_type and is_str_or_ea_dtype)
@@ -1707,11 +1706,7 @@ class ParserBase:
                     or is_extension_array_dtype(cast_type)
                 ):
                     try:
-                        if (
-                            is_bool_dtype(cast_type)
-                            and not is_categorical_dtype(cast_type)
-                            and na_count > 0
-                        ):
+                        if not is_ea and na_count > 0 and is_bool_dtype(cast_type):
                             raise ValueError(f"Bool column has NA values in column {c}")
                     except (AttributeError, TypeError):
                         # invalid input to is_bool_dtype

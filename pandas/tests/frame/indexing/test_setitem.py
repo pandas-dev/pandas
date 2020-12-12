@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
@@ -196,6 +197,18 @@ class TestDataFrameSetItem:
         df["obj"] = obj
 
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "ea_name",
+        # Don't test if name is a property
+        [dtype.name for dtype in ea_registry.dtypes if isinstance(dtype.name, str)],
+    )
+    def test_setitem_with_ea_name(self, ea_name):
+        # GH 38386
+        result = DataFrame([0])
+        result[ea_name] = [1]
+        expected = DataFrame({0: [0], ea_name: [1]})
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492
