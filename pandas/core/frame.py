@@ -1843,7 +1843,11 @@ class DataFrame(NDFrame, OpsMixin):
                 columns = ensure_index(columns)
             arr_columns = columns
         else:
-            arrays, arr_columns = to_arrays(data, columns, coerce_float=coerce_float)
+            arrays, arr_columns = to_arrays(data, columns)
+            if coerce_float:
+                for i, arr in enumerate(arrays):
+                    if arr.dtype == object:
+                        arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
 
             arr_columns = ensure_index(arr_columns)
             if columns is not None:
