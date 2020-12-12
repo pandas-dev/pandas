@@ -78,19 +78,15 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
-    cast_scalar_to_array,
-    coerce_to_dtypes,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_datetimelike,
-    maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -129,7 +125,7 @@ from pandas.core.aggregation import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -538,13 +534,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # a masked array
             else:
-                mask = ma.getmaskarray(data)
-                if mask.any():
-                    data, fill_value = maybe_upcast(data, copy=True)
-                    data.soften_mask()  # set hardmask False if it was True
-                    data[mask] = fill_value
-                else:
-                    data = data.copy()
+                data = sanitize_masked_array(data)
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
@@ -616,9 +606,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
 
-                values = cast_scalar_to_array(
-                    (len(index), len(columns)), data, dtype=dtype
-                )
+                shape = (len(index), len(columns))
+                values = np.full(shape, arr)
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
@@ -3170,7 +3159,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.iloc._setitem_with_indexer(key, value)
+        self.iloc[key] = value
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3182,7 +3171,7 @@ class DataFrame(NDFrame, OpsMixin):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.iloc._setitem_with_indexer(indexer, value)
+            self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -3195,7 +3184,7 @@ class DataFrame(NDFrame, OpsMixin):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.iloc._setitem_with_indexer((slice(None), indexer), value)
+                self.iloc[:, indexer] = value
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -3214,13 +3203,16 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _iset_item(self, loc: int, value):
-        self._ensure_valid_index(value)
+    def _iset_item_mgr(self, loc: int, value) -> None:
+        self._mgr.iset(loc, value)
+        self._clear_item_cache()
+
+    def _iset_item(self, loc: int, value, broadcast: bool = False):
 
         # technically _sanitize_column expects a label, not a position,
         #  but the behavior is the same as long as we pass broadcast=False
-        value = self._sanitize_column(loc, value, broadcast=False)
-        NDFrame._iset_item(self, loc, value)
+        value = self._sanitize_column(loc, value, broadcast=broadcast)
+        self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3238,9 +3230,15 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        self._ensure_valid_index(value)
         value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
+
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+        else:
+            self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3752,13 +3750,34 @@ class DataFrame(NDFrame, OpsMixin):
             Label of the inserted column.
         value : int, Series, or array-like
         allow_duplicates : bool, optional
+
+        See Also
+        --------
+        Index.insert : Insert new item by index.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+        >>> df.insert(1, "newcol", [99, 99])
+        >>> df
+           col1  newcol  col2
+        0     1      99     3
+        1     2      99     4
+        >>> df.insert(0, "col1", [100, 100], allow_duplicates=True)
+        >>> df
+           col1  col1  newcol  col2
+        0   100     1      99     3
+        1   100     2      99     4
         """
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
-        self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
@@ -3849,6 +3868,7 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         numpy.ndarray
         """
+        self._ensure_valid_index(value)
 
         def reindexer(value):
             # reindex if necessary
@@ -3914,23 +3934,7 @@ class DataFrame(NDFrame, OpsMixin):
                 value = maybe_infer_to_datetimelike(value)
 
         else:
-            # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            # upcast
-            if is_extension_array_dtype(infer_dtype):
-                value = construct_1d_arraylike_from_scalar(
-                    value, len(self.index), infer_dtype
-                )
-            else:
-                # pandas\core\frame.py:3827: error: Argument 1 to
-                # "cast_scalar_to_array" has incompatible type "int"; expected
-                # "Tuple[Any, ...]"  [arg-type]
-                value = cast_scalar_to_array(
-                    len(self.index), value  # type: ignore[arg-type]
-                )
-
-            value = maybe_cast_to_datetime(value, infer_dtype)
+            value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
 
         # return internal types directly
         if is_extension_array_dtype(value):
@@ -8817,11 +8821,9 @@ NaN 12.3   33.0
         labels = self._get_agg_axis(axis)
         assert axis in [0, 1]
 
-        def func(values):
-            if is_extension_array_dtype(values.dtype):
-                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
-            else:
-                return op(values, axis=axis, skipna=skipna, **kwds)
+        def func(values: np.ndarray):
+            # We only use this in the case that operates on self.values
+            return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values):
             if isinstance(values, ExtensionArray):
@@ -8859,10 +8861,6 @@ NaN 12.3   33.0
             out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
-            if axis == 0 and is_object_dtype(out.dtype):
-                # GH#35865 careful to cast explicitly to object
-                nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
-                out[:] = np.array(nvs, dtype=object)
             if axis == 0 and len(self) == 0 and name in ["sum", "prod"]:
                 # Even if we are object dtype, follow numpy and return
                 #  float64, see test_apply_funcs_over_empty
@@ -8894,8 +8892,7 @@ NaN 12.3   33.0
                 result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
-                if axis == 0:
-                    result = coerce_to_dtypes(result, data.dtypes)
+                pass
 
         result = self._constructor_sliced(result, index=labels)
         return result

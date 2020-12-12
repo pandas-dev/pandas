@@ -439,7 +439,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = construct_1d_object_array_from_listlike(list(values))
+        values = _ensure_arraylike(list(values))
         # TODO: could use ensure_arraylike here
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array

@@ -13,14 +13,14 @@ from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, DtypeObj, Label
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
-    maybe_downcast_to_dtype,
+    maybe_downcast_numeric,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -65,17 +65,17 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
-    dict(
-        klass="IntervalIndex",
-        qualname="IntervalIndex",
-        target_klass="IntervalIndex or list of Intervals",
-        name=textwrap.dedent(
+    {
+        "klass": "IntervalIndex",
+        "qualname": "IntervalIndex",
+        "target_klass": "IntervalIndex or list of Intervals",
+        "name": textwrap.dedent(
             """\
          name : object, optional
               Name to be stored in the index.
          """
         ),
-    )
+    }
 )
 
 
@@ -141,14 +141,14 @@ def setop_check(method):
 
 @Appender(
     _interval_shared_docs["class"]
-    % dict(
-        klass="IntervalIndex",
-        summary="Immutable index of intervals that are closed on the same side.",
-        name=_index_doc_kwargs["name"],
-        versionadded="0.20.0",
-        extra_attributes="is_overlapping\nvalues\n",
-        extra_methods="",
-        examples=textwrap.dedent(
+    % {
+        "klass": "IntervalIndex",
+        "summary": "Immutable index of intervals that are closed on the same side.",
+        "name": _index_doc_kwargs["name"],
+        "versionadded": "0.20.0",
+        "extra_attributes": "is_overlapping\nvalues\n",
+        "extra_methods": "",
+        "examples": textwrap.dedent(
             """\
     Examples
     --------
@@ -168,7 +168,7 @@ def setop_check(method):
     mentioned constructor methods.
     """
         ),
-    )
+    }
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
@@ -234,9 +234,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_breaks"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -246,7 +246,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                       dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_breaks(
         cls, breaks, closed: str = "right", name=None, copy: bool = False, dtype=None
@@ -260,9 +260,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_arrays"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -272,7 +272,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                       dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_arrays(
         cls,
@@ -292,9 +292,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @classmethod
     @Appender(
         _interval_shared_docs["from_tuples"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
+        % {
+            "klass": "IntervalIndex",
+            "examples": textwrap.dedent(
                 """\
         Examples
         --------
@@ -304,7 +304,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                        dtype='interval[int64]')
         """
             ),
-        )
+        }
     )
     def from_tuples(
         cls, data, closed: str = "right", name=None, copy: bool = False, dtype=None
@@ -360,7 +360,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return result
 
     def __reduce__(self):
-        d = dict(left=self.left, right=self.right)
+        d = {"left": self.left, "right": self.right}
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
@@ -646,68 +646,41 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return mask.argmax()
         return lib.maybe_booleans_to_slice(mask.view("u1"))
 
-    @Substitution(
-        **dict(
-            _index_doc_kwargs,
-            **{
-                "raises_section": textwrap.dedent(
-                    """
-        Raises
-        ------
-        NotImplementedError
-            If any method argument other than the default of
-            None is specified as these are not yet implemented.
-        """
-                )
-            },
-        )
-    )
-    @Appender(_index_shared_docs["get_indexer"])
-    def get_indexer(
+    def _get_indexer(
         self,
-        target: AnyArrayLike,
+        target: Index,
         method: Optional[str] = None,
         limit: Optional[int] = None,
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
 
-        self._check_indexing_method(method)
-
-        if self.is_overlapping:
-            raise InvalidIndexError(
-                "cannot handle overlapping indices; "
-                "use IntervalIndex.get_indexer_non_unique"
-            )
-
-        target_as_index = ensure_index(target)
-
-        if isinstance(target_as_index, IntervalIndex):
+        if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
-            if self.equals(target_as_index):
+            if self.equals(target):
                 return np.arange(len(self), dtype="intp")
 
-            if self._is_non_comparable_own_type(target_as_index):
+            if self._is_non_comparable_own_type(target):
                 # different closed or incompatible subtype -> no matches
-                return np.repeat(np.intp(-1), len(target_as_index))
+                return np.repeat(np.intp(-1), len(target))
 
-            # non-overlapping -> at most one match per interval in target_as_index
+            # non-overlapping -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            left_indexer = self.left.get_indexer(target_as_index.left)
-            right_indexer = self.right.get_indexer(target_as_index.right)
+            left_indexer = self.left.get_indexer(target.left)
+            right_indexer = self.right.get_indexer(target.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-        elif is_categorical_dtype(target_as_index.dtype):
-            target_as_index = cast("CategoricalIndex", target_as_index)
+        elif is_categorical_dtype(target.dtype):
+            target = cast("CategoricalIndex", target)
             # get an indexer for unique categories then propagate to codes via take_1d
-            categories_indexer = self.get_indexer(target_as_index.categories)
-            indexer = take_1d(categories_indexer, target_as_index.codes, fill_value=-1)
-        elif not is_object_dtype(target_as_index):
+            categories_indexer = self.get_indexer(target.categories)
+            indexer = take_1d(categories_indexer, target.codes, fill_value=-1)
+        elif not is_object_dtype(target):
             # homogeneous scalar index: use IntervalTree
-            target_as_index = self._maybe_convert_i8(target_as_index)
-            indexer = self._engine.get_indexer(target_as_index.values)
+            target = self._maybe_convert_i8(target)
+            indexer = self._engine.get_indexer(target.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
-            return self._get_indexer_pointwise(target_as_index)[0]
+            return self._get_indexer_pointwise(target)[0]
 
         return ensure_platform_int(indexer)
 
@@ -768,6 +741,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @property
     def _index_as_unique(self):
         return not self.is_overlapping
+
+    _requires_unique_msg = (
+        "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
+    )
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
@@ -980,7 +957,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other) and not self.has_duplicates:
+        if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
         if not isinstance(other, IntervalIndex):
@@ -1274,7 +1253,7 @@ def interval_range(
         breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
-            breaks = maybe_downcast_to_dtype(breaks, "int64")
+            breaks = maybe_downcast_numeric(breaks, np.dtype("int64"))
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
