@@ -290,6 +290,7 @@ MultiIndex properties
    MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
+   MultiIndex.dtypes
 
 MultiIndex components
 ~~~~~~~~~~~~~~~~~~~~~

@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
-    infer_dtype_from_scalar,
     maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
@@ -328,8 +327,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 npoints = sparse_index.length
 
-            dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype)
+            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
+            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
