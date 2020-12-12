@@ -2352,7 +2352,7 @@ class PythonParser(ParserBase):
             thousands = self.thousands
             if "." == thousands:
                 thousands = fr"\{thousands}"
-            regex = fr"^\-?([0-9]|{thousands})*({self.decimal}[0-9]*)?([0-9](E|e)\-?[0-9]*)?$"
+            regex = fr"^\-?([0-9]+{thousands}|[0-9])*({self.decimal}[0-9]*)?([0-9](E|e)\-?[0-9]*)?$"
             self.nonnum = re.compile(regex)
 
     def _set_no_thousands_columns(self):

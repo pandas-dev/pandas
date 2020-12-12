@@ -356,6 +356,7 @@ def test_decimal_and_exponential(python_parser_only, thousands, value, result_va
         "1,2e-10e1",
         "--1,2",
         "1a.2,1",
+        "1..2,3"
     ],
 )
 def test_decimal_and_exponential_erroneous(python_parser_only, thousands, value):
