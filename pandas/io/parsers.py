@@ -2301,19 +2301,23 @@ class ArrowParserWrapper(ParserBase):
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds:
-                self.kwds[pyarrow_name] = self.kwds.pop(pandas_name)
+                value = self.kwds.pop(pandas_name)
+                if value is not None:
+                    self.kwds[pyarrow_name] = value
 
         parse_options = {
-            k: v
-            for k, v in self.kwds.items()
-            if k is not None
-            and k in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
+            option_name: option_value
+            for option_name, option_value in self.kwds.items()
+            if option_value is not None
+            and option_name
+            in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
         }
         convert_options = {
-            k: v
-            for k, v in self.kwds.items()
-            if k is not None
-            and k in ("include_columns", "null_values", "true_values", "false_values")
+            option_name: option_value
+            for option_name, option_value in self.kwds.items()
+            if option_value is not None
+            and option_name
+            in ("include_columns", "null_values", "true_values", "false_values")
         }
 
         read_options = {"autogenerate_column_names": self.header is None}
