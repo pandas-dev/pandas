@@ -424,12 +424,12 @@ def test_intersect_with_duplicates(tuples, exp_tuples):
 @pytest.mark.parametrize(
     "data, names, expected",
     [
-        ((1,), None, None),
-        ((1,), ["a"], None),
-        ((1,), ["b"], None),
+        ((1,), None, [None, None]),
+        ((1,), ["a"], [None, None]),
+        ((1,), ["b"], [None, None]),
         ((1, 2), ["c", "d"], [None, None]),
         ((1, 2), ["b", "a"], [None, None]),
-        ((1, 2, 3), ["a", "b", "c"], None),
+        ((1, 2, 3), ["a", "b", "c"], [None, None]),
         ((1, 2), ["a", "c"], ["a", None]),
         ((1, 2), ["c", "b"], [None, "b"]),
         ((1, 2), ["a", "b"], ["a", "b"]),
