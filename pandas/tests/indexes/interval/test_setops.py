@@ -61,17 +61,6 @@ class TestIntervalIndex:
 
         tm.assert_index_equal(index.intersection(index, sort=sort), index)
 
-        # GH 19101: empty result, same dtype
-        other = monotonic_index(300, 314, closed=closed)
-        expected = empty_index(dtype="int64", closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-        # GH 19101: empty result, different dtypes
-        other = monotonic_index(300, 314, dtype="float64", closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
         # GH 26225: nested intervals
         index = IntervalIndex.from_tuples([(1, 2), (1, 3), (1, 4), (0, 2)])
         other = IntervalIndex.from_tuples([(1, 2), (1, 3)])
@@ -98,6 +87,25 @@ class TestIntervalIndex:
         other = IntervalIndex([np.nan])
         expected = IntervalIndex([np.nan])
         result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_empty_result(self, closed, sort):
+        index = monotonic_index(0, 11, closed=closed)
+
+        # GH 19101: empty result, same dtype
+        other = monotonic_index(300, 314, closed=closed)
+        expected = empty_index(dtype="int64", closed=closed)
+        result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different numeric dtypes -> common dtype is float64
+        other = monotonic_index(300, 314, dtype="float64", closed=closed)
+        result = index.intersection(other, sort=sort)
+        expected = other[:0]
+        tm.assert_index_equal(result, expected)
+
+        other = monotonic_index(300, 314, dtype="uint64", closed=closed)
+        result = index.intersection(other, sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_difference(self, closed, sort):

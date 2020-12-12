@@ -1171,3 +1171,15 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         return IntervalArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # NB: this doesn't handle checking for closed match
+        if not all(isinstance(x, IntervalDtype) for x in dtypes):
+            return np.dtype(object)
+
+        from pandas.core.dtypes.cast import find_common_type
+
+        common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
+        if common == object:
+            return np.dtype(object)
+        return IntervalDtype(common)

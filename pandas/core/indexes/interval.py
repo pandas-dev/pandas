@@ -789,9 +789,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return not is_object_dtype(common_subtype)
 
     def _should_compare(self, other) -> bool:
-        if not super()._should_compare(other):
-            return False
         other = unpack_nested_dtype(other)
+        if is_object_dtype(other.dtype):
+            return True
+        if not self._is_comparable_dtype(other.dtype):
+            return False
         return other.closed == self.closed
 
     # TODO: use should_compare and get rid of _is_non_comparable_own_type
@@ -950,23 +952,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 "objects that are closed on the same side "
                 "and have compatible dtypes"
             )
-
-    @Appender(Index.intersection.__doc__)
-    def intersection(self, other, sort=False) -> Index:
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, IntervalIndex):
-            return self.astype(object).intersection(other)
-
-        result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
 
     def _intersection(self, other, sort):
         """

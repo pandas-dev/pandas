@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 
 @pytest.mark.parametrize(
@@ -120,3 +125,34 @@ def test_period_dtype_mismatch(dtype2):
     dtype = PeriodDtype(freq="D")
     assert find_common_type([dtype, dtype2]) == object
     assert find_common_type([dtype2, dtype]) == object
+
+
+interval_dtypes = [
+    IntervalDtype(np.int64),
+    IntervalDtype(np.float64),
+    IntervalDtype(np.uint64),
+    IntervalDtype(DatetimeTZDtype(unit="ns", tz="US/Eastern")),
+    IntervalDtype("M8[ns]"),
+    IntervalDtype("m8[ns]"),
+]
+
+
+@pytest.mark.parametrize("left", interval_dtypes)
+@pytest.mark.parametrize("right", interval_dtypes)
+def test_interval_dtype(left, right):
+    result = find_common_type([left, right])
+
+    if left is right:
+        assert result is left
+
+    elif left.subtype.kind in ["i", "u", "f"]:
+        # i.e. numeric
+        if right.subtype.kind in ["i", "u", "f"]:
+            # both numeric -> common numeric subtype
+            expected = IntervalDtype(np.float64)
+            assert result == expected
+        else:
+            assert result == object
+
+    else:
+        assert result == object
