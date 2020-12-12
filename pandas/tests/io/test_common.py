@@ -265,12 +265,8 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            (
-                pytest.param(
-                    "to_json", marks=td.skip_array_manager_not_yet_implemented
-                ),
-                {},
-                "os",
+            pytest.param(
+                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
             ),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
