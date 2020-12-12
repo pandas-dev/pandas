@@ -2512,6 +2512,16 @@ class PythonParser(ParserBase):
         else:
             data = {k: v for k, v in zip(names, alldata)}
 
+        # if self._implicit_index:
+        #     excl_indices = self.index_col
+        #     map(alldata.pop(), excl_indices)
+        # if len(names) != len(alldata):
+        #     raise ValueError(
+        #         "Number of passed names did not match "
+        #         "number of header fields in the file"
+        #     )
+        # data = {k: v for k, v in zip(names, alldata)}
+
         return data
 
     # legacy
@@ -2694,9 +2704,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if (self.usecols is not None and len(names) != len(self.usecols)) or (
-                    self.usecols is None and len(names) != len(columns[0])
-                ):
+                if self.usecols is not None and len(names) != len(self.usecols):
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
