@@ -242,7 +242,7 @@ As an example of this, given:
 .. ipython:: python
 
         dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
-        original = pd.Categorical(['good','good', 'bad', 'bad'], dtype=dtype)
+        original = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
         unique = original.unique()
 
 *pandas < 1.2.0*:
