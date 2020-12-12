@@ -148,7 +148,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 -
 
 Period
