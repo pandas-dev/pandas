@@ -19,7 +19,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -127,7 +127,8 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
+- Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 -
 -
 
