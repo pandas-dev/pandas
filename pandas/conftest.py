@@ -77,9 +77,17 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--array-manager",
+        "--am",
         action="store_true",
         help="Use the experimental ArrayManager as default data manager.",
     )
+
+
+def pytest_sessionstart(session):
+    # Note: we need to set the option here and not in pytest_runtest_setup below
+    # to ensure this is run before creating fixture data
+    if session.config.getoption("--array-manager"):
+        pd.options.mode.data_manager = "array"
 
 
 def pytest_runtest_setup(item):
@@ -99,8 +107,6 @@ def pytest_runtest_setup(item):
         "--run-high-memory"
     ):
         pytest.skip("skipping high memory test since --run-high-memory was not set")
-    if item.config.getoption("--array-manager"):
-        pd.options.mode.data_manager = "array"
 
 
 # Hypothesis
@@ -1453,3 +1459,11 @@ def names(request):
     A 3-tuple of names, the first two for operands, the last for a result.
     """
     return request.param
+
+
+@pytest.fixture
+def using_array_manager(request):
+    """
+    Fixture to check if the array manager is being used.
+    """
+    return pd.options.mode.data_manager == "array"

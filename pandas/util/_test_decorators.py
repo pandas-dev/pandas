@@ -32,8 +32,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas._config import get_option
-
 from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 
@@ -288,6 +286,6 @@ skip_array_manager_not_yet_implemented = pytest.mark.skipif(
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(
-    get_option("mode.data_manager") == "array",
+    "config.getvalue('--array-manager')",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )

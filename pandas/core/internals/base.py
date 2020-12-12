@@ -50,6 +50,8 @@ class DataManager(PandasObject):
         limit=None,
         fill_value=None,
         copy: bool = True,
+        consolidate: bool = True,
+        only_slice: bool = False,
     ):
         """
         Conform data manager to new index.
@@ -60,5 +62,11 @@ class DataManager(PandasObject):
         )
 
         return self.reindex_indexer(
-            new_index, indexer, axis=axis, fill_value=fill_value, copy=copy
+            new_index,
+            indexer,
+            axis=axis,
+            fill_value=fill_value,
+            copy=copy,
+            consolidate=consolidate,
+            only_slice=only_slice,
         )

@@ -8891,11 +8891,11 @@ NaN 12.3   33.0
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def blk_func(values):
+        def blk_func(values, axis=1):
             if isinstance(values, ExtensionArray):
                 return values._reduce(name, skipna=skipna, **kwds)
             else:
-                return op(values, axis=1, skipna=skipna, **kwds)
+                return op(values, axis=axis, skipna=skipna, **kwds)
 
         def _get_data() -> DataFrame:
             if filter_type is None:

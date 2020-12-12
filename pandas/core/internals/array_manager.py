@@ -177,10 +177,10 @@ class ArrayManager(DataManager):
 
         res_arrays = []
         for arr in self.arrays:
-            res = func(arr)
+            res = func(arr, axis=0)
             res_arrays.append(np.array([res]))
 
-        index = Index([0])  # placeholder
+        index = Index([None])  # placeholder
         new_mgr = type(self)(res_arrays, [index, self.items])
         indexer = np.arange(self.shape[0])
         return new_mgr, indexer
@@ -300,6 +300,9 @@ class ArrayManager(DataManager):
             if hasattr(arr, "tz") and arr.tz is None:  # type: ignore[union-attr]
                 # DatetimeArray needs to be converted to ndarray for DatetimeBlock
                 arr = arr._data  # type: ignore[union-attr]
+            elif arr.dtype.kind == "m":
+                # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
+                arr = arr._data
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
@@ -368,6 +371,9 @@ class ArrayManager(DataManager):
         return self.apply_with_block("interpolate", **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> "ArrayManager":
+        if fill_value is lib.no_default:
+            fill_value = None
+
         if axis == 0 and self.ndim == 2:
             # TODO column-wise shift
             raise NotImplementedError
@@ -377,7 +383,7 @@ class ArrayManager(DataManager):
         )
 
     def fillna(self, value, limit, inplace: bool, downcast) -> "ArrayManager":
-
+        # TODO implement downcast
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         def array_fillna(array, value, limit, inplace):
@@ -417,7 +423,6 @@ class ArrayManager(DataManager):
         datetime: bool = True,
         numeric: bool = True,
         timedelta: bool = True,
-        coerce: bool = False,
     ) -> "ArrayManager":
         return self.apply_with_block(
             "convert",
@@ -425,7 +430,6 @@ class ArrayManager(DataManager):
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
-            coerce=coerce,
         )
 
     def replace(self, value, **kwargs) -> "ArrayManager":
