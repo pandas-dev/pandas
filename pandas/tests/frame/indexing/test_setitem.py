@@ -200,8 +200,12 @@ class TestDataFrameSetItem:
 
     @pytest.mark.parametrize(
         "ea_name",
-        # Don't test if name is a property
-        [dtype.name for dtype in ea_registry.dtypes if isinstance(dtype.name, str)],
+        # property would require instantiation
+        [
+            dtype.name
+            for dtype in ea_registry.dtypes
+            if not isinstance(dtype.name, property)
+        ],
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386
