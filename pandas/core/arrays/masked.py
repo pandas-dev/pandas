@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
-from pandas.core.algorithms import factorize_array, take
+from pandas.core.algorithms import factorize_array, isin, take
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -298,6 +298,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = mask ^ fill_mask
 
         return type(self)(result, mask, copy=False)
+
+    def isin(self, values: Sequence) -> np.ndarray:
+
+        from pandas.core.arrays import BooleanArray
+
+        result = isin(self._data, values)
+        return BooleanArray(result, self._mask.copy(), copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
