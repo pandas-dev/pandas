@@ -86,6 +86,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
+    maybe_unbox_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -592,6 +593,9 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
+                if dtype.kind in ["m", "M"]:
+                    data = maybe_unbox_datetimelike(data, dtype)
+
                 # Attempt to coerce to a numpy array
                 try:
                     arr = np.array(data, dtype=dtype, copy=copy)
