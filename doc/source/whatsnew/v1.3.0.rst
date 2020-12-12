@@ -20,7 +20,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
--
+- Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 
 .. ---------------------------------------------------------------------------
 
