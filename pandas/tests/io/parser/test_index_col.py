@@ -86,35 +86,39 @@ baz,7,8,9
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
-        (None, dict(columns=["x", "y", "z"])),
-        (False, dict(columns=["x", "y", "z"])),
-        (0, dict(columns=["y", "z"], index=Index([], name="x"))),
-        (1, dict(columns=["x", "z"], index=Index([], name="y"))),
-        ("x", dict(columns=["y", "z"], index=Index([], name="x"))),
-        ("y", dict(columns=["x", "z"], index=Index([], name="y"))),
+        (None, {"columns": ["x", "y", "z"]}),
+        (False, {"columns": ["x", "y", "z"]}),
+        (0, {"columns": ["y", "z"], "index": Index([], name="x")}),
+        (1, {"columns": ["x", "z"], "index": Index([], name="y")}),
+        ("x", {"columns": ["y", "z"], "index": Index([], name="x")}),
+        ("y", {"columns": ["x", "z"], "index": Index([], name="y")}),
         (
             [0, 1],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"]),
+            },
         ),
         (
             ["x", "y"],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"]),
+            },
         ),
         (
             [1, 0],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"]),
+            },
         ),
         (
             ["y", "x"],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"]),
+            },
         ),
     ],
 )
