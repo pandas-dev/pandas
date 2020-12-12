@@ -47,7 +47,7 @@ def generate_numba_apply_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    cache_key = (func, f"{name}_apply_column")
+    cache_key = (func, f"{name}_apply_single")
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 

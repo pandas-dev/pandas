@@ -241,7 +241,7 @@ class ExponentialMovingWindow(BaseWindow):
         self.on = None
         self.center = False
         self.closed = None
-        self.method = "column"
+        self.method = "single"
         if times is not None:
             if isinstance(times, str):
                 times = self._selected_obj[times]

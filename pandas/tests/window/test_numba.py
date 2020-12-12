@@ -63,7 +63,7 @@ class TestRollingApply:
         tm.assert_series_equal(result, expected)
 
         # func_1 should be in the cache now
-        assert (func_1, "Rolling_apply_column") in NUMBA_FUNC_CACHE
+        assert (func_1, "Rolling_apply_single") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
@@ -151,7 +151,7 @@ class TestTableMethod:
             2, method="table", axis=axis, center=center, closed=closed
         ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         expected = df.rolling(
-            2, method="column", axis=axis, center=center, closed=closed
+            2, method="single", axis=axis, center=center, closed=closed
         ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         tm.assert_frame_equal(result, expected)
 
@@ -165,7 +165,7 @@ class TestTableMethod:
         result = df.expanding(method="table", axis=axis).apply(
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
-        expected = df.expanding(method="column", axis=axis).apply(
+        expected = df.expanding(method="single", axis=axis).apply(
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)

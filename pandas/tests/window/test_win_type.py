@@ -121,6 +121,6 @@ def test_window_with_args():
 
 def test_win_type_with_method_invalid():
     with pytest.raises(
-        NotImplementedError, match="'column' is the only supported method type."
+        NotImplementedError, match="'single' is the only supported method type."
     ):
         Series(range(1)).rolling(1, win_type="triang", method="table")

@@ -101,7 +101,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
-        method: str = "column",
+        method: str = "single",
         **kwargs,
     ):
 
@@ -165,8 +165,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     f"{type(self.window).__name__} does not implement "
                     f"the correct signature for get_window_bounds"
                 )
-        if self.method not in ["table", "column"]:
-            raise ValueError("method must be 'table' or 'column")
+        if self.method not in ["table", "single"]:
+            raise ValueError("method must be 'table' or 'single")
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
@@ -483,7 +483,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return func(x, start, end, min_periods)
 
             with np.errstate(all="ignore"):
-                if values.ndim > 1 and self.method == "column":
+                if values.ndim > 1 and self.method == "single":
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
@@ -494,7 +494,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
             return result
 
-        if self.method == "column":
+        if self.method == "single":
             return self._apply_blockwise(homogeneous_func, name)
         else:
             return self._apply_tablewise(homogeneous_func, name)
@@ -918,6 +918,14 @@ class Window(BaseWindow):
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+    method : str, default 'single'
+        Execute the rolling operation per single column or row (`'single'`) or over the entire
+        object (`'table'`).
+
+        This argument is only implemented when specifying ``engine='numba'`` in the method
+        call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -1064,8 +1072,8 @@ class Window(BaseWindow):
         else:
             raise ValueError(f"Invalid window {self.window}")
 
-        if self.method != "column":
-            raise NotImplementedError("'column' is the only supported method type.")
+        if self.method != "single":
+            raise NotImplementedError("'single' is the only supported method type.")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1342,11 +1350,11 @@ class RollingAndExpandingMixin(BaseWindow):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             caller_name = type(self).__name__
-            if self.method == "column":
+            if self.method == "single":
                 apply_func = generate_numba_apply_func(
                     args, kwargs, func, engine_kwargs, caller_name
                 )
-                numba_cache_key = (func, f"{caller_name}_apply_column")
+                numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
                     args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
