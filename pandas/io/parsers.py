@@ -2346,9 +2346,14 @@ class PythonParser(ParserBase):
             raise ValueError("Only length-1 decimal markers supported")
 
         if self.thousands is None:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.decimal}]+")
+            regex = fr"^\-?[0-9]+({self.decimal}[0-9]*)?((E|e)\-?[0-9]*)?$"
+            self.nonnum = re.compile(regex)
         else:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.thousands}^{self.decimal}]+")
+            thousands = self.thousands
+            if "." == thousands:
+                thousands = fr"\{thousands}"
+            regex = fr"^\-?[0-9]+({thousands}|[0-9])*({self.decimal}[0-9]*)?((E|e)\-?[0-9]*)?$"
+            self.nonnum = re.compile(regex)
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -3044,7 +3049,7 @@ class PythonParser(ParserBase):
                     not isinstance(x, str)
                     or search not in x
                     or (self._no_thousands_columns and i in self._no_thousands_columns)
-                    or self.nonnum.search(x.strip())
+                    or not self.nonnum.search(x.strip())
                 ):
                     rl.append(x)
                 else:

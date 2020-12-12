@@ -146,7 +146,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`read_csv` not recognizing scientific notation if decimal is set (:issue:`31920`)
 -
 
 Period
