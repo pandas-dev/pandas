@@ -154,4 +154,4 @@ jobs:
     - name: Run tests
       run: |
         source activate pandas-dev
-        pytest pandas --array-manager
+        pytest pandas/tests/frame/methods --array-manager
