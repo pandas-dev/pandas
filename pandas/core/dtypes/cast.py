@@ -165,7 +165,7 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
 
     Notes
     -----
-    Caller is responsible for checking dtype.kidn in ["m", "M"]
+    Caller is responsible for checking dtype.kind in ["m", "M"]
     """
     if is_valid_nat_for_dtype(value, dtype):
         # GH#36541: can't fill array directly with pd.NaT
