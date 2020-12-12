@@ -869,6 +869,12 @@ class TestiLoc2:
         expected = DataFrame({"x": [1, 9], "y": [2, 99]})
         tm.assert_frame_equal(df, expected)
 
+        # GH#38335 same thing, mixed dtypes
+        df = DataFrame({"x": [1, 2], "y": [2.0, 2.0]})
+        df.iloc[1] = rhs
+        expected = DataFrame({"x": [1, 9], "y": [2.0, 99.0]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
