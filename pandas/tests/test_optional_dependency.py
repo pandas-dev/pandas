@@ -27,15 +27,14 @@ def test_bad_version(monkeypatch):
     module = types.ModuleType(name)
     module.__version__ = "0.9.0"
     sys.modules[name] = module
+    monkeypatch.setitem(VERSIONS, name, "1.0.0")
 
     match = "Pandas requires .*1.0.0.* of .fakemodule.*'0.9.0'"
     with pytest.raises(ImportError, match=match):
-        import_optional_dependency("fakemodule", min_version="1.0.0")
+        import_optional_dependency("fakemodule")
 
     with tm.assert_produces_warning(UserWarning):
-        result = import_optional_dependency(
-            "fakemodule", min_version="1.0.0", on_version="warn"
-        )
+        result = import_optional_dependency("fakemodule", on_version="warn")
     assert result is None
 
     module.__version__ = "1.0.0"  # exact match is OK
