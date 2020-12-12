@@ -493,6 +493,14 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.get_level_values(0), idx1)
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
+    
+    def test_set_index_dtypes_on_empty_DataFrames(self):
+        df_with_empty_series = DataFrame({'dt_ser': Series(dtype='datetime64[ns]'),
+                                          'int_ser': Series(dtype='int64'),
+                                          'empty': []})
+        df_with_indexes = df_with_empty_series.set_index(['dt_ser', 'int_ser'])
+        assert (df_with_empty_series.loc[:, ['dt_ser', 'int_ser']].dtypes == 
+                df_with_indexes.index.to_frame().dtypes).all()
 
 
 class TestSetIndexInvalid:
