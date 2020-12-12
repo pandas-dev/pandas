@@ -254,7 +254,7 @@ class ReadCSVFloatPrecision(StringIORewind):
             names=list("abc"),
         )
 
-    def time_read_csv_arrow(self, sep, decimal, float_precision):
+    def time_read_csv_pyarrow(self, sep, decimal, float_precision):
         read_csv(
             self.data(self.StringIO_input),
             sep=sep,
@@ -333,7 +333,7 @@ class ReadCSVParseDates(StringIORewind):
 
 
 class ReadCSVCachedParseDates(StringIORewind):
-    params = ([True, False], ["c", "pyarrow", "python"])
+    params = ([True, False], ["c", "python"])
     param_names = ["do_cache", "engine"]
 
     def setup(self, do_cache, engine):
@@ -374,7 +374,7 @@ class ReadCSVMemoryGrowth(BaseIO):
 
 
 class ReadCSVParseSpecialDate(StringIORewind):
-    params = (["mY", "mdY", "hm"], ["c", "pyarrow", "python"])
+    params = (["mY", "mdY", "hm"], ["c", "python"])
     param_names = ["value", "engine"]
     objects = {
         "mY": "01-2019\n10-2019\n02/2000\n",
