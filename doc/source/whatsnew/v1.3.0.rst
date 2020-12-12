@@ -17,7 +17,7 @@ read_csv() now accepts pyarrow as an engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing on multicore machines
-with pyarrow>=0.15 installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 
 .. _whatsnew_130.enhancements.other:
