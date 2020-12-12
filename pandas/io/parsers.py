@@ -176,11 +176,10 @@ dtype : Type name or dict of column -> type, optional
     of dtype conversion.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
-    is currently more feature-complete. The pyarrow engine also supports multithreading
-    something that is not present in the C or python engines. It requires
-    ``pyarrow`` >= 0.15 as a dependency however.
+    is currently more feature-complete. Multithreading is currently only supported by
+    the pyarrow engine.
 
-    .. versionchanged:: 1.2
+    .. versionchanged:: 1.3
         The "pyarrow" engine was added.
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either

@@ -159,10 +159,10 @@ dtype : Type name or dict of column -> type, default ``None``
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
 engine : {``'c'``, ``'pyarrow'``, ``'python'``}
-  Parser engine to use. In terms of performance, the pyarrow engine,
-  which requires ``pyarrow`` >= 0.15.0, is faster than the C engine, which
-  is faster than the python engine. However, the pyarrow and C engines
-  are currently less feature complete than their Python counterpart.
+  Parser engine to use. The pyarrow engine is the most performant, followed by
+  the C engine, which in turn is faster than the python engine. However, the
+  pyarrow and C engine are currently less feature complete than their Python
+  counterpart.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -1604,15 +1604,14 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Currently, pandas supports using three engines, the C engine, the python engine,
-and an optional pyarrow engine(requires ``pyarrow`` >= 0.15). In terms of performance
-the pyarrow engine is fastest, followed by the C and Python engines. However,
-the pyarrow engine is much less robust than the C engine, which in turn lacks a
-couple of features present in the Python parser.
+Pandas currently supports three engines, the C engine, the python engine, and an optional
+pyarrow engine. The pyarrow engine is fastest, followed by the C and Python engines. However,
+the pyarrow engine is much less robust than the C engine, and the C engine is less feature-rich
+than the Python engine.
 
-Where possible pandas uses the C parser (specified as ``engine='c'``), but may fall
+Where possible pandas uses the C parser (specified as ``engine='c'``), but it may fall
 back to Python if C-unsupported options are specified. If pyarrow unsupported options are
-specified while using ``engine='pyarrow'``, the parser will error out
+specified while using ``engine='pyarrow'``, the parser will throw an error.
 (a full list of unsupported options is available at ``pandas.io.parsers._pyarrow_unsupported``).
 
 Currently, C-unsupported options include:
