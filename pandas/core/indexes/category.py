@@ -494,14 +494,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _maybe_cast_indexer(self, key) -> int:
         return self._data._unbox_scalar(key)
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(
         self, target: "Index", method=None, limit=None, tolerance=None
     ) -> np.ndarray:
 
-        self._check_indexing_method(method)
-
-        if self.is_unique and self.equals(target):
+        if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
         return self._get_indexer_non_unique(target._values)[0]
