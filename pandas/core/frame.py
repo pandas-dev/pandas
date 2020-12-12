@@ -83,12 +83,10 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_datetimelike,
-    maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -127,7 +125,7 @@ from pandas.core.aggregation import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -536,13 +534,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # a masked array
             else:
-                mask = ma.getmaskarray(data)
-                if mask.any():
-                    data, fill_value = maybe_upcast(data, copy=True)
-                    data.soften_mask()  # set hardmask False if it was True
-                    data[mask] = fill_value
-                else:
-                    data = data.copy()
+                data = sanitize_masked_array(data)
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
@@ -3211,12 +3203,16 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _iset_item(self, loc: int, value):
+    def _iset_item_mgr(self, loc: int, value) -> None:
+        self._mgr.iset(loc, value)
+        self._clear_item_cache()
+
+    def _iset_item(self, loc: int, value, broadcast: bool = False):
 
         # technically _sanitize_column expects a label, not a position,
         #  but the behavior is the same as long as we pass broadcast=False
-        value = self._sanitize_column(loc, value, broadcast=False)
-        NDFrame._iset_item(self, loc, value)
+        value = self._sanitize_column(loc, value, broadcast=broadcast)
+        self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3235,7 +3231,14 @@ class DataFrame(NDFrame, OpsMixin):
         ensure homogeneity.
         """
         value = self._sanitize_column(key, value)
-        NDFrame._set_item(self, key, value)
+
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+        else:
+            self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3931,14 +3934,7 @@ class DataFrame(NDFrame, OpsMixin):
                 value = maybe_infer_to_datetimelike(value)
 
         else:
-            # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            value = construct_1d_arraylike_from_scalar(
-                fill_value, len(self), infer_dtype
-            )
-
-            value = maybe_cast_to_datetime(value, infer_dtype)
+            value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
 
         # return internal types directly
         if is_extension_array_dtype(value):
