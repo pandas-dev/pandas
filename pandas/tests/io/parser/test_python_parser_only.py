@@ -328,6 +328,7 @@ footer
         ("1,2E1", 12.0),
         ("-1,2e-1", -0.12),
         ("0,2", 0.2),
+        (",2", 0.2),
     ],
 )
 def test_decimal_and_exponential(python_parser_only, thousands, value, result_value):
