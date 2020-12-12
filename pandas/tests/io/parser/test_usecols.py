@@ -280,6 +280,7 @@ def test_usecols_with_parse_dates2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_usecols_with_parse_dates3(all_parsers):
     # see gh-14792
     parser = all_parsers
