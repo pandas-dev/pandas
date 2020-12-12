@@ -302,7 +302,7 @@ class ArrayManager(DataManager):
                 arr = arr._data  # type: ignore[union-attr]
             elif arr.dtype.kind == "m":
                 # TimedeltaArray needs to be converted to ndarray for TimedeltaBlock
-                arr = arr._data
+                arr = arr._data  # type: ignore[union-attr]
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
