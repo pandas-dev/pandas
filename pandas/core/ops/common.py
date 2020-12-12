@@ -7,7 +7,7 @@ from typing import Callable
 from pandas._libs.lib import item_from_zerodim
 from pandas._typing import F
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
@@ -50,11 +50,11 @@ def _unpack_zerodim_and_defer(method, name: str):
     @wraps(method)
     def new_method(self, other):
 
-        if is_cmp and isinstance(self, ABCIndexClass) and isinstance(other, ABCSeries):
+        if is_cmp and isinstance(self, ABCIndex) and isinstance(other, ABCSeries):
             # For comparison ops, Index does *not* defer to Series
             pass
         else:
-            for cls in [ABCDataFrame, ABCSeries, ABCIndexClass]:
+            for cls in [ABCDataFrame, ABCSeries, ABCIndex]:
                 if isinstance(self, cls):
                     break
                 if isinstance(other, cls):
@@ -82,7 +82,7 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
+    if isinstance(right, (ABCSeries, ABCIndex)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name

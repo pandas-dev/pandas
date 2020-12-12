@@ -38,7 +38,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
@@ -321,7 +321,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if is_categorical_dtype(values):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
-        elif not isinstance(values, (ABCIndexClass, ABCSeries)):
+        elif not isinstance(values, (ABCIndex, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
@@ -2514,7 +2514,7 @@ def _get_codes_for_values(values, categories) -> np.ndarray:
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    if isinstance(categories, ABCIndexClass):
+    if isinstance(categories, ABCIndex):
         return coerce_indexer_dtype(categories.get_indexer_for(values), categories)
 
     # Only hit here when we've already coerced to object dtypee.

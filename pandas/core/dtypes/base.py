@@ -9,7 +9,7 @@ import numpy as np
 from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
@@ -277,7 +277,7 @@ class ExtensionDtype:
         """
         dtype = getattr(dtype, "dtype", dtype)
 
-        if isinstance(dtype, (ABCSeries, ABCIndexClass, ABCDataFrame, np.dtype)):
+        if isinstance(dtype, (ABCSeries, ABCIndex, ABCDataFrame, np.dtype)):
             # https://github.com/pandas-dev/pandas/issues/22960
             # avoid passing data to `construct_from_string`. This could
             # cause a FutureWarning from numpy about failing elementwise

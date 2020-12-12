@@ -41,7 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCPandasArray,
     ABCSeries,
 )
@@ -281,9 +281,7 @@ def array(
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
 
-    if dtype is None and isinstance(
-        data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
-    ):
+    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
@@ -392,7 +390,7 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
     >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
     array([1, 2, 3])
     """
-    if isinstance(obj, (ABCIndexClass, ABCSeries)):
+    if isinstance(obj, (ABCIndex, ABCSeries)):
         obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):

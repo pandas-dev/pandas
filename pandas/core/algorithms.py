@@ -50,7 +50,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCRangeIndex,
     ABCSeries,
@@ -63,6 +63,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -215,7 +216,7 @@ def _reconstruct_data(
         values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
@@ -437,9 +438,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(
-        values, (ABCIndexClass, ABCSeries, ABCExtensionArray, np.ndarray)
-    ):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
@@ -700,7 +699,7 @@ def factorize(
         and values.freq is not None
     ):
         codes, uniques = values.factorize(sort=sort)
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             uniques = original._shallow_copy(uniques, name=None)
         elif isinstance(original, ABCSeries):
             from pandas import Index
@@ -739,8 +738,11 @@ def factorize(
     uniques = _reconstruct_data(uniques, dtype, original)
 
     # return original tenor
-    if isinstance(original, ABCIndexClass):
+    if isinstance(original, ABCIndex):
         if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            original._data = cast(
+                "Union[DatetimeArray, TimedeltaArray]", original._data
+            )
             uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):

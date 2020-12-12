@@ -41,7 +41,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -1361,7 +1361,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
+            if isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -41,11 +41,11 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
+    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
-        if isinstance(y, (ABCSeries, ABCIndexClass)):
+        if isinstance(y, (ABCSeries, ABCIndex)):
             y = y._values
 
         if x.shape != y.shape:

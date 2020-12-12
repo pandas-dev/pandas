@@ -25,7 +25,7 @@ from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndex
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
@@ -499,7 +499,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndexClass):
+        elif not isinstance(categories, ABCIndex):
             categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:

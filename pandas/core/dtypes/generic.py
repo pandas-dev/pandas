@@ -9,6 +9,7 @@ if TYPE_CHECKING:
         DataFrame,
         DatetimeIndex,
         Float64Index,
+        Index,
         Int64Index,
         IntervalIndex,
         MultiIndex,
@@ -76,23 +77,27 @@ ABCIntervalIndex = cast(
     "Type[IntervalIndex]",
     create_pandas_abc_type("ABCIntervalIndex", "_typ", ("intervalindex",)),
 )
-ABCIndexClass = create_pandas_abc_type(
-    "ABCIndexClass",
-    "_typ",
-    {
-        "index",
-        "int64index",
-        "rangeindex",
-        "float64index",
-        "uint64index",
-        "multiindex",
-        "datetimeindex",
-        "timedeltaindex",
-        "periodindex",
-        "categoricalindex",
-        "intervalindex",
-    },
+ABCIndex = cast(
+    "Type[Index]",
+    create_pandas_abc_type(
+        "ABCIndex",
+        "_typ",
+        {
+            "index",
+            "int64index",
+            "rangeindex",
+            "float64index",
+            "uint64index",
+            "multiindex",
+            "datetimeindex",
+            "timedeltaindex",
+            "periodindex",
+            "categoricalindex",
+            "intervalindex",
+        },
+    ),
 )
+
 
 ABCNDFrame = cast(
     "Type[NDFrame]",

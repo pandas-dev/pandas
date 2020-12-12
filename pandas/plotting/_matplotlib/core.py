@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -192,7 +192,7 @@ class MPLPlot:
             for kw, err in zip(["xerr", "yerr"], [xerr, yerr])
         }
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndexClass)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -678,7 +678,7 @@ class MPLPlot:
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, ABCIndexClass):
+        if isinstance(x, ABCIndex):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -748,7 +748,7 @@ class MPLPlot:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndexClass)):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):

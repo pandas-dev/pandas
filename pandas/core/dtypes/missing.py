@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
@@ -156,7 +156,7 @@ def _isna(obj, inf_as_na: bool = False):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
         return _isna_ndarraylike(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()

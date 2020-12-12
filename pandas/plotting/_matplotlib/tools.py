@@ -10,7 +10,7 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 
 from pandas.plotting._matplotlib import compat
 
@@ -406,7 +406,7 @@ def handle_shared_axes(
 def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
         return np.asarray(axes).ravel()
     return np.array(axes)
 

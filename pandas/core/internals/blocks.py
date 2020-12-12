@@ -52,12 +52,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
@@ -1082,7 +1077,7 @@ class Block(PandasObject):
         List[Block]
         """
         mask = _extract_bool_array(mask)
-        assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
@@ -1435,7 +1430,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1967,7 +1962,7 @@ class ExtensionBlock(Block):
     ) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         if isinstance(other, np.ndarray) and other.ndim == 2:
             # TODO(EA2D): unnecessary with 2D EAs
