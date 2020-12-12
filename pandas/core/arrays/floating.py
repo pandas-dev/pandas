@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -27,13 +27,10 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedDtype
-from .numeric import NumericArray
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class FloatingDtype(BaseMaskedDtype):
+class FloatingDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size of floating dtype.
 
@@ -71,34 +68,6 @@ class FloatingDtype(BaseMaskedDtype):
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "FloatingArray":
-        """
-        Construct FloatingArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            float_arr = FloatingArray(data.copy(), ~mask, copy=False)
-            results.append(float_arr)
-
-        return FloatingArray._concat_same_type(results)
 
 
 def coerce_to_array(
