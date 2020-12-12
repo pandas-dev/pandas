@@ -308,6 +308,7 @@ Other enhancements
 - Improved error reporting for subsetting columns of a :class:`.DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 - Implement method ``cross`` for :meth:`DataFrame.merge` and :meth:`DataFrame.join` (:issue:`5401`)
 - When :func:`read_csv/sas/json` are called with ``chuncksize``/``iterator`` they can be used in a ``with`` statement as they return context-managers (:issue:`38225`)
+- Augmented the list of named colors available for styling Excel exports, enabling all of CSS4 colors (:issue:`38247`)
 
 .. ---------------------------------------------------------------------------
 

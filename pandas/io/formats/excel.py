@@ -21,6 +21,7 @@ from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 from pandas.core import generic
 import pandas.core.common as com
 
+from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -65,28 +66,7 @@ class CSSToExcelConverter:
         CSS processed by :meth:`__call__`.
     """
 
-    NAMED_COLORS = {
-        "maroon": "800000",
-        "brown": "A52A2A",
-        "red": "FF0000",
-        "pink": "FFC0CB",
-        "orange": "FFA500",
-        "yellow": "FFFF00",
-        "olive": "808000",
-        "green": "008000",
-        "purple": "800080",
-        "fuchsia": "FF00FF",
-        "lime": "00FF00",
-        "teal": "008080",
-        "aqua": "00FFFF",
-        "blue": "0000FF",
-        "navy": "000080",
-        "black": "000000",
-        "gray": "808080",
-        "grey": "808080",
-        "silver": "C0C0C0",
-        "white": "FFFFFF",
-    }
+    NAMED_COLORS = CSS4_COLORS
 
     VERTICAL_MAP = {
         "top": "top",
