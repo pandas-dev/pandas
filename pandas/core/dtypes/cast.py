@@ -946,10 +946,6 @@ def maybe_upcast(
     fill_value:
         the fill value, possibly upcast
     """
-    if not is_scalar(fill_value) and not is_object_dtype(values.dtype):
-        # We allow arbitrary fill values for object dtype
-        raise ValueError("fill_value must be a scalar")
-
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
     values = values.astype(new_dtype, copy=copy)
