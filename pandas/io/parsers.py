@@ -2288,10 +2288,7 @@ class ArrowParserWrapper(ParserBase):
             )[0]
         )
 
-    def read(self):
-        pyarrow = import_optional_dependency("pyarrow.csv")
-        self.kwds = {k: v for k, v in self.kwds.items() if v is not None}
-        # these are kwargs passed to pyarrow
+    def _get_pyarrow_options(self):
         # rename some arguments to pass to pyarrow
         mapping = {
             "usecols": "include_columns",
@@ -2300,40 +2297,30 @@ class ArrowParserWrapper(ParserBase):
             "skip_blank_lines": "ignore_empty_lines",
         }
         for pandas_name, pyarrow_name in mapping.items():
-            if pandas_name in self.kwds:
-                value = self.kwds.pop(pandas_name)
-                if value is not None:
-                    self.kwds[pyarrow_name] = value
+            if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
+                self.kwds[pyarrow_name] = self.kwds.pop(pandas_name)
 
-        parse_options = {
+        self.parse_options = {
             option_name: option_value
             for option_name, option_value in self.kwds.items()
             if option_value is not None
             and option_name
             in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
         }
-        convert_options = {
+        self.convert_options = {
             option_name: option_value
             for option_name, option_value in self.kwds.items()
             if option_value is not None
             and option_name
             in ("include_columns", "null_values", "true_values", "false_values")
         }
-
-        read_options = {"autogenerate_column_names": self.header is None}
+        self.read_options = {"autogenerate_column_names": self.header is None}
         if self.header is not None:
-            read_options["skip_rows"] = self.header
+            self.read_options["skip_rows"] = self.header
         elif self.kwds.get("skiprows") is not None:
-            read_options["skip_rows"] = self.kwds.get("skiprows")
+            self.read_options["skip_rows"] = self.kwds.get("skiprows")
 
-        read_options = pyarrow.ReadOptions(**read_options)
-        table = pyarrow.read_csv(
-            self.src,
-            read_options=read_options,
-            parse_options=pyarrow.ParseOptions(**parse_options),
-            convert_options=pyarrow.ConvertOptions(**convert_options),
-        )
-        frame = table.to_pandas()
+    def _finalize_output(self, frame):
         num_cols = len(frame.columns)
         if self.header is None:
             if self.names is None:
@@ -2353,6 +2340,21 @@ class ArrowParserWrapper(ParserBase):
         if self.kwds.get("dtype") is not None:
             frame = frame.astype(self.kwds.get("dtype"))
         return frame
+
+    def read(self):
+        pyarrow = import_optional_dependency("pyarrow.csv")
+
+        self._get_pyarrow_options()
+
+        table = pyarrow.read_csv(
+            self.src,
+            read_options=pyarrow.ReadOptions(**self.read_options),
+            parse_options=pyarrow.ParseOptions(**self.parse_options),
+            convert_options=pyarrow.ConvertOptions(**self.convert_options),
+        )
+
+        frame = table.to_pandas()
+        return self._finalize_output(frame)
 
 
 def TextParser(*args, **kwds):
