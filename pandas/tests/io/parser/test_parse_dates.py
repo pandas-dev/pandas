@@ -339,6 +339,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_date_col_as_index_col(all_parsers):
     data = """\
 KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -566,6 +567,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,parse_dates,msg",
     [
@@ -594,6 +596,7 @@ def test_multiple_date_col_name_collision(all_parsers, data, parse_dates, msg):
         parser.read_csv(StringIO(data), parse_dates=parse_dates)
 
 
+@skip_pyarrow
 def test_date_parser_int_bug(all_parsers):
     # see gh-3071
     parser = all_parsers
@@ -713,6 +716,7 @@ def test_parse_dates_string(all_parsers):
 
 # Bug in https://github.com/dateutil/dateutil/issues/217
 # has been addressed, but we just don't pass in the `yearfirst`
+@skip_pyarrow
 @pytest.mark.xfail(reason="yearfirst is not surfaced in read_*")
 @pytest.mark.parametrize("parse_dates", [[["date", "time"]], [[0, 1]]])
 def test_yy_format_with_year_first(all_parsers, parse_dates):
@@ -1126,6 +1130,7 @@ def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
         parser.read_csv(StringIO(data), parse_dates=(1,))
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("cache_dates", [True, False])
 @pytest.mark.parametrize("value", ["nan", "0", ""])
 def test_bad_date_parse(all_parsers, cache_dates, value):
@@ -1455,6 +1460,7 @@ date,time,prn,rxstatus
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_parse_date_column_with_empty_string(all_parsers):
     # see gh-6428
     parser = all_parsers
@@ -1466,6 +1472,7 @@ def test_parse_date_column_with_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -1491,6 +1498,7 @@ def test_parse_date_float(all_parsers, data, expected, parse_dates):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_parse_timezone(all_parsers):
     # see gh-22256
     parser = all_parsers
@@ -1554,6 +1562,7 @@ def test_parse_delimited_date_swap(all_parsers, date_string, dayfirst, expected)
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
@@ -1564,6 +1573,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
+@skip_pyarrow
 @given(date_strategy)
 @settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
