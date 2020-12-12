@@ -2240,7 +2240,7 @@ class BytesIOWrapper:
     def __init__(
         self,
         string_buffer: Union[StringIO, TextIOBase],
-        encoding: Optional[str] = "utf-8",
+        encoding: str = "utf-8",
     ):
         self.string_buffer = string_buffer
         self.encoding = encoding
@@ -2264,28 +2264,26 @@ class ArrowParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        self._validate_kwds()
+        self._parse_kwds()
 
-        if isinstance(self.src, TextIOBase):
-            self.src = BytesIOWrapper(self.src, encoding=self.encoding)
+    def _parse_kwds(self):
+        encoding: Optional[str] = self.kwds.get("encoding")
+        self.encoding = "utf-8" if encoding is None else encoding
 
-    def _validate_kwds(self):
-        kwds = self.kwds
-        self.encoding = (
-            kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
-        )
-
-        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
-        na_values = kwds["na_values"]
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(self.kwds["usecols"])
+        na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
                 "The pyarrow engine doesn't support passing a dict for na_values"
             )
         self.na_values = list(
             _clean_na_values(
-                kwds["na_values"], keep_default_na=kwds["keep_default_na"]
+                self.kwds["na_values"], keep_default_na=self.kwds["keep_default_na"]
             )[0]
         )
+
+        if isinstance(self.src, TextIOBase):
+            self.src = BytesIOWrapper(self.src, encoding=self.encoding)
 
     def _get_pyarrow_options(self):
         # rename some arguments to pass to pyarrow
