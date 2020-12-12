@@ -86,7 +86,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-
+- Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
 -
 -
 

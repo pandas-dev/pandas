@@ -20,7 +20,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs
+from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -145,10 +145,32 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     if dtype == object:
         pass
     elif isinstance(value, (np.datetime64, datetime)):
-        value = tslibs.Timestamp(value)
+        value = Timestamp(value)
     elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslibs.Timedelta(value)
+        value = Timedelta(value)
 
+    return value
+
+
+def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
+    """
+    Convert a Timedelta or Timestamp to timedelta64 or datetime64 for setting
+    into a numpy array.  Failing to unbox would risk dropping nanoseconds.
+
+    Notes
+    -----
+    Caller is responsible for checking dtype.kind in ["m", "M"]
+    """
+    if is_valid_nat_for_dtype(value, dtype):
+        # GH#36541: can't fill array directly with pd.NaT
+        # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+        # ValueError: cannot convert float NaN to integer
+        value = dtype.type("NaT", "ns")
+    elif isinstance(value, Timestamp):
+        if value.tz is None:
+            value = value.to_datetime64()
+    elif isinstance(value, Timedelta):
+        value = value.to_timedelta64()
     return value
 
 
@@ -1361,8 +1383,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                     raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
             if is_scalar(value):
-                if value == iNaT or isna(value):
-                    value = iNaT
+                value = maybe_unbox_datetimelike(value, dtype)
             elif not is_sparse(value):
                 value = np.array(value, copy=False)
 
@@ -1535,11 +1556,8 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
-        elif dtype.kind in ["M", "m"] and is_valid_nat_for_dtype(value, dtype):
-            # GH36541: can't fill array directly with pd.NaT
-            # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
-            # ValueError: cannot convert float NaN to integer
-            value = dtype.type("NaT", "ns")
+        elif dtype.kind in ["M", "m"]:
+            value = maybe_unbox_datetimelike(value, dtype)
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
