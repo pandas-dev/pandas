@@ -2311,11 +2311,6 @@ class ArrowParserWrapper(ParserBase):
             and option_name
             in ("include_columns", "null_values", "true_values", "false_values")
         }
-        # self.read_options = {"autogenerate_column_names": self.header is None}
-        # if self.header is not None:
-        #     self.read_options["skip_rows"] = self.header
-        # elif self.kwds.get("skiprows") is not None:
-        #     self.read_options["skip_rows"] = self.kwds.get("skiprows")
         self.read_options = {
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
