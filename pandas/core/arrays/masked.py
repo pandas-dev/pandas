@@ -27,6 +27,7 @@ from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas import Series
+    from pandas.core.arrays import BooleanArray
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
@@ -299,7 +300,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
-    def isin(self, values: Sequence) -> np.ndarray:
+    def isin(self, values) -> "BooleanArray":
 
         from pandas.core.arrays import BooleanArray
 
