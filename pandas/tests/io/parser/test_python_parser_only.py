@@ -319,8 +319,6 @@ footer
 
 def test_comment_char_in_default_value(python_parser_only):
     # GH#34002
-    from io import StringIO
-
     data = (
         "# this is a comment\n"
         "col1,col2,col3,col4\n"
