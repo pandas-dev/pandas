@@ -105,25 +105,24 @@ engine : str, default None
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
     Engine compatibility :
 
-    - "xlrd" supports most old/new Excel file formats.
+    - "xlrd" supports old-style Excel files (.xls).
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        is no longer maintained, and is not supported with
-        python >= 3.9. When ``engine=None``, the following logic will be
-        used to determine the engine.
+        now only supports old-style ``.xls`` files.
+        When ``engine=None``, the following logic will be
+        used to determine the engine:
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
           then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-        - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
+        - Otherwise if the file has the
           extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd`` will
           be used.
         - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
           then ``openpyxl`` will be used.
-        - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
         Specifying ``engine="xlrd"`` will continue to be allowed for the
         indefinite future.
@@ -920,7 +919,7 @@ class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
 
-    Uses xlrd engine by default. See read_excel for more documentation
+    See read_excel for more documentation
 
     Parameters
     ----------
@@ -933,26 +932,25 @@ class ExcelFile:
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
         Engine compatibility :
 
-        - ``xlrd`` supports most old/new Excel file formats.
+        - ``xlrd`` old-style Excel files (.xls).
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
 
         .. versionchanged:: 1.2.0
 
-           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           is no longer maintained, and is not supported with
-           python >= 3.9. When ``engine=None``, the following logic will be
-           used to determine the engine.
+            The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+            now only supports old-style ``.xls`` files.
+            When ``engine=None``, the following logic will be
+            used to determine the engine:
 
            - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is a bytes stream, the file has the
+           - Otherwise if the file has the
              extension ``.xls``, or is an ``xlrd`` Book instance, then ``xlrd``
              will be used.
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
-           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
            Specifying ``engine="xlrd"`` will continue to be allowed for the
            indefinite future.
