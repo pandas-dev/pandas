@@ -217,6 +217,7 @@ MultiIndex
 I/O
 ^^^
 
+- Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 -
 
