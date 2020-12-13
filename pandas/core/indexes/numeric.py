@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     is_float,
     is_float_dtype,
     is_integer_dtype,
+    is_number,
     is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
@@ -112,22 +113,35 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
+    @doc(Index._validate_fill_value)
     def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
-        elif isinstance(value, str) or lib.is_complex(value):
-            raise TypeError
         elif is_scalar(value) and isna(value):
             if is_valid_nat_for_dtype(value, self.dtype):
                 value = self._na_value
+                if self.dtype.kind != "f":
+                    # raise so that caller can cast
+                    raise TypeError
             else:
                 # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
                 raise TypeError
+
+        elif is_scalar(value):
+            if not is_number(value):
+                # e.g. datetime64, timedelta64, datetime, ...
+                raise TypeError
+
+            elif lib.is_complex(value):
+                # at least until we have a ComplexIndx
+                raise TypeError
+
+            elif is_float(value) and self.dtype.kind != "f":
+                if not value.is_integer():
+                    raise TypeError
+                value = int(value)
 
         return value
 
@@ -167,15 +181,6 @@ class NumericIndex(Index):
         Checks that all the labels are datetime objects.
         """
         return False
-
-    @doc(Index.insert)
-    def insert(self, loc: int, item):
-        try:
-            item = self._validate_fill_value(item)
-        except TypeError:
-            return self.astype(object).insert(loc, item)
-
-        return super().insert(loc, item)
 
     def _union(self, other, sort):
         # Right now, we treat union(int, float) a bit special.
