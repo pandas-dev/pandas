@@ -670,7 +670,6 @@ class Block(PandasObject):
                     # Note: in the case where dtype is an np.dtype, i.e. not
                     #  StringDtype, this matches arr.astype(dtype), xref GH#36153
                     values = arr._format_native_types(na_rep="NaT")
-                    return values
 
             elif is_object_dtype(dtype):
                 if values.dtype.kind in ["m", "M"]:
