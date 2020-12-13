@@ -1690,7 +1690,7 @@ class ParserBase:
                 )
             else:
                 is_ea = is_extension_array_dtype(cast_type)
-                is_str_or_ea_dtype = is_string_dtype(cast_type) or is_ea
+                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
                 # skip inference if specified dtype is object
                 # or casting to an EA
                 try_num_bool = not (cast_type and is_str_or_ea_dtype)
@@ -1705,12 +1705,15 @@ class ParserBase:
                     not is_dtype_equal(cvals, cast_type)
                     or is_extension_array_dtype(cast_type)
                 ):
-                    try:
-                        if not is_ea and na_count > 0 and is_bool_dtype(cast_type):
-                            raise ValueError(f"Bool column has NA values in column {c}")
-                    except (AttributeError, TypeError):
-                        # invalid input to is_bool_dtype
-                        pass
+                    if not is_ea and na_count > 0:
+                        try:
+                            if is_bool_dtype(cast_type):
+                                raise ValueError(
+                                    f"Bool column has NA values in column {c}"
+                                )
+                        except (AttributeError, TypeError):
+                            # invalid input to is_bool_dtype
+                            pass
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals

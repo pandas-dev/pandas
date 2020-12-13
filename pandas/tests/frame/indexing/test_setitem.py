@@ -200,17 +200,15 @@ class TestDataFrameSetItem:
 
     @pytest.mark.parametrize(
         "ea_name",
+        [
+            dtype.name
+            for dtype in ea_registry.dtypes
+            # property would require instantiation
+            if not isinstance(dtype.name, property)
+        ]
         # mypy doesn't allow adding lists of different types
         # https://github.com/python/mypy/issues/5492
-        [
-            *[
-                dtype.name
-                for dtype in ea_registry.dtypes
-                # property would require instantiation
-                if not isinstance(dtype.name, property)
-            ],
-            *["datetime64[ns, UTC]", "period[D]"],
-        ],
+        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386
