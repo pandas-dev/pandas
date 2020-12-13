@@ -10,7 +10,7 @@ from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib,
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Scalar, Shape
+from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -68,7 +68,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import array as pd_array, extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -593,7 +593,7 @@ class Block(PandasObject):
         dtype : str, dtype convertible
         copy : bool, default False
             copy if indicated
-        errors : str, {'raise', 'ignore'}, default 'ignore'
+        errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
 
@@ -617,69 +617,23 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-        # may need to convert to categorical
-        if is_categorical_dtype(dtype):
-
-            if is_categorical_dtype(self.values.dtype):
-                # GH 10696/18593: update an existing categorical efficiently
-                return self.make_block(self.values.astype(dtype, copy=copy))
-
-            return self.make_block(Categorical(self.values, dtype=dtype))
-
         dtype = pandas_dtype(dtype)
 
-        # astype processing
-        if is_dtype_equal(self.dtype, dtype):
-            if copy:
-                return self.copy()
-            return self
-
-        # force the copy here
-        if self.is_extension:
-            try:
-                values = self.values.astype(dtype)
-            except (ValueError, TypeError):
-                if errors == "ignore":
-                    values = self.values
-                else:
-                    raise
-        else:
-            if issubclass(dtype.type, str):
-
-                # use native type formatting for datetime/tz/timedelta
-                if self.is_datelike:
-                    values = self.to_native_types().values
-
-                # astype formatting
-                else:
-                    # Because we have neither is_extension nor is_datelike,
-                    #  self.values already has the correct shape
-                    values = self.values
-
+        try:
+            new_values = self._astype(dtype, copy=copy)
+        except (ValueError, TypeError):
+            # e.g. astype_nansafe can fail on object-dtype of strings
+            #  trying to convert to float
+            if errors == "ignore":
+                new_values = self.values
             else:
-                values = self.get_values(dtype=dtype)
+                raise
 
-            # _astype_nansafe works fine with 1-d only
-            vals1d = values.ravel()
-            try:
-                values = astype_nansafe(vals1d, dtype, copy=True)
-            except (ValueError, TypeError):
-                # e.g. astype_nansafe can fail on object-dtype of strings
-                #  trying to convert to float
-                if errors == "raise":
-                    raise
-                newb = self.copy() if copy else self
-                return newb
+        if isinstance(new_values, np.ndarray):
+            # TODO(EA2D): special case not needed with 2D EAs
+            new_values = new_values.reshape(self.shape)
 
-        # TODO(EA2D): special case not needed with 2D EAs
-        if isinstance(values, np.ndarray):
-            values = values.reshape(self.shape)
-
-        newb = self.make_block(values)
-
+        newb = self.make_block(new_values)
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
                 raise TypeError(
@@ -688,6 +642,50 @@ class Block(PandasObject):
                     f"({newb.dtype.name} [{newb.shape}])"
                 )
         return newb
+
+    def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
+        values = self.values
+
+        if is_categorical_dtype(dtype):
+
+            if is_categorical_dtype(values.dtype):
+                # GH#10696/GH#18593: update an existing categorical efficiently
+                return values.astype(dtype, copy=copy)
+
+            return Categorical(values, dtype=dtype)
+
+        if is_dtype_equal(values.dtype, dtype):
+            if copy:
+                return values.copy()
+            return values
+
+        if isinstance(values, ExtensionArray):
+            values = values.astype(dtype, copy=copy)
+
+        else:
+            if issubclass(dtype.type, str):
+                if values.dtype.kind in ["m", "M"]:
+                    # use native type formatting for datetime/tz/timedelta
+                    arr = pd_array(values)
+                    # Note: in the case where dtype is an np.dtype, i.e. not
+                    #  StringDtype, this matches arr.astype(dtype), xref GH#36153
+                    values = arr._format_native_types(na_rep="NaT")
+
+            elif is_object_dtype(dtype):
+                if values.dtype.kind in ["m", "M"]:
+                    # Wrap in Timedelta/Timestamp
+                    arr = pd_array(values)
+                    values = arr.astype(object)
+                else:
+                    values = values.astype(object)
+                # We still need to go through astype_nansafe for
+                #  e.g. dtype = Sparse[object, 0]
+
+            # astype_nansafe works with 1-d only
+            vals1d = values.ravel()
+            values = astype_nansafe(vals1d, dtype, copy=True)
+
+        return values
 
     def convert(
         self,

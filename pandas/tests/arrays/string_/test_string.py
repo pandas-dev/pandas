@@ -5,6 +5,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
@@ -127,11 +129,14 @@ def test_astype_roundtrip(dtype, request):
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
 
-    s = pd.Series(pd.date_range("2000", periods=12))
-    s[0] = None
+    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser[0] = None
 
-    result = s.astype(dtype).astype("datetime64[ns]")
-    tm.assert_series_equal(result, s)
+    casted = ser.astype(dtype)
+    assert is_dtype_equal(casted.dtype, dtype)
+
+    result = casted.astype("datetime64[ns]")
+    tm.assert_series_equal(result, ser)
 
 
 def test_add(dtype, request):
