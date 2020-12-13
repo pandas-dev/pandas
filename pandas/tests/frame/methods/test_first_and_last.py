@@ -79,3 +79,12 @@ class TestFirst:
             [1] * periods, index=bdate_range(start, periods=periods)
         )
         tm.assert_equal(result, expected)
+
+    def test_first_with_first_day_end_of_frq_n_greater_one(self, frame_or_series):
+        # GH#29623
+        x = frame_or_series([1] * 100, index=bdate_range("2010-03-31", periods=100))
+        result = x.first("2M")
+        expected = frame_or_series(
+            [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
+        )
+        tm.assert_equal(result, expected)
