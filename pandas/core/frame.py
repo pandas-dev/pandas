@@ -1310,7 +1310,7 @@ class DataFrame(NDFrame, OpsMixin):
         data,
         orient: str = "columns",
         dtype: Optional[Dtype] = None,
-        columns: Optional[List] = None,
+        columns: Optional[List[Label]] = None,
     ) -> DataFrame:
         """
         Construct DataFrame from dict of array-like or dicts.
