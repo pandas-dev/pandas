@@ -308,6 +308,7 @@ Other enhancements
 - Improved error reporting for subsetting columns of a :class:`.DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 - Implement method ``cross`` for :meth:`DataFrame.merge` and :meth:`DataFrame.join` (:issue:`5401`)
 - When :func:`read_csv/sas/json` are called with ``chuncksize``/``iterator`` they can be used in a ``with`` statement as they return context-managers (:issue:`38225`)
+- Augmented the list of named colors available for styling Excel exports, enabling all of CSS4 colors (:issue:`38247`)
 
 .. ---------------------------------------------------------------------------
 
@@ -482,7 +483,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.2.8           |    X    |
 +-----------------+-----------------+---------+
-| xarray          | 0.12.0          |    X    |
+| xarray          | 0.12.3          |    X    |
 +-----------------+-----------------+---------+
 | xlrd            | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
@@ -850,7 +851,7 @@ Other
 - Bug in :meth:`Index.difference` failing to set the correct name on the returned :class:`Index` in some corner cases (:issue:`38268`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
 - Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
-- Bug in :meth:`IntervalIndex.intersection` returning an incorrectly-typed :class:`Index` when empty (:issue:`38282`)
+- Bug in :meth:`IntervalIndex.union` returning an incorrectly-typed :class:`Index` when empty (:issue:`38282`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
 - Bug in :meth:`Index.drop` raising ``InvalidIndexError`` when index has duplicates (:issue:`38051`)
