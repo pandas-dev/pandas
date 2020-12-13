@@ -387,6 +387,15 @@ def test_union_non_object_dtype_raises():
         mi.union(idx)
 
 
+def test_union_empty_self_different_names():
+    # GH#38423
+    mi = MultiIndex.from_arrays([[]])
+    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    result = mi.union(mi2)
+    expected = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
@@ -424,12 +433,12 @@ def test_intersect_with_duplicates(tuples, exp_tuples):
 @pytest.mark.parametrize(
     "data, names, expected",
     [
-        ((1,), None, None),
-        ((1,), ["a"], None),
-        ((1,), ["b"], None),
+        ((1,), None, [None, None]),
+        ((1,), ["a"], [None, None]),
+        ((1,), ["b"], [None, None]),
         ((1, 2), ["c", "d"], [None, None]),
         ((1, 2), ["b", "a"], [None, None]),
-        ((1, 2, 3), ["a", "b", "c"], None),
+        ((1, 2, 3), ["a", "b", "c"], [None, None]),
         ((1, 2), ["a", "c"], ["a", None]),
         ((1, 2), ["c", "b"], [None, "b"]),
         ((1, 2), ["a", "b"], ["a", "b"]),
