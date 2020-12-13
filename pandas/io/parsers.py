@@ -2489,7 +2489,6 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
-        columns = self._maybe_dedup_names(columns)
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
