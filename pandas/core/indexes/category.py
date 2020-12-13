@@ -24,7 +24,6 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
-import pandas.core.missing as missing
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
@@ -495,14 +494,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _maybe_cast_indexer(self, key) -> int:
         return self._data._unbox_scalar(key)
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ibase.ensure_index(target)
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
 
-        self._check_indexing_method(method)
-
-        if self.is_unique and self.equals(target):
+        if self.equals(target):
             return np.arange(len(self), dtype="intp")
 
         return self._get_indexer_non_unique(target._values)[0]
@@ -553,6 +549,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return super()._maybe_cast_slice_bound(label, side, kind)
 
     # --------------------------------------------------------------------
+
+    def _is_comparable_dtype(self, dtype):
+        return self.categories._is_comparable_dtype(dtype)
 
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""

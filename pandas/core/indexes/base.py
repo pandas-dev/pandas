@@ -106,15 +106,15 @@ __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
 
-_index_doc_kwargs = dict(
-    klass="Index",
-    inplace="",
-    target_klass="Index",
-    raises_section="",
-    unique="Index",
-    duplicated="np.ndarray",
-)
-_index_shared_docs = dict()
+_index_doc_kwargs = {
+    "klass": "Index",
+    "inplace": "",
+    "target_klass": "Index",
+    "raises_section": "",
+    "unique": "Index",
+    "duplicated": "np.ndarray",
+}
+_index_shared_docs = {}
 str_t = str
 
 
@@ -742,7 +742,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         if kwargs:
-            nv.validate_take(tuple(), kwargs)
+            nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -817,7 +817,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         repeats = ensure_platform_int(repeats)
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         return self._shallow_copy(self._values.repeat(repeats))
 
     # --------------------------------------------------------------------
@@ -2155,7 +2155,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Pickle Methods
 
     def __reduce__(self):
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_Index, (type(self), d), None
 
@@ -2580,7 +2580,6 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    @final
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
@@ -2694,7 +2693,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not self._can_union_without_object_cast(other):
             return self._union_incompatible_dtypes(other, sort=sort)
@@ -2826,7 +2825,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, _ = self._convert_can_do_setop(other)
 
-        if self.equals(other) and not self.has_duplicates:
+        if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
@@ -3141,10 +3142,14 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self, target, method=None, limit=None, tolerance=None
     ) -> np.ndarray:
+
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
-        if tolerance is not None:
-            tolerance = self._convert_tolerance(tolerance, target)
+
+        self._check_indexing_method(method)
+
+        if not self._index_as_unique:
+            raise InvalidIndexError(self._requires_unique_msg)
 
         # Treat boolean labels passed to a numeric index as not found. Without
         # this fix False and True would be treated as 0 and 1 respectively.
@@ -3158,16 +3163,19 @@ class Index(IndexOpsMixin, PandasObject):
                 ptarget, method=method, limit=limit, tolerance=tolerance
             )
 
+        return self._get_indexer(target, method, limit, tolerance)
+
+    def _get_indexer(
+        self, target: "Index", method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, target)
+
         if not is_dtype_equal(self.dtype, target.dtype):
             this = self.astype(object)
             target = target.astype(object)
             return this.get_indexer(
                 target, method=method, limit=limit, tolerance=tolerance
-            )
-
-        if not self.is_unique:
-            raise InvalidIndexError(
-                "Reindexing only valid with uniquely valued Index objects"
             )
 
         if method == "pad" or method == "backfill":
@@ -3189,6 +3197,24 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._engine.get_indexer(target._get_engine_target())
 
         return ensure_platform_int(indexer)
+
+    def _check_indexing_method(self, method):
+        """
+        Raise if we have a get_indexer `method` that is not supported or valid.
+        """
+        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
+        if not (is_interval_dtype(self.dtype) or is_categorical_dtype(self.dtype)):
+            return
+
+        if method is None:
+            return
+
+        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
+            raise NotImplementedError(
+                f"method {method} not yet implemented for {type(self).__name__}"
+            )
+
+        raise ValueError("Invalid fill method")
 
     def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
@@ -4906,16 +4932,31 @@ class Index(IndexOpsMixin, PandasObject):
             # Treat boolean labels passed to a numeric index as not found. Without
             # this fix False and True would be treated as 0 and 1 respectively.
             # (GH #16877)
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
+            return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if not self._is_comparable_dtype(target.dtype):
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
+        if not self._should_compare(target):
+            return self._get_indexer_non_comparable(target, method=None, unique=False)
+
+        if not is_dtype_equal(self.dtype, target.dtype):
+            # TODO: if object, could use infer_dtype to pre-empt costly
+            #  conversion if still non-comparable?
+            dtype = find_common_type([self.dtype, target.dtype])
+            if (
+                dtype.kind in ["i", "u"]
+                and is_categorical_dtype(target.dtype)
+                and target.hasnans
+            ):
+                # FIXME: find_common_type incorrect with Categorical GH#38240
+                # FIXME: some cases where float64 cast can be lossy?
+                dtype = np.dtype(np.float64)
+
+            this = self.astype(dtype, copy=False)
+            that = target.astype(dtype, copy=False)
+            return this.get_indexer_non_unique(that)
 
         if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
@@ -4968,7 +5009,7 @@ class Index(IndexOpsMixin, PandasObject):
             If doing an inequality check, i.e. method is not None.
         """
         if method is not None:
-            other = _unpack_nested_dtype(target)
+            other = unpack_nested_dtype(target)
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -4989,6 +5030,8 @@ class Index(IndexOpsMixin, PandasObject):
         For IntervalIndex compat.
         """
         return self.is_unique
+
+    _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
     def _maybe_promote(self, other: "Index"):
@@ -5019,7 +5062,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if `self == other` can ever have non-False entries.
         """
-        other = _unpack_nested_dtype(other)
+        other = unpack_nested_dtype(other)
         dtype = other.dtype
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
@@ -6172,7 +6215,7 @@ def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
     return names
 
 
-def _unpack_nested_dtype(other: Index) -> Index:
+def unpack_nested_dtype(other: Index) -> Index:
     """
     When checking if our dtype is comparable with another, we need
     to unpack CategoricalDtype to look at its categories.dtype.

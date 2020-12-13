@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 from pandas._typing import FilePathOrBuffer, Label
 
-from pandas.io.common import IOHandles, stringify_path
+from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -18,8 +18,6 @@ class ReaderBase(metaclass=ABCMeta):
     Protocol for XportReader and SAS7BDATReader classes.
     """
 
-    handles: IOHandles
-
     @abstractmethod
     def read(self, nrows=None):
         pass
@@ -27,6 +25,12 @@ class ReaderBase(metaclass=ABCMeta):
     @abstractmethod
     def close(self):
         pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 @overload
@@ -87,8 +91,16 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
 
     Returns
     -------
@@ -136,5 +148,5 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    with reader.handles:
+    with reader:
         return reader.read()
