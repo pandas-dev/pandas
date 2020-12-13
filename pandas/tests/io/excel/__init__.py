@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.compat._optional import import_optional_dependency
+
 pytestmark = [
     pytest.mark.filterwarnings(
         # Looks like tree.getiterator is deprecated in favor of tree.iter
@@ -14,3 +16,14 @@ pytestmark = [
         "ignore:As the xlwt package is no longer maintained:FutureWarning"
     ),
 ]
+
+
+if (
+    import_optional_dependency("xlrd", raise_on_missing=False, on_version="ignore")
+    is None
+):
+    xlrd_version = None
+else:
+    import xlrd
+
+    xlrd_version = xlrd.__version__
