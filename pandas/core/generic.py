@@ -8420,11 +8420,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         offset = to_offset(offset)
-        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
-            # GH#29623 if first value is end of period
-            end_date = end = self.index[0]
-        else:
-            end_date = end = self.index[0] + offset
+        end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
         if isinstance(offset, Tick):
