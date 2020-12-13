@@ -75,8 +75,10 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
--
--
+I/O
+^^^
+
+- Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
 
 Categorical
 ^^^^^^^^^^^
