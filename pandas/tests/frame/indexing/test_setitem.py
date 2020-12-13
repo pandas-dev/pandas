@@ -205,7 +205,8 @@ class TestDataFrameSetItem:
             dtype.name
             for dtype in ea_registry.dtypes
             if not isinstance(dtype.name, property)
-        ],
+        ]
+        + ["datetime64[ns, UTC]", "period[D]"],
     )
     def test_setitem_with_ea_name(self, ea_name):
         # GH 38386
