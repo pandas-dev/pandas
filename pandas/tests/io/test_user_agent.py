@@ -6,7 +6,6 @@ import http.server
 from io import BytesIO
 import threading
 
-import fsspec
 import pytest
 
 import pandas as pd
@@ -122,6 +121,9 @@ class ParquetFastParquetUserAgentResponder(BaseUserAgentResponder):
         # however it automatically calls the close method and wipes the buffer
         # so just overwrite that attribute on this instance to not do that
 
+        # protected by an importorskip in the respective test
+        import fsspec
+
         response_df.to_parquet(
             "memory://fastparquet_user_agent.parquet",
             index=False,
@@ -220,6 +222,8 @@ def test_server_and_default_headers(responder, read_method, port, parquet_engine
 def test_server_and_custom_headers(responder, read_method, port, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
+        if parquet_engine == "fastparquet":
+            pytest.importorskip("fsspec")
 
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
