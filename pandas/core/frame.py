@@ -1168,7 +1168,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    def dot(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
+    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1278,13 +1278,17 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-    def __matmul__(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
+    def __matmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
         return self.dot(other)
 
-    def __rmatmul__(self, other: Union[AnyArrayLike, DataFrame]) -> FrameOrSeriesUnion:
+    def __rmatmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
