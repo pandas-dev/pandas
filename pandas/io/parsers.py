@@ -2487,9 +2487,8 @@ class PythonParser(ParserBase):
             content = content[1:]
 
         alldata = self._rows_to_cols(content)
-        data = self._exclude_implicit_index(alldata)
+        data, columns = self._exclude_implicit_index(alldata)
 
-        columns = self._maybe_dedup_names(self.columns)
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
@@ -2500,19 +2499,14 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(self, alldata):
         names = self._maybe_dedup_names(self.orig_names)
 
+        offset = 0
         if self._implicit_index:
-            excl_indices = self.index_col
+            offset = len(self.index_col)
 
-            data = {}
-            offset = 0
-            for i, col in enumerate(names):
-                while i + offset in excl_indices:
-                    offset += 1
-                data[col] = alldata[i + offset]
-        else:
-            data = {k: v for k, v in zip(names, alldata)}
+        if self._col_indices is not None and len(names) != len(self._col_indices):
+            names = [names[i] for i in sorted(self._col_indices)]
 
-        return data
+        return {name: alldata[i + offset] for i, name in enumerate(names)}, names
 
     # legacy
     def get_chunk(self, size=None):
@@ -2694,9 +2688,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if (self.usecols is not None and len(names) != len(self.usecols)) or (
-                    self.usecols is None and len(names) != len(columns[0])
-                ):
+                if len(names) > len(columns[0]):
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
