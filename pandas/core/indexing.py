@@ -1649,8 +1649,10 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
             raise ValueError(r"Cannot set values with ndim > 2")
 
-        if isinstance(value, ABCSeries) and name != "iloc":
-            value = self._align_series(indexer, value)
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            from pandas import Series
+
+            value = self._align_series(indexer, Series(value))
 
         # Ensure we have something we can iterate over
         info_axis = indexer[1]
