@@ -1,3 +1,4 @@
+minimum_pre_commit_version: '2.9.0'
 repos:
 -   repo: https://github.com/python/black
     rev: 20.8b1
@@ -24,7 +25,7 @@ repos:
         name: isort (python)
     -   id: isort
         name: isort (cython)
-        types: [cython]
+        types_or: [python, cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.4
     hooks:
@@ -35,9 +36,9 @@ repos:
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
-        types: [text]
+        types_or: [text]
       - id: rst-inline-touching-normal
-        types: [text]
+        types_or: [text]
 -   repo: local
     hooks:
     -   id: pip_to_conda
@@ -45,7 +46,7 @@ repos:
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
-        files: ^(environment.yml|requirements-dev.txt)$
+        types_or: [file, non-executable, plain-text, text, yaml]
         pass_filenames: false
         additional_dependencies: [pyyaml]
     -   id: flake8-rst
@@ -53,7 +54,7 @@ repos:
         description: Run flake8 on code snippets in docstrings or RST files
         language: python
         entry: flake8-rst
-        types: [rst]
+        types_or: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
     -   id: non-standard-imports
@@ -77,7 +78,7 @@ repos:
             # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
             from\ numpy\ import\ random|
             from\ numpy.random\ import
-        types: [python]
+        types_or: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
         language: pygrep
@@ -90,46 +91,45 @@ repos:
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
-        types: [python]
-        files: ^pandas/tests/
+        types_or: [python]
     -   id: incorrect-code-directives
         name: Check for incorrect code block or IPython directives
         language: pygrep
         entry: (\.\. code-block ::|\.\. ipython ::)
-        files: \.(py|pyx|rst)$
+        types_or: [file, non-executable, cython, text, yaml, python, rst]
     -   id: unwanted-patterns-strings-to-concatenate
         name: Check for use of not concatenated strings
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        files: \.(py|pyx|pxd|pxi)$
+        types_or: [file, non-executable, cython, text, yaml, python]
     -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
         name: Check for strings with wrong placed spaces
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
-        files: \.(py|pyx|pxd|pxi)$
+        types_or: [file, non-executable, cython, text, yaml, python]
     -   id: unwanted-patterns-private-import-across-module
         name: Check for import of private attributes across modules
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
-        types: [python]
+        types_or: [python]
         exclude: ^(asv_bench|pandas/tests|doc)/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
-        types: [python]
+        types_or: [python]
         exclude: ^(asv_bench|pandas/tests|doc)/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
         language: python
-        types: [python]
+        types_or: [python]
         files: ^pandas/tests/
     -   id: FrameOrSeriesUnion
         name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
         entry: Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]
         language: pygrep
-        types: [python]
+        types_or: [python]
         exclude: ^pandas/_typing\.py$
     -   id: type-not-class
         name: Check for use of foo.__class__ instead of type(foo)
@@ -143,12 +143,12 @@ repos:
             \#\ type:\ (?!ignore)|
             \#\ type:\s?ignore(?!\[)
         language: pygrep
-        types: [python]
+        types_or: [python]
     -   id: no-os-remove
         name: Check code for instances of os.remove
         entry: os\.remove
         language: pygrep
-        types: [python]
+        types_or: [python]
         files: ^pandas/tests/
         exclude: |
             (?x)^
