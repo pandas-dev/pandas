@@ -665,6 +665,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         regex=False,
         method="pad",
     ):
-        raise NotImplementedError(
-            "Replacing values of a CategoricalIndex is not supported."
+        if regex is not False:
+            raise NotImplementedError(
+                "Regex replace is not yet implemented for CategoricalIndex."
+            )
+
+        new_index = self.to_series().replace(
+            to_replace=to_replace, value=value, limit=limit, regex=regex, method=method
         )
+
+        new_index = CategoricalIndex(new_index)
+
+        return new_index
