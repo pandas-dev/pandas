@@ -55,7 +55,6 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
-import pandas.core.missing as missing
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
@@ -700,6 +699,15 @@ class MultiIndex(Index):
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
+
+    @cache_readonly
+    def dtypes(self) -> "Series":
+        """
+        Return the dtypes as a Series for the underlying MultiIndex
+        """
+        from pandas import Series
+
+        return Series({level.name: level.dtype for level in self.levels})
 
     @property
     def shape(self) -> Shape:
@@ -2596,13 +2604,10 @@ class MultiIndex(Index):
 
         return key
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        method = missing.clean_reindex_fill_method(method)
-        target = ensure_index(target)
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         # empty indexer
-        if is_list_like(target) and not len(target):
+        if not len(target):
             return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
@@ -2615,9 +2620,6 @@ class MultiIndex(Index):
                     return Index(self._values).get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
-
-        if not self.is_unique:
-            raise ValueError("Reindexing only valid with uniquely valued Index objects")
 
         if method == "pad" or method == "backfill":
             if tolerance is not None:
@@ -3591,6 +3593,34 @@ class MultiIndex(Index):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
 
+    def _get_reconciled_name_object(self, other):
+        """
+        If the result of a set operation will be self,
+        return self, unless the names change, in which
+        case make a shallow copy of self.
+        """
+        names = self._maybe_match_names(other)
+        if self.names != names:
+            return self.rename(names)
+        return self
+
+    def _maybe_match_names(self, other):
+        """
+        Try to find common names to attach to the result of an operation between
+        a and b.  Return a consensus list of names if they match at least partly
+        or None if they have completely different names.
+        """
+        if len(self.names) != len(other.names):
+            return None
+        names = []
+        for a_name, b_name in zip(self.names, other.names):
+            if a_name == b_name:
+                names.append(a_name)
+            else:
+                # TODO: what if they both have np.nan for their names?
+                names.append(None)
+        return names
+
     def intersection(self, other, sort=False):
         """
         Form the intersection of two MultiIndex objects.
@@ -3614,12 +3644,12 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
-                return self.unique().rename(result_names)
-            return self.rename(result_names)
+                return self.unique()._get_reconciled_name_object(other)
+            return self._get_reconciled_name_object(other)
 
         return self._intersection(other, sort=sort)
 

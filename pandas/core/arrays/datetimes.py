@@ -44,7 +44,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
@@ -216,7 +216,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     _freq = None
 
     def __init__(self, values, dtype=DT64NS_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
+        if isinstance(values, (ABCSeries, ABCIndex)):
             values = values._values
 
         inferred_freq = getattr(values, "_freq", None)
@@ -1947,7 +1947,7 @@ def sequence_to_dt64ns(
     # if dtype has an embedded tz, capture it
     tz = validate_tz_from_dtype(dtype, tz)
 
-    if isinstance(data, ABCIndexClass):
+    if isinstance(data, ABCIndex):
         if data.nlevels > 1:
             # Without this check, data._data below is None
             raise TypeError("Cannot create a DatetimeArray from a MultiIndex.")
