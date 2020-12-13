@@ -283,7 +283,7 @@ pyreadstat                                   SPSS files (.sav) reading
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.4.0              Amazon S3 access
-tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
+tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.12.3             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.2.0              Excel reading

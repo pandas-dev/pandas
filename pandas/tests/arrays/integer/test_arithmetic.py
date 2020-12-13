@@ -7,7 +7,7 @@ from pandas.compat.numpy import _np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray, integer_array
+from pandas.core.arrays import FloatingArray
 import pandas.core.ops as ops
 
 # Basic test for the arithmetic array ops
@@ -131,10 +131,10 @@ def test_pow_scalar():
 
 
 def test_pow_array():
-    a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
-    b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
+    a = pd.array([0, 0, 0, 1, 1, 1, None, None, None])
+    b = pd.array([0, 1, None, 0, 1, None, 0, 1, None])
     result = a ** b
-    expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
+    expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None])
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -149,7 +149,7 @@ def test_rpow_one_to_na():
 
 @pytest.mark.parametrize("other", [0, 0.5])
 def test_numpy_zero_dim_ndarray(other):
-    arr = integer_array([1, None, 2])
+    arr = pd.array([1, None, 2])
     result = arr + np.array(other)
     expected = arr + other
     tm.assert_equal(result, expected)
@@ -265,7 +265,7 @@ def test_reduce_to_float(op):
         {
             "A": ["a", "b", "b"],
             "B": [1, None, 3],
-            "C": integer_array([1, None, 3], dtype="Int64"),
+            "C": pd.array([1, None, 3], dtype="Int64"),
         }
     )
 
@@ -277,10 +277,7 @@ def test_reduce_to_float(op):
     result = getattr(df.groupby("A"), op)()
 
     expected = pd.DataFrame(
-        {
-            "B": np.array([1.0, 3.0]),
-            "C": pd.array([1, 3], dtype="Float64"),
-        },
+        {"B": np.array([1.0, 3.0]), "C": pd.array([1, 3], dtype="Float64")},
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
