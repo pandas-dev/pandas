@@ -1,11 +1,12 @@
 """
-Tests for the pandas.io.common functionalities
+Tests for the pandas custom headers in http(s) requests
 """
 import gzip
 import http.server
 from io import BytesIO
 import threading
 
+import fsspec
 import pytest
 
 import pandas as pd
@@ -120,20 +121,15 @@ class ParquetFastParquetUserAgentResponder(BaseUserAgentResponder):
         # it can do it via the open_with function being set appropriately
         # however it automatically calls the close method and wipes the buffer
         # so just overwrite that attribute on this instance to not do that
-        def dummy_close():
-            pass
 
-        bio = BytesIO()
-        bio.close = dummy_close
-        # windows py38 np18 doesn't have 'snappy' installed
         response_df.to_parquet(
-            "none",
+            "memory://fastparquet_user_agent.parquet",
             index=False,
             engine="fastparquet",
             compression=None,
-            open_with=lambda x, y: bio,
         )
-        response_bytes = bio.getvalue()
+        with fsspec.open("memory://fastparquet_user_agent.parquet", "rb") as f:
+            response_bytes = f.read()
 
         self.write_back_bytes(response_bytes)
 
