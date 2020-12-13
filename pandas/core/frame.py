@@ -4047,7 +4047,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_index,
         method,
         copy,
-        level,
+        level: Level,
         fill_value=np.nan,
         limit=None,
         tolerance=None,
@@ -4067,7 +4067,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_columns,
         method,
         copy,
-        level,
+        level: Level,
         fill_value=None,
         limit=None,
         tolerance=None,
@@ -4107,14 +4107,14 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         other,
         join="outer",
-        axis=None,
-        level=None,
+        axis: Optional[Axis] = None,
+        level: Optional[Level] = None,
         copy=True,
         fill_value=None,
         method=None,
         limit=None,
-        fill_axis=0,
-        broadcast_axis=None,
+        fill_axis: Axis = 0,
+        broadcast_axis: Optional[Axis] = None,
     ) -> DataFrame:
         return super().align(
             other,
@@ -4195,10 +4195,10 @@ class DataFrame(NDFrame, OpsMixin):
     def drop(
         self,
         labels=None,
-        axis=0,
+        axis: Axis = 0,
         index=None,
         columns=None,
-        level=None,
+        level: Optional[Level] = None,
         inplace=False,
         errors="raise",
     ):
@@ -4471,7 +4471,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         value=None,
         method=None,
-        axis=None,
+        axis: Optional[Axis] = None,
         inplace=False,
         limit=None,
         downcast=None,
@@ -4584,7 +4584,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
-        self, periods=1, freq=None, axis=0, fill_value=lib.no_default
+        self, periods=1, freq=None, axis: Axis = 0, fill_value=lib.no_default
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -5055,7 +5055,9 @@ class DataFrame(NDFrame, OpsMixin):
     def notnull(self) -> DataFrame:
         return ~self.isna()
 
-    def dropna(self, axis=0, how="any", thresh=None, subset=None, inplace=False):
+    def dropna(
+        self, axis: Axis = 0, how="any", thresh=None, subset=None, inplace=False
+    ):
         """
         Remove missing values.
 
@@ -5434,7 +5436,7 @@ class DataFrame(NDFrame, OpsMixin):
     def sort_values(  # type: ignore[override]
         self,
         by,
-        axis=0,
+        axis: Axis = 0,
         ascending=True,
         inplace=False,
         kind="quicksort",
@@ -5494,8 +5496,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def sort_index(
         self,
-        axis=0,
-        level=None,
+        axis: Axis = 0,
+        level: Optional[Level] = None,
         ascending: bool = True,
         inplace: bool = False,
         kind: str = "quicksort",
@@ -5912,7 +5914,7 @@ class DataFrame(NDFrame, OpsMixin):
             self, n=n, keep=keep, columns=columns
         ).nsmallest()
 
-    def swaplevel(self, i=-2, j=-1, axis=0) -> DataFrame:
+    def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
         """
         Swap levels i and j in a MultiIndex on a particular axis.
 
@@ -5943,7 +5945,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order, axis=0) -> DataFrame:
+    def reorder_levels(self, order, axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -6701,8 +6703,8 @@ NaN 12.3   33.0
     def groupby(
         self,
         by=None,
-        axis=0,
-        level=None,
+        axis: Axis = 0,
+        level: Optional[Level] = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -7055,7 +7057,7 @@ NaN 12.3   33.0
             observed=observed,
         )
 
-    def stack(self, level=-1, dropna=True):
+    def stack(self, level: Level = -1, dropna=True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -7374,7 +7376,7 @@ NaN 12.3   33.0
         value_vars=None,
         var_name=None,
         value_name="value",
-        col_level=None,
+        col_level: Optional[Level] = None,
         ignore_index=True,
     ) -> DataFrame:
 
@@ -7582,7 +7584,7 @@ NaN 12.3   33.0
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
     )
-    def aggregate(self, func=None, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -7613,7 +7615,7 @@ NaN 12.3   33.0
 
         return result
 
-    def _aggregate(self, arg, axis=0, *args, **kwargs):
+    def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
@@ -7636,7 +7638,7 @@ NaN 12.3   33.0
         assert isinstance(result, DataFrame)
         return result
 
-    def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwds):
+    def apply(self, func, axis: Axis = 0, raw=False, result_type=None, args=(), **kwds):
         """
         Apply a function along an axis of the DataFrame.
 
@@ -8543,7 +8545,7 @@ NaN 12.3   33.0
 
         return self._constructor(base_cov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False, method="pearson") -> Series:
+    def corrwith(self, other, axis: Axis = 0, drop=False, method="pearson") -> Series:
         """
         Compute pairwise correlation.
 
@@ -8639,7 +8641,7 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
-    def count(self, axis=0, level=None, numeric_only=False):
+    def count(self, axis: Axis = 0, level: Optional[Level] = None, numeric_only=False):
         """
         Count non-NA cells for each column or row.
 
@@ -8743,7 +8745,7 @@ NaN 12.3   33.0
 
         return result.astype("int64")
 
-    def _count_level(self, level, axis=0, numeric_only=False):
+    def _count_level(self, level: Level, axis: Axis = 0, numeric_only=False):
         if numeric_only:
             frame = self._get_numeric_data()
         else:
@@ -8793,7 +8795,7 @@ NaN 12.3   33.0
         op,
         name: str,
         *,
-        axis=0,
+        axis: Axis = 0,
         skipna=True,
         numeric_only=None,
         filter_type=None,
@@ -8901,7 +8903,7 @@ NaN 12.3   33.0
         result = self._constructor_sliced(result, index=labels)
         return result
 
-    def nunique(self, axis=0, dropna=True) -> Series:
+    def nunique(self, axis: Axis = 0, dropna=True) -> Series:
         """
         Count distinct observations over requested axis.
 
@@ -8941,7 +8943,7 @@ NaN 12.3   33.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True) -> Series:
+    def idxmin(self, axis: Axis = 0, skipna=True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -9018,7 +9020,7 @@ NaN 12.3   33.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True) -> Series:
+    def idxmax(self, axis: Axis = 0, skipna=True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -9106,7 +9108,7 @@ NaN 12.3   33.0
         else:
             raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
-    def mode(self, axis=0, numeric_only=False, dropna=True) -> DataFrame:
+    def mode(self, axis: Axis = 0, numeric_only=False, dropna=True) -> DataFrame:
         """
         Get the mode(s) of each element along the selected axis.
 
@@ -9193,7 +9195,9 @@ NaN 12.3   33.0
 
         return data.apply(f, axis=axis)
 
-    def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
+    def quantile(
+        self, q=0.5, axis: Axis = 0, numeric_only=True, interpolation="linear"
+    ):
         """
         Return values at the given quantile over requested axis.
 
