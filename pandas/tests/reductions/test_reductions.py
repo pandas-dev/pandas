@@ -680,8 +680,8 @@ class TestSeriesReductions:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["mean"])
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean"])
-    def test_ops_consistency_mean(self, method, dtype):
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
+    def test_ops_consistency_on_empty_nullable(self, method, dtype):
 
         # GH#34814
         # consistency for nullable dtypes on empty or ALL-NA mean
