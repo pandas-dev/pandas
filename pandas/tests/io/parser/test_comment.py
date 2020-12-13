@@ -140,7 +140,7 @@ def test_comment_char_in_default_value(all_parsers, request):
     # GH#34002
     if all_parsers.engine == "c":
         reason = "see gh-34002: works on the python engine but not the c engine"
-        # Number of passed names did not match number of header fields in the file
+        # NA value containing comment char is interpreted as comment
         request.node.add_marker(pytest.mark.xfail(reason=reason, raises=AssertionError))
     parser = all_parsers
 
