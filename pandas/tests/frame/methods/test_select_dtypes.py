@@ -363,6 +363,9 @@ class TestSelectDtypes:
     @pytest.mark.parametrize(
         "arr,expected",
         (
+            (np.array([1, 2], dtype=np.int32), True),
+            (pd.array([1, 2], dtype="Int32"), True),
+            (pd.array(["a", "b"], dtype="string"), False),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
         ),
