@@ -315,24 +315,3 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
-
-
-def test_comment_char_in_default_value(python_parser_only):
-    # GH#34002
-    data = (
-        "# this is a comment\n"
-        "col1,col2,col3,col4\n"
-        "1,2,3,4#inline comment\n"
-        "4,5#,6,10\n"
-        "7,8,#N/A,11\n"
-    )
-    result = python_parser_only.read_csv(StringIO(data), comment="#", na_values="#N/A")
-    expected = DataFrame(
-        {
-            "col1": [1, 4, 7],
-            "col2": [2, 5, 8],
-            "col3": [3.0, np.nan, np.nan],
-            "col4": [4.0, np.nan, 11.0],
-        }
-    )
-    tm.assert_frame_equal(result, expected)
