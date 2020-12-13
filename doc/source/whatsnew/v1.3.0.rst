@@ -20,7 +20,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
--
+- Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 
 .. ---------------------------------------------------------------------------
 
