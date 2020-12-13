@@ -360,13 +360,20 @@ class TestSelectDtypes:
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
         tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
 
-    def test_select_dtypes_numeric(self):
+    @pytest.mark.parametrize(
+        "arr,expected",
+        (
+            (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
+            (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
+        ),
+    )
+    def test_select_dtypes_numeric(self, arr, expected):
         # GH 35340
 
-        da = DummyArray([1, 2], dtype=DummyDtype(numeric=True))
-        df = DataFrame(da)
-        assert df.select_dtypes(np.number).shape == df.shape
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert is_selected == expected
 
-        da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
-        df = DataFrame(da)
-        assert df.select_dtypes(np.number).shape != df.shape
+        # da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
+        # df = DataFrame(da)
+        # assert df.select_dtypes(np.number).shape != df.shape
