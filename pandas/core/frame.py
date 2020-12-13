@@ -3717,7 +3717,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
                     or (
                         np.number in dtypes_set
-                        and hasattr(unique_dtype, "_is_numeric")  # is an extensionarray
+                        and is_extension_array_dtype(unique_dtype)
                         and unique_dtype._is_numeric
                     )
                 )
