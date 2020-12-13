@@ -654,7 +654,7 @@ class Block(PandasObject):
 
             return Categorical(values, dtype=dtype)
 
-        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             # if we are passed a datetime64[ns, tz]
             if copy:
                 # this should be the only copy
