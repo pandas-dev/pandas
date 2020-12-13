@@ -279,7 +279,8 @@ def _get_filepath_or_buffer(
         # TODO: fsspec can also handle HTTP via requests, but leaving this
         # unchanged. using fsspec appears to break the ability to infer if the
         # server responded with gzipped data
-        storage_options = storage_options or dict()
+        storage_options = storage_options or {}
+
         # waiting until now for importing to match intended lazy logic of
         # urlopen function defined elsewhere in this module
         import urllib.request
