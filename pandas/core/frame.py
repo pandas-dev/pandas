@@ -83,12 +83,10 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_datetimelike,
-    maybe_cast_to_datetime,
-    maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
+    maybe_unbox_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -127,7 +125,7 @@ from pandas.core.aggregation import (
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -536,13 +534,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # a masked array
             else:
-                mask = ma.getmaskarray(data)
-                if mask.any():
-                    data, fill_value = maybe_upcast(data, copy=True)
-                    data.soften_mask()  # set hardmask False if it was True
-                    data[mask] = fill_value
-                else:
-                    data = data.copy()
+                data = sanitize_masked_array(data)
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
@@ -601,6 +593,9 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
+                if dtype.kind in ["m", "M"]:
+                    data = maybe_unbox_datetimelike(data, dtype)
+
                 # Attempt to coerce to a numpy array
                 try:
                     arr = np.array(data, dtype=dtype, copy=copy)
@@ -1852,7 +1847,11 @@ class DataFrame(NDFrame, OpsMixin):
                 columns = ensure_index(columns)
             arr_columns = columns
         else:
-            arrays, arr_columns = to_arrays(data, columns, coerce_float=coerce_float)
+            arrays, arr_columns = to_arrays(data, columns)
+            if coerce_float:
+                for i, arr in enumerate(arrays):
+                    if arr.dtype == object:
+                        arrays[i] = lib.maybe_convert_objects(arr, try_float=True)
 
             arr_columns = ensure_index(arr_columns)
             if columns is not None:
@@ -3943,14 +3942,7 @@ class DataFrame(NDFrame, OpsMixin):
                 value = maybe_infer_to_datetimelike(value)
 
         else:
-            # cast ignores pandas dtypes. so save the dtype first
-            infer_dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            value = construct_1d_arraylike_from_scalar(
-                fill_value, len(self), infer_dtype
-            )
-
-            value = maybe_cast_to_datetime(value, infer_dtype)
+            value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
 
         # return internal types directly
         if is_extension_array_dtype(value):
@@ -5037,8 +5029,18 @@ class DataFrame(NDFrame, OpsMixin):
                     missing = self.columns.nlevels - len(name_lst)
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
+
                 # to ndarray and maybe infer different dtype
-                level_values = maybe_casted_values(lev, lab)
+                level_values = lev._values
+                if level_values.dtype == np.object_:
+                    level_values = lib.maybe_convert_objects(level_values)
+
+                if lab is not None:
+                    # if we have the codes, extract the values with a mask
+                    level_values = algorithms.take(
+                        level_values, lab, allow_fill=True, fill_value=lev._na_value
+                    )
+
                 new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
