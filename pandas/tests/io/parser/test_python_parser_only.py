@@ -8,7 +8,6 @@ arguments when parsing.
 import csv
 from io import BytesIO, StringIO
 
-import numpy as np
 import pytest
 
 from pandas.errors import ParserError
