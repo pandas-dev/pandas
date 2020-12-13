@@ -4182,17 +4182,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
+            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+                # Set level to zero in case of MultiIndex and label is string,
+                #  because isin can't handle strings for MultiIndexes GH#36293
+                indexer = ~axis.get_level_values(0).isin(labels)
             else:
-                if isinstance(axis, MultiIndex) and labels.dtype == "object":
-                    # Set level to zero in case of MultiIndex and label is string,
-                    #  because isin can't handle strings for MultiIndexes GH#36293
-                    indexer = ~axis.get_level_values(0).isin(labels)
-                else:
-                    indexer = ~axis.isin(labels)
-                    # Check if label doesn't exist along axis
-                    labels_missing = (axis.get_indexer_for(labels) == -1).any()
-                    if errors == "raise" and labels_missing:
-                        raise KeyError(f"{labels} not found in axis")
+                indexer = ~axis.isin(labels)
+                # Check if label doesn't exist along axis
+                labels_missing = (axis.get_indexer_for(labels) == -1).any()
+                if errors == "raise" and labels_missing:
+                    raise KeyError(f"{labels} not found in axis")
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
