@@ -1901,7 +1901,7 @@ We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index
 
    ts.resample('17min', origin='end').sum()
 
-Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``. 
+Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``.
 
 .. ipython:: python
 
