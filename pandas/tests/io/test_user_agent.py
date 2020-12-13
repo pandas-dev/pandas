@@ -192,6 +192,8 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
 def test_server_and_default_headers(responder, read_method, port, parquet_engine):
     if parquet_engine is not None:
         pytest.importorskip(parquet_engine)
+        if parquet_engine == "fastparquet":
+            pytest.importorskip("fsspec")
 
     server = http.server.HTTPServer(("localhost", port), responder)
     server_thread = threading.Thread(target=server.serve_forever)
