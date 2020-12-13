@@ -376,7 +376,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = na_value_for_dtype(dtype)
             keys = index
         else:
-            keys, values = tuple(), []
+            keys, values = (), []
 
         # Input is now list-like, so rely on "standard" construction:
 
@@ -777,7 +777,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 FutureWarning,
                 stacklevel=2,
             )
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
@@ -918,7 +918,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
-            return self._values[indexer]
+            # the asarray is needed to avoid returning a 2D DatetimeArray
+            return np.asarray(self._values[indexer])
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1115,7 +1116,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(tuple(), {"axis": axis})
+        nv.validate_repeat((), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(

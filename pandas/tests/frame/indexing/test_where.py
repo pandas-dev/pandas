@@ -356,11 +356,11 @@ class TestDataFrameIndexingWhere:
 
         # GH 3311
         df = DataFrame(
-            dict(
-                A=date_range("20130102", periods=5),
-                B=date_range("20130104", periods=5),
-                C=np.random.randn(5),
-            )
+            {
+                "A": date_range("20130102", periods=5),
+                "B": date_range("20130104", periods=5),
+                "C": np.random.randn(5),
+            }
         )
 
         stamp = datetime(2013, 1, 3)
@@ -618,7 +618,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))

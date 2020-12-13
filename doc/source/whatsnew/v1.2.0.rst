@@ -8,6 +8,30 @@ including other versions of pandas.
 
 {{ header }}
 
+.. warning::
+
+   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
+   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
+   writing excel files are no longer maintained. These are the only engines in pandas
+   that support the xls format.
+
+   Previously, the default argument ``engine=None`` to ``pd.read_excel``
+   would result in using the ``xlrd`` engine in many cases. If
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details. Attempting to read
+   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
+   raise a warning. However users should be aware that ``xlrd`` is already
+   broken with certain package configurations, for example with Python 3.9
+   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
+   is anticipated to be unusable in the future.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
+
 .. ---------------------------------------------------------------------------
 
 Enhancements
@@ -196,6 +220,9 @@ Alternatively, you can also use the dtype object:
 
    pd.Series([1.5, None], dtype=pd.Float32Dtype())
 
+Operations with the existing integer or boolean nullable data types that
+give float results will now also use the nullable floating data types (:issue:`38178`).
+
 .. warning::
 
    Experimental: the new floating data types are currently experimental, and their
@@ -248,6 +275,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a Series or DataFrame (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`io.sql.get_schema` now supports a ``schema`` keyword argument that will add a schema into the create table statement (:issue:`28486`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 - :meth:`.Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
@@ -279,6 +307,8 @@ Other enhancements
 - Improve numerical stability for :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`Expanding.skew` and :meth:`Expanding.kurt` through implementation of Kahan summation (:issue:`6929`)
 - Improved error reporting for subsetting columns of a :class:`.DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 - Implement method ``cross`` for :meth:`DataFrame.merge` and :meth:`DataFrame.join` (:issue:`5401`)
+- When :func:`read_csv/sas/json` are called with ``chuncksize``/``iterator`` they can be used in a ``with`` statement as they return context-managers (:issue:`38225`)
+- Augmented the list of named colors available for styling Excel exports, enabling all of CSS4 colors (:issue:`38247`)
 - :class:`Index` and :class:`MultiIndex` now have a ``replace()`` method (:issue:`19495`).
 
 .. ---------------------------------------------------------------------------
@@ -454,7 +484,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.2.8           |    X    |
 +-----------------+-----------------+---------+
-| xarray          | 0.12.0          |    X    |
+| xarray          | 0.12.3          |    X    |
 +-----------------+-----------------+---------+
 | xlrd            | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
@@ -467,7 +497,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_200.api.other:
+.. _whatsnew_120.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -537,6 +567,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.astype` and :meth:`DataFrame.astype` for :class:`Categorical` (:issue:`8628`)
 - Performance improvement in :meth:`DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`Index.value_counts`)
 - Performance improvement in :meth:`pd.isin` for inputs with more than 1e6 elements (:issue:`36611`)
+- Performance improvement for :meth:`DataFrame.__setitem__` with list-like indexers (:issue:`37954`)
 
 .. ---------------------------------------------------------------------------
 
@@ -576,6 +607,8 @@ Datetimelike
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`.DatetimeIndex.isin` incorrectly casting integers to datetimes (:issue:`36621`)
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`.DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
 - Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
+- Bug in :class:`Period` constructor now correctly handles nanoseconds in the ``value`` argument (:issue:`34621` and :issue:`17053`)
+- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 
 Timedelta
 ^^^^^^^^^
@@ -608,6 +641,7 @@ Numeric
 - Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 - Bug in :meth:`DataFrame.std` with ``timedelta64`` dtype and ``skipna=False`` (:issue:`37392`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with ``datetime64`` dtype and ``skipna=False`` (:issue:`36907`)
+- Bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` with mixed dtypes incorrectly raising ``TypeError`` (:issue:`38195`)
 
 Conversion
 ^^^^^^^^^^
@@ -645,6 +679,7 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` and a level named ``"0"`` (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
+- Bug in :meth:`DataFrame.loc` returning empty result when indexer is a slice with negative step size (:issue:`38071`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when the index was of ``object`` dtype and the given numeric label was in the index (:issue:`26491`)
 - Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from a :class:`MultiIndex` (:issue:`27104`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` using a listlike indexer containing NA values (:issue:`37722`)
@@ -662,12 +697,15 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.__getitem__`  raising ``KeyError`` when columns were :class:`MultiIndex` with only one level (:issue:`29749`)
 - Bug in :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` raising blank ``KeyError`` without missing keys for :class:`IntervalIndex` (:issue:`27365`)
 - Bug in setting a new label on a :class:`DataFrame` or :class:`Series` with a :class:`CategoricalIndex` incorrectly raising ``TypeError`` when the new label is not among the index's categories (:issue:`38098`)
+- Bug in :meth:`Series.loc` and :meth:`Series.iloc` raising ``ValueError`` when inserting a listlike ``np.array``, ``list`` or ``tuple`` in an ``object`` Series of equal length (:issue:`37748`, :issue:`37486`)
+- Bug in :meth:`Series.loc` and :meth:`Series.iloc` setting all the values of an ``object`` Series with those of a listlike ``ExtensionArray`` instead of inserting it (:issue:`38271`)
 
 Missing
 ^^^^^^^
 
 - Bug in :meth:`.SeriesGroupBy.transform` now correctly handles missing values for ``dropna=False`` (:issue:`35014`)
 - Bug in :meth:`Series.nunique` with ``dropna=True`` was returning incorrect results when both ``NA`` and ``None`` missing values were present (:issue:`37566`)
+- Bug in :meth:`Series.interpolate` where kwarg ``limit_area`` and ``limit_direction`` had no effect when using methods ``pad`` and ``backfill`` (:issue:`31048`)
 -
 
 MultiIndex
@@ -677,6 +715,7 @@ MultiIndex
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 - Bug in :meth:`DataFrame.combine_first` when used with :class:`MultiIndex` containing string and ``NaN`` values raises ``TypeError`` (:issue:`36562`)
 - Bug in :meth:`MultiIndex.drop` dropped ``NaN`` values when non existing key was given as input (:issue:`18853`)
+- Bug in :meth:`MultiIndex.drop` dropping more values than expected when index has duplicates and is not sorted (:issue:`33494`)
 
 I/O
 ^^^
@@ -726,6 +765,7 @@ Plotting
   indexed by a :class:`.TimedeltaIndex` with a fixed frequency and the x-axis lower limit was greater than the upper limit (:issue:`37454`)
 - Bug in :meth:`.DataFrameGroupBy.boxplot` when ``subplots=False`` would raise a ``KeyError`` (:issue:`16748`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` was overwriting matplotlib's shared y axes behaviour when no ``sharey`` parameter was passed (:issue:`37942`)
+- Bug in :meth:`DataFrame.plot` was raising a ``TypeError`` with ``ExtensionDtype`` columns (:issue:`32073`)
 
 
 Groupby/resample/rolling
@@ -754,6 +794,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 - Bug in :meth:`.DataFrameGroupBy.head`, :meth:`.DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
 - Bug in :meth:`.DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
+- Bug in :meth:`.DataFrameGroupBy.apply` dropped values on ``nan`` group when returning the same axes with the original frame (:issue:`38227`)
+- Bug in :meth:`.DataFrameGroupBy.quantile` couldn't handle with arraylike ``q`` when grouping by columns (:issue:`33795`)
+- Bug in :meth:`DataFrameGroupBy.rank` with ``datetime64tz`` or period dtype incorrectly casting results to those dtypes instead of returning ``float64`` dtype (:issue:`38187`)
 
 Reshaping
 ^^^^^^^^^
@@ -775,6 +818,9 @@ Reshaping
 - Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
 - Bug in :meth:`DataFrame.merge` and :meth:`pandas.merge` returning inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
 - Bug in :func:`merge_ordered` couldn't handle list-like ``left_by`` or ``right_by`` (:issue:`35269`)
+- Bug in :func:`merge_ordered` returned wrong join result when length of ``left_by`` or ``right_by`` equals to the rows of ``left`` or ``right`` (:issue:`38166`)
+- Bug in :func:`merge_ordered` didn't raise when elements in ``left_by`` or ``right_by`` not exist in ``left`` columns or ``right`` columns (:issue:`38167`)
+- Bug in :func:`DataFrame.drop_duplicates` not validating bool dtype for ``ignore_index`` keyword (:issue:`38274`)
 
 Sparse
 ^^^^^^
@@ -802,11 +848,19 @@ Other
 - Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
 - Fixed metadata propagation in the :class:`Series.dt`, :class:`Series.str` accessors, :class:`DataFrame.duplicated`, :class:`DataFrame.stack`, :class:`DataFrame.unstack`, :class:`DataFrame.pivot`, :class:`DataFrame.append`, :class:`DataFrame.diff`, :class:`DataFrame.applymap` and :class:`DataFrame.update` methods (:issue:`28283`, :issue:`37381`)
 - Fixed metadata propagation when selecting columns with ``DataFrame.__getitem__`` (:issue:`28283`)
+- Bug in :meth:`Index.intersection` with non-:class:`Index` failing to set the correct name on the returned :class:`Index` (:issue:`38111`)
+- Bug in :meth:`RangeIndex.intersection` failing to set the correct name on the returned :class:`Index` in some corner cases (:issue:`38197`)
+- Bug in :meth:`Index.difference` failing to set the correct name on the returned :class:`Index` in some corner cases (:issue:`38268`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
 - Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
+- Bug in :meth:`IntervalIndex.union` returning an incorrectly-typed :class:`Index` when empty (:issue:`38282`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
+- Bug in :meth:`Index.drop` raising ``InvalidIndexError`` when index has duplicates (:issue:`38051`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
+- Fixed bug in :func:`assert_series_equal` when comparing a datetime-like array with an equivalent non extension dtype array (:issue:`37609`)
+
+
 
 .. ---------------------------------------------------------------------------
 
@@ -815,4 +869,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.4..v1.2.0|HEAD
+.. contributors:: v1.1.5..v1.2.0|HEAD

@@ -240,7 +240,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
-        (pd.core.arrays.integer_array([0, np.nan]), "_data"),
+        (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
@@ -285,7 +285,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.core.arrays.integer_array([0, np.nan]), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -328,7 +328,7 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-def test_to_numpy(array, expected, index_or_series_or_array):
+def test_to_numpy(array, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
     thing = box(array)
 
@@ -336,7 +336,8 @@ def test_to_numpy(array, expected, index_or_series_or_array):
         pytest.skip(f"No index type for {array.dtype}")
 
     if array.dtype.name == "int64" and box is pd.array:
-        pytest.xfail("thing is Int64 and to_numpy() returns object")
+        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
+        request.node.add_marker(mark)
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

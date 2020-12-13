@@ -276,11 +276,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -451,12 +459,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        parser.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -1074,6 +1078,12 @@ class TextFileReader(abc.Iterator):
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 def _is_index_col(col):
     return col is not None and col is not False
@@ -1421,7 +1431,7 @@ class ParserBase:
                 name = self.index_names[i]
             else:
                 name = None
-            j = self.index_col[i]
+            j = i if self.index_col is None else self.index_col[i]
 
             if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (
@@ -1881,7 +1891,11 @@ class CParserWrapper(ParserBase):
             # no attribute "mmap"  [union-attr]
             self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
-        self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        try:
+            self._reader = parsers.TextReader(self.handles.handle, **kwds)
+        except Exception:
+            self.handles.close()
+            raise
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None

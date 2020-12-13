@@ -52,12 +52,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
@@ -1082,7 +1077,7 @@ class Block(PandasObject):
         List[Block]
         """
         mask = _extract_bool_array(mask)
-        assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
@@ -1261,6 +1256,7 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
+                limit_area=limit_area,
                 downcast=downcast,
             )
         # validate the interp method
@@ -1287,6 +1283,7 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
+        limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
@@ -1301,6 +1298,7 @@ class Block(PandasObject):
             method=method,
             axis=axis,
             limit=limit,
+            limit_area=limit_area,
         )
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
@@ -1432,7 +1430,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1539,7 +1537,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [self.make_block_same_class(new_values, placement=new_placement)]
+        blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0):
@@ -1964,7 +1962,7 @@ class ExtensionBlock(Block):
     ) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         if isinstance(other, np.ndarray) and other.ndim == 2:
             # TODO(EA2D): unnecessary with 2D EAs
@@ -2392,6 +2390,28 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
         aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
+
+    def _check_ndim(self, values, ndim):
+        """
+        ndim inference and validation.
+
+        This is overriden by the DatetimeTZBlock to check the case of 2D
+        data (values.ndim == 2), which should only be allowed if ndim is
+        also 2.
+        The case of 1D array is still allowed with both ndim of 1 or 2, as
+        if the case for other EAs. Therefore, we are only checking
+        `values.ndim > ndim` instead of `values.ndim != ndim` as for
+        consolidated blocks.
+        """
+        if ndim is None:
+            ndim = values.ndim
+
+        if values.ndim > ndim:
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
+        return ndim
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):

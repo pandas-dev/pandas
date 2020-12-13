@@ -1912,11 +1912,8 @@ def read_stata(
     if iterator or chunksize:
         return reader
 
-    try:
-        data = reader.read()
-    finally:
-        reader.close()
-    return data
+    with reader:
+        return reader.read()
 
 
 def _set_endianness(endianness: str) -> str:

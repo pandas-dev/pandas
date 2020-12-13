@@ -7,7 +7,7 @@ import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import EmptyDataError, PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -52,24 +52,22 @@ class TestSAS7BDAT:
                 with open(fname, "rb") as f:
                     byts = f.read()
                 buf = io.BytesIO(byts)
-                rdr = pd.read_sas(
+                with pd.read_sas(
                     buf, format="sas7bdat", iterator=True, encoding="utf-8"
-                )
-                df = rdr.read()
+                ) as rdr:
+                    df = rdr.read()
                 tm.assert_frame_equal(df, df0, check_exact=False)
-                rdr.close()
 
     def test_from_iterator(self):
         for j in 0, 1:
             df0 = self.data[j]
             for k in self.test_ix[j]:
                 fname = os.path.join(self.dirpath, f"test{k}.sas7bdat")
-                rdr = pd.read_sas(fname, iterator=True, encoding="utf-8")
-                df = rdr.read(2)
-                tm.assert_frame_equal(df, df0.iloc[0:2, :])
-                df = rdr.read(3)
-                tm.assert_frame_equal(df, df0.iloc[2:5, :])
-                rdr.close()
+                with pd.read_sas(fname, iterator=True, encoding="utf-8") as rdr:
+                    df = rdr.read(2)
+                    tm.assert_frame_equal(df, df0.iloc[0:2, :])
+                    df = rdr.read(3)
+                    tm.assert_frame_equal(df, df0.iloc[2:5, :])
 
     def test_path_pathlib(self):
         for j in 0, 1:
@@ -96,25 +94,24 @@ class TestSAS7BDAT:
             for k in self.test_ix[j]:
                 for chunksize in 3, 5, 10, 11:
                     fname = os.path.join(self.dirpath, f"test{k}.sas7bdat")
-                    rdr = pd.read_sas(fname, chunksize=10, encoding="utf-8")
-                    y = 0
-                    for x in rdr:
-                        y += x.shape[0]
+                    with pd.read_sas(fname, chunksize=10, encoding="utf-8") as rdr:
+                        y = 0
+                        for x in rdr:
+                            y += x.shape[0]
                     assert y == rdr.row_count
-                    rdr.close()
 
     def test_iterator_read_too_much(self):
         # github #14734
         k = self.test_ix[0][0]
         fname = os.path.join(self.dirpath, f"test{k}.sas7bdat")
-        rdr = pd.read_sas(fname, format="sas7bdat", iterator=True, encoding="utf-8")
-        d1 = rdr.read(rdr.row_count + 20)
-        rdr.close()
+        with pd.read_sas(
+            fname, format="sas7bdat", iterator=True, encoding="utf-8"
+        ) as rdr:
+            d1 = rdr.read(rdr.row_count + 20)
 
-        rdr = pd.read_sas(fname, iterator=True, encoding="utf-8")
-        d2 = rdr.read(rdr.row_count + 20)
+        with pd.read_sas(fname, iterator=True, encoding="utf-8") as rdr:
+            d2 = rdr.read(rdr.row_count + 20)
         tm.assert_frame_equal(d1, d2)
-        rdr.close()
 
 
 def test_encoding_options(datapath):
@@ -197,7 +194,10 @@ def test_compact_numerical_values(datapath):
 def test_many_columns(datapath):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
-    df = pd.read_sas(fname, encoding="latin-1")
+    with tm.assert_produces_warning(PerformanceWarning):
+        # Many DataFrame.insert calls
+        df = pd.read_sas(fname, encoding="latin-1")
+
     fname = datapath("io", "sas", "data", "many_columns.csv")
     df0 = pd.read_csv(fname, encoding="latin-1")
     tm.assert_frame_equal(df, df0)
