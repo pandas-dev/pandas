@@ -114,11 +114,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
     # if we can groupby the rhs
     # then we can get vastly better perf
-
-    try:
+    if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
-    except KeyError:
-        pass
 
     for key, lhs in lby:
 
@@ -274,10 +271,20 @@ def merge_ordered(
     if left_by is not None and right_by is not None:
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
+        if isinstance(left_by, str):
+            left_by = [left_by]
+        check = set(left_by).difference(left.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in left columns")
         result, _ = _groupby_and_merge(
             left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
+        if isinstance(right_by, str):
+            right_by = [right_by]
+        check = set(right_by).difference(right.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in right columns")
         result, _ = _groupby_and_merge(
             right_by, on, right, left, lambda x, y: _merger(y, x)
         )
