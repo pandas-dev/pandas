@@ -203,8 +203,8 @@ class BaseGrouper:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except IndexError:
-                # test_apply_mutate this is a rare case in which re-running
-                #  in python-space may make a difference
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
                 pass
 
             else:

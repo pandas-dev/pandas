@@ -335,10 +335,6 @@ cdef class Slider:
         self.buf.shape[0] = 0
 
 
-class InvalidApply(Exception):
-    pass
-
-
 def apply_frame_axis0(object frame, object f, object names,
                       const int64_t[:] starts, const int64_t[:] ends):
     cdef:
