@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -43,13 +42,13 @@ def test_repr_dtype(dtype, expected):
 
 
 def test_repr_array():
-    result = repr(integer_array([1, None, 3]))
+    result = repr(pd.array([1, None, 3]))
     expected = "<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
 def test_repr_array_long():
-    data = integer_array([1, 2, None] * 1000)
+    data = pd.array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
         "[   1,    2, <NA>,    1,    2, <NA>,    1,    2, <NA>,    1,\n"
