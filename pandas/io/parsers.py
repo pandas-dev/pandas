@@ -2501,8 +2501,7 @@ class PythonParser(ParserBase):
 
         offset = 0
         if self._implicit_index:
-            excl_indices = self.index_col
-            offset = len(excl_indices)
+            offset = len(self.index_col)
 
         if self._col_indices is not None and len(names) != len(self._col_indices):
             names = [names[i] for i in sorted(self._col_indices)]
