@@ -1,0 +1,33 @@
+name: run pre-commit
+
+on:
+  repository_dispatch:
+    types: [pre-commit-run-command]
+jobs:
+  runPreCommit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: ${{github.event.client_payload.pull_request.head.repo.full_name}}
+          ref: ${{github.event.client_payload.pull_request.head.ref}}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pre-commit
+            ~/.cache/pip
+          key: pre-commit-dispatched-${{ runner.os }}-build
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: install-pre-commit
+        run: python -m pip install --upgrade pre-commit
+      - name: Slash Command Dispatch
+        run: pre-commit run --all-files || (exit 0)
+      - run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "Run pre-commit" -a
+          git push
