@@ -1914,6 +1914,7 @@ The above result uses ``2000-10-02 00:29:00`` as the last bin's right edge since
    ceil_mid = rng.max().ceil('D')
    freq = pd.offsets.Minute(17)
    bin_res = ceil_mid - freq * ((ceil_mid - rng.max()) // freq)
+   bin_res
 
 .. _timeseries.periods:
 
