@@ -456,7 +456,7 @@ def read_parquet(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
+        .. versionadded:: 1.3.0
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator

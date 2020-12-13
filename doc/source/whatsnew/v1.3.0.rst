@@ -13,6 +13,26 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_130.read_csv_json_http_headers:
+
+Custom HTTP(s) headers when reading csv or json files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When reading from a remote URL that is not handled by fsspec (ie. HTTP and
+HTTPS) the dictionary passed to ``storage_options`` will be used to create the
+headers included in the request.  This can be used to control the User-Agent
+header or send other custom headers (:issue:`36688`).
+For example:
+
+.. ipython:: python
+
+    headers = {"User-Agent": "pandas"}
+    df = pd.read_csv(
+        "https://download.bls.gov/pub/time.series/cu/cu.item",
+        sep="\t",
+        storage_options=headers
+    )
+
 
 .. _whatsnew_130.enhancements.other:
 
