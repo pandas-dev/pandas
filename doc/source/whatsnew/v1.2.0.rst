@@ -607,7 +607,6 @@ Datetimelike
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`.DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
 - Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
 - Bug in :class:`Period` constructor now correctly handles nanoseconds in the ``value`` argument (:issue:`34621` and :issue:`17053`)
-- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 
 Timedelta
 ^^^^^^^^^
