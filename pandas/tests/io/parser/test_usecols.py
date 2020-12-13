@@ -559,7 +559,7 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
 
 
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers
