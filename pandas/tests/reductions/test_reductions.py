@@ -679,6 +679,23 @@ class TestSeriesReductions:
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    def test_ops_consistency_mean(self, method, dtype):
+
+        # GH#34814
+        # consistency for nullable dtypes on empty or ALL-NA mean
+
+        # empty series
+        eser = Series([], dtype=dtype)
+        result = getattr(eser, method)()
+        assert result is pd.NA
+
+        # ALL-NA series
+        nser = Series([np.nan], dtype=dtype)
+        result = getattr(nser, method)()
+        assert result is pd.NA
+
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
 
@@ -688,16 +705,6 @@ class TestSeriesReductions:
         # float
         result = getattr(Series(dtype=float), method)()
         assert pd.isna(result)
-
-        # Nullable dtype on mean
-        eser = Series([], dtype="Int64")
-        nser = Series([np.nan], dtype="Int64")
-        if method == "mean":
-            result = getattr(eser, method)()
-            assert result is pd.NA
-
-            result = getattr(nser, method)()
-            assert result is pd.NA
 
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
