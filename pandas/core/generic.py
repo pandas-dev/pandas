@@ -4184,8 +4184,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     raise KeyError(f"{labels} not found in axis")
             else:
                 if isinstance(axis, MultiIndex) and labels.dtype == "object":
-                    # Set level to zero in case of MultiIndex and label is string, because
-                    # isin can't handle strings for MultiIndexes GH#36293
+                    # Set level to zero in case of MultiIndex and label is string,
+                    #  because isin can't handle strings for MultiIndexes GH#36293
                     indexer = ~axis.get_level_values(0).isin(labels)
                 else:
                     indexer = ~axis.isin(labels)
