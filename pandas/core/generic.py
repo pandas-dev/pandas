@@ -129,15 +129,15 @@ if TYPE_CHECKING:
 # able to share
 _shared_docs = {**_shared_docs}
 _shared_doc_kwargs.update(
-    dict(
-        axes="keywords for axes",
-        klass="Series/DataFrame",
-        axes_single_arg="int or labels for object",
-        args_transpose="axes to permute (int or label for object)",
-        optional_by="""
+    {
+        "axes": "keywords for axes",
+        "klass": "Series/DataFrame",
+        "axes_single_arg": "int or labels for object",
+        "args_transpose": "axes to permute (int or label for object)",
+        "optional_by": """
             by : str or list of str
                 Name or list of names to sort by""",
-    )
+    }
 )
 
 

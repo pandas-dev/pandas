@@ -112,21 +112,21 @@ if TYPE_CHECKING:
 __all__ = ["Series"]
 
 _shared_doc_kwargs.update(
-    dict(
-        axes="index",
-        klass="Series",
-        axes_single_arg="{0 or 'index'}",
-        axis="""axis : {0 or 'index'}
+    {
+        "axes": "index",
+        "klass": "Series",
+        "axes_single_arg": "{0 or 'index'}",
+        "axis": """axis : {0 or 'index'}
             Parameter needed for compatibility with DataFrame.""",
-        inplace="""inplace : boolean, default False
+        "inplace": """inplace : boolean, default False
             If True, performs operation inplace and returns None.""",
-        unique="np.ndarray",
-        duplicated="Series",
-        optional_by="",
-        optional_mapper="",
-        optional_labels="",
-        optional_axis="",
-    )
+        "unique": "np.ndarray",
+        "duplicated": "Series",
+        "optional_by": "",
+        "optional_mapper": "",
+        "optional_labels": "",
+        "optional_axis": "",
+    }
 )
 
 
