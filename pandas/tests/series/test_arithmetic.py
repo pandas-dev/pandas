@@ -756,12 +756,15 @@ class TestTimeSeriesArithmetic:
 )
 @pytest.mark.parametrize("box", [list, tuple, np.array, pd.Index, pd.Series, pd.array])
 @pytest.mark.parametrize("flex", [True, False])
-def test_series_ops_name_retention(flex, box, names, all_binary_operators):
+def test_series_ops_name_retention(flex, box, names, all_binary_operators, request):
     # GH#33930 consistent name retention
     op = all_binary_operators
 
-    if op is ops.rfloordiv and box in [list, tuple]:
-        pytest.xfail("op fails because of inconsistent ndarray-wrapping GH#28759")
+    if op is ops.rfloordiv and box in [list, tuple] and not flex:
+        mark = pytest.mark.xfail(
+            reason="op fails because of inconsistent ndarray-wrapping GH#28759"
+        )
+        request.node.add_marker(mark)
 
     left = Series(range(10), name=names[0])
     right = Series(range(10), name=names[1])

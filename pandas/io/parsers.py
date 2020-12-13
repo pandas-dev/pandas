@@ -276,11 +276,19 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
+
+    .. versionchanged:: 1.2
+
+       ``TextFileReader`` is a context manager.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
@@ -451,12 +459,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if chunksize or iterator:
         return parser
 
-    try:
-        data = parser.read(nrows)
-    finally:
-        parser.close()
-
-    return data
+    with parser:
+        return parser.read(nrows)
 
 
 _parser_defaults = {
@@ -1074,6 +1078,12 @@ class TextFileReader(abc.Iterator):
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 def _is_index_col(col):
     return col is not None and col is not False
@@ -1421,7 +1431,7 @@ class ParserBase:
                 name = self.index_names[i]
             else:
                 name = None
-            j = self.index_col[i]
+            j = i if self.index_col is None else self.index_col[i]
 
             if is_scalar(self.parse_dates):
                 return (j == self.parse_dates) or (
@@ -2477,9 +2487,8 @@ class PythonParser(ParserBase):
             content = content[1:]
 
         alldata = self._rows_to_cols(content)
-        data = self._exclude_implicit_index(alldata)
+        data, columns = self._exclude_implicit_index(alldata)
 
-        columns = self._maybe_dedup_names(self.columns)
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
@@ -2490,19 +2499,14 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(self, alldata):
         names = self._maybe_dedup_names(self.orig_names)
 
+        offset = 0
         if self._implicit_index:
-            excl_indices = self.index_col
+            offset = len(self.index_col)
 
-            data = {}
-            offset = 0
-            for i, col in enumerate(names):
-                while i + offset in excl_indices:
-                    offset += 1
-                data[col] = alldata[i + offset]
-        else:
-            data = {k: v for k, v in zip(names, alldata)}
+        if self._col_indices is not None and len(names) != len(self._col_indices):
+            names = [names[i] for i in sorted(self._col_indices)]
 
-        return data
+        return {name: alldata[i + offset] for i, name in enumerate(names)}, names
 
     # legacy
     def get_chunk(self, size=None):
@@ -2684,9 +2688,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if (self.usecols is not None and len(names) != len(self.usecols)) or (
-                    self.usecols is None and len(names) != len(columns[0])
-                ):
+                if len(names) > len(columns[0]):
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"

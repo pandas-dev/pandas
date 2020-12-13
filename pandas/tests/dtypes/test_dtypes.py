@@ -199,6 +199,14 @@ class TestCategoricalDtype(Base):
         # though CategoricalDtype has object kind, it cannot be string
         assert not is_string_dtype(CategoricalDtype())
 
+    def test_repr_range_categories(self):
+        rng = pd.Index(range(3))
+        dtype = CategoricalDtype(categories=rng, ordered=False)
+        result = repr(dtype)
+
+        expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
+        assert result == expected
+
 
 class TestDatetimeTZDtype(Base):
     @pytest.fixture

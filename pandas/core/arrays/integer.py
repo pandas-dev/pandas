@@ -1,11 +1,10 @@
-from datetime import timedelta
 import numbers
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, iNaT, lib, missing as libmissing
+from pandas._libs import iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -16,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_float,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -29,12 +27,10 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class _IntegerDtype(BaseMaskedDtype):
+class _IntegerDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -92,57 +88,6 @@ class _IntegerDtype(BaseMaskedDtype):
 
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "IntegerArray":
-        """
-        Construct IntegerArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            int_arr = IntegerArray(data.copy(), ~mask, copy=False)
-            results.append(int_arr)
-
-        return IntegerArray._concat_same_type(results)
-
-
-def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
-    """
-    Infer and return an integer array of the values.
-
-    Parameters
-    ----------
-    values : 1D list-like
-    dtype : dtype, optional
-        dtype to coerce
-    copy : bool, default False
-
-    Returns
-    -------
-    IntegerArray
-
-    Raises
-    ------
-    TypeError if incompatible types
-    """
-    values, mask = coerce_to_array(values, dtype=dtype, copy=copy)
-    return IntegerArray(values, mask)
 
 
 def safe_cast(values, dtype, copy: bool):
@@ -263,7 +208,7 @@ def coerce_to_array(
     return values, mask
 
 
-class IntegerArray(BaseMaskedArray):
+class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
 
@@ -361,7 +306,8 @@ class IntegerArray(BaseMaskedArray):
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
-        return integer_array(scalars, dtype=dtype, copy=copy)
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -494,7 +440,7 @@ class IntegerArray(BaseMaskedArray):
         return data
 
     def _cmp_method(self, other, op):
-        from pandas.core.arrays import BaseMaskedArray, BooleanArray
+        from pandas.core.arrays import BooleanArray
 
         mask = None
 
@@ -537,75 +483,6 @@ class IntegerArray(BaseMaskedArray):
             mask = self._mask | mask
 
         return BooleanArray(result, mask)
-
-    def _arith_method(self, other, op):
-        from pandas.core.arrays import FloatingArray
-
-        op_name = op.__name__
-        omask = None
-
-        if getattr(other, "ndim", 0) > 1:
-            raise NotImplementedError("can only perform ops with 1-d structures")
-
-        if isinstance(other, (IntegerArray, FloatingArray)):
-            other, omask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match")
-            if not (is_float_dtype(other) or is_integer_dtype(other)):
-                raise TypeError("can only perform ops with numeric values")
-
-        elif isinstance(other, (timedelta, np.timedelta64)):
-            other = Timedelta(other)
-
-        else:
-            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                raise TypeError("can only perform ops with numeric values")
-
-        if omask is None:
-            mask = self._mask.copy()
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | omask
-
-        if op_name == "pow":
-            # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask, False, mask)
-            # x ** 0 is 1.
-            if omask is not None:
-                mask = np.where((other == 0) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 0, False, mask)
-
-        elif op_name == "rpow":
-            # 1 ** x is 1.
-            if omask is not None:
-                mask = np.where((other == 1) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 1, False, mask)
-            # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-        if other is libmissing.NA:
-            result = np.ones_like(self._data)
-        else:
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op_name == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
-
-        return self._maybe_mask_result(result, mask, other, op_name)
 
     def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
