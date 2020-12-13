@@ -680,7 +680,7 @@ class TestSeriesReductions:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["mean"])
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean"])
     def test_ops_consistency_mean(self, method, dtype):
 
         # GH#34814
