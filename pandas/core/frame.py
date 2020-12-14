@@ -3512,7 +3512,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def eval(
         self, expr: str, inplace: bool = False, **kwargs
-    ) -> Optional[Union[AnyArrayLike, Scalar]]:
+    ) -> Optional[Union[AnyArrayLike, DataFrame, Scalar]]:
         """
         Evaluate a string describing operations on DataFrame columns.
 
