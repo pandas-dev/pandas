@@ -654,6 +654,16 @@ class Block(PandasObject):
 
             return Categorical(values, dtype=dtype)
 
+        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+            # if we are passed a datetime64[ns, tz]
+            if copy:
+                # this should be the only copy
+                values = values.copy()
+            # i.e. values.tz_localize("UTC").tz_convert(dtype.tz)
+            # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+            #  would be self.array_values().tz_localize(dtype.tz)
+            return DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
+
         if is_dtype_equal(values.dtype, dtype):
             if copy:
                 return values.copy()
@@ -2236,25 +2246,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
 
         assert isinstance(values, np.ndarray), type(values)
         return values
-
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
-        """
-        these automatically copy, so copy=True has no effect
-        raise on an except if raise == True
-        """
-        dtype = pandas_dtype(dtype)
-
-        # if we are passed a datetime64[ns, tz]
-        if is_datetime64tz_dtype(dtype):
-            values = self.values
-            if copy:
-                # this should be the only copy
-                values = values.copy()
-            values = DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
-            return self.make_block(values)
-
-        # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
