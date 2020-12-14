@@ -3215,7 +3215,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _set_item_frame_value(self, key, value: "DataFrame"):
+    def _set_item_frame_value(self, key, value: "DataFrame") -> None:
         self._ensure_valid_index(value)
 
         # align right-hand-side columns if self.columns
@@ -9545,21 +9545,20 @@ def _reindex_for_setitem(value, index: Index):
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        value = value._values.copy()
-    else:
+        return value._values.copy()
 
-        # GH#4107
-        try:
-            value = value.reindex(index)._values
-        except ValueError as err:
-            # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
-            if not value.index.is_unique:
-                # duplicate axis
-                raise err
+    # GH#4107
+    try:
+        value = value.reindex(index)._values
+    except ValueError as err:
+        # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
+        if not value.index.is_unique:
+            # duplicate axis
+            raise err
 
-            raise TypeError(
-                "incompatible index of inserted column with frame index"
-            ) from err
+        raise TypeError(
+            "incompatible index of inserted column with frame index"
+        ) from err
     return value
 
 
