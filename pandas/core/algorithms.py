@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -63,7 +64,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -453,7 +454,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
-    if needs_i8_conversion(comps.dtype):
+    elif is_interval_dtype(comps.dtype):
+        return cast("IntervalArray", comps).isin(values)
+
+    elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
         return array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
