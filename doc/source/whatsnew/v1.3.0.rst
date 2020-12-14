@@ -221,6 +221,7 @@ I/O
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
+- Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
 -
 
 Period
