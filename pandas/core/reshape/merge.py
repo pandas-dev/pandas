@@ -7,13 +7,13 @@ import datetime
 from functools import partial
 import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -57,19 +57,19 @@ if TYPE_CHECKING:
 @Substitution("\nleft : DataFrame")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left,
-    right,
+    left: FrameOrSeriesUnion,
+    right: FrameOrSeriesUnion,
     how: str = "inner",
-    on=None,
+    on: Optional[IndexLabel] = None,
     left_on=None,
     right_on=None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes=("_x", "_y"),
+    suffixes: Sequence[Optional[str]] = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
-    validate=None,
+    validate: Optional[str] = None,
 ) -> "DataFrame":
     op = _MergeOperation(
         left,
@@ -583,17 +583,17 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on=None,
+        on: Tuple[str, str] = None,
         left_on=None,
         right_on=None,
-        axis=1,
+        axis: int = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
-        suffixes=("_x", "_y"),
+        suffixes: Tuple[str, str] = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate=None,
+        validate: Optional[str] = None,
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)

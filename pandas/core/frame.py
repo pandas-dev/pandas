@@ -59,6 +59,7 @@ from pandas._typing import (
     FormattersType,
     FrameOrSeriesUnion,
     IndexKeyFunc,
+    IndexLabel,
     Label,
     Level,
     Renamer,
@@ -8222,18 +8223,18 @@ NaN 12.3   33.0
     @Appender(_merge_doc, indents=2)
     def merge(
         self,
-        right,
-        how="inner",
-        on=None,
+        right: FrameOrSeriesUnion,
+        how: str = "inner",
+        on: Optional[IndexLabel] = None,
         left_on=None,
         right_on=None,
-        left_index=False,
-        right_index=False,
-        sort=False,
-        suffixes=("_x", "_y"),
-        copy=True,
-        indicator=False,
-        validate=None,
+        left_index: bool = False,
+        right_index: bool = False,
+        sort: bool = False,
+        suffixes: Tuple[str, str] = ("_x", "_y"),
+        copy: bool = True,
+        indicator: bool = False,
+        validate: Optional[str] = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
