@@ -422,7 +422,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
