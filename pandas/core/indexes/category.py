@@ -324,7 +324,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            ("ordered", self.ordered),
+            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
+            # has no attribute "ordered"  [attr-defined]
+            ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
@@ -659,6 +661,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
     def _concat(self, to_concat: List["Index"], name: Label) -> "CategoricalIndex":
         # if calling index is category, don't check dtype of others
+        count = 0
+        for c in to_concat:
+            if not to_concat[0].ordered:
+                if count != 0:
+                    to_concat[count] = CategoricalIndex(
+                        list(to_concat[count].values), list(to_concat[0].categories))
+                # c.categories = ['a', 'b']
+            count += 1
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=name)
