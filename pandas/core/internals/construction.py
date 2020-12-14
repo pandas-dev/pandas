@@ -212,7 +212,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values):
+    if dtype is None and is_object_dtype(values.dtype):
 
         if values.ndim == 2 and values.shape[0] != 1:
             # transpose and separate blocks
