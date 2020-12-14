@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -27,13 +27,10 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
-from .numeric import NumericArray
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class _IntegerDtype(BaseMaskedDtype):
+class _IntegerDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
@@ -91,34 +88,6 @@ class _IntegerDtype(BaseMaskedDtype):
 
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "IntegerArray":
-        """
-        Construct IntegerArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            int_arr = IntegerArray(data.copy(), ~mask, copy=False)
-            results.append(int_arr)
-
-        return IntegerArray._concat_same_type(results)
 
 
 def safe_cast(values, dtype, copy: bool):
