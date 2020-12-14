@@ -87,7 +87,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.org/project/pandas) and on conda.
+package index](https://pypi.org/project/pandas) and on [conda](https://docs.conda.io/en/latest/).
 
 ```sh
 # conda
