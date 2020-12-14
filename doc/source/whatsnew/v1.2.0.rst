@@ -746,6 +746,7 @@ I/O
 - :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
+- :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
 
 Period
 ^^^^^^
