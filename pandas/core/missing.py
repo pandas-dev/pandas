@@ -419,7 +419,7 @@ def _from_derivatives(
         derivatives (that is a number equal to the number of points), or a
         list of derivatives to extract. This number includes the function
         value as 0th derivative.
-     extrapolate : bool, default False
+    extrapolate : bool, default False
         Whether to extrapolate to ouf-of-bounds points based on first and last
         intervals, or to return NaNs. Default: True.
 
