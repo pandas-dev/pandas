@@ -169,12 +169,16 @@ def generate_numba_groupby_ewma_func(
 def generate_numba_table_func(
     args: Tuple,
     kwargs: Dict[str, Any],
-    func: Callable[..., Scalar],
+    func: Callable[..., np.ndarray],
     engine_kwargs: Optional[Dict[str, bool]],
     name: str,
 ):
     """
-    Generate a numba jitted function to apply window calculations table-wise
+    Generate a numba jitted function to apply window calculations table-wise.
+
+    Func will be passed a M window size x N number of columns array, and
+    must return a 1 x N number of columns array. Func is intended to operate row-wise,
+    but the result will be transposed for axis=1.
 
     1. jit the user's function
     2. Return a rolling apply function with the jitted function inline
