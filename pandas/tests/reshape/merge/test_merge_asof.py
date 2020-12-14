@@ -482,10 +482,7 @@ class TestAsOfMerge:
         trades = self.trades
         quotes = self.quotes
 
-        msg = (
-            r"incompatible merge keys \[1\] dtype('\<M8\[ns\]') and dtype('float64'), "
-            r"must be the same type"
-        )
+        msg = r"incompatible merge keys \[1\] .* must be the same type"
 
         with pytest.raises(MergeError, match=msg):
             merge_asof(trades, quotes, left_on="time", right_on="bid", by="ticker")
@@ -546,7 +543,7 @@ class TestAsOfMerge:
             tolerance=1,
         )
 
-        msg = r"incompatible tolerance 1, must be compat with type dtype('\<M8\[ns\]')"
+        msg = r"incompatible tolerance .*, must be compat with type .*"
 
         # incompat
         with pytest.raises(MergeError, match=msg):
