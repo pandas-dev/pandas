@@ -1397,7 +1397,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
+        return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)
 
