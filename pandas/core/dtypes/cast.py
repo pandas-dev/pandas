@@ -80,11 +80,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCPeriodArray,
-    ABCPeriodIndex,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
@@ -1252,11 +1249,9 @@ def maybe_infer_to_datetimelike(
        leave inferred dtype 'date' alone
 
     """
-    # TODO: why not timedelta?
-    if isinstance(
-        value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
-    ):
-        return value
+    if isinstance(value, (ABCIndex, ABCExtensionArray)):
+        if not is_object_dtype(value.dtype):
+            raise ValueError("array-like value must be object-dtype")
 
     v = value
 
@@ -1431,7 +1426,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except (AttributeError, ValueError, TypeError):
+                    except (ValueError, TypeError):
                         pass
 
         # coerce datetimelike to object
