@@ -40,9 +40,9 @@ pandas supports 4 types of windowing operations:
 =============================   =================  ===========================   ===========================  ========================  ===================================
 Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method (version 1.3)
 =============================   =================  ===========================   ===========================  ========================  ===================================
-Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes
+Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)
 Weighted window                 ``rolling``        ``Window``                    No                           No                        No
-Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes
+Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)
 Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No
 =============================   =================  ===========================   ===========================  ========================  ===================================
 
