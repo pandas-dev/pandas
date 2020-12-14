@@ -442,6 +442,7 @@ def test_dtype_closed_mismatch():
         IntervalArray([], dtype=dtype, closed="neither")
 
     # same thing, but we are inferring closed in the IntervalDtype constructor
+    #  This is *not* desirable.
     with tm.assert_produces_warning(FutureWarning):
         dtype = IntervalDtype("interval[int64]")
 
