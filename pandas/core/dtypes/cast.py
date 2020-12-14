@@ -70,7 +70,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -80,11 +79,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCPeriodArray,
-    ABCPeriodIndex,
+    ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
@@ -965,7 +961,7 @@ def astype_nansafe(
     Parameters
     ----------
     arr : ndarray
-    dtype : np.dtype
+    dtype : np.dtype or ExtensionDtype
     copy : bool, default True
         If False, a view will be attempted but may fail, if
         e.g. the item sizes don't align.
@@ -978,11 +974,11 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
     # dispatch on extension dtype if needed
-    if is_extension_array_dtype(dtype):
+    if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
 
-    if not isinstance(dtype, np.dtype):
-        dtype = pandas_dtype(dtype)
+    elif not isinstance(dtype, np.dtype):
+        raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(
@@ -1252,11 +1248,9 @@ def maybe_infer_to_datetimelike(
        leave inferred dtype 'date' alone
 
     """
-    # TODO: why not timedelta?
-    if isinstance(
-        value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
-    ):
-        return value
+    if isinstance(value, (ABCIndex, ABCExtensionArray)):
+        if not is_object_dtype(value.dtype):
+            raise ValueError("array-like value must be object-dtype")
 
     v = value
 
@@ -1431,7 +1425,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                             value = to_timedelta(value, errors="raise")._values
                     except OutOfBoundsDatetime:
                         raise
-                    except (AttributeError, ValueError, TypeError):
+                    except (ValueError, TypeError):
                         pass
 
         # coerce datetimelike to object
