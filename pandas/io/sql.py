@@ -478,6 +478,41 @@ def read_sql(
     -------
     DataFrame or Iterator[DataFrame]
 
+    Examples
+    --------
+    Read data from SQL via either a SQL tablename or a SQL query
+
+    >>> pd.read_sql('table_name', 'postgres:///db_name')  # doctest:+SKIP
+
+    >>> pd.read_sql('SELECT * FROM table_name', 'postgres:///db_name')  # doctest:+SKIP
+
+    Apply dateparsing to columns through the "parse_dates" argument
+
+    >>> pd.read_sql('table_name',
+    ...             'postgres:///db_name',
+    ...             parse_dates=["date_column"])  # doctest:+SKIP
+
+    The "parse_dates" argument calls pd.to_datetime on the provided columns. Custom
+    argument values for applying pd.to_datetime on a column are specified via a
+    dictionary format:
+    1. Ignore errors while parsing the values of "date_column"
+
+    >>> pd.read_sql('table_name',
+    ...             'postgres:///db_name',
+    ...              parse_dates={"date_column": {"errors": "ignore"})  # doctest:+SKIP
+
+    2. Apply a dayfirst dateparsing order on the values of "date_column"
+
+    >>> pd.read_sql('table_name',
+    ...             'postgres:///db_name',
+    ...             parse_dates={"date_column": {"dayfirst": True})  # doctest:+SKIP
+
+    3. Apply custom formatting when dateparsing the values of "date_column"
+
+    >>> pd.read_sql('table_name',
+    ...             'postgres:///db_name',
+    ...             parse_dates={"date_column": {"format": "%d/%m/%Y"})  # doctest:+SKIP
+
     See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
