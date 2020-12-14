@@ -313,6 +313,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             self._dtype = self._dtype.update_dtype(dtype)
             return
 
+        if not is_list_like(values):
+            # GH#38433
+            raise TypeError("Categorical values must be list-like")
+
         # null_mask indicates missing values we want to exclude from inference.
         # This means: only missing values in list-likes (not arrays/ndframes).
         null_mask = np.array(False)

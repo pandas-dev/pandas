@@ -149,7 +149,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug in :class:`Categorical` constructor incorrectly accepting scalar values (:issue:`38433`)
 -
 -
 
