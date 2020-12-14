@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 
 def mask_missing(
-    arr: ArrayLike, values_to_mask: Union[AnyArrayLike, Scalar, Sequence[Any]]
+    arr: AnyArrayLike, values_to_mask: Union[AnyArrayLike, Scalar, Sequence[Any]]
 ) -> np.ndarray:
     """
     Return a masking array of same size/shape as arr
