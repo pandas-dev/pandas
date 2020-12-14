@@ -230,9 +230,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 left = left.astype(dtype.subtype)
                 right = right.astype(dtype.subtype)
 
-            if dtype._closed is None:
+            if dtype.closed is None:
                 # possibly loading an old pickle
                 dtype = IntervalDtype(dtype.subtype, closed)
+            elif closed != dtype.closed:
+                raise ValueError("closed keyword does not match dtype.closed")
 
         # coerce dtypes to match if needed
         if is_float_dtype(left) and is_integer_dtype(right):

@@ -1187,6 +1187,7 @@ class IntervalDtype(PandasExtensionDtype):
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
         self._subtype = state["subtype"]
+
         # backward-compat older pickles won't have "closed" key
         self._closed = state.pop("closed", None)
         if self._closed is None:
@@ -1195,6 +1196,7 @@ class IntervalDtype(PandasExtensionDtype):
                 "attribute.  Set dtype._closed to one of 'left', 'right', 'both', "
                 "'neither' before using this IntervalDtype object.",
                 UserWarning,
+                stacklevel=2,
             )
 
     @classmethod

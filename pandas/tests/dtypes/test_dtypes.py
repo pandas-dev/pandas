@@ -781,6 +781,15 @@ class TestIntervalDtype(Base):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
 
+    def test_unpickling_without_closed(self):
+        # GH#38394
+        dtype = IntervalDtype("interval")
+
+        assert dtype._closed is None
+
+        # FIXME: with tm.assert_produces_warning(UserWarning):
+        tm.round_trip_pickle(dtype)
+
 
 class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(
