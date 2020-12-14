@@ -108,7 +108,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
-    _is_numeric_dtype = True
+    _is_numeric_dtype = False
 
     _data: TimedeltaArray
 

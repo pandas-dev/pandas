@@ -38,10 +38,20 @@ class TestIntervalIndex:
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
-        # GH 19101: empty result, different dtypes -> common dtype is object
+        # GH 19101: empty result, different numeric dtypes -> common dtype is f8
         other = empty_index(dtype="float64", closed=closed)
         result = index.union(other, sort=sort)
-        expected = Index([], dtype=object)
+        expected = other
+        tm.assert_index_equal(result, expected)
+
+        other = index.union(index, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        other = empty_index(dtype="uint64", closed=closed)
+        result = index.union(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        result = other.union(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
