@@ -7092,12 +7092,12 @@ NaN 12.3   33.0
         values=None,
         index=None,
         columns=None,
-        aggfunc: AggFuncType = "mean",
+        aggfunc="mean",
         fill_value=None,
-        margins: bool = False,
+        margins=False,
         dropna=True,
         margins_name="All",
-        observed: bool = False,
+        observed=False,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 
