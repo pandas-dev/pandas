@@ -8158,7 +8158,13 @@ NaN 12.3   33.0
         )
 
     def _join_compat(
-        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+        self,
+        other,
+        on: Optional[IndexLabel] = None,
+        how: str = "left",
+        lsuffix: str = "",
+        rsuffix: str = "",
+        sort: bool = False,
     ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
