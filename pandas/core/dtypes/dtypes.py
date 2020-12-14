@@ -1247,8 +1247,8 @@ class IntervalDtype(PandasExtensionDtype):
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
 
-        closed = dtypes[0].closed
-        if not all(x.closed == closed for x in dtypes):
+        closed = cast("IntervalDtype", dtypes[0]).closed
+        if not all(cast("IntervalDtype", x).closed == closed for x in dtypes):
             return np.dtype(object)
 
         from pandas.core.dtypes.cast import find_common_type
