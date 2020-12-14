@@ -721,7 +721,7 @@ We use the standard convention for referencing the matplotlib API:
    import matplotlib.pyplot as plt
 
    plt.close("all")
-   
+
 The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window.
 
 .. ipython:: python
