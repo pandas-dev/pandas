@@ -80,11 +80,13 @@ which will first group the data by the specified keys and then perform a windowi
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operaion over an entire :class:`DataFrame` instead of a single column or row at a time.
-This can provide a useful performance benefit for :class:`DataFrame`s with a many columns or rows
+This can provide a useful performance benefit for :class:`DataFrame`s with many columns or rows
 (with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing
 operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified
 in the corresponding method call.
 
+For example, a `weighted mean <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean>`__ calculation can
+be calculated with :meth:`~Rolling.apply` by specifying a separate column of weights.
 
 .. ipython:: python
 
