@@ -74,7 +74,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import IOHandles, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -774,7 +774,7 @@ class TextFileReader(abc.Iterator):
 
     def __init__(self, f, engine=None, **kwds):
 
-        self.f = stringify_path(f)
+        self.f = f
 
         if engine is not None:
             engine_specified = True
@@ -859,14 +859,14 @@ class TextFileReader(abc.Iterator):
 
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
-        if is_file_like(f):
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__next__"):
             # The C engine doesn't need the file-like to have the "__next__"
             # attribute. However, the Python engine explicitly calls
             # "__next__(...)" when iterating through such an object, meaning it
             # needs to have that attribute
-            if engine != "c" and not hasattr(f, "__next__"):
-                msg = "The 'python' engine cannot iterate through this file buffer."
-                raise ValueError(msg)
+            raise ValueError(
+                "The 'python' engine cannot iterate through this file buffer."
+            )
 
     def _clean_options(self, options, engine):
         result = options.copy()

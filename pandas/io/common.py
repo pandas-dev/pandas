@@ -152,6 +152,7 @@ def validate_header_arg(header) -> None:
 
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
+    convert_file_like: bool = False,
 ) -> FileOrBuffer[AnyStr]:
     """
     Attempt to convert a path-like object to a string.
@@ -169,12 +170,15 @@ def stringify_path(
     Objects supporting the fspath protocol (python 3.6+) are coerced
     according to its __fspath__ method.
 
-    For backwards compatibility with older pythons, pathlib.Path and
-    py.path objects are specially coerced.
-
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
+    if not convert_file_like and is_file_like(filepath_or_buffer):
+        # GH 38125: some fsspec objects implement os.PathLike but have already opened a
+        # file. This prevents opening the file a second time. infer_compression calls
+        # this function with convert_file_like=True to infer the compression.
+        return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
+
     if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
@@ -462,7 +466,7 @@ def infer_compression(
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
+        filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
