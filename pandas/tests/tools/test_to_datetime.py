@@ -73,10 +73,16 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_format_some_invalid_numbers(self):
         ser = Series([20181223, 20161017, -9900, 20171220, 20170511])
-        expected = Series([Timestamp('2018-12-23'), Timestamp('2016-10-17'),
-                           -9900,
-                           Timestamp('2017-12-20'), Timestamp('2017-05-11')])
-        result = to_datetime(ser, format="%Y%m%d", errors='ignore')
+        expected = Series(
+            [
+                Timestamp("2018-12-23"),
+                Timestamp("2016-10-17"),
+                -9900,
+                Timestamp("2017-12-20"),
+                Timestamp("2017-05-11"),
+            ]
+        )
+        result = to_datetime(ser, format="%Y%m%d", errors="ignore")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
