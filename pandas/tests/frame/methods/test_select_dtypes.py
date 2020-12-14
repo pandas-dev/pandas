@@ -376,7 +376,3 @@ class TestSelectDtypes:
         df = DataFrame(arr)
         is_selected = df.select_dtypes(np.number).shape == df.shape
         assert is_selected == expected
-
-        # da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
-        # df = DataFrame(da)
-        # assert df.select_dtypes(np.number).shape != df.shape
