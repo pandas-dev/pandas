@@ -148,10 +148,10 @@ class TestTableMethod:
 
         df = DataFrame(np.eye(3))
         result = df.rolling(
-            2, method="table", axis=axis, center=center, closed=closed
+            2, method="table", axis=axis, center=center, closed=closed, min_periods=0
         ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         expected = df.rolling(
-            2, method="single", axis=axis, center=center, closed=closed
+            2, method="single", axis=axis, center=center, closed=closed, min_periods=0
         ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
         tm.assert_frame_equal(result, expected)
 
