@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -746,7 +746,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 keys = np.insert(keys, 0, self.fill_value)
                 counts = np.insert(counts, 0, fcounts)
 
-        if not isinstance(keys, ABCIndexClass):
+        if not isinstance(keys, ABCIndex):
             keys = Index(keys)
         return Series(counts, index=keys)
 

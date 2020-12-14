@@ -1595,3 +1595,12 @@ def test_missing_parse_dates_column_raises(
         parser.read_csv(
             content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
         )
+
+
+def test_date_parser_and_names(all_parsers):
+    # GH#33699
+    parser = all_parsers
+    data = StringIO("""x,y\n1,2""")
+    result = parser.read_csv(data, parse_dates=["B"], names=["B"])
+    expected = DataFrame({"B": ["y", "2"]}, index=["x", "1"])
+    tm.assert_frame_equal(result, expected)
