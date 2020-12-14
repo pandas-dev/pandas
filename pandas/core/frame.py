@@ -3227,6 +3227,13 @@ class DataFrame(NDFrame, OpsMixin):
         # now align rows
         value = _reindex_for_setitem(value, self.index)
         value = value.T
+        self._set_item_mgr(key, value)
+
+    def _iset_item_mgr(self, loc: int, value) -> None:
+        self._mgr.iset(loc, value)
+        self._clear_item_cache()
+
+    def _set_item_mgr(self, key, value):
         value = _maybe_atleast_2d(value)
 
         try:
@@ -3243,15 +3250,8 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item_mgr(self, loc: int, value) -> None:
-        self._mgr.iset(loc, value)
-        self._clear_item_cache()
-
     def _iset_item(self, loc: int, value):
-
-        # technically _sanitize_column expects a label, not a position,
-        #  but the behavior is the same as long as we pass broadcast=False
-        value = self._sanitize_column(loc, value, broadcast=False)
+        value = self._sanitize_column(value)
         value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)
 
@@ -3271,7 +3271,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(key, value)
+        value = self._sanitize_column(value)
 
         if (
             key in self.columns
@@ -3284,21 +3284,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1))
 
-        value = _maybe_atleast_2d(value)
-
-        try:
-            loc = self._info_axis.get_loc(key)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
-        else:
-            self._iset_item_mgr(loc, value)
-
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
+        self._set_item_mgr(key, value)
 
     def _set_value(self, index, col, value, takeable: bool = False):
         """
@@ -3832,7 +3818,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
-        value = self._sanitize_column(column, value, broadcast=False)
+        value = self._sanitize_column(value)
         value = _maybe_atleast_2d(value)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
@@ -3904,20 +3890,14 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, key, value, broadcast: bool = True):
+    def _sanitize_column(self, value):
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
 
         Parameters
         ----------
-        key : object
         value : scalar, Series, or array-like
-        broadcast : bool, default True
-            If ``key`` matches multiple duplicate column names in the
-            DataFrame, this parameter indicates whether ``value`` should be
-            tiled so that the returned array contains a (duplicated) column for
-            each occurrence of the key. If False, ``value`` will not be tiled.
 
         Returns
         -------
