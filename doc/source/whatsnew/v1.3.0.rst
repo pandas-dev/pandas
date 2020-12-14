@@ -211,7 +211,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
 -
 
 I/O
