@@ -119,6 +119,7 @@ def test_window_with_args():
     tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no_scipy
 def test_win_type_with_method_invalid():
     with pytest.raises(
         NotImplementedError, match="'single' is the only supported method type."
