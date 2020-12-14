@@ -3160,6 +3160,8 @@ class DataFrame(NDFrame, OpsMixin):
             self._setitem_frame(key, value)
         elif isinstance(key, (Series, np.ndarray, list, Index)):
             self._setitem_array(key, value)
+        elif isinstance(value, DataFrame):
+            self._set_item_frame_value(key, value)
         else:
             # set column
             self._set_item(key, value)
@@ -3213,15 +3215,47 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
+    def _set_item_frame_value(self, key, value: "DataFrame") -> None:
+        self._ensure_valid_index(value)
+
+        # align right-hand-side columns if self.columns
+        # is multi-index and self[key] is a sub-frame
+        if isinstance(self.columns, MultiIndex) and key in self.columns:
+            loc = self.columns.get_loc(key)
+            if isinstance(loc, (slice, Series, np.ndarray, Index)):
+                cols = maybe_droplevels(self.columns[loc], key)
+                if len(cols) and not cols.equals(value.columns):
+                    value = value.reindex(cols, axis=1)
+
+        # now align rows
+        value = _reindex_for_setitem(value, self.index)
+        value = value.T
+        self._set_item_mgr(key, value)
+
     def _iset_item_mgr(self, loc: int, value) -> None:
         self._mgr.iset(loc, value)
         self._clear_item_cache()
 
-    def _iset_item(self, loc: int, value, broadcast: bool = False):
+    def _set_item_mgr(self, key, value):
+        value = _maybe_atleast_2d(value)
 
-        # technically _sanitize_column expects a label, not a position,
-        #  but the behavior is the same as long as we pass broadcast=False
-        value = self._sanitize_column(loc, value, broadcast=broadcast)
+        try:
+            loc = self._info_axis.get_loc(key)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self._mgr.insert(len(self._info_axis), key, value)
+        else:
+            self._iset_item_mgr(loc, value)
+
+        # check if we are modifying a copy
+        # try to set first as we want an invalid
+        # value exception to occur first
+        if len(self):
+            self._check_setitem_copy()
+
+    def _iset_item(self, loc: int, value):
+        value = self._sanitize_column(value)
+        value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)
 
         # check if we are modifying a copy
@@ -3240,21 +3274,20 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value = self._sanitize_column(key, value)
+        value = self._sanitize_column(value)
 
-        try:
-            loc = self._info_axis.get_loc(key)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
-        else:
-            self._iset_item_mgr(loc, value)
+        if (
+            key in self.columns
+            and value.ndim == 1
+            and not is_extension_array_dtype(value)
+        ):
+            # broadcast across multiple columns if necessary
+            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
+                existing_piece = self[key]
+                if isinstance(existing_piece, DataFrame):
+                    value = np.tile(value, (len(existing_piece.columns), 1))
 
-        # check if we are modifying a copy
-        # try to set first as we want an invalid
-        # value exception to occur first
-        if len(self):
-            self._check_setitem_copy()
+        self._set_item_mgr(key, value)
 
     def _set_value(self, index, col, value, takeable: bool = False):
         """
@@ -3790,7 +3823,8 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
-        value = self._sanitize_column(column, value, broadcast=False)
+        value = self._sanitize_column(value)
+        value = _maybe_atleast_2d(value)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -3861,20 +3895,14 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(self, key, value, broadcast: bool = True):
+    def _sanitize_column(self, value):
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied and converted into an array.
 
         Parameters
         ----------
-        key : object
         value : scalar, Series, or array-like
-        broadcast : bool, default True
-            If ``key`` matches multiple duplicate column names in the
-            DataFrame, this parameter indicates whether ``value`` should be
-            tiled so that the returned array contains a (duplicated) column for
-            each occurrence of the key. If False, ``value`` will not be tiled.
 
         Returns
         -------
@@ -3882,42 +3910,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        def reindexer(value):
-            # reindex if necessary
-
-            if value.index.equals(self.index) or not len(self.index):
-                value = value._values.copy()
-            else:
-
-                # GH 4107
-                try:
-                    value = value.reindex(self.index)._values
-                except ValueError as err:
-                    # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
-                    if not value.index.is_unique:
-                        # duplicate axis
-                        raise err
-
-                    # other
-                    raise TypeError(
-                        "incompatible index of inserted column with frame index"
-                    ) from err
-            return value
-
+        # We should never get here with DataFrame value
         if isinstance(value, Series):
-            value = reindexer(value)
-
-        elif isinstance(value, DataFrame):
-            # align right-hand-side columns if self.columns
-            # is multi-index and self[key] is a sub-frame
-            if isinstance(self.columns, MultiIndex) and key in self.columns:
-                loc = self.columns.get_loc(key)
-                if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                    cols = maybe_droplevels(self.columns[loc], key)
-                    if len(cols) and not cols.equals(value.columns):
-                        value = value.reindex(cols, axis=1)
-            # now align rows
-            value = reindexer(value).T
+            value = _reindex_for_setitem(value, self.index)
 
         elif isinstance(value, ExtensionArray):
             # Explicitly copy here, instead of in sanitize_index,
@@ -3948,18 +3943,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             value = construct_1d_arraylike_from_scalar(value, len(self), dtype=None)
 
-        # return internal types directly
-        if is_extension_array_dtype(value):
-            return value
-
-        # broadcast across multiple columns if necessary
-        if broadcast and key in self.columns and value.ndim == 1:
-            if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
-                existing_piece = self[key]
-                if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1))
-
-        return np.atleast_2d(np.asarray(value))
+        return value
 
     @property
     def _series(self):
@@ -9557,3 +9541,33 @@ def _from_nested_dict(data) -> collections.defaultdict:
         for col, v in s.items():
             new_data[col][index] = v
     return new_data
+
+
+def _reindex_for_setitem(value, index: Index):
+    # reindex if necessary
+
+    if value.index.equals(index) or not len(index):
+        return value._values.copy()
+
+    # GH#4107
+    try:
+        value = value.reindex(index)._values
+    except ValueError as err:
+        # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
+        if not value.index.is_unique:
+            # duplicate axis
+            raise err
+
+        raise TypeError(
+            "incompatible index of inserted column with frame index"
+        ) from err
+    return value
+
+
+def _maybe_atleast_2d(value):
+    # TODO(EA2D): not needed with 2D EAs
+
+    if is_extension_array_dtype(value):
+        return value
+
+    return np.atleast_2d(np.asarray(value))
