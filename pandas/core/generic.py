@@ -4440,11 +4440,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         target = self._get_axis(axis)
-
         indexer = get_indexer_indexer(
             target, level, ascending, kind, na_position, sort_remaining, key
         )
-
         if indexer is None:
             if inplace:
                 return

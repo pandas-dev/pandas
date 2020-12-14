@@ -386,7 +386,6 @@ class _Concatenator:
             ):
                 objs = non_empties
                 sample = objs[0]
-
         if sample is None:
             sample = objs[0]
         self.objs = objs
@@ -502,12 +501,12 @@ class _Concatenator:
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
                         indexers[ax] = obj_labels.reindex(new_labels)[1]
-
                 mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
                 mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
+
             if not self.copy:
                 new_data._consolidate_inplace()
 
@@ -578,13 +577,13 @@ class _Concatenator:
 
         if self.keys is None:
             concat_axis = _concat_indexes(indexes)
+
         else:
             concat_axis = _make_concat_multiindex(
                 indexes, self.keys, self.levels, self.names
             )
 
         self._maybe_check_integrity(concat_axis)
-
         return concat_axis
 
     def _maybe_check_integrity(self, concat_index: Index):
