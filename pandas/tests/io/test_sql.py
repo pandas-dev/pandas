@@ -369,6 +369,54 @@ class PandasSQLTest:
 
         self.test_frame3 = DataFrame(data, columns=columns)
 
+    def _load_types_test_data(self, data):
+        def _filter_to_flavor(flavor, df):
+            flavor_dtypes = {
+                "sqlite": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "int64",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "mysql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "postgresql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "DateColWithTz": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+            }
+
+            dtypes = flavor_dtypes[flavor]
+            return df[dtypes.keys()].astype(dtypes)
+
+        df = DataFrame(data)
+        self.types_test = {
+            flavor: _filter_to_flavor(flavor, df)
+            for flavor in ("sqlite", "mysql", "postgresql")
+        }
+
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
         self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
@@ -404,6 +452,8 @@ class PandasSQLTest:
             self._get_exec().execute(
                 ins["query"], [d[field] for field in ins["fields"]]
             )
+
+        self._load_types_test_data(data)
 
     def _count_rows(self, table_name):
         result = (
@@ -740,6 +790,36 @@ class _TestSQLApi(PandasSQLTest):
             Timestamp("2010-10-10"),
             Timestamp("2010-12-12"),
         ]
+
+    @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
+    @pytest.mark.parametrize(
+        "read_sql, text, mode",
+        [
+            (sql.read_sql, "SELECT * FROM types_test_data", ("sqlalchemy", "fallback")),
+            (sql.read_sql, "types_test_data", ("sqlalchemy")),
+            (
+                sql.read_sql_query,
+                "SELECT * FROM types_test_data",
+                ("sqlalchemy", "fallback"),
+            ),
+            (sql.read_sql_table, "types_test_data", ("sqlalchemy")),
+        ],
+    )
+    def test_custom_dateparsing_error(self, read_sql, text, mode, error):
+        if self.mode in mode:
+            expected = self.types_test[self.flavor].astype(
+                {"DateCol": "datetime64[ns]"}
+            )
+
+            result = read_sql(
+                text,
+                con=self.conn,
+                parse_dates={
+                    "DateCol": {"errors": error},
+                },
+            )
+
+            tm.assert_frame_equal(result, expected)
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col

@@ -79,7 +79,12 @@ def _process_parse_dates_argument(parse_dates):
 
 def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
-        return to_datetime(col, errors="ignore", **format)
+        # GH35185 Allow custom error values in parse_dates argument of
+        # read_sql like functions.
+        # Format can take on custom to_datetime argument values such as
+        # {"errors": "coerce"} or {"dayfirst": True}
+        error = format.pop("errors", None) or "ignore"
+        return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
         # GH17855
