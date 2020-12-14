@@ -8200,10 +8200,10 @@ NaN 12.3   33.0
         self,
         other,
         on=None,
-        how: str = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
-        sort: bool = False,
+        how="left",
+        lsuffix="",
+        rsuffix="",
+        sort=False,
     ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
@@ -8269,17 +8269,17 @@ NaN 12.3   33.0
     def merge(
         self,
         right,
-        how: str = "inner",
+        how="inner",
         on=None,
         left_on=None,
         right_on=None,
-        left_index: bool = False,
-        right_index: bool = False,
-        sort: bool = False,
+        left_index=False,
+        right_index=False,
+        sort=False,
         suffixes=("_x", "_y"),
-        copy: bool = True,
-        indicator: bool = False,
-        validate: Optional[str] = None,
+        copy=True,
+        indicator=False,
+        validate=None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
