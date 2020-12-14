@@ -1866,6 +1866,8 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 col = item_labels[indexer[info_axis]]
                 loc = item_labels.get_loc(col)
+                if isinstance(value, ABCDataFrame):
+                    return self.obj._set_item_frame_value(col, value)
                 self.obj._iset_item(loc, value, inplace=True)
                 return
 
