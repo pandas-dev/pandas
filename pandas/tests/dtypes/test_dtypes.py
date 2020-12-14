@@ -563,6 +563,11 @@ class TestIntervalDtype(Base):
 
         assert dtype.closed == "right"  # default
 
+    def test_closed_mismatch(self):
+        msg = "'closed' keyword does not match value specified in dtype string"
+        with pytest.raises(ValueError, match=msg):
+            IntervalDtype("interval[int64, left]", "right")
+
     @pytest.mark.parametrize("subtype", [None, "interval", "Interval"])
     def test_construction_generic(self, subtype):
         # generic

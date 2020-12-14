@@ -1050,6 +1050,12 @@ class IntervalDtype(PandasExtensionDtype):
                     gd = m.groupdict()
                     subtype = gd["subtype"]
                     if gd.get("closed", None) is not None:
+                        if closed is not None:
+                            if closed != gd["closed"]:
+                                raise ValueError(
+                                    "'closed' keyword does not match value "
+                                    "specified in dtype string"
+                                )
                         closed = gd["closed"]
                     elif closed is not None:
                         # user passed eg. IntervalDtype("interval[int64]", "left")
@@ -1237,6 +1243,10 @@ class IntervalDtype(PandasExtensionDtype):
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # NB: this doesn't handle checking for closed match
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
+            return None
+
+        closed = dtypes[0].closed
+        if not all(x.closed == closed for x in dtypes):
             return np.dtype(object)
 
         from pandas.core.dtypes.cast import find_common_type
@@ -1244,4 +1254,4 @@ class IntervalDtype(PandasExtensionDtype):
         common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:
             return np.dtype(object)
-        return IntervalDtype(common)
+        return IntervalDtype(common, closed=closed)
