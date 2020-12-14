@@ -44,8 +44,14 @@ class TestIntervalIndex:
         expected = other
         tm.assert_index_equal(result, expected)
 
+        other = index.union(index, sort=sort)
+        tm.assert_index_equal(result, expected)
+
         other = empty_index(dtype="uint64", closed=closed)
         result = index.union(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        result = other.union(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
