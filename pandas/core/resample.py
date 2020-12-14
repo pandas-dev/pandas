@@ -1388,6 +1388,12 @@ class TimeGrouper(Grouper):
             if label is None:
                 label = "right"
         else:
+            # The backward resample sets ``closed`` to ``'right'`` by default
+            # since the last value should be considered as the edge point for
+            # the last bin. When origin in "end" or "end_day", the value for a
+            # specific ``Timestamp`` index stands for the resample result from
+            # the current ``Timestamp`` minus ``freq`` to the current
+            # ``Timestamp`` with a right close.
             if origin in ["end", "end_day"]:
                 if closed is None:
                     closed = "right"
