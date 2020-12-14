@@ -7,7 +7,7 @@ import datetime
 from functools import partial
 import hashlib
 import string
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -66,7 +66,7 @@ def merge(
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes: Sequence[Optional[str]] = ("_x", "_y"),
+    suffixes: Tuple[str, str] = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
@@ -583,7 +583,7 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on: Tuple[str, str] = None,
+        on: Optional[IndexLabel] = None,
         left_on=None,
         right_on=None,
         axis: int = 1,
