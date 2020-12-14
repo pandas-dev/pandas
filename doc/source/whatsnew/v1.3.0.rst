@@ -133,7 +133,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
+- Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
 -
 -
 
