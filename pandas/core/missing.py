@@ -393,7 +393,7 @@ def _interpolate_scipy_wrapper(
 def _from_derivatives(
     xi: np.ndarray,
     yi: np.ndarray,
-    x: Union[Scalar, ArrayLike],
+    x: np.ndarray,
     order: Optional[Union[int, List[int]]] = None,
     der: Union[int, List[int]] = 0,
     extrapolate: bool = False,
@@ -444,7 +444,7 @@ def _from_derivatives(
 def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
-    x: Union[Scalar, ArrayLike],
+    x: np.ndarray,
     der: int = 0,
     axis: int = 0,
 ) -> Union[Scalar, ArrayLike]:
@@ -463,7 +463,7 @@ def _akima_interpolate(
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
-    x : scalar or array_like
+    x : array_like
         Of length M.
     der : int, optional
         How many derivatives to extract; None for all potentially
@@ -493,7 +493,7 @@ def _akima_interpolate(
 def _cubicspline_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
-    x: Union[ArrayLike, Scalar],
+    x: np.ndarray,
     axis: int = 0,
     bc_type: Union[str, Tuple] = "not-a-knot",
     extrapolate: Optional[Union[bool, str]] = None,
@@ -512,7 +512,7 @@ def _cubicspline_interpolate(
         Array containing values of the dependent variable. It can have
         arbitrary number of dimensions, but the length along ``axis``
         (see below) must match the length of ``x``. Values must be finite.
-    x : scalar or array_like, shape (m,)
+    x : array_like, shape (m,)
     axis : int, optional
         Axis along which `y` is assumed to be varying. Meaning that for
         ``x[i]`` the corresponding values are ``np.take(y, i, axis=axis)``.
