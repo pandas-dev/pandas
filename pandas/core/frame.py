@@ -3719,12 +3719,14 @@ class DataFrame(NDFrame, OpsMixin):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                # error: Argument 1 to "tuple" has incompatible type
-                # "FrozenSet[Union[ExtensionDtype, str, Any, Type[str],
-                # Type[float], Type[int], Type[complex], Type[bool]]]";
-                # expected "Iterable[Union[type, Tuple[Any, ...]]]"
-                if issubclass(
-                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                if (
+                    issubclass(
+                        unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                    )
+                    or (
+                        np.number in dtypes_set
+                        and getattr(unique_dtype, "_is_numeric", False)
+                    )
                 )
             ]
             return extracted_dtypes
