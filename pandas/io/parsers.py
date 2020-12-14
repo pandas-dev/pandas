@@ -1714,6 +1714,7 @@ class ParserBase:
                         except (AttributeError, TypeError):
                             # invalid input to is_bool_dtype
                             pass
+                    cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals

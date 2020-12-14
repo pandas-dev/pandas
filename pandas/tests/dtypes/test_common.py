@@ -716,6 +716,8 @@ def test__is_dtype_type(input_param, result):
 def test_astype_nansafe(val, typ):
     arr = np.array([val])
 
+    typ = np.dtype(typ)
+
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
         astype_nansafe(arr, dtype=typ)
@@ -738,6 +740,8 @@ def test_astype_nansafe(val, typ):
 def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
     arr = np.array([from_type("2018")])
 
+    to_type = np.dtype(to_type)
+
     with pytest.raises(TypeError, match="cannot astype"):
         astype_nansafe(arr, dtype=to_type)
 
@@ -745,7 +749,7 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
     arr = np.array([from_type("NaT")])
-    result = astype_nansafe(arr, dtype="object")
+    result = astype_nansafe(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]
 
