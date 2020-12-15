@@ -132,6 +132,7 @@ AggObjType = Union[
     "Resampler",
 ]
 ApplyFuncType = Union[np.ufunc, AggFuncType]
+PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
