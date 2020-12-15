@@ -1514,11 +1514,8 @@ class Datetime64Formatter(GenericArrayFormatter):
 
     def _format_strings(self) -> List[str]:
         """ we by definition have DO NOT have a TZ """
-        values = self.values
-        flat_values = values.ravel()
-
-        if not isinstance(flat_values, DatetimeArray):
-            flat_values = DatetimeArray(flat_values)
+        values = np.asarray(self.values)
+        flat_values = DatetimeArray(values.ravel())
 
         if self.formatter is not None and callable(self.formatter):
             fmt_values = [self.formatter(x) for x in flat_values]
