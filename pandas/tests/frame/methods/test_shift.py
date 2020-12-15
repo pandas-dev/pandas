@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, date_range, offsets
+from pandas import CategoricalIndex, DataFrame, Index, Series, date_range, offsets
 import pandas._testing as tm
 
 
@@ -291,4 +291,13 @@ class TestDataFrameShift:
             result = df2.shift(1, axis=1, fill_value=0)
 
         expected = DataFrame({"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_shift_axis1_categorical_columns(self):
+        # GH#38434
+        ci = CategoricalIndex(["a", "b"])
+        df = DataFrame([[1, 2], [3, 4]], index=ci, columns=ci)
+        result = df.shift(axis=1)
+
+        expected = DataFrame({"a": [np.nan, np.nan], "b": [1, 3]}, index=ci, columns=ci)
         tm.assert_frame_equal(result, expected)
