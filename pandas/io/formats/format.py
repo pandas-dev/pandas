@@ -1521,18 +1521,17 @@ class Datetime64Formatter(GenericArrayFormatter):
             flat_values = DatetimeIndex(flat_values)
 
         if self.formatter is not None and callable(self.formatter):
-            flat_str_values = np.array([self.formatter(x) for x in flat_values])
-            fmt_values = flat_str_values
+            fmt_values = [self.formatter(x) for x in flat_values]
         else:
             fmt_values = flat_values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
             )
-        fmt_values = fmt_values.reshape(values.shape)
 
-        if len(fmt_values.shape) > 1:
-            nested_string_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_string_formatter.get_result()
-        else:
+        if len(values.shape) > 1:
+            fmt_values = np.asarray(fmt_values).reshape(values.shape)
+            nested_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_formatter.get_result()
+        elif isinstance(fmt_values, np.ndarray):
             fmt_values = fmt_values.tolist()
 
         return fmt_values
@@ -1713,18 +1712,16 @@ class Datetime64TZFormatter(Datetime64Formatter):
         flat_values = values.ravel()
 
         ido = is_dates_only(flat_values)
-
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
 
-        fmt_values = np.array([formatter(x) for x in flat_values]).reshape(values.shape)
+        fmt_values = [formatter(x) for x in flat_values]
 
-        if len(fmt_values.shape) > 1:
-            nested_string_formatter = GenericArrayFormatter(fmt_values)
-            fmt_values = nested_string_formatter.get_result()
-        else:
-            fmt_values = fmt_values.tolist()
+        if len(values.shape) > 1:
+            fmt_values = np.asarray(fmt_values).reshape(values.shape)
+            nested_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_formatter.get_result()
 
         return fmt_values
 
