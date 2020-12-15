@@ -980,6 +980,13 @@ def astype_nansafe(
     elif not isinstance(dtype, np.dtype):
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
+    if arr.dtype.kind in ["m", "M"] and dtype == object:
+        # make sure we wrap in Timedelta/Timestamp, not timedelta/datetime
+        from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+        arr = ensure_wrapped_if_datetimelike(arr)
+        return arr.astype(dtype, copy=copy)
+
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(
             arr.ravel(), skipna=skipna, convert_na_value=False

@@ -24,6 +24,7 @@ from pandas import (
     Period,
     RangeIndex,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -1512,6 +1513,22 @@ class TestSeriesConstructors:
         arr = pd.arrays.SparseArray(values, dtype=dtype)
         expected = Series(arr)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_datetimelike_to_sparse_object(self):
+        arr = np.arange(3).view("M8[D]").astype("M8[ns]")
+        arr2 = arr.view("m8[ns]")
+
+        ser = Series(arr, dtype="Sparse[object]")
+        assert isinstance(ser[0], Timestamp)
+
+        ser = Series(arr).astype("Sparse[object]")
+        assert isinstance(ser[0], Timestamp)
+
+        ser2 = Series(arr2, dtype="Sparse[object]")
+        assert isinstance(ser2[0], Timedelta)
+
+        ser2 = Series(arr2).astype("Sparse[object]")
+        assert isinstance(ser2[0], Timedelta)
 
     def test_construction_from_ordered_collection(self):
         # https://github.com/pandas-dev/pandas/issues/36044

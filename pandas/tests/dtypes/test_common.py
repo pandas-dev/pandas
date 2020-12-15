@@ -754,6 +754,19 @@ def test_astype_object_preserves_datetime_na(from_type):
     assert isna(result)[0]
 
 
+@pytest.mark.parametrize("from_dtype", ["datetime64[ns]", "timedelta64[ns]"])
+def test_astype_object_boxes_timestamps_timedeltas(from_dtype):
+    arr = np.array([3600], dtype=from_dtype)
+    result = astype_nansafe(arr, dtype=np.dtype("object"))
+
+    assert result.dtype == object
+
+    if from_dtype == "datetime64[ns]":
+        assert isinstance(result[0], pd.Timestamp)
+    else:
+        assert isinstance(result[0], pd.Timedelta)
+
+
 def test_validate_allhashable():
     assert com.validate_all_hashable(1, "a") is None
 
