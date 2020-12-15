@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, Index, Series
+from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 import pandas._testing as tm
 
 
@@ -59,3 +59,12 @@ class TestReindex:
         msg = "'fill_value=-1' is not present in this Categorical's categories"
         with pytest.raises(TypeError, match=msg):
             ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
+
+    def test_reindex_not_category(self):
+        # GH: 28690
+        df = DataFrame(
+            index=CategoricalIndex([], categories=["A"])
+        )
+        result = df.reindex(index=Index(["A"]))
+        expected = DataFrame(index=Index(["A"]))
+        tm.assert_frame_equal(result, expected)
