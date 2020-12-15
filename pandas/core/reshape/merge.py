@@ -151,8 +151,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
 
 def merge_ordered(
-    left,
-    right,
+    left: "DataFrame",
+    right: "DataFrame",
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -294,8 +294,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left,
-    right,
+    left: "DataFrame",
+    right: "DataFrame",
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -1224,7 +1224,7 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, left, right
+        self, left: "DataFrame", right: "DataFrame"
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
@@ -1634,8 +1634,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left,
-        right,
+        left: "DataFrame",
+        right: "DataFrame",
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
@@ -1644,7 +1644,7 @@ class _AsOfMerge(_OrderedMerge):
         by=None,
         left_by=None,
         right_by=None,
-        axis=1,
+        axis: int = 1,
         suffixes=("_x", "_y"),
         copy: bool = True,
         fill_method=None,
