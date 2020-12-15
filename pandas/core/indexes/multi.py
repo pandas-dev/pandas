@@ -3454,12 +3454,14 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             self_codes = self.codes[i]
+            other_codes = other.codes[i]
+            if not np.array_equal(self_codes == -1, other_codes == -1):
+                return False
             self_codes = self_codes[self_codes != -1]
             self_values = algos.take_nd(
                 np.asarray(self.levels[i]._values), self_codes, allow_fill=False
             )
 
-            other_codes = other.codes[i]
             other_codes = other_codes[other_codes != -1]
             other_values = algos.take_nd(
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
