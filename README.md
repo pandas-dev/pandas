@@ -87,7 +87,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.org/project/pandas) and on conda.
+package index](https://pypi.org/project/pandas) and on [Conda](https://docs.conda.io/en/latest/).
 
 ```sh
 # conda
@@ -107,7 +107,7 @@ pip install pandas
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
-To install pandas from source you need Cython in addition to the normal
+To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
 dependencies above. Cython can be installed from pypi:
 
 ```sh
@@ -145,7 +145,7 @@ See the full instructions for [installing from source](https://pandas.pydata.org
 The official documentation is hosted on PyData.org: https://pandas.pydata.org/pandas-docs/stable
 
 ## Background
-Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
+Work on ``pandas`` started at [AQR](https://www.aqr.com/) (a quantitative hedge fund) in 2008 and
 has been under active development since then.
 
 ## Getting Help
