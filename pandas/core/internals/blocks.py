@@ -681,16 +681,6 @@ class Block(PandasObject):
                     #  StringDtype, this matches arr.astype(dtype), xref GH#36153
                     values = arr._format_native_types(na_rep="NaT")
 
-            elif is_object_dtype(dtype):
-                if values.dtype.kind in ["m", "M"]:
-                    # Wrap in Timedelta/Timestamp
-                    arr = pd_array(values)
-                    values = arr.astype(object)
-                else:
-                    values = values.astype(object)
-                # We still need to go through astype_nansafe for
-                #  e.g. dtype = Sparse[object, 0]
-
             # astype_nansafe works with 1-d only
             vals1d = values.ravel()
             values = astype_nansafe(vals1d, dtype, copy=True)
