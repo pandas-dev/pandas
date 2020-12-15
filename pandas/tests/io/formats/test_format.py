@@ -298,8 +298,7 @@ class TestDataFrameFormatting:
             assert len(printing.pprint_thing(list(range(1000)))) < 100
 
         with option_context("display.max_seq_items", 1):
-            assert len(printing.pprint_thing(list(range(1000)))) < 9 
-
+            assert len(printing.pprint_thing(list(range(1000)))) < 9
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
