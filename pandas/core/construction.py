@@ -451,6 +451,7 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        data = np.atleast_1d(data)
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
@@ -476,6 +477,7 @@ def sanitize_array(
         return subarr
 
     elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        # TODO: deque, array.array
         if isinstance(data, set):
             # Raise only for unordered sets, e.g., not for dict_keys
             raise TypeError("Set type is unordered")
@@ -494,6 +496,9 @@ def sanitize_array(
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
+        if not is_list_like(data):
+            # TODO: sure we want to do this here?
+            data = [data]
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     # scalar like, GH
@@ -508,11 +513,7 @@ def sanitize_array(
 
     # the result that we want
     elif subarr.ndim == 1:
-        if index is not None:
-
-            # a 1-element ndarray
-            if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = subarr.repeat(len(index))
+        subarr = _maybe_repeat(subarr, index)
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
@@ -531,6 +532,7 @@ def sanitize_array(
                 if not np.all(isna(data)):
                     data = np.array(data, dtype=dtype, copy=False)
                 subarr = np.array(data, dtype=object, copy=copy)
+                subarr = _maybe_repeat(subarr, index)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
@@ -541,13 +543,24 @@ def sanitize_array(
     return subarr
 
 
+def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
+    """
+    If we have a length-1 array and an index describing how long we expect
+    the result to be, repeat the array.
+    """
+    if index is not None:
+        if 1 == len(arr) != len(index):
+            arr = arr.repeat(len(index))
+    return arr
+
+
 def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
     Parameters
     ----------
-    arr : ndarray, scalar, list, tuple, iterator (catchall)
+    arr : ndarray, list, tuple, iterator (catchall)
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
