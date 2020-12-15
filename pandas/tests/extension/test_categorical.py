@@ -87,7 +87,7 @@ class TestInterface(base.BaseInterfaceTests):
         # Is this deliberate?
         super().test_memory_usage(data)
 
-    def test_contains(self, data, data_missing, nulls_fixture):
+    def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
         # See base.BaseInterFaceTests.test_contains for more details.
@@ -105,9 +105,11 @@ class TestInterface(base.BaseInterfaceTests):
         assert na_value not in data
 
         # Categoricals can contain other nan-likes than na_value
-        if nulls_fixture is not na_value:
-            assert nulls_fixture not in data
-            assert nulls_fixture in data_missing  # this line differs from super method
+        for na_value_obj in tm.NULL_OBJECTS:
+            if na_value_obj is na_value:
+                continue
+            assert na_value_obj not in data
+            assert na_value_obj in data_missing  # this line differs from super method
 
 
 class TestConstructors(base.BaseConstructorsTests):

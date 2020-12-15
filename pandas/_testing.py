@@ -108,6 +108,8 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
