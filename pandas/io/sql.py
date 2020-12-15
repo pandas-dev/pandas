@@ -7,13 +7,13 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Dict, Iterator, List, Optional, Union, overload
+from typing import Iterator, List, Optional, Union, overload
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import Dtype
+from pandas._typing import DtypeArg
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -121,7 +121,12 @@ def _parse_date_columns(data_frame, parse_dates):
 
 
 def _wrap_result(
-    data, columns, index_col=None, coerce_float=True, parse_dates=None, dtype=None
+    data,
+    columns,
+    index_col=None,
+    coerce_float=True,
+    parse_dates=None,
+    dtype: DtypeArg = None,
 ):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
@@ -301,7 +306,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: None = None,
-    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
+    dtype: DtypeArg = None,
 ) -> DataFrame:
     ...
 
@@ -315,7 +320,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: int = 1,
-    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
+    dtype: DtypeArg = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -328,7 +333,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
-    dtype: Optional[Union[Dtype, Dict[str, Dtype]]] = None,
+    dtype: DtypeArg = None,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
@@ -1244,7 +1249,7 @@ class SQLDatabase(PandasSQL):
         index_col=None,
         coerce_float=True,
         parse_dates=None,
-        dtype=None,
+        dtype: DtypeArg = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1269,7 +1274,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         params=None,
         chunksize=None,
-        dtype=None,
+        dtype: DtypeArg = None,
     ):
         """
         Read SQL query into a DataFrame.
@@ -1301,6 +1306,9 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
 
         Returns
         -------
@@ -1741,7 +1749,7 @@ class SQLiteDatabase(PandasSQL):
         index_col=None,
         coerce_float=True,
         parse_dates=None,
-        dtype=None,
+        dtype: DtypeArg = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1769,7 +1777,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         parse_dates=None,
         chunksize=None,
-        dtype=None,
+        dtype: DtypeArg = None,
     ):
 
         args = _convert_params(sql, params)

@@ -19,7 +19,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 -
 
 .. ---------------------------------------------------------------------------

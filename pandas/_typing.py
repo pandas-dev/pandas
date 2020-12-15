@@ -71,13 +71,6 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# other
-
-Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
-]
-DtypeObj = Union[np.dtype, "ExtensionDtype"]
-
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
 # is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
@@ -98,6 +91,14 @@ Shape = Tuple[int, ...]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
+
+# dtypes
+
+Dtype = Union[
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
+]
+DtypeArg = Optional[Union[Dtype, Dict[Label, Dtype]]]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
