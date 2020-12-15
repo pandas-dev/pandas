@@ -48,6 +48,7 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    ApplyFuncType,
     ArrayLike,
     Axes,
     Axis,
@@ -7656,7 +7657,13 @@ NaN 12.3   33.0
         return result
 
     def apply(
-        self, func, axis: Axis = 0, raw: bool = False, result_type=None, args=(), **kwds
+        self,
+        func: ApplyFuncType,
+        axis: Axis = 0,
+        raw: bool = False,
+        result_type=None,
+        args=(),
+        **kwds,
     ):
         """
         Apply a function along an axis of the DataFrame.
