@@ -1522,11 +1522,12 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         if self.formatter is not None and callable(self.formatter):
             flat_str_values = np.array([self.formatter(x) for x in flat_values])
-            fmt_values = flat_str_values.reshape(values.shape)
+            fmt_values = flat_str_values
         else:
             fmt_values = flat_values._data._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
-            ).reshape(values.shape)
+            )
+        fmt_values = fmt_values.reshape(values.shape)
 
         if len(fmt_values.shape) > 1:
             nested_string_formatter = GenericArrayFormatter(fmt_values)
@@ -1709,11 +1710,21 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
         values = self.values.astype(object)
-        ido = is_dates_only(values)
+        flat_values = values.ravel()
+
+        ido = is_dates_only(flat_values)
+
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
-        fmt_values = [formatter(x) for x in values]
+
+        fmt_values = np.array([formatter(x) for x in flat_values]).reshape(values.shape)
+
+        if len(fmt_values.shape) > 1:
+            nested_string_formatter = GenericArrayFormatter(fmt_values)
+            fmt_values = nested_string_formatter.get_result()
+        else:
+            fmt_values = fmt_values.tolist()
 
         return fmt_values
 

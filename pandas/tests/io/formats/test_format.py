@@ -3167,8 +3167,8 @@ class TestDatetime64TZFormatter:
         formatter = fmt.Datetime64TZFormatter(x.reshape((5, 2)))
         result = formatter.get_result()
         assert len(result) == 5
-        assert result[0].strip() == "[2018-01-01 00:00:00-08:00, 2018-01-01 01:00:00-08:00]"
-        assert result[4].strip() == "[2018-01-01 08:00:00-08:00, 2018-01-01 09:00:00-08:00]"
+        assert result[0].strip() == "[2018-01-01 00:00:00-08:00, 2018-01-01 01:00:0..."
+        assert result[4].strip() == "[2018-01-01 08:00:00-08:00, 2018-01-01 09:00:0..."
 
     def test_datetime64formatter_2d_array_format_func(self):
         x = pd.date_range("2018-01-01", periods=16, freq="H", tz="US/Pacific").to_numpy()
@@ -3179,8 +3179,8 @@ class TestDatetime64TZFormatter:
         formatter = fmt.Datetime64TZFormatter(x.reshape((4, 2, 2)), formatter=format_func)
         result = formatter.get_result()
         assert len(result) == 4
-        assert result[0].strip() == "[[00-01, 01-01, 02-01], [03-01, 04-01, 05-01]]"
-        assert result[3].strip() == "[[18-01, 19-01, 20-01], [21-01, 22-01, 23-01]]"
+        assert result[0].strip() == "[[00-01 PST, 01-01 PST], [02-01 PST, 03-01 PST]]"
+        assert result[3].strip() == "[[12-01 PST, 13-01 PST], [14-01 PST, 15-01 PST]]"
 
 
 class TestNaTFormatting:
