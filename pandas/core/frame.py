@@ -1457,7 +1457,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def to_dict(self, orient: str = "dict", into=dict) -> Union[Dict, List, Mapping]:
+    def to_dict(self, orient: str = "dict", into=dict) -> Union[List, Mapping]:
         """
         Convert the DataFrame to a dictionary.
 
@@ -3970,7 +3970,7 @@ class DataFrame(NDFrame, OpsMixin):
         return value
 
     @property
-    def _series(self) -> "Dict[int, Series]":
+    def _series(self) -> Dict[int, Series]:
         return {
             item: Series(
                 self._mgr.iget(idx), index=self.index, name=item, fastpath=True
