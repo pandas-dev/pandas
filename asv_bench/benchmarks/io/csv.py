@@ -192,10 +192,10 @@ class ReadUint64Integers(StringIORewind):
 class ReadCSVThousands(BaseIO):
 
     fname = "__test__.csv"
-    params = ([",", "|"], [None, ","])
-    param_names = ["sep", "thousands"]
+    params = ([",", "|"], [None, ","], ["c", "python"])
+    param_names = ["sep", "thousands", "engine"]
 
-    def setup(self, sep, thousands):
+    def setup(self, sep, thousands, engine):
         N = 10000
         K = 8
         data = np.random.randn(N, K) * np.random.randint(100, 10000, (N, K))
@@ -206,16 +206,19 @@ class ReadCSVThousands(BaseIO):
             df = df.applymap(lambda x: fmt.format(x))
         df.to_csv(self.fname, sep=sep)
 
-    def time_thousands(self, sep, thousands):
-        read_csv(self.fname, sep=sep, thousands=thousands)
+    def time_thousands(self, sep, thousands, engine):
+        read_csv(self.fname, sep=sep, thousands=thousands, engine=engine)
 
 
 class ReadCSVComment(StringIORewind):
-    def setup(self):
+    params = ["c", "python"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
         data = ["A,B,C"] + (["1,2,3 # comment"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
 
-    def time_comment(self):
+    def time_comment(self, engine):
         read_csv(
             self.data(self.StringIO_input), comment="#", header=None, names=list("abc")
         )
@@ -285,10 +288,10 @@ class ReadCSVCategorical(BaseIO):
         df.to_csv(self.fname, index=False)
 
     def time_convert_post(self, engine):
-        read_csv(self.fname).apply(Categorical)
+        read_csv(self.fname, engine=engine).apply(Categorical)
 
     def time_convert_direct(self, engine):
-        read_csv(self.fname, dtype="category")
+        read_csv(self.fname, engine=engine, dtype="category")
 
 
 class ReadCSVParseDates(StringIORewind):
@@ -354,15 +357,17 @@ class ReadCSVMemoryGrowth(BaseIO):
     chunksize = 20
     num_rows = 1000
     fname = "__test__.csv"
+    params = ["c", "python"]
+    param_names = ["engine"]
 
-    def setup(self):
+    def setup(self, engine):
         with open(self.fname, "w") as f:
             for i in range(self.num_rows):
                 f.write(f"{i}\n")
 
-    def mem_parser_chunks(self):
+    def mem_parser_chunks(self, engine):
         # see gh-24805.
-        result = read_csv(self.fname, chunksize=self.chunksize)
+        result = read_csv(self.fname, chunksize=self.chunksize, engine=engine)
 
         for _ in result:
             pass
