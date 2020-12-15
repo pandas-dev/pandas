@@ -16,6 +16,7 @@ from pandas._typing import ArrayLike, Shape
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     find_common_type,
+    maybe_upcast_putmask,
 )
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -109,13 +110,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], y)
 
-    if not mask.all():
-        try:
-            np.putmask(result, ~mask, np.nan)
-        except ValueError:
-            # e.g. result is int, need to cast
-            result = np.where(~mask, result, np.nan)
-
+    result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
