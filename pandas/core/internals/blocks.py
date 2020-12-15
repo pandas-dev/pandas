@@ -68,7 +68,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -654,7 +654,7 @@ class Block(PandasObject):
 
             return Categorical(values, dtype=dtype)
 
-        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             # if we are passed a datetime64[ns, tz]
             if copy:
                 # this should be the only copy
@@ -672,27 +672,7 @@ class Block(PandasObject):
         if isinstance(values, ExtensionArray):
             values = values.astype(dtype, copy=copy)
 
-        elif isinstance(dtype, ExtensionDtype):
-            # same thing we do in astype_nansafe
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(values, dtype=dtype, copy=copy)
-
         else:
-            if issubclass(dtype.type, str):
-                if values.dtype.kind in ["m", "M"]:
-                    # use native type formatting for datetime/tz/timedelta
-                    arr = pd_array(values)
-                    return arr.astype(dtype)
-
-            elif is_object_dtype(dtype):
-                if values.dtype.kind in ["m", "M"]:
-                    # Wrap in Timedelta/Timestamp
-                    arr = pd_array(values)
-                    values = arr.astype(object)
-                else:
-                    values = values.astype(object)
-                return values
-
             # astype_nansafe works with 1-d only
             vals1d = values.ravel()
             values = astype_nansafe(vals1d, dtype, copy=True)
