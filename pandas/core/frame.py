@@ -62,6 +62,7 @@ from pandas._typing import (
     IndexKeyFunc,
     Label,
     Level,
+    PythonFuncType,
     Renamer,
     StorageOptions,
     ValueKeyFunc,
@@ -7809,7 +7810,9 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func, na_action: Optional[str] = None) -> DataFrame:
+    def applymap(
+        self, func: PythonFuncType, na_action: Optional[str] = None
+    ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
 
