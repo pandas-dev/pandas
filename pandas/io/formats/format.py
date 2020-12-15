@@ -1517,13 +1517,13 @@ class Datetime64Formatter(GenericArrayFormatter):
         values = self.values
         flat_values = values.ravel()
 
-        if not isinstance(flat_values, DatetimeIndex):
-            flat_values = DatetimeIndex(flat_values)
+        if not isinstance(flat_values, DatetimeArray):
+            flat_values = DatetimeArray(flat_values)
 
         if self.formatter is not None and callable(self.formatter):
             fmt_values = [self.formatter(x) for x in flat_values]
         else:
-            fmt_values = flat_values._data._format_native_types(
+            fmt_values = flat_values._format_native_types(
                 na_rep=self.nat_rep, date_format=self.date_format
             )
 
