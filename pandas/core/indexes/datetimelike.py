@@ -597,9 +597,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Join/Set Methods
 
-    def _can_union_without_object_cast(self, other) -> bool:
-        return is_dtype_equal(self.dtype, other.dtype)
-
     def _get_join_freq(self, other):
         """
         Get the freq to attach to the result of a join operation.

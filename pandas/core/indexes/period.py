@@ -9,7 +9,7 @@ from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -31,11 +31,7 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    _index_shared_docs,
-    ensure_index,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import ensure_index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
@@ -448,7 +444,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         if not self._should_compare(target):
