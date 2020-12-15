@@ -64,7 +64,7 @@ jobs:
     - name: Testing docstring validation script
       run: |
         source activate pandas-dev
-        pytest --capture=no --strict scripts
+        pytest --capture=no --strict-markers scripts
       if: always()
 
     - name: Running benchmarks
