@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
+from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 import pandas._testing as tm
 
 
@@ -62,9 +62,7 @@ class TestReindex:
 
     def test_reindex_not_category(self):
         # GH: 28690
-        df = DataFrame(
-            index=CategoricalIndex([], categories=["A"])
-        )
+        df = DataFrame(index=CategoricalIndex([], categories=["A"]))
         result = df.reindex(index=Index(["A"]))
         expected = DataFrame(index=Index(["A"]))
         tm.assert_frame_equal(result, expected)
