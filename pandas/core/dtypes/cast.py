@@ -768,7 +768,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         if isinstance(val, np.integer):
             dtype = np.dtype(type(val))
         else:
-            dtype = np.dtype(np.int64)
+            dtype = np.dtype(np.intp)
 
         try:
             np.array(val, dtype=dtype)
