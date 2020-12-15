@@ -19,7 +19,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategorical, ABCIndex
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -1389,7 +1389,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         arr_or_dtype = arr_or_dtype.categories
         # now we use the special definition for Index
 
-    if isinstance(arr_or_dtype, ABCIndexClass):
+    if isinstance(arr_or_dtype, ABCIndex):
 
         # TODO(jreback)
         # we don't have a boolean Index class
