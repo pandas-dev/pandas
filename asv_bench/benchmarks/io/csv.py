@@ -278,16 +278,16 @@ class ReadCSVCategorical(BaseIO):
     params = ["c", "python"]
     param_names = ["engine"]
 
-    def setup(self):
+    def setup(self, engine):
         N = 100000
         group1 = ["aaaaaaaa", "bbbbbbb", "cccccccc", "dddddddd", "eeeeeeee"]
         df = DataFrame(np.random.choice(group1, (N, 3)), columns=list("abc"))
         df.to_csv(self.fname, index=False)
 
-    def time_convert_post(self):
+    def time_convert_post(self, engine):
         read_csv(self.fname).apply(Categorical)
 
-    def time_convert_direct(self):
+    def time_convert_direct(self, engine):
         read_csv(self.fname, dtype="category")
 
 
