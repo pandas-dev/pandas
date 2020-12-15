@@ -64,6 +64,7 @@ from pandas._typing import (
     Level,
     Renamer,
     StorageOptions,
+    Suffixes,
     ValueKeyFunc,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -8237,7 +8238,7 @@ NaN 12.3   33.0
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = False,
-        suffixes: Tuple[str, str] = ("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
         validate: Optional[str] = None,

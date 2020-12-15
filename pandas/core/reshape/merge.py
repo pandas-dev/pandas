@@ -13,7 +13,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+    Suffixes,
+)
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -66,7 +72,7 @@ def merge(
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes: Tuple[str, str] = ("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
     validate: Optional[str] = None,
@@ -159,7 +165,7 @@ def merge_ordered(
     left_by=None,
     right_by=None,
     fill_method: Optional[str] = None,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
 ) -> "DataFrame":
     """
@@ -304,7 +310,7 @@ def merge_asof(
     by=None,
     left_by=None,
     right_by=None,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
@@ -590,7 +596,7 @@ class _MergeOperation:
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
-        suffixes: Tuple[str, str] = ("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
         validate: Optional[str] = None,
@@ -1548,7 +1554,7 @@ class _OrderedMerge(_MergeOperation):
         left_index: bool = False,
         right_index: bool = False,
         axis: int = 1,
-        suffixes=("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: Optional[str] = None,
         how: str = "outer",
@@ -1645,7 +1651,7 @@ class _AsOfMerge(_OrderedMerge):
         left_by=None,
         right_by=None,
         axis: int = 1,
-        suffixes=("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         fill_method: Optional[str] = None,
         how: str = "asof",
@@ -2150,7 +2156,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Suffixes):
     """
     Suffixes type validation.
 
