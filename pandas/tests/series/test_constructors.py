@@ -1515,7 +1515,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetimelike_to_sparse_object(self):
-        arr = np.arange(3).view("M8[D]").astype("M8[ns]")
+        arr = np.arange(3, dtype="i8").view("M8[D]").astype("M8[ns]")
         arr2 = arr.view("m8[ns]")
 
         ser = Series(arr, dtype="Sparse[object]")
