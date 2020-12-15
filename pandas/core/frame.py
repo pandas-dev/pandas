@@ -8029,7 +8029,7 @@ NaN 12.3   33.0
 
     def join(
         self,
-        other,
+        other: FrameOrSeriesUnion,
         on: Optional[IndexLabel] = None,
         how: str = "left",
         lsuffix: str = "",
@@ -8159,7 +8159,7 @@ NaN 12.3   33.0
 
     def _join_compat(
         self,
-        other,
+        other: FrameOrSeriesUnion,
         on: Optional[IndexLabel] = None,
         how: str = "left",
         lsuffix: str = "",
