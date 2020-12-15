@@ -39,6 +39,16 @@ def melt(
     else:
         cols = list(frame.columns)
 
+    if 'variable' in frame.columns:
+        warnings.warn(
+            "Using column name 'variable' might cause "
+            "overwriting in resulting Dataframe. "
+            "Please don't use 'variable' in column name",
+            UserWarning,
+            stacklevel=3
+        )
+        return frame
+
     if value_name in frame.columns:
         warnings.warn(
             "This dataframe has a column name that matches the 'value_name' column "
@@ -108,6 +118,7 @@ def melt(
             var_name = [
                 frame.columns.name if frame.columns.name is not None else "variable"
             ]
+    
     if isinstance(var_name, str):
         var_name = [var_name]
 
