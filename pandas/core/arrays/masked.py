@@ -250,8 +250,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return cls(data, mask, copy=False)
 
         if isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            eacls = dtype.construct_array_type()
+            return eacls._from_sequence(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy=copy)
 

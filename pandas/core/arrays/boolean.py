@@ -10,7 +10,6 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -18,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -374,7 +373,7 @@ class BooleanArray(BaseMaskedArray):
         """
         dtype = pandas_dtype(dtype)
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
