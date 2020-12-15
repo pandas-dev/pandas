@@ -273,7 +273,10 @@ class ReadCSVEngine(StringIORewind):
 
 
 class ReadCSVCategorical(BaseIO):
+
     fname = "__test__.csv"
+    params = ["c", "python"]
+    param_names = ["engine"]
 
     def setup(self):
         N = 100000
