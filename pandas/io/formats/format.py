@@ -1515,7 +1515,8 @@ class Datetime64Formatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have DO NOT have a TZ """
         values = np.asarray(self.values)
-        flat_values = DatetimeArray(values.ravel())
+        flat_values = values.ravel() if len(values.shape) > 1 else values
+        flat_values = DatetimeArray(flat_values)
 
         if self.formatter is not None and callable(self.formatter):
             fmt_values = [self.formatter(x) for x in flat_values]
@@ -1706,7 +1707,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
         values = self.values.astype(object)
-        flat_values = values.ravel()
+        flat_values = values.ravel() if len(values.shape) > 1 else values
 
         ido = is_dates_only(flat_values)
         formatter = self.formatter or get_format_datetime64(
