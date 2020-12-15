@@ -74,6 +74,8 @@ def s3_base(worker_id):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        for key in logging.Logger.manager.loggerDict:
+            print(key)
 
         timeout = 5
         while timeout > 0:
