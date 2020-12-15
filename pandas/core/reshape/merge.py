@@ -158,7 +158,7 @@ def merge_ordered(
     right_on: Optional[IndexLabel] = None,
     left_by=None,
     right_by=None,
-    fill_method=None,
+    fill_method: Optional[str] = None,
     suffixes=("_x", "_y"),
     how: str = "outer",
 ) -> "DataFrame":
@@ -1540,17 +1540,17 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left,
-        right,
+        left: "DataFrame",
+        right: "DataFrame",
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis=1,
+        axis: int = 1,
         suffixes=("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "outer",
     ):
 
@@ -1647,7 +1647,7 @@ class _AsOfMerge(_OrderedMerge):
         axis: int = 1,
         suffixes=("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
