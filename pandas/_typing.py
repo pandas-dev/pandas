@@ -131,6 +131,7 @@ AggObjType = Union[
     "BaseWindow",
     "Resampler",
 ]
+ApplyFuncType = Union[np.ufunc, AggFuncType]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
