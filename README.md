@@ -108,7 +108,7 @@ See the [full installation instructions](https://pandas.pydata.org/pandas-docs/s
 
 ## Installation from sources
 To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
-dependencies above. Cython can be installed from pypi:
+dependencies above. Cython can be installed from PyPI:
 
 ```sh
 pip install cython
