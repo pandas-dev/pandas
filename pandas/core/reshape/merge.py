@@ -13,7 +13,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+    Suffixes,
+)
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -57,19 +63,19 @@ if TYPE_CHECKING:
 @Substitution("\nleft : DataFrame")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left,
-    right,
+    left: FrameOrSeriesUnion,
+    right: FrameOrSeriesUnion,
     how: str = "inner",
-    on=None,
-    left_on=None,
-    right_on=None,
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
-    validate=None,
+    validate: Optional[str] = None,
 ) -> "DataFrame":
     op = _MergeOperation(
         left,
@@ -151,15 +157,15 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
 
 def merge_ordered(
-    left,
-    right,
-    on=None,
-    left_on=None,
-    right_on=None,
+    left: "DataFrame",
+    right: "DataFrame",
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_by=None,
     right_by=None,
-    fill_method=None,
-    suffixes=("_x", "_y"),
+    fill_method: Optional[str] = None,
+    suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
 ) -> "DataFrame":
     """
@@ -294,17 +300,17 @@ def merge_ordered(
 
 
 def merge_asof(
-    left,
-    right,
-    on=None,
-    left_on=None,
-    right_on=None,
+    left: "DataFrame",
+    right: "DataFrame",
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_index: bool = False,
     right_index: bool = False,
     by=None,
     left_by=None,
     right_by=None,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
@@ -583,17 +589,17 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on=None,
-        left_on=None,
-        right_on=None,
-        axis=1,
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
+        axis: int = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
-        suffixes=("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate=None,
+        validate: Optional[str] = None,
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -1224,7 +1230,7 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, left, right
+        self, left: "DataFrame", right: "DataFrame"
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
@@ -1540,17 +1546,17 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left,
-        right,
-        on=None,
-        left_on=None,
-        right_on=None,
+        left: "DataFrame",
+        right: "DataFrame",
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis=1,
-        suffixes=("_x", "_y"),
+        axis: int = 1,
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "outer",
     ):
 
@@ -1634,20 +1640,20 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left,
-        right,
-        on=None,
-        left_on=None,
-        right_on=None,
+        left: "DataFrame",
+        right: "DataFrame",
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
         left_index: bool = False,
         right_index: bool = False,
         by=None,
         left_by=None,
         right_by=None,
-        axis=1,
-        suffixes=("_x", "_y"),
+        axis: int = 1,
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
@@ -2150,7 +2156,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Suffixes):
     """
     Suffixes type validation.
 
