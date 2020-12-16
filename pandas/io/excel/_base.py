@@ -888,7 +888,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-def _peek(stream: Union[BufferedIOBase, RawIOBase, BinaryIO], size: int = 20) -> bytes:
+def _peek_stream(stream: Union[BufferedIOBase, RawIOBase, BinaryIO], size: int = 20) -> bytes:
     """
     Return the specified number of bytes from the start of the stream
     and seek back to the start of the stream afterwards.
@@ -932,7 +932,7 @@ def _engine_from_content(stream: Union[BufferedIOBase, RawIOBase, BinaryIO]) -> 
         The string engine if it can be confidently inferred.
     """
     engine = None
-    peek = _peek(stream, _PEEK_SIZE)
+    peek = _peek_stream(stream, _PEEK_SIZE)
 
     if peek.startswith(_XLS_SIGNATURE):
         engine = "xlrd"
@@ -1031,7 +1031,7 @@ class ExcelFile:
 
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 engine = _engine_from_content(path_or_buffer)
-                peek = _peek(path_or_buffer)
+                peek = _peek_stream(path_or_buffer)
 
             elif isinstance(path_or_buffer, (str, os.PathLike)):
                 ext = os.path.splitext(str(path_or_buffer))[-1]
@@ -1043,7 +1043,7 @@ class ExcelFile:
                 )
                 with handles:
                     engine = _engine_from_content(handles.handle)
-                    peek = _peek(handles.handle)
+                    peek = _peek_stream(handles.handle)
 
             elif (
                 import_optional_dependency(
