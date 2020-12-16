@@ -896,6 +896,8 @@ def _peek(stream: Union[BufferedIOBase, RawIOBase, BinaryIO], size: int = 20) ->
     Parameters
     ----------
     stream : Union[BufferedIOBase, RawIOBase]
+    size: int
+      The number of bytes to read.
 
     Returns
     -------
