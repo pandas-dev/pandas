@@ -508,10 +508,10 @@ class TestReaders:
     def test_read_excel_ods_nested_xml(self, read_ext, basename, expected):
         # see gh-35802
         engine = pd.read_excel.keywords["engine"]
-        if engine != "odf":
+        if engine not in ("odf", None):
             pytest.skip(f"Skipped for engine: {engine}")
 
-        actual = pd.read_excel(basename + read_ext)
+        actual = pd.read_excel(basename + ".ods")
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self, read_ext):

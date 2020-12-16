@@ -3,9 +3,11 @@ import datetime
 import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
+from pathlib import Path
 from textwrap import fill
-from typing import Any, Dict, Mapping, Union, cast
+from typing import Any, Dict, Mapping, Union, cast, BinaryIO
 import warnings
+from zipfile import ZipFile
 
 from pandas._config import config
 
@@ -888,32 +890,73 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
+def _peek(stream: Union[BufferedIOBase, RawIOBase, BinaryIO], size: int = 20) -> bytes:
     """
-    Check if the stream is an OpenDocument Spreadsheet (.ods) file
-
-    It uses magic values inside the stream
+    Return the specified number of bytes from the start of the stream
+    and seek back to the start of the stream afterwards.
 
     Parameters
     ----------
     stream : Union[BufferedIOBase, RawIOBase]
-        IO stream with data which might be an ODS file
 
     Returns
     -------
-    is_ods : bool
-        Boolean indication that this is indeed an ODS file or not
+    content : bytes
+        The bytes founds.
     """
     stream.seek(0)
-    is_ods = False
-    if stream.read(4) == b"PK\003\004":
-        stream.seek(30)
-        is_ods = (
-            stream.read(54) == b"mimetype"
-            b"application/vnd.oasis.opendocument.spreadsheet"
-        )
+    content = stream.read(size)
     stream.seek(0)
-    return is_ods
+    return content
+
+
+_XLS_SIGNATURE = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+_ZIP_SIGNATURE = b"PK\x03\x04"
+_PEEK_SIZE = max(len(_XLS_SIGNATURE), len(_ZIP_SIGNATURE))
+
+
+def _engine_from_content(stream: Union[BufferedIOBase, RawIOBase, BinaryIO]) -> str:
+    """
+    Use the content of a stream to try and figure out which engine to use.
+
+    It uses magic values inside the stream.
+
+    Parameters
+    ----------
+    stream : Union[BufferedIOBase, RawIOBase]
+        IO stream with data which might contain spreadsheet data.
+
+    Returns
+    -------
+    engine : Optional[engine]
+        The string engine if it can be confidently inferred.
+    """
+    engine = None
+    peek = _peek(stream, _PEEK_SIZE)
+
+    if peek.startswith(_XLS_SIGNATURE):
+        engine = "xlrd"
+
+    elif peek.startswith(_ZIP_SIGNATURE):
+        zf = ZipFile(stream)
+
+        # Workaround for some third party files that use forward slashes and
+        # lower case names. We map the expected name in lowercase to the
+        # actual filename in the zip container.
+        component_names = {
+            name.replace("\\", "/").lower(): name for name in zf.namelist()
+        }
+
+        stream.seek(0)
+
+        if "xl/workbook.xml" in component_names:
+            engine = "openpyxl"
+        if "xl/workbook.bin" in component_names:
+            engine = "pyxlsb"
+        if "content.xml" in component_names:
+            engine = "odf"
+
+    return engine
 
 
 class ExcelFile:
@@ -970,21 +1013,39 @@ class ExcelFile:
         "pyxlsb": PyxlsbReader,
     }
 
+    _ext_to_engine: Mapping[str, str] = {
+        ".ods": "odf",
+        ".xls": "xlrd",
+        ".xlsx": "openpyxl",
+    }
+
     def __init__(
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
-            # Determine ext and use odf for ods stream/file
-            if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
-                ext = None
-                if _is_ods_stream(path_or_buffer):
-                    engine = "odf"
-            else:
-                ext = os.path.splitext(str(path_or_buffer))[-1]
-                if ext == ".ods":
-                    engine = "odf"
 
-            if (
+            ext = peek = None
+
+            if isinstance(path_or_buffer, bytes):
+                path_or_buffer = BytesIO(path_or_buffer)
+
+            if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+                engine = _engine_from_content(path_or_buffer)
+                peek = _peek(path_or_buffer)
+
+            elif isinstance(path_or_buffer, (str, os.PathLike)):
+                ext = os.path.splitext(str(path_or_buffer))[-1]
+                handles = get_handle(
+                    stringify_path(path_or_buffer),
+                    "rb",
+                    storage_options=storage_options,
+                    is_text=False,
+                )
+                with handles:
+                    engine = _engine_from_content(handles.handle)
+                    peek = _peek(handles.handle)
+
+            elif (
                 import_optional_dependency(
                     "xlrd", raise_on_missing=False, on_version="ignore"
                 )
@@ -995,38 +1056,16 @@ class ExcelFile:
                 if isinstance(path_or_buffer, Book):
                     engine = "xlrd"
 
-            # GH 35029 - Prefer openpyxl except for xls files
+            # Couldn't tell for definite, so guess based on extension:
             if engine is None:
-                if ext is None or isinstance(path_or_buffer, bytes) or ext == ".xls":
-                    engine = "xlrd"
-                elif (
-                    import_optional_dependency(
-                        "openpyxl", raise_on_missing=False, on_version="ignore"
-                    )
-                    is not None
-                ):
-                    engine = "openpyxl"
-                else:
-                    caller = inspect.stack()[1]
-                    if (
-                        caller.filename.endswith("pandas/io/excel/_base.py")
-                        and caller.function == "read_excel"
-                    ):
-                        stacklevel = 4
-                    else:
-                        stacklevel = 2
-                    warnings.warn(
-                        "The xlrd engine is no longer maintained and is not "
-                        "supported when using pandas with python >= 3.9. However, "
-                        "the engine xlrd will continue to be allowed for the "
-                        "indefinite future. Beginning with pandas 1.2.0, the "
-                        "openpyxl engine will be used if it is installed and the "
-                        "engine argument is not specified. Either install openpyxl "
-                        "or specify engine='xlrd' to silence this warning.",
-                        FutureWarning,
-                        stacklevel=stacklevel,
-                    )
-                    engine = "xlrd"
+                engine = self._ext_to_engine.get(ext)
+
+            if engine is None:
+                raise ValueError(
+                    f"Could not find engine for {repr(path_or_buffer)}, content was "
+                    f"{repr(peek)}"
+                )
+
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
