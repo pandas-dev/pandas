@@ -610,8 +610,8 @@ class IndexOpsMixin(OpsMixin):
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
-        if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            if na_value is not lib.no_default:
+                result[self.isna()] = na_value
         return result
 
     @property
