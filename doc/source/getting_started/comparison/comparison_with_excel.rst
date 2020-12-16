@@ -1,11 +1,6 @@
 .. _compare_with_excel:
 
-.. ipython:: python
-    :suppress:
-
-    import pandas as pd
-    import random
-    pd.options.display.max_rows=15
+{{ header }}
 
 Comparison with Excel
 *********************
@@ -17,6 +12,16 @@ same/similar in `Google Sheets <https://support.google.com/a/users/answer/928295
 Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_, `Apple
 Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
 Excel-compatible spreadsheet software.
+
+If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
+to familiarize yourself with the library.
+
+As is customary, we import pandas and NumPy as follows:
+
+.. ipython:: python
+
+    import pandas as pd
+    import numpy as np
 
 Commonly used Excel functionalities
 -----------------------------------
@@ -97,6 +102,8 @@ VLOOKUP
 ~~~~~~~
 
 .. ipython:: python
+
+    import random
 
     df1 = pd.DataFrame({"keys": [1, 2, 3, 4, 5, 6, 7], "first_names": ["harry", "ron",
     "hermione", "rubius", "albus", "severus", "luna"]}); df1
