@@ -558,7 +558,7 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
     # perf shortcut as this is the most common case
     if (
         isinstance(arr, np.ndarray)
-        and maybe_castable(arr)
+        and maybe_castable(arr.dtype)
         and not copy
         and dtype is None
     ):
