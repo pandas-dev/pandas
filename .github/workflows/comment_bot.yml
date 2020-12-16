@@ -1,0 +1,57 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: Comment-bot
+
+on:
+  issue_comment:
+    types:
+      - created
+      - edited
+
+jobs:
+  autotune:
+    name: "Fixup pre-commit formatting"
+    if: startsWith(github.event.comment.body, '@github-actions autotune')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/pr-fetch@master
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pre-commit
+            ~/.cache/pip
+          key: pre-commit-dispatched-${{ runner.os }}-build
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: install-pre-commit
+        run: python -m pip install --upgrade pre-commit
+      - name: Run pre-commit
+        run: pre-commit run --all-files || (exit 0)
+      - name: Commit results
+        run: |
+          git config user.name "$(git log -1 --pretty=format:%an)"
+          git config user.email "$(git log -1 --pretty=format:%ae)"
+          git commit -a -m 'Autoformat/render all the things [automated commit]' || echo "No changes to commit"
+      - uses: r-lib/actions/pr-push@master
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
