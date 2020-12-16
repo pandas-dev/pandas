@@ -87,7 +87,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.org/project/pandas) and on conda.
+Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://docs.conda.io/en/latest/).
 
 ```sh
 # conda
@@ -100,15 +100,15 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org)
-- [python-dateutil](https://labix.org/python-dateutil)
-- [pytz](https://pythonhosted.org/pytz)
+- [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
+- [python-dateutil - Provides powerful extensions to the standard datetime module](https://labix.org/python-dateutil)
+- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://pythonhosted.org/pytz)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
-To install pandas from source you need Cython in addition to the normal
-dependencies above. Cython can be installed from pypi:
+To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
+dependencies above. Cython can be installed from PyPI:
 
 ```sh
 pip install cython
@@ -145,7 +145,7 @@ See the full instructions for [installing from source](https://pandas.pydata.org
 The official documentation is hosted on PyData.org: https://pandas.pydata.org/pandas-docs/stable
 
 ## Background
-Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
+Work on ``pandas`` started at [AQR](https://www.aqr.com/) (a quantitative hedge fund) in 2008 and
 has been under active development since then.
 
 ## Getting Help
