@@ -12,6 +12,19 @@
   /*min-height: 150px; */
 }
 
+.a-links{
+  color: #007bff;
+}
+
+.a-links:visited {
+  color: #007bff;
+}
+
+.a-links:hover {
+  color: darkred;
+  text-decoration: underline;
+}
+
 .custom-button {
   background-color: #dcdcdc;
   border: none;
@@ -33,4 +46,9 @@
   margin-top: 0;
   margin-bottom: 0rem;
   color: #484848;
+}
+
+.custom-button:hover {
+    box-shadow: 0 5px 23px rgba(102,102,102,1);
+    text-decoration: none;
 }
