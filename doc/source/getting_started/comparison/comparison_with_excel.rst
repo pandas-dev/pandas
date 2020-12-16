@@ -10,6 +10,14 @@
 Comparison with Excel
 *********************
 
+Since many potential pandas users have some familiarity with `Excel
+<https://support.microsoft.com/en-us/excel>`_, this page is meant to provide some examples of how
+various Excel operations would be performed using pandas. Much of this will be the
+same/similar in `Google Sheets <https://support.google.com/a/users/answer/9282959>`_, `LibreOffice
+Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_, `Apple
+Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
+Excel-compatible spreadsheet software.
+
 Commonly used Excel functionalities
 -----------------------------------
 
