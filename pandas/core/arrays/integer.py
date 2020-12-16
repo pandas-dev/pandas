@@ -9,7 +9,7 @@ from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -408,6 +408,11 @@ class IntegerArray(NumericArray):
             return dtype.construct_array_type()(data, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
+
+        elif isinstance(dtype, ExtensionDtype):
+            # e.g. Categorical
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):
