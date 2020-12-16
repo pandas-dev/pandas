@@ -39,13 +39,16 @@ General terminology translation
     ``NaN``, ``.``
 
 
-``DataFrame`` / ``Series``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+``DataFrame``
+~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to a SAS data set - a two-dimensional
 data source with labeled columns that can be of different types. As will be
 shown in this document, almost any operation that can be applied to a data set
 using SAS's ``DATA`` step, can also be accomplished in pandas.
+
+``Series``
+~~~~~~~~~~
 
 A ``Series`` is the data structure that represents one column of a
 ``DataFrame``. SAS doesn't have a separate data structure for a single column,

@@ -15,6 +15,52 @@ Excel-compatible spreadsheet software.
 
 .. include:: comparison_boilerplate.rst
 
+Data structures
+---------------
+
+General terminology translation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. csv-table::
+    :header: "pandas", "Excel"
+    :widths: 20, 20
+
+    ``DataFrame``, worksheet
+    ``Series``, column
+    ``Index``, row headings
+    row, row
+    ``NaN``, empty cell
+
+``DataFrame``
+~~~~~~~~~~~~~
+
+A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel worksheet can contain
+multiple worksheets, pandas ``DataFrame``s exist independently.
+
+``Series``
+~~~~~~~~~~
+
+A ``Series`` is the data structure that represents one column of a ``DataFrame``. Working with a
+``Series`` is analogous to referencing a column of a spreadsheet.
+
+``Index``
+~~~~~~~~~
+
+Every ``DataFrame`` and ``Series`` has an ``Index``, which are labels on the *rows* of the data. In
+pandas, if no index is specified, an integer index is used by default (first row = 0, second row =
+1, and so on), analogous to row headings/numbers in Excel.
+
+In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that
+use use as the row identifier in a worksheet. Unlike Excel, these ``Index`` values can actually be
+used to reference the rows. For example, in Excel, you would reference the first row as ``A1:Z1``,
+while in pandas you could use ``populations.loc['Chicago']``.
+
+Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a
+particular row don't change.
+
+See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
+effectively.
+
 Commonly used Excel functionalities
 -----------------------------------
 
