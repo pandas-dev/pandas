@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+import string
 import warnings
 
 import numpy as np
@@ -255,6 +256,7 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
+        self.data_unique = CategoricalIndex(list(string.printable))
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
@@ -281,7 +283,7 @@ class CategoricalIndexIndexing:
         self.data.get_loc(self.cat_scalar)
 
     def time_get_indexer_list(self, index):
-        self.data.get_indexer(self.cat_list)
+        self.data_unique.get_indexer(self.cat_list)
 
 
 class MethodLookup:
