@@ -13,15 +13,7 @@ Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=C
 Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
 Excel-compatible spreadsheet software.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows:
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
+.. include:: comparison_boilerplate.rst
 
 Commonly used Excel functionalities
 -----------------------------------
