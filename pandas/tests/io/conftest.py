@@ -110,7 +110,8 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     import boto3
     import s3fs
 
-    logging.getLogger("botocore.vendored.requests.packages.urllib3").disabled = True
+    for logging_key in logging.Logger.manager.loggerDict:
+        logging.getLogger(logging_key).disabled = True
 
     test_s3_files = [
         ("tips#1.csv", tips_file),
