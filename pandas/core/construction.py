@@ -451,6 +451,9 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if data.ndim == 0 and data.dtype.kind in ["u", "i"]:
+            # FIXME: kludge while troubleshooting 32 bit build failure
+            data = np.atleast_1d(data).astype(np.int64)
         data = np.atleast_1d(data)
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
