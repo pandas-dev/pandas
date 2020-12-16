@@ -15,19 +15,21 @@ pandas documentation
 **Useful links**:
 |location_link|
 .. |location_link| raw:: html
-<a href="https://pypi.org/project/pandas" class="a-links" target="_blank">Binary Installers</a> |
+<p> <a href="https://pypi.org/project/pandas" class="a-links" target="_blank">Binary Installers</a>  |
 |location_link_|
 .. |location_link_| raw:: html
-<a href="https://github.com/pandas-dev/pandas" class="a-links" target="_blank">Source Repository</a> |
+<a href="https://github.com/pandas-dev/pandas" class="a-links" target="_blank">Source Repository</a>
 |location_link__|
 .. |location_link__| raw:: html
-<a href="https://github.com/pandas-dev/pandas/issues" class="a-links" target="_blank">Issues & Ideas</a> |
+<a href="https://github.com/pandas-dev/pandas/issues" class="a-links" target="_blank">Issues & Ideas</a>
 |location_link___|
 .. |location_link___| raw:: html
-<a href="https://stackoverflow.com/questions/tagged/pandas" class="a-links" target="_blank">Q&A Support</a> |
+<a href="https://stackoverflow.com/questions/tagged/pandas" class="a-links" target="_blank">Q&A Support</a> <p> |
 |location_link____|
 .. |location_link____| raw:: html
 <a href="https://groups.google.com/g/pydata" class="a-links" target="_blank">Mailing List</a>
+raw:: html
+  </p>
 
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures, data manipulation and data analysis tools for the `Python <https://www.python.org/>`__
