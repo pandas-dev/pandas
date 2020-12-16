@@ -113,11 +113,7 @@ def test_usecols_name_length_conflict(all_parsers):
 7,8,9
 10,11,12"""
     parser = all_parsers
-    msg = (
-        "Number of passed names did not match number of header fields in the file"
-        if parser.engine == "python"
-        else "Passed header names mismatches usecols"
-    )
+    msg = "Number of passed names did not match number of header fields in the file"
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), names=["a", "b"], header=None, usecols=[1])
@@ -585,12 +581,7 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
 
 @skip_pyarrow
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
-    if all_parsers.engine != "c":
-        reason = "see gh-16469: works on the C engine but not the Python engine"
-        # Number of passed names did not match number of header fields in the file
-        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
-
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers
