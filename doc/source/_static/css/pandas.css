@@ -12,19 +12,6 @@
   /*min-height: 150px; */
 }
 
-.a-links{
-  color: #007bff;
-}
-
-.a-links:visited {
-  color: #007bff;
-}
-
-.a-links:hover {
-  color: darkred;
-  text-decoration: underline;
-}
-
 .custom-button {
   background-color: #dcdcdc;
   border: none;
