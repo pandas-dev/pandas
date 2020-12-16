@@ -110,12 +110,7 @@ def _ensure_data(
         values = extract_array(values, extract_numpy=True)
 
     # we check some simple dtypes first
-    if (
-        (is_object_dtype(dtype))
-        or (not is_object_dtype(dtype))
-        and (is_object_dtype(values))
-        and (dtype is None)
-    ):
+    if is_object_dtype(dtype) or (is_object_dtype(values) and (dtype is None)):
         return ensure_object(np.asarray(values)), np.dtype("object")
     try:
         if is_bool_dtype(values) or is_bool_dtype(dtype):
