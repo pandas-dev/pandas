@@ -48,7 +48,6 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
-    ApplyFuncType,
     ArrayLike,
     Axes,
     Axis,
@@ -7659,7 +7658,7 @@ NaN 12.3   33.0
 
     def apply(
         self,
-        func: ApplyFuncType,
+        func: AggFuncType,
         axis: Axis = 0,
         raw: bool = False,
         result_type=None,
