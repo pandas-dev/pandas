@@ -973,6 +973,14 @@ def astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
+    if arr.ndim > 1:
+        # Make sure we are doing non-copy ravel and reshape.
+        flags = arr.flags
+        flat = arr.ravel("K")
+        result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
+        order = "F" if flags.f_contiguous else "C"
+        return result.reshape(arr.shape, order=order)
+
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
