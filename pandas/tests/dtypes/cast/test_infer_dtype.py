@@ -3,7 +3,11 @@ from datetime import date, datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import infer_dtype_from_array, infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    infer_dtype_from,
+    infer_dtype_from_array,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
@@ -171,3 +175,17 @@ def test_infer_dtype_from_scalar_errors():
 def test_infer_dtype_from_array(arr, expected, pandas_dtype):
     dtype, _ = infer_dtype_from_array(arr, pandas_dtype=pandas_dtype)
     assert is_dtype_equal(dtype, expected)
+
+
+@pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+def test_infer_dtype_from_scalar_zerodim_datetimelike(cls):
+    # ndarray.item() can incorrectly return int instead of td64/dt64
+    val = cls(1234, "ns")
+    arr = np.array(val)
+
+    dtype, res = infer_dtype_from_scalar(arr)
+    assert dtype.type is cls
+    assert isinstance(res, cls)
+
+    dtype, res = infer_dtype_from(arr)
+    assert dtype.type is cls

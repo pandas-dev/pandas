@@ -699,7 +699,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
             raise ValueError(msg)
 
         dtype = val.dtype
-        val = val.item()
+        val = lib.item_from_zerodim(val)
 
     elif isinstance(val, str):
 
