@@ -60,9 +60,34 @@ class TestReindex:
         with pytest.raises(TypeError, match=msg):
             ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
 
-    def test_reindex_not_category(self):
+    @pytest.mark.parametrize(
+        "index_df,index_res,index_exp",
+        [
+            (
+                CategoricalIndex([], categories=["A"]),
+                Index(["A"]),
+                Index(["A"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                Index(["B"]),
+                Index(["B"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                CategoricalIndex(["A"]),
+                CategoricalIndex(["A"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                CategoricalIndex(["B"]),
+                CategoricalIndex(["B"]),
+            ),
+        ],
+    )
+    def test_reindex_not_category(self, index_df, index_res, index_exp):
         # GH: 28690
-        df = DataFrame(index=CategoricalIndex([], categories=["A"]))
-        result = df.reindex(index=Index(["A"]))
-        expected = DataFrame(index=Index(["A"]))
+        df = DataFrame(index=index_df)
+        result = df.reindex(index=index_res)
+        expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
