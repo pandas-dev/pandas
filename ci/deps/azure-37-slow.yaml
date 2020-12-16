@@ -31,7 +31,7 @@ dependencies:
   - moto>=1.3.14
   - scipy
   - sqlalchemy
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto
