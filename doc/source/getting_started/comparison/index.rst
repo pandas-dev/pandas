@@ -11,5 +11,6 @@ Comparison with other tools
 
     comparison_with_r
     comparison_with_sql
+    comparison_with_excel
     comparison_with_sas
     comparison_with_stata
