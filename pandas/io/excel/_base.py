@@ -1,11 +1,9 @@
 import abc
 import datetime
-import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
-from pathlib import Path
 from textwrap import fill
-from typing import Any, Dict, Mapping, Union, cast, BinaryIO
+from typing import Any, BinaryIO, Dict, Mapping, Union, cast
 import warnings
 from zipfile import ZipFile
 
