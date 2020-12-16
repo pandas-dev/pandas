@@ -18,3 +18,9 @@ def test_unreadable_file(tmp_path):
         ValueError, match=r"Could not find engine for .+, content was b'rubbish'"
     ):
         pd.read_excel(bad)
+
+
+def test_non_existent_path(tmp_path):
+    bad = tmp_path / "bad"
+    with pytest.raises(FileNotFoundError):
+        pd.read_excel(bad)
