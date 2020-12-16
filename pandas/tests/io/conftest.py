@@ -50,8 +50,7 @@ def s3_base(worker_id):
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
     requests = pytest.importorskip("requests")
-    logging.getLogger("urllib3").propagate = False
-    logger = logging.getLogger()
+
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
         # see https://github.com/spulec/moto/issues/1924 & 1952
@@ -74,8 +73,6 @@ def s3_base(worker_id):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        for key in logging.Logger.manager.loggerDict:
-            logger.critical(key)
 
         timeout = 5
         while timeout > 0:
@@ -112,6 +109,8 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     import boto3
     import s3fs
+
+    logging.getLogger("botocore.vendored.requests.packages.urllib3").disabled = True
 
     test_s3_files = [
         ("tips#1.csv", tips_file),
