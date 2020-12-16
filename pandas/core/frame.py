@@ -59,10 +59,12 @@ from pandas._typing import (
     FormattersType,
     FrameOrSeriesUnion,
     IndexKeyFunc,
+    IndexLabel,
     Label,
     Level,
     Renamer,
     StorageOptions,
+    Suffixes,
     ValueKeyFunc,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -8028,8 +8030,8 @@ NaN 12.3   33.0
 
     def join(
         self,
-        other,
-        on=None,
+        other: FrameOrSeriesUnion,
+        on: Optional[IndexLabel] = None,
         how: str = "left",
         lsuffix: str = "",
         rsuffix: str = "",
@@ -8157,7 +8159,13 @@ NaN 12.3   33.0
         )
 
     def _join_compat(
-        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+        self,
+        other: FrameOrSeriesUnion,
+        on: Optional[IndexLabel] = None,
+        how: str = "left",
+        lsuffix: str = "",
+        rsuffix: str = "",
+        sort: bool = False,
     ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
@@ -8222,18 +8230,18 @@ NaN 12.3   33.0
     @Appender(_merge_doc, indents=2)
     def merge(
         self,
-        right,
-        how="inner",
-        on=None,
-        left_on=None,
-        right_on=None,
-        left_index=False,
-        right_index=False,
-        sort=False,
-        suffixes=("_x", "_y"),
-        copy=True,
-        indicator=False,
-        validate=None,
+        right: FrameOrSeriesUnion,
+        how: str = "inner",
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
+        left_index: bool = False,
+        right_index: bool = False,
+        sort: bool = False,
+        suffixes: Suffixes = ("_x", "_y"),
+        copy: bool = True,
+        indicator: bool = False,
+        validate: Optional[str] = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 

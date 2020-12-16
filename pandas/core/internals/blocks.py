@@ -629,10 +629,6 @@ class Block(PandasObject):
             else:
                 raise
 
-        if isinstance(new_values, np.ndarray):
-            # TODO(EA2D): special case not needed with 2D EAs
-            new_values = new_values.reshape(self.shape)
-
         newb = self.make_block(new_values)
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -681,9 +677,7 @@ class Block(PandasObject):
                     #  StringDtype, this matches arr.astype(dtype), xref GH#36153
                     values = arr._format_native_types(na_rep="NaT")
 
-            # astype_nansafe works with 1-d only
-            vals1d = values.ravel()
-            values = astype_nansafe(vals1d, dtype, copy=True)
+            values = astype_nansafe(values, dtype, copy=True)
 
         return values
 
