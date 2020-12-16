@@ -309,7 +309,9 @@ def should_reindex_frame_op(
 
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
-        cols = left.columns.intersection(right.columns)
+        # Only doing unique because of CategoricalIndex. Can be removed after
+        #  GH#38140 is merged
+        cols = left.columns.intersection(right.columns).unique()
 
         # Intersection is always unique so we have to check the unique columns
         left_uniques = left.columns.unique()
