@@ -704,13 +704,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             casted = astype_nansafe(self._values, dtype=dtype, copy=True)
-        except ValueError as err:
-            if "Cannot cast int64 dtype to" in str(err):
-                # FIXME: kludge; raised via Categorical astype
-                casted = self._values.astype(dtype, copy=copy)
-            else:
-                raise
-
         except TypeError as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
