@@ -233,16 +233,17 @@ These are bug fixes that might have notable behavior changes.
 ``Categorical.unique`` now always maintains same dtype as original
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, when calling :meth:`Categorical.unique`, unused categories in the new array
+Previously, when calling :meth:`~Categorical.unique` with categorical data, unused categories in the new array
 would be removed, meaning that the dtype of the new array would be different than the
-original, if some categories are not present in the unique array:
+original, if some categories are not present in the unique array (:issue:`18291`)
 
 As an example of this, given:
 
 .. ipython:: python
 
         dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
-        original = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+        cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+        original = pd.Series(cat)
         unique = original.unique()
 
 *pandas < 1.2.0*:
