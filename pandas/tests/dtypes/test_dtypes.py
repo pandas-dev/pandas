@@ -834,9 +834,26 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(None, ordered2)
         c3 = CategoricalDtype(None, ordered1)
-        assert c1 == c2
-        assert c2 == c1
+        assert c1 != c2
+        assert c2 != c1
         assert c2 == c3
+
+    def test_categorical_dtype_equality_requires_categories(self):
+        # CategoricalDtype with categories=None is *not* equal to
+        #  any fully-initialized CategoricalDtype
+        first = CategoricalDtype(["a", "b"])
+        second = CategoricalDtype()
+        third = CategoricalDtype(ordered=True)
+
+        assert second == second
+        assert third == third
+
+        assert first != second
+        assert second != first
+        assert first != third
+        assert third != first
+        assert second == third
+        assert third == second
 
     @pytest.mark.parametrize("categories", [list("abc"), None])
     @pytest.mark.parametrize("other", ["category", "not a category"])

@@ -8,6 +8,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     Interval,
     Period,
     Series,
@@ -149,8 +150,8 @@ def test_infer_dtype_from_scalar_errors():
         (np.array([[1.0, 2.0]]), np.float_, False),
         (Categorical(list("aabc")), np.object_, False),
         (Categorical([1, 2, 3]), np.int64, False),
-        (Categorical(list("aabc")), "category", True),
-        (Categorical([1, 2, 3]), "category", True),
+        (Categorical(list("aabc")), CategoricalDtype(categories=["a", "b", "c"]), True),
+        (Categorical([1, 2, 3]), CategoricalDtype(categories=[1, 2, 3]), True),
         (Timestamp("20160101"), np.object_, False),
         (np.datetime64("2016-01-01"), np.dtype("=M8[D]"), False),
         (date_range("20160101", periods=3), np.dtype("=M8[ns]"), False),
