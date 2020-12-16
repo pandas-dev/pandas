@@ -24,6 +24,7 @@ from pandas._libs.tslibs.timedeltas import (
 )
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
@@ -35,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_string_dtype,
     is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -324,22 +324,14 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
-            # by pandas convention, converting to non-nano timedelta64
-            #  returns an int64-dtyped array with ints representing multiples
-            #  of the desired timedelta unit.  This is essentially division
-            if self._hasnans:
-                # avoid double-copying
-                result = self._data.astype(dtype, copy=False)
-                return self._maybe_mask_results(
-                    result, fill_value=None, convert="float64"
-                )
-            result = self._data.astype(dtype, copy=copy)
-            return result.astype("i8")
-        elif is_timedelta64_ns_dtype(dtype):
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
+        elif dtype.kind == "m":
+            return astype_td64_unit_conversion(self._data, dtype, copy=copy)
+
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
     def __iter__(self):
