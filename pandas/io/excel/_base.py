@@ -888,7 +888,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return content
 
 
-def _peek_stream(stream: Union[BufferedIOBase, RawIOBase, BinaryIO], size: int = 20) -> bytes:
+def _peek_stream(
+        stream: Union[BufferedIOBase, RawIOBase, BinaryIO],
+        size: int = 20
+) -> bytes:
     """
     Return the specified number of bytes from the start of the stream
     and seek back to the start of the stream afterwards.
