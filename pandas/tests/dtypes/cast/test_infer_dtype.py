@@ -141,7 +141,7 @@ def test_infer_dtype_from_scalar_errors():
     [
         ("foo", np.object_, False),
         (b"foo", np.object_, False),
-        (1, np.int_, False),
+        (1, np.int64, False),
         (1.5, np.float_, False),
         (np.datetime64("2016-01-01"), np.dtype("M8[ns]"), False),
         (Timestamp("20160101"), np.dtype("M8[ns]"), False),
