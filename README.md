@@ -101,8 +101,8 @@ pip install pandas
 
 ## Dependencies
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
-- [python-dateutil - Provides powerful extensions to the standard datetime module, available in Python 2.3+](https://labix.org/python-dateutil)
-- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations using Python 2.4 or higher](https://pythonhosted.org/pytz)
+- [python-dateutil - Provides powerful extensions to the standard datetime module](https://labix.org/python-dateutil)
+- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://pythonhosted.org/pytz)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
