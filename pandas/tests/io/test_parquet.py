@@ -671,12 +671,7 @@ class TestParquetPyArrow(Base):
     @pytest.mark.parametrize(
         "partition_col",
         [
-            pytest.param(
-                ["A"],
-                marks=pytest.mark.xfail(
-                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
-                ),
-            ),
+            ["A"],
             [],
         ],
     )
