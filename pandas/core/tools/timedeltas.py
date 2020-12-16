@@ -4,11 +4,12 @@ timedelta support tools
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
@@ -113,11 +114,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
-        arg = arg.item()
+        arg = lib.item_from_zerodim(arg)
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
