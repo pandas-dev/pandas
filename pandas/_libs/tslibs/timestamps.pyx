@@ -619,7 +619,7 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             base1, base2 = base, ""
 
-        if self.microsecond != 0:
+        if self.microsecond != 0 and timespec in ("auto", "microseconds"):
             base1 += f"{self.nanosecond:03d}"
         else:
             base1 += f".{self.nanosecond:09d}"
