@@ -1,5 +1,3 @@
-import pytest
-
 from pandas import Timestamp
 
 
