@@ -200,7 +200,6 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
--
 
 Conversion
 ^^^^^^^^^^
@@ -237,7 +236,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
--
+- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differntly ordered (:issue:`38439`)
 
 I/O
 ^^^
