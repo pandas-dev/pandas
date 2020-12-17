@@ -679,9 +679,9 @@ def infer_dtype_from(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
     elif not is_list_like(val):
         v1 = infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
         v2 = infer_dtype_from_array([val], pandas_dtype=pandas_dtype)
-        if v1[1] != v2[1]:
+        if v1[0] != v2[0]:
             # Troubleshooting 32 bit builds
-            raise ValueError(val, pandas_dtype, v1[1], v2[1])
+            raise ValueError(val, pandas_dtype, v1[0], v2[0])
     return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
 
 
