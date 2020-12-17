@@ -138,21 +138,19 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
-    def test_table_method_rolling(
-        self, axis, center, closed, nogil, parallel, nopython
-    ):
+    def test_table_method_rolling(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
             return np.sum(x, axis=0) + 1
 
         df = DataFrame(np.eye(3))
-        result = df.rolling(
-            2, method="table", axis=axis, center=center, closed=closed, min_periods=0
-        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
-        expected = df.rolling(
-            2, method="single", axis=axis, center=center, closed=closed, min_periods=0
-        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+        result = df.rolling(2, method="table", axis=axis, min_periods=0).apply(
+            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
+        )
+        expected = df.rolling(2, method="single", axis=axis, min_periods=0).apply(
+            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self):
