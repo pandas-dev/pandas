@@ -88,7 +88,7 @@ class TestFeather:
             # df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(DeprecationWarning):
             # GH#38134 until pyarrow updates to pass ndim to Block constructor
             self.check_round_trip(df)
 

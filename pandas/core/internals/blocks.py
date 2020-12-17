@@ -184,7 +184,7 @@ class Block(PandasObject):
                 "Accepting ndim=None in the Block constructor is deprecated, "
                 "this will raise in a future version.",
                 DeprecationWarning,
-                stacklevel=3,
+                stacklevel=10,
             )
             if self.is_extension:
                 if len(self.mgr_locs) != 1:
@@ -199,6 +199,7 @@ class Block(PandasObject):
                 "Wrong number of dimensions. "
                 f"values.ndim != ndim [{values.ndim} != {ndim}]"
             )
+
         return ndim
 
     @property

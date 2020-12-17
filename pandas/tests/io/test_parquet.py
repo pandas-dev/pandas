@@ -561,9 +561,7 @@ class TestParquetPyArrow(Base):
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#38134 until pyarrow updates to pass ndim to Block constructor
-            check_round_trip(df, pa)
+        check_round_trip(df, pa)
 
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
@@ -880,7 +878,7 @@ class TestParquetPyArrow(Base):
         # they both implement datetime.tzinfo
         # they both wrap datetime.timedelta()
         # this use-case sets the resolution to 1 minute
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(DeprecationWarning):
             # GH#38134 until pyarrow updates to pass ndim to Block constructor
             check_round_trip(df, pa, check_dtype=False)
 
