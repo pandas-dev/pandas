@@ -8441,8 +8441,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         When having a DataFrame with dates as index, this function can
         select the last few rows based on a date offset.
-        
-        Note that for the last() method to work, the DatetimeIndex must be sorted otherwise it will not work as intended.
+
+        Note that for the last() method to work, the DatetimeIndex 
+        must be sorted otherwise it will not work as intended.
 
         Parameters
         ----------
