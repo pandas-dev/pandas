@@ -13,6 +13,7 @@ from pandas import isna
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
+from scipy.sparse import eye  
 
 class TestSparseArray:
     def setup_method(self, method):
@@ -858,7 +859,19 @@ class TestSparseArray:
         sa = SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
+    
+    def test_loc(self):
+        # Tests .loc on sparse DataFrame #34687
+        s = pd.DataFrame.sparse.from_spmatrix(eye(5))
+        
+        res1 = s.loc[range(2)]
+        exp1 = SparseArray([[1.0, 0.0, 0.0, 0.0, 0.0],
+                           [0.0, 1.0, 0.0, 0.0, 0.0]])
+        tm.assert_sp_array_equal(res1, exp1)
 
+        res2 = s.loc[range(2)].loc[range(1)]
+        exp2 = SparseArray([[1.0, 0.0, float("nan"), float("nan"), float("nan")]])
+        tm.assert_sp_array_equal(res2, exp2)
 
 class TestSparseArrayAnalytics:
     @pytest.mark.parametrize(
