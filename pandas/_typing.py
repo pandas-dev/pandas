@@ -95,6 +95,7 @@ Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
@@ -146,5 +147,12 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-# type of float formatter in DataFrameFormatter
+# types in DataFrameFormatter
+FormattersType = Union[
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+]
+ColspaceType = Mapping[Label, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
+]
