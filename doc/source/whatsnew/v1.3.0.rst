@@ -13,6 +13,26 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_130.read_csv_json_http_headers:
+
+Custom HTTP(s) headers when reading csv or json files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When reading from a remote URL that is not handled by fsspec (ie. HTTP and
+HTTPS) the dictionary passed to ``storage_options`` will be used to create the
+headers included in the request.  This can be used to control the User-Agent
+header or send other custom headers (:issue:`36688`).
+For example:
+
+.. ipython:: python
+
+    headers = {"User-Agent": "pandas"}
+    df = pd.read_csv(
+        "https://download.bls.gov/pub/time.series/cu/cu.item",
+        sep="\t",
+        storage_options=headers
+    )
+
 
 .. _whatsnew_130.enhancements.other:
 
@@ -20,7 +40,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
--
+- Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 
 .. ---------------------------------------------------------------------------
 
@@ -133,7 +153,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
+- Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
 -
 -
 
@@ -175,8 +195,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
--
--
+- Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
 
 Conversion
 ^^^^^^^^^^
@@ -212,13 +231,17 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
--
+- Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
+- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differntly ordered (:issue:`38439`)
 
 I/O
 ^^^
 
+- Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
+- Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
+- Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
+- Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
 -
 
 Period
