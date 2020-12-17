@@ -256,7 +256,17 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
-        self.data_unique = CategoricalIndex(list(string.printable))
+        self.data_unique = CategoricalIndex(
+            [
+                "".join(
+                    np.random.choice(
+                        list(string.printable),
+                        np.random.randint(1, len(string.printable)),
+                    )
+                )
+                for _ in range(N)
+            ]
+        )
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
