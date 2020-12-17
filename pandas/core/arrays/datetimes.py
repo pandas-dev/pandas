@@ -612,14 +612,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Rendering Methods
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
-            self.asi8.ravel(), tz=self.tz, format=fmt, na_rep=na_rep
-        ).reshape(self.shape)
+            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
+        )
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -819,6 +820,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
+    @dtl.ravel_compat
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
@@ -1051,6 +1053,7 @@ default 'raise'
         new_values = normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
+    @dtl.ravel_compat
     def to_period(self, freq=None):
         """
         Cast to PeriodArray/Index at a particular frequency.

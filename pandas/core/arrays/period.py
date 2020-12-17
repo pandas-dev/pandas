@@ -562,6 +562,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             return str
         return "'{}'".format
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         """
         actually format my specific types

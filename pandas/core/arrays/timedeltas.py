@@ -400,11 +400,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return get_format_timedelta64(self, box=True)
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import get_format_timedelta64
 
         formatter = get_format_timedelta64(self._data, na_rep)
-        return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
+        return np.array([formatter(x) for x in self._data])
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

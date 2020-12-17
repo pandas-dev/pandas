@@ -64,7 +64,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -679,6 +679,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         Series
         """
+        if self.ndim != 1:
+            raise NotImplementedError
+
         from pandas import Index, Series
 
         if dropna:
@@ -694,6 +697,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return Series(result._values, index=index, name=result.name)
 
+    @ravel_compat
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
@@ -820,6 +824,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             value = to_offset(value)
             self._validate_frequency(self, value)
 
+            if self.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
+
         self._freq = value
 
     @property
@@ -918,7 +925,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @property
     def _is_unique(self) -> bool:
-        return len(unique1d(self.asi8)) == len(self)
+        return len(unique1d(self.asi8.ravel("K"))) == self.size
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
