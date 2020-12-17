@@ -13,7 +13,7 @@ from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, DtypeObj, Label
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
@@ -348,13 +348,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    @cache_readonly
-    def values(self) -> IntervalArray:
-        """
-        Return the IntervalIndex's data as an IntervalArray.
-        """
-        return self._data
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
@@ -646,23 +639,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return mask.argmax()
         return lib.maybe_booleans_to_slice(mask.view("u1"))
 
-    @Substitution(
-        **dict(
-            _index_doc_kwargs,
-            **{
-                "raises_section": textwrap.dedent(
-                    """
-        Raises
-        ------
-        NotImplementedError
-            If any method argument other than the default of
-            None is specified as these are not yet implemented.
-        """
-                )
-            },
-        )
-    )
-    @Appender(_index_shared_docs["get_indexer"])
     def _get_indexer(
         self,
         target: Index,
@@ -670,14 +646,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         limit: Optional[int] = None,
         tolerance: Optional[Any] = None,
     ) -> np.ndarray:
-
-        self._check_indexing_method(method)
-
-        if self.is_overlapping:
-            raise InvalidIndexError(
-                "cannot handle overlapping indices; "
-                "use IntervalIndex.get_indexer_non_unique"
-            )
 
         if isinstance(target, IntervalIndex):
             # equal indexes -> 1:1 positional match
@@ -767,6 +735,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _index_as_unique(self):
         return not self.is_overlapping
 
+    _requires_unique_msg = (
+        "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
+    )
+
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
             # GH#31658 if label-based, we require step == 1,
@@ -810,9 +782,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return not is_object_dtype(common_subtype)
 
     def _should_compare(self, other) -> bool:
-        if not super()._should_compare(other):
-            return False
         other = unpack_nested_dtype(other)
+        if is_object_dtype(other.dtype):
+            return True
+        if not self._is_comparable_dtype(other.dtype):
+            return False
         return other.closed == self.closed
 
     # TODO: use should_compare and get rid of _is_non_comparable_own_type
@@ -971,23 +945,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 "objects that are closed on the same side "
                 "and have compatible dtypes"
             )
-
-    @Appender(Index.intersection.__doc__)
-    def intersection(self, other, sort=False) -> Index:
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        if not isinstance(other, IntervalIndex):
-            return self.astype(object).intersection(other)
-
-        result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
 
     def _intersection(self, other, sort):
         """

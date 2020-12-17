@@ -1627,6 +1627,20 @@ functions - the following example shows reading a CSV file:
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
 
+.. versionadded:: 1.3.0
+
+A custom header can be sent alongside HTTP(s) requests by passing a dictionary
+of header key value mappings to the ``storage_options`` keyword argument as shown below:
+
+.. code-block:: python
+
+   headers = {"User-Agent": "pandas"}
+   df = pd.read_csv(
+       "https://download.bls.gov/pub/time.series/cu/cu.item",
+       sep="\t",
+       storage_options=headers
+   )
+
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
 (including Amazon S3, Google Cloud, SSH, FTP, webHDFS...).
