@@ -202,13 +202,10 @@ class BaseGrouper:
             try:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
-            except libreduction.InvalidApply as err:
-                # This Exception is raised if `f` triggers an exception
-                # but it is preferable to raise the exception in Python.
-                if "Let this error raise above us" not in str(err):
-                    # TODO: can we infer anything about whether this is
-                    #  worth-retrying in pure-python?
-                    raise
+            except IndexError:
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
+                pass
 
             else:
                 # If the fast apply path could be used we can return here.
