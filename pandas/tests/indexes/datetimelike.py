@@ -10,6 +10,14 @@ from .common import Base
 
 
 class DatetimeLike(Base):
+    def test_argsort_matches_array(self):
+        rng = self.create_index()
+        rng = rng.insert(1, pd.NaT)
+
+        result = rng.argsort()
+        expected = rng._data.argsort()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_can_hold_identifiers(self):
         idx = self.create_index()
         key = idx[0]

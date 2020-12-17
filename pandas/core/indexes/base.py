@@ -4767,10 +4767,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        if needs_i8_conversion(self.dtype):
-            # TODO: these do not match the underlying EA argsort methods GH#37863
-            return self.asi8.argsort(*args, **kwargs)
-
         # This works for either ndarray or EA, is overriden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
