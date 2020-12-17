@@ -679,6 +679,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         Series
         """
+        if self.ndim != 1:
+            raise NotImplementedError
+
         from pandas import Index, Series
 
         if dropna:
@@ -688,7 +691,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         cls = type(self)
 
-        result = value_counts(values.ravel("K"), sort=False, dropna=dropna)
+        result = value_counts(values, sort=False, dropna=dropna)
         index = Index(
             cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
         )
