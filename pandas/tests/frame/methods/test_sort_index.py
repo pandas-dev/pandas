@@ -857,3 +857,23 @@ class TestDataFrameSortIndexKey:
         result = expected.sort_index(level=0)
 
         tm.assert_frame_equal(result, expected)
+    
+    def test_sort_index_mode_true(self):
+        d = {'col1': [1, 2, 3], 'col2': [3, 4, 5]}
+        df = pd.DataFrame(data=d)
+        now = pd.Timestamp.now()
+        df.index = [now, now - pd.Timedelta('1m'), now + pd.Timedelta('2m')]
+        
+        try:
+            df1 = df.sort_index()
+        except Exception as ex:
+            print('test 1 failed: ', ex)
+
+        pd.set_option('use_inf_as_na', True)
+
+        try:
+            df2 = df.sort_index()
+        except Exception as ex:
+            print('test 2 failed: ', ex)
+
+
