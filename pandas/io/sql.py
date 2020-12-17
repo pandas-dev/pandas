@@ -482,6 +482,64 @@ def read_sql(
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
+
+    Examples
+    --------
+    Read data from SQL via either a SQL query or a SQL tablename.
+    When using a SQLite database only SQL queries are accepted,
+    providing only the SQL tablename will result in an error.
+
+    >>> from sqlite3 import connect
+    >>> conn = connect(':memory:')
+    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
+    ...                   columns=['int_column', 'date_column'])
+    >>> df.to_sql('test_data', conn)
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
+       int_column date_column
+    0           0    10/11/12
+    1           1    12/11/10
+
+    >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    Apply date parsing to columns through the ``parse_dates`` argument
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates=["date_column"])
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
+    Custom argument values for applying ``pd.to_datetime`` on a column are specified
+    via a dictionary format:
+    1. Ignore errors while parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"errors": "ignore"}})
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    2. Apply a dayfirst date parsing order on the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"dayfirst": True}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
+
+    3. Apply custom formatting when date parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
     """
     pandas_sql = pandasSQL_builder(con)
 
