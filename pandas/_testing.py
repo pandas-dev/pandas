@@ -834,7 +834,9 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
-            diff = np.sum((left.values != right.values).astype(int)) * 100.0 / len(left)
+            diff = (
+                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
+            )
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:

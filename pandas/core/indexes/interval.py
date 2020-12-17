@@ -348,13 +348,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    @cache_readonly
-    def values(self) -> IntervalArray:
-        """
-        Return the IntervalIndex's data as an IntervalArray.
-        """
-        return self._data
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
