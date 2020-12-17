@@ -11,7 +11,7 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_little_endian
-from pandas.compat.numpy import _np_version_under1p19
+from pandas.compat.numpy import _np_version_under1p19, _np_version_under1p20
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
@@ -181,7 +181,7 @@ class TestDataFrameConstructors:
             for d, a in zip(dtypes, arrays):
                 assert a.dtype == d
             if ad is None:
-                ad = dict()
+                ad = {}
             ad.update({d: a for d, a in zip(dtypes, arrays)})
             return DataFrame(ad)
 
@@ -197,7 +197,7 @@ class TestDataFrameConstructors:
         _check_mixed_dtypes(df)
 
         # add lots of types
-        df = _make_mixed_dtypes_df("float", dict(A=1, B="foo", C="bar"))
+        df = _make_mixed_dtypes_df("float", {"A": 1, "B": "foo", "C": "bar"})
         _check_mixed_dtypes(df)
 
         # GH 622
@@ -352,12 +352,12 @@ class TestDataFrameConstructors:
 
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
-        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
+        tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
         # GH 14381
         # Dict with None value
-        frame_none = DataFrame(dict(a=None), index=[0])
-        frame_none_list = DataFrame(dict(a=[None]), index=[0])
+        frame_none = DataFrame({"a": None}, index=[0])
+        frame_none_list = DataFrame({"a": [None]}, index=[0])
         assert frame_none._get_value(0, "a") is None
         assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
@@ -802,14 +802,14 @@ class TestDataFrameConstructors:
 
         # automatic labeling
         frame = DataFrame(mat)
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, index=[1, 2])
-        tm.assert_index_equal(frame.columns, pd.Int64Index(range(3)))
+        tm.assert_index_equal(frame.columns, Index(range(3)), exact=True)
 
         frame = DataFrame(mat, columns=["A", "B", "C"])
-        tm.assert_index_equal(frame.index, pd.Int64Index(range(2)))
+        tm.assert_index_equal(frame.index, Index(range(2)), exact=True)
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -1238,32 +1238,34 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_preserve_order(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_preserve_order(self, dict_type):
         # see gh-13304
         expected = DataFrame([[2, 1]], columns=["b", "a"])
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = [2]
         data["a"] = [1]
 
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-        data = OrderedDict()
+        data = dict_type()
         data["b"] = 2
         data["a"] = 1
 
         result = DataFrame([data])
         tm.assert_frame_equal(result, expected)
 
-    def test_constructor_ordered_dict_conflicting_orders(self):
+    @pytest.mark.parametrize("dict_type", [dict, OrderedDict])
+    def test_constructor_ordered_dict_conflicting_orders(self, dict_type):
         # the first dict element sets the ordering for the DataFrame,
         # even if there are conflicting orders from subsequent ones
-        row_one = OrderedDict()
+        row_one = dict_type()
         row_one["b"] = 2
         row_one["a"] = 1
 
-        row_two = OrderedDict()
+        row_two = dict_type()
         row_two["a"] = 1
         row_two["b"] = 2
 
@@ -1367,7 +1369,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_ragged(self):
         data = {"A": np.random.randn(10), "B": np.random.randn(8)}
-        with pytest.raises(ValueError, match="arrays must all be same length"):
+        with pytest.raises(ValueError, match="All arrays must be of the same length"):
             DataFrame(data)
 
     def test_constructor_scalar(self):
@@ -1540,14 +1542,12 @@ class TestDataFrameConstructors:
         msg = "cannot use columns parameter with orient='columns'"
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]),
+                {"A": [1, 2], "B": [4, 5]},
                 orient="columns",
                 columns=["one", "two"],
             )
         with pytest.raises(ValueError, match=msg):
-            DataFrame.from_dict(
-                dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
-            )
+            DataFrame.from_dict({"A": [1, 2], "B": [4, 5]}, columns=["one", "two"])
 
     @pytest.mark.parametrize(
         "data_dict, keys, orient",
@@ -1590,7 +1590,7 @@ class TestDataFrameConstructors:
         arr = np.random.randn(10)
         s = Series(arr, name="x")
         df = DataFrame(s)
-        expected = DataFrame(dict(x=s))
+        expected = DataFrame({"x": s})
         tm.assert_frame_equal(df, expected)
 
         s = Series(arr, index=range(3, 13))
@@ -2915,3 +2915,50 @@ class TestDataFrameConstructorWithDatetimeTZ:
         msg = "Set type is unordered"
         with pytest.raises(TypeError, match=msg):
             DataFrame({"a": {1, 2, 3}})
+
+
+def get1(obj):
+    if isinstance(obj, Series):
+        return obj.iloc[0]
+    else:
+        return obj.iloc[0, 0]
+
+
+class TestFromScalar:
+    @pytest.fixture
+    def constructor(self, frame_or_series):
+        if frame_or_series is Series:
+            return functools.partial(Series, index=range(2))
+        else:
+            return functools.partial(DataFrame, index=range(2), columns=range(2))
+
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_from_nat_scalar(self, dtype, constructor):
+        obj = constructor(pd.NaT, dtype=dtype)
+        assert np.all(obj.dtypes == dtype)
+        assert np.all(obj.isna())
+
+    def test_from_timedelta_scalar_preserves_nanos(self, constructor):
+        td = Timedelta(1)
+
+        obj = constructor(td, dtype="m8[ns]")
+        assert get1(obj) == td
+
+    def test_from_timestamp_scalar_preserves_nanos(self, constructor):
+        ts = Timestamp.now() + Timedelta(1)
+
+        obj = Series(ts, index=range(1), dtype="M8[ns]")
+        assert get1(obj) == ts
+
+    def test_from_timedelta64_scalar_object(self, constructor, request):
+        if constructor.func is DataFrame and _np_version_under1p20:
+            mark = pytest.mark.xfail(
+                reason="np.array(td64, dtype=object) converts to int"
+            )
+            request.node.add_marker(mark)
+
+        td = Timedelta(1)
+        td64 = td.to_timedelta64()
+
+        obj = constructor(td64, dtype=object)
+        assert isinstance(get1(obj), np.timedelta64)

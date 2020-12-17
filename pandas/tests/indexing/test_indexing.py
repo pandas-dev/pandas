@@ -463,12 +463,12 @@ class TestFancy:
 
         # broadcasting on the rhs is required
         df = DataFrame(
-            dict(
-                A=[1, 2, 0, 0, 0],
-                B=[0, 0, 0, 10, 11],
-                C=[0, 0, 0, 10, 11],
-                D=[3, 4, 5, 6, 7],
-            )
+            {
+                "A": [1, 2, 0, 0, 0],
+                "B": [0, 0, 0, 10, 11],
+                "C": [0, 0, 0, 10, 11],
+                "D": [3, 4, 5, 6, 7],
+            }
         )
 
         expected = df.copy()
@@ -741,11 +741,18 @@ class TestMisc:
             s.loc[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
-        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8], "z": [-5, 0, 5]}).set_index("z")
+        index = Index([-5, 0, 5], name="z")
+        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8]}, index=index)
         expected = df.copy()
-        rhs = dict(x=9, y=99)
+        rhs = {"x": 9, "y": 99}
         df.loc[5] = rhs
         expected.loc[5] = [9, 99]
+        tm.assert_frame_equal(df, expected)
+
+        # GH#38335 same thing, mixed dtypes
+        df = DataFrame({"x": [1, 2, 6], "y": [2.0, 2.0, 8.0]}, index=index)
+        df.loc[5] = rhs
+        expected = DataFrame({"x": [1, 2, 9], "y": [2.0, 2.0, 99.0]}, index=index)
         tm.assert_frame_equal(df, expected)
 
     def test_indexing_dtypes_on_empty(self):
@@ -963,12 +970,12 @@ def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
     df = DataFrame(
         {
-            "A": pd.core.arrays.integer_array([1, 2]),
-            "B": pd.core.arrays.integer_array([3, 4]),
+            "A": pd.array([1, 2], dtype="Int64"),
+            "B": pd.array([3, 4], dtype="Int64"),
         },
         index=["a", "b"],
     )
-    expected = Series(pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a")
+    expected = Series(pd.array([1, 3], dtype="Int64"), index=["A", "B"], name="a")
     result = df.loc["a"]
     tm.assert_series_equal(result, expected)
 
