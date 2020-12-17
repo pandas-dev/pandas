@@ -71,13 +71,21 @@ class ConstructorTests:
     )
     def test_constructor_dtype(self, constructor, breaks, subtype):
         # GH 19262: conversion via dtype parameter
-        expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
+        warn = None
+        if subtype == "int64" and breaks.dtype.kind in ["M", "m"]:
+            # astype(int64) deprecated
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
         expected = constructor(**expected_kwargs)
 
         result_kwargs = self.get_kwargs_from_breaks(breaks)
         iv_dtype = IntervalDtype(subtype)
         for dtype in (iv_dtype, str(iv_dtype)):
-            result = constructor(dtype=dtype, **result_kwargs)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+
+                result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])

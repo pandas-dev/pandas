@@ -1,7 +1,6 @@
 """
 Routines for casting.
 """
-
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import (
@@ -17,6 +16,7 @@ from typing import (
     Type,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -996,6 +996,14 @@ def astype_nansafe(
         if is_object_dtype(dtype):
             return ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
+            warnings.warn(
+                f"casting {arr.dtype} values to int64 with .astype(...) "
+                "is deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                # stacklevel chosen to be correct when reached via Series.astype
+                stacklevel=7,
+            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -1010,6 +1018,14 @@ def astype_nansafe(
         if is_object_dtype(dtype):
             return ints_to_pytimedelta(arr.view(np.int64))
         elif dtype == np.int64:
+            warnings.warn(
+                f"casting {arr.dtype} values to int64 with .astype(...) "
+                "is deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                # stacklevel chosen to be correct when reached via Series.astype
+                stacklevel=7,
+            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
