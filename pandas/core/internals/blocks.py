@@ -58,7 +58,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
@@ -2647,7 +2647,7 @@ def get_block_type(values, dtype=None):
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif dtype.name == "category":
+    elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
