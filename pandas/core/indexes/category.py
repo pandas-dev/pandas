@@ -8,7 +8,7 @@ from pandas._config import get_option
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Label
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -357,11 +357,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def inferred_type(self) -> str:
         return "categorical"
 
-    @property
-    def values(self):
-        """ return the underlying data, which is a Categorical """
-        return self._data
-
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
@@ -380,14 +375,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         value = self._require_scalar(value)
         cat = self._data.fillna(value)
         return type(self)._simple_new(cat, name=self.name)
-
-    @cache_readonly
-    def _engine(self):
-        # we are going to look things up with the codes themselves.
-        # To avoid a reference cycle, bind `codes` to a local variable, so
-        # `self` is not passed into the lambda.
-        codes = self.codes
-        return self._engine_type(lambda: codes, len(self))
 
     @doc(Index.unique)
     def unique(self, level=None):

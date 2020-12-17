@@ -27,12 +27,13 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
+    astype_nansafe,
     find_common_type,
     maybe_cast_to_integer_array,
     maybe_promote,
@@ -693,22 +694,21 @@ class Index(IndexOpsMixin, PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
-
-            return CategoricalIndex(
-                self._values, name=self.name, dtype=dtype, copy=copy
+        if needs_i8_conversion(dtype) and is_float_dtype(self.dtype):
+            # We can't put this into astype_nansafe bc astype_nansafe allows
+            #  casting np.nan to NaT
+            raise TypeError(
+                f"Cannot convert {type(self).__name__} to dtype {dtype}; integer "
+                "values are required for conversion"
             )
 
-        elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
-
         try:
-            casted = self._values.astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
+            casted = astype_nansafe(self._values, dtype=dtype, copy=True)
+        except TypeError as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
             ) from err
+
         return Index(casted, name=self.name, dtype=dtype)
 
     _index_shared_docs[
@@ -1164,7 +1164,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self.values.copy(), index=index, name=name)
+        return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(self, index: bool = True, name=None):
         """
@@ -4036,7 +4036,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Uncategorized Methods
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> ArrayLike:
         """
         Return an array representing the data in the Index.
 
@@ -4055,7 +4055,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data.view(np.ndarray)
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4767,10 +4767,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        if needs_i8_conversion(self.dtype):
-            # TODO: these do not match the underlying EA argsort methods GH#37863
-            return self.asi8.argsort(*args, **kwargs)
-
         # This works for either ndarray or EA, is overriden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
@@ -5322,7 +5318,7 @@ class Index(IndexOpsMixin, PandasObject):
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
         # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self.values:
+        if (is_float(label) or is_integer(label)) and label not in self._values:
             raise self._invalid_indexer("slice", label)
 
         return label
