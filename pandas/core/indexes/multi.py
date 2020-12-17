@@ -3454,13 +3454,17 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             self_codes = self.codes[i]
-            self_codes = self_codes[self_codes != -1]
+            other_codes = other.codes[i]
+            self_mask = self_codes == -1
+            other_mask = other_codes == -1
+            if not np.array_equal(self_mask, other_mask):
+                return False
+            self_codes = self_codes[~self_mask]
             self_values = algos.take_nd(
                 np.asarray(self.levels[i]._values), self_codes, allow_fill=False
             )
 
-            other_codes = other.codes[i]
-            other_codes = other_codes[other_codes != -1]
+            other_codes = other_codes[~other_mask]
             other_values = algos.take_nd(
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
             )
