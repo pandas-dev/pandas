@@ -1164,7 +1164,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self.values.copy(), index=index, name=name)
+        return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(self, index: bool = True, name=None):
         """
@@ -5322,7 +5322,7 @@ class Index(IndexOpsMixin, PandasObject):
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
         # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self.values:
+        if (is_float(label) or is_integer(label)) and label not in self._values:
             raise self._invalid_indexer("slice", label)
 
         return label
