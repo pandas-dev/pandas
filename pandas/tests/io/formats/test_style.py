@@ -1743,7 +1743,10 @@ class TestStyler:
     def test_rowspan_w3(self):
         df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
         s = Styler(df, uuid="_", cell_ids=False)
-        assert '<th id="T___level0_row0" class="row_heading level0 row0" rowspan="2">l0</th>' in s.render()
+        assert (
+            '<th id="T___level0_row0" class="row_heading level0 row0" rowspan="2">l0</th>' 
+            in s.render()
+        )
 
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
