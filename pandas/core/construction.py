@@ -451,11 +451,6 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
-        if data.ndim == 0 and data.dtype.kind in ["u", "i"]:
-            # FIXME: kludge while troubleshooting 32 bit build failure
-            data = np.atleast_1d(data).astype(np.int64)
-        data = np.atleast_1d(data)
-
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
@@ -466,7 +461,11 @@ def sanitize_array(
                 else:
                     subarr = np.array(data, copy=False)
         else:
-            # we will try to copy be-definition here
+            if data.ndim == 0:
+                # TODO: np.atleast_1d?  doing that breaks some tests on 32bit
+                data = [data]
+
+            # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     elif isinstance(data, ABCExtensionArray):
