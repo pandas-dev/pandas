@@ -355,7 +355,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return False
         elif self.categories is None or other.categories is None:
             # For non-fully-initialized dtypes, these are only equal to
-            #  - the string "categorical" (handled above)
+            #  - the string "category" (handled above)
             #  - other CategoricalDtype with categories=None
             return self.categories is other.categories
         elif self.ordered or other.ordered:

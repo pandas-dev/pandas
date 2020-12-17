@@ -90,9 +90,20 @@ class TestCategoricalDtype(Base):
         assert hash(dtype) == hash(dtype2)
 
     def test_equality(self, dtype):
+        assert dtype == "category"
         assert is_dtype_equal(dtype, "category")
+        assert "category" == dtype
+        assert is_dtype_equal("category", dtype)
+
+        assert dtype == CategoricalDtype()
         assert is_dtype_equal(dtype, CategoricalDtype())
+        assert CategoricalDtype() == dtype
+        assert is_dtype_equal(CategoricalDtype(), dtype)
+
+        assert dtype != "foo"
         assert not is_dtype_equal(dtype, "foo")
+        assert "foo" != dtype
+        assert not is_dtype_equal("foo", dtype)
 
     def test_construction_from_string(self, dtype):
         result = CategoricalDtype.construct_from_string("category")

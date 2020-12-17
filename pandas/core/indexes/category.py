@@ -201,8 +201,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         if not isinstance(data, Categorical):
             data = Categorical(data, dtype=dtype)
-        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
+        elif (
+            isinstance(dtype, CategoricalDtype)
+            and dtype != data.dtype
+            and dtype.categories is not None
+        ):
             # we want to silently ignore dtype='category'
+            # TODO: what if dtype.ordered is not None but dtype.categories is?
             data = data._set_dtype(dtype)
 
         data = data.copy() if copy else data
