@@ -232,7 +232,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
--
+- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differntly ordered (:issue:`38439`)
 
 I/O
 ^^^
