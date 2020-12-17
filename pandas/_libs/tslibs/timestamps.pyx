@@ -609,8 +609,8 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    def isoformat(self, sep: str = "T") -> str:
-        base = super(_Timestamp, self).isoformat(sep=sep)
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
+        base = super(_Timestamp, self).isoformat(sep=sep, timespec=timespec)
         if self.nanosecond == 0:
             return base
 
