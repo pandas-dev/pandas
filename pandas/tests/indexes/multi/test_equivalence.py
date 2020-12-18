@@ -209,6 +209,16 @@ def test_equals_missing_values():
     assert not result
 
 
+def test_equals_missing_values_differently_sorted():
+    # GH#38439
+    mi1 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = pd.MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    assert not mi1.equals(mi2)
+
+    mi2 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    assert mi1.equals(mi2)
+
+
 def test_is_():
     mi = MultiIndex.from_tuples(zip(range(10), range(10)))
     assert mi.is_(mi)
