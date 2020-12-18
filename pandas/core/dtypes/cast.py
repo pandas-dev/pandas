@@ -674,14 +674,8 @@ def infer_dtype_from(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
         If False, scalar/array belongs to pandas extension types is inferred as
         object
     """
-    if not is_scalar(val):
+    if not is_list_like(val):
         return infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
-    elif not is_list_like(val):
-        v1 = infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
-        v2 = infer_dtype_from_array([val], pandas_dtype=pandas_dtype)
-        if v1[0] != v2[0]:
-            # Troubleshooting 32 bit builds
-            raise ValueError(val, pandas_dtype, v1[0], v2[0])
     return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
 
 
