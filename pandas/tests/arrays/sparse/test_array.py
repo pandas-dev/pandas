@@ -864,12 +864,15 @@ class TestSparseArray:
         # Tests .loc on sparse DataFrame #34687
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)].to_numpy()
-        exp1 = pd.DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 0.0, 0.0]]).to_numpy()
+        exp1 = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]]
+        ).to_numpy()
         tm.assert_numpy_array_equal(res1, exp1)
 
         res2 = df.loc[range(2)].loc[range(1)].to_numpy()
-        exp2 = pd.DataFrame([[1.0, 0.0, float("nan"), float("nan"), float("nan")]]).to_numpy()
+        exp2 = exp2 = pd.DataFrame(
+            [[1.0, 0.0, float("nan"), float("nan"), float("nan")]]
+        ).to_numpy()
         tm.assert_numpy_array_equal(res2, exp2)
 
 class TestSparseArrayAnalytics:
