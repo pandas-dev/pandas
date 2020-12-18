@@ -577,7 +577,7 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
 
     Parameters
     ----------
-    arr : ndarray, scalar, list, tuple, iterator (catchall)
+    arr : ndarray, list, tuple, iterator (catchall)
         Excludes: ExtensionArray, Series, Index.
     dtype : np.dtype, ExtensionDtype or None
     copy : bool
