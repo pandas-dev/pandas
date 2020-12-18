@@ -7777,7 +7777,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({{'s':series}})
+        >>> df = pd.DataFrame({{'s': series}})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -8230,7 +8230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         column instead of the index for resampling.
 
         >>> d = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...     'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
