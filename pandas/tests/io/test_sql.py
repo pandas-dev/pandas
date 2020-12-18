@@ -26,8 +26,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
 
 import pandas as pd
@@ -1158,7 +1156,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             ("UInt32", "BIGINT"),
             ("int64", "BIGINT"),
             ("Int64", "BIGINT"),
-            (int, "BIGINT" if IS64 else "INTEGER"),
+            (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
         ],
     )
     def test_sqlalchemy_integer_mapping(self, integer, expected):
