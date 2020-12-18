@@ -153,7 +153,8 @@ def _isna(obj, inf_as_na: bool = False):
             return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
-        raise NotImplementedError("isna is not defined for MultiIndex")
+        # If there is within a level an NA, the entire label is considered NA
+        return obj.to_frame().isna().any(axis="columns").values
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
