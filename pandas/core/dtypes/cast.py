@@ -1092,27 +1092,22 @@ def soft_convert_objects(
         raise ValueError("At least one of datetime, numeric or timedelta must be True.")
 
     # Soft conversions
-    if datetime:
+    if datetime or timedelta:
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
         try:
-            values = lib.maybe_convert_objects(values, convert_datetime=True)
+            values = lib.maybe_convert_objects(
+                values, convert_datetime=datetime, convert_timedelta=timedelta
+            )
         except OutOfBoundsDatetime:
-            pass
-
-    if timedelta and is_object_dtype(values.dtype):
-        # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values, convert_timedelta=True)
+            return values
 
     if numeric and is_object_dtype(values.dtype):
-        try:
-            converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
-        except (ValueError, TypeError):
-            pass
-        else:
-            # If all NaNs, then do not-alter
-            values = converted if not isna(converted).all() else values
-            values = values.copy() if copy else values
+        converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+
+        # If all NaNs, then do not-alter
+        values = converted if not isna(converted).all() else values
+        values = values.copy() if copy else values
 
     return values
 
