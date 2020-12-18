@@ -231,16 +231,16 @@ SQL_STRINGS = {
                 PRIMARY KEY ("a", "b")
             )""",
         "mysql": """CREATE TABLE pkey_table (
-                `a` INTEGER,
-                `b` TEXT,
+                `a` INTEGER NOT NULL,
+                `b` TEXT NOT NULL,
                 `c` TEXT,
-                CONSTRAINT pk_PkeyTable PRIMARY KEY (a,b)
+                PRIMARY KEY (`a`,`b`)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
-                "a" INTEGER PRIMARY KEY,
+                "a" INTEGER,
                 "b" TEXT,
                 "c" TEXT,
-                PRIMARY KEY(a, b)
+                PRIMARY KEY("a", "b")
             )""",
     },
     "insert_pkey_table": {
