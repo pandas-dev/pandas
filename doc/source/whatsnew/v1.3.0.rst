@@ -170,7 +170,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 -
 
 Datetimelike
