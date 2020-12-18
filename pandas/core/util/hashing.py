@@ -13,12 +13,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
 
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
@@ -86,7 +81,7 @@ def hash_pandas_object(
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    elif isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndex):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )

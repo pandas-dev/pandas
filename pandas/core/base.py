@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
@@ -208,7 +208,7 @@ class SelectionMixin:
     @property
     def _selection_list(self):
         if not isinstance(
-            self._selection, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)
+            self._selection, (list, tuple, ABCSeries, ABCIndex, np.ndarray)
         ):
             return [self._selection]
         return self._selection
@@ -237,7 +237,7 @@ class SelectionMixin:
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
