@@ -496,25 +496,7 @@ def sanitize_array(
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
-    # scalar like, GH
-    if getattr(subarr, "ndim", 0) == 0:
-        if isinstance(data, list):  # pragma: no cover
-            subarr = np.array(data, dtype=object)
-        elif index is not None:
-            subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
-
-        else:
-            return subarr.item()
-
-    # the result that we want
-    elif subarr.ndim == 1:
-        subarr = _maybe_repeat(subarr, index)
-
-    elif subarr.ndim > 1:
-        if isinstance(data, np.ndarray):
-            raise ValueError("Data must be 1-dimensional")
-        else:
-            subarr = com.asarray_tuplesafe(data, dtype=dtype)
+    subarr = _sanitize_ndim(subarr, data, dtype, index)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
@@ -526,6 +508,32 @@ def sanitize_array(
                 subarr = array(subarr)
 
     return subarr
+
+
+def _sanitize_ndim(result, data, dtype: Optional[DtypeObj], index: Optional[Index]):
+    """
+    Ensure we have a 1-dimensional result array.
+    """
+    # scalar like, GH????
+    if getattr(result, "ndim", 0) == 0:
+        if isinstance(data, list):  # pragma: no cover
+            result = np.array(data, dtype=object)
+        elif index is not None:
+            result = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
+        else:  # FIXME: not what we want!
+            return result.item()
+
+    elif result.ndim == 1:
+        # the result that we want
+        result = _maybe_repeat(result, index)
+
+    elif result.ndim > 1:
+        if isinstance(data, np.ndarray):
+            raise ValueError("Data must be 1-dimensional")
+        else:
+            result = com.asarray_tuplesafe(data, dtype=dtype)
+    return result
 
 
 def _sanitize_str_dtypes(
