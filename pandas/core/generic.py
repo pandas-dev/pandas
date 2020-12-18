@@ -2568,6 +2568,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         DataFrame.to_feather : Write out feather-format for DataFrames.
         DataFrame.to_csv : Write out to a csv file.
 
+        Warnings
+        --------
+        One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+        but the type of the subclass is lost upon storing.
+
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
