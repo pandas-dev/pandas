@@ -710,7 +710,7 @@ class SQLTable(PandasObject):
         self.index = self._index_name(index, index_label)
         self.schema = schema
         self.if_exists = if_exists
-        self.on_conflict = (on_conflict,)
+        self.on_conflict = on_conflict
         self.keys = keys
         self.dtype = dtype
 
