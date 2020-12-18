@@ -311,9 +311,16 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
+    args: Tuple[Any, ...] = (data,)
+    mode = "wb"
+    method = "write"
     compress_method: Callable
+
     if compression == "zip":
         compress_method = zipfile.ZipFile
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
@@ -322,16 +329,6 @@ def write_to_compressed(compression, path, data, dest="test"):
         compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
-
-    args: Tuple[Any, ...]
-    if compression == "zip":
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    else:
-        mode = "wb"
-        args = (data,)
-        method = "write"
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
