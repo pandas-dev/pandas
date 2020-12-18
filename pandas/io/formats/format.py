@@ -39,9 +39,12 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    ColspaceArgType,
+    ColspaceType,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
+    FormattersType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -80,14 +83,6 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
-
-FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
-]
-ColspaceType = Mapping[Label, Union[str, int]]
-ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
-]
 
 common_docstring = """
         Parameters
