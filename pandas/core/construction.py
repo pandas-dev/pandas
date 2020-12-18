@@ -508,11 +508,7 @@ def sanitize_array(
 
     # the result that we want
     elif subarr.ndim == 1:
-        if index is not None:
-
-            # a 1-element ndarray
-            if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = subarr.repeat(len(index))
+        subarr = _maybe_repeat(subarr, index)
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
@@ -521,16 +517,7 @@ def sanitize_array(
             subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        # This is to prevent mixed-type Series getting all casted to
-        # NumPy string type, e.g. NaN --> '-1#IND'.
-        if issubclass(subarr.dtype.type, str):
-            # GH#16605
-            # If not empty convert the data to dtype
-            # GH#19853: If data is a scalar, subarr has already the result
-            if not lib.is_scalar(data):
-                if not np.all(isna(data)):
-                    data = np.array(data, dtype=dtype, copy=False)
-                subarr = np.array(data, dtype=object, copy=copy)
+        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
@@ -539,6 +526,37 @@ def sanitize_array(
                 subarr = array(subarr)
 
     return subarr
+
+
+def _sanitize_str_dtypes(
+    result: np.ndarray, data, dtype: Optional[DtypeObj], copy: bool
+) -> np.ndarray:
+    """
+    Ensure we have a dtype that is supported by pandas.
+    """
+
+    # This is to prevent mixed-type Series getting all casted to
+    # NumPy string type, e.g. NaN --> '-1#IND'.
+    if issubclass(result.dtype.type, str):
+        # GH#16605
+        # If not empty convert the data to dtype
+        # GH#19853: If data is a scalar, result has already the result
+        if not lib.is_scalar(data):
+            if not np.all(isna(data)):
+                data = np.array(data, dtype=dtype, copy=False)
+            result = np.array(data, dtype=object, copy=copy)
+    return result
+
+
+def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
+    """
+    If we have a length-1 array and an index describing how long we expect
+    the result to be, repeat the array.
+    """
+    if index is not None:
+        if 1 == len(arr) != len(index):
+            arr = arr.repeat(len(index))
+    return arr
 
 
 def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
