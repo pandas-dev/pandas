@@ -866,7 +866,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
     # hacky way to set the stacklevel: if cls is TimeGrouper it means
     # that the call comes from a pandas internal call of resample,
     # otherwise it comes from pd.Grouper
-    stacklevel = (4 if origin is TimeGrouper else 2) + 1
+    stacklevel = (5 if origin is TimeGrouper else 2) + 1
     # the + 1 is for this helper function, check_deprecated_resample_kwargs
 
     if kwargs.get("base", None) is not None:
