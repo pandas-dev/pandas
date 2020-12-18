@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
-    infer_dtype_from_scalar,
     maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
@@ -36,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -328,8 +327,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 npoints = sparse_index.length
 
-            dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype)
+            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
+            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -747,7 +746,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 keys = np.insert(keys, 0, self.fill_value)
                 counts = np.insert(counts, 0, fcounts)
 
-        if not isinstance(keys, ABCIndexClass):
+        if not isinstance(keys, ABCIndex):
             keys = Index(keys)
         return Series(counts, index=keys)
 
@@ -1062,7 +1061,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        subtype = dtype._subtype_with_str
+        subtype = pandas_dtype(dtype._subtype_with_str)
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)

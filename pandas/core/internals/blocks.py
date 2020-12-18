@@ -6,11 +6,20 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib, writers
+from pandas._libs import (
+    Interval,
+    NaT,
+    Period,
+    Timestamp,
+    algos as libalgos,
+    internals as libinternals,
+    lib,
+    writers,
+)
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Scalar, Shape
+from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -41,23 +50,16 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_object_dtype,
-    is_period_dtype,
     is_re,
     is_re_compilable,
     is_sparse,
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
@@ -73,7 +75,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import array as pd_array, extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -598,7 +600,7 @@ class Block(PandasObject):
         dtype : str, dtype convertible
         copy : bool, default False
             copy if indicated
-        errors : str, {'raise', 'ignore'}, default 'ignore'
+        errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
 
@@ -622,69 +624,19 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-
-        # may need to convert to categorical
-        if is_categorical_dtype(dtype):
-
-            if is_categorical_dtype(self.values.dtype):
-                # GH 10696/18593: update an existing categorical efficiently
-                return self.make_block(self.values.astype(dtype, copy=copy))
-
-            return self.make_block(Categorical(self.values, dtype=dtype))
-
         dtype = pandas_dtype(dtype)
 
-        # astype processing
-        if is_dtype_equal(self.dtype, dtype):
-            if copy:
-                return self.copy()
-            return self
-
-        # force the copy here
-        if self.is_extension:
-            try:
-                values = self.values.astype(dtype)
-            except (ValueError, TypeError):
-                if errors == "ignore":
-                    values = self.values
-                else:
-                    raise
-        else:
-            if issubclass(dtype.type, str):
-
-                # use native type formatting for datetime/tz/timedelta
-                if self.is_datelike:
-                    values = self.to_native_types().values
-
-                # astype formatting
-                else:
-                    # Because we have neither is_extension nor is_datelike,
-                    #  self.values already has the correct shape
-                    values = self.values
-
+        try:
+            new_values = self._astype(dtype, copy=copy)
+        except (ValueError, TypeError):
+            # e.g. astype_nansafe can fail on object-dtype of strings
+            #  trying to convert to float
+            if errors == "ignore":
+                new_values = self.values
             else:
-                values = self.get_values(dtype=dtype)
+                raise
 
-            # _astype_nansafe works fine with 1-d only
-            vals1d = values.ravel()
-            try:
-                values = astype_nansafe(vals1d, dtype, copy=True)
-            except (ValueError, TypeError):
-                # e.g. astype_nansafe can fail on object-dtype of strings
-                #  trying to convert to float
-                if errors == "raise":
-                    raise
-                newb = self.copy() if copy else self
-                return newb
-
-        # TODO(EA2D): special case not needed with 2D EAs
-        if isinstance(values, np.ndarray):
-            values = values.reshape(self.shape)
-
-        newb = self.make_block(values)
-
+        newb = self.make_block(new_values)
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
                 raise TypeError(
@@ -693,6 +645,58 @@ class Block(PandasObject):
                     f"({newb.dtype.name} [{newb.shape}])"
                 )
         return newb
+
+    def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
+        values = self.values
+
+        if is_categorical_dtype(dtype):
+
+            if is_categorical_dtype(values.dtype):
+                # GH#10696/GH#18593: update an existing categorical efficiently
+                return values.astype(dtype, copy=copy)
+
+            return Categorical(values, dtype=dtype)
+
+        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+            # if we are passed a datetime64[ns, tz]
+            if copy:
+                # this should be the only copy
+                values = values.copy()
+            # i.e. values.tz_localize("UTC").tz_convert(dtype.tz)
+            # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+            #  would be self.array_values().tz_localize(dtype.tz)
+            return DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
+
+        if is_dtype_equal(values.dtype, dtype):
+            if copy:
+                return values.copy()
+            return values
+
+        if isinstance(values, ExtensionArray):
+            values = values.astype(dtype, copy=copy)
+
+        else:
+            if issubclass(dtype.type, str):
+                if values.dtype.kind in ["m", "M"]:
+                    # use native type formatting for datetime/tz/timedelta
+                    arr = pd_array(values)
+                    # Note: in the case where dtype is an np.dtype, i.e. not
+                    #  StringDtype, this matches arr.astype(dtype), xref GH#36153
+                    values = arr._format_native_types(na_rep="NaT")
+
+            elif is_object_dtype(dtype):
+                if values.dtype.kind in ["m", "M"]:
+                    # Wrap in Timedelta/Timestamp
+                    arr = pd_array(values)
+                    values = arr.astype(object)
+                else:
+                    values = values.astype(object)
+                # We still need to go through astype_nansafe for
+                #  e.g. dtype = Sparse[object, 0]
+
+            values = astype_nansafe(values, dtype, copy=True)
+
+        return values
 
     def convert(
         self,
@@ -1082,7 +1086,7 @@ class Block(PandasObject):
         List[Block]
         """
         mask = _extract_bool_array(mask)
-        assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
@@ -1261,6 +1265,7 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
+                limit_area=limit_area,
                 downcast=downcast,
             )
         # validate the interp method
@@ -1287,6 +1292,7 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
+        limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
@@ -1301,6 +1307,7 @@ class Block(PandasObject):
             method=method,
             axis=axis,
             limit=limit,
+            limit_area=limit_area,
         )
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
@@ -1432,7 +1439,7 @@ class Block(PandasObject):
         import pandas.core.computation.expressions as expressions
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1539,7 +1546,7 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [self.make_block_same_class(new_values, placement=new_placement)]
+        blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
     def quantile(self, qs, interpolation="linear", axis: int = 0):
@@ -1964,7 +1971,7 @@ class ExtensionBlock(Block):
     ) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))
+        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         if isinstance(other, np.ndarray) and other.ndim == 2:
             # TODO(EA2D): unnecessary with 2D EAs
@@ -2241,25 +2248,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
-        """
-        these automatically copy, so copy=True has no effect
-        raise on an except if raise == True
-        """
-        dtype = pandas_dtype(dtype)
-
-        # if we are passed a datetime64[ns, tz]
-        if is_datetime64tz_dtype(dtype):
-            values = self.values
-            if copy:
-                # this should be the only copy
-                values = values.copy()
-            values = DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
-            return self.make_block(values)
-
-        # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors)
-
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
@@ -2392,6 +2380,28 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # TODO(EA2D): ravel is kludge for 2D block with 1D values, assumes column-like
         aware = self._holder(res_blk.values.ravel(), dtype=self.dtype)
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
+
+    def _check_ndim(self, values, ndim):
+        """
+        ndim inference and validation.
+
+        This is overriden by the DatetimeTZBlock to check the case of 2D
+        data (values.ndim == 2), which should only be allowed if ndim is
+        also 2.
+        The case of 1D array is still allowed with both ndim of 1 or 2, as
+        if the case for other EAs. Therefore, we are only checking
+        `values.ndim > ndim` instead of `values.ndim != ndim` as for
+        consolidated blocks.
+        """
+        if ndim is None:
+            ndim = values.ndim
+
+        if values.ndim > ndim:
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
+        return ndim
 
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin):
@@ -2626,36 +2636,38 @@ def get_block_type(values, dtype=None):
     -------
     cls : class, subclass of Block
     """
+    # We use vtype and kind checks because they are much more performant
+    #  than is_foo_dtype
     dtype = dtype or values.dtype
     vtype = dtype.type
+    kind = dtype.kind
 
     cls: Type[Block]
 
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif is_categorical_dtype(values.dtype):
+    elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values.dtype)
-        cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values.dtype):
+    elif vtype is Timestamp:
         cls = DatetimeTZBlock
-    elif is_interval_dtype(dtype) or is_period_dtype(dtype):
+    elif vtype is Interval or vtype is Period:
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
-    elif issubclass(vtype, np.floating):
-        cls = FloatBlock
-    elif issubclass(vtype, np.timedelta64):
-        assert issubclass(vtype, np.integer)
+
+    elif kind == "M":
+        cls = DatetimeBlock
+    elif kind == "m":
         cls = TimeDeltaBlock
-    elif issubclass(vtype, np.complexfloating):
+    elif kind == "f":
+        cls = FloatBlock
+    elif kind == "c":
         cls = ComplexBlock
-    elif issubclass(vtype, np.integer):
+    elif kind == "i" or kind == "u":
         cls = IntBlock
-    elif dtype == np.bool_:
+    elif kind == "b":
         cls = BoolBlock
     else:
         cls = ObjectBlock

@@ -2345,6 +2345,7 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
+        nanosecond = 0
 
         if ordinal is not None and value is not None:
             raise ValueError("Only value or ordinal but not both should be "
@@ -2394,6 +2395,14 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)
+            try:
+                ts = Timestamp(value)
+            except ValueError:
+                nanosecond = 0
+            else:
+                nanosecond = ts.nanosecond
+                if nanosecond != 0:
+                    reso = 'nanosecond'
             if dt is NaT:
                 ordinal = NPY_NAT
 
@@ -2425,7 +2434,7 @@ class Period(_Period):
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
-                                     dt.microsecond, 0, base)
+                                     dt.microsecond, 1000*nanosecond, base)
 
         return cls._from_ordinal(ordinal, freq)
 

@@ -597,9 +597,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Join/Set Methods
 
-    def _can_union_without_object_cast(self, other) -> bool:
-        return is_dtype_equal(self.dtype, other.dtype)
-
     def _get_join_freq(self, other):
         """
         Get the freq to attach to the result of a join operation.
@@ -686,10 +683,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
+            if self.has_duplicates:
+                return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
+        return self._intersection(other, sort=sort)
+
+    def _intersection(self, other: Index, sort=False) -> Index:
+        """
+        intersection specialized to the case with matching dtypes.
+        """
         if len(self) == 0:
             return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
@@ -697,17 +703,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, type(self)):
-                if result.freq is None:
-                    # TODO: no tests rely on this; needed?
-                    result = result._with_freq("infer")
             return result
 
         elif not self._can_fast_intersect(other):
-            result = Index.intersection(self, other, sort=sort)
-            # We need to invalidate the freq because Index.intersection
+            result = Index._intersection(self, other, sort=sort)
+            # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
+            result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
 
         # to make our life easier, "sort" the two ranges

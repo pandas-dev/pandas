@@ -26,6 +26,12 @@ class ReaderBase(metaclass=ABCMeta):
     def close(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 @overload
 def read_sas(
@@ -85,8 +91,16 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
 
     Returns
     -------
@@ -134,4 +148,5 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    return reader.read()
+    with reader:
+        return reader.read()

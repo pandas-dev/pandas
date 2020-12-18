@@ -4,24 +4,21 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, Label
+from pandas._typing import Dtype, DtypeObj, Label
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
+    is_number,
     is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
@@ -29,7 +26,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 
-_num_index_shared_docs = dict()
+_num_index_shared_docs = {}
 
 
 class NumericIndex(Index):
@@ -112,22 +109,35 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
+    @doc(Index._validate_fill_value)
     def _validate_fill_value(self, value):
-        """
-        Convert value to be insertable to ndarray.
-        """
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
-        elif isinstance(value, str) or lib.is_complex(value):
-            raise TypeError
         elif is_scalar(value) and isna(value):
             if is_valid_nat_for_dtype(value, self.dtype):
                 value = self._na_value
+                if self.dtype.kind != "f":
+                    # raise so that caller can cast
+                    raise TypeError
             else:
                 # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
                 raise TypeError
+
+        elif is_scalar(value):
+            if not is_number(value):
+                # e.g. datetime64, timedelta64, datetime, ...
+                raise TypeError
+
+            elif lib.is_complex(value):
+                # at least until we have a ComplexIndx
+                raise TypeError
+
+            elif is_float(value) and self.dtype.kind != "f":
+                if not value.is_integer():
+                    raise TypeError
+                value = int(value)
 
         return value
 
@@ -148,6 +158,10 @@ class NumericIndex(Index):
                 )
         return tolerance
 
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        # If we ever have BoolIndex or ComplexIndex, this may need to be tightened
+        return is_numeric_dtype(dtype)
+
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
         """
@@ -163,32 +177,6 @@ class NumericIndex(Index):
         Checks that all the labels are datetime objects.
         """
         return False
-
-    @doc(Index.insert)
-    def insert(self, loc: int, item):
-        try:
-            item = self._validate_fill_value(item)
-        except TypeError:
-            return self.astype(object).insert(loc, item)
-
-        return super().insert(loc, item)
-
-    def _union(self, other, sort):
-        # Right now, we treat union(int, float) a bit special.
-        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
-        # We may change union(int, float) to go to object.
-        # float | [u]int -> float  (the special case)
-        # <T>   | <T>    -> T
-        # <T>   | <U>    -> object
-        needs_cast = (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or (
-            is_integer_dtype(other.dtype) and is_float_dtype(self.dtype)
-        )
-        if needs_cast:
-            first = self.astype("float")
-            second = other.astype("float")
-            return first._union(second, sort)
-        else:
-            return super()._union(other, sort)
 
 
 _num_index_shared_docs[
@@ -224,7 +212,12 @@ _num_index_shared_docs[
     An Index instance can **only** contain hashable objects.
 """
 
-_int64_descr_args = dict(klass="Int64Index", ltype="integer", dtype="int64", extra="")
+_int64_descr_args = {
+    "klass": "Int64Index",
+    "ltype": "integer",
+    "dtype": "int64",
+    "extra": "",
+}
 
 
 class IntegerIndex(NumericIndex):
@@ -243,10 +236,6 @@ class IntegerIndex(NumericIndex):
         if data.dtype.kind != cls._default_dtype.kind:
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        # See GH#26778, further casting may occur in NumericIndex._union
-        return other.dtype == "f8" or other.dtype == self.dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -286,9 +275,12 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.dtype(np.int64)
 
 
-_uint64_descr_args = dict(
-    klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
-)
+_uint64_descr_args = {
+    "klass": "UInt64Index",
+    "ltype": "unsigned integer",
+    "dtype": "uint64",
+    "extra": "",
+}
 
 
 class UInt64Index(IntegerIndex):
@@ -314,9 +306,12 @@ class UInt64Index(IntegerIndex):
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
 
-_float64_descr_args = dict(
-    klass="Float64Index", dtype="float64", ltype="float", extra=""
-)
+_float64_descr_args = {
+    "klass": "Float64Index",
+    "dtype": "float64",
+    "ltype": "float",
+    "extra": "",
+}
 
 
 class Float64Index(NumericIndex):
@@ -332,21 +327,6 @@ class Float64Index(NumericIndex):
         Always 'floating' for ``Float64Index``
         """
         return "floating"
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        dtype = pandas_dtype(dtype)
-        if needs_i8_conversion(dtype):
-            raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
-                "values are required for conversion"
-            )
-        elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-            # TODO(jreback); this can change once we have an EA Index type
-            # GH 13149
-            arr = astype_nansafe(self._values, dtype=dtype)
-            return Int64Index(arr, name=self.name)
-        return super().astype(dtype, copy=copy)
 
     # ----------------------------------------------------------------
     # Indexing Methods
@@ -402,7 +382,3 @@ class Float64Index(NumericIndex):
             return True
 
         return is_float(other) and np.isnan(other) and self.hasnans
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        # See GH#26778, further casting may occur in NumericIndex._union
-        return is_numeric_dtype(other.dtype)

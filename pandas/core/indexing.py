@@ -672,8 +672,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
+            # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
+
+            self.obj._mgr = self.obj._mgr.reindex_axis(
+                keys, axis=0, copy=False, consolidate=False, only_slice=True
+            )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1645,8 +1649,10 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
             raise ValueError(r"Cannot set values with ndim > 2")
 
-        if isinstance(value, ABCSeries) and name != "iloc":
-            value = self._align_series(indexer, value)
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            from pandas import Series
+
+            value = self._align_series(indexer, Series(value))
 
         # Ensure we have something we can iterate over
         info_axis = indexer[1]

@@ -128,15 +128,15 @@ if TYPE_CHECKING:
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
-_shared_doc_kwargs = dict(
-    axes="keywords for axes",
-    klass="Series/DataFrame",
-    axes_single_arg="int or labels for object",
-    args_transpose="axes to permute (int or label for object)",
-    optional_by="""
+_shared_doc_kwargs = {
+    "axes": "keywords for axes",
+    "klass": "Series/DataFrame",
+    "axes_single_arg": "int or labels for object",
+    "args_transpose": "axes to permute (int or label for object)",
+    "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
-)
+}
 
 
 bool_t = bool  # Need alias because NDFrame has def bool:
@@ -484,7 +484,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
-        d = dict()
+        d = {}
         prefix = axis[0]
 
         for i, name in enumerate(axis_index.names):
@@ -1946,14 +1946,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(
-            _mgr=self._mgr,
-            _typ=self._typ,
-            _metadata=self._metadata,
-            attrs=self.attrs,
-            _flags={k: self.flags[k] for k in self.flags._keys},
+        return {
+            "_mgr": self._mgr,
+            "_typ": self._typ,
+            "_metadata": self._metadata,
+            "attrs": self.attrs,
+            "_flags": {k: self.flags[k] for k in self.flags._keys},
             **meta,
-        )
+        }
 
     @final
     def __setstate__(self, state):
@@ -1967,7 +1967,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                flags = state.get("_flags", dict(allows_duplicate_labels=True))
+                flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
 
                 # set in the order of internal names
@@ -2093,6 +2093,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
+
+            .. deprecated:: 1.2.0
+
+                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+                maintained, the ``xlwt`` engine will be removed in a future version
+                of pandas.
+
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         encoding : str, optional
@@ -2802,6 +2809,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
+            Compression mode may be any of the following possible
+            values: {{‘infer’, ‘gzip’, ‘bz2’, ‘zip’, ‘xz’, None}}. If compression
+            mode is ‘infer’ and path_or_buf is path-like, then detect
+            compression mode from the following extensions:
+            ‘.gz’, ‘.bz2’, ‘.zip’ or ‘.xz’. (otherwise no compression).
+            If dict given and mode is ‘zip’ or inferred as ‘zip’, other entries
+            passed as additional compression options.
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -3565,7 +3579,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 stacklevel=2,
             )
 
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         self._consolidate_inplace()
 
@@ -3802,20 +3816,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         is_copy = axis != 0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
         return result
-
-    def _iset_item(self, loc: int, value) -> None:
-        self._mgr.iset(loc, value)
-        self._clear_item_cache()
-
-    def _set_item(self, key, value) -> None:
-        try:
-            loc = self._info_axis.get_loc(key)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
-            return
-
-        NDFrame._iset_item(self, loc, value)
 
     @final
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
@@ -4185,6 +4185,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
+            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+                # Set level to zero in case of MultiIndex and label is string,
+                #  because isin can't handle strings for MultiIndexes GH#36293
+                indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
                 # Check if label doesn't exist along axis
@@ -7179,6 +7183,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if method == "linear":
             # prior default
             index = np.arange(len(obj.index))
+            index = Index(index)
         else:
             index = obj.index
             methods = {"index", "values", "nearest", "time"}
@@ -7426,7 +7431,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -7493,7 +7498,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -8213,8 +8218,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -8239,8 +8244,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df2 = pd.DataFrame(d2,
         ...                    index=pd.MultiIndex.from_product([days,
         ...                                                     ['morning',
@@ -8438,8 +8443,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------
@@ -10487,10 +10492,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame(dict(
-        ...     FR=[4.0405, 4.0963, 4.3149],
-        ...     GR=[1.7246, 1.7482, 1.8519],
-        ...     IT=[804.74, 810.01, 860.13]),
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
         ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
         >>> df
                         FR      GR      IT
@@ -10507,10 +10512,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame(dict([
-        ...     ('2016', [1769950, 30586265]),
-        ...     ('2015', [1500923, 40912316]),
-        ...     ('2014', [1371819, 41403351])]),
+        >>> df = pd.DataFrame({
+        ...     '2016': [1769950, 30586265],
+        ...     '2015': [1500923, 40912316],
+        ...     '2014': [1371819, 41403351]},
         ...     index=['GOOG', 'APPL'])
         >>> df
                   2016      2015      2014
@@ -10554,7 +10559,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _logical_func(
         self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
     ):
-        nv.validate_logical_func(tuple(), kwargs, fname=name)
+        nv.validate_logical_func((), kwargs, fname=name)
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError(
@@ -10641,7 +10646,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric_only=None,
         **kwargs,
     ):
-        nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
+        nv.validate_stat_ddof_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10687,9 +10692,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "median":
-            nv.validate_median(tuple(), kwargs)
+            nv.validate_median((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10745,11 +10750,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "sum":
-            nv.validate_sum(tuple(), kwargs)
+            nv.validate_sum((), kwargs)
         elif name == "prod":
-            nv.validate_prod(tuple(), kwargs)
+            nv.validate_prod((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
