@@ -311,7 +311,17 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    compress_method = _select_compress_method(compression)
+    compress_method: Callable
+    if compression == "zip":
+        compress_method = zipfile.ZipFile
+    elif compression == "gzip":
+        compress_method = gzip.GzipFile
+    elif compression == "bz2":
+        compress_method = bz2.BZ2File
+    elif compression == "xz":
+        compress_method = get_lzma_file(lzma)
+    else:
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
     args: Tuple[Any, ...]
     if compression == "zip":
@@ -325,19 +335,6 @@ def write_to_compressed(compression, path, data, dest="test"):
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
-
-
-def _select_compress_method(compression: str) -> Callable:
-    if compression == "zip":
-        return zipfile.ZipFile
-    elif compression == "gzip":
-        return gzip.GzipFile
-    elif compression == "bz2":
-        return bz2.BZ2File
-    elif compression == "xz":
-        return get_lzma_file(lzma)
-    else:
-        raise ValueError(f"Unrecognized compression type: {compression}")
 
 
 def _get_tol_from_less_precise(check_less_precise: Union[bool, int]) -> float:
