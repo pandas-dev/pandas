@@ -19,11 +19,9 @@ from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
+from pandas import DatetimeIndex, Series, Timedelta, date_range, read_pickle
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.series import Series
 
-from pandas.io.pickle import read_pickle
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -2325,6 +2323,36 @@ class TestBusinessHour(Base):
         expected = idx1
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
+
+    def test_bday_ignores_timedeltas(self):
+        idx = date_range("2010/02/01", "2010/02/10", freq="12H")
+        t1 = idx + BDay(offset=Timedelta(3, unit="H"))
+
+        expected = DatetimeIndex(
+            [
+                "2010-02-02 03:00:00",
+                "2010-02-02 15:00:00",
+                "2010-02-03 03:00:00",
+                "2010-02-03 15:00:00",
+                "2010-02-04 03:00:00",
+                "2010-02-04 15:00:00",
+                "2010-02-05 03:00:00",
+                "2010-02-05 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-09 03:00:00",
+                "2010-02-09 15:00:00",
+                "2010-02-10 03:00:00",
+                "2010-02-10 15:00:00",
+                "2010-02-11 03:00:00",
+            ],
+            freq=None,
+        )
+        tm.assert_index_equal(t1, expected)
 
 
 class TestCustomBusinessHour(Base):
