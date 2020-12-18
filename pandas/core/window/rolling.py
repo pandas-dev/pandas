@@ -1009,10 +1009,6 @@ class Window(BaseWindow):
     2013-01-01 09:00:06  4.0
     """
 
-    @property
-    def _constructor(self):
-        return Window
-
     def validate(self):
         super().validate()
 
@@ -1884,10 +1880,6 @@ class Rolling(RollingAndExpandingMixin):
                 "must be a column (of DataFrame), an Index or None"
             )
 
-    @property
-    def _constructor(self):
-        return Rolling
-
     def validate(self):
         super().validate()
 
@@ -2142,6 +2134,10 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return Rolling
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
