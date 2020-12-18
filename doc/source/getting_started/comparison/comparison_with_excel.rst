@@ -35,7 +35,7 @@ General terminology translation
 ~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel worksheet can contain
-multiple worksheets, pandas ``DataFrame``s exist independently.
+multiple worksheets, pandas ``DataFrame``\s exist independently.
 
 ``Series``
 ~~~~~~~~~~
@@ -75,11 +75,13 @@ This can be achieved by creating a series and assigning it to the desired cells.
 
 .. ipython:: python
 
-    df = pd.DataFrame({'AAA': [1] * 8, 'BBB': list(range(0, 8))}); df
+    df = pd.DataFrame({"AAA": [1] * 8, "BBB": list(range(0, 8))})
+    df
 
-    series = list(range(1, 5)); series
+    series = list(range(1, 5))
+    series
 
-    df.iloc[2:(5+1)].AAA = series
+    df.loc[2:5, "AAA"] = series
 
     df
 
@@ -106,7 +108,13 @@ pandas.
 
 .. ipython:: python
 
-    df = pd.DataFrame({"class": ['A', 'A', 'A', 'B', 'C', 'D'], "student_count": [42, 35, 42, 50, 47, 45], "all_pass": ["Yes", "Yes", "Yes", "No", "No", "Yes"]})
+    df = pd.DataFrame(
+        {
+            "class": ["A", "A", "A", "B", "C", "D"],
+            "student_count": [42, 35, 42, 50, 47, 45],
+            "all_pass": ["Yes", "Yes", "Yes", "No", "No", "Yes"],
+        }
+    )
 
     df.drop_duplicates()
 
@@ -128,12 +136,16 @@ each class.
 
 .. ipython:: python
 
-    df["girls_count"]  = [21, 12, 21, 31, 23, 17]; df
+    df["girls_count"] = [21, 12, 21, 31, 23, 17]
+    df
+
 
     def get_count(row):
         return row["student_count"] - row["girls_count"]
 
-    df["boys_count"] = df.apply(get_count, axis = 1); df
+
+    df["boys_count"] = df.apply(get_count, axis=1)
+    df
 
 
 VLOOKUP
@@ -143,27 +155,55 @@ VLOOKUP
 
     import random
 
-    df1 = pd.DataFrame({"keys": [1, 2, 3, 4, 5, 6, 7], "first_names": ["harry", "ron",
-    "hermione", "rubius", "albus", "severus", "luna"]}); df1
+    df1 = pd.DataFrame(
+        {
+            "keys": [1, 2, 3, 4, 5, 6, 7],
+            "first_names": [
+                "harry",
+                "ron",
+                "hermione",
+                "rubius",
+                "albus",
+                "severus",
+                "luna",
+            ],
+        }
+    )
+    df1
 
-    random_names = pd.DataFrame({"surnames": ["hadrid", "malfoy", "lovegood",
-    "dumbledore", "grindelwald", "granger", "weasly", "riddle", "longbottom",
-    "snape"], "keys": [ random.randint(1,7) for x in range(0,10) ]})
+    random_names = pd.DataFrame(
+        {
+            "surnames": [
+                "hadrid",
+                "malfoy",
+                "lovegood",
+                "dumbledore",
+                "grindelwald",
+                "granger",
+                "weasly",
+                "riddle",
+                "longbottom",
+                "snape",
+            ],
+            "keys": [random.randint(1, 7) for x in range(0, 10)],
+        }
+    )
 
     random_names
 
-    random_names.merge(df1, on="keys", how='left')
+    random_names.merge(df1, on="keys", how="left")
 
 Adding a row
 ~~~~~~~~~~~~
 
-To appended a row, we can just assign values to an index using ``iloc``.
+To appended a row, we can just assign values to an index using ``loc``.
 
 NOTE: If the index already exists, the values in that index will be over written.
 
 .. ipython:: python
 
-    df1.iloc[7] = [8, "tonks"]; df1
+    df1.loc[7] = [8, "tonks"]
+    df1
 
 
 Search and Replace
