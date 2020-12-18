@@ -15,6 +15,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -24,7 +25,7 @@ from pandas import (
     date_range,
     timedelta_range,
     to_datetime,
-    to_timedelta, DatetimeIndex,
+    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
@@ -1577,7 +1578,7 @@ class TestPartialStringSlicing:
                     Timestamp("2020-01-01"),
                     Timestamp("2020-01-02 23:59:59.999999999"),
                 ],
-                tz=tz_aware_fixture
+                tz=tz_aware_fixture,
             ),
         )
         indexer = slice("2020-01-01", indexer_end)
