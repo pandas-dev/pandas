@@ -4185,6 +4185,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
+            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+                # Set level to zero in case of MultiIndex and label is string,
+                #  because isin can't handle strings for MultiIndexes GH#36293
+                indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
                 # Check if label doesn't exist along axis
@@ -8442,8 +8446,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------
