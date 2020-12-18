@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
-    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_castable,
@@ -42,7 +41,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCPandasArray,
     ABCSeries,
 )
@@ -282,9 +281,7 @@ def array(
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
 
-    if dtype is None and isinstance(
-        data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
-    ):
+    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
         dtype = data.dtype
 
     data = extract_array(data, extract_numpy=True)
@@ -393,7 +390,7 @@ def extract_array(obj: object, extract_numpy: bool = False) -> Union[Any, ArrayL
     >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
     array([1, 2, 3])
     """
-    if isinstance(obj, (ABCIndexClass, ABCSeries)):
+    if isinstance(obj, (ABCIndex, ABCSeries)):
         obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
@@ -420,6 +417,20 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
+def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
+    """
+    Convert numpy MaskedArray to ensure mask is softened.
+    """
+    mask = ma.getmaskarray(data)
+    if mask.any():
+        data, fill_value = maybe_upcast(data, copy=True)
+        data.soften_mask()  # set hardmask False if it was True
+        data[mask] = fill_value
+    else:
+        data = data.copy()
+    return data
+
+
 def sanitize_array(
     data,
     index: Optional[Index],
@@ -433,13 +444,7 @@ def sanitize_array(
     """
 
     if isinstance(data, ma.MaskedArray):
-        mask = ma.getmaskarray(data)
-        if mask.any():
-            data, fill_value = maybe_upcast(data, copy=True)
-            data.soften_mask()  # set hardmask False if it was True
-            data[mask] = fill_value
-        else:
-            data = data.copy()
+        data = sanitize_masked_array(data)
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
@@ -480,17 +485,13 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
-
-        subarr = maybe_cast_to_datetime(subarr, dtype)
+            subarr = maybe_cast_to_datetime(subarr, dtype)
 
     elif isinstance(data, range):
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     elif lib.is_scalar(data) and index is not None and dtype is not None:
-        data = maybe_cast_to_datetime(data, dtype)
-        if not lib.is_scalar(data):
-            data = data[0]
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
@@ -500,16 +501,7 @@ def sanitize_array(
         if isinstance(data, list):  # pragma: no cover
             subarr = np.array(data, dtype=object)
         elif index is not None:
-            value = data
-
-            # figure out the dtype from the value (upcast if necessary)
-            if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
-            else:
-                # need to possibly convert the value here
-                value = maybe_cast_to_datetime(value, dtype)
-
-            subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
+            subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         else:
             return subarr.item()
@@ -520,9 +512,7 @@ def sanitize_array(
 
             # a 1-element ndarray
             if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = construct_1d_arraylike_from_scalar(
-                    subarr[0], len(index), subarr.dtype
-                )
+                subarr = subarr.repeat(len(index))
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
