@@ -24,7 +24,7 @@ from pandas import (
     date_range,
     timedelta_range,
     to_datetime,
-    to_timedelta,
+    to_timedelta, DatetimeIndex,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
@@ -1554,28 +1554,30 @@ class TestPartialStringSlicing:
 
     @pytest.mark.parametrize("indexer_end", [None, "2020-01-02 23:59:59.999999999"])
     def test_loc_getitem_partial_slice_non_monotonicity(
-        self, indexer_end, frame_or_series
+        self, tz_aware_fixture, indexer_end, frame_or_series
     ):
         # GH#33146
         obj = frame_or_series(
             [1] * 5,
-            index=Index(
+            index=DatetimeIndex(
                 [
                     Timestamp("2019-12-30"),
                     Timestamp("2020-01-01"),
                     Timestamp("2019-12-25"),
                     Timestamp("2020-01-02 23:59:59.999999999"),
                     Timestamp("2019-12-19"),
-                ]
+                ],
+                tz=tz_aware_fixture,
             ),
         )
         expected = frame_or_series(
             [1] * 2,
-            index=Index(
+            index=DatetimeIndex(
                 [
                     Timestamp("2020-01-01"),
                     Timestamp("2020-01-02 23:59:59.999999999"),
-                ]
+                ],
+                tz=tz_aware_fixture
             ),
         )
         indexer = slice("2020-01-01", indexer_end)
