@@ -418,7 +418,6 @@ class NaTType(_NaT):
     utctimetuple = _make_error_func("utctimetuple", datetime)
     timetz = _make_error_func("timetz", datetime)
     timetuple = _make_error_func("timetuple", datetime)
-    strftime = _make_error_func("strftime", datetime)
     isocalendar = _make_error_func("isocalendar", datetime)
     dst = _make_error_func("dst", datetime)
     ctime = _make_error_func("ctime", datetime)
@@ -434,6 +433,23 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    strftime = _make_error_func(
+        "strftime",
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        """,
+    )
 
     strptime = _make_error_func(
         "strptime",
@@ -457,7 +473,7 @@ class NaTType(_NaT):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """,
     )
     combine = _make_error_func(
@@ -465,7 +481,7 @@ class NaTType(_NaT):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """,
     )
     utcnow = _make_error_func(
@@ -606,7 +622,7 @@ timedelta}, default 'raise'
     floor = _make_nat_func(
         "floor",
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -645,7 +661,7 @@ timedelta}, default 'raise'
     ceil = _make_nat_func(
         "ceil",
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -761,7 +777,7 @@ default 'raise'
     replace = _make_nat_func(
         "replace",
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

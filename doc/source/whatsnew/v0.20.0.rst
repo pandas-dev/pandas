@@ -459,7 +459,7 @@ Selecting via a scalar value that is contained *in* the intervals.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closedness. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
+- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closedness. See the :ref:`documentation <window.endpoints>` (:issue:`13965`)
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
@@ -988,7 +988,7 @@ A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a `
 will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
 see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
 but a MultiIndexed ``DataFrame`` enjoys more support in pandas.
-See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
+See the section on :ref:`Windowed Binary Operations <window.cov_corr>` for more information. (:issue:`15677`)
 
 .. ipython:: python
 
@@ -1167,7 +1167,7 @@ Other API changes
 - ``.loc`` has compat with ``.ix`` for accepting iterators, and NamedTuples (:issue:`15120`)
 - ``interpolate()`` and ``fillna()`` will raise a ``ValueError`` if the ``limit`` keyword argument is not greater than 0. (:issue:`9217`)
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
-- ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than than one byte (:issue:`11592`)
+- ``pd.read_csv()`` will now raise a ``ValueError`` for the C engine if the quote character is larger than one byte (:issue:`11592`)
 - ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
 - ``pandas.api.types.is_datetime64_ns_dtype`` will now report ``True`` on a tz-aware dtype, similar to ``pandas.api.types.is_datetime64_any_dtype``
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
@@ -1315,7 +1315,7 @@ The recommended methods of indexing are:
 - ``.loc`` if you want to *label* index
 - ``.iloc`` if you want to *positionally* index.
 
-Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code :ref:`here <indexing.deprecate_ix>`.
+Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code `here <https://pandas.pydata.org/pandas-docs/version/1.0/user_guide/indexing.html#ix-indexer-is-deprecated>`__.
 
 
 .. ipython:: python
@@ -1663,11 +1663,11 @@ Indexing
 - Bug in ``.reset_index()`` when an all ``NaN`` level of a ``MultiIndex`` would fail (:issue:`6322`)
 - Bug in ``.reset_index()`` when raising error for index name already present in ``MultiIndex`` columns (:issue:`16120`)
 - Bug in creating a ``MultiIndex`` with tuples and not passing a list of names; this will now raise ``ValueError`` (:issue:`15110`)
-- Bug in the HTML display with with a ``MultiIndex`` and truncation (:issue:`14882`)
+- Bug in the HTML display with a ``MultiIndex`` and truncation (:issue:`14882`)
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``pd.concat()`` where the names of ``MultiIndex`` of resulting ``DataFrame`` are not handled correctly when ``None`` is presented in the names of ``MultiIndex`` of input ``DataFrame`` (:issue:`15787`)
 - Bug in ``DataFrame.sort_index()`` and ``Series.sort_index()`` where ``na_position`` doesn't work with a ``MultiIndex`` (:issue:`14784`, :issue:`16604`)
-- Bug in in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
+- Bug in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
 - Bug in indexing with a scalar and a ``CategoricalIndex`` (:issue:`16123`)
 
 IO

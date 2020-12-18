@@ -339,6 +339,17 @@ class Base:
             with pytest.raises(exc):
                 to_parquet(df, path, engine, compression=None)
 
+    @tm.network
+    def test_parquet_read_from_url(self, df_compat, engine):
+        if engine != "auto":
+            pytest.importorskip(engine)
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
+        )
+        df = pd.read_parquet(url)
+        tm.assert_frame_equal(df, df_compat)
+
 
 class TestBasic(Base):
     def test_error(self, engine):
@@ -430,12 +441,6 @@ class TestBasic(Base):
         df.index = index
         check_round_trip(df, engine)
 
-    def test_write_column_multiindex(self, engine):
-        # column multi-index
-        mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
-        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
-        self.check_error_on_write(df, engine, ValueError)
-
     def test_multiindex_with_columns(self, pa):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
@@ -483,6 +488,66 @@ class TestBasic(Base):
 
         expected = df.reset_index(drop=True)
         check_round_trip(df, engine, write_kwargs=write_kwargs, expected=expected)
+
+    def test_write_column_multiindex(self, engine):
+        # Not able to write column multi-indexes with non-string column names.
+        mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
+        self.check_error_on_write(df, engine, ValueError)
+
+    def test_write_column_multiindex_nonstring(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Not able to write column multi-indexes with non-string column names
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            [1, 2, 1, 2, 1, 2, 1, 2],
+        ]
+        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df.columns.names = ["Level1", "Level2"]
+
+        self.check_error_on_write(df, engine, ValueError)
+
+    def test_write_column_multiindex_string(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column multi-indexes with string column names
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+        ]
+        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df.columns.names = ["ColLevel1", "ColLevel2"]
+
+        check_round_trip(df, engine)
+
+    def test_write_column_index_string(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column indexes with string column names
+        arrays = ["bar", "baz", "foo", "qux"]
+        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df.columns.name = "StringCol"
+
+        check_round_trip(df, engine)
+
+    def test_write_column_index_nonstring(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column indexes with string column names
+        arrays = [1, 2, 3, 4]
+        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df.columns.name = "NonStringCol"
+
+        self.check_error_on_write(df, engine, ValueError)
 
 
 class TestParquetPyArrow(Base):
@@ -580,7 +645,7 @@ class TestParquetPyArrow(Base):
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
             pytest.skip()
         s3 = s3fs.S3FileSystem(**s3so)
-        kw = dict(filesystem=s3)
+        kw = {"filesystem": s3}
         check_round_trip(
             df_compat,
             pa,
@@ -593,7 +658,7 @@ class TestParquetPyArrow(Base):
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
             pytest.skip()
         # GH #19134
-        s3so = dict(storage_options=s3so)
+        s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
             pa,
@@ -606,12 +671,7 @@ class TestParquetPyArrow(Base):
     @pytest.mark.parametrize(
         "partition_col",
         [
-            pytest.param(
-                ["A"],
-                marks=pytest.mark.xfail(
-                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
-                ),
-            ),
+            ["A"],
             [],
         ],
     )
@@ -645,23 +705,15 @@ class TestParquetPyArrow(Base):
             pa,
             expected=expected_df,
             path="s3://pandas-test/parquet_dir",
-            read_kwargs=dict(storage_options=s3so),
-            write_kwargs=dict(
-                partition_cols=partition_col, compression=None, storage_options=s3so
-            ),
+            read_kwargs={"storage_options": s3so},
+            write_kwargs={
+                "partition_cols": partition_col,
+                "compression": None,
+                "storage_options": s3so,
+            },
             check_like=True,
             repeat=1,
         )
-
-    @tm.network
-    @td.skip_if_no("pyarrow")
-    def test_parquet_read_from_url(self, df_compat):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "master/pandas/tests/io/data/parquet/simple.parquet"
-        )
-        df = pd.read_parquet(url)
-        tm.assert_frame_equal(df, df_compat)
 
     @td.skip_if_no("pyarrow")
     def test_read_file_like_obj_support(self, df_compat):
@@ -690,6 +742,7 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 2
             assert dataset.partitions.partition_names == set(partition_cols)
+            assert read_parquet(path).shape == df.shape
 
     def test_partition_cols_string(self, pa, df_full):
         # GH #27117
@@ -703,10 +756,9 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
+            assert read_parquet(path).shape == df.shape
 
-    @pytest.mark.parametrize(
-        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
-    )
+    @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_partition_cols_pathlib(self, pa, df_compat, path_type):
         # GH 35902
 
@@ -717,6 +769,7 @@ class TestParquetPyArrow(Base):
         with tm.ensure_clean_dir() as path_str:
             path = path_type(path_str)
             df.to_parquet(path, partition_cols=partition_cols_list)
+            assert read_parquet(path).shape == df.shape
 
     def test_empty_dataframe(self, pa):
         # GH #27339
@@ -771,6 +824,35 @@ class TestParquetPyArrow(Base):
             }
         )
         check_round_trip(df, pa)
+
+    @td.skip_if_no("pyarrow", min_version="0.16")
+    def test_use_nullable_dtypes(self, pa):
+        import pyarrow.parquet as pq
+
+        table = pyarrow.table(
+            {
+                "a": pyarrow.array([1, 2, 3, None], "int64"),
+                "b": pyarrow.array([1, 2, 3, None], "uint8"),
+                "c": pyarrow.array(["a", "b", "c", None]),
+                "d": pyarrow.array([True, False, True, None]),
+            }
+        )
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            result1 = read_parquet(path)
+            result2 = read_parquet(path, use_nullable_dtypes=True)
+
+        assert result1["a"].dtype == np.dtype("float64")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1, 2, 3, None], dtype="Int64"),
+                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
+                "c": pd.array(["a", "b", "c", None], dtype="string"),
+                "d": pd.array([True, False, True, None], dtype="boolean"),
+            }
+        )
+        tm.assert_frame_equal(result2, expected)
 
     @td.skip_if_no("pyarrow", min_version="0.14")
     def test_timestamp_nanoseconds(self, pa):
@@ -861,8 +943,8 @@ class TestParquetFastParquet(Base):
             df_compat,
             fp,
             path="s3://pandas-test/fastparquet.parquet",
-            read_kwargs=dict(storage_options=s3so),
-            write_kwargs=dict(compression=None, storage_options=s3so),
+            read_kwargs={"storage_options": s3so},
+            write_kwargs={"compression": None, "storage_options": s3so},
         )
 
     def test_partition_cols_supported(self, fp, df_full):
@@ -945,3 +1027,11 @@ class TestParquetFastParquet(Base):
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
+
+    def test_use_nullable_dtypes_not_supported(self, fp):
+        df = pd.DataFrame({"a": [1, 2]})
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path)
+            with pytest.raises(ValueError, match="not supported for the fastparquet"):
+                read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)

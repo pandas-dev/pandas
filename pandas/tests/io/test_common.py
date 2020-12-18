@@ -85,6 +85,13 @@ bar2,12,13,14,15
         result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
+    def test_stringify_file_and_path_like(self):
+        # GH 38125: do not stringify file objects that are also path-like
+        fsspec = pytest.importorskip("fsspec")
+        with tm.ensure_clean() as path:
+            with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
+                assert fsspec_obj == icom.stringify_path(fsspec_obj)
+
     @pytest.mark.parametrize(
         "extension,expected",
         [
@@ -106,32 +113,31 @@ bar2,12,13,14,15
         assert compression == expected
 
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
-    def test_get_filepath_or_buffer_with_path(self, path_type):
+    def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
         filename = path_type("~/sometest")
-        ioargs = icom.get_filepath_or_buffer(filename)
-        assert ioargs.filepath_or_buffer != filename
-        assert os.path.isabs(ioargs.filepath_or_buffer)
-        assert os.path.expanduser(filename) == ioargs.filepath_or_buffer
-        assert not ioargs.should_close
+        with icom.get_handle(filename, "w") as handles:
+            assert os.path.isabs(handles.handle.name)
+            assert os.path.expanduser(filename) == handles.handle.name
 
-    def test_get_filepath_or_buffer_with_buffer(self):
+    def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
-        ioargs = icom.get_filepath_or_buffer(input_buffer)
-        assert ioargs.filepath_or_buffer == input_buffer
-        assert not ioargs.should_close
+        with icom.get_handle(input_buffer, "r") as handles:
+            assert handles.handle == input_buffer
+        assert not input_buffer.closed
+        input_buffer.close()
 
     def test_iterator(self):
-        reader = pd.read_csv(StringIO(self.data1), chunksize=1)
-        result = pd.concat(reader, ignore_index=True)
+        with pd.read_csv(StringIO(self.data1), chunksize=1) as reader:
+            result = pd.concat(reader, ignore_index=True)
         expected = pd.read_csv(StringIO(self.data1))
         tm.assert_frame_equal(result, expected)
 
         # GH12153
-        it = pd.read_csv(StringIO(self.data1), chunksize=1)
-        first = next(it)
-        tm.assert_frame_equal(first, expected.iloc[[0]])
-        tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
+        with pd.read_csv(StringIO(self.data1), chunksize=1) as it:
+            first = next(it)
+            tm.assert_frame_equal(first, expected.iloc[[0]])
+            tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
 
     @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",

@@ -18,7 +18,8 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.arrays import FloatingArray, IntegerArray, PandasArray
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -186,7 +187,10 @@ class StringArray(PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        self._dtype = StringDtype()
+        # pandas\core\arrays\string_.py:188: error: Incompatible types in
+        # assignment (expression has type "StringDtype", variable has type
+        # "PandasDtype")  [assignment]
+        self._dtype = StringDtype()  # type: ignore[assignment]
         if not isinstance(values, type(self)):
             self._validate()
 
@@ -279,10 +283,6 @@ class StringArray(PandasArray):
 
         super().__setitem__(key, value)
 
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO: validate dtype
-        return super().fillna(value, method, limit)
-
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, StringDtype):
@@ -295,6 +295,19 @@ class StringArray(PandasArray):
             arr[mask] = 0
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
+        elif isinstance(dtype, FloatingDtype):
+            arr = self.copy()
+            mask = self.isna()
+            arr[mask] = "0"
+            values = arr.astype(dtype.numpy_dtype)
+            return FloatingArray(values, mask, copy=False)
+        elif np.issubdtype(dtype, np.floating):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype)
+            values[mask] = np.nan
+            return values
 
         return super().astype(dtype, copy)
 

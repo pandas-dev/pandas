@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import (
@@ -60,9 +62,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
+from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -99,6 +101,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         _generate_range
     """
 
+    # _infer_matches -> which infer_dtype strings are close enough to our own
+    _infer_matches: Tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
@@ -108,8 +112,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
-    ):
+        cls: Type[DatetimeLikeArrayT],
+        values: np.ndarray,
+        freq: Optional[BaseOffset] = None,
+        dtype=None,
+    ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
     @property
@@ -142,14 +149,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         unboxing the result.
         """
         raise AbstractMethodError(self)
-
-    @classmethod
-    def _rebox_native(cls, value: int) -> Union[int, np.datetime64, np.timedelta64]:
-        """
-        Box an integer unboxed via _unbox_scalar into the native type for
-        the underlying ndarray.
-        """
-        raise AbstractMethodError(cls)
 
     def _unbox_scalar(
         self, value: DTScalarOrNaT, setitem: bool = False
@@ -221,7 +220,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(self)
 
-    def _box_values(self, values):
+    def _box_values(self, values) -> np.ndarray:
         """
         apply box func to passed values
         """
@@ -272,7 +271,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[int, slice, np.ndarray]
+    ) -> Union[DatetimeLikeArrayMixin, DTScalarOrNaT]:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
@@ -383,7 +384,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ExtensionArray Interface
 
     @classmethod
-    def _concat_same_type(cls, to_concat, axis: int = 0):
+    def _concat_same_type(
+        cls: Type[DatetimeLikeArrayT],
+        to_concat: Sequence[DatetimeLikeArrayT],
+        axis: int = 0,
+    ) -> DatetimeLikeArrayT:
         new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
@@ -414,7 +419,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray, iNaT
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(
+        cls: Type[DatetimeLikeArrayT], values, original
+    ) -> DatetimeLikeArrayT:
         return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------
@@ -431,7 +438,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
+            # for "object"  [call-arg]
+            other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -460,7 +469,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to an i8 representation,
-        raising ValueError if this is not possible.
+        raising TypeError if this is not possible.
 
         Parameters
         ----------
@@ -472,33 +481,27 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Raises
         ------
-        ValueError
+        TypeError
         """
-        msg = (
-            f"'fill_value' should be a {self._scalar_type}. "
-            f"Got '{str(fill_value)}'."
-        )
-        try:
-            return self._validate_scalar(fill_value)
-        except TypeError as err:
-            if "Cannot compare tz-naive and tz-aware" in str(err):
-                # tzawareness-compat
-                raise
-            raise ValueError(msg) from err
+        return self._validate_scalar(fill_value)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
+            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
+            # for "object"  [call-arg]
+            fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                new_fill = self._scalar_type(fill_value)
+                # pandas\core\arrays\datetimelike.py:753: error: Too many
+                # arguments for "object"  [call-arg]
+                new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
@@ -663,7 +666,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
 
-    def value_counts(self, dropna=False):
+    def value_counts(self, dropna: bool = False):
         """
         Return a Series containing counts of unique values.
 
@@ -676,6 +679,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         Series
         """
+        if self.ndim != 1:
+            raise NotImplementedError
+
         from pandas import Index, Series
 
         if dropna:
@@ -691,6 +697,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return Series(result._values, index=index, name=result.name)
 
+    @ravel_compat
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
@@ -701,31 +708,86 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return Index(self).map(mapper).array
 
+    def isin(self, values) -> np.ndarray:
+        """
+        Compute boolean array of whether each value is found in the
+        passed set of values.
+
+        Parameters
+        ----------
+        values : set or sequence of values
+
+        Returns
+        -------
+        ndarray[bool]
+        """
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
+        if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if inferred == "string":
+                        pass
+
+                    elif "mixed" in inferred:
+                        return isin(self.astype(object), values)
+                    else:
+                        return np.zeros(self.shape, dtype=bool)
+
+            try:
+                values = type(self)._from_sequence(values)
+            except ValueError:
+                return isin(self.astype(object), values)
+
+        try:
+            self._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
+
+        return isin(self.asi8, values.asi8)
+
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self):
+    def _isnan(self) -> np.ndarray:
         """
         return if each value is nan
         """
         return self.asi8 == iNaT
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _hasnans(self):
+    def _hasnans(self) -> np.ndarray:
         """
         return if I have any nans; enables various perf speedups
         """
         return bool(self._isnan.any())
 
-    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
+    def _maybe_mask_results(
+        self, result: np.ndarray, fill_value=iNaT, convert=None
+    ) -> np.ndarray:
         """
         Parameters
         ----------
-        result : a ndarray
+        result : np.ndarray
         fill_value : object, default iNaT
         convert : str, dtype or None
 
@@ -743,7 +805,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 result = result.astype(convert)
             if fill_value is None:
                 fill_value = np.nan
-            result[self._isnan] = fill_value
+            np.putmask(result, self._isnan, fill_value)
         return result
 
     # ------------------------------------------------------------------
@@ -761,6 +823,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
+
+            if self.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
 
@@ -842,23 +907,25 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             ) from e
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, *args, **kwargs):
+    def _generate_range(
+        cls: Type[DatetimeLikeArrayT], start, end, periods, freq, *args, **kwargs
+    ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
 
     @property
-    def _is_monotonic_increasing(self):
+    def _is_monotonic_increasing(self) -> bool:
         return algos.is_monotonic(self.asi8, timelike=True)[0]
 
     @property
-    def _is_monotonic_decreasing(self):
+    def _is_monotonic_decreasing(self) -> bool:
         return algos.is_monotonic(self.asi8, timelike=True)[1]
 
     @property
-    def _is_unique(self):
-        return len(unique1d(self.asi8)) == len(self)
+    def _is_unique(self) -> bool:
+        return len(unique1d(self.asi8.ravel("K"))) == self.size
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -885,12 +952,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return result
 
         other_vals = self._unbox(other)
-        result = op(self._ndarray, other_vals)
+        # GH#37462 comparison on i8 values is almost 2x faster than M8/m8
+        result = op(self._ndarray.view("i8"), other_vals.view("i8"))
 
         o_mask = isna(other)
-        if self._hasnans | np.any(o_mask):
+        mask = self._isnan | o_mask
+        if mask.any():
             nat_result = op is operator.ne
-            result[self._isnan | o_mask] = nat_result
+            np.putmask(result, mask, nat_result)
 
         return result
 
@@ -944,7 +1013,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isna(other):
             # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
             new_values = np.empty(self.shape, dtype="i8")
-            new_values[:] = iNaT
+            new_values.fill(iNaT)
             return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
@@ -958,7 +1027,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -986,7 +1055,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         if self._hasnans or other._hasnans:
             mask = self._isnan | other._isnan
-            new_values[mask] = iNaT
+            np.putmask(new_values, mask, iNaT)
 
         return type(self)(new_values, dtype=self.dtype)
 
@@ -1001,7 +1070,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
-        result = np.zeros(self.shape, dtype=np.int64)
+        result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
@@ -1015,7 +1084,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # For datetime64 dtypes by convention we treat NaT as a datetime, so
         # this subtraction returns a timedelta64 dtype.
         # For period dtype, timedelta64 is a close-enough return dtype.
-        result = np.zeros(self.shape, dtype=np.int64)
+        result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         return result.view("timedelta64[ns]")
 
@@ -1562,6 +1631,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # Frequency Methods
 
+    def _maybe_clear_freq(self):
+        self._freq = None
+
     def _with_freq(self, freq):
         """
         Helper to get a view on the same data, with a new freq.
@@ -1590,6 +1662,24 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         arr = self.view()
         arr._freq = freq
         return arr
+
+    # --------------------------------------------------------------
+
+    def factorize(self, na_sentinel=-1, sort: bool = False):
+        if self.freq is not None:
+            # We must be unique, so can short-circuit (and retain freq)
+            codes = np.arange(len(self), dtype=np.intp)
+            uniques = self.copy()  # TODO: copy or view?
+            if sort and self.freq.n < 0:
+                codes = codes[::-1]
+                # TODO: overload __getitem__, a slice indexer returns same type as self
+                # error: Incompatible types in assignment (expression has type
+                # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
+                # has type "TimelikeOps")  [assignment]
+                uniques = uniques[::-1]  # type: ignore[assignment]
+            return codes, uniques
+        # FIXME: shouldn't get here; we are ignoring sort
+        return super().factorize(na_sentinel=na_sentinel)
 
 
 # -------------------------------------------------------------------

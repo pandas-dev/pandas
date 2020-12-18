@@ -110,6 +110,8 @@ def _assert_match(result_fill_value, expected_fill_value):
         assert res_type == ex_type or res_type.__name__ == ex_type.__name__
 
     match_value = result_fill_value == expected_fill_value
+    if match_value is pd.NA:
+        match_value = False
 
     # Note: type check above ensures that we have the _same_ NA value
     # for missing values, None == None (which is checked
@@ -569,8 +571,8 @@ def test_maybe_promote_any_with_object(any_numpy_dtype_reduced, object_dtype):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-@pytest.mark.parametrize("fill_value", [None, np.nan, NaT])
-def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, fill_value):
+def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, nulls_fixture):
+    fill_value = nulls_fixture
     dtype = np.dtype(any_numpy_dtype_reduced)
 
     if is_integer_dtype(dtype) and fill_value is not NaT:
@@ -597,7 +599,10 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype_reduced, fill_val
     else:
         # all other cases cast to object, and use np.nan as missing value
         expected_dtype = np.dtype(object)
-        exp_val_for_scalar = np.nan
+        if fill_value is pd.NA:
+            exp_val_for_scalar = pd.NA
+        else:
+            exp_val_for_scalar = np.nan
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 

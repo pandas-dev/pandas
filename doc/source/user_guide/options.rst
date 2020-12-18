@@ -124,13 +124,13 @@ are restored automatically when you exit the ``with`` block:
 Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
-Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default IPython profile can be found at:
 
 .. code-block:: none
 
   $IPYTHONDIR/profile_default/startup
 
-More information can be found in the `ipython documentation
+More information can be found in the `IPython documentation
 <https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
@@ -332,7 +332,7 @@ display.large_repr                      truncate     For DataFrames exceeding ma
                                                      (the behaviour in earlier versions of pandas).
                                                      allowable settings, ['truncate', 'info']
 display.latex.repr                      False        Whether to produce a latex DataFrame
-                                                     representation for jupyter frontends
+                                                     representation for Jupyter frontends
                                                      that support it.
 display.latex.escape                    True         Escapes special characters in DataFrames, when
                                                      using the to_latex method.
@@ -413,7 +413,7 @@ display.show_dimensions                 truncate     Whether to print out dimens
                                                      frame is truncated (e.g. not display
                                                      all rows and/or columns)
 display.width                           80           Width of the display in characters.
-                                                     In case python/IPython is running in
+                                                     In case Python/IPython is running in
                                                      a terminal this can be set to None
                                                      and pandas will correctly auto-detect
                                                      the width. Note that the IPython notebook,
@@ -432,6 +432,16 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
+
+                                                     .. deprecated:: 1.2.0
+
+                                                        As `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        package is no longer maintained, the ``xlwt``
+                                                        engine will be removed in a future version of
+                                                        pandas. Since this is the only engine in pandas
+                                                        that supports writing to ``.xls`` files,
+                                                        this option will also be removed.
+
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:
                                                      'openpyxl' (the default).

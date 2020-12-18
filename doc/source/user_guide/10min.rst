@@ -239,13 +239,13 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-By integer slices, acting similar to numpy/python:
+By integer slices, acting similar to numpy/Python:
 
 .. ipython:: python
 
    df.iloc[3:5, 0:2]
 
-By lists of integer position locations, similar to the numpy/python style:
+By lists of integer position locations, similar to the NumPy/Python style:
 
 .. ipython:: python
 
@@ -721,6 +721,8 @@ We use the standard convention for referencing the matplotlib API:
    import matplotlib.pyplot as plt
 
    plt.close("all")
+
+The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window.
 
 .. ipython:: python
 

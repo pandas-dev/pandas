@@ -79,7 +79,7 @@ class TestTake:
         # https://github.com/pandas-dev/pandas/issues/23296
         cat = Categorical(["a", "b", "c"])
         xpr = r"'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=xpr):
+        with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
 
     def test_take_nd_deprecated(self):

@@ -228,7 +228,7 @@ def test_assert_not_almost_equal_dicts(a, b):
 @pytest.mark.parametrize("val", [1, 2])
 def test_assert_almost_equal_dict_like_object(val):
     dict_val = 1
-    real_dict = dict(a=val)
+    real_dict = {"a": val}
 
     class DictLikeObj:
         def keys(self):

@@ -526,7 +526,8 @@ def test_indexing_unordered():
         tm.assert_series_equal(result, expected)
 
     compare(slice("2011-01-01", "2011-01-15"))
-    compare(slice("2010-12-30", "2011-01-15"))
+    with tm.assert_produces_warning(FutureWarning):
+        compare(slice("2010-12-30", "2011-01-15"))
     compare(slice("2011-01-01", "2011-01-16"))
 
     # partial ranges
@@ -560,7 +561,7 @@ def test_indexing():
     expected = ts["2001"]
     expected.name = "A"
 
-    df = DataFrame(dict(A=ts))
+    df = DataFrame({"A": ts})
     with tm.assert_produces_warning(FutureWarning):
         # GH#36179 string indexing on rows for DataFrame deprecated
         result = df["2001"]["A"]

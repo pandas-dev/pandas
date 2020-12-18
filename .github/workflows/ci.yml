@@ -6,7 +6,7 @@ on:
   pull_request:
     branches:
       - master
-      - 1.1.x
+      - 1.2.x
 
 env:
   ENV_FILE: environment.yml
@@ -18,7 +18,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::add-path::${HOME}/miniconda3/bin"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1
@@ -64,7 +64,7 @@ jobs:
     - name: Testing docstring validation script
       run: |
         source activate pandas-dev
-        pytest --capture=no --strict scripts
+        pytest --capture=no --strict-markers scripts
       if: always()
 
     - name: Running benchmarks
@@ -74,14 +74,10 @@ jobs:
         asv check -E existing
         git remote add upstream https://github.com/pandas-dev/pandas.git
         git fetch upstream
-        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-            asv machine --yes
-            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-            if grep "failed" benchmarks.log > /dev/null ; then
-                exit 1
-            fi
-        else
-            echo "Benchmarks did not run, no changes detected"
+        asv machine --yes
+        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+        if grep "failed" benchmarks.log > /dev/null ; then
+            exit 1
         fi
       if: always()
 
@@ -98,7 +94,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1

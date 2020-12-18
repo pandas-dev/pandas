@@ -208,7 +208,7 @@ class TestPartialSetting:
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
             r"in the \[index\]\""
@@ -289,7 +289,7 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match="with any missing labels"):
             ser.loc[[2, 2, "x", 1]]
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
             r"name='idx'\)\] are in the \[index\]\""
@@ -500,17 +500,17 @@ class TestPartialSetting:
         # consistency on empty frames
         df = DataFrame(columns=["x", "y"])
         df["x"] = [1, 2]
-        expected = DataFrame(dict(x=[1, 2], y=[np.nan, np.nan]))
+        expected = DataFrame({"x": [1, 2], "y": [np.nan, np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = ["1", "2"]
-        expected = DataFrame(dict(x=["1", "2"], y=[np.nan, np.nan]), dtype=object)
+        expected = DataFrame({"x": ["1", "2"], "y": [np.nan, np.nan]}, dtype=object)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["x", "y"])
         df.loc[0, "x"] = 1
-        expected = DataFrame(dict(x=[1], y=[np.nan]))
+        expected = DataFrame({"x": [1], "y": [np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
     @pytest.mark.parametrize(

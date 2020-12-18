@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
@@ -10,8 +10,9 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
 
@@ -121,10 +122,11 @@ def to_numeric(arg, errors="raise", downcast=None):
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         is_index = True
-        values = arg.asi8
-        if values is None:
+        if needs_i8_conversion(arg.dtype):
+            values = arg.asi8
+        else:
             values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
@@ -178,8 +180,9 @@ def to_numeric(arg, errors="raise", downcast=None):
         if typecodes is not None:
             # from smallest to largest
             for dtype in typecodes:
-                if np.dtype(dtype).itemsize <= values.dtype.itemsize:
-                    values = maybe_downcast_to_dtype(values, dtype)
+                dtype = np.dtype(dtype)
+                if dtype.itemsize <= values.dtype.itemsize:
+                    values = maybe_downcast_numeric(values, dtype)
 
                     # successful conversion
                     if values.dtype == dtype:
