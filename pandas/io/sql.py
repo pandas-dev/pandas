@@ -129,7 +129,7 @@ def _wrap_result(
     columns,
     index_col=None,
     coerce_float: bool = True,
-    parse_dates: Optional[bool] = None,
+    parse_dates=None,
 ):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
