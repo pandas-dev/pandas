@@ -449,8 +449,14 @@ def sanitize_array(
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
 
+    if isinstance(data, np.ndarray) and data.ndim == 0:
+        if dtype is None:
+            dtype = data.dtype
+        data = lib.item_from_zerodim(data)
+
     # GH#846
     if isinstance(data, np.ndarray):
+
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
             try:
@@ -461,10 +467,6 @@ def sanitize_array(
                 else:
                     subarr = np.array(data, copy=False)
         else:
-            if data.ndim == 0:
-                # TODO: np.atleast_1d?  doing that breaks some tests on 32bit
-                data = [data]
-
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
@@ -495,46 +497,19 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif lib.is_scalar(data) and index is not None and dtype is not None:
+
+    elif not is_list_like(data):
+        if index is None:
+            raise ValueError("index must be specified when data is not list-like")
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
     else:
-        if not is_list_like(data):
-            # TODO: sure we want to do this here?
-            data = [data]
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
-    # scalar like, GH
-    if getattr(subarr, "ndim", 0) == 0:
-        if isinstance(data, list):  # pragma: no cover
-            subarr = np.array(data, dtype=object)
-        elif index is not None:
-            subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
-
-        else:
-            return subarr.item()
-
-    # the result that we want
-    elif subarr.ndim == 1:
-        subarr = _maybe_repeat(subarr, index)
-
-    elif subarr.ndim > 1:
-        if isinstance(data, np.ndarray):
-            raise ValueError("Data must be 1-dimensional")
-        else:
-            subarr = com.asarray_tuplesafe(data, dtype=dtype)
+    subarr = _sanitize_ndim(subarr, data, dtype, index)
 
     if not (is_extension_array_dtype(subarr.dtype) or is_extension_array_dtype(dtype)):
-        # This is to prevent mixed-type Series getting all casted to
-        # NumPy string type, e.g. NaN --> '-1#IND'.
-        if issubclass(subarr.dtype.type, str):
-            # GH#16605
-            # If not empty convert the data to dtype
-            # GH#19853: If data is a scalar, subarr has already the result
-            if not lib.is_scalar(data):
-                if not np.all(isna(data)):
-                    data = np.array(data, dtype=dtype, copy=False)
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = _maybe_repeat(subarr, index)
+        subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
         if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
@@ -543,6 +518,47 @@ def sanitize_array(
                 subarr = array(subarr)
 
     return subarr
+
+
+def _sanitize_ndim(
+    result: ArrayLike, data, dtype: Optional[DtypeObj], index: Optional[Index]
+) -> ArrayLike:
+    """
+    Ensure we have a 1-dimensional result array.
+    """
+    if getattr(result, "ndim", 0) == 0:
+        raise ValueError("result should be arraylike with ndim > 0")
+
+    elif result.ndim == 1:
+        # the result that we want
+        result = _maybe_repeat(result, index)
+
+    elif result.ndim > 1:
+        if isinstance(data, np.ndarray):
+            raise ValueError("Data must be 1-dimensional")
+        else:
+            result = com.asarray_tuplesafe(data, dtype=dtype)
+    return result
+
+
+def _sanitize_str_dtypes(
+    result: np.ndarray, data, dtype: Optional[DtypeObj], copy: bool
+) -> np.ndarray:
+    """
+    Ensure we have a dtype that is supported by pandas.
+    """
+
+    # This is to prevent mixed-type Series getting all casted to
+    # NumPy string type, e.g. NaN --> '-1#IND'.
+    if issubclass(result.dtype.type, str):
+        # GH#16605
+        # If not empty convert the data to dtype
+        # GH#19853: If data is a scalar, result has already the result
+        if not lib.is_scalar(data):
+            if not np.all(isna(data)):
+                data = np.array(data, dtype=dtype, copy=False)
+            result = np.array(data, dtype=object, copy=copy)
+    return result
 
 
 def _maybe_repeat(arr: ArrayLike, index: Optional[Index]) -> ArrayLike:
