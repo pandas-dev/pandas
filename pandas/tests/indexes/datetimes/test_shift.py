@@ -49,7 +49,7 @@ class TestDatetimeIndexShift:
     def test_dti_shift_freqs(self):
         # test shift for DatetimeIndex and non DatetimeIndex
         # GH#8083
-        drange = pd.date_range("20130101", periods=5)
+        drange = date_range("20130101", periods=5)
         result = drange.shift(1)
         expected = DatetimeIndex(
             ["2013-01-02", "2013-01-03", "2013-01-04", "2013-01-05", "2013-01-06"],
@@ -123,7 +123,7 @@ class TestDatetimeIndexShift:
 
     def test_shift_periods(self):
         # GH#22458 : argument 'n' was deprecated in favor of 'periods'
-        idx = pd.date_range(start=START, end=END, periods=3)
+        idx = date_range(start=START, end=END, periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
 

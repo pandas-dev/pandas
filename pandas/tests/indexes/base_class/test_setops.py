@@ -141,7 +141,7 @@ class TestIndexSetOps:
 
     @pytest.mark.parametrize(
         "index2,expected_arr",
-        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B", "A"])],
+        [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B"])],
     )
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique
@@ -223,8 +223,8 @@ class TestIndexSetOps:
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("first_list", [list("ba"), list()])
-    @pytest.mark.parametrize("second_list", [list("ab"), list()])
+    @pytest.mark.parametrize("first_list", [["b", "a"], []])
+    @pytest.mark.parametrize("second_list", [["a", "b"], []])
     @pytest.mark.parametrize(
         "first_name, second_name, expected_name",
         [("A", "B", None), (None, "B", None), ("A", None, None)],

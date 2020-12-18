@@ -486,7 +486,7 @@ class Float32:
         tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
         tmp = np.concatenate((tmp1, tmp2))
         arr = np.repeat(tmp, 10)
-        self.df = DataFrame(dict(a=arr, b=arr))
+        self.df = DataFrame({"a": arr, "b": arr})
 
     def time_sum(self):
         self.df.groupby(["a"])["b"].sum()

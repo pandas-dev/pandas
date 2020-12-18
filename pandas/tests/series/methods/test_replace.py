@@ -75,10 +75,9 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace([1, 2, 3], [np.nan, 0])
 
-        # make sure that we aren't just masking a TypeError because bools don't
-        # implement indexing
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            ser.replace([1, 2], [np.nan, 0])
+        # ser is dt64 so can't hold 1 or 2, so this replace is a no-op
+        result = ser.replace([1, 2], [np.nan, 0])
+        tm.assert_series_equal(result, ser)
 
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -253,7 +252,7 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace({}))
 
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = pd.Series([])

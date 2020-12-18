@@ -8,9 +8,8 @@ import re
 import numpy as np
 import pytest
 
-import pandas._config.config as cf
-
 from pandas._libs.tslib import Timestamp
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
@@ -21,6 +20,7 @@ from pandas import (
     DatetimeIndex,
     Float64Index,
     Int64Index,
+    IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -92,16 +92,16 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "index",
         [
-            pd.date_range(
+            date_range(
                 "2015-01-01 10:00",
                 freq="D",
                 periods=3,
                 tz="US/Eastern",
                 name="Green Eggs & Ham",
             ),  # DTI with tz
-            pd.date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
+            date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
             pd.timedelta_range("1 days", freq="D", periods=3),  # td
-            pd.period_range("2015-01-01", freq="D", periods=3),  # period
+            period_range("2015-01-01", freq="D", periods=3),  # period
         ],
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
@@ -127,11 +127,11 @@ class TestIndex(Base):
         "index,has_tz",
         [
             (
-                pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
+                date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
                 True,
             ),  # datetimetz
             (pd.timedelta_range("1 days", freq="D", periods=3), False),  # td
-            (pd.period_range("2015-01-01", freq="D", periods=3), False),  # period
+            (period_range("2015-01-01", freq="D", periods=3), False),  # period
         ],
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
@@ -343,7 +343,7 @@ class TestIndex(Base):
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = pd.date_range("2011-01-01", periods=5)
+        index = date_range("2011-01-01", periods=5)
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -552,7 +552,7 @@ class TestIndex(Base):
         assert isinstance(index.asof(d), Timestamp)
 
     def test_asof_datetime_partial(self):
-        index = pd.date_range("2010-01-01", periods=2, freq="m")
+        index = date_range("2010-01-01", periods=2, freq="m")
         expected = Timestamp("2010-02-28")
         result = index.asof("2010-02")
         assert result == expected
@@ -720,7 +720,7 @@ class TestIndex(Base):
     def test_union_dt_as_obj(self, sort):
         # TODO: Replace with fixturesult
         index = self.create_index()
-        date_index = pd.date_range("2019-01-01", periods=10)
+        date_index = date_range("2019-01-01", periods=10)
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
@@ -1236,14 +1236,24 @@ class TestIndex(Base):
                 ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
             )
 
-    @pytest.mark.parametrize("idx_class", [Int64Index, RangeIndex, Float64Index])
-    def test_get_indexer_numeric_index_boolean_target(self, idx_class):
+    @pytest.mark.parametrize(
+        "idx_class", [Int64Index, RangeIndex, Float64Index, UInt64Index]
+    )
+    @pytest.mark.parametrize("method", ["get_indexer", "get_indexer_non_unique"])
+    def test_get_indexer_numeric_index_boolean_target(self, method, idx_class):
         # GH 16877
 
         numeric_index = idx_class(RangeIndex(4))
-        result = numeric_index.get_indexer([True, False, True])
+        other = Index([True, False, True])
+
+        result = getattr(numeric_index, method)(other)
         expected = np.array([-1, -1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
+        if method == "get_indexer":
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            missing = np.arange(3, dtype=np.intp)
+            tm.assert_numpy_array_equal(result[0], expected)
+            tm.assert_numpy_array_equal(result[1], missing)
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -1496,6 +1506,17 @@ class TestIndex(Base):
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
+    def test_drop_with_duplicates_in_index(self, index):
+        # GH38051
+        if len(index) == 0 or isinstance(index, MultiIndex):
+            return
+        if isinstance(index, IntervalIndex) and not IS64:
+            pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
+        index = index.unique().repeat(2)
+        expected = index[2:]
+        result = index.drop(index[0])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "attr",
         [
@@ -1641,7 +1662,7 @@ class TestIndex(Base):
             [1.0, 2.0, 3.0, 4.0],
             [True, True, True, True],
             ["foo", "bar", "baz", "qux"],
-            pd.date_range("2018-01-01", freq="D", periods=4),
+            date_range("2018-01-01", freq="D", periods=4),
         ],
     )
     def test_boolean_cmp(self, values):
@@ -1814,8 +1835,8 @@ class TestIndex(Base):
             np.array(["A", "B", "C"]),
             np.array(["C", "B", "A"]),
             # Must preserve name even if dtype changes
-            pd.date_range("20130101", periods=3).values,
-            pd.date_range("20130101", periods=3).tolist(),
+            date_range("20130101", periods=3).values,
+            date_range("20130101", periods=3).tolist(),
         ],
     )
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self, name, labels):
@@ -1906,115 +1927,6 @@ class TestIndex(Base):
         # GH 10875
         index = Index(["01:02:03", "01:02:04"], name="label")
         assert index.name == dt_conv(index).name
-
-    @pytest.mark.parametrize(
-        "index,expected",
-        [
-            # ASCII
-            # short
-            (
-                Index(["a", "bb", "ccc"]),
-                """Index(['a', 'bb', 'ccc'], dtype='object')""",
-            ),
-            # multiple lines
-            (
-                Index(["a", "bb", "ccc"] * 10),
-                """\
-Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
-       'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
-       'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-      dtype='object')""",
-            ),
-            # truncated
-            (
-                Index(["a", "bb", "ccc"] * 100),
-                """\
-Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
-       ...
-       'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-      dtype='object', length=300)""",
-            ),
-            # Non-ASCII
-            # short
-            (
-                Index(["あ", "いい", "ううう"]),
-                """Index(['あ', 'いい', 'ううう'], dtype='object')""",
-            ),
-            # multiple lines
-            (
-                Index(["あ", "いい", "ううう"] * 10),
-                (
-                    "Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-                    "'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-                    "'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう'],\n"
-                    "      dtype='object')"
-                ),
-            ),
-            # truncated
-            (
-                Index(["あ", "いい", "ううう"] * 100),
-                (
-                    "Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
-                    "'あ', 'いい', 'ううう', 'あ',\n"
-                    "       ...\n"
-                    "       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう', 'あ', 'いい', 'ううう'],\n"
-                    "      dtype='object', length=300)"
-                ),
-            ),
-        ],
-    )
-    def test_string_index_repr(self, index, expected):
-        result = repr(index)
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "index,expected",
-        [
-            # short
-            (
-                Index(["あ", "いい", "ううう"]),
-                ("Index(['あ', 'いい', 'ううう'], dtype='object')"),
-            ),
-            # multiple lines
-            (
-                Index(["あ", "いい", "ううう"] * 10),
-                (
-                    "Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ', 'いい', 'ううう'],\n"
-                    "      dtype='object')"
-                    ""
-                ),
-            ),
-            # truncated
-            (
-                Index(["あ", "いい", "ううう"] * 100),
-                (
-                    "Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
-                    "'ううう', 'あ', 'いい', 'ううう',\n"
-                    "       'あ',\n"
-                    "       ...\n"
-                    "       'ううう', 'あ', 'いい', 'ううう', 'あ', "
-                    "'いい', 'ううう', 'あ', 'いい',\n"
-                    "       'ううう'],\n"
-                    "      dtype='object', length=300)"
-                ),
-            ),
-        ],
-    )
-    def test_string_index_repr_with_unicode_option(self, index, expected):
-        # Enable Unicode option -----------------------------------------
-        with cf.option_context("display.unicode.east_asian_width", True):
-            result = repr(index)
-            assert result == expected
 
     def test_cached_properties_not_settable(self):
         index = Index([1, 2, 3])
@@ -2236,12 +2148,6 @@ class TestMixedIntIndex(Base):
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
-    def test_repr_summary(self):
-        with cf.option_context("display.max_seq_items", 10):
-            result = repr(Index(np.arange(1000)))
-            assert len(result) < 200
-            assert "..." in result
-
     @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_int_name_format(self, klass):
         index = Index(["a", "b", "c"], name=0)
@@ -2264,17 +2170,6 @@ class TestMixedIntIndex(Base):
 
         expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
-
-    def test_index_repr_bool_nan(self):
-        # GH32146
-        arr = Index([True, False, np.nan], dtype=object)
-        exp1 = arr.format()
-        out1 = ["True", "False", "NaN"]
-        assert out1 == exp1
-
-        exp2 = repr(arr)
-        out2 = "Index([True, False, nan], dtype='object')"
-        assert out2 == exp2
 
     @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
@@ -2463,5 +2358,6 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
+        missing = np.arange(6, dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], no_matches)
-        tm.assert_numpy_array_equal(result[1], no_matches)
+        tm.assert_numpy_array_equal(result[1], missing)

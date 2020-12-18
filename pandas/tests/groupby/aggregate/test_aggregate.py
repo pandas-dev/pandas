@@ -1,6 +1,7 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
+import datetime
 import functools
 from functools import partial
 
@@ -348,7 +349,7 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = dict([["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]])
+        d = {"C": np.mean, "D": {"foo": np.mean, "bar": np.std}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
@@ -1047,7 +1048,7 @@ def test_groupby_get_by_index():
     # GH 33439
     df = DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
-    expected = DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    expected = DataFrame({"A": ["S", "W"], "B": [1.0, 2.0]}).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
 
 
@@ -1155,4 +1156,22 @@ def test_agg_no_suffix_index():
     # test Series case
     result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
+    tm.assert_series_equal(result, expected)
+
+
+def test_aggregate_datetime_objects():
+    # https://github.com/pandas-dev/pandas/issues/36003
+    # ensure we don't raise an error but keep object dtype for out-of-bounds
+    # datetimes
+    df = DataFrame(
+        {
+            "A": ["X", "Y"],
+            "B": [
+                datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
+                datetime.datetime(3005, 1, 1, 10, 30, 23, 540000),
+            ],
+        }
+    )
+    result = df.groupby("A").B.max()
+    expected = df.set_index("A")["B"]
     tm.assert_series_equal(result, expected)

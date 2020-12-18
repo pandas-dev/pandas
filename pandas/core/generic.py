@@ -87,7 +87,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import indexing, missing, nanops
+from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -128,15 +128,15 @@ if TYPE_CHECKING:
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
-_shared_doc_kwargs = dict(
-    axes="keywords for axes",
-    klass="Series/DataFrame",
-    axes_single_arg="int or labels for object",
-    args_transpose="axes to permute (int or label for object)",
-    optional_by="""
+_shared_doc_kwargs = {
+    "axes": "keywords for axes",
+    "klass": "Series/DataFrame",
+    "axes_single_arg": "int or labels for object",
+    "args_transpose": "axes to permute (int or label for object)",
+    "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
-)
+}
 
 
 bool_t = bool  # Need alias because NDFrame has def bool:
@@ -484,7 +484,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
-        d = dict()
+        d = {}
         prefix = axis[0]
 
         for i, name in enumerate(axis_index.names):
@@ -1114,7 +1114,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In this case, the parameter ``copy`` is ignored.
 
         The second calling convention will modify the names of the
-        the corresponding index if mapper is a list or a scalar.
+        corresponding index if mapper is a list or a scalar.
         However, if mapper is dict-like or a function, it will use the
         deprecated behavior of modifying the axis *labels*.
 
@@ -1927,6 +1927,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self, method="__array_wrap__"
         )
 
+    def __array_ufunc__(
+        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+    ):
+        return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
     # ideally we would define this to avoid the getattr checks, but
     # is slower
     # @property
@@ -1941,14 +1946,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @final
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(
-            _mgr=self._mgr,
-            _typ=self._typ,
-            _metadata=self._metadata,
-            attrs=self.attrs,
-            _flags={k: self.flags[k] for k in self.flags._keys},
+        return {
+            "_mgr": self._mgr,
+            "_typ": self._typ,
+            "_metadata": self._metadata,
+            "attrs": self.attrs,
+            "_flags": {k: self.flags[k] for k in self.flags._keys},
             **meta,
-        )
+        }
 
     @final
     def __setstate__(self, state):
@@ -1962,7 +1967,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                flags = state.get("_flags", dict(allows_duplicate_labels=True))
+                flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
 
                 # set in the order of internal names
@@ -2088,6 +2093,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
+
+            .. deprecated:: 1.2.0
+
+                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+                maintained, the ``xlwt`` engine will be removed in a future version
+                of pandas.
+
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         encoding : str, optional
@@ -2717,7 +2729,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        An `sqlalchemy.engine.Connection` can also be passed to `con`:
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
@@ -2794,6 +2806,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
+            Compression mode may be any of the following possible
+            values: {{‘infer’, ‘gzip’, ‘bz2’, ‘zip’, ‘xz’, None}}. If compression
+            mode is ‘infer’ and path_or_buf is path-like, then detect
+            compression mode from the following extensions:
+            ‘.gz’, ‘.bz2’, ‘.zip’ or ‘.xz’. (otherwise no compression).
+            If dict given and mode is ‘zip’ or inferred as ‘zip’, other entries
+            passed as additional compression options.
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -3557,7 +3576,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 stacklevel=2,
             )
 
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         self._consolidate_inplace()
 
@@ -3704,6 +3723,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             index = self.index
 
+        self._consolidate_inplace()
+
         if isinstance(index, MultiIndex):
             try:
                 loc, new_index = index._get_loc_level(
@@ -3792,20 +3813,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         is_copy = axis != 0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
         return result
-
-    def _iset_item(self, loc: int, value) -> None:
-        self._mgr.iset(loc, value)
-        self._clear_item_cache()
-
-    def _set_item(self, key, value) -> None:
-        try:
-            loc = self._info_axis.get_loc(key)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
-            return
-
-        NDFrame._iset_item(self, loc, value)
 
     @final
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
@@ -4175,6 +4182,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
+            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+                # Set level to zero in case of MultiIndex and label is string,
+                #  because isin can't handle strings for MultiIndexes GH#36293
+                indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
                 # Check if label doesn't exist along axis
@@ -5483,7 +5494,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
-        If info_axis is a MultiIndex, it's first level values are used.
+        If info_axis is a MultiIndex, its first level values are used.
         """
         additions = super()._dir_additions()
         if self._info_axis._can_hold_strings:
@@ -5990,7 +6001,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         datetime: bool_t = False,
         numeric: bool_t = False,
         timedelta: bool_t = False,
-        coerce: bool_t = False,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -6004,9 +6014,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             unconvertible values becoming NaN.
         timedelta : bool, default False
             If True, convert to timedelta where possible.
-        coerce : bool, default False
-            If True, force conversion with unconvertible values converted to
-            nulls (NaN or NaT).
 
         Returns
         -------
@@ -6015,13 +6022,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         validate_bool_kwarg(datetime, "datetime")
         validate_bool_kwarg(numeric, "numeric")
         validate_bool_kwarg(timedelta, "timedelta")
-        validate_bool_kwarg(coerce, "coerce")
         return self._constructor(
             self._mgr.convert(
                 datetime=datetime,
                 numeric=numeric,
                 timedelta=timedelta,
-                coerce=coerce,
                 copy=True,
             )
         ).__finalize__(self)
@@ -6069,9 +6074,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # python objects will still be converted to
         # native numpy numeric types
         return self._constructor(
-            self._mgr.convert(
-                datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
-            )
+            self._mgr.convert(datetime=True, numeric=False, timedelta=True, copy=True)
         ).__finalize__(self, method="infer_objects")
 
     @final
@@ -6081,6 +6084,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convert_string: bool_t = True,
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
+        convert_floating: bool_t = True,
     ) -> FrameOrSeries:
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6097,6 +6101,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether, if possible, conversion can be done to integer extension types.
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+        convert_floating : bool, defaults True
+            Whether, if possible, conversion can be done to floating extension types.
+            If `convert_integer` is also True, preference will be give to integer
+            dtypes if the floats can be faithfully casted to integers.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -6114,19 +6124,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
-        ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
-        possible to turn off individual conversions to ``StringDtype``, the integer
-        extension types or ``BooleanDtype``, respectively.
+        ``convert_string``, ``convert_integer``, ``convert_boolean`` and
+        ``convert_boolean``, it is possible to turn off individual conversions
+        to ``StringDtype``, the integer extension types, ``BooleanDtype``
+        or floating extension types, respectively.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
-        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
-        type, otherwise leave as ``object``.
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer
+        or floating extension type, otherwise leave as ``object``.
 
         If the dtype is integer, convert to an appropriate integer extension type.
 
         If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer extension type.
+        appropriate integer extension type. Otherwise, convert to an
+        appropriate floating extension type.
+
+        .. versionchanged:: 1.2
+            Starting with pandas 1.2, this method also converts float columns
+            to the nullable floating extension type.
 
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
@@ -6166,7 +6182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> dfn = df.convert_dtypes()
         >>> dfn
            a  b      c     d     e      f
-        0  1  x   True     h    10    NaN
+        0  1  x   True     h    10   <NA>
         1  2  y  False     i  <NA>  100.5
         2  3  z   <NA>  <NA>    20  200.0
 
@@ -6176,7 +6192,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         c    boolean
         d     string
         e      Int64
-        f    float64
+        f    Float64
         dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
@@ -6198,12 +6214,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if self.ndim == 1:
             return self._convert_dtypes(
-                infer_objects, convert_string, convert_integer, convert_boolean
+                infer_objects,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
             )
         else:
             results = [
                 col._convert_dtypes(
-                    infer_objects, convert_string, convert_integer, convert_boolean
+                    infer_objects,
+                    convert_string,
+                    convert_integer,
+                    convert_boolean,
+                    convert_floating,
                 )
                 for col_name, col in self.items()
             ]
@@ -6321,6 +6345,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
+
+        self._consolidate_inplace()
 
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -6744,6 +6770,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
+        self._consolidate_inplace()
+
         if value is None:
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat
@@ -7151,6 +7179,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if method == "linear":
             # prior default
             index = np.arange(len(obj.index))
+            index = Index(index)
         else:
             index = obj.index
             methods = {"index", "values", "nearest", "time"}
@@ -7398,7 +7427,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -7465,7 +7494,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
         ...                    born=[pd.NaT, pd.Timestamp('1939-05-27'),
-        ...                             pd.Timestamp('1940-04-25')],
+        ...                          pd.Timestamp('1940-04-25')],
         ...                    name=['Alfred', 'Batman', ''],
         ...                    toy=[None, 'Batmobile', 'Joker']))
         >>> df
@@ -8185,8 +8214,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -8211,8 +8240,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
         >>> df2 = pd.DataFrame(d2,
         ...                    index=pd.MultiIndex.from_product([days,
         ...                                                     ['morning',
@@ -8410,8 +8439,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------
@@ -10459,10 +10488,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame(dict(
-        ...     FR=[4.0405, 4.0963, 4.3149],
-        ...     GR=[1.7246, 1.7482, 1.8519],
-        ...     IT=[804.74, 810.01, 860.13]),
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
         ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
         >>> df
                         FR      GR      IT
@@ -10479,10 +10508,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame(dict([
-        ...     ('2016', [1769950, 30586265]),
-        ...     ('2015', [1500923, 40912316]),
-        ...     ('2014', [1371819, 41403351])]),
+        >>> df = pd.DataFrame({
+        ...     '2016': [1769950, 30586265],
+        ...     '2015': [1500923, 40912316],
+        ...     '2014': [1371819, 41403351]},
         ...     index=['GOOG', 'APPL'])
         >>> df
                   2016      2015      2014
@@ -10526,7 +10555,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _logical_func(
         self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
     ):
-        nv.validate_logical_func(tuple(), kwargs, fname=name)
+        nv.validate_logical_func((), kwargs, fname=name)
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError(
@@ -10613,7 +10642,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         numeric_only=None,
         **kwargs,
     ):
-        nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
+        nv.validate_stat_ddof_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10659,9 +10688,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "median":
-            nv.validate_median(tuple(), kwargs)
+            nv.validate_median((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
@@ -10717,11 +10746,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ):
         if name == "sum":
-            nv.validate_sum(tuple(), kwargs)
+            nv.validate_sum((), kwargs)
         elif name == "prod":
-            nv.validate_prod(tuple(), kwargs)
+            nv.validate_prod((), kwargs)
         else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
+            nv.validate_stat_func((), kwargs, fname=name)
         if skipna is None:
             skipna = True
         if axis is None:
