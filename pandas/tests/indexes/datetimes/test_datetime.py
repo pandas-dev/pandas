@@ -216,15 +216,6 @@ class TestDatetimeIndex:
         result = monthly_group.mean()
         assert isinstance(result.index[0], tuple)
 
-    def test_append_numpy_bug_1681(self):
-        # another datetime64 bug
-        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
-        a = DataFrame()
-        c = DataFrame({"A": "foo", "B": dr}, index=dr)
-
-        result = a.append(c)
-        assert (result["B"] == dr).all()
-
     def test_isin(self):
         index = tm.makeDateIndex(4)
         result = index.isin(index)
