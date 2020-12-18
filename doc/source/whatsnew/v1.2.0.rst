@@ -10,12 +10,27 @@ including other versions of pandas.
 
 .. warning::
 
+   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
+   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
+   writing excel files are no longer maintained. These are the only engines in pandas
+   that support the xls format.
+
    Previously, the default argument ``engine=None`` to ``pd.read_excel``
-   would result in using the `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ engine in
-   many cases. The engine ``xlrd`` is no longer maintained, and is not supported with
-   python >= 3.9. If `openpyxl <https://pypi.org/project/openpyxl/>`_  is installed,
-   many of these  cases will now default to using the ``openpyxl`` engine. See the
-   :func:`read_excel` documentation for more details.
+   would result in using the ``xlrd`` engine in many cases. If
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details. Attempting to read
+   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
+   raise a warning. However users should be aware that ``xlrd`` is already
+   broken with certain package configurations, for example with Python 3.9
+   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
+   is anticipated to be unusable in the future.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. ---------------------------------------------------------------------------
 
@@ -293,6 +308,7 @@ Other enhancements
 - Improved error reporting for subsetting columns of a :class:`.DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 - Implement method ``cross`` for :meth:`DataFrame.merge` and :meth:`DataFrame.join` (:issue:`5401`)
 - When :func:`read_csv/sas/json` are called with ``chuncksize``/``iterator`` they can be used in a ``with`` statement as they return context-managers (:issue:`38225`)
+- Augmented the list of named colors available for styling Excel exports, enabling all of CSS4 colors (:issue:`38247`)
 
 .. ---------------------------------------------------------------------------
 
@@ -467,7 +483,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.2.8           |    X    |
 +-----------------+-----------------+---------+
-| xarray          | 0.12.0          |    X    |
+| xarray          | 0.12.3          |    X    |
 +-----------------+-----------------+---------+
 | xlrd            | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
@@ -480,7 +496,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_200.api.other:
+.. _whatsnew_120.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -730,6 +746,7 @@ I/O
 - :meth:`read_fwf` was inferring compression with ``compression=None`` which was not consistent with the other :meth:``read_*`` functions (:issue:`37909`)
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
+- :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
 
 Period
 ^^^^^^
@@ -835,13 +852,13 @@ Other
 - Bug in :meth:`Index.difference` failing to set the correct name on the returned :class:`Index` in some corner cases (:issue:`38268`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is an :class:`Index` or other list-like (:issue:`36384`)
 - Bug in :meth:`Index.intersection` with non-matching numeric dtypes casting to ``object`` dtype instead of minimal common dtype (:issue:`38122`)
-- Bug in :meth:`IntervalIndex.intersection` returning an incorrectly-typed :class:`Index` when empty (:issue:`38282`)
+- Bug in :meth:`IntervalIndex.union` returning an incorrectly-typed :class:`Index` when empty (:issue:`38282`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError`` rather than a bare ``Exception`` (:issue:`35744`)
 - Bug in ``dir`` where ``dir(obj)`` wouldn't show attributes defined on the instance for pandas objects (:issue:`37173`)
 - Bug in :meth:`Index.drop` raising ``InvalidIndexError`` when index has duplicates (:issue:`38051`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
 - Fixed bug in :func:`assert_series_equal` when comparing a datetime-like array with an equivalent non extension dtype array (:issue:`37609`)
-
+- Bug in :func:`.is_bool_dtype` would raise when passed a valid string such as ``"boolean"`` (:issue:`38386`)
 
 
 .. ---------------------------------------------------------------------------
@@ -851,4 +868,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.4..v1.2.0|HEAD
+.. contributors:: v1.1.5..v1.2.0|HEAD
