@@ -7,12 +7,10 @@ from pandas._libs import index as libindex, lib
 from pandas._typing import Dtype, DtypeObj, Label
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -21,8 +19,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
-    pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
@@ -331,21 +327,6 @@ class Float64Index(NumericIndex):
         Always 'floating' for ``Float64Index``
         """
         return "floating"
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        dtype = pandas_dtype(dtype)
-        if needs_i8_conversion(dtype):
-            raise TypeError(
-                f"Cannot convert Float64Index to dtype {dtype}; integer "
-                "values are required for conversion"
-            )
-        elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-            # TODO(jreback); this can change once we have an EA Index type
-            # GH 13149
-            arr = astype_nansafe(self._values, dtype=dtype)
-            return Int64Index(arr, name=self.name)
-        return super().astype(dtype, copy=copy)
 
     # ----------------------------------------------------------------
     # Indexing Methods

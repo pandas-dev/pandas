@@ -8439,8 +8439,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------
