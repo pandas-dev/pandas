@@ -83,6 +83,11 @@ HDFStore: PyTables (HDF5)
    HDFStore.groups
    HDFStore.walk
 
+.. warning::
+
+   One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+   but the type of the subclass is lost upon storing.
+
 Feather
 ~~~~~~~
 .. autosummary::

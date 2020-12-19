@@ -1646,8 +1646,10 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
-                _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                pt = _TYPE_MAP[type(value)]
+                if isinstance(value, Series):
+                    pt = "series"
+                else:
+                    pt = "frame"
 
                 # we are actually a table
                 if format == "table":
