@@ -729,9 +729,7 @@ cdef class TextReader:
                 field_count = max(field_count, len(self.names))
 
             passed_count = len(header[0])
-            print(self.allow_leading_cols)
-            print(passed_count)
-            print(field_count)
+
             if (self.has_usecols and self.allow_leading_cols and
                     not callable(self.usecols)):
                 nuse = len(self.usecols)

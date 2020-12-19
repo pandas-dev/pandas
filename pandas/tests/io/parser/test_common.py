@@ -1062,7 +1062,6 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Lenght of header:pandas.errors.ParserWarning")
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
