@@ -859,21 +859,23 @@ class TestSparseArray:
         sa = SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
-    
+
+    @td.skip_if_no_scipy
     def test_loc(self):
         # Tests .loc on sparse DataFrame #34687
-        df = pd.DataFrame.sparse.from_spmatrix(eye(5))
-        res1 = df.loc[range(2)].to_numpy()
-        exp1 = pd.DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]]
-        ).to_numpy()
-        tm.assert_numpy_array_equal(res1, exp1)
+        import scipy.sparse
 
-        res2 = df.loc[range(2)].loc[range(1)].to_numpy()
-        exp2 = exp2 = pd.DataFrame(
-            [[1.0, 0.0, float("nan"), float("nan"), float("nan")]]
-        ).to_numpy()
-        tm.assert_numpy_array_equal(res2, exp2)
+        dtype = SparseDtype("float64", 0.0)
+        
+        df = pd.DataFrame.sparse.from_spmatrix(eye(5))
+        res1 = df.loc[range(2)]
+        exp1 = pd.DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0, 0.0, 0.0]]).astype(dtype)
+        tm.assert_frame_equal(res1, exp1)
+
+        res2 = df.loc[range(2)].loc[range(1)]
+        exp2 = pd.DataFrame([[1.0, 0.0, float("nan"), float("nan"), float("nan")]]).astype(dtype)
+        tm.assert_frame_equal(res2, exp2)
 
 class TestSparseArrayAnalytics:
     @pytest.mark.parametrize(
