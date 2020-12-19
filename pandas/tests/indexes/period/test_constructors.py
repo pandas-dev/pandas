@@ -329,7 +329,7 @@ class TestPeriodIndex:
         msg = "Should be numpy array of type i8"
         with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
-            type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
+            type(idx._data)._simple_new(idx._int64index, freq=idx.freq)
 
         arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
         result = idx._simple_new(arr, name="p")

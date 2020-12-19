@@ -112,7 +112,7 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
+                expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
 
@@ -254,7 +254,7 @@ class TestPandasContainer:
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
-            idx = expected.index.astype(np.int64) // 1000000
+            idx = expected.index.view(np.int64) // 1000000
             if orient != "split":  # TODO: handle consistently across orients
                 idx = idx.astype(str)
 

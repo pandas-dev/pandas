@@ -1739,7 +1739,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.astype(np.int64)
+    values_int = values.view(np.int64)
 
     consider_values = values_int != iNaT
 
