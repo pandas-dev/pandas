@@ -869,12 +869,15 @@ class TestSparseArray:
         
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
-        exp1 = pd.DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 0.0, 0.0]]).astype(dtype)
+        exp1 = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]]
+        ).astype(dtype)
         tm.assert_frame_equal(res1, exp1)
 
         res2 = df.loc[range(2)].loc[range(1)]
-        exp2 = pd.DataFrame([[1.0, 0.0, float("nan"), float("nan"), float("nan")]]).astype(dtype)
+        exp2 = pd.DataFrame(
+            [[1.0, 0.0, float("nan"), float("nan"), float("nan")]]
+        ).astype(dtype)
         tm.assert_frame_equal(res2, exp2)
 
 class TestSparseArrayAnalytics:
