@@ -263,6 +263,7 @@ class ReadCSVFloatPrecision(StringIORewind):
             sep=sep,
             header=None,
             names=list("abc"),
+            engine="pyarrow",
         )
 
 
