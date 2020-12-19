@@ -863,7 +863,6 @@ class TestSparseArray:
     def test_loc(self):
         # GH34687
         from scipy.sparse import eye
-     
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
         exp1 = pd.DataFrame(
