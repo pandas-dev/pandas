@@ -94,9 +94,9 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 
     # invalid scalars
     msg = (
-        "(ufunc '\\w+' did not contain a loop with signature matching types)" "|"
+        "(ufunc '\\w+' did not contain a loop with signature matching types)|"
         "(ufunc '\\w+' not supported for the input types, and the inputs could "
-        "not be safely coerced to any supported types)" "|"
+        "not be safely coerced to any supported types)|"
         "(\\w+ cannot perform the operation \\w+)"
     )
     with pytest.raises(TypeError, match=msg):
@@ -110,9 +110,9 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     if op not in ("__mul__", "__rmul__"):
         # TODO(extension) numpy's mul with object array sees booleans as numbers
         msg = (
-            "(unsupported operand type\\(s\\) for)" "|"
-            "(can only concatenate str \\(not \"bool\"\\) to str)" "|"
-            "(not all arguments converted during string formatting)" "|"
+            "(unsupported operand type\\(s\\) for)|"
+            '(can only concatenate str \\(not "bool"\\) to str)|'
+            "(not all arguments converted during string formatting)"
         )
         with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
