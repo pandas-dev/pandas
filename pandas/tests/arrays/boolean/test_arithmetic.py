@@ -46,7 +46,8 @@ def test_add_mul(left_array, right_array, opname, exp):
 
 
 def test_sub(left_array, right_array):
-    msg = "the `-` operator, is not supported, use the bitwise_xor, the `\\^` operator, or the logical_xor"
+    msg = "the `-` operator, is not supported, use the bitwise_xor, " \
+          "the `\\^` operator, or the logical_xor"
     with pytest.raises(TypeError, match=msg):
         # numpy points to ^ operator or logical_xor function instead
         left_array - right_array
