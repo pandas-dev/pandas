@@ -101,7 +101,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     with pytest.raises(TypeError, match=msg):
         ops("foo")
 
-    msg = "unsupported operand type\\(s\\) for"
+    msg = (
+        "(unsupported operand type\\(s\\) for)|"
+        "(Concatenation operation is not implemented for NumPy arrays)"
+    )
     with pytest.raises(TypeError, match=msg):
         ops(pd.Timestamp("20180101"))
 

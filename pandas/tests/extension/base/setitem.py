@@ -297,7 +297,7 @@ class BaseSetitemTests(BaseExtensionTests):
             "(cannot copy sequence with size \\d to array axis with dimension \\d)|"
             # All the rest
             "(could not broadcast input array from "
-            "shape \\(\\d\\) into shape \\(\\d\\))"
+            "shape \\(\\d,?\\) into shape \\(\\d,?\\))"
         )
         arr = data[:5]
         with pytest.raises(ValueError, match=msg):
