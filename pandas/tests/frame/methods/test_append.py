@@ -2,15 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import DataFrame, Series, Timestamp, date_range, timedelta_range
 import pandas._testing as tm
 
 
 class TestDataFrameAppend:
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_append_multiindex(self, multiindex_dataframe_random_data, klass):
+    def test_append_multiindex(self, multiindex_dataframe_random_data, frame_or_series):
         obj = multiindex_dataframe_random_data
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj["A"]
 
         a = obj[:5]
@@ -209,3 +208,17 @@ class TestDataFrameAppend:
         result = df.append(df.iloc[0]).iloc[-1]
         expected = Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_append_numpy_bug_1681(self, dtype):
+        # another datetime64 bug
+        if dtype == "datetime64[ns]":
+            index = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
+        else:
+            index = timedelta_range("1 days", "10 days", freq="2D")
+
+        df = DataFrame()
+        other = DataFrame({"A": "foo", "B": index}, index=index)
+
+        result = df.append(other)
+        assert (result["B"] == index).all()
