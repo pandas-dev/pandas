@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.errors import DtypeWarning, EmptyDataError, ParserError
+from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
@@ -1062,6 +1062,7 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:Lenght of header:pandas.errors.ParserWarning")
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
@@ -1069,7 +1070,9 @@ def test_trailing_delimiters(all_parsers):
 4,5,6,
 7,8,9,"""
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), index_col=False)
+
+    with tm.assert_produces_warning(ParserWarning):
+        result = parser.read_csv(StringIO(data), index_col=False)
 
     expected = DataFrame({"A": [1, 4, 7], "B": [2, 5, 8], "C": [3, 6, 9]})
     tm.assert_frame_equal(result, expected)
@@ -2178,7 +2181,8 @@ def test_no_header_two_extra_columns(all_parsers):
     ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
-    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    with tm.assert_produces_warning(ParserWarning):
+        df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
 
 

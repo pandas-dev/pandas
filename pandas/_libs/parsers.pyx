@@ -729,7 +729,9 @@ cdef class TextReader:
                 field_count = max(field_count, len(self.names))
 
             passed_count = len(header[0])
-
+            print(self.allow_leading_cols)
+            print(passed_count)
+            print(field_count)
             if (self.has_usecols and self.allow_leading_cols and
                     not callable(self.usecols)):
                 nuse = len(self.usecols)
@@ -743,6 +745,11 @@ cdef class TextReader:
             # oh boy, #2442, #2981
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
+            elif not self.allow_leading_cols and passed_count < field_count:
+                warnings.warn(
+                    "Length of header or names does not match length of data. This leads "
+                    "to a loss of data with index_col=False.", ParserWarning, stacklevel=6,
+                )
 
         return header, field_count, unnamed_cols
 

@@ -2505,6 +2505,14 @@ class PythonParser(ParserBase):
         if self._col_indices is not None and len(names) != len(self._col_indices):
             names = [names[i] for i in sorted(self._col_indices)]
 
+        if not self.index_col and len(names) != len(alldata) and names:
+            warnings.warn(
+                "Length of header or names does not match length of data. This leads "
+                "to a loss of data with index_col=False.",
+                ParserWarning,
+                stacklevel=6,
+            )
+
         return {name: alldata[i + offset] for i, name in enumerate(names)}, names
 
     # legacy
