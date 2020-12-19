@@ -4,7 +4,7 @@ import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Dict, Mapping, Optional, Union, cast
+from typing import IO, Any, Dict, Mapping, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -14,11 +14,12 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
+from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
 from pandas.core.frame import DataFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
 from pandas.io.excel._util import (
@@ -891,12 +892,17 @@ ZIP_SIGNATURE = b"PK\x03\x04"
 PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     path: Optional[str] = None,
     content: Union[None, BufferedIOBase, RawIOBase, bytes] = None,
+    storage_options: StorageOptions = None,
 ) -> Optional[str]:
     """
     Inspect the path or content of an excel file.
+
+    At least one of path or content must be not None. If both are not None,
+    content will take precedence.
 
     Adopted from xlrd: https://github.com/python-excel/xlrd.
 
@@ -904,67 +910,57 @@ def inspect_excel_format(
     ----------
     path : str, optional
         Path to file to inspect. May be a URL.
-    content : file-like object
+    content : file-like object, optional
         Content of file to inspect.
+    {storage_options}
 
     Returns
     -------
     str
         Format of file. Returns the extension if path is a URL.
     """
-    if content is not None:
-        if isinstance(content, bytes):
-            peek = content[:PEEK_SIZE]
-        else:
-            buf = content.read(PEEK_SIZE)
-            if buf is None:
-                raise ValueError("File is empty")
-            else:
-                peek = buf
-    elif path is not None:
-        try:
-            with open(path, "rb") as f:
-                buf = f.read(PEEK_SIZE)
-                if buf is None:
-                    raise ValueError("File is empty")
-                else:
-                    peek = buf
-        except FileNotFoundError:
-            # File may be a url, return the extension
-            return os.path.splitext(path)[-1][1:]
+    content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]]
+    if isinstance(content, bytes):
+        content_or_path = BytesIO(content)
     else:
-        raise ValueError("content or path must not be ")
+        content_or_path = content or path
+    assert content_or_path is not None
 
-    if peek.startswith(XLS_SIGNATURE):
-        return "xls"
-
-    if peek.startswith(ZIP_SIGNATURE):
-        if content:
-            # ZipFile requires IO[bytes]
-            if isinstance(content, bytes):
-                as_bytesio = BytesIO(content)
-            else:
-                buf = content.read()
-                if buf is None:
-                    raise ValueError("File is empty")
-                else:
-                    as_bytesio = BytesIO(buf)
-            zf = zipfile.ZipFile(as_bytesio)
+    with get_handle(
+        content_or_path, "rb", storage_options=storage_options, is_text=False
+    ) as handle:
+        stream = handle.handle
+        stream.seek(0)
+        buf = stream.read(PEEK_SIZE)
+        if buf is None:
+            raise ValueError("stream is empty")
         else:
-            assert path is not None
-            zf = zipfile.ZipFile(path)
+            assert isinstance(buf, bytes)
+            peek = buf
+        stream.seek(0)
 
-        # Workaround for some third party files that use forward slashes and
-        # lower case names.
-        component_names = [name.replace("\\", "/").lower() for name in zf.namelist()]
+        if peek.startswith(XLS_SIGNATURE):
+            return "xls"
 
-        if "xl/workbook.xml" in component_names:
-            return "xlsx"
-        if "xl/workbook.bin" in component_names:
-            return "xlsb"
-        if "content.xml" in component_names:
-            return "ods"
-        return "zip"
+        if peek.startswith(ZIP_SIGNATURE):
+            # ZipFile typing is overly-strict
+            # https://github.com/python/typeshed/issues/4212
+            zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+
+            # Workaround for some third party files that use forward slashes and
+            # lower case names.
+            component_names = [
+                name.replace("\\", "/").lower() for name in zf.namelist()
+            ]
+
+            if "xl/workbook.xml" in component_names:
+                return "xlsx"
+            if "xl/workbook.bin" in component_names:
+                return "xlsb"
+            if "content.xml" in component_names:
+                return "ods"
+            return "zip"
+
     return None
 
 
@@ -1043,15 +1039,15 @@ class ExcelFile:
             xlrd_version = xlrd.__version__
 
         if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase, bytes)):
-            ext = inspect_excel_format(content=path_or_buffer)
+            ext = inspect_excel_format(
+                content=path_or_buffer, storage_options=storage_options
+            )
         elif xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
-        elif isinstance(self._io, (str, bytes)):
-            # path_or_buffer is path-like, use stringified path
-            ext = inspect_excel_format(path=self._io)
         else:
-            raise ValueError(
-                f"Unrecognized path_or_buffer type; got {type(path_or_buffer)}"
+            # path_or_buffer is path-like, use stringified path
+            ext = inspect_excel_format(
+                path=str(self._io), storage_options=storage_options
             )
 
         if engine is None:
