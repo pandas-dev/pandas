@@ -8,8 +8,6 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
 import pandas._testing as tm
 
-randn = np.random.randn
-
 
 class TestDatetimeIndex:
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
@@ -409,10 +407,3 @@ class TestDatetimeIndex:
         result = idx.to_frame()
         expected = DataFrame(idx, index=idx)
         tm.assert_frame_equal(result, expected)
-
-    def test_split_non_utc(self):
-        # GH 14042
-        indices = date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
-        result = np.split(indices, indices_or_sections=[])[0]
-        expected = indices._with_freq(None)
-        tm.assert_index_equal(result, expected)
