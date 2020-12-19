@@ -863,7 +863,7 @@ class TestSparseArray:
     @td.skip_if_no_scipy
     def test_loc(self):
         # Tests .loc on sparse DataFrame #34687
-        import scipy.sparse
+        from scipy.sparse import eye
 
         dtype = SparseDtype("float64", 0.0)
         
