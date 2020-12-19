@@ -450,28 +450,6 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style="k--", color="k", ax=ax)
 
     @td.skip_if_no_scipy
-    def test_hist_kde(self):
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        # ticks are values, thus ticklabels are blank
-        self._check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
-
-        _check_plot_works(self.ts.plot.kde)
-        _check_plot_works(self.ts.plot.density)
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        xlabels = ax.get_xticklabels()
-        self._check_text_labels(xlabels, [""] * len(xlabels))
-        ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
-
-    @td.skip_if_no_scipy
     def test_kde_kwargs(self):
         sample_points = np.linspace(-100, 100, 20)
         _check_plot_works(self.ts.plot.kde, bw_method="scott", ind=20)
@@ -492,37 +470,6 @@ class TestSeriesPlots(TestPlotBase):
 
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
-
-    def test_hist_kwargs(self):
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(bins=5, ax=ax)
-        assert len(ax.patches) == 5
-        self._check_text_labels(ax.yaxis.get_label(), "Frequency")
-        tm.close()
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(orientation="horizontal", ax=ax)
-        self._check_text_labels(ax.xaxis.get_label(), "Frequency")
-        tm.close()
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
-        tm.close()
-
-    @td.skip_if_no_scipy
-    def test_hist_kde_color(self):
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        assert len(ax.patches) == 10
-        self._check_colors(ax.patches, facecolors=["b"] * 10)
-
-        _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, color="r", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
-        lines = ax.get_lines()
-        assert len(lines) == 1
-        self._check_colors(lines, ["r"])
 
     def test_boxplot_series(self):
         _, ax = self.plt.subplots()
