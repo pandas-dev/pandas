@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, List, Optional, Sequence, Union, overload
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, overload
 import warnings
 
 import numpy as np
@@ -77,7 +77,9 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
-def _handle_date_column(col, utc: Optional[bool] = None, format: Optional[str] = None):
+def _handle_date_column(
+    col, utc: Optional[bool] = None, format: Optional[Union[str, Dict[str, Any]]] = None
+):
     if isinstance(format, dict):
         # GH35185 Allow custom error values in parse_dates argument of
         # read_sql like functions.
