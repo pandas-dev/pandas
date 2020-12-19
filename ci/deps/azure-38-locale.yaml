@@ -30,7 +30,7 @@ dependencies:
   - pytz
   - scipy
   - xarray
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto
