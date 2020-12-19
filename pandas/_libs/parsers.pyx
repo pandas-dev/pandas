@@ -745,8 +745,10 @@ cdef class TextReader:
                 self.leading_cols = field_count - passed_count
             elif not self.allow_leading_cols and passed_count < field_count:
                 warnings.warn(
-                    "Length of header or names does not match length of data. This leads "
-                    "to a loss of data with index_col=False.", ParserWarning, stacklevel=6,
+                    "Length of header or names does not match length of data. This "
+                    "leads to a loss of data with index_col=False.",
+                    ParserWarning,
+                    stacklevel=6,
                 )
 
         return header, field_count, unnamed_cols
