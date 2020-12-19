@@ -461,10 +461,7 @@ def sanitize_array(
             try:
                 subarr = _try_cast(data, dtype, copy, True)
             except ValueError:
-                if copy:
-                    subarr = data.copy()
-                else:
-                    subarr = np.array(data, copy=False)
+                subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
