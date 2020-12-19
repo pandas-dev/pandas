@@ -253,7 +253,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             eacls = dtype.construct_array_type()
             return eacls._from_sequence(self, dtype=dtype, copy=copy)
 
-        return super().astype(dtype, copy=copy)
+        raise NotImplementedError("subclass must implement astype to np.dtype")
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
