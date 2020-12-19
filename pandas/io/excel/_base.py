@@ -1024,6 +1024,11 @@ class ExcelFile:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
+        # Could be a str, ExcelFile, Book, etc.
+        self.io = path_or_buffer
+        # Always a string
+        self._io = stringify_path(path_or_buffer)
+
         # Determine xlrd version if installed
         if (
             import_optional_dependency(
@@ -1041,9 +1046,13 @@ class ExcelFile:
             ext = inspect_excel_format(content=path_or_buffer)
         elif xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
-        else:
+        elif isinstance(self._io, (str, bytes)):
             # path_or_buffer is path-like, use stringified path
-            ext = inspect_excel_format(path=str(path_or_buffer))
+            ext = inspect_excel_format(path=self._io)
+        else:
+            raise ValueError(
+                f"Unrecognized path_or_buffer type; got {type(path_or_buffer)}"
+            )
 
         if engine is None:
             if ext == "ods":
@@ -1093,11 +1102,6 @@ class ExcelFile:
 
         self.engine = engine
         self.storage_options = storage_options
-
-        # Could be a str, ExcelFile, Book, etc.
-        self.io = path_or_buffer
-        # Always a string
-        self._io = stringify_path(path_or_buffer)
 
         self._reader = self._engines[engine](self._io, storage_options=storage_options)
 
