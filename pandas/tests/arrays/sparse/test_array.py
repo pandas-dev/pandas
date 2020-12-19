@@ -867,7 +867,6 @@ class TestSparseArray:
 
         dtype = SparseDtype("float64", 0.0)
         
-
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
         exp1 = pd.DataFrame(
@@ -880,7 +879,6 @@ class TestSparseArray:
             [[1.0, 0.0, float("nan"), float("nan"), float("nan")]]
         ).astype(dtype)
         tm.assert_frame_equal(res2, exp2)
-
 
 class TestSparseArrayAnalytics:
     @pytest.mark.parametrize(
