@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_iterator,
     is_list_like,
     is_object_dtype,
     is_sparse,
@@ -600,6 +599,10 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
 
+    if is_object_dtype(dtype) and not isinstance(arr, np.ndarray):
+        subarr = construct_1d_object_array_from_listlike(arr)
+        return subarr
+
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
         # that we can convert the data to the requested dtype.
@@ -609,15 +612,12 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
+            if isinstance(subarr, (ABCExtensionArray, ABCIndex)) or (
+                subarr is not arr and subarr.dtype == dtype
+            ):
+                return subarr
 
-        # Take care in creating object arrays (but iterators are not
-        # supported):
-        if is_object_dtype(dtype) and (
-            is_list_like(subarr)
-            and not (is_iterator(subarr) or isinstance(subarr, np.ndarray))
-        ):
-            subarr = construct_1d_object_array_from_listlike(subarr)
-        elif not is_extension_array_dtype(subarr):
+        if not isinstance(subarr, ABCExtensionArray):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
