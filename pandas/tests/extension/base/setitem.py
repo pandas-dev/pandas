@@ -289,11 +289,11 @@ class BaseSetitemTests(BaseExtensionTests):
         msg = (
             # pandas.core.arrays.period.PeriodArray
             # pandas.core.arrays.datetimes.DatetimeArray
-            "(cannot set using a slice indexer with a different length than the value)" "|"
+            "(cannot set using a slice indexer with a different length than the value)|"
             # string_arrow.ArrowStringArray
-            "(Length of indexer and values mismatch)" "|"
+            "(Length of indexer and values mismatch)|"
             # pandas.tests.extension.decimal.array.DecimalArray
-            "(cannot copy sequence with size \\d to array axis with dimension \\d)" "|"
+            "(cannot copy sequence with size \\d to array axis with dimension \\d)|"
             # All the rest
             "(could not broadcast input array from shape \\(\\d\\) into shape \\(\\d\\))"
         )
@@ -310,9 +310,9 @@ class BaseSetitemTests(BaseExtensionTests):
         # Check the comment on test_setitem_slice_mismatch_length_raises for more info.
         msg = (
             # pandas.core.arrays.string_arrow.ArrowStringArray
-            "(Must pass scalars with scalar indexer)" "|"
+            "(Must pass scalars with scalar indexer)|"
             # pandas.core.arrays.datetimes.DatetimeArray
-            "(Could not convert object to NumPy datetime)" "|"
+            "(Could not convert object to NumPy datetime)|"
             # All the rest
             "(setting an array element with a sequence)"
         )
