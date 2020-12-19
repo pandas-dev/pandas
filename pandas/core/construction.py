@@ -611,9 +611,7 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
-            if isinstance(subarr, (ABCExtensionArray, ABCIndex)) or (
-                subarr is not arr and subarr.dtype == dtype
-            ):
+            if isinstance(subarr, (ABCExtensionArray, ABCIndex)):
                 return subarr
 
         if not isinstance(subarr, ABCExtensionArray):
