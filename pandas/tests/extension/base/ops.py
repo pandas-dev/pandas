@@ -145,7 +145,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
             # series
             s = pd.Series(data)
-            with pytest.raises(TypeError):
+            msg = "not supported between instances of '[\\w.]+' and '[\\w.]+'"
+            with pytest.raises(TypeError, match=msg):
                 op(s, other)
 
     def test_compare_scalar(self, data, all_compare_operators):
