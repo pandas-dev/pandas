@@ -207,14 +207,14 @@ SQL_STRINGS = {
     },
     "create_single_pkey_table": {
         "sqlite": """CREATE TABLE pkey_table (
-                "a" Integer Primary Key,
+                "a"  Primary Key,
                 "b" TEXT,
                 "c" TEXT
             )""",
         "mysql": """CREATE TABLE pkey_table (
                 `a` INTEGER,
-                `b` TEXT,
-                `c` TEXT,
+                `b` VARCHAR(200),
+                `c` VARCHAR(200),
                 PRIMARY KEY (a)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
@@ -232,8 +232,8 @@ SQL_STRINGS = {
             )""",
         "mysql": """CREATE TABLE pkey_table (
                 `a` INTEGER NOT NULL,
-                `b` TEXT NOT NULL,
-                `c` TEXT,
+                `b` VARCHAR(200) NOT NULL,
+                `c` VARCHAR(200),
                 PRIMARY KEY (`a`,`b`)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
