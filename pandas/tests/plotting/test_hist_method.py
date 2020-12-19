@@ -162,6 +162,22 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             s.hist(legend=True, by=by, label="c")
 
+    def test_hist_kwargs(self):
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 5
+        self._check_text_labels(ax.yaxis.get_label(), "Frequency")
+        tm.close()
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(orientation="horizontal", ax=ax)
+        self._check_text_labels(ax.xaxis.get_label(), "Frequency")
+        tm.close()
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
+        tm.close()
+
     @td.skip_if_no_scipy
     def test_hist_kde(self):
 
