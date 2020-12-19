@@ -10,7 +10,17 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
@@ -301,34 +311,24 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
+    args: Tuple[Any, ...] = (data,)
+    mode = "wb"
+    method = "write"
+    compress_method: Callable
+
     if compression == "zip":
         compress_method = zipfile.ZipFile
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
     elif compression == "gzip":
-        # pandas\_testing.py:288: error: Incompatible types in assignment
-        # (expression has type "Type[GzipFile]", variable has type
-        # "Type[ZipFile]")
-        compress_method = gzip.GzipFile  # type: ignore[assignment]
+        compress_method = gzip.GzipFile
     elif compression == "bz2":
-        # pandas\_testing.py:290: error: Incompatible types in assignment
-        # (expression has type "Type[BZ2File]", variable has type
-        # "Type[ZipFile]")
-        compress_method = bz2.BZ2File  # type: ignore[assignment]
+        compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
-
-    if compression == "zip":
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    else:
-        mode = "wb"
-        # pandas\_testing.py:302: error: Incompatible types in assignment
-        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
-        # Any]")
-        args = (data,)  # type: ignore[assignment]
-        method = "write"
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
