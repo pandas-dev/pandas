@@ -61,9 +61,9 @@ def test_get_dtypes_no_level_name():
             "level_2": DatetimeTZDtype(tz="utc"),
         }
     )
-    tm.assert_series_equal(expected, idx_multitype.dtypes)    
-    
- 
+    tm.assert_series_equal(expected, idx_multitype.dtypes)
+
+
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
