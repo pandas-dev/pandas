@@ -432,6 +432,63 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             df.hist(legend=True, by=by, column=column, label="d")
 
+    def test_hist_df_kwargs(self):
+        df = DataFrame(np.random.randn(10, 2))
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 10
+
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+        df["E"] = ["x", "y"] * 5
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 20
+
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(ax=ax)  # bins=10
+        assert len(ax.patches) == 40
+
+    def test_hist_secondary_legend(self):
+        # GH 9610
+        df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
+
+        # primary -> secondary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, ax=ax)
+        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=["a", "b (right)"])
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
+        tm.close()
+
+        # secondary -> secondary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
+        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        # both legends are draw on left ax
+        # left axis must be invisible, right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
+        tm.close()
+
+        # secondary -> primary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
+        # right axes is returned
+        df["b"].plot.hist(ax=ax, legend=True)
+        # both legends are draw on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
+        assert ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
+        tm.close()
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
