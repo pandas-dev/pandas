@@ -1091,11 +1091,9 @@ cdef class _Timedelta(timedelta):
         >>> td.isoformat()
         'P6DT0H50M3.010010012S'
         >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
-        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
-        'P0DT0H0M10S'
+        'P0DT1H0M10S'
         >>> pd.Timedelta(days=500.5).isoformat()
-        'P500DT12H0MS'
+        'P500DT12H0M0S'
         """
         components = self.components
         seconds = (f'{components.seconds}.'
