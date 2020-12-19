@@ -37,7 +37,8 @@ class BaseOpsUtil(BaseExtensionTests):
                 "(cannot add [\\w_]+ and [\\w_]+)|"
                 "(can't multiply sequence by non-int of type '[\\w_]+')|"
                 '(can only concatenate str \\(not "[\\w_]+"\\) to str)|'
-                "(Object with dtype category cannot perform the numpy op [\\w_]+)"
+                "(Object with dtype category cannot perform the numpy op [\\w_]+)|"
+                "(Concatenation operation is not implemented for NumPy arrays)"
             )
             with pytest.raises(exc, match=msg):
                 op(s, other)
