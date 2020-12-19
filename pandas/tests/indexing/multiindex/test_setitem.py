@@ -203,10 +203,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
-        msg = (
-            "cannot set using a multi-index selection indexer "
-            "with a different length than the value"
-        )
+        msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0, 1, 2, 3]
 

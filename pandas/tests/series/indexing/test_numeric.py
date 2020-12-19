@@ -71,17 +71,6 @@ def test_getitem_setitem_slice_integers():
     assert not (s[4:] == 0).any()
 
 
-def test_setitem_float_labels():
-    # note labels are floats
-    s = Series(["a", "b", "c"], index=[0, 0.5, 1])
-    tmp = s.copy()
-
-    s.loc[1] = "zoo"
-    tmp.iloc[2] = "zoo"
-
-    tm.assert_series_equal(s, tmp)
-
-
 def test_slice_float_get_set(datetime_series):
     msg = (
         "cannot do slice indexing on DatetimeIndex with these indexers "
@@ -97,16 +86,3 @@ def test_slice_float_get_set(datetime_series):
         datetime_series[4.5:10.0]
     with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
         datetime_series[4.5:10.0] = 0
-
-
-def test_slice_floats2():
-    s = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
-
-    assert len(s.loc[12.0:]) == 8
-    assert len(s.loc[12.5:]) == 7
-
-    i = np.arange(10, 20, dtype=float)
-    i[2] = 12.2
-    s.index = i
-    assert len(s.loc[12.0:]) == 8
-    assert len(s.loc[12.5:]) == 7

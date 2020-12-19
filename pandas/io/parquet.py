@@ -1,16 +1,19 @@
 """ parquet compat """
 
 import io
-from typing import Any, AnyStr, Dict, List, Optional
+import os
+from typing import Any, AnyStr, Dict, List, Optional, Tuple
 from warnings import catch_warnings
 
 from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
-from pandas import DataFrame, get_option
+from pandas import DataFrame, MultiIndex, get_option
+from pandas.core import generic
 
-from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, stringify_path
+from pandas.io.common import IOHandles, get_handle, is_fsspec_url, stringify_path
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -47,6 +50,40 @@ def get_engine(engine: str) -> "BaseImpl":
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
 
+def _get_path_or_handle(
+    path: FilePathOrBuffer,
+    fs: Any,
+    storage_options: StorageOptions = None,
+    mode: str = "rb",
+    is_dir: bool = False,
+) -> Tuple[FilePathOrBuffer, Optional[IOHandles], Any]:
+    """File handling for PyArrow."""
+    path_or_handle = stringify_path(path)
+    if is_fsspec_url(path_or_handle) and fs is None:
+        fsspec = import_optional_dependency("fsspec")
+
+        fs, path_or_handle = fsspec.core.url_to_fs(
+            path_or_handle, **(storage_options or {})
+        )
+    elif storage_options:
+        raise ValueError("storage_options passed with buffer or non-fsspec filepath")
+
+    handles = None
+    if (
+        not fs
+        and not is_dir
+        and isinstance(path_or_handle, str)
+        and not os.path.isdir(path_or_handle)
+    ):
+        # use get_handle only when we are very certain that it is not a directory
+        # fsspec resources can also point to directories
+        # this branch is used for example when reading from non-fsspec URLs
+        handles = get_handle(path_or_handle, mode, is_text=False)
+        fs = None
+        path_or_handle = handles.handle
+    return path_or_handle, handles, fs
+
+
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame):
@@ -54,9 +91,20 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-        # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "empty"}:
-            raise ValueError("parquet must have string column names")
+        # must have value column names for all index levels (strings only)
+        if isinstance(df.columns, MultiIndex):
+            if not all(
+                x.inferred_type in {"string", "empty"} for x in df.columns.levels
+            ):
+                raise ValueError(
+                    """
+                    parquet must have string column names for all values in
+                     each level of the MultiIndex
+                    """
+                )
+        else:
+            if df.columns.inferred_type not in {"string", "empty"}:
+                raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
@@ -102,63 +150,50 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
-        if is_fsspec_url(path) and "filesystem" not in kwargs:
-            # make fsspec instance, which pyarrow will use to open paths
-            import_optional_dependency("fsspec")
-            import fsspec.core
-
-            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
-            kwargs["filesystem"] = fs
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with file object or non-fsspec file path"
+        path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
+            path,
+            kwargs.pop("filesystem", None),
+            storage_options=storage_options,
+            mode="wb",
+            is_dir=partition_cols is not None,
+        )
+        try:
+            if partition_cols is not None:
+                # writes to multiple files under the given path
+                self.api.parquet.write_to_dataset(
+                    table,
+                    path_or_handle,
+                    compression=compression,
+                    partition_cols=partition_cols,
+                    **kwargs,
                 )
-            path = stringify_path(path)
-        if partition_cols is not None:
-            # writes to multiple files under the given path
-            self.api.parquet.write_to_dataset(
-                table,
-                path,
-                compression=compression,
-                partition_cols=partition_cols,
-                **kwargs,
-            )
-        else:
-            # write to single output file
-            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
+            else:
+                # write to single output file
+                self.api.parquet.write_table(
+                    table, path_or_handle, compression=compression, **kwargs
+                )
+        finally:
+            if handles is not None:
+                handles.close()
 
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        if is_fsspec_url(path) and "filesystem" not in kwargs:
-            import_optional_dependency("fsspec")
-            import fsspec.core
-
-            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
-            should_close = False
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with buffer or non-fsspec filepath"
-                )
-            fs = kwargs.pop("filesystem", None)
-            should_close = False
-            path = stringify_path(path)
-
-        if not fs:
-            ioargs = get_filepath_or_buffer(path)
-            path = ioargs.filepath_or_buffer
-            should_close = ioargs.should_close
-
         kwargs["use_pandas_metadata"] = True
-        result = self.api.parquet.read_table(
-            path, columns=columns, filesystem=fs, **kwargs
-        ).to_pandas()
-        if should_close:
-            path.close()
 
-        return result
+        path_or_handle, handles, kwargs["filesystem"] = _get_path_or_handle(
+            path,
+            kwargs.pop("filesystem", None),
+            storage_options=storage_options,
+            mode="rb",
+        )
+        try:
+            return self.api.parquet.read_table(
+                path_or_handle, columns=columns, **kwargs
+            ).to_pandas()
+        finally:
+            if handles is not None:
+                handles.close()
 
 
 class FastParquetImpl(BaseImpl):
@@ -196,6 +231,8 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
+        # cannot use get_handle as write() does not accept file buffers
+        path = stringify_path(path)
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
@@ -203,12 +240,10 @@ class FastParquetImpl(BaseImpl):
             kwargs["open_with"] = lambda path, _: fsspec.open(
                 path, "wb", **(storage_options or {})
             ).open()
-        else:
-            if storage_options:
-                raise ValueError(
-                    "storage_options passed with file object or non-fsspec file path"
-                )
-            path = get_filepath_or_buffer(path).filepath_or_buffer
+        elif storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
 
         with catch_warnings(record=True):
             self.api.write(
@@ -223,20 +258,31 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        path = stringify_path(path)
+        parquet_kwargs = {}
+        handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            open_with = lambda path, _: fsspec.open(
+            parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
                 path, "rb", **(storage_options or {})
             ).open()
-            parquet_file = self.api.ParquetFile(path, open_with=open_with)
-        else:
-            path = get_filepath_or_buffer(path).filepath_or_buffer
-            parquet_file = self.api.ParquetFile(path)
+        elif isinstance(path, str) and not os.path.isdir(path):
+            # use get_handle only when we are very certain that it is not a directory
+            # fsspec resources can also point to directories
+            # this branch is used for example when reading from non-fsspec URLs
+            handles = get_handle(path, "rb", is_text=False)
+            path = handles.handle
+        parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
-        return parquet_file.to_pandas(columns=columns, **kwargs)
+        result = parquet_file.to_pandas(columns=columns, **kwargs)
+
+        if handles is not None:
+            handles.close()
+        return result
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
     path: Optional[FilePathOrBuffer] = None,
@@ -263,12 +309,12 @@ def to_parquet(
 
         .. versionchanged:: 1.2.0
 
-    engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+    engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
@@ -288,13 +334,7 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+    {storage_options}
 
         .. versionadded:: 1.2.0
 

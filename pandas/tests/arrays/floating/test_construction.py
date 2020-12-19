@@ -8,7 +8,7 @@ from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
 
 
 def test_uses_pandas_na():
-    a = pd.array([1, None], dtype=pd.Float64Dtype())
+    a = pd.array([1, None], dtype=Float64Dtype())
     assert a[1] is pd.NA
 
 

@@ -312,9 +312,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter((["a", "a"], "A")), "loc", marks=not_implemented
-            ),
+            (operator.itemgetter((["a", "a"], "A")), "loc"),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
             pytest.param(

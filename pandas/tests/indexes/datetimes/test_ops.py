@@ -1,7 +1,10 @@
 from datetime import datetime
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
+
+from pandas.compat import IS64
 
 import pandas as pd
 from pandas import (
@@ -106,24 +109,27 @@ class TestDatetimeIndexOps:
         with pytest.raises(ValueError, match=msg):
             np.repeat(rng, reps, axis=1)
 
-    def test_resolution(self, tz_naive_fixture):
+    @pytest.mark.parametrize(
+        "freq,expected",
+        [
+            ("A", "day"),
+            ("Q", "day"),
+            ("M", "day"),
+            ("D", "day"),
+            ("H", "hour"),
+            ("T", "minute"),
+            ("S", "second"),
+            ("L", "millisecond"),
+            ("U", "microsecond"),
+        ],
+    )
+    def test_resolution(self, tz_naive_fixture, freq, expected):
         tz = tz_naive_fixture
-        for freq, expected in zip(
-            ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],
-            [
-                "day",
-                "day",
-                "day",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "millisecond",
-                "microsecond",
-            ],
-        ):
-            idx = pd.date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
-            assert idx.resolution == expected
+        if freq == "A" and not IS64 and isinstance(tz, tzlocal):
+            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
+
+        idx = pd.date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
+        assert idx.resolution == expected
 
     def test_value_counts_unique(self, tz_naive_fixture):
         tz = tz_naive_fixture

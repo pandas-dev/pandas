@@ -9,6 +9,16 @@ import pandas._testing as tm
 
 
 class TestTimedeltas:
+    @pytest.mark.parametrize("readonly", [True, False])
+    def test_to_timedelta_readonly(self, readonly):
+        # GH#34857
+        arr = np.array([], dtype=object)
+        if readonly:
+            arr.setflags(write=False)
+        result = to_timedelta(arr)
+        expected = to_timedelta([])
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta(self):
 
         result = to_timedelta(["", ""])
@@ -200,3 +210,20 @@ class TestTimedeltas:
         result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("input", "expected"),
+        [
+            ("8:53:08.71800000001", "8:53:08.718"),
+            ("8:53:08.718001", "8:53:08.718001"),
+            ("8:53:08.7180000001", "8:53:08.7180000001"),
+            ("-8:53:08.71800000001", "-8:53:08.718"),
+            ("8:53:08.7180000089", "8:53:08.718000008"),
+        ],
+    )
+    @pytest.mark.parametrize("func", [pd.Timedelta, pd.to_timedelta])
+    def test_to_timedelta_precision_over_nanos(self, input, expected, func):
+        # GH: 36738
+        expected = pd.Timedelta(expected)
+        result = func(input)
+        assert result == expected

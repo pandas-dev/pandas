@@ -172,7 +172,7 @@ class TestCategoricalIndex(Base):
 
         # invalid
         msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ci.insert(0, "d")
 
         # GH 18295 (test missing)
@@ -184,7 +184,7 @@ class TestCategoricalIndex(Base):
     def test_insert_na_mismatched_dtype(self):
         ci = CategoricalIndex([0, 1, 1])
         msg = "'fill_value=NaT' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ci.insert(0, pd.NaT)
 
     def test_delete(self):
@@ -443,6 +443,14 @@ class TestCategoricalIndex(Base):
         assert a.equals(b)
         assert not a.equals(c)
         assert not b.equals(c)
+
+    def test_equals_non_category(self):
+        # GH#37667 Case where other contains a value not among ci's
+        #  categories ("D") and also contains np.nan
+        ci = CategoricalIndex(["A", "B", np.nan, np.nan])
+        other = Index(["A", "B", "D", np.nan])
+
+        assert not ci.equals(other)
 
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))

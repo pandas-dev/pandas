@@ -11,6 +11,42 @@ import pandas._testing as tm
 class TestDataFrameLogicalOperators:
     # &, |, ^
 
+    @pytest.mark.parametrize(
+        "left, right, op, expected",
+        [
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.or_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.or_,
+                [True, False, True],
+            ),
+        ],
+    )
+    def test_logical_operators_nans(self, left, right, op, expected, frame_or_series):
+        # GH#13896
+        result = op(frame_or_series(left), frame_or_series(right))
+        expected = frame_or_series(expected)
+
+        tm.assert_equal(result, expected)
+
     def test_logical_ops_empty_frame(self):
         # GH#5808
         # empty frames, non-mixed dtype

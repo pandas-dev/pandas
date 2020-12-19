@@ -25,16 +25,16 @@ class TestMap:
         tm.assert_index_equal(result, expected)
 
     def test_map(self):
-        ci = pd.CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
+        ci = CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
         result = ci.map(lambda x: x.lower())
-        exp = pd.CategoricalIndex(list("ababc"), categories=list("cba"), ordered=True)
+        exp = CategoricalIndex(list("ababc"), categories=list("cba"), ordered=True)
         tm.assert_index_equal(result, exp)
 
-        ci = pd.CategoricalIndex(
+        ci = CategoricalIndex(
             list("ABABC"), categories=list("BAC"), ordered=False, name="XXX"
         )
         result = ci.map(lambda x: x.lower())
-        exp = pd.CategoricalIndex(
+        exp = CategoricalIndex(
             list("ababc"), categories=list("bac"), ordered=False, name="XXX"
         )
         tm.assert_index_equal(result, exp)
@@ -45,13 +45,13 @@ class TestMap:
         )
 
         # change categories dtype
-        ci = pd.CategoricalIndex(list("ABABC"), categories=list("BAC"), ordered=False)
+        ci = CategoricalIndex(list("ABABC"), categories=list("BAC"), ordered=False)
 
         def f(x):
             return {"A": 10, "B": 20, "C": 30}.get(x)
 
         result = ci.map(f)
-        exp = pd.CategoricalIndex(
+        exp = CategoricalIndex(
             [10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False
         )
         tm.assert_index_equal(result, exp)

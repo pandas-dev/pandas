@@ -14,6 +14,7 @@ from pandas._typing import Axis, DtypeObj, Label, Scalar
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
+    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -346,7 +347,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     oindex = index.astype("O")
 
                 if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
-                    val = com.dict_compat(val)
+                    val = dict_compat(val)
                 else:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)

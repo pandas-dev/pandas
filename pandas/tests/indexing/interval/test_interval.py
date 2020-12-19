@@ -84,7 +84,7 @@ class TestIntervalIndex:
         tm.assert_series_equal(result1, result3)
 
     def test_loc_getitem_frame(self):
-
+        # CategoricalIndex with IntervalIndex categories
         df = DataFrame({"A": range(10)})
         s = pd.cut(df.A, 5)
         df["B"] = s

@@ -29,7 +29,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.numeric import Int64Index
+from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 _empty_range = range(0)
@@ -397,6 +397,8 @@ class RangeIndex(Int64Index):
         name = self.name if name is no_default else name
 
         if values is not None:
+            if values.dtype.kind == "f":
+                return Float64Index(values, name=name)
             return Int64Index._simple_new(values, name=name)
 
         result = self._simple_new(self._range, name=name)
@@ -813,11 +815,8 @@ class RangeIndex(Int64Index):
 
     def _cmp_method(self, other, op):
         if isinstance(other, RangeIndex) and self._range == other._range:
-            if op in {operator.eq, operator.le, operator.ge}:
-                return np.ones(len(self), dtype=bool)
-            elif op in {operator.ne, operator.lt, operator.gt}:
-                return np.zeros(len(self), dtype=bool)
-
+            # Both are immutable so if ._range attr. are equal, shortcut is possible
+            return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
     def _arith_method(self, other, op):

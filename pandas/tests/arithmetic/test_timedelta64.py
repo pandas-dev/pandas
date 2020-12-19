@@ -465,7 +465,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
-        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+        # pytest.raises(TypeError, lambda : pd.Int64Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", pd.NaT, "20130105"])

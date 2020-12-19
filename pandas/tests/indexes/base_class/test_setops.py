@@ -31,7 +31,7 @@ class TestIndexSetOps:
 
         result = idx._union(idx[1:], sort=None)
         expected = idx
-        tm.assert_index_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected.values)
 
         result = idx.union(idx[1:], sort=None)
         tm.assert_index_equal(result, expected)
@@ -39,7 +39,7 @@ class TestIndexSetOps:
         # if other is not monotonic increasing, _union goes through
         #  a different route
         result = idx._union(idx[1:][::-1], sort=None)
-        tm.assert_index_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected.values)
 
         result = idx.union(idx[1:][::-1], sort=None)
         tm.assert_index_equal(result, expected)

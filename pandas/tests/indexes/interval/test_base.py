@@ -80,6 +80,30 @@ class TestBase(Base):
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", ["US/Pacific", None])
+    def test_putmask_dt64(self, tz):
+        # GH#37968
+        dti = date_range("2016-01-01", periods=9, tz=tz)
+        idx = IntervalIndex.from_breaks(dti)
+        mask = np.zeros(idx.shape, dtype=bool)
+        mask[0:3] = True
+
+        result = idx.putmask(mask, idx[-1])
+        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_td64(self):
+        # GH#37968
+        dti = date_range("2016-01-01", periods=9)
+        tdi = dti - dti[0]
+        idx = IntervalIndex.from_breaks(tdi)
+        mask = np.zeros(idx.shape, dtype=bool)
+        mask[0:3] = True
+
+        result = idx.putmask(mask, idx[-1])
+        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        tm.assert_index_equal(result, expected)
+
     def test_getitem_2d_deprecated(self):
         # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
         idx = self.create_index()

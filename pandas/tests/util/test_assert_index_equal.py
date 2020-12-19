@@ -115,6 +115,28 @@ Index values are different \\(33\\.33333 %\\)
         tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
+@pytest.mark.parametrize("check_order", [True, False])
+def test_index_equal_value_oder_mismatch(check_exact, rtol, check_order):
+    idx1 = Index([1, 2, 3])
+    idx2 = Index([3, 2, 1])
+
+    msg = """Index are different
+
+Index values are different \\(66\\.66667 %\\)
+\\[left\\]:  Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[right\\]: Int64Index\\(\\[3, 2, 1\\], dtype='int64'\\)"""
+
+    if check_order:
+        with pytest.raises(AssertionError, match=msg):
+            tm.assert_index_equal(
+                idx1, idx2, check_exact=check_exact, rtol=rtol, check_order=True
+            )
+    else:
+        tm.assert_index_equal(
+            idx1, idx2, check_exact=check_exact, rtol=rtol, check_order=False
+        )
+
+
 def test_index_equal_level_values_mismatch(check_exact, rtol):
     idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])

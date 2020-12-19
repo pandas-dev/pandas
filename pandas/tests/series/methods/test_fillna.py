@@ -653,14 +653,14 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
 
-        msg = "'fill_value=d' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna(Series("d"))
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'

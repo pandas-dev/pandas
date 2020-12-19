@@ -171,7 +171,7 @@ API changes
   ``expanding_cov``, ``expanding_corr`` to allow the calculation of moving
   window covariance and correlation matrices (:issue:`4950`). See
   :ref:`Computing rolling pairwise covariances and correlations
-  <stats.moments.corr_pairwise>` in the docs.
+  <window.corr_pairwise>` in the docs.
 
   .. code-block:: ipython
 

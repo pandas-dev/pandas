@@ -38,8 +38,7 @@ def _align_core_single_unary_op(
 def _zip_axes_from_type(
     typ: Type[FrameOrSeries], new_axes: Sequence[int]
 ) -> Dict[str, int]:
-    axes = {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
-    return axes
+    return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 
 
 def _any_pandas_objects(terms) -> bool:
@@ -186,8 +185,11 @@ def reconstruct_object(typ, obj, axes, dtype):
         # The condition is to distinguish 0-dim array (returned in case of
         # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])
-        if len(obj.shape) == 1 and len(obj) == 1:
-            if not isinstance(ret_value, np.ndarray):
-                ret_value = np.array([ret_value]).astype(res_t)
+        if (
+            len(obj.shape) == 1
+            and len(obj) == 1
+            and not isinstance(ret_value, np.ndarray)
+        ):
+            ret_value = np.array([ret_value]).astype(res_t)
 
     return ret_value

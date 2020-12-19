@@ -71,6 +71,15 @@ class TestResetIndex:
         expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=tz))
         tm.assert_frame_equal(df.reset_index(), expected)
 
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_frame_reset_index_tzaware_index(self, tz):
+        dr = date_range("2012-06-02", periods=10, tz=tz)
+        df = DataFrame(np.random.randn(len(dr)), dr)
+        roundtripped = df.reset_index().set_index("index")
+        xp = df.index.tz
+        rs = roundtripped.index.tz
+        assert xp == rs
+
     def test_reset_index_with_intervals(self):
         idx = IntervalIndex.from_breaks(np.arange(11), name="x")
         original = DataFrame({"x": idx, "y": np.arange(10)})[["x", "y"]]

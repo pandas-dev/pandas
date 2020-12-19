@@ -170,7 +170,7 @@ class TestFillNA:
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        msg = "'fill_value=4' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 

@@ -28,7 +28,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -268,6 +268,7 @@ def to_hdf(
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
+            dropna=dropna,
         )
 
     path_or_buf = stringify_path(path_or_buf)
@@ -1051,6 +1052,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
+        dropna: bool = False,
     ):
         """
         Store object in HDFStore.
@@ -1100,6 +1102,7 @@ class HDFStore:
             encoding=encoding,
             errors=errors,
             track_times=track_times,
+            dropna=dropna,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -3088,7 +3091,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self):
+    def shape(self) -> Optional[Shape]:
         try:
             ndim = self.ndim
 

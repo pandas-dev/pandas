@@ -4,11 +4,12 @@ of the parsers defined in parsers.py
 """
 
 import os
+from pathlib import Path
 import zipfile
 
 import pytest
 
-import pandas as pd
+from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -23,7 +24,7 @@ def parser_and_data(all_parsers, csv1):
 
     with open(csv1, "rb") as f:
         data = f.read()
-        expected = parser.read_csv(csv1)
+    expected = parser.read_csv(csv1)
 
     return parser, data, expected
 
@@ -75,7 +76,7 @@ def test_zip_error_invalid_zip(parser_and_data):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
-        with open(path, "wb") as f:
+        with open(path, "rb") as f:
             with pytest.raises(zipfile.BadZipfile, match="File is not a zip file"):
                 parser.read_csv(f, compression="zip")
 
@@ -130,7 +131,7 @@ def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding
     path = os.path.join(csv_dir_path, f"utf{utf_value}_ex_small.zip")
 
     result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
@@ -149,3 +150,15 @@ def test_invalid_compression(all_parsers, invalid_compression):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv("test_file.zip", **compress_kwargs)
+
+
+def test_ignore_compression_extension(all_parsers):
+    parser = all_parsers
+    df = DataFrame({"a": [0, 1]})
+    with tm.ensure_clean("test.csv") as path_csv:
+        with tm.ensure_clean("test.csv.zip") as path_zip:
+            # make sure to create un-compressed file with zip extension
+            df.to_csv(path_csv, index=False)
+            Path(path_zip).write_text(Path(path_csv).read_text())
+
+            tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)

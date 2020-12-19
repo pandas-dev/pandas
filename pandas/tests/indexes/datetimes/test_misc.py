@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
+from pandas import DatetimeIndex, Index, Timedelta, Timestamp, date_range, offsets
 import pandas._testing as tm
 
 
@@ -408,3 +408,15 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)
+
+
+def test_add_timedelta_preserves_freq():
+    # GH#37295 should hold for any DTI with freq=None or Tick freq
+    tz = "Canada/Eastern"
+    dti = date_range(
+        start=Timestamp("2019-03-26 00:00:00-0400", tz=tz),
+        end=Timestamp("2020-10-17 00:00:00-0400", tz=tz),
+        freq="D",
+    )
+    result = dti + Timedelta(days=1)
+    assert result.freq == dti.freq

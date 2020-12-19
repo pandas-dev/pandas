@@ -525,7 +525,7 @@ class TestExcelWriter:
         writer = ExcelWriter(path)
         frame.to_excel(writer, "test1")
         tsframe.to_excel(writer, "test2")
-        writer.save()
+        writer.close()
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(frame, recons)
@@ -1353,12 +1353,15 @@ class TestExcelWriterEngineTests:
             del called_write_cells[:]
 
         with pd.option_context("io.excel.xlsx.writer", "dummy"):
-            register_writer(DummyClass)
-            writer = ExcelWriter("something.xlsx")
-            assert isinstance(writer, DummyClass)
-            df = tm.makeCustomDataframe(1, 1)
-            check_called(lambda: df.to_excel("something.xlsx"))
-            check_called(lambda: df.to_excel("something.xls", engine="dummy"))
+            path = "something.xlsx"
+            with tm.ensure_clean(path) as filepath:
+                register_writer(DummyClass)
+                writer = ExcelWriter(filepath)
+                assert isinstance(writer, DummyClass)
+                df = tm.makeCustomDataframe(1, 1)
+                check_called(lambda: df.to_excel(filepath))
+            with tm.ensure_clean("something.xls") as filepath:
+                check_called(lambda: df.to_excel(filepath, engine="dummy"))
 
 
 @td.skip_if_no("xlrd")

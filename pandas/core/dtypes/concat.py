@@ -296,12 +296,12 @@ def union_categoricals(
         raise TypeError("dtype of categories must be the same")
 
     ordered = False
-    if all(first.is_dtype_equal(other) for other in to_union[1:]):
+    if all(first._categories_match_up_to_permutation(other) for other in to_union[1:]):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
 
-        all_codes = [first._validate_listlike(x) for x in to_union]
+        all_codes = [first._encode_with_my_categories(x)._codes for x in to_union]
         new_codes = np.concatenate(all_codes)
 
         if sort_categories and not ignore_order and ordered:
