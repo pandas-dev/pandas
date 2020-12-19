@@ -2,6 +2,7 @@ from datetime import datetime, time
 from functools import partial
 import os
 from urllib.error import URLError
+from zipfile import BadZipFile
 
 import numpy as np
 import pytest
@@ -621,6 +622,16 @@ class TestReaders:
         bad_engine = "foo"
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
+
+    def test_missing_file_raises(self, read_ext):
+        bad_file = f"foo{read_ext}"
+        with pytest.raises(FileNotFoundError, match="No such file or directory"):
+            pd.read_excel(bad_file)
+
+    def test_corrupt_bytes_raises(self, read_ext, engine):
+        bad_stream = b"foo"
+        with pytest.raises(BadZipFile, match="File is not a zip file"):
+            pd.read_excel(bad_stream)
 
     @tm.network
     def test_read_from_http_url(self, read_ext):

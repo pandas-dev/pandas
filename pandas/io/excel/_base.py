@@ -897,7 +897,7 @@ def inspect_excel_format(
     path: Optional[str] = None,
     content: Union[None, BufferedIOBase, RawIOBase, bytes] = None,
     storage_options: StorageOptions = None,
-) -> Optional[str]:
+) -> str:
     """
     Inspect the path or content of an excel file.
 
@@ -917,7 +917,14 @@ def inspect_excel_format(
     Returns
     -------
     str
-        Format of file. Returns the extension if path is a URL.
+        Format of file.
+
+    Raises
+    ------
+    ValueError
+        If resulting stream is empty.
+    BadZipFile
+        If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
     content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]]
     if isinstance(content, bytes):
@@ -942,26 +949,21 @@ def inspect_excel_format(
         if peek.startswith(XLS_SIGNATURE):
             return "xls"
 
-        if peek.startswith(ZIP_SIGNATURE):
-            # ZipFile typing is overly-strict
-            # https://github.com/python/typeshed/issues/4212
-            zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+        # ZipFile typing is overly-strict
+        # https://github.com/python/typeshed/issues/4212
+        zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
 
-            # Workaround for some third party files that use forward slashes and
-            # lower case names.
-            component_names = [
-                name.replace("\\", "/").lower() for name in zf.namelist()
-            ]
+        # Workaround for some third party files that use forward slashes and
+        # lower case names.
+        component_names = [name.replace("\\", "/").lower() for name in zf.namelist()]
 
-            if "xl/workbook.xml" in component_names:
-                return "xlsx"
-            if "xl/workbook.bin" in component_names:
-                return "xlsb"
-            if "content.xml" in component_names:
-                return "ods"
-            return "zip"
-
-    return None
+        if "xl/workbook.xml" in component_names:
+            return "xlsx"
+        if "xl/workbook.bin" in component_names:
+            return "xlsb"
+        if "content.xml" in component_names:
+            return "ods"
+        return "zip"
 
 
 class ExcelFile:
@@ -1093,7 +1095,7 @@ class ExcelFile:
         ):
             raise ValueError(
                 f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                f"only the xls format is supported. "
+                f"only the xls format is supported."
             )
 
         self.engine = engine
