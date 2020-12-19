@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, Optional, Union, overload
+from typing import Iterator, List, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -79,7 +79,12 @@ def _process_parse_dates_argument(parse_dates):
 
 def _handle_date_column(col, utc=None, format=None):
     if isinstance(format, dict):
-        return to_datetime(col, errors="ignore", **format)
+        # GH35185 Allow custom error values in parse_dates argument of
+        # read_sql like functions.
+        # Format can take on custom to_datetime argument values such as
+        # {"errors": "coerce"} or {"dayfirst": True}
+        error = format.pop("errors", None) or "ignore"
+        return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
         # GH17855
@@ -212,7 +217,7 @@ def read_sql_table(
     table_name : str
         Name of SQL table in database.
     con : SQLAlchemy connectable or str
-        A database URI could be provided as as str.
+        A database URI could be provided as str.
         SQLite DBAPI connection mode not supported.
     schema : str, default None
         Name of SQL schema in database to query (if database flavor
@@ -477,6 +482,64 @@ def read_sql(
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
+
+    Examples
+    --------
+    Read data from SQL via either a SQL query or a SQL tablename.
+    When using a SQLite database only SQL queries are accepted,
+    providing only the SQL tablename will result in an error.
+
+    >>> from sqlite3 import connect
+    >>> conn = connect(':memory:')
+    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
+    ...                   columns=['int_column', 'date_column'])
+    >>> df.to_sql('test_data', conn)
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
+       int_column date_column
+    0           0    10/11/12
+    1           1    12/11/10
+
+    >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    Apply date parsing to columns through the ``parse_dates`` argument
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates=["date_column"])
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
+    Custom argument values for applying ``pd.to_datetime`` on a column are specified
+    via a dictionary format:
+    1. Ignore errors while parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"errors": "ignore"}})
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    2. Apply a dayfirst date parsing order on the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"dayfirst": True}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
+
+    3. Apply custom formatting when date parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
     """
     pandas_sql = pandasSQL_builder(con)
 
@@ -1453,9 +1516,22 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(
+        self,
+        frame: DataFrame,
+        table_name: str,
+        keys: Optional[List[str]] = None,
+        dtype: Optional[dict] = None,
+        schema: Optional[str] = None,
+    ):
         table = SQLTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
@@ -1586,9 +1662,13 @@ class SQLiteTable(SQLTable):
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
-
+        if self.schema:
+            schema_name = self.schema + "."
+        else:
+            schema_name = ""
         create_stmts = [
             "CREATE TABLE "
+            + schema_name
             + escape(self.name)
             + " (\n"
             + ",\n  ".join(create_tbl_stmts)
@@ -1843,14 +1923,20 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
         table = SQLiteTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name,
+            self,
+            frame=frame,
+            index=False,
+            keys=keys,
+            dtype=dtype,
+            schema=schema,
         )
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None, schema=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1868,7 +1954,12 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+    schema: str, default: None
+        Optional specifying the schema to be used in creating the table.
 
+        .. versionadded:: 1.2.0
     """
     pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(
+        frame, name, keys=keys, dtype=dtype, schema=schema
+    )

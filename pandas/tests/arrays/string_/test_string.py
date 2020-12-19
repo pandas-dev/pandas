@@ -5,6 +5,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
@@ -127,11 +129,14 @@ def test_astype_roundtrip(dtype, request):
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
 
-    s = pd.Series(pd.date_range("2000", periods=12))
-    s[0] = None
+    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser[0] = None
 
-    result = s.astype(dtype).astype("datetime64[ns]")
-    tm.assert_series_equal(result, s)
+    casted = ser.astype(dtype)
+    assert is_dtype_equal(casted.dtype, dtype)
+
+    result = casted.astype("datetime64[ns]")
+    tm.assert_series_equal(result, ser)
 
 
 def test_add(dtype, request):
@@ -366,6 +371,15 @@ def test_astype_int(dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_float(any_float_allowed_nullable_dtype):
+    # Don't compare arrays (37974)
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype="string")
+
+    result = ser.astype(any_float_allowed_nullable_dtype)
+    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_allowed_nullable_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
@@ -422,6 +436,24 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+def test_fillna_args():
+    # GH 37987
+
+    arr = pd.array(["a", pd.NA], dtype="string")
+
+    res = arr.fillna(value="b")
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    res = arr.fillna(value=np.str_("b"))
+    expected = pd.array(["a", "b"], dtype="string")
+    tm.assert_extension_array_equal(res, expected)
+
+    msg = "Cannot set non-string value '1' into a StringArray."
+    with pytest.raises(ValueError, match=msg):
+        arr.fillna(value=1)
+
+
 @td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
@@ -465,6 +497,18 @@ def test_value_counts_na(dtype, request):
 
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_normalize(dtype, request):
+    if dtype == "arrow_string":
+        reason = "TypeError: boolean value of NA is ambiguous"
+        mark = pytest.mark.xfail(reason=reason)
+        request.node.add_marker(mark)
+
+    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
 

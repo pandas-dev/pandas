@@ -409,17 +409,20 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
+extra_compile_args = []
+extra_link_args = []
 if is_platform_windows():
-    extra_compile_args = []
-    extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("/Z7")
         extra_link_args.append("/DEBUG")
 else:
-    extra_compile_args = ["-Werror"]
-    extra_link_args = []
+    # PANDAS_CI=1 is set by ci/setup_env.sh
+    if os.environ.get("PANDAS_CI", "0") == "1":
+        extra_compile_args.append("-Werror")
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
+        extra_compile_args.append("-UNDEBUG")
+        extra_compile_args.append("-O0")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
