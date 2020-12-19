@@ -13,8 +13,6 @@ from pandas import isna
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
-from scipy.sparse import eye  
-
 class TestSparseArray:
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
@@ -862,22 +860,17 @@ class TestSparseArray:
 
     @td.skip_if_no_scipy
     def test_loc(self):
-        # Tests .loc on sparse DataFrame #34687
+        # GH34687
         from scipy.sparse import eye
-
-        dtype = SparseDtype("float64", 0.0)
-        
+     
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
-        exp1 = pd.DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]]
-        ).astype(dtype)
+        exp1 = pd.DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0))
         tm.assert_frame_equal(res1, exp1)
 
         res2 = df.loc[range(2)].loc[range(1)]
-        exp2 = pd.DataFrame(
-            [[1.0, 0.0, float("nan"), float("nan"), float("nan")]]
-        ).astype(dtype)
+        exp2 = pd.DataFrame([[1.0, 0.0, np.nan, np.nan, np.nan]], dtype=SparseDtype("float64", 0.0))
         tm.assert_frame_equal(res2, exp2)
 
 class TestSparseArrayAnalytics:
