@@ -785,9 +785,7 @@ class TestSeriesConstructors:
             dtype="datetime64[ns]",
         )
 
-        with tm.assert_produces_warning(FutureWarning):
-            # astype(np.int64) deprecated
-            result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ns]")
