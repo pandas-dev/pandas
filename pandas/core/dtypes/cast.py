@@ -1543,7 +1543,10 @@ def construct_1d_arraylike_from_scalar(
     """
 
     if dtype is None:
-        dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
+        try:
+            dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
+        except OutOfBoundsDatetime:
+            dtype = np.dtype(object)
 
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()
