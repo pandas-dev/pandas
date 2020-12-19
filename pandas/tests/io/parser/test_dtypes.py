@@ -75,6 +75,100 @@ one,two
         with pytest.raises(TypeError, match="data type [\"']foo[\"'] not understood"):
             parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
+    def test_raise_on_passed_int_dtype_with_nas(self, all_parsers):
+        # see gh-2631
+        parser = all_parsers
+        data = """YEAR, DOY, a
+    2001,106380451,10
+    2001,,11
+    2001,106380451,67"""
+
+        msg = (
+            "Integer column has NA values"
+            if parser.engine == "c"
+            else "Unable to convert column DOY"
+        )
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True
+            )
+
+    def test_dtype_with_converters(self, all_parsers):
+        parser = all_parsers
+        data = """a,b
+1.1,2.2
+1.2,2.3"""
+
+        # Dtype spec ignored if converted specified.
+        with tm.assert_produces_warning(ParserWarning):
+            result = parser.read_csv(
+                StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
+            )
+        expected = DataFrame({"a": ["1.1", "1.2"], "b": [2.2, 2.3]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
+    )
+    def test_numeric_dtype(self, all_parsers, dtype):
+        data = "0\n1"
+        parser = all_parsers
+        expected = DataFrame([0, 1], dtype=dtype)
+
+        result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
+        tm.assert_frame_equal(expected, result)
+
+    def test_boolean_dtype(self, all_parsers):
+        parser = all_parsers
+        data = "\n".join(
+            [
+                "a",
+                "True",
+                "TRUE",
+                "true",
+                "1",
+                "1.0",
+                "False",
+                "FALSE",
+                "false",
+                "0",
+                "0.0",
+                "NaN",
+                "nan",
+                "NA",
+                "null",
+                "NULL",
+            ]
+        )
+
+        result = parser.read_csv(StringIO(data), dtype="boolean")
+        expected = DataFrame(
+            {
+                "a": pd.array(
+                    [
+                        True,
+                        True,
+                        True,
+                        True,
+                        True,
+                        False,
+                        False,
+                        False,
+                        False,
+                        False,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                    dtype="boolean",
+                )
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 @skip_pyarrow
 class TestParserDtypesCategorical1:
@@ -506,102 +600,3 @@ class TestParserDtypesEmpty:
 
         result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
         tm.assert_frame_equal(result, expected)
-
-
-@skip_pyarrow
-def test_raise_on_passed_int_dtype_with_nas(all_parsers):
-    # see gh-2631
-    parser = all_parsers
-    data = """YEAR, DOY, a
-2001,106380451,10
-2001,,11
-2001,106380451,67"""
-
-    msg = (
-        "Integer column has NA values"
-        if parser.engine == "c"
-        else "Unable to convert column DOY"
-    )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
-
-
-@skip_pyarrow
-def test_dtype_with_converters(all_parsers):
-    parser = all_parsers
-    data = """a,b
-1.1,2.2
-1.2,2.3"""
-
-    # Dtype spec ignored if converted specified.
-    with tm.assert_produces_warning(ParserWarning):
-        result = parser.read_csv(
-            StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
-        )
-    expected = DataFrame({"a": ["1.1", "1.2"], "b": [2.2, 2.3]})
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "dtype", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-)
-def test_numeric_dtype(all_parsers, dtype):
-    data = "0\n1"
-    parser = all_parsers
-    expected = DataFrame([0, 1], dtype=dtype)
-
-    result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
-    tm.assert_frame_equal(expected, result)
-
-
-@skip_pyarrow
-def test_boolean_dtype(all_parsers):
-    parser = all_parsers
-    data = "\n".join(
-        [
-            "a",
-            "True",
-            "TRUE",
-            "true",
-            "1",
-            "1.0",
-            "False",
-            "FALSE",
-            "false",
-            "0",
-            "0.0",
-            "NaN",
-            "nan",
-            "NA",
-            "null",
-            "NULL",
-        ]
-    )
-
-    result = parser.read_csv(StringIO(data), dtype="boolean")
-    expected = DataFrame(
-        {
-            "a": pd.array(
-                [
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    False,
-                    False,
-                    False,
-                    False,
-                    False,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                ],
-                dtype="boolean",
-            )
-        }
-    )
-
-    tm.assert_frame_equal(result, expected)
