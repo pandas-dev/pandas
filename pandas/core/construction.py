@@ -612,10 +612,8 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
             subarr = arr
         else:
             subarr = maybe_cast_to_datetime(arr, dtype)
-            if isinstance(subarr, (ABCExtensionArray, ABCIndex)):
-                return subarr
 
-        if not isinstance(subarr, ABCExtensionArray):
+        if not isinstance(subarr, (ABCExtensionArray, ABCIndex)):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
