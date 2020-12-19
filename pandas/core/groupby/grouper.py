@@ -373,7 +373,10 @@ class Grouper:
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
             # use stable sort to support first, last, nth
-            indexer = self.indexer = ax.argsort(kind="mergesort")
+            # TODO: why does putting na_position="first" fix datetimelike cases?
+            indexer = self.indexer = ax.array.argsort(
+                kind="mergesort", na_position="first"
+            )
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 

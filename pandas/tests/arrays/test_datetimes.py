@@ -454,6 +454,17 @@ class TestDatetimeArray:
         with pytest.raises(ValueError, match=msg):
             dta.shift(1, fill_value=fill_value)
 
+    def test_tz_localize_t2d(self):
+        dti = pd.date_range("1994-05-12", periods=12, tz="US/Pacific")
+        dta = dti._data.reshape(3, 4)
+        result = dta.tz_localize(None)
+
+        expected = dta.ravel().tz_localize(None).reshape(dta.shape)
+        tm.assert_datetime_array_equal(result, expected)
+
+        roundtrip = expected.tz_localize("US/Pacific")
+        tm.assert_datetime_array_equal(roundtrip, dta)
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
@@ -469,6 +480,24 @@ class TestSequenceToDT64NS:
         )
         result, _, _ = sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
+
+    @pytest.mark.parametrize("order", ["F", "C"])
+    def test_2d(self, order):
+        dti = pd.date_range("2016-01-01", periods=6, tz="US/Pacific")
+        arr = np.array(dti, dtype=object).reshape(3, 2)
+        if order == "F":
+            arr = arr.T
+
+        res = sequence_to_dt64ns(arr)
+        expected = sequence_to_dt64ns(arr.ravel())
+
+        tm.assert_numpy_array_equal(res[0].ravel(), expected[0])
+        assert res[1] == expected[1]
+        assert res[2] == expected[2]
+
+        res = DatetimeArray._from_sequence(arr)
+        expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
+        tm.assert_datetime_array_equal(res, expected)
 
 
 class TestReductions:
