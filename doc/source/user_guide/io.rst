@@ -753,6 +753,7 @@ the end of each data line, confusing the parser. To explicitly disable the
 index column inference and discard the last column, pass ``index_col=False``:
 
 .. ipython:: python
+    :okwarning:
 
     data = "a,b,c\n4,apple,bat,\n8,orange,cow,"
     print(data)
