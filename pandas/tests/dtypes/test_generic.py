@@ -1,6 +1,8 @@
+import itertools as it
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 from pandas.core.dtypes import generic as gt
 
@@ -42,6 +44,75 @@ class TestABCClasses:
 
         assert isinstance(self.timedelta_array, gt.ABCTimedeltaArray)
         assert not isinstance(self.timedelta_index, gt.ABCTimedeltaArray)
+
+    abc_pairs = [
+        ("ABCInt64Index", pd.Int64Index([1, 2, 3])),
+        ("ABCUInt64Index", pd.UInt64Index([1, 2, 3])),
+        ("ABCFloat64Index", pd.Float64Index([1, 2, 3])),
+        ("ABCMultiIndex", multi_index),
+        ("ABCDatetimeIndex", datetime_index),
+        ("ABCRangeIndex", pd.RangeIndex(3)),
+        ("ABCTimedeltaIndex", timedelta_index),
+        ("ABCIntervalIndex", pd.interval_range(start=0, end=3)),
+        ("ABCPeriodArray", pd.arrays.PeriodArray([2000, 2001, 2002], freq="D")),
+        ("ABCPandasArray", pd.arrays.PandasArray(np.array([0, 1, 2]))),
+        ("ABCPeriodIndex", period_index),
+        ("ABCCategoricalIndex", categorical_df.index),
+        ("ABCSeries", pd.Series([1, 2, 3])),
+        ("ABCDataFrame", df),
+        ("ABCCategorical", categorical),
+        ("ABCDatetimeArray", datetime_array),
+        ("ABCTimedeltaArray", timedelta_array),
+    ]
+
+    @pytest.mark.parametrize(
+        "abctype1, abctype2, inst",
+        [
+            (abctype1, abctype2, inst)
+            for (abctype1, inst), (abctype2, _) in it.product(abc_pairs, repeat=2)
+        ],
+    )
+    def test_abc_pairs(self, abctype1, abctype2, inst):
+        if abctype1 == abctype2:
+            assert isinstance(inst, getattr(gt, abctype2))
+        else:
+            assert not isinstance(inst, getattr(gt, abctype2))
+
+    abc_subclasses = {
+        "ABCIndex": [
+            abctype
+            for abctype, _ in abc_pairs
+            if "Index" in abctype and abctype != "ABCIndex"
+        ],
+        "ABCNDFrame": ["ABCSeries", "ABCDataFrame"],
+        "ABCExtensionArray": [
+            "ABCCategorical",
+            "ABCDatetimeArray",
+            "ABCPeriodArray",
+            "ABCTimedeltaArray",
+        ],
+    }
+
+    @pytest.mark.parametrize(
+        "parent, subs, abctype, inst",
+        [
+            (parent, subs, abctype, inst)
+            for (parent, subs), (abctype, inst) in it.product(
+                abc_subclasses.items(), abc_pairs
+            )
+        ],
+    )
+    def test_abc_hierarchy(self, parent, subs, abctype, inst):
+        if abctype in subs:
+            assert isinstance(inst, getattr(gt, parent))
+        else:
+            assert not isinstance(inst, getattr(gt, parent))
+
+    @pytest.mark.parametrize("abctype", [e for e in gt.__dict__ if e.startswith("ABC")])
+    def test_abc_coverage(self, abctype):
+        assert (
+            abctype in (e for e, _ in self.abc_pairs) or abctype in self.abc_subclasses
+        )
 
 
 def test_setattr_warnings():
