@@ -553,7 +553,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
-        result.index = self._selected_obj.index
         return result
 
     def _transform_fast(self, result) -> Series:

@@ -224,6 +224,7 @@ Indexing
 Missing
 ^^^^^^^
 
+- Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 -
 -
 
