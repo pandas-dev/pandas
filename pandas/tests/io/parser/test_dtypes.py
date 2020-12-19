@@ -164,6 +164,7 @@ class TestParserDtypesCategorical1:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.slow
     def test_categorical_dtype_utf16(self, all_parsers, csv_dir_path):
         # see gh-10153
         pth = os.path.join(csv_dir_path, "utf16_ex.txt")
@@ -220,6 +221,7 @@ class TestParserDtypesCategorical1:
 
 
 class TestParserDtypesCategorical2:
+    @pytest.mark.slow
     def test_categorical_dtype_latin1(self, all_parsers, csv_dir_path):
         # see gh-10153
         pth = os.path.join(csv_dir_path, "unicode_series.csv")
@@ -450,6 +452,61 @@ class TestParserDtypesEmpty:
                 StringIO(data), names=["one", "one"], dtype={0: "u1", 1: "f"}
             )
 
+    @skip_pyarrow
+    @pytest.mark.parametrize(
+        "dtype,expected",
+        [
+            (np.float64, DataFrame(columns=["a", "b"], dtype=np.float64)),
+            (
+                "category",
+                DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
+            ),
+            (
+                {"a": "category", "b": "category"},
+                DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
+            ),
+            ("datetime64[ns]", DataFrame(columns=["a", "b"], dtype="datetime64[ns]")),
+            (
+                "timedelta64[ns]",
+                DataFrame(
+                    {
+                        "a": Series([], dtype="timedelta64[ns]"),
+                        "b": Series([], dtype="timedelta64[ns]"),
+                    },
+                    index=[],
+                ),
+            ),
+            (
+                {"a": np.int64, "b": np.int32},
+                DataFrame(
+                    {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                    index=[],
+                ),
+            ),
+            (
+                {0: np.int64, 1: np.int32},
+                DataFrame(
+                    {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                    index=[],
+                ),
+            ),
+            (
+                {"a": np.int64, 1: np.int32},
+                DataFrame(
+                    {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
+                    index=[],
+                ),
+            ),
+        ],
+    )
+    def test_empty_dtype(self, all_parsers, dtype, expected):
+        # see gh-14712
+        parser = all_parsers
+        data = "a,b"
+
+        result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
 
 @skip_pyarrow
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
@@ -482,59 +539,6 @@ def test_dtype_with_converters(all_parsers):
             StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
         )
     expected = DataFrame({"a": ["1.1", "1.2"], "b": [2.2, 2.3]})
-    tm.assert_frame_equal(result, expected)
-
-
-@skip_pyarrow
-@pytest.mark.parametrize(
-    "dtype,expected",
-    [
-        (np.float64, DataFrame(columns=["a", "b"], dtype=np.float64)),
-        ("category", DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[])),
-        (
-            {"a": "category", "b": "category"},
-            DataFrame({"a": Categorical([]), "b": Categorical([])}, index=[]),
-        ),
-        ("datetime64[ns]", DataFrame(columns=["a", "b"], dtype="datetime64[ns]")),
-        (
-            "timedelta64[ns]",
-            DataFrame(
-                {
-                    "a": Series([], dtype="timedelta64[ns]"),
-                    "b": Series([], dtype="timedelta64[ns]"),
-                },
-                index=[],
-            ),
-        ),
-        (
-            {"a": np.int64, "b": np.int32},
-            DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
-            ),
-        ),
-        (
-            {0: np.int64, 1: np.int32},
-            DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
-            ),
-        ),
-        (
-            {"a": np.int64, 1: np.int32},
-            DataFrame(
-                {"a": Series([], dtype=np.int64), "b": Series([], dtype=np.int32)},
-                index=[],
-            ),
-        ),
-    ],
-)
-def test_empty_dtype(all_parsers, dtype, expected):
-    # see gh-14712
-    parser = all_parsers
-    data = "a,b"
-
-    result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 
