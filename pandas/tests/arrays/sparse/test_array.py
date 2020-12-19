@@ -13,6 +13,7 @@ from pandas import isna
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
+
 class TestSparseArray:
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
@@ -865,13 +866,18 @@ class TestSparseArray:
      
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
-        exp1 = pd.DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0))
+        exp1 = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=SparseDtype("float64", 0.0),
+        )
         tm.assert_frame_equal(res1, exp1)
 
         res2 = df.loc[range(2)].loc[range(1)]
-        exp2 = pd.DataFrame([[1.0, 0.0, np.nan, np.nan, np.nan]], dtype=SparseDtype("float64", 0.0))
+        exp2 = pd.DataFrame(
+            [[1.0, 0.0, np.nan, np.nan, np.nan]], dtype=SparseDtype("float64", 0.0)
+        )
         tm.assert_frame_equal(res2, exp2)
+
 
 class TestSparseArrayAnalytics:
     @pytest.mark.parametrize(
