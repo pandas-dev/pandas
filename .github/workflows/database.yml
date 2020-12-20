@@ -10,39 +10,40 @@ on:
 
 env:
   PYTEST_WORKERS: "auto"
-  # SQL: 1
+  SQL: 1
 
 jobs:
-  Linux_py38_slow:
-    name: Linux_py38_slow
+  Linux_py37_locale:
+    name: Linux_py37_locale
     runs-on: ubuntu-latest
 
     env:
-      CONDA_PY: "38"
-      ENV_FILE: ci/deps/actions-38-slow.yaml
-      PATTERN: slow
+      CONDA_PY: "37"
+      ENV_FILE: ci/deps/actions-37-locale.yaml
+      PATTERN: ((not slow and not network and not clipboard) or (single and db))
+      LOCALE_OVERRIDE: zh_CN.UTF-8
 
     defaults:
       run:
         shell: bash -l {0}
 
-    # services:
-    #   postgres:
-    #     image: postgres
+    services:
+      postgres:
+        image: postgres
 
-    #     env:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: postgres
-    #       POSTGRES_DB: pandas_nosetest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas_nosetest
 
-    #     ports:
-    #     - 5432/tcp
+        ports:
+        - 5432/tcp
 
-    #     options: >-
-    #       --health-cmd pg_isready
-    #       --health-interval 10s
-    #       --health-timeout 5s
-    #       --health-retries 5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
 
@@ -52,10 +53,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    # - name: Start MySQL
-    #   run:
-    #     sudo systemctl enable mysql.service
-    #     sudo systemctl start mysql.service
+    - name: Start MySQL
+      run:
+        sudo systemctl enable mysql.service
+        sudo systemctl start mysql.service
+
+    - name: Initialize Database
+      run:
+          mysql -e 'create database pandas_nosetest;'
+          psql -c 'create database pandas_nosetest;' -U postgres
 
     - name: Cache conda
       uses: actions/cache@v1
@@ -65,7 +71,7 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('ci/deps/actions-38-slow.yaml') }}
+          hashFiles('ci/deps/actions-37-locale.yaml') }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:

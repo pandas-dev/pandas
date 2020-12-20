@@ -20,8 +20,8 @@ dependencies:
   - numpy
   - openpyxl
   - patsy
-  # - psycopg2
-  # - pymysql
+  - psycopg2
+  - pymysql
   - pytables
   - python-dateutil
   - pytz
