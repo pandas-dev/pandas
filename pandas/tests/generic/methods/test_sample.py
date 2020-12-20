@@ -3,7 +3,7 @@ import pytest
 
 from pandas.compat.numpy import np_version_under1p17
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Index
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -305,3 +305,13 @@ class TestSampleDataFrame:
 
         with tm.assert_produces_warning(None):
             df2["d"] = 1
+
+    def test_sample_ignore_index(self):
+        # GH 38581
+        df = DataFrame(
+            {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
+        )
+        seed = 2020
+        result = df.sample(3, ignore_index=True, random_state=2020)
+        expected_index = Index([0, 1, 2])
+        tm.assert_index_equal(result.index, expected_index)
