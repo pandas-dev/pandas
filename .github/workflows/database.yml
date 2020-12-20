@@ -53,17 +53,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Shutdown Ubuntu MySQL
-      run: sudo service mysql stop
+    # - name: Shutdown Ubuntu MySQL
+    #   run: sudo service mysql stop
 
-    - uses: mirromutth/mysql-action@v1.1
-      with:
-        mysql user: 'developer'
-        mysql password: ""
+    # - uses: mirromutth/mysql-action@v1.1
+    #   with:
+    #     mysql user: 'developer'
+    #     mysql password: ""
 
     - name: Initialize Database
       run:
-          mysql -e 'create database pandas_nosetest;'
+          # mysql -e 'create database pandas_nosetest;'
           psql -c 'create database pandas_nosetest;' -U postgres
 
     - name: Cache conda
@@ -90,7 +90,6 @@ jobs:
 
     - name: Test
       run: |
-        source activate pandas-dev
         ci/run_tests.sh
       if: always()
 
