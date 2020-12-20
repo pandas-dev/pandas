@@ -1,0 +1,70 @@
+""" support numpy compatibility across versions """
+
+from distutils.version import LooseVersion
+import re
+
+import numpy as np
+
+# numpy versioning
+_np_version = np.__version__
+_nlv = LooseVersion(_np_version)
+np_version_under1p17 = _nlv < LooseVersion("1.17")
+np_version_under1p18 = _nlv < LooseVersion("1.18")
+_np_version_under1p19 = _nlv < LooseVersion("1.19")
+_np_version_under1p20 = _nlv < LooseVersion("1.20")
+is_numpy_dev = ".dev" in str(_nlv)
+_min_numpy_ver = "1.16.5"
+
+
+if _nlv < _min_numpy_ver:
+    raise ImportError(
+        f"this version of pandas is incompatible with numpy < {_min_numpy_ver}\n"
+        f"your numpy version is {_np_version}.\n"
+        f"Please upgrade numpy to >= {_min_numpy_ver} to use this pandas version"
+    )
+
+
+_tz_regex = re.compile("[+-]0000$")
+
+
+def tz_replacer(s):
+    if isinstance(s, str):
+        if s.endswith("Z"):
+            s = s[:-1]
+        elif _tz_regex.search(s):
+            s = s[:-5]
+    return s
+
+
+def np_datetime64_compat(s, *args, **kwargs):
+    """
+    provide compat for construction of strings to numpy datetime64's with
+    tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
+    warning, when need to pass '2015-01-01 09:00:00'
+    """
+    s = tz_replacer(s)
+    return np.datetime64(s, *args, **kwargs)
+
+
+def np_array_datetime64_compat(arr, *args, **kwargs):
+    """
+    provide compat for construction of an array of strings to a
+    np.array(..., dtype=np.datetime64(..))
+    tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
+    warning, when need to pass '2015-01-01 09:00:00'
+    """
+    # is_list_like
+    if hasattr(arr, "__iter__") and not isinstance(arr, (str, bytes)):
+        arr = [tz_replacer(s) for s in arr]
+    else:
+        arr = tz_replacer(arr)
+
+    return np.array(arr, *args, **kwargs)
+
+
+__all__ = [
+    "np",
+    "_np_version",
+    "np_version_under1p17",
+    "is_numpy_dev",
+]

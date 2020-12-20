@@ -350,6 +350,10 @@ class TestSeriesReplace:
             (["1", "2", "3"], {"1": "2", "2": "3", "3": "4"}, ["2", "3", "4"]),
         ],
     )
+    def test_replace_number_with_na(self):
+        s = pd.Series([0, None]).astype("Int64")
+        t = pd.Series([0, None]).astype("Int64")
+        tm.assert_series_equal(s.replace(0, pd.NA), t.fillna(0).replace(0, pd.NA))
     def test_replace_commutative(self, ser, to_replace, exp):
         # GH 16051
         # DataFrame.replace() overwrites when values are non-numeric

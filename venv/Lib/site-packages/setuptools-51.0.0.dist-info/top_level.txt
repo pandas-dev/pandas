@@ -1,0 +1,4 @@
+_distutils_hack
+easy_install
+pkg_resources
+setuptools
