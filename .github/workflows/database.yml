@@ -54,9 +54,9 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Start MySQL
-      run:
-        sudo systemctl enable mysql.service
-        sudo systemctl start mysql.service
+    - uses: mirromutth/mysql-action@v1.1
+      with:
+        mysql root password: ""
 
     - name: Initialize Database
       run:
