@@ -12,6 +12,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common
 from pandas.core.util.numba_ import maybe_use_numba
@@ -252,7 +253,9 @@ class ExponentialMovingWindow(BaseWindow):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.times = np.asarray(times.astype(np.int64))
+            if isna(times).any():
+                raise ValueError("Cannot convert NaT values to integer")
+            self.times = np.asarray(times.view(np.int64))
             self.halflife = Timedelta(halflife).value
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
