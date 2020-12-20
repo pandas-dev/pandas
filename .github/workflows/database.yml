@@ -37,7 +37,7 @@ jobs:
           POSTGRES_DB: pandas_nosetest
 
         ports:
-        - 5432/tcp
+        - 5432/5432
 
         options: >-
           --health-cmd pg_isready
