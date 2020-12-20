@@ -53,7 +53,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Start MySQL
     - uses: mirromutth/mysql-action@v1.1
       with:
         mysql root password: ""
