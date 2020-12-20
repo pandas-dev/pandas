@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -609,13 +608,12 @@ def maybe_promote(dtype, fill_value=np.nan):
                 dtype = mst
 
     elif fill_value is None or fill_value is libmissing.NA:
+        # Note: we already excluded dt64/td64 dtypes above
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
         elif is_integer_dtype(dtype):
             dtype = np.float64
             fill_value = np.nan
-        elif is_datetime_or_timedelta_dtype(dtype):
-            fill_value = dtype.type("NaT", "ns")
         else:
             dtype = np.dtype(np.object_)
             if fill_value is not libmissing.NA:
@@ -951,7 +949,7 @@ def astype_td64_unit_conversion(
 
 
 def astype_nansafe(
-    arr, dtype: DtypeObj, copy: bool = True, skipna: bool = False
+    arr: np.ndarray, dtype: DtypeObj, copy: bool = True, skipna: bool = False
 ) -> ArrayLike:
     """
     Cast the elements of an array to a given dtype a nan-safe manner.
@@ -979,6 +977,9 @@ def astype_nansafe(
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(arr.shape, order=order)
 
+    # We get here with 0-dim from sparse
+    arr = np.atleast_1d(arr)
+
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
@@ -995,9 +996,7 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(
-            arr.ravel(), skipna=skipna, convert_na_value=False
-        ).reshape(arr.shape)
+        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
     elif is_datetime64_dtype(arr):
         if dtype == np.int64:
@@ -1031,7 +1030,7 @@ def astype_nansafe(
 
         # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
-            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+            return lib.astype_intsafe(arr, dtype)
 
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
