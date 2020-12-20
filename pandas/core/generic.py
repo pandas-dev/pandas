@@ -5187,7 +5187,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ignore_index: bool
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: 1.3.0
 
         Returns
         -------
