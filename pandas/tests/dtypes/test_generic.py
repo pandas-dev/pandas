@@ -1,4 +1,3 @@
-import itertools as it
 from warnings import catch_warnings
 
 import numpy as np
@@ -65,14 +64,10 @@ class TestABCClasses:
         ("ABCTimedeltaArray", timedelta_array),
     ]
 
-    @pytest.mark.parametrize(
-        "abctype1, abctype2, inst",
-        [
-            (abctype1, abctype2, inst)
-            for (abctype1, inst), (abctype2, _) in it.product(abc_pairs, repeat=2)
-        ],
-    )
-    def test_abc_pairs(self, abctype1, abctype2, inst):
+    @pytest.mark.parametrize("abctype1, inst", abc_pairs)
+    @pytest.mark.parametrize("abctype2, _", abc_pairs)
+    def test_abc_pairs(self, abctype1, abctype2, inst, _):
+        # GH 38588
         if abctype1 == abctype2:
             assert isinstance(inst, getattr(gt, abctype2))
         else:
@@ -93,16 +88,10 @@ class TestABCClasses:
         ],
     }
 
-    @pytest.mark.parametrize(
-        "parent, subs, abctype, inst",
-        [
-            (parent, subs, abctype, inst)
-            for (parent, subs), (abctype, inst) in it.product(
-                abc_subclasses.items(), abc_pairs
-            )
-        ],
-    )
+    @pytest.mark.parametrize("parent, subs", abc_subclasses.items())
+    @pytest.mark.parametrize("abctype, inst", abc_pairs)
     def test_abc_hierarchy(self, parent, subs, abctype, inst):
+        # GH 38588
         if abctype in subs:
             assert isinstance(inst, getattr(gt, parent))
         else:
@@ -110,6 +99,7 @@ class TestABCClasses:
 
     @pytest.mark.parametrize("abctype", [e for e in gt.__dict__ if e.startswith("ABC")])
     def test_abc_coverage(self, abctype):
+        # GH 38588
         assert (
             abctype in (e for e, _ in self.abc_pairs) or abctype in self.abc_subclasses
         )
