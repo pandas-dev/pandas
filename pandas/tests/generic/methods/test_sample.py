@@ -311,7 +311,6 @@ class TestSampleDataFrame:
         df = DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
-        seed = 2020
-        result = df.sample(3, ignore_index=True, random_state=2020)
+        result = df.sample(3, ignore_index=True)
         expected_index = Index([0, 1, 2])
         tm.assert_index_equal(result.index, expected_index)
