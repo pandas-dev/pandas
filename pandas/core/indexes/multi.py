@@ -700,6 +700,15 @@ class MultiIndex(Index):
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
 
+    @cache_readonly
+    def dtypes(self) -> "Series":
+        """
+        Return the dtypes as a Series for the underlying MultiIndex
+        """
+        from pandas import Series
+
+        return Series({level.name: level.dtype for level in self.levels})
+
     @property
     def shape(self) -> Shape:
         """
@@ -3445,13 +3454,17 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             self_codes = self.codes[i]
-            self_codes = self_codes[self_codes != -1]
+            other_codes = other.codes[i]
+            self_mask = self_codes == -1
+            other_mask = other_codes == -1
+            if not np.array_equal(self_mask, other_mask):
+                return False
+            self_codes = self_codes[~self_mask]
             self_values = algos.take_nd(
                 np.asarray(self.levels[i]._values), self_codes, allow_fill=False
             )
 
-            other_codes = other.codes[i]
-            other_codes = other_codes[other_codes != -1]
+            other_codes = other_codes[~other_mask]
             other_values = algos.take_nd(
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
             )
@@ -3557,17 +3570,18 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
-        if len(other) == 0 or self.equals(other):
-            return self.rename(result_names)
+        if not len(other) or self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if not len(self):
+            return other._get_reconciled_name_object(self)
 
         return self._union(other, sort=sort)
 
     def _union(self, other, sort):
         other, result_names = self._convert_can_do_setop(other)
-
-        # TODO: Index.union returns other when `len(self)` is 0.
 
         if not is_object_dtype(other.dtype):
             raise NotImplementedError(
@@ -3583,6 +3597,34 @@ class MultiIndex(Index):
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
+
+    def _get_reconciled_name_object(self, other):
+        """
+        If the result of a set operation will be self,
+        return self, unless the names change, in which
+        case make a shallow copy of self.
+        """
+        names = self._maybe_match_names(other)
+        if self.names != names:
+            return self.rename(names)
+        return self
+
+    def _maybe_match_names(self, other):
+        """
+        Try to find common names to attach to the result of an operation between
+        a and b.  Return a consensus list of names if they match at least partly
+        or list of None if they have completely different names.
+        """
+        if len(self.names) != len(other.names):
+            return [None] * len(self.names)
+        names = []
+        for a_name, b_name in zip(self.names, other.names):
+            if a_name == b_name:
+                names.append(a_name)
+            else:
+                # TODO: what if they both have np.nan for their names?
+                names.append(None)
+        return names
 
     def intersection(self, other, sort=False):
         """
@@ -3607,12 +3649,12 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
-                return self.unique().rename(result_names)
-            return self.rename(result_names)
+                return self.unique()._get_reconciled_name_object(other)
+            return self._get_reconciled_name_object(other)
 
         return self._intersection(other, sort=sort)
 
