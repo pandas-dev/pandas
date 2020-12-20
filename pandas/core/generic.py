@@ -5182,7 +5182,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
-        ignore_index
+        ignore_index: bool
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -5340,7 +5343,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        result = self.take(locs, axis=axis)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
+        return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
