@@ -41,6 +41,7 @@ Other enhancements
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
+- :meth:`DataFrame.sample` now accepts the ``ignore_index`` argument to reset the index after sampling, similar to :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.sort_values` (:issue:`38581`)
 
 .. ---------------------------------------------------------------------------
 
