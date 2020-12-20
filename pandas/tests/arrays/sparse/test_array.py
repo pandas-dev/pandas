@@ -859,24 +859,6 @@ class TestSparseArray:
         (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
-    @td.skip_if_no_scipy
-    def test_loc(self):
-        # GH34687
-        from scipy.sparse import eye
-
-        df = pd.DataFrame.sparse.from_spmatrix(eye(5))
-        res1 = df.loc[range(2)]
-        exp1 = pd.DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
-            dtype=SparseDtype("float64", 0.0),
-        )
-        tm.assert_frame_equal(res1, exp1)
-        res2 = df.loc[range(2)].loc[range(1)]
-        exp2 = pd.DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
-        )
-        tm.assert_frame_equal(res2, exp2)
-
 
 class TestSparseArrayAnalytics:
     @pytest.mark.parametrize(
