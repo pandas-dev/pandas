@@ -170,13 +170,13 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 -
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
--
+- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 -
 
 Timedelta
@@ -224,6 +224,7 @@ Indexing
 Missing
 ^^^^^^^
 
+- Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 -
 -
 
@@ -241,7 +242,8 @@ I/O
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
--
+- Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
+  for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 
 Period
 ^^^^^^
