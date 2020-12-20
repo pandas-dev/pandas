@@ -62,6 +62,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Level,
+    PythonFuncType,
     Renamer,
     StorageOptions,
     Suffixes,
@@ -7661,7 +7662,13 @@ NaN 12.3   33.0
         return result
 
     def apply(
-        self, func, axis: Axis = 0, raw: bool = False, result_type=None, args=(), **kwds
+        self,
+        func: AggFuncType,
+        axis: Axis = 0,
+        raw: bool = False,
+        result_type=None,
+        args=(),
+        **kwds,
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -7807,7 +7814,9 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func, na_action: Optional[str] = None) -> DataFrame:
+    def applymap(
+        self, func: PythonFuncType, na_action: Optional[str] = None
+    ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
 
