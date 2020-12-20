@@ -1088,21 +1088,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no_scipy
-    def test_loc_filling_DataFrame(self):
+    def testss_loc_filling_DataFrame(self):
         # GH34687
         from scipy.sparse import eye
 
         df = pd.DataFrame.sparse.from_spmatrix(eye(5))
         res1 = df.loc[range(2)]
-        exp1 = pd.DataFrame(
+        exp1 = DataFrame(
             [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
             dtype=SparseDtype("float64", 0.0),
         )
         tm.assert_frame_equal(res1, exp1)
         res2 = df.loc[range(2)].loc[range(1)]
-        exp2 = pd.DataFrame(
-            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0)
-        )
+        exp2 = DataFrame([[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=SparseDtype("float64", 0.0))
         tm.assert_frame_equal(res2, exp2)
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
