@@ -309,6 +309,7 @@ Other enhancements
 - Implement method ``cross`` for :meth:`DataFrame.merge` and :meth:`DataFrame.join` (:issue:`5401`)
 - When :func:`read_csv/sas/json` are called with ``chuncksize``/``iterator`` they can be used in a ``with`` statement as they return context-managers (:issue:`38225`)
 - Augmented the list of named colors available for styling Excel exports, enabling all of CSS4 colors (:issue:`38247`)
+- :meth:`DataFrame.sample` now accept the ``ignore_index`` argument to reset the index after samplng, similar to :meth:`DataFrame.drop_duplicates` and `DataFrame.sort_values` (:issue:`38581`)
 
 .. ---------------------------------------------------------------------------
 
