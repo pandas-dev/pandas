@@ -120,7 +120,7 @@ engine : str, default None
 
        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-       - Otherwise if ``path_or_buffer`` is an xls-style format,
+       - Otherwise if ``path_or_buffer`` is an xls format,
          ``xlrd`` will be used.
        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
          then ``openpyxl`` will be used.
@@ -899,7 +899,7 @@ def inspect_excel_format(
     storage_options: StorageOptions = None,
 ) -> str:
     """
-    Inspect the path or content of an excel file.
+    Inspect the path or content of an excel file and get its format.
 
     At least one of path or content must be not None. If both are not None,
     content will take precedence.
@@ -996,7 +996,7 @@ class ExcelFile:
 
            - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is an xls-style format,
+           - Otherwise if ``path_or_buffer`` is an xls format,
              ``xlrd`` will be used.
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
