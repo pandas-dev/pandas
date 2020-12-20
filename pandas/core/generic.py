@@ -5138,9 +5138,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         frac: Optional[float] = None,
         replace: bool = False,
         weights: Optional[str, np.ndarray] = None,
-        random_state: Optional[int, arraylike, np.random.BitGenerator, np.random.RandomState] = None,
+        random_state: Optional[
+            int, arraylike, np.random.BitGenerator, np.random.RandomState
+        ] = None,
         axis: Optional[int, str] = None,
-        ignore_index: Optional[bool] = False
+        ignore_index: Optional[bool] = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
