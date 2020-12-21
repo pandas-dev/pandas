@@ -6,10 +6,11 @@ import ast
 from functools import partial, reduce
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar
+from typing import Callable, Optional, Set, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
+from pandas._typing import IndexableEvalResult
 from pandas.compat import PY39
 
 import pandas.core.common as com
@@ -565,6 +566,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         result = pd.eval(
             slobj, local_dict=self.env, engine=self.engine, parser=self.parser
         )
+        result = cast(Union[int, slice], result)
         try:
             # a Term instance
             v = value.value[result]
@@ -573,6 +575,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             lhs = pd.eval(
                 value, local_dict=self.env, engine=self.engine, parser=self.parser
             )
+            lhs = cast(IndexableEvalResult, lhs)
             v = lhs[result]
         name = self.env.add_tmp(v)
         return self.term_type(name, env=self.env)
