@@ -145,8 +145,8 @@ def radviz(
 
     if ax is None:
         ax = plt.gca()
-        ax.set_xlim([-1, 1])
-        ax.set_ylim([-1, 1])
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
 
     to_plot: Dict[Label, List[List]] = {}
     colors = get_standard_colors(
@@ -263,7 +263,7 @@ def andrews_curves(
     colors = dict(zip(classes, color_values))
     if ax is None:
         ax = plt.gca()
-        ax.set_xlim((-np.pi, np.pi))
+        ax.set_xlim(-np.pi, np.pi)
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
@@ -444,8 +444,8 @@ def autocorrelation_plot(
     data = np.asarray(series)
     if ax is None:
         ax = plt.gca()
-        ax.set_xlim((1, n))
-        ax.set_ylim((-1.0, 1.0))
+        ax.set_xlim(1, n)
+        ax.set_ylim(-1.0, 1.0)
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / float(n)
 
