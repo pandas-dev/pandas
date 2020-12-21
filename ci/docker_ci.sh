@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 docker pull quay.io/pypa/$IMAGE
 docker run -v $(pwd):/pandas quay.io/pypa/$IMAGE \

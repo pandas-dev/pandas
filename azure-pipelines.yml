@@ -27,7 +27,7 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: py37_docker
+- job: Docker
   pool:
     vmImage: ubuntu-18.04
   strategy:
@@ -41,7 +41,7 @@ jobs:
         PATTERN: "not slow and not network and not clipboard and not arm_slow"
 
   steps:
-    - script: sudo ci/docker_ci.sh
+    - script: ci/docker_ci.sh
       displayName: 'Run Docker Build / Tests'
 
     - task: PublishTestResults@2
