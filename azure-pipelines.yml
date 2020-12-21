@@ -39,7 +39,7 @@ jobs:
       py37_aarch64:
         IMAGE: manylinux2014_aarch64
         PATTERN: "not slow and not network and not clipboard and not arm_slow"
-    
+  
   steps:
     - script: ci/docker_ci.sh
       displayName: 'Run Docker Build / Tests'
