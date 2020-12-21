@@ -337,7 +337,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
 
             if dtype is not None:
                 # we need to avoid having numpy coerce
@@ -350,29 +349,28 @@ class Index(IndexOpsMixin, PandasObject):
 
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
-                klass = cls._dtype_to_subclass(data.dtype)
-                arr = klass._ensure_array(data, dtype, copy)
-                return klass._simple_new(arr, name=name)
-
-            elif issubclass(data.dtype.type, bool) or is_bool_dtype(data):
-                subarr = data.astype("object")
+                arr = data
             else:
-                subarr = com.asarray_tuplesafe(data, dtype=object)
+                arr = com.asarray_tuplesafe(data, dtype=object)
 
-            if dtype is None:
-                new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)
-                return cls(new_data, dtype=new_dtype, copy=copy, name=name, **kwargs)
+                if dtype is None:
+                    new_data, new_dtype = _maybe_cast_data_without_dtype(arr)
+                    return cls(
+                        new_data, dtype=new_dtype, copy=copy, name=name, **kwargs
+                    )
 
-            subarr = cls._ensure_array(subarr, dtype, copy)
+            klass = cls._dtype_to_subclass(arr.dtype)
+            arr = klass._ensure_array(arr, dtype, copy)
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
-            return cls._simple_new(subarr, name)
+            return klass._simple_new(arr, name)
 
         elif is_scalar(data):
             raise cls._scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
+
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -441,6 +439,10 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas import Int64Index
 
             return Int64Index
+
+        if dtype == object:
+            # NB: assuming away MultiIndex
+            return Index
 
         raise NotImplementedError(dtype)
 
