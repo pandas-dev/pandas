@@ -3454,13 +3454,17 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             self_codes = self.codes[i]
-            self_codes = self_codes[self_codes != -1]
+            other_codes = other.codes[i]
+            self_mask = self_codes == -1
+            other_mask = other_codes == -1
+            if not np.array_equal(self_mask, other_mask):
+                return False
+            self_codes = self_codes[~self_mask]
             self_values = algos.take_nd(
                 np.asarray(self.levels[i]._values), self_codes, allow_fill=False
             )
 
-            other_codes = other.codes[i]
-            other_codes = other_codes[other_codes != -1]
+            other_codes = other_codes[~other_mask]
             other_values = algos.take_nd(
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
             )
@@ -3566,17 +3570,18 @@ class MultiIndex(Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, result_names = self._convert_can_do_setop(other)
+        other, _ = self._convert_can_do_setop(other)
 
-        if len(other) == 0 or self.equals(other):
-            return self.rename(result_names)
+        if not len(other) or self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if not len(self):
+            return other._get_reconciled_name_object(self)
 
         return self._union(other, sort=sort)
 
     def _union(self, other, sort):
         other, result_names = self._convert_can_do_setop(other)
-
-        # TODO: Index.union returns other when `len(self)` is 0.
 
         if not is_object_dtype(other.dtype):
             raise NotImplementedError(
@@ -3608,10 +3613,10 @@ class MultiIndex(Index):
         """
         Try to find common names to attach to the result of an operation between
         a and b.  Return a consensus list of names if they match at least partly
-        or None if they have completely different names.
+        or list of None if they have completely different names.
         """
         if len(self.names) != len(other.names):
-            return None
+            return [None] * len(self.names)
         names = []
         for a_name, b_name in zip(self.names, other.names):
             if a_name == b_name:
