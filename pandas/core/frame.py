@@ -54,6 +54,7 @@ from pandas._typing import (
     ColspaceArgType,
     CompressionOptions,
     Dtype,
+    EvalResult,
     FilePathOrBuffer,
     FloatFormatType,
     FormattersType,
@@ -3360,7 +3361,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def query(self, expr: str, inplace: bool = False, **kwargs):
+    def query(self, expr: str, inplace: bool = False, **kwargs) -> Optional[EvalResult]:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -3521,10 +3522,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         if inplace:
             self._update_inplace(result)
+            return None
         else:
             return result
 
-    def eval(self, expr: str, inplace: bool = False, **kwargs):
+    def eval(self, expr: str, inplace: bool = False, **kwargs) -> Optional[EvalResult]:
         """
         Evaluate a string describing operations on DataFrame columns.
 
