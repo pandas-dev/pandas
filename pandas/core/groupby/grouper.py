@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeries, Label, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -235,42 +234,7 @@ class Grouper:
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
 
-            # Deprecation warning of `base` and `loffset` since v1.1.0:
-            # we are raising the warning here to be able to set the `stacklevel`
-            # properly since we need to raise the `base` and `loffset` deprecation
-            # warning from three different cases:
-            #   core/generic.py::NDFrame.resample
-            #   core/groupby/groupby.py::GroupBy.resample
-            #   core/groupby/grouper.py::Grouper
-            # raising these warnings from TimeGrouper directly would fail the test:
-            #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-            # hacky way to set the stacklevel: if cls is TimeGrouper it means
-            # that the call comes from a pandas internal call of resample,
-            # otherwise it comes from pd.Grouper
-            stacklevel = 4 if cls is TimeGrouper else 2
-            if kwargs.get("base", None) is not None:
-                warnings.warn(
-                    "'base' in .resample() and in Grouper() is deprecated.\n"
-                    "The new arguments that you should use are 'offset' or 'origin'.\n"
-                    '\n>>> df.resample(freq="3s", base=2)\n'
-                    "\nbecomes:\n"
-                    '\n>>> df.resample(freq="3s", offset="2s")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
-            if kwargs.get("loffset", None) is not None:
-                warnings.warn(
-                    "'loffset' in .resample() and in Grouper() is deprecated.\n"
-                    '\n>>> df.resample(freq="3s", loffset="8H")\n'
-                    "\nbecomes:\n"
-                    "\n>>> from pandas.tseries.frequencies import to_offset"
-                    '\n>>> df = df.resample(freq="3s").mean()'
-                    '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
+            _check_deprecated_resample_kwargs(kwargs, origin=cls)
             cls = TimeGrouper
         return super().__new__(cls)
 
@@ -290,6 +254,7 @@ class Grouper:
         self._grouper = None
         self.dropna = dropna
 
+    @final
     @property
     def ax(self):
         return self.grouper
@@ -321,6 +286,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
+    @final
     def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
@@ -345,9 +311,7 @@ class Grouper:
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(
-                obj, ABCSeries
-            ):
+            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
                 # pandas\core\groupby\grouper.py:348: error: Item "None" of
                 # "Optional[Any]" has no attribute "take"  [union-attr]
                 ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
@@ -374,7 +338,10 @@ class Grouper:
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
             # use stable sort to support first, last, nth
-            indexer = self.indexer = ax.argsort(kind="mergesort")
+            # TODO: why does putting na_position="first" fix datetimelike cases?
+            indexer = self.indexer = ax.array.argsort(
+                kind="mergesort", na_position="first"
+            )
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
 
@@ -382,12 +349,14 @@ class Grouper:
         self.grouper = ax
         return self.grouper
 
+    @final
     @property
     def groups(self):
         # pandas\core\groupby\grouper.py:382: error: Item "None" of
         # "Optional[Any]" has no attribute "groups"  [union-attr]
         return self.grouper.groups  # type: ignore[union-attr]
 
+    @final
     def __repr__(self) -> str:
         attrs_list = (
             f"{attr_name}={repr(getattr(self, attr_name))}"
@@ -399,6 +368,7 @@ class Grouper:
         return f"{cls_name}({attrs})"
 
 
+@final
 class Grouping:
     """
     Holds the grouping information for a single key
@@ -865,3 +835,58 @@ def _convert_grouper(axis: Index, grouper):
         return grouper
     else:
         return grouper
+
+
+def _check_deprecated_resample_kwargs(kwargs, origin):
+    """
+    Check for use of deprecated parameters in ``resample`` and related functions.
+
+    Raises the appropriate warnings if these parameters are detected.
+    Only sets an approximate ``stacklevel`` for the warnings (see #37603, #36629).
+
+    Parameters
+    ----------
+    kwargs : dict
+        Dictionary of keyword arguments to check for deprecated parameters.
+    origin : object
+        From where this function is being called; either Grouper or TimeGrouper. Used
+        to determine an approximate stacklevel.
+    """
+    from pandas.core.resample import TimeGrouper
+
+    # Deprecation warning of `base` and `loffset` since v1.1.0:
+    # we are raising the warning here to be able to set the `stacklevel`
+    # properly since we need to raise the `base` and `loffset` deprecation
+    # warning from three different cases:
+    #   core/generic.py::NDFrame.resample
+    #   core/groupby/groupby.py::GroupBy.resample
+    #   core/groupby/grouper.py::Grouper
+    # raising these warnings from TimeGrouper directly would fail the test:
+    #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
+    # hacky way to set the stacklevel: if cls is TimeGrouper it means
+    # that the call comes from a pandas internal call of resample,
+    # otherwise it comes from pd.Grouper
+    stacklevel = (5 if origin is TimeGrouper else 2) + 1
+    # the + 1 is for this helper function, check_deprecated_resample_kwargs
+
+    if kwargs.get("base", None) is not None:
+        warnings.warn(
+            "'base' in .resample() and in Grouper() is deprecated.\n"
+            "The new arguments that you should use are 'offset' or 'origin'.\n"
+            '\n>>> df.resample(freq="3s", base=2)\n'
+            "\nbecomes:\n"
+            '\n>>> df.resample(freq="3s", offset="2s")\n',
+            FutureWarning,
+            stacklevel=stacklevel,
+        )
+    if kwargs.get("loffset", None) is not None:
+        warnings.warn(
+            "'loffset' in .resample() and in Grouper() is deprecated.\n"
+            '\n>>> df.resample(freq="3s", loffset="8H")\n'
+            "\nbecomes:\n"
+            "\n>>> from pandas.tseries.frequencies import to_offset"
+            '\n>>> df = df.resample(freq="3s").mean()'
+            '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+            FutureWarning,
+            stacklevel=stacklevel,
+        )

@@ -13,7 +13,7 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = dict(squeeze=True, index_col=0, header=None, parse_dates=True)
+        params = {"squeeze": True, "index_col": 0, "header": None, "parse_dates": True}
         params.update(**kwargs)
 
         header = params.get("header")

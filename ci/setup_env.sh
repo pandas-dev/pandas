@@ -108,6 +108,12 @@ fi
 echo "activate pandas-dev"
 source activate pandas-dev
 
+# Explicitly set an environment variable indicating that this is pandas' CI environment.
+#
+# This allows us to enable things like -Werror that shouldn't be activated in
+# downstream CI jobs that may also build pandas from source.
+export PANDAS_CI=1
+
 echo
 echo "remove any installed pandas package"
 echo "w/o removing anything else"

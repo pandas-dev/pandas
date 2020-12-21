@@ -20,7 +20,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
 )
@@ -101,7 +101,7 @@ class CSVFormatter:
         if index_label is not False:
             if index_label is None:
                 return self._get_index_label_from_obj()
-            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndex)):
                 # given a string for a DF with Index
                 return [index_label]
         return index_label
@@ -137,16 +137,16 @@ class CSVFormatter:
                 raise TypeError(msg)
 
         if cols is not None:
-            if isinstance(cols, ABCIndexClass):
+            if isinstance(cols, ABCIndex):
                 cols = cols._format_native_types(**self._number_format)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
+        # and make sure cols is just a list of labels
         new_cols = self.obj.columns
-        if isinstance(new_cols, ABCIndexClass):
+        if isinstance(new_cols, ABCIndex):
             return new_cols._format_native_types(**self._number_format)
         else:
             return list(new_cols)
@@ -159,13 +159,13 @@ class CSVFormatter:
     @property
     def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
-        return dict(
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            date_format=self.date_format,
-            quoting=self.quoting,
-            decimal=self.decimal,
-        )
+        return {
+            "na_rep": self.na_rep,
+            "float_format": self.float_format,
+            "date_format": self.date_format,
+            "quoting": self.quoting,
+            "decimal": self.decimal,
+        }
 
     @property
     def data_index(self) -> Index:
@@ -188,7 +188,7 @@ class CSVFormatter:
 
     @property
     def _has_aliases(self) -> bool:
-        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
+        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
 
     @property
     def _need_to_save_header(self) -> bool:
