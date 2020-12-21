@@ -3,10 +3,11 @@ Top level ``eval`` module.
 """
 
 import tokenize
-from typing import Optional
+from typing import Dict, Optional
 import warnings
 
 from pandas._libs.lib import no_default
+from pandas._typing import EvalResult
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
@@ -159,16 +160,16 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 def eval(
     expr,
-    parser="pandas",
+    parser: str = "pandas",
     engine: Optional[str] = None,
-    truediv=no_default,
-    local_dict=None,
-    global_dict=None,
+    truediv: Optional[bool] = no_default,
+    local_dict: Optional[Dict] = None,
+    global_dict: Optional[Dict] = None,
     resolvers=(),
-    level=0,
+    level: int = 0,
     target=None,
-    inplace=False,
-):
+    inplace: bool = False,
+) -> Optional[EvalResult]:
     """
     Evaluate a Python expression as a string using various backends.
 
@@ -398,3 +399,5 @@ def eval(
     # We want to exclude `inplace=None` as being False.
     if inplace is False:
         return target if target_modified else ret
+    else:
+        return None
