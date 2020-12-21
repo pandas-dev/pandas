@@ -354,7 +354,8 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = com.asarray_tuplesafe(data, dtype=object)
 
                 if dtype is None:
-                    new_data, new_dtype = _maybe_cast_data_without_dtype(arr)
+                    new_data = _maybe_cast_data_without_dtype(arr)
+                    new_dtype = new_data.dtype
                     return cls(
                         new_data, dtype=new_dtype, copy=copy, name=name, **kwargs
                     )
@@ -6100,20 +6101,21 @@ def _maybe_cast_data_without_dtype(subarr):
     if inferred == "integer":
         try:
             data = _try_convert_to_int_array(subarr, False, None)
-            return data, data.dtype
+            return data
         except ValueError:
             pass
 
-        return subarr, np.dtype(object)
+        return subarr
 
     elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
         # TODO: Returns IntegerArray for integer-na case in the future
-        return subarr, np.dtype(np.float64)
+        data = np.asarray(subarr).astype(np.float64)
+        return data
 
     elif inferred == "interval":
         try:
             data = IntervalArray._from_sequence(subarr, copy=False)
-            return data, data.dtype
+            return data
         except ValueError:
             # GH27172: mixed closed Intervals --> object dtype
             pass
@@ -6124,7 +6126,7 @@ def _maybe_cast_data_without_dtype(subarr):
         if inferred.startswith("datetime"):
             try:
                 data = DatetimeArray._from_sequence(subarr, copy=False)
-                return data, data.dtype
+                return data
             except (ValueError, OutOfBoundsDatetime):
                 # GH 27011
                 # If we have mixed timezones, just send it
@@ -6133,15 +6135,15 @@ def _maybe_cast_data_without_dtype(subarr):
 
         elif inferred.startswith("timedelta"):
             data = TimedeltaArray._from_sequence(subarr, copy=False)
-            return data, data.dtype
+            return data
         elif inferred == "period":
             try:
                 data = PeriodArray._from_sequence(subarr)
-                return data, data.dtype
+                return data
             except IncompatibleFrequency:
                 pass
 
-    return subarr, subarr.dtype
+    return subarr
 
 
 def _try_convert_to_int_array(
