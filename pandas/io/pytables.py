@@ -2734,16 +2734,18 @@ class GenericFixed(Fixed):
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
-    @staticmethod
-    def _alias_to_class(alias):
+    def _alias_to_class(self, alias):
         if isinstance(alias, type):  # pragma: no cover
             # compat: for a short period of time master stored types
             return alias
-        return GenericFixed._reverse_index_map.get(alias, Index)
+        return self._reverse_index_map.get(alias, Index)
 
-    @staticmethod
-    def _get_index_factory(klass):
-        if klass == DatetimeIndex:
+    def _get_index_factory(self, attrs):
+        index_class = self._alias_to_class(
+            _ensure_decoded(getattr(attrs, "index_class", ""))
+        )
+
+        if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
@@ -2753,23 +2755,16 @@ class GenericFixed(Fixed):
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
 
-            return f
-        elif klass == PeriodIndex:
+            factory = f
+        elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
                 parr = PeriodArray._simple_new(values, freq=freq)
                 return PeriodIndex._simple_new(parr, name=None)
 
-            return f
-
-        return klass
-
-    @staticmethod
-    def _get_index_factory2(attrs):
-        index_class = GenericFixed._alias_to_class(
-            _ensure_decoded(getattr(attrs, "index_class", ""))
-        )
-        factory = GenericFixed._get_index_factory(index_class)
+            factory = f
+        else:
+            factory = index_class
 
         kwargs = {}
         if "freq" in attrs:
@@ -2960,7 +2955,7 @@ class GenericFixed(Fixed):
             name = _ensure_decoded(name)
 
         attrs = node._v_attrs
-        factory, kwargs = self._get_index_factory2(attrs)
+        factory, kwargs = self._get_index_factory(attrs)
 
         if kind == "date":
             index = factory(
