@@ -707,7 +707,12 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
-        return Series({level.name: level.dtype for level in self.levels})
+        return Series(
+            {
+                f"level_{idx}" if level.name is None else level.name: level.dtype
+                for idx, level in enumerate(self.levels)
+            }
+        )
 
     @property
     def shape(self) -> Shape:
