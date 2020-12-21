@@ -2505,6 +2505,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
+        .. warning::
+
+           One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+           but the type of the subclass is lost upon storing.
+
         For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
@@ -5852,6 +5857,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
+            # TODO(EA2D): special case not needed with 2D EAs
             results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
@@ -8424,7 +8430,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         offset = to_offset(offset)
-        end_date = end = self.index[0] + offset
+        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+            # GH#29623 if first value is end of period, remove offset with n = 1
+            #  before adding the real offset
+            end_date = end = self.index[0] - offset.base + offset
+        else:
+            end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
         if isinstance(offset, Tick):
