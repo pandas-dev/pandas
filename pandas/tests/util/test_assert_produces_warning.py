@@ -163,6 +163,9 @@ def test_none_or_false_expected_warning_raises_on_warning():
     with pytest.raises(AssertionError, match=msg):
         with tm.assert_produces_warning(False):
             f()
+    # If not raising on extra errors, this shouldn't raise
+    with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
+        f()
 
 
 def test_none_or_false_expected_warning_no_raise_on_pass():
