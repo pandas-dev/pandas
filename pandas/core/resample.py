@@ -1948,6 +1948,8 @@ def _asfreq_compat(index, freq):
         new_index = index.asfreq(freq=freq)
     elif index.dtype.kind == "M":
         new_index = DatetimeIndex([], dtype=index.dtype, freq=freq, name=index.name)
-    else:
+    elif index.dtype.kind == "m":
         new_index = TimedeltaIndex([], dtype=index.dtype, freq=freq, name=index.name)
+    else:  # pragma: no cover
+        raise TypeError(index.dtype)
     return new_index
