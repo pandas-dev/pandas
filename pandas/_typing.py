@@ -95,6 +95,7 @@ Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
@@ -131,6 +132,8 @@ AggObjType = Union[
     "BaseWindow",
     "Resampler",
 ]
+
+PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
