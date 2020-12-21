@@ -85,6 +85,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -92,7 +93,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_unbox_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -595,6 +595,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # For data is a scalar extension dtype
             if is_extension_array_dtype(dtype):
+                # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
@@ -602,24 +603,9 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
-                if dtype.kind in ["m", "M"]:
-                    data = maybe_unbox_datetimelike(data, dtype)
-
-                # Attempt to coerce to a numpy array
-                try:
-                    arr = np.array(data, dtype=dtype, copy=copy)
-                except (ValueError, TypeError) as err:
-                    exc = TypeError(
-                        "DataFrame constructor called with "
-                        f"incompatible data and dtype: {err}"
-                    )
-                    raise exc from err
-
-                if arr.ndim != 0:
-                    raise ValueError("DataFrame constructor not properly called!")
-
-                shape = (len(index), len(columns))
-                values = np.full(shape, arr)
+                values = construct_2d_arraylike_from_scalar(
+                    data, len(index), len(columns), dtype, copy
+                )
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
