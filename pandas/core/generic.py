@@ -5136,13 +5136,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         n: Optional[int] = None,
         frac: Optional[float] = None,
-        replace: bool = False,
-        weights: Optional[str, np.ndarray] = None,
+        replace: bool_t = False,
+        weights: Union[str, np.ndarray] = None,
         random_state: Optional[
-            int, arraylike, np.random.BitGenerator, np.random.RandomState
+            Union[int, arraylike, np.random.BitGenerator, np.random.RandomState]
         ] = None,
-        axis: Optional[int, str] = None,
-        ignore_index: Optional[bool] = False,
+        axis: Union[int, str] = None,
+        ignore_index: Optional[bool_t] = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
@@ -5184,7 +5184,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
-        ignore_index: bool
+        ignore_index : bool
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.3.0
