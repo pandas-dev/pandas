@@ -3,7 +3,7 @@ import pytest
 
 from pandas.compat.numpy import np_version_under1p17
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 import pandas.core.common as com
 
