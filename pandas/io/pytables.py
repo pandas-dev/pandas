@@ -2045,15 +2045,19 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
+        factory = Index
+        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+            factory = DatetimeIndex
+
         # making an Index instance could throw a number of different errors
         try:
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
 
         new_pd_index = _set_tz(new_pd_index, self.tz)
         return new_pd_index, new_pd_index
@@ -2730,13 +2734,15 @@ class GenericFixed(Fixed):
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
-    def _alias_to_class(self, alias):
+    @staticmethod
+    def _alias_to_class(alias):
         if isinstance(alias, type):  # pragma: no cover
             # compat: for a short period of time master stored types
             return alias
-        return self._reverse_index_map.get(alias, Index)
+        return GenericFixed._reverse_index_map.get(alias, Index)
 
-    def _get_index_factory(self, klass):
+    @staticmethod
+    def _get_index_factory(klass):
         if klass == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
@@ -2757,6 +2763,31 @@ class GenericFixed(Fixed):
             return f
 
         return klass
+
+    @staticmethod
+    def _get_index_factory2(attrs):
+        index_class = GenericFixed._alias_to_class(
+            _ensure_decoded(getattr(attrs, "index_class", ""))
+        )
+        factory = GenericFixed._get_index_factory(index_class)
+
+        kwargs = {}
+        if "freq" in attrs:
+            kwargs["freq"] = attrs["freq"]
+            if index_class is Index:
+                # DTI/PI would be gotten by _alias_to_class
+                factory = TimedeltaIndex
+
+        if "tz" in attrs:
+            if isinstance(attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = attrs["tz"]
+            assert index_class is DatetimeIndex  # just checking
+
+        return factory, kwargs
 
     def validate_read(self, columns, where):
         """
@@ -2928,22 +2959,8 @@ class GenericFixed(Fixed):
             name = _ensure_str(node._v_attrs.name)
             name = _ensure_decoded(name)
 
-        index_class = self._alias_to_class(
-            _ensure_decoded(getattr(node._v_attrs, "index_class", ""))
-        )
-        factory = self._get_index_factory(index_class)
-
-        kwargs = {}
-        if "freq" in node._v_attrs:
-            kwargs["freq"] = node._v_attrs["freq"]
-
-        if "tz" in node._v_attrs:
-            if isinstance(node._v_attrs["tz"], bytes):
-                # created by python2
-                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
-            else:
-                # created by python3
-                kwargs["tz"] = node._v_attrs["tz"]
+        attrs = node._v_attrs
+        factory, kwargs = self._get_index_factory2(attrs)
 
         if kind == "date":
             index = factory(

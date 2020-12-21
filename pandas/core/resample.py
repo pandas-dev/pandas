@@ -1944,6 +1944,8 @@ def _asfreq_compat(index, freq):
     new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
+    elif index.dtype.kind == "M":
+        new_index = DatetimeIndex([], dtype=index.dtype, freq=freq, name=index.name)
     else:
-        new_index = Index([], dtype=index.dtype, freq=freq, name=index.name)
+        new_index = TimedeltaIndex([], dtype=index.dtype, freq=freq, name=index.name)
     return new_index
