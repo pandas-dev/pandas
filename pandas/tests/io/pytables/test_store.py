@@ -1381,7 +1381,7 @@ class TestHDFStore:
             # store additional fields in different blocks
             df["int16_2"] = Series([1] * len(df), dtype="int16")
             msg = re.escape(
-                "cannot match existing table structure for [int16] on " "appending data"
+                "cannot match existing table structure for [int16] on appending data"
             )
             with pytest.raises(ValueError, match=msg):
                 store.append("df", df)
@@ -1389,7 +1389,7 @@ class TestHDFStore:
             # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             msg = re.escape(
-                "cannot match existing table structure for [A,B] on " "appending data"
+                "cannot match existing table structure for [A,B] on appending data"
             )
             with pytest.raises(ValueError, match=msg):
                 store.append("df", df)
@@ -1515,7 +1515,7 @@ class TestHDFStore:
             df = DataFrame(["foo", "foo", "foo", "barh", "barh", "barh"], columns=["A"])
             _maybe_remove(store, "df")
             msg = re.escape(
-                "min_itemsize has the key [foo] which is not an axis or " "data_column"
+                "min_itemsize has the key [foo] which is not an axis or data_column"
             )
             with pytest.raises(ValueError, match=msg):
                 store.append("df", df, min_itemsize={"foo": 20, "foobar": 20})
@@ -1831,12 +1831,12 @@ class TestHDFStore:
             )
 
             msg = re.escape(
-                "cannot use a multi-index on axis [1] with data_columns " "['A']"
+                "cannot use a multi-index on axis [1] with data_columns ['A']"
             )
             with pytest.raises(ValueError, match=msg):
                 store.put("df2", df, format="table", data_columns=["A"])
             msg = re.escape(
-                "cannot use a multi-index on axis [1] with data_columns" " True"
+                "cannot use a multi-index on axis [1] with data_columns True"
             )
             with pytest.raises(ValueError, match=msg):
                 store.put("df3", df, format="table", data_columns=True)
@@ -2356,7 +2356,7 @@ class TestHDFStore:
 
                 # some invalid terms
                 msg = re.escape(
-                    "__init__() missing 1 required positional argument: " "'where'"
+                    "__init__() missing 1 required positional argument: 'where'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     Term()
