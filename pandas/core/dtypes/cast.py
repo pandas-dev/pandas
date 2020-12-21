@@ -1526,6 +1526,28 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     return np.find_common_type(types, [])
 
 
+def construct_2d_arraylike_from_scalar(
+    value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
+) -> np.ndarray:
+
+    if dtype.kind in ["m", "M"]:
+        value = maybe_unbox_datetimelike(value, dtype)
+
+    # Attempt to coerce to a numpy array
+    try:
+        arr = np.array(value, dtype=dtype, copy=copy)
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"DataFrame constructor called with incompatible data and dtype: {err}"
+        ) from err
+
+    if arr.ndim != 0:
+        raise ValueError("DataFrame constructor not properly called!")
+
+    shape = (length, width)
+    return np.full(shape, arr)
+
+
 def construct_1d_arraylike_from_scalar(
     value: Scalar, length: int, dtype: Optional[DtypeObj]
 ) -> ArrayLike:
