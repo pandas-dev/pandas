@@ -589,10 +589,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
             # GH#18951: datetime64_ns dtype but not equal means different tz
+            # FIXME: this doesn't match DatetimeBlock.astype, xref GH#33401
             new_tz = getattr(dtype, "tz", None)
-            if getattr(self.dtype, "tz", None) is None:
+            if self.tz is None:
                 return self.tz_localize(new_tz)
-            result = self.tz_convert(new_tz)
+            elif new_tz is None:
+                result = self.tz_convert("UTC").tz_localize(None)
+            else:
+                result = self.tz_convert(new_tz)
+
             if copy:
                 result = result.copy()
             if new_tz is None:

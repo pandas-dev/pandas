@@ -75,7 +75,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -676,24 +676,6 @@ class Block(PandasObject):
             values = values.astype(dtype, copy=copy)
 
         else:
-            if issubclass(dtype.type, str):
-                if values.dtype.kind in ["m", "M"]:
-                    # use native type formatting for datetime/tz/timedelta
-                    arr = pd_array(values)
-                    # Note: in the case where dtype is an np.dtype, i.e. not
-                    #  StringDtype, this matches arr.astype(dtype), xref GH#36153
-                    values = arr._format_native_types(na_rep="NaT")
-
-            elif is_object_dtype(dtype):
-                if values.dtype.kind in ["m", "M"]:
-                    # Wrap in Timedelta/Timestamp
-                    arr = pd_array(values)
-                    values = arr.astype(object)
-                else:
-                    values = values.astype(object)
-                # We still need to go through astype_nansafe for
-                #  e.g. dtype = Sparse[object, 0]
-
             values = astype_nansafe(values, dtype, copy=True)
 
         return values

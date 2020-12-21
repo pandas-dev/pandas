@@ -346,7 +346,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             if is_extension_array_dtype(dtype):
                 arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype)
+                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
             else:
                 return self._format_native_types()
         elif is_integer_dtype(dtype):

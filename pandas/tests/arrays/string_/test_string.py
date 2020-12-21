@@ -126,7 +126,12 @@ def test_string_methods(input, method, dtype, request):
 def test_astype_roundtrip(dtype, request):
     if dtype == "arrow_string":
         reason = "ValueError: Could not convert object to NumPy datetime"
-        mark = pytest.mark.xfail(reason=reason)
+        mark = pytest.mark.xfail(reason=reason, raises=ValueError)
+        request.node.add_marker(mark)
+    else:
+        mark = pytest.mark.xfail(
+            reason="GH#36153 casting from StringArray to dt64 fails", raises=ValueError
+        )
         request.node.add_marker(mark)
 
     ser = pd.Series(pd.date_range("2000", periods=12))

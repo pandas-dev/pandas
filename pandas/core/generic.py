@@ -5857,6 +5857,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
+            # TODO(EA2D): special case not needed with 2D EAs
             results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))

@@ -30,7 +30,6 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
-    ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
@@ -987,15 +986,21 @@ def astype_nansafe(
     elif not isinstance(dtype, np.dtype):
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
+    if arr.dtype.kind in ["m", "M"] and (
+        issubclass(dtype.type, str) or dtype == object
+    ):
+        from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+        arr = ensure_wrapped_if_datetimelike(arr)
+        return arr.astype(dtype, copy=copy)
+
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(
             arr.ravel(), skipna=skipna, convert_na_value=False
         ).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
-        if is_object_dtype(dtype):
-            return ints_to_pydatetime(arr.view(np.int64))
-        elif dtype == np.int64:
+        if dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -1007,9 +1012,7 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
-        if is_object_dtype(dtype):
-            return ints_to_pytimedelta(arr.view(np.int64))
-        elif dtype == np.int64:
+        if dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
