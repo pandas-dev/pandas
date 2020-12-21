@@ -154,23 +154,18 @@ def test_right_category_wrong_match_raises(pair_different_warnings):
             warnings.warn("Match this", other_category)
 
 
-def test_none_or_false_expected_warning_raises_on_warning():
-    msg = r"Caused unexpected warning\(s\)"
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(None):
+@pytest.mark.parametrize("false_or_none", [False, None])
+class TestFalseOrNoneExpectedWarning:
+    def test_raise_on_warning(self, false_or_none):
+        msg = r"Caused unexpected warning\(s\)"
+        with pytest.raises(AssertionError, match=msg):
+            with tm.assert_produces_warning(false_or_none):
+                f()
+
+    def test_no_raise_without_warning(self, false_or_none):
+        with tm.assert_produces_warning(false_or_none):
+            pass
+
+    def test_no_raise_with_false_raise_on_extra(self, false_or_none):
+        with tm.assert_produces_warning(false_or_none, raise_on_extra_warnings=False):
             f()
-
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(False):
-            f()
-    # If not raising on extra errors, this shouldn't raise
-    with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
-        f()
-
-
-def test_none_or_false_expected_warning_no_raise_on_pass():
-    with tm.assert_produces_warning(None):
-        pass
-
-    with tm.assert_produces_warning(False):
-        pass
