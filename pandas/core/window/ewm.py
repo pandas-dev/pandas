@@ -273,10 +273,6 @@ class ExponentialMovingWindow(BaseWindow):
             self.halflife = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
-
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -507,6 +503,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     """
     Provide an exponential moving window groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return ExponentialMovingWindow
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
