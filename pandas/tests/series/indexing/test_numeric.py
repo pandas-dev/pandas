@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
@@ -28,16 +27,6 @@ def test_slice_float64():
 
     result = df.loc[start:end]
     tm.assert_frame_equal(result, expected)
-
-
-def test_getitem_negative_out_of_bounds():
-    s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
-
-    msg = "index -11 is out of bounds for axis 0 with size 10"
-    with pytest.raises(IndexError, match=msg):
-        s[-11]
-    with pytest.raises(IndexError, match=msg):
-        s[-11] = "foo"
 
 
 def test_getitem_setitem_slice_bug():
@@ -69,20 +58,3 @@ def test_getitem_setitem_slice_integers():
     s[:4] = 0
     assert (s[:4] == 0).all()
     assert not (s[4:] == 0).any()
-
-
-def test_slice_float_get_set(datetime_series):
-    msg = (
-        "cannot do slice indexing on DatetimeIndex with these indexers "
-        r"\[{key}\] of type float"
-    )
-    with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        datetime_series[4.0:10.0]
-
-    with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
-        datetime_series[4.0:10.0] = 0
-
-    with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        datetime_series[4.5:10.0]
-    with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
-        datetime_series[4.5:10.0] = 0
