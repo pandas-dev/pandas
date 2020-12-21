@@ -1123,7 +1123,7 @@ class TestDataFrameReplace:
         tm.assert_series_equal(result, expected)
 
     def test_replace_dict_tuple_list_ordering_remains_the_same(self):
-        df = DataFrame(dict(A=[np.nan, 1]))
+        df = DataFrame({"A": [np.nan, 1]})
         res1 = df.replace(to_replace={np.nan: 0, 1: -1e8})
         res2 = df.replace(to_replace=(1, np.nan), value=[-1e8, 0])
         res3 = df.replace(to_replace=[1, np.nan], value=[-1e8, 0])

@@ -524,6 +524,15 @@ index are the group names and whose values are the sizes of each group.
 
    grouped.describe()
 
+Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts unique values.
+
+.. ipython:: python
+
+   ll = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
+   df4 = pd.DataFrame(ll, columns=["A", "B"])
+   df4
+   df4.groupby("A")["B"].nunique()
+
 .. note::
 
    Aggregation functions **will not** return the groups that you are aggregating over

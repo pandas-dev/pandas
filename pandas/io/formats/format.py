@@ -39,9 +39,12 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    ColspaceArgType,
+    ColspaceType,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
+    FormattersType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -80,14 +83,6 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
-
-FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
-]
-ColspaceType = Mapping[Label, Union[str, int]]
-ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
-]
 
 common_docstring = """
         Parameters
@@ -829,7 +824,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(l.is_floating for l in columns.levels)
+            restrict_formatting = any(level.is_floating for level in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -1537,7 +1532,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         values = extract_array(self.values, extract_numpy=True)
 
-        formatter = values._formatter(boxed=True)
+        formatter = self.formatter
+        if formatter is None:
+            formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1553,7 +1550,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             digits=self.digits,
             space=self.space,
             justify=self.justify,
+            decimal=self.decimal,
             leading_space=self.leading_space,
+            quoting=self.quoting,
         )
         return fmt_values
 
@@ -1740,7 +1739,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.astype(np.int64)
+    values_int = values.view(np.int64)
 
     consider_values = values_int != iNaT
 

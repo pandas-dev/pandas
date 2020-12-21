@@ -5,6 +5,7 @@ SQL-style merge routines
 import copy
 import datetime
 from functools import partial
+import hashlib
 import string
 from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
@@ -12,7 +13,13 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import (
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+    Suffixes,
+)
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -56,19 +63,19 @@ if TYPE_CHECKING:
 @Substitution("\nleft : DataFrame")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left,
-    right,
+    left: FrameOrSeriesUnion,
+    right: FrameOrSeriesUnion,
     how: str = "inner",
-    on=None,
-    left_on=None,
-    right_on=None,
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
     indicator: bool = False,
-    validate=None,
+    validate: Optional[str] = None,
 ) -> "DataFrame":
     op = _MergeOperation(
         left,
@@ -113,11 +120,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
     # if we can groupby the rhs
     # then we can get vastly better perf
-
-    try:
+    if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
-    except KeyError:
-        pass
 
     for key, lhs in lby:
 
@@ -139,9 +143,7 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
         # make sure join keys are in the merged
         # TODO, should merge_pieces do this?
-        for k in by:
-            if k in merged:
-                merged[k] = key
+        merged[by] = key
 
         pieces.append(merged)
 
@@ -155,15 +157,15 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
 
 def merge_ordered(
-    left,
-    right,
-    on=None,
-    left_on=None,
-    right_on=None,
+    left: "DataFrame",
+    right: "DataFrame",
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_by=None,
     right_by=None,
-    fill_method=None,
-    suffixes=("_x", "_y"),
+    fill_method: Optional[str] = None,
+    suffixes: Suffixes = ("_x", "_y"),
     how: str = "outer",
 ) -> "DataFrame":
     """
@@ -275,10 +277,20 @@ def merge_ordered(
     if left_by is not None and right_by is not None:
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
+        if isinstance(left_by, str):
+            left_by = [left_by]
+        check = set(left_by).difference(left.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in left columns")
         result, _ = _groupby_and_merge(
             left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
+        if isinstance(right_by, str):
+            right_by = [right_by]
+        check = set(right_by).difference(right.columns)
+        if len(check) != 0:
+            raise KeyError(f"{check} not found in right columns")
         result, _ = _groupby_and_merge(
             right_by, on, right, left, lambda x, y: _merger(y, x)
         )
@@ -288,17 +300,17 @@ def merge_ordered(
 
 
 def merge_asof(
-    left,
-    right,
-    on=None,
-    left_on=None,
-    right_on=None,
+    left: "DataFrame",
+    right: "DataFrame",
+    on: Optional[IndexLabel] = None,
+    left_on: Optional[IndexLabel] = None,
+    right_on: Optional[IndexLabel] = None,
     left_index: bool = False,
     right_index: bool = False,
     by=None,
     left_by=None,
     right_by=None,
-    suffixes=("_x", "_y"),
+    suffixes: Suffixes = ("_x", "_y"),
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
@@ -577,17 +589,17 @@ class _MergeOperation:
         left: FrameOrSeriesUnion,
         right: FrameOrSeriesUnion,
         how: str = "inner",
-        on=None,
-        left_on=None,
-        right_on=None,
-        axis=1,
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
+        axis: int = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
-        suffixes=("_x", "_y"),
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
         indicator: bool = False,
-        validate=None,
+        validate: Optional[str] = None,
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
@@ -643,6 +655,17 @@ class _MergeOperation:
 
         self._validate_specification()
 
+        cross_col = None
+        if self.how == "cross":
+            (
+                self.left,
+                self.right,
+                self.how,
+                cross_col,
+            ) = self._create_cross_configuration(self.left, self.right)
+            self.left_on = self.right_on = [cross_col]
+        self._cross = cross_col
+
         # note this function has side effects
         (
             self.left_join_keys,
@@ -690,7 +713,13 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
+        self._maybe_drop_cross_column(result, self._cross)
+
         return result.__finalize__(self, method="merge")
+
+    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: Optional[str]):
+        if cross_col is not None:
+            result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
         self, left: "DataFrame", right: "DataFrame"
@@ -1200,9 +1229,50 @@ class _MergeOperation:
                 typ = rk.categories.dtype if rk_is_cat else object
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
+    def _create_cross_configuration(
+        self, left: "DataFrame", right: "DataFrame"
+    ) -> Tuple["DataFrame", "DataFrame", str, str]:
+        """
+        Creates the configuration to dispatch the cross operation to inner join,
+        e.g. adding a join column and resetting parameters. Join column is added
+        to a new object, no inplace modification
+
+        Parameters
+        ----------
+        left: DataFrame
+        right DataFrame
+
+        Returns
+        -------
+            a tuple (left, right, how, cross_col) representing the adjusted
+            DataFrames with cross_col, the merge operation set to inner and the column
+            to join over.
+        """
+        cross_col = f"_cross_{hashlib.md5().hexdigest()}"
+        how = "inner"
+        return (
+            left.assign(**{cross_col: 1}),
+            right.assign(**{cross_col: 1}),
+            how,
+            cross_col,
+        )
+
     def _validate_specification(self):
+        if self.how == "cross":
+            if (
+                self.left_index
+                or self.right_index
+                or self.right_on is not None
+                or self.left_on is not None
+                or self.on is not None
+            ):
+                raise MergeError(
+                    "Can not pass on, right_on, left_on or set right_index=True or "
+                    "left_index=True"
+                )
+            return
         # Hm, any way to make this logic less complicated??
-        if self.on is None and self.left_on is None and self.right_on is None:
+        elif self.on is None and self.left_on is None and self.right_on is None:
 
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
@@ -1212,7 +1282,9 @@ class _MergeOperation:
                 raise MergeError("Must pass left_on or left_index=True")
             else:
                 # use the common columns
-                common_cols = self.left.columns.intersection(self.right.columns)
+                left_cols = self.left.columns
+                right_cols = self.right.columns
+                common_cols = left_cols.intersection(right_cols)
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
@@ -1221,7 +1293,10 @@ class _MergeOperation:
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
                     )
-                if not common_cols.is_unique:
+                if (
+                    not left_cols.join(common_cols, how="inner").is_unique
+                    or not right_cols.join(common_cols, how="inner").is_unique
+                ):
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
@@ -1266,7 +1341,7 @@ class _MergeOperation:
                         'of levels in the index of "left"'
                     )
                 self.left_on = [None] * n
-        if len(self.right_on) != len(self.left_on):
+        if self.how != "cross" and len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
     def _validate(self, validate: str):
@@ -1358,12 +1433,14 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
-    if how == "left":
+    if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,
         "left": libjoin.left_outer_join,
-        "right": _right_outer_join,
+        "right": lambda x, y, count, **kwargs: libjoin.left_outer_join(
+            y, x, count, **kwargs
+        )[::-1],
         "outer": libjoin.full_outer_join,
     }[how]
 
@@ -1469,17 +1546,17 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left,
-        right,
-        on=None,
-        left_on=None,
-        right_on=None,
+        left: "DataFrame",
+        right: "DataFrame",
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis=1,
-        suffixes=("_x", "_y"),
+        axis: int = 1,
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "outer",
     ):
 
@@ -1563,20 +1640,20 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left,
-        right,
-        on=None,
-        left_on=None,
-        right_on=None,
+        left: "DataFrame",
+        right: "DataFrame",
+        on: Optional[IndexLabel] = None,
+        left_on: Optional[IndexLabel] = None,
+        right_on: Optional[IndexLabel] = None,
         left_index: bool = False,
         right_index: bool = False,
         by=None,
         left_by=None,
         right_by=None,
-        axis=1,
-        suffixes=("_x", "_y"),
+        axis: int = 1,
+        suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        fill_method=None,
+        fill_method: Optional[str] = None,
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
@@ -1883,11 +1960,6 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
     return left_ax, None, right_indexer
 
 
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
-    return left_indexer, right_indexer
-
-
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
 ) -> Tuple[np.ndarray, np.ndarray, int]:
@@ -2084,7 +2156,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Suffixes):
     """
     Suffixes type validation.
 

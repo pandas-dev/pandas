@@ -447,10 +447,10 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "axis"),
-            (-1, dict(), ValueError, "negative"),
-            ([1, 2], dict(), ValueError, "shape"),
-            (2, dict(foo="bar"), TypeError, "'foo'"),
+            (2, {"axis": 1}, ValueError, "axis"),
+            (-1, {}, ValueError, "negative"),
+            ([1, 2], {}, ValueError, "shape"),
+            (2, {"foo": "bar"}, TypeError, "'foo'"),
         ],
     )
     def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):

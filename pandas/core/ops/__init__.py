@@ -309,9 +309,12 @@ def should_reindex_frame_op(
 
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
-        cols = left.columns.intersection(right.columns)
 
-        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+        # Intersection is always unique so we have to check the unique columns
+        left_uniques = left.columns.unique()
+        right_uniques = right.columns.unique()
+        cols = left_uniques.intersection(right_uniques)
+        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
