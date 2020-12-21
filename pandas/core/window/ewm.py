@@ -273,10 +273,6 @@ class ExponentialMovingWindow(BaseWindow):
             self.halflife = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
-
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -335,14 +331,14 @@ class ExponentialMovingWindow(BaseWindow):
         """
         nv.validate_window_func("mean", args, kwargs)
         if self.times is not None:
-            window_func = self._get_roll_func("ewma_time")
+            window_func = window_aggregations.ewma_time
             window_func = partial(
                 window_func,
                 times=self.times,
                 halflife=self.halflife,
             )
         else:
-            window_func = self._get_roll_func("ewma")
+            window_func = window_aggregations.ewma
             window_func = partial(
                 window_func,
                 com=self.com,
@@ -371,7 +367,7 @@ class ExponentialMovingWindow(BaseWindow):
         Exponential weighted moving variance.
         """
         nv.validate_window_func("var", args, kwargs)
-        window_func = self._get_roll_func("ewmcov")
+        window_func = window_aggregations.ewmcov
         window_func = partial(
             window_func,
             com=self.com,
@@ -507,6 +503,10 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     """
     Provide an exponential moving window groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return ExponentialMovingWindow
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
