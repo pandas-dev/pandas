@@ -66,6 +66,12 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
@@ -332,11 +338,6 @@ class Index(IndexOpsMixin, PandasObject):
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas.core.indexes.numeric import (
-                Float64Index,
-                Int64Index,
-                UInt64Index,
-            )
 
             if dtype is not None:
                 # we need to avoid having numpy coerce
@@ -347,38 +348,27 @@ class Index(IndexOpsMixin, PandasObject):
                 data = _maybe_cast_with_dtype(data, dtype, copy)
                 dtype = data.dtype  # TODO: maybe not for object?
 
-            # maybe coerce to a sub-class
-            if is_signed_integer_dtype(data.dtype):
-                return Int64Index(data, copy=copy, dtype=dtype, name=name)
-            elif is_unsigned_integer_dtype(data.dtype):
-                return UInt64Index(data, copy=copy, dtype=dtype, name=name)
-            elif is_float_dtype(data.dtype):
-                return Float64Index(data, copy=copy, dtype=dtype, name=name)
+            if data.dtype.kind in ["i", "u", "f"]:
+                # maybe coerce to a sub-class
+                klass = cls._dtype_to_subclass(data.dtype)
+                arr = klass._ensure_array(data, dtype, copy)
+                return klass._simple_new(arr, name=name)
+
             elif issubclass(data.dtype.type, bool) or is_bool_dtype(data):
                 subarr = data.astype("object")
             else:
                 subarr = com.asarray_tuplesafe(data, dtype=object)
 
-            # asarray_tuplesafe does not always copy underlying data,
-            # so need to make sure that this happens
-            if copy:
-                subarr = subarr.copy()
-
             if dtype is None:
                 new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)
-                if new_dtype is not None:
-                    return cls(
-                        new_data, dtype=new_dtype, copy=False, name=name, **kwargs
-                    )
+                return cls(new_data, dtype=new_dtype, copy=copy, name=name, **kwargs)
 
+            subarr = cls._ensure_array(subarr, dtype, copy)
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
-            if subarr.ndim > 1:
-                # GH#13601, GH#20285, GH#27125
-                raise ValueError("Index data must be 1-dimensional")
             return cls._simple_new(subarr, name)
 
-        elif data is None or is_scalar(data):
+        elif is_scalar(data):
             raise cls._scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
@@ -399,6 +389,60 @@ class Index(IndexOpsMixin, PandasObject):
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        if data.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+        if copy:
+            # asarray_tuplesafe does not always copy underlying data,
+            #  so need to make sure that this happens
+            data = data.copy()
+        return data
+
+    @classmethod
+    def _dtype_to_subclass(cls, dtype: DtypeObj):
+        # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+
+        if isinstance(dtype, DatetimeTZDtype) or dtype == np.dtype("M8[ns]"):
+            from pandas import DatetimeIndex
+
+            return DatetimeIndex
+        if dtype == "m8[ns]":
+            from pandas import TimedeltaIndex
+
+            return TimedeltaIndex
+        if isinstance(dtype, CategoricalDtype):
+            from pandas import CategoricalIndex
+
+            return CategoricalIndex
+        if isinstance(dtype, IntervalDtype):
+            from pandas import IntervalIndex
+
+            return IntervalIndex
+        if isinstance(dtype, PeriodDtype):
+            from pandas import PeriodIndex
+
+            return PeriodIndex
+
+        if is_float_dtype(dtype):
+            from pandas import Float64Index
+
+            return Float64Index
+        if is_unsigned_integer_dtype(dtype):
+            from pandas import UInt64Index
+
+            return UInt64Index
+        if is_signed_integer_dtype(dtype):
+            from pandas import Int64Index
+
+            return Int64Index
+
+        raise NotImplementedError(dtype)
 
     """
     NOTE for new Index creation:
@@ -6048,6 +6092,7 @@ def _maybe_cast_data_without_dtype(subarr):
         TimedeltaArray,
     )
 
+    assert subarr.dtype == object, subarr.dtype
     inferred = lib.infer_dtype(subarr, skipna=False)
 
     if inferred == "integer":
@@ -6057,11 +6102,11 @@ def _maybe_cast_data_without_dtype(subarr):
         except ValueError:
             pass
 
-        return subarr, object
+        return subarr, np.dtype(object)
 
     elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
         # TODO: Returns IntegerArray for integer-na case in the future
-        return subarr, np.float64
+        return subarr, np.dtype(np.float64)
 
     elif inferred == "interval":
         try:
