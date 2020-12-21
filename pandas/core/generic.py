@@ -36,6 +36,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    ArrayLike,
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
@@ -5137,11 +5138,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         n: Optional[int] = None,
         frac: Optional[float] = None,
         replace: bool_t = False,
-        weights: Union[str, np.ndarray] = None,
+        weights: Optional[Union[str, ArrayLike]] = None,
         random_state: Optional[
             Union[int, arraylike, np.random.BitGenerator, np.random.RandomState]
         ] = None,
-        axis: Union[int, str] = None,
+        axis: Optional[Axis] = None,
         ignore_index: Optional[bool_t] = False,
     ) -> FrameOrSeries:
         """
