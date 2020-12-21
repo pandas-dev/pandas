@@ -35,8 +35,8 @@ from pandas._config import config
 from pandas._libs import lib
 from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
-    Axis,
     ArrayLike,
+    Axis,
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
