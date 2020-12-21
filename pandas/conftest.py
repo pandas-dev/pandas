@@ -266,7 +266,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -318,6 +318,16 @@ def index_or_series(request):
 
 # Generate cartesian product of index_or_series fixture:
 index_or_series2 = index_or_series
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
+)
+def index_or_series_or_array(request):
+    """
+    Fixture to parametrize over Index, Series, and ExtensionArray
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -1422,3 +1432,17 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param

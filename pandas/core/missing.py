@@ -1,13 +1,13 @@
 """
 Routines for filling missing data.
 """
-
-from typing import Any, List, Optional, Set, Union
+from functools import partial
+from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
 
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, Axis, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -18,6 +18,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
@@ -155,7 +158,7 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues: np.ndarray,
+    xvalues: "Index",
     yvalues: np.ndarray,
     method: Optional[str] = "linear",
     limit: Optional[int] = None,
@@ -177,9 +180,7 @@ def interpolate_1d(
     valid = ~invalid
 
     if not valid.any():
-        # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which can't be mutated
-        result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
+        result = np.empty(xvalues.shape, dtype=np.float64)
         result.fill(np.nan)
         return result
 
@@ -187,8 +188,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "_is_all_dates", None):
-            # if not issubclass(xvalues.dtype.type, np.datetime64):
+        if not needs_i8_conversion(xvalues.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -252,20 +252,18 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    # xvalues to pass to NumPy/SciPy
+    # xarr to pass to NumPy/SciPy
+    xarr = xvalues._values
+    if needs_i8_conversion(xarr.dtype):
+        # GH#1646 for dt64tz
+        xarr = xarr.view("i8")
 
-    xvalues = getattr(xvalues, "values", xvalues)
     if method == "linear":
-        inds = xvalues
+        inds = xarr
     else:
-        inds = np.asarray(xvalues)
-
-        # hack for DatetimeIndex, #1646
-        if needs_i8_conversion(inds.dtype):
-            inds = inds.view(np.int64)
+        inds = np.asarray(xarr)
 
         if method in ("values", "index"):
             if inds.dtype == np.object_:
@@ -528,16 +526,92 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
     return P(x)
 
 
+def _interpolate_with_limit_area(
+    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+) -> ArrayLike:
+    """
+    Apply interpolation and limit_area logic to values along a to-be-specified axis.
+
+    Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str
+        Interpolation method. Could be "bfill" or "pad"
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
+    """
+
+    invalid = isna(values)
+
+    if not invalid.all():
+        first = find_valid_index(values, "first")
+        last = find_valid_index(values, "last")
+
+        values = interpolate_2d(
+            values,
+            method=method,
+            limit=limit,
+        )
+
+        if limit_area == "inside":
+            invalid[first : last + 1] = False
+        elif limit_area == "outside":
+            invalid[:first] = invalid[last + 1 :] = False
+
+        values[invalid] = np.nan
+
+    return values
+
+
 def interpolate_2d(
     values,
-    method="pad",
-    axis=0,
-    limit=None,
+    method: str = "pad",
+    axis: Axis = 0,
+    limit: Optional[int] = None,
+    limit_area: Optional[str] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
+
+       Parameters
+    ----------
+    values: array-like
+        Input array.
+    method: str, default "pad"
+        Interpolation method. Could be "bfill" or "pad"
+    axis: 0 or 1
+        Interpolation axis
+    limit: int, optional
+        Index limit on interpolation.
+    limit_area: str, optional
+        Limit area for interpolation. Can be "inside" or "outside"
+
+    Returns
+    -------
+    values: array-like
+        Interpolated array.
     """
+    if limit_area is not None:
+        return np.apply_along_axis(
+            partial(
+                _interpolate_with_limit_area,
+                method=method,
+                limit=limit,
+                limit_area=limit_area,
+            ),
+            axis,
+            values,
+        )
+
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)

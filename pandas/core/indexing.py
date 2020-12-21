@@ -259,10 +259,11 @@ class IndexingMixin:
           e.g. ``[True, False, True]``.
         - An alignable boolean Series. The index of the key will be aligned before
           masking.
+        - An alignable Index. The Index of the returned selection will be the input.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
-        See more at :ref:`Selection by Label <indexing.label>`
+        See more at :ref:`Selection by Label <indexing.label>`.
 
         Raises
         ------
@@ -331,6 +332,14 @@ class IndexingMixin:
         ...        index=['viper', 'sidewinder', 'cobra'])]
                     max_speed  shield
         sidewinder          7       8
+
+        Index (same behavior as ``df.reindex``)
+
+        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
+               max_speed  shield
+        foo
+        cobra          1       2
+        viper          4       5
 
         Conditional that returns a boolean Series
 
@@ -663,17 +672,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for i, k in enumerate(key):
-                if k not in self.obj:
-                    if value is None:
-                        self.obj[k] = np.nan
-                    elif is_array_like(value) and value.ndim == 2:
-                        # GH#37964 have to select columnwise in case of array
-                        self.obj[k] = value[:, i]
-                    elif is_list_like(value):
-                        self.obj[k] = value[i]
-                    else:
-                        self.obj[k] = value
+            # GH#38148
+            keys = self.obj.columns.union(key, sort=False)
+
+            self.obj._mgr = self.obj._mgr.reindex_axis(
+                keys, axis=0, copy=False, consolidate=False, only_slice=True
+            )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1645,8 +1649,10 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
             raise ValueError(r"Cannot set values with ndim > 2")
 
-        if isinstance(value, ABCSeries) and name != "iloc":
-            value = self._align_series(indexer, value)
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            from pandas import Series
+
+            value = self._align_series(indexer, Series(value))
 
         # Ensure we have something we can iterate over
         info_axis = indexer[1]

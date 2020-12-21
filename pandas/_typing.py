@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from mmap import mmap
-from pathlib import Path
+from os import PathLike
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -95,6 +95,7 @@ Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
@@ -132,10 +133,12 @@ AggObjType = Union[
     "Resampler",
 ]
 
+PythonFuncType = Callable[[Any], Any]
+
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
 FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union[Path, FileOrBuffer[T]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -146,5 +149,12 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-# type of float formatter in DataFrameFormatter
+# types in DataFrameFormatter
+FormattersType = Union[
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+]
+ColspaceType = Mapping[Label, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
+]
