@@ -5,7 +5,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_dtype_equal,
+    is_timedelta64_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -123,19 +127,31 @@ def test_string_methods(input, method, dtype, request):
     tm.assert_series_equal(result.astype(object), expected)
 
 
-def test_astype_roundtrip(dtype, request):
+@pytest.mark.parametrize(
+    "input",
+    [
+        pd.date_range("2000", periods=12),
+        pd.timedelta_range("1 D", periods=3),
+    ],
+)
+def test_astype_roundtrip(input, dtype, request):
+    # GH 38509 (timedelta)
     if dtype == "arrow_string":
-        reason = "ValueError: Could not convert object to NumPy datetime"
+        if is_datetime64_dtype(input):
+            typename = "datetime"
+        elif is_timedelta64_dtype(input):
+            typename = "timedelta"
+        reason = f"ValueError: Could not convert object to NumPy {typename}"
         mark = pytest.mark.xfail(reason=reason)
         request.node.add_marker(mark)
 
-    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser = pd.Series(input)
     ser[0] = None
 
     casted = ser.astype(dtype)
     assert is_dtype_equal(casted.dtype, dtype)
 
-    result = casted.astype("datetime64[ns]")
+    result = casted.astype(ser.dtype)
     tm.assert_series_equal(result, ser)
 
 

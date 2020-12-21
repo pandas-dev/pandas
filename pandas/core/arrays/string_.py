@@ -21,6 +21,7 @@ from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import FloatingArray, IntegerArray, PandasArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
+from pandas.core.arrays.timedeltas import sequence_to_td64ns
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -307,6 +308,13 @@ class StringArray(PandasArray):
             arr[mask] = 0
             values = arr.astype(dtype)
             values[mask] = np.nan
+            return values
+        elif np.issubdtype(dtype, np.timedelta64):
+            # GH 38509: handle conversion to timedelta64
+            arr = self.copy()
+            mask = self.isna()
+            arr[mask] = "NaT"
+            values, _ = sequence_to_td64ns(arr)
             return values
 
         return super().astype(dtype, copy)
