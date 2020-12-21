@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas import DataFrame, Index, MultiIndex, Series, concat, merge, Categorical
 import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
@@ -814,4 +814,33 @@ def test_join_cross(input_col, output_cols):
     right = DataFrame({input_col: [3, 4]})
     result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
     expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_multiindex_not_alphabetical_categorical():
+    # GH#38502
+    left = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(["Y", "X"], categories=["Y", "X"]),
+            "value": [1, 2],
+        }
+    ).set_index(["first", "second"])
+    right = DataFrame(
+        {
+            "first": ["A", "A", "B"],
+            "second": Categorical(["Y", "X", "X"], categories=["Y", "X"]),
+            "value": [3, 4, 5],
+        }
+    ).set_index(["first", "second"])
+    result = left.join(right, lsuffix="_left", rsuffix="_right")
+
+    expected = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(["Y", "X"], categories=["Y", "X"]),
+            "value_left": [1, 2],
+            "value_right": [3, 4],
+        }
+    ).set_index(["first", "second"])
     tm.assert_frame_equal(result, expected)
