@@ -12,42 +12,47 @@ from pandas.core.arrays.sparse import BlockIndex, IntIndex, make_sparse_index
 
 TEST_LENGTH = 20
 
-plain_case = dict(
-    xloc=[0, 7, 15],
-    xlen=[3, 5, 5],
-    yloc=[2, 9, 14],
-    ylen=[2, 3, 5],
-    intersect_loc=[2, 9, 15],
-    intersect_len=[1, 3, 4],
-)
-delete_blocks = dict(
-    xloc=[0, 5], xlen=[4, 4], yloc=[1], ylen=[4], intersect_loc=[1], intersect_len=[3]
-)
-split_blocks = dict(
-    xloc=[0],
-    xlen=[10],
-    yloc=[0, 5],
-    ylen=[3, 7],
-    intersect_loc=[0, 5],
-    intersect_len=[3, 5],
-)
-skip_block = dict(
-    xloc=[10],
-    xlen=[5],
-    yloc=[0, 12],
-    ylen=[5, 3],
-    intersect_loc=[12],
-    intersect_len=[3],
-)
+plain_case = {
+    "xloc": [0, 7, 15],
+    "xlen": [3, 5, 5],
+    "yloc": [2, 9, 14],
+    "ylen": [2, 3, 5],
+    "intersect_loc": [2, 9, 15],
+    "intersect_len": [1, 3, 4],
+}
+delete_blocks = {
+    "xloc": [0, 5],
+    "xlen": [4, 4],
+    "yloc": [1],
+    "ylen": [4],
+    "intersect_loc": [1],
+    "intersect_len": [3],
+}
+split_blocks = {
+    "xloc": [0],
+    "xlen": [10],
+    "yloc": [0, 5],
+    "ylen": [3, 7],
+    "intersect_loc": [0, 5],
+    "intersect_len": [3, 5],
+}
+skip_block = {
+    "xloc": [10],
+    "xlen": [5],
+    "yloc": [0, 12],
+    "ylen": [5, 3],
+    "intersect_loc": [12],
+    "intersect_len": [3],
+}
 
-no_intersect = dict(
-    xloc=[0, 10],
-    xlen=[4, 6],
-    yloc=[5, 17],
-    ylen=[4, 2],
-    intersect_loc=[],
-    intersect_len=[],
-)
+no_intersect = {
+    "xloc": [0, 10],
+    "xlen": [4, 6],
+    "yloc": [5, 17],
+    "ylen": [4, 2],
+    "intersect_loc": [],
+    "intersect_len": [],
+}
 
 
 def check_cases(_check_case):

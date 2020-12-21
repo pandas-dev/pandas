@@ -344,3 +344,18 @@ class GroupbyIndexer(BaseIndexer):
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         return start, end
+
+
+class ExponentialMovingWindowIndexer(BaseIndexer):
+    """Calculate ewm window bounds (the entire window)"""
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

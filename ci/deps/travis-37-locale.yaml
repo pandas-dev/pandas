@@ -34,8 +34,8 @@ dependencies:
   - pyarrow>=0.17
   - pytables>=3.5.1
   - scipy
-  - xarray=0.12.0
-  - xlrd
+  - xarray=0.12.3
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto

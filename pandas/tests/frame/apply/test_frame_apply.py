@@ -58,6 +58,12 @@ class TestDataFrameApply:
         assert isinstance(df["c0"].dtype, CategoricalDtype)
         assert isinstance(df["c1"].dtype, CategoricalDtype)
 
+    def test_apply_axis1_with_ea(self):
+        # GH#36785
+        df = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
+        result = df.apply(lambda x: x, axis=1)
+        tm.assert_frame_equal(result, df)
+
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
         # GH 7778
@@ -562,11 +568,9 @@ class TestDataFrameApply:
 
         # GH 8735
         A = DataFrame([["foo", "bar"], ["spam", "eggs"]])
-        A_dicts = Series(
-            [dict([(0, "foo"), (1, "spam")]), dict([(0, "bar"), (1, "eggs")])]
-        )
+        A_dicts = Series([{0: "foo", 1: "spam"}, {0: "bar", 1: "eggs"}])
         B = DataFrame([[0, 1], [2, 3]])
-        B_dicts = Series([dict([(0, 0), (1, 2)]), dict([(0, 1), (1, 3)])])
+        B_dicts = Series([{0: 0, 1: 2}, {0: 1, 1: 3}])
         fn = lambda x: x.to_dict()
 
         for df, dicts in [(A, A_dicts), (B, B_dicts)]:
@@ -1221,7 +1225,7 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = dict([(name1, "mean"), (name2, "sum")])
+        func = {name1: "mean", name2: "sum"}
         result = float_frame.agg(func, axis=axis)
         expected = Series(
             [
@@ -1233,7 +1237,7 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(result, expected)
 
         # dict input with lists
-        func = dict([(name1, ["mean"]), (name2, ["sum"])])
+        func = {name1: ["mean"], name2: ["sum"]}
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
             {
@@ -1249,33 +1253,25 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
+        func = {name1: ["mean", "sum"], name2: ["sum", "max"]}
         result = float_frame.agg(func, axis=axis)
         expected = pd.concat(
-            dict(
-                [
-                    (
-                        name1,
-                        Series(
-                            [
-                                float_frame.loc(other_axis)[name1].mean(),
-                                float_frame.loc(other_axis)[name1].sum(),
-                            ],
-                            index=["mean", "sum"],
-                        ),
-                    ),
-                    (
-                        name2,
-                        Series(
-                            [
-                                float_frame.loc(other_axis)[name2].sum(),
-                                float_frame.loc(other_axis)[name2].max(),
-                            ],
-                            index=["sum", "max"],
-                        ),
-                    ),
-                ]
-            ),
+            {
+                name1: Series(
+                    [
+                        float_frame.loc(other_axis)[name1].mean(),
+                        float_frame.loc(other_axis)[name1].sum(),
+                    ],
+                    index=["mean", "sum"],
+                ),
+                name2: Series(
+                    [
+                        float_frame.loc(other_axis)[name2].sum(),
+                        float_frame.loc(other_axis)[name2].max(),
+                    ],
+                    index=["sum", "max"],
+                ),
+            },
             axis=1,
         )
         expected = expected.T if axis in {1, "columns"} else expected

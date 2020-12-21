@@ -65,10 +65,10 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[-1\]$"):
             s.loc[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[-1\]$"):
             s.loc[[-1, 3]]
 
     @pytest.mark.arm_slow
@@ -84,7 +84,7 @@ class TestIntervalIndex:
         tm.assert_series_equal(result1, result3)
 
     def test_loc_getitem_frame(self):
-
+        # CategoricalIndex with IntervalIndex categories
         df = DataFrame({"A": range(10)})
         s = pd.cut(df.A, 5)
         df["B"] = s
@@ -107,11 +107,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[10\]$"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[10\]$"):
             df.loc[[10, 4]]
 
 

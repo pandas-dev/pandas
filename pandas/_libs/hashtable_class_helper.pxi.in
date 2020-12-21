@@ -5,6 +5,35 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
+{{py:
+
+# name
+cimported_types = ['float32',
+                   'float64',
+                   'int8',
+                   'int16',
+                   'int32',
+                   'int64',
+                   'pymap',
+                   'str',
+                   'strbox',
+                   'uint8',
+                   'uint16',
+                   'uint32',
+                   'uint64']
+}}
+
+{{for name in cimported_types}}
+from pandas._libs.khash cimport (
+    kh_destroy_{{name}},
+    kh_exist_{{name}},
+    kh_get_{{name}},
+    kh_init_{{name}},
+    kh_put_{{name}},
+    kh_resize_{{name}},
+)
+{{endfor}}
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -20,9 +49,16 @@ from pandas._libs.missing cimport C_NA
 # for uniques in hashtables)
 
 dtypes = [('Float64', 'float64', 'float64_t'),
+          ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('Int8', 'int8', 'int8_t'),
           ('String', 'string', 'char *'),
-          ('UInt64', 'uint64', 'uint64_t')]
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('UInt8', 'uint8', 'uint8_t')]
 }}
 
 {{for name, dtype, c_type in dtypes}}
@@ -49,8 +85,15 @@ cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
 
 ctypedef fused vector_data:
     Int64VectorData
+    Int32VectorData
+    Int16VectorData
+    Int8VectorData
     UInt64VectorData
+    UInt32VectorData
+    UInt16VectorData
+    UInt8VectorData
     Float64VectorData
+    Float32VectorData
     StringVectorData
 
 cdef inline bint needs_resize(vector_data *data) nogil:
@@ -65,7 +108,14 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 # name, dtype, c_type
 dtypes = [('Float64', 'float64', 'float64_t'),
           ('UInt64', 'uint64', 'uint64_t'),
-          ('Int64', 'int64', 'int64_t')]
+          ('Int64', 'int64', 'int64_t'),
+          ('Float32', 'float32', 'float32_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('Int32', 'int32', 'int32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('Int16', 'int16', 'int16_t'),
+          ('UInt8', 'uint8', 'uint8_t'),
+          ('Int8', 'int8', 'int8_t')]
 
 }}
 
@@ -253,15 +303,22 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'np.nan'),
-          ('UInt64', 'uint64', False, 0),
-          ('Int64', 'int64', False, 'NPY_NAT')]
+# name, dtype, float_group
+dtypes = [('Float64', 'float64', True),
+          ('UInt64', 'uint64', False),
+          ('Int64', 'int64', False),
+          ('Float32', 'float32', True),
+          ('UInt32', 'uint32', False),
+          ('Int32', 'int32', False),
+          ('UInt16', 'uint16', False),
+          ('Int16', 'int16', False),
+          ('UInt8', 'uint8', False),
+          ('Int8', 'int8', False)]
 
 }}
 
 
-{{for name, dtype, float_group, default_na_value in dtypes}}
+{{for name, dtype, float_group in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -287,9 +344,11 @@ cdef class {{name}}HashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof({{dtype}}_t) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
@@ -430,7 +489,7 @@ cdef class {{name}}HashTable(HashTable):
             # which is only used if it's *specified*.
             na_value2 = <{{dtype}}_t>na_value
         else:
-            na_value2 = {{default_na_value}}
+            na_value2 = 0
 
         with nogil:
             for i in range(n):
@@ -612,10 +671,11 @@ cdef class StringHashTable(HashTable):
             self.table = NULL
 
     def sizeof(self, deep=False):
-        """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, str val):
         cdef:
@@ -937,9 +997,11 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(PyObject *) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, object val):
         cdef:

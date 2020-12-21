@@ -274,46 +274,6 @@ class TestPeriodIndex(DatetimeLike):
             for x, val in zip(periods, field_s):
                 assert getattr(x, field) == val
 
-    def test_period_set_index_reindex(self):
-        # GH 6631
-        df = DataFrame(np.random.random(6))
-        idx1 = period_range("2011/01/01", periods=6, freq="M")
-        idx2 = period_range("2013", periods=6, freq="A")
-
-        df = df.set_index(idx1)
-        tm.assert_index_equal(df.index, idx1)
-        df = df.set_index(idx2)
-        tm.assert_index_equal(df.index, idx2)
-
-    @pytest.mark.parametrize(
-        "p_values, o_values, values, expected_values",
-        [
-            (
-                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
-                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC"), "All"],
-                [1.0, 1.0],
-                [1.0, 1.0, np.nan],
-            ),
-            (
-                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
-                [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
-                [1.0, 1.0],
-                [1.0, 1.0],
-            ),
-        ],
-    )
-    def test_period_reindex_with_object(
-        self, p_values, o_values, values, expected_values
-    ):
-        # GH 28337
-        period_index = PeriodIndex(p_values)
-        object_index = Index(o_values)
-
-        s = Series(values, index=period_index)
-        result = s.reindex(object_index)
-        expected = Series(expected_values, index=object_index)
-        tm.assert_series_equal(result, expected)
-
     def test_is_(self):
         create_index = lambda: period_range(freq="A", start="1/1/2001", end="12/1/2009")
         index = create_index()

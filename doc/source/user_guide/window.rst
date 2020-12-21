@@ -43,7 +43,7 @@ Concept                         Method             Returned Object              
 Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes
 Weighted window                 ``rolling``        ``Window``                    No                           No
 Expanding window                ``expanding``      ``Expanding``                 No                           Yes
-Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           No
+Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)
 =============================   =================  ===========================   ===========================  ========================
 
 As noted above, some operations support specifying a window based on a time offset:
