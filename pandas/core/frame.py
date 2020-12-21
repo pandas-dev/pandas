@@ -3193,9 +3193,11 @@ class DataFrame(NDFrame, OpsMixin):
                 if len(columns) == len(key):
                     for k1, k2 in zip(key, columns):
                         self[k1] = value[k2]
-                elif columns.nlevels > 1 and len(columns.levels[0]) == len(key):
-                    for k1, k2 in zip(key, columns.levels[0]):
-                        self[k1] = value[k2]
+                elif isinstance(columns, MultiIndex):
+                    levels0 = columns.levels[0]
+                    if len(levels0) == len(key):
+                        for k1, k2 in zip(key, levels0):
+                            self[k1] = value[k2]
                 else:
                     raise ValueError(
                         "Key must be same length as columns or top level of "

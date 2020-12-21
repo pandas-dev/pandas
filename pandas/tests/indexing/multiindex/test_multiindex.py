@@ -103,7 +103,7 @@ class TestMultiIndexBasic:
             idx.get_loc([])
 
     def test_multiindex_frame_assign(self):
-        df0 = pd.DataFrame({"a": [0, 1, 2, 3], "b": [3, 4, 5, 6]})
+        df0 = DataFrame({"a": [0, 1, 2, 3], "b": [3, 4, 5, 6]})
         df1 = pd.concat({"x": df0, "y": df0}, axis=1)
         df2 = pd.concat({"q": df1, "r": df1}, axis=1)
 
