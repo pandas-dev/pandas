@@ -3378,7 +3378,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
-    def query(self, expr: str, inplace: bool = False, **kwargs) -> Optional[DataFrame]:
+    def query(self, expr: str, inplace: bool = False, **kwargs):
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -3543,9 +3543,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
-    def eval(
-        self, expr: str, inplace: bool = False, **kwargs
-    ) -> Optional[Union[AnyArrayLike, DataFrame, Scalar]]:
+    def eval(self, expr: str, inplace: bool = False, **kwargs):
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -6119,7 +6117,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
 
-    def _construct_result(self, result: DataFrame) -> DataFrame:
+    def _construct_result(self, result):
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
