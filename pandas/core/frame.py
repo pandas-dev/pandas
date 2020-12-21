@@ -167,7 +167,10 @@ import pandas.plotting
 if TYPE_CHECKING:
     from typing import Literal
 
+    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
 
@@ -9349,6 +9352,54 @@ NaN 12.3   33.0
             result = result.T
 
         return result
+
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    def asfreq(
+        self,
+        freq,
+        method=None,
+        how: Optional[str] = None,
+        normalize: bool = False,
+        fill_value=None,
+    ) -> "DataFrame":
+        return super().asfreq(
+            freq=freq,
+            method=method,
+            how=how,
+            normalize=normalize,
+            fill_value=fill_value,
+        )
+
+    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    def resample(
+        self,
+        rule,
+        axis=0,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
+        convention: str = "start",
+        kind: Optional[str] = None,
+        loffset=None,
+        base: Optional[int] = None,
+        on=None,
+        level=None,
+        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
+        offset: Optional["TimedeltaConvertibleTypes"] = None,
+    ) -> "Resampler":
+        return super().resample(
+            rule=rule,
+            axis=axis,
+            closed=closed,
+            label=label,
+            convention=convention,
+            kind=kind,
+            loffset=loffset,
+            base=base,
+            on=on,
+            level=level,
+            origin=origin,
+            offset=offset,
+        )
 
     def to_timestamp(
         self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
