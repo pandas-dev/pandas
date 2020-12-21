@@ -2218,7 +2218,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def extract(self, pat, flags=0, expand=True, default=None):
+    def extract(self, pat, flags=0, expand=True, fill_value=None):
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2237,6 +2237,8 @@ class StringMethods(NoNewAttributesMixin):
             If True, return DataFrame with one column per capture group.
             If False, return a Series/Index if there is one capture group
             or DataFrame if there are multiple capture groups.
+        fill_value: str, default None
+            Value to use as default value when the regex does not match.
 
         Returns
         -------
@@ -2300,7 +2302,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         # TODO: dispatch
-        return str_extract(self, pat, flags, expand=expand, default=default)
+        return str_extract(self, pat, flags, expand=expand, fill_value=fill_value)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
@@ -2950,12 +2952,12 @@ def cat_core(list_of_columns: List, sep: str):
     return np.sum(arr_with_sep, axis=0)
 
 
-def _groups_or_na_fun(regex, default=None):
+def _groups_or_na_fun(regex, fill_value=None):
     """Used in both extract_noexpand and extract_frame"""
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
     empty_row = [np.nan] * regex.groups
-    default = [default] * regex.groups
+    fill_value = [fill_value] * regex.groups
 
     def f(x):
         if not isinstance(x, str):
@@ -2963,8 +2965,8 @@ def _groups_or_na_fun(regex, default=None):
         m = regex.search(x)
         if m:
             return [np.nan if item is None else item for item in m.groups()]
-        elif not m and default:
-            return default
+        elif not m and fill_value:
+            return fill_value
         else:
             return empty_row
 
@@ -2990,7 +2992,7 @@ def _get_single_group_name(rx):
         return None
 
 
-def _str_extract_noexpand(arr, pat, flags=0, default=None):
+def _str_extract_noexpand(arr, pat, flags=0, fill_value=None):
     """
     Find groups in each string in the Series using passed regular
     expression. This function is called from
@@ -3001,7 +3003,7 @@ def _str_extract_noexpand(arr, pat, flags=0, default=None):
     from pandas import DataFrame, array
 
     regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex, default)
+    groups_or_na = _groups_or_na_fun(regex, fill_value)
     result_dtype = _result_dtype(arr)
 
     if regex.groups == 1:
@@ -3028,7 +3030,7 @@ def _str_extract_noexpand(arr, pat, flags=0, default=None):
     return result, name
 
 
-def _str_extract_frame(arr, pat, flags=0, default=None):
+def _str_extract_frame(arr, pat, flags=0, fill_value=None):
     """
     For each subject string in the Series, extract groups from the
     first match of regular expression pat. This function is called from
@@ -3038,7 +3040,7 @@ def _str_extract_frame(arr, pat, flags=0, default=None):
     from pandas import DataFrame
 
     regex = re.compile(pat, flags=flags)
-    groups_or_na = _groups_or_na_fun(regex, default=default)
+    groups_or_na = _groups_or_na_fun(regex, fill_value=fill_value)
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
     columns = [names.get(1 + i, i) for i in range(regex.groups)]
 
@@ -3057,15 +3059,15 @@ def _str_extract_frame(arr, pat, flags=0, default=None):
     )
 
 
-def str_extract(arr, pat, flags=0, expand=True, default=None):
+def str_extract(arr, pat, flags=0, expand=True, fill_value=None):
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
     if expand:
-        result = _str_extract_frame(arr._orig, pat, flags=flags, default=default)
+        result = _str_extract_frame(arr._orig, pat, flags=flags, fill_value=fill_value)
         return result.__finalize__(arr._orig, method="str_extract")
     else:
         result, name = _str_extract_noexpand(
-            arr._orig, pat, flags=flags, default=default
+            arr._orig, pat, flags=flags, fill_value=fill_value
         )
         return arr._wrap_result(result, name=name, expand=expand)
 
