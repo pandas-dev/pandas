@@ -135,6 +135,9 @@ AggObjType = Union[
 
 PythonFuncType = Callable[[Any], Any]
 
+IndexableEvalResult = Union[ArrayLike, FrameOrSeriesUnion]
+EvalResult = Union[IndexableEvalResult, Scalar]
+
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
 FileOrBuffer = Union[str, Buffer[T]]
