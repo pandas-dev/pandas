@@ -1,5 +1,6 @@
 import abc
 import datetime
+from distutils.version import LooseVersion
 import inspect
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
@@ -1038,7 +1039,7 @@ class ExcelFile:
         else:
             import xlrd
 
-            xlrd_version = xlrd.__version__
+            xlrd_version = LooseVersion(xlrd.__version__)
 
         if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase, bytes)):
             ext = inspect_excel_format(

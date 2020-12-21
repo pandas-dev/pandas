@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import pytest
 
 from pandas.compat._optional import import_optional_dependency
@@ -26,4 +28,4 @@ if (
 else:
     import xlrd
 
-    xlrd_version = xlrd.__version__
+    xlrd_version = LooseVersion(xlrd.__version__)
