@@ -12,6 +12,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -2045,7 +2046,7 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
-        factory = Index
+        factory: Union[Type[Index], Type[DatetimeIndex]] = Index
         if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
             factory = DatetimeIndex
 
@@ -2744,6 +2745,8 @@ class GenericFixed(Fixed):
         index_class = self._alias_to_class(
             _ensure_decoded(getattr(attrs, "index_class", ""))
         )
+
+        factory: Callable
 
         if index_class == DatetimeIndex:
 
