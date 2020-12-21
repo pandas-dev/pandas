@@ -1,3 +1,4 @@
+minimum_pre_commit_version: '2.9.2'
 repos:
 -   repo: https://github.com/python/black
     rev: 20.8b1
@@ -21,10 +22,8 @@ repos:
     rev: 5.6.4
     hooks:
     -   id: isort
-        name: isort (python)
-    -   id: isort
-        name: isort (cython)
-        types: [cython]
+        types: [text] # overwrite upstream `types: [python]`
+        types_or: [python, cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.4
     hooks:
@@ -96,17 +95,17 @@ repos:
         name: Check for incorrect code block or IPython directives
         language: pygrep
         entry: (\.\. code-block ::|\.\. ipython ::)
-        files: \.(py|pyx|rst)$
+        types_or: [python, cython, rst]
     -   id: unwanted-patterns-strings-to-concatenate
         name: Check for use of not concatenated strings
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        files: \.(py|pyx|pxd|pxi)$
+        types_or: [python, cython]
     -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
         name: Check for strings with wrong placed spaces
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
-        files: \.(py|pyx|pxd|pxi)$
+        types_or: [python, cython]
     -   id: unwanted-patterns-private-import-across-module
         name: Check for import of private attributes across modules
         language: python
