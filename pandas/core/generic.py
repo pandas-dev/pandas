@@ -5140,7 +5140,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         replace: bool_t = False,
         weights: Optional[Union[str, ArrayLike]] = None,
         random_state: Optional[
-            Union[int, arraylike, np.random.BitGenerator, np.random.RandomState]
+            Union[int, ArrayLike, np.random.BitGenerator, np.random.RandomState]
         ] = None,
         axis: Optional[Axis] = None,
         ignore_index: Optional[bool_t] = False,
