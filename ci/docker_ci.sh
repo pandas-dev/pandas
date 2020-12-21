@@ -1,8 +1,5 @@
 #!/bin/bash
 
-IMAGE = $1
-PATTERN = $2
-
 docker pull quay.io/pypa/$IMAGE
 docker run -v $(pwd):/pandas quay.io/pypa/$IMAGE \
 /bin/bash -xc "cd pandas && \
