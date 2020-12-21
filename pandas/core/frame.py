@@ -3399,8 +3399,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
-            DataFrame resulting from the provided query expression or
+        ndarray, scalar, pandas object, or None
+            The result of evaluation of the provided query expression or
             None if ``inplace=True``.
 
         See Also
