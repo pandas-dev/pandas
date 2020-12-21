@@ -1898,6 +1898,8 @@ def _adjust_dates_anchored(
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame.
+
+    See :meth:`pandas.NDFrame.asfreq` for full documentation.
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:

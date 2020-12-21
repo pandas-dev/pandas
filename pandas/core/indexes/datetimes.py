@@ -930,6 +930,15 @@ def date_range(
     """
     Return a fixed frequency DatetimeIndex.
 
+    Returns the range of equally spaced time points (where the difference between any
+    two adjacent points is specified by the given frequency) such that they all
+    satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp.,
+    the first and last time points in that range that fall on the boundary of ``freq``
+    (if given as a frequency string) or that are valid for ``freq`` (if given as a
+    :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``,
+    ``end``, or ``freq`` is *not* specified, this missing parameter can be computed
+    given ``periods``, the number of timesteps in the range. See the note below.)
+
     Parameters
     ----------
     start : str or datetime-like, optional

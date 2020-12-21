@@ -47,18 +47,23 @@ def test_deprecating_on_loffset_and_base():
         pd.Grouper(freq="10s", base=0)
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", loffset="0s")
-    with tm.assert_produces_warning(FutureWarning):
+
+    # not checking the stacklevel for .groupby().resample() because it's complicated to
+    # reconcile it with the stacklevel for Series.resample() and DataFrame.resample();
+    # see GH #37603
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", loffset="0s").sum()
+    msg = "'offset' and 'base' cannot be present at the same time"
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            df.groupby("a").resample("3T", base=0, offset=0).sum()
+
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", base=0).sum()
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", loffset="0s").sum()
-    msg = "'offset' and 'base' cannot be present at the same time"
-    with tm.assert_produces_warning(FutureWarning):
-        with pytest.raises(ValueError, match=msg):
-            df.groupby("a").resample("3T", base=0, offset=0).sum()
 
 
 @all_ts
