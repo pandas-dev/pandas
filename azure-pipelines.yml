@@ -27,27 +27,26 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: py37_32bit
+- job: py37_docker
   pool:
     vmImage: ubuntu-18.04
+  strategy:
+    matrix:
+      py37_32bit:
+        IMAGE: manylinux2014_i686
+        PATTERN: "not slow and not network and not clipboard"
 
+      py37_aarch64:
+        IMAGE: manylinux2014_aarch64
+        PATTERN: "not slow and not network and not clipboard and not arm_slow"
+    
   steps:
-    - script: |
-        docker pull quay.io/pypa/manylinux2014_i686
-        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
-        /bin/bash -xc "cd pandas && \
-        /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev && \
-        . ~/virtualenvs/pandas-dev/bin/activate && \
-        python -m pip install --no-deps -U pip wheel setuptools && \
-        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
-        python setup.py build_ext -q -j2 && \
-        python -m pip install --no-build-isolation -e . && \
-        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
-      displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
+    - script: ci/docker_ci.sh
+      displayName: 'Run Docker Build / Tests'
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
         testResultsFiles: '**/test-*.xml'
         failTaskOnFailedTests: true
-        testRunTitle: 'Publish test results for Python 3.7-32 bit full Linux'
+        testRunTitle: 'Publish test results for Docker build'
