@@ -2762,7 +2762,7 @@ def assert_produces_warning(
                     f"matching {match}"
                 )
 
-        if (raise_on_extra_warnings or not expected_warning) and extra_warnings:
+        if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
                 f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
