@@ -10,7 +10,6 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -18,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -372,18 +371,10 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, BooleanDtype):
-            values, mask = coerce_to_array(self, copy=copy)
-            if not copy:
-                return self
-            else:
-                return BooleanArray(values, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -391,15 +382,11 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
-        if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
-            from pandas.core.arrays import IntegerArray
 
-            return IntegerArray(
-                self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
-            )
         # for integer, error if there are missing values
         if is_integer_dtype(dtype) and self._hasna:
             raise ValueError("cannot convert NA to integer")
+
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
