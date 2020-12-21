@@ -5,7 +5,6 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DataFrame,
     Index,
     Int64Index,
     Series,
@@ -145,16 +144,6 @@ class TestTimedeltaIndex(DatetimeLike):
         expected = Index(rng.to_pytimedelta(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
-
-    def test_append_numpy_bug_1681(self):
-
-        td = timedelta_range("1 days", "10 days", freq="2D")
-        a = DataFrame()
-        c = DataFrame({"A": "foo", "B": td}, index=td)
-        str(c)
-
-        result = a.append(c)
-        assert (result["B"] == td).all()
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
