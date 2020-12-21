@@ -152,3 +152,22 @@ def test_right_category_wrong_match_raises(pair_different_warnings):
         with tm.assert_produces_warning(target_category, match=r"^Match this"):
             warnings.warn("Do not match it", target_category)
             warnings.warn("Match this", other_category)
+
+
+def test_none_or_false_expected_warning_raises_on_warning():
+    msg = r"Caused unexpected warning\(s\)"
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(None):
+            f()
+
+    with pytest.raises(AssertionError, match=msg):
+        with tm.assert_produces_warning(False):
+            f()
+
+
+def test_none_or_false_expected_warning_no_raise_on_pass():
+    with tm.assert_produces_warning(None):
+        pass
+
+    with tm.assert_produces_warning(False):
+        pass
