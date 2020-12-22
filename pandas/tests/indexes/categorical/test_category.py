@@ -304,7 +304,7 @@ class TestCategoricalIndex(Base):
         assert _base(index.values) is not _base(result.values)
 
         result = CategoricalIndex(index.values, copy=False)
-        assert _base(index.values) is _base(result.values)
+        assert result._data._codes is index._data._codes
 
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
