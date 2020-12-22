@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     CategoricalDtype,
@@ -20,7 +21,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 
 
 def _check_cast(df, v):
@@ -296,8 +296,8 @@ class TestAstype:
 
         expected1 = DataFrame(
             {
-                "a": integer_array([1, 3, 5], dtype=dtype),
-                "b": integer_array([2, 4, 6], dtype=dtype),
+                "a": pd.array([1, 3, 5], dtype=dtype),
+                "b": pd.array([2, 4, 6], dtype=dtype),
             }
         )
         tm.assert_frame_equal(df.astype(dtype), expected1)
@@ -307,7 +307,7 @@ class TestAstype:
         df = DataFrame([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], columns=["a", "b"])
         df["b"] = df["b"].astype(dtype)
         expected2 = DataFrame(
-            {"a": [1.0, 3.0, 5.0], "b": integer_array([2, 4, 6], dtype=dtype)}
+            {"a": [1.0, 3.0, 5.0], "b": pd.array([2, 4, 6], dtype=dtype)}
         )
         tm.assert_frame_equal(df, expected2)
 
@@ -319,13 +319,13 @@ class TestAstype:
         # GH#22578
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
 
-        expected1 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected1 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
         df["a"] = df["a"].astype(dtype)
-        expected2 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected2 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df, expected2)
 
         tm.assert_frame_equal(df.astype(dtype), expected1)
@@ -563,7 +563,7 @@ class TestAstype:
         # issue mentioned further down in the following issue's thread
         # https://github.com/pandas-dev/pandas/issues/33113
         df = DataFrame()
-        result = df.astype(dict())
+        result = df.astype({})
         tm.assert_frame_equal(result, df)
         assert result is not df
 
@@ -611,3 +611,31 @@ class TestAstype:
         # do real test: object dtype to a specified tz, different from construction tz.
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
+
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture, request):
+        tz = tz_naive_fixture
+        if tz is None:
+            mark = pytest.mark.xfail(
+                reason="GH#36153 uses ndarray formatting instead of DTA formatting"
+            )
+            request.node.add_marker(mark)
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        dta = dti._data
+        dta[0] = NaT
+
+        obj = frame_or_series(dta)
+        result = obj.astype("string")
+
+        # Check that Series/DataFrame.astype matches DatetimeArray.astype
+        expected = frame_or_series(dta.astype("string"))
+        tm.assert_equal(result, expected)
+
+        item = result.iloc[0]
+        if frame_or_series is DataFrame:
+            item = item.iloc[0]
+        assert item is pd.NA
+
+        # For non-NA values, we should match what we get for non-EA str
+        alt = obj.astype(str)
+        assert np.all(alt.iloc[1:] == result.iloc[1:])

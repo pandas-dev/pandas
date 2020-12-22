@@ -178,6 +178,16 @@ D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
 and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
+`hvplot <https://hvplot.holoviz.org/index.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
+It can be loaded as a native pandas plotting backend via
+
+.. code:: python
+
+    pd.set_option("plotting.backend", "hvplot")
+
 .. _ecosystem.ide:
 
 IDE
@@ -464,15 +474,16 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-=============== ========== ========================= ===============================================================
-Library         Accessor   Classes                   Description
-=============== ========== ========================= ===============================================================
-`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
-`pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
-`composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
-=============== ========== ========================= ===============================================================
+=============== ============ ==================================== ===============================================================
+Library         Accessor     Classes                              Description
+=============== ============ ==================================== ===============================================================
+`cyberpandas`_  ``ip``       ``Series``                           Provides common operations for working with IP addresses.
+`pdvega`_       ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
+`pandas_path`_  ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
+`composeml`_    ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
+`datatest`_     ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+=============== ============ ==================================== ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
@@ -482,3 +493,4 @@ Library         Accessor   Classes                   Description
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas
 .. _composeml: https://github.com/FeatureLabs/compose
+.. _datatest: https://datatest.readthedocs.io/

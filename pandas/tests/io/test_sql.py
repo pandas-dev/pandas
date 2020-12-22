@@ -346,13 +346,13 @@ class PandasSQLTest:
 
     def _load_test2_data(self):
         df = DataFrame(
-            dict(
-                A=[4, 1, 3, 6],
-                B=["asd", "gsq", "ylt", "jkl"],
-                C=[1.1, 3.1, 6.9, 5.3],
-                D=[False, True, True, False],
-                E=["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
-            )
+            {
+                "A": [4, 1, 3, 6],
+                "B": ["asd", "gsq", "ylt", "jkl"],
+                "C": [1.1, 3.1, 6.9, 5.3],
+                "D": [False, True, True, False],
+                "E": ["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
+            }
         )
         df["E"] = to_datetime(df["E"])
 
@@ -368,6 +368,54 @@ class PandasSQLTest:
         ]
 
         self.test_frame3 = DataFrame(data, columns=columns)
+
+    def _load_types_test_data(self, data):
+        def _filter_to_flavor(flavor, df):
+            flavor_dtypes = {
+                "sqlite": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "int64",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "mysql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+                "postgresql": {
+                    "TextCol": "str",
+                    "DateCol": "str",
+                    "DateColWithTz": "str",
+                    "IntDateCol": "int64",
+                    "IntDateOnlyCol": "int64",
+                    "FloatCol": "float",
+                    "IntCol": "int64",
+                    "BoolCol": "bool",
+                    "IntColWithNull": "float",
+                    "BoolColWithNull": "float",
+                },
+            }
+
+            dtypes = flavor_dtypes[flavor]
+            return df[dtypes.keys()].astype(dtypes)
+
+        df = DataFrame(data)
+        self.types_test = {
+            flavor: _filter_to_flavor(flavor, df)
+            for flavor in ("sqlite", "mysql", "postgresql")
+        }
 
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
@@ -404,6 +452,8 @@ class PandasSQLTest:
             self._get_exec().execute(
                 ins["query"], [d[field] for field in ins["fields"]]
             )
+
+        self._load_types_test_data(data)
 
     def _count_rows(self, table_name):
         result = (
@@ -741,6 +791,36 @@ class _TestSQLApi(PandasSQLTest):
             Timestamp("2010-12-12"),
         ]
 
+    @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
+    @pytest.mark.parametrize(
+        "read_sql, text, mode",
+        [
+            (sql.read_sql, "SELECT * FROM types_test_data", ("sqlalchemy", "fallback")),
+            (sql.read_sql, "types_test_data", ("sqlalchemy")),
+            (
+                sql.read_sql_query,
+                "SELECT * FROM types_test_data",
+                ("sqlalchemy", "fallback"),
+            ),
+            (sql.read_sql_table, "types_test_data", ("sqlalchemy")),
+        ],
+    )
+    def test_custom_dateparsing_error(self, read_sql, text, mode, error):
+        if self.mode in mode:
+            expected = self.types_test[self.flavor].astype(
+                {"DateCol": "datetime64[ns]"}
+            )
+
+            result = read_sql(
+                text,
+                con=self.conn,
+                parse_dates={
+                    "DateCol": {"errors": error},
+                },
+            )
+
+            tm.assert_frame_equal(result, expected)
+
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
 
@@ -761,7 +841,7 @@ class _TestSQLApi(PandasSQLTest):
         with tm.assert_produces_warning(UserWarning):
             df.to_sql("test_timedelta", self.conn)
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
-        tm.assert_series_equal(result["foo"], df["foo"].astype("int64"))
+        tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
 
     def test_complex_raises(self):
         df = DataFrame({"a": [1 + 1j, 2j]})
@@ -864,6 +944,13 @@ class _TestSQLApi(PandasSQLTest):
     def test_get_schema(self):
         create_sql = sql.get_schema(self.test_frame1, "test", con=self.conn)
         assert "CREATE" in create_sql
+
+    def test_get_schema_with_schema(self):
+        # GH28486
+        create_sql = sql.get_schema(
+            self.test_frame1, "test", con=self.conn, schema="pypi"
+        )
+        assert "CREATE TABLE pypi." in create_sql
 
     def test_get_schema_dtypes(self):
         float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
@@ -1117,6 +1204,15 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
+
+    def test_column_with_percentage(self):
+        # GH 37157
+        df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
+        df.to_sql("test_column_percentage", self.conn, index=False)
+
+        res = sql.read_sql_table("test_column_percentage", self.conn)
+
+        tm.assert_frame_equal(res, df)
 
 
 class _EngineToConnMixin:
@@ -2425,8 +2521,8 @@ class TestXSQLite(SQLiteMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 
@@ -2706,8 +2802,8 @@ class TestXMySQL(MySQLMixIn):
         frame = tm.makeTimeDataFrame()
         create_sql = sql.get_schema(frame, "test")
         lines = create_sql.splitlines()
-        for l in lines:
-            tokens = l.split(" ")
+        for line in lines:
+            tokens = line.split(" ")
             if len(tokens) == 2 and tokens[0] == "A":
                 assert tokens[1] == "DATETIME"
 

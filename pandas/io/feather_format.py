@@ -4,12 +4,15 @@ from typing import AnyStr
 
 from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 
 from pandas import DataFrame, Int64Index, RangeIndex
+from pandas.core import generic
 
 from pandas.io.common import get_handle
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
     path: FilePathOrBuffer[AnyStr],
@@ -23,13 +26,7 @@ def to_feather(
     ----------
     df : DataFrame
     path : string file path, or file-like object
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
+    {storage_options}
 
         .. versionadded:: 1.2.0
 
@@ -83,6 +80,7 @@ def to_feather(
         feather.write_feather(df, handles.handle, **kwargs)
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def read_feather(
     path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
 ):
@@ -111,13 +109,7 @@ def read_feather(
         Whether to parallelize reading using multiple threads.
 
        .. versionadded:: 0.24.0
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
+    {storage_options}
 
         .. versionadded:: 1.2.0
 

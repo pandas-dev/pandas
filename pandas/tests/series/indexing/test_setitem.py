@@ -12,8 +12,8 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -84,6 +84,28 @@ class TestSetitemPeriodDtype:
         assert ser[4] is NaT
 
 
+class TestSetitemScalarIndexer:
+    def test_setitem_negative_out_of_bounds(self):
+        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+
+        msg = "index -11 is out of bounds for axis 0 with size 10"
+        with pytest.raises(IndexError, match=msg):
+            ser[-11] = "foo"
+
+
+class TestSetitemSlices:
+    def test_setitem_slice_float_raises(self, datetime_series):
+        msg = (
+            "cannot do slice indexing on DatetimeIndex with these indexers "
+            r"\[{key}\] of type float"
+        )
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
+            datetime_series[4.0:10.0] = 0
+
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+            datetime_series[4.5:10.0] = 0
+
+
 class TestSetitemBooleanMask:
     def test_setitem_boolean(self, string_series):
         mask = string_series > string_series.median()
@@ -143,6 +165,22 @@ class TestSetitemBooleanMask:
         series[mask] = value
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
+
+    def test_setitem_boolean_nullable_int_types(self, any_numeric_dtype):
+        # GH: 26468
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        loc_ser = Series(range(4), dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
+        tm.assert_series_equal(ser, expected)
 
 
 class TestSetitemViewCopySemantics:

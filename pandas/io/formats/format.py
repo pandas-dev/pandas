@@ -5,7 +5,6 @@ and latex files. This module also applies to display formatting.
 
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
-from datetime import tzinfo
 import decimal
 from functools import partial
 from io import StringIO
@@ -36,14 +35,16 @@ from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    ColspaceArgType,
+    ColspaceType,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
+    FormattersType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -82,14 +83,6 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
-
-FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
-]
-ColspaceType = Mapping[Label, Union[str, int]]
-ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
-]
 
 common_docstring = """
         Parameters
@@ -831,7 +824,7 @@ class DataFrameFormatter:
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(l.is_floating for l in columns.levels)
+            restrict_formatting = any(level.is_floating for level in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -1529,11 +1522,9 @@ class Datetime64Formatter(GenericArrayFormatter):
         if self.formatter is not None and callable(self.formatter):
             return [self.formatter(x) for x in values]
 
-        fmt_values = format_array_from_datetime(
-            values.asi8.ravel(),
-            format=get_format_datetime64_from_values(values, self.date_format),
-            na_rep=self.nat_rep,
-        ).reshape(values.shape)
+        fmt_values = values._data._format_native_types(
+            na_rep=self.nat_rep, date_format=self.date_format
+        )
         return fmt_values.tolist()
 
 
@@ -1541,7 +1532,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         values = extract_array(self.values, extract_numpy=True)
 
-        formatter = values._formatter(boxed=True)
+        formatter = self.formatter
+        if formatter is None:
+            formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1557,7 +1550,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             digits=self.digits,
             space=self.space,
             justify=self.justify,
+            decimal=self.decimal,
             leading_space=self.leading_space,
+            quoting=self.quoting,
         )
         return fmt_values
 
@@ -1653,29 +1648,20 @@ def is_dates_only(
     return False
 
 
-def _format_datetime64(
-    x: Union[NaTType, Timestamp], tz: Optional[tzinfo] = None, nat_rep: str = "NaT"
-) -> str:
-    if x is None or (is_scalar(x) and isna(x)):
+def _format_datetime64(x: Union[NaTType, Timestamp], nat_rep: str = "NaT") -> str:
+    if x is NaT:
         return nat_rep
-
-    if tz is not None or not isinstance(x, Timestamp):
-        if getattr(x, "tzinfo", None) is not None:
-            x = Timestamp(x).tz_convert(tz)
-        else:
-            x = Timestamp(x).tz_localize(tz)
 
     return str(x)
 
 
 def _format_datetime64_dateonly(
-    x: Union[NaTType, Timestamp], nat_rep: str = "NaT", date_format: None = None
+    x: Union[NaTType, Timestamp],
+    nat_rep: str = "NaT",
+    date_format: Optional[str] = None,
 ) -> str:
-    if x is None or (is_scalar(x) and isna(x)):
+    if x is NaT:
         return nat_rep
-
-    if not isinstance(x, Timestamp):
-        x = Timestamp(x)
 
     if date_format:
         return x.strftime(date_format)
@@ -1684,15 +1670,15 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: Optional[str] = None
 ) -> Callable:
 
     if is_dates_only:
-        return lambda x, tz=None: _format_datetime64_dateonly(
+        return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
     else:
-        return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
+        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
 def get_format_datetime64_from_values(
@@ -1753,7 +1739,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.astype(np.int64)
+    values_int = values.view(np.int64)
 
     consider_values = values_int != iNaT
 
