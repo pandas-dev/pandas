@@ -109,7 +109,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.center = center
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
-        self._win_freq_i8 = None
+        self._win_freq_i8: Optional[Union[int]] = None
         self.validate()
 
     @property
@@ -1883,7 +1883,7 @@ class Rolling(RollingAndExpandingMixin):
         elif self.window < 0:
             raise ValueError("window must be non-negative")
 
-    def _determine_window_length(self) -> Union[int, float]:
+    def _determine_window_length(self) -> int:
         """
         Calculate freq for PeriodIndexes based on Index freq. Can not use
         nanos, because asi8 of PeriodIndex is not in nanos
