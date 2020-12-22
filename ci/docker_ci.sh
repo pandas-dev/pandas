@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-if [[ $PATTERN == "manylinux2014_aarch64" ]]; then
+if [[ $IMAGE == "manylinux2014_aarch64" ]]; then
     docker pull multiarch/qemu-user-static
     docker run --privileged multiarch/qemu-user-static --reset -p yes
 fi
