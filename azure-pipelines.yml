@@ -41,7 +41,9 @@ jobs:
         PATTERN: "not slow and not network and not clipboard and not arm_slow"
 
   steps:
-    - script: ci/docker_ci.sh
+    - script: |
+        chomod 755 ci/docker_ci.sh
+        ci/docker_ci.sh
       displayName: 'Run Docker Build / Tests'
 
     - task: PublishTestResults@2
