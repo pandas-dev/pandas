@@ -358,7 +358,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
 
             result_timezone[i] = timezone
     except TypeError:
-        return array_strptime_object(values, fmt)
+        return array_strptime_object(values, fmt, exact)
 
     return result, result_timezone.base
 
@@ -777,7 +777,7 @@ cdef tzinfo parse_timezone_directive(str z):
     return pytz.FixedOffset(total_minutes)
 
 
-cdef array_strptime_object(ndarray[object] values, object fmt):
+cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
     """
     Calculates the datetime structs represented by the passed array of strings and
     returns it as an object array.
@@ -796,12 +796,12 @@ cdef array_strptime_object(ndarray[object] values, object fmt):
         int64_t us, ns
         object val, group_key, ampm, found, timezone
         dict found_key
+    global _TimeRE_cache, _regex_cache
 
     dts.us = dts.ps = dts.as = 0
-
     result = np.empty(n, dtype='O')
     iresult = result.view('i8')
-
+    result_timezone = np.empty(n, dtype='object')
     for i in range(n):
         val = values[i]
         if isinstance(val, str):
