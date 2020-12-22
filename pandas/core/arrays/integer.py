@@ -395,11 +395,6 @@ class IntegerArray(NumericArray):
         if isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
-        elif isinstance(dtype, ExtensionDtype):
-            # e.g. Categorical
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
-
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
