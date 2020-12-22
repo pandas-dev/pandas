@@ -987,13 +987,6 @@ class Window(BaseWindow):
     def validate(self):
         super().validate()
 
-        if isinstance(self.window, BaseIndexer):
-            raise NotImplementedError(
-                "BaseIndexer subclasses not implemented with win_types."
-            )
-        elif not is_integer(self.window) or self.window < 0:
-            raise ValueError("window must be an integer 0 or greater")
-
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
         signal = import_optional_dependency(
@@ -1002,6 +995,13 @@ class Window(BaseWindow):
         self._scipy_weight_generator = getattr(signal, self.win_type, None)
         if self._scipy_weight_generator is None:
             raise ValueError(f"Invalid win_type {self.win_type}")
+
+        if isinstance(self.window, BaseIndexer):
+            raise NotImplementedError(
+                "BaseIndexer subclasses not implemented with win_types."
+            )
+        elif not is_integer(self.window) or self.window < 0:
+            raise ValueError("window must be an integer 0 or greater")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """

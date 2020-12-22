@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Series, Timedelta, concat
 import pandas._testing as tm
 
 
@@ -117,3 +117,12 @@ def test_window_with_args():
     expected.columns = ["a", "b"]
     result = r.aggregate([a, b])
     tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no_scipy
+@pytest.mark.parametrize("arg", [2000000000, "2s", Timedelta("2s")])
+def test_consistent_win_type_freq(arg):
+    # GH 15969
+    s = Series(range(1))
+    with pytest.raises(ValueError, match="Invalid win_type freq"):
+        s.rolling(arg, win_type="freq")
