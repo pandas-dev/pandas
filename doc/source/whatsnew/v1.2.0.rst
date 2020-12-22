@@ -748,6 +748,7 @@ I/O
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 - :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
 - Bug in the conversion of a sliced ``pyarrow.Table`` with missing values to a DataFrame (:issue:`38525`)
+- Bug in :func:`read_sql_table` raising a ``sqlalchemy.exc.OperationalError`` when column names contained a percentage sign (:issue:`37517`)
 
 Period
 ^^^^^^
