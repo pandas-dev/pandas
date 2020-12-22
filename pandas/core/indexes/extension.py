@@ -11,7 +11,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
+from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype, pandas_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -294,9 +294,12 @@ class ExtensionIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
+        dtype = pandas_dtype(dtype)
+        if is_dtype_equal(self.dtype, dtype):
+            if not copy:
+                # Ensure that self.astype(self.dtype) is self
+                return self
+            return self.copy()
 
         new_values = self._data.astype(dtype, copy=copy)
 
