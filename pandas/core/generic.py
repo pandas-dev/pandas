@@ -4376,9 +4376,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
              If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
-             information.  `mergesort` is the only stable algorithm. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+             information. `mergesort` is the only stable algorithm. For
+             DataFrames, if sorting by multiple columns or labels, this
+             argument is ignored, defaulting to a stable sorting algorithm.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
