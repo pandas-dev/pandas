@@ -821,6 +821,7 @@ class TestFrameArithmetic:
             (np.datetime64(20, "ns"), "<M8[ns]"),
         ],
     )
+    @pytest.mark.xfail(reason="GH38630", strict=False)
     @pytest.mark.parametrize(
         "op",
         [

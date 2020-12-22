@@ -52,3 +52,15 @@ def test_arrow_from_arrow_uint():
     expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
 
     tm.assert_extension_array_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_sliced():
+    # https://github.com/pandas-dev/pandas/issues/38525
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": pd.array([0, None, 2, 3, None], dtype="Int64")})
+    table = pa.table(df)
+    result = table.slice(2, None).to_pandas()
+    expected = df.iloc[2:].reset_index(drop=True)
+    tm.assert_frame_equal(result, expected)
