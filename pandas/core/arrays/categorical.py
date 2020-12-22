@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
@@ -298,7 +299,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     _can_hold_na = True
 
     def __init__(
-        self, values, categories=None, ordered=None, dtype=None, fastpath=False
+        self,
+        values,
+        categories=None,
+        ordered=None,
+        dtype=None,
+        fastpath=False,
+        copy: bool = True,
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(
@@ -359,9 +366,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = extract_array(values).codes
+            old_codes = extract_array(values)._codes
             codes = recode_for_categories(
-                old_codes, values.dtype.categories, dtype.categories
+                old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
 
         else:
@@ -389,7 +396,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
-        return Categorical(scalars, dtype=dtype)
+        return Categorical(scalars, dtype=dtype, copy=copy)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
@@ -403,6 +410,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             If copy is set to False and dtype is categorical, the original
             object is returned.
         """
+        dtype = pandas_dtype(dtype)
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
