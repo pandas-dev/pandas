@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -219,14 +218,11 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     # a datetimelike
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if hasattr(dtype, "tz"):
-            # not a numpy dtype
-            if dtype.tz:
-                # convert to datetime and change timezone
-                from pandas import to_datetime
-
-                result = to_datetime(result).tz_localize("utc")
-                result = result.tz_convert(dtype.tz)
+        if isinstance(dtype, DatetimeTZDtype):
+            # convert to datetime and change timezone
+            i8values = result.astype("i8", copy=False)
+            cls = dtype.construct_array_type()
+            result = cls._simple_new(i8values, dtype=dtype)
         else:
             result = result.astype(dtype)
 
@@ -609,13 +605,12 @@ def maybe_promote(dtype, fill_value=np.nan):
                 dtype = mst
 
     elif fill_value is None or fill_value is libmissing.NA:
+        # Note: we already excluded dt64/td64 dtypes above
         if is_float_dtype(dtype) or is_complex_dtype(dtype):
             fill_value = np.nan
         elif is_integer_dtype(dtype):
             dtype = np.float64
             fill_value = np.nan
-        elif is_datetime_or_timedelta_dtype(dtype):
-            fill_value = dtype.type("NaT", "ns")
         else:
             dtype = np.dtype(np.object_)
             if fill_value is not libmissing.NA:
@@ -951,7 +946,7 @@ def astype_td64_unit_conversion(
 
 
 def astype_nansafe(
-    arr, dtype: DtypeObj, copy: bool = True, skipna: bool = False
+    arr: np.ndarray, dtype: DtypeObj, copy: bool = True, skipna: bool = False
 ) -> ArrayLike:
     """
     Cast the elements of an array to a given dtype a nan-safe manner.
@@ -979,6 +974,9 @@ def astype_nansafe(
         order = "F" if flags.f_contiguous else "C"
         return result.reshape(arr.shape, order=order)
 
+    # We get here with 0-dim from sparse
+    arr = np.atleast_1d(arr)
+
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
@@ -995,9 +993,7 @@ def astype_nansafe(
         return arr.astype(dtype, copy=copy)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(
-            arr.ravel(), skipna=skipna, convert_na_value=False
-        ).reshape(arr.shape)
+        return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
     elif is_datetime64_dtype(arr):
         if dtype == np.int64:
@@ -1031,7 +1027,7 @@ def astype_nansafe(
 
         # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
-            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+            return lib.astype_intsafe(arr, dtype)
 
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
@@ -1092,27 +1088,22 @@ def soft_convert_objects(
         raise ValueError("At least one of datetime, numeric or timedelta must be True.")
 
     # Soft conversions
-    if datetime:
+    if datetime or timedelta:
         # GH 20380, when datetime is beyond year 2262, hence outside
         # bound of nanosecond-resolution 64-bit integers.
         try:
-            values = lib.maybe_convert_objects(values, convert_datetime=True)
+            values = lib.maybe_convert_objects(
+                values, convert_datetime=datetime, convert_timedelta=timedelta
+            )
         except OutOfBoundsDatetime:
-            pass
-
-    if timedelta and is_object_dtype(values.dtype):
-        # Object check to ensure only run if previous did not convert
-        values = lib.maybe_convert_objects(values, convert_timedelta=True)
+            return values
 
     if numeric and is_object_dtype(values.dtype):
-        try:
-            converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
-        except (ValueError, TypeError):
-            pass
-        else:
-            # If all NaNs, then do not-alter
-            values = converted if not isna(converted).all() else values
-            values = values.copy() if copy else values
+        converted = lib.maybe_convert_numeric(values, set(), coerce_numeric=True)
+
+        # If all NaNs, then do not-alter
+        values = converted if not isna(converted).all() else values
+        values = values.copy() if copy else values
 
     return values
 
@@ -1274,6 +1265,7 @@ def maybe_infer_to_datetimelike(
         # safe coerce to datetime64
         try:
             # GH19671
+            # tznaive only
             v = tslib.array_to_datetime(v, require_iso8601=True, errors="raise")[0]
         except ValueError:
 
@@ -1285,11 +1277,12 @@ def maybe_infer_to_datetimelike(
             try:
 
                 values, tz = conversion.datetime_to_datetime64(v)
-                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
             except (ValueError, TypeError):
                 pass
-
-        except Exception:
+            else:
+                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+        except TypeError:
+            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             pass
 
         return v.reshape(shape)
