@@ -86,8 +86,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     hour : int, array, or Series, default None
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
-    tz : object, default None
-        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -194,7 +192,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        tz=None,
         dtype=None,
         copy=False,
         name=None,

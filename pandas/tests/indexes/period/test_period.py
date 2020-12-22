@@ -325,11 +325,6 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN", tz="US/Eastern")
-        expected = PeriodIndex([2000, 2007, 2009], freq="A-JUN", tz="US/Eastern")
-        tm.assert_index_equal(idx.unique(), expected)
-        assert idx.nunique() == 3
-
     def test_shift(self):
         # This is tested in test_arithmetic
         pass
