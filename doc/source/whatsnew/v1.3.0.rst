@@ -40,6 +40,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
+- Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 
 .. ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-
+- Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 -
 -
 
@@ -272,6 +273,7 @@ Reshaping
 Sparse
 ^^^^^^
 
+- Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 -
 -
 

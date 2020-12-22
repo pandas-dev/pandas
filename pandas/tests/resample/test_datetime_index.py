@@ -772,8 +772,9 @@ def test_resample_bad_origin(origin):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
     msg = (
-        "'origin' should be equal to 'epoch', 'start', 'start_day' or "
-        f"should be a Timestamp convertible type. Got '{origin}' instead."
+        "'origin' should be equal to 'epoch', 'start', 'start_day', "
+        "'end', 'end_day' or should be a Timestamp convertible type. Got "
+        f"'{origin}' instead."
     )
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin=origin)
