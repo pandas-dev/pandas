@@ -769,7 +769,7 @@ Plotting
 Styler
 ^^^^^^
 
-- Bug in :meth:`Styler.render` HTML was generated incorrectly beacause of formatting error in rowspan attribute, it now matches with w3 syntax. 
+- Bug in :meth:`Styler.render` HTML was generated incorrectly beacause of formatting error in rowspan attribute, it now matches with w3 syntax. (:issue:`38234`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
