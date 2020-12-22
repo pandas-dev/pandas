@@ -354,12 +354,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         elif not (hasattr(other, "ordered") and hasattr(other, "categories")):
             return False
         elif self.categories is None or other.categories is None:
-            # We're forced into a suboptimal corner thanks to math and
-            # backwards compatibility. We require that `CDT(...) == 'category'`
-            # for all CDTs **including** `CDT(None, ...)`. Therefore, *all*
-            # CDT(., .) = CDT(None, False) and *all*
-            # CDT(., .) = CDT(None, True).
-            return True
+            # For non-fully-initialized dtypes, these are only equal to
+            #  - the string "category" (handled above)
+            #  - other CategoricalDtype with categories=None
+            return self.categories is other.categories
         elif self.ordered or other.ordered:
             # At least one has ordered=True; equal if both have ordered=True
             # and the same values for categories in the same order.

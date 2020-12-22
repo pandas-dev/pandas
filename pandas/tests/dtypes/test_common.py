@@ -641,7 +641,6 @@ def test_is_complex_dtype():
         (pd.CategoricalIndex(["a", "b"]).dtype, CategoricalDtype(["a", "b"])),
         (pd.CategoricalIndex(["a", "b"]), CategoricalDtype(["a", "b"])),
         (CategoricalDtype(), CategoricalDtype()),
-        (CategoricalDtype(["a", "b"]), CategoricalDtype()),
         (pd.DatetimeIndex([1, 2]), np.dtype("=M8[ns]")),
         (pd.DatetimeIndex([1, 2]).dtype, np.dtype("=M8[ns]")),
         ("<M8[ns]", np.dtype("<M8[ns]")),

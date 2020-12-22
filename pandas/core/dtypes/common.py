@@ -639,6 +639,19 @@ def is_dtype_equal(source, target) -> bool:
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
+    if isinstance(target, str):
+        if not isinstance(source, str):
+            # GH#38516 ensure we get the same behavior from
+            #  is_dtype_equal(CDT, "category") and CDT == "category"
+            try:
+                src = get_dtype(source)
+                if isinstance(src, ExtensionDtype):
+                    return src == target
+            except (TypeError, AttributeError):
+                return False
+    elif isinstance(source, str):
+        return is_dtype_equal(target, source)
+
     try:
         source = get_dtype(source)
         target = get_dtype(target)

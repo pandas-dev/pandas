@@ -1622,7 +1622,7 @@ class TestMergeCategorical:
         merged = pd.merge(left, left, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("O")],
+            [CategoricalDtype(categories=["foo", "bar"]), np.dtype("O"), np.dtype("O")],
             index=["X", "Y_x", "Y_y"],
         )
         tm.assert_series_equal(result, expected)
@@ -1633,7 +1633,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("int64")],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                np.dtype("int64"),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
@@ -1713,7 +1717,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), CategoricalDtype()],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                CategoricalDtype(categories=[1, 2]),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
