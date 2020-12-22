@@ -798,6 +798,31 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
         dict found_key
     global _TimeRE_cache, _regex_cache
 
+    with _cache_lock:
+        if _getlang() != _TimeRE_cache.locale_time.lang:
+            _TimeRE_cache = TimeRE()
+            _regex_cache.clear()
+        if len(_regex_cache) > _CACHE_MAX_SIZE:
+            _regex_cache.clear()
+        locale_time = _TimeRE_cache.locale_time
+        format_regex = _regex_cache.get(fmt)
+        if not format_regex:
+            try:
+                format_regex = _TimeRE_cache.compile(fmt)
+            # KeyError raised when a bad format is found; can be specified as
+            # \\, in which case it was a stray % but with a space after it
+            except KeyError, err:
+                bad_directive = err.args[0]
+                if bad_directive == "\\":
+                    bad_directive = "%"
+                del err
+                raise ValueError(f"'{bad_directive}' is a bad directive "
+                                 f"in format '{fmt}'")
+            # IndexError only occurs when the format string is "%"
+            except IndexError:
+                raise ValueError(f"stray % in format '{fmt}'")
+            _regex_cache[fmt] = format_regex
+
     dts.us = dts.ps = dts.as = 0
     result = np.empty(n, dtype='O')
     iresult = result.view('i8')
