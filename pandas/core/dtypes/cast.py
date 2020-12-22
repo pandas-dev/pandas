@@ -30,7 +30,6 @@ from pandas._libs.tslibs import (
     conversion,
     iNaT,
     ints_to_pydatetime,
-    ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
@@ -674,7 +673,7 @@ def infer_dtype_from(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
         If False, scalar/array belongs to pandas extension types is inferred as
         object
     """
-    if is_scalar(val):
+    if not is_list_like(val):
         return infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
     return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
 
@@ -815,7 +814,7 @@ def infer_dtype_from_array(
         return arr.dtype, arr
 
     if not is_list_like(arr):
-        arr = [arr]
+        raise TypeError("'arr' must be list-like")
 
     if pandas_dtype and is_extension_array_dtype(arr):
         return arr.dtype, arr
@@ -987,15 +986,21 @@ def astype_nansafe(
     elif not isinstance(dtype, np.dtype):
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
+    if arr.dtype.kind in ["m", "M"] and (
+        issubclass(dtype.type, str) or dtype == object
+    ):
+        from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+        arr = ensure_wrapped_if_datetimelike(arr)
+        return arr.astype(dtype, copy=copy)
+
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(
             arr.ravel(), skipna=skipna, convert_na_value=False
         ).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
-        if is_object_dtype(dtype):
-            return ints_to_pydatetime(arr.view(np.int64))
-        elif dtype == np.int64:
+        if dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -1007,9 +1012,7 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
-        if is_object_dtype(dtype):
-            return ints_to_pytimedelta(arr.view(np.int64))
-        elif dtype == np.int64:
+        if dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -1339,6 +1342,9 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
     from pandas.core.tools.datetimes import to_datetime
     from pandas.core.tools.timedeltas import to_timedelta
 
+    if not is_list_like(value):
+        raise TypeError("value must be listlike")
+
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
@@ -1367,13 +1373,6 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                         raise TypeError(
                             f"cannot convert datetimelike to dtype [{dtype}]"
                         )
-            elif is_datetime64tz:
-
-                # our NaT doesn't support tz's
-                # this will coerce to DatetimeIndex with
-                # a matching dtype below
-                if is_scalar(value) and isna(value):
-                    value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, TD64NS_DTYPE):
 
@@ -1386,9 +1385,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                 else:
                     raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
-            if is_scalar(value):
-                value = maybe_unbox_datetimelike(value, dtype)
-            elif not is_sparse(value):
+            if not is_sparse(value):
                 value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
@@ -1521,6 +1518,28 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
                 return np.dtype("object")
 
     return np.find_common_type(types, [])
+
+
+def construct_2d_arraylike_from_scalar(
+    value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
+) -> np.ndarray:
+
+    if dtype.kind in ["m", "M"]:
+        value = maybe_unbox_datetimelike(value, dtype)
+
+    # Attempt to coerce to a numpy array
+    try:
+        arr = np.array(value, dtype=dtype, copy=copy)
+    except (ValueError, TypeError) as err:
+        raise TypeError(
+            f"DataFrame constructor called with incompatible data and dtype: {err}"
+        ) from err
+
+    if arr.ndim != 0:
+        raise ValueError("DataFrame constructor not properly called!")
+
+    shape = (length, width)
+    return np.full(shape, arr)
 
 
 def construct_1d_arraylike_from_scalar(
