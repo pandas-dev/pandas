@@ -918,9 +918,9 @@ class Window(BaseWindow):
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
-    method : str, default 'single'
-        Execute the rolling operation per single column or row (`'single'`)
-        or over the entire object (`'table'`).
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
 
         This argument is only implemented when specifying ``engine='numba'``
         in the method call.

@@ -24,9 +24,9 @@ class Expanding(RollingAndExpandingMixin):
     center : bool, default False
         Set the labels at the center of the window.
     axis : int or str, default 0
-    method : str, default 'single'
-        Execute the expanding operation per single column or row (`'single'`)
-        or over the entire object (`'table'`).
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
 
         This argument is only implemented when specifying ``engine='numba'``
         in the method call.
