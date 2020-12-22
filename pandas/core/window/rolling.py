@@ -109,7 +109,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.center = center
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
-        self._win_freq_i8: Optional[Union[int]] = None
+        self._win_freq_i8 = None
         self.validate()
 
     @property
@@ -1869,7 +1869,17 @@ class Rolling(RollingAndExpandingMixin):
                 )
 
             # this will raise ValueError on non-fixed freqs
-            self._win_freq_i8 = self._determine_window_length()
+            try:
+                freq = to_offset(self.window)
+            except (TypeError, ValueError) as err:
+                raise ValueError(
+                    f"passed window {self.window} is not "
+                    "compatible with a datetimelike index"
+                ) from err
+            if isinstance(self._on, ABCPeriodIndex):
+                self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
+            else:
+                self._win_freq_i8 = freq.nanos
 
             # min_periods must be an integer
             if self.min_periods is None:
@@ -1882,22 +1892,6 @@ class Rolling(RollingAndExpandingMixin):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
-
-    def _determine_window_length(self) -> int:
-        """
-        Calculate freq for PeriodIndexes based on Index freq. Can not use
-        nanos, because asi8 of PeriodIndex is not in nanos
-        """
-        try:
-            freq = to_offset(self.window)
-        except (TypeError, ValueError) as err:
-            raise ValueError(
-                f"passed window {self.window} is not "
-                "compatible with a datetimelike index"
-            ) from err
-        if isinstance(self._on, ABCPeriodIndex):
-            return freq.nanos / (self._on.freq.nanos / self._on.freq.n)
-        return freq.nanos
 
     def _validate_monotonic(self):
         """
