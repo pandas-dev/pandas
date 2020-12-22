@@ -466,7 +466,7 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
     b = cls([3, 3, 4])
     expected = cls([1, 2, 2, 3, 3, 4])
     if cls is CategoricalIndex:
-        expected = Index([1, 2, 2, 3, 3, 4], dtype="object")
+        expected = Index([1, 2, 2, 3, 3, 4])
     result = a.union(b)
     tm.assert_index_equal(result, expected)
     result = a.union(b, sort=False)

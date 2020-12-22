@@ -2242,7 +2242,6 @@ def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
     np.ndarray containing the resorted values from union_values
     """
     indexer = []
-    # counts = dict(zip(*np.unique(union_values, return_counts=True)))
     counts = value_counts(union_values)
     unique_array = unique(np.append(lvals, rvals))
     # Create indexer to resort result
