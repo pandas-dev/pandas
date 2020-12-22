@@ -722,6 +722,8 @@ We use the standard convention for referencing the matplotlib API:
 
    plt.close("all")
 
+The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window.
+
 .. ipython:: python
 
    ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))

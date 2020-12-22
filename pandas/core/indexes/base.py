@@ -27,7 +27,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -1164,7 +1164,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self.values.copy(), index=index, name=name)
+        return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(self, index: bool = True, name=None):
         """
@@ -2593,47 +2593,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
-    def _union_incompatible_dtypes(self, other, sort):
-        """
-        Casts this and other index to object dtype to allow the formation
-        of a union between incompatible types.
-
-        Parameters
-        ----------
-        other : Index or array-like
-        sort : False or None, default False
-            Whether to sort the resulting index.
-
-            * False : do not sort the result.
-            * None : sort the result, except when `self` and `other` are equal
-              or when the values cannot be compared.
-
-        Returns
-        -------
-        Index
-        """
-        this = self.astype(object, copy=False)
-        # cast to Index for when `other` is list-like
-        other = Index(other).astype(object, copy=False)
-        return Index.union(this, other, sort=sort).astype(object, copy=False)
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        """
-        Check whether this and the other dtype are compatible with each other.
-        Meaning a union can be formed between them without needing to be cast
-        to dtype object.
-
-        Parameters
-        ----------
-        other : Index or array-like
-
-        Returns
-        -------
-        bool
-        """
-        return type(self) is type(other) and is_dtype_equal(self.dtype, other.dtype)
-
-    @final
     def _validate_sort_keyword(self, sort):
         if sort not in [None, False]:
             raise ValueError(
@@ -2696,8 +2655,24 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if not self._can_union_without_object_cast(other):
-            return self._union_incompatible_dtypes(other, sort=sort)
+        if not is_dtype_equal(self.dtype, other.dtype):
+            dtype = find_common_type([self.dtype, other.dtype])
+            if self._is_numeric_dtype and other._is_numeric_dtype:
+                # Right now, we treat union(int, float) a bit special.
+                # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+                # We may change union(int, float) to go to object.
+                # float | [u]int -> float  (the special case)
+                # <T>   | <T>    -> T
+                # <T>   | <U>    -> object
+                if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
+                    dtype = "float64"
+                else:
+                    # one is int64 other is uint64
+                    dtype = object
+
+            left = self.astype(dtype, copy=False)
+            right = other.astype(dtype, copy=False)
+            return left.union(right, sort=sort)
 
         result = self._union(other, sort=sort)
 
@@ -4061,7 +4036,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Uncategorized Methods
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> ArrayLike:
         """
         Return an array representing the data in the Index.
 
@@ -4080,7 +4055,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data.view(np.ndarray)
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4467,15 +4442,16 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        # If other is a subclass of self and defines its own equals method, we
-        # dispatch to the subclass method. For instance for a MultiIndex,
-        # a d-level MultiIndex can equal d-tuple Index.
-        # Note: All EA-backed Index subclasses override equals
-        if (
-            isinstance(other, type(self))
-            and type(other) is not type(self)
-            and other.equals is not self.equals
-        ):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
+            # if other is not object, use other's logic for coercion
+            return other.equals(self)
+
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            return other.equals(self)
+
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
             return other.equals(self)
 
         return array_equivalent(self._values, other._values)
@@ -4792,10 +4768,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        if needs_i8_conversion(self.dtype):
-            # TODO: these do not match the underlying EA argsort methods GH#37863
-            return self.asi8.argsort(*args, **kwargs)
-
         # This works for either ndarray or EA, is overriden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
@@ -5347,7 +5319,7 @@ class Index(IndexOpsMixin, PandasObject):
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
         # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self.values:
+        if (is_float(label) or is_integer(label)) and label not in self._values:
             raise self._invalid_indexer("slice", label)
 
         return label

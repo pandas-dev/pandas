@@ -162,6 +162,59 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             s.hist(legend=True, by=by, label="c")
 
+    def test_hist_kwargs(self):
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 5
+        self._check_text_labels(ax.yaxis.get_label(), "Frequency")
+        tm.close()
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(orientation="horizontal", ax=ax)
+        self._check_text_labels(ax.xaxis.get_label(), "Frequency")
+        tm.close()
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
+        tm.close()
+
+    @td.skip_if_no_scipy
+    def test_hist_kde(self):
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(logy=True, ax=ax)
+        self._check_ax_scales(ax, yaxis="log")
+        xlabels = ax.get_xticklabels()
+        # ticks are values, thus ticklabels are blank
+        self._check_text_labels(xlabels, [""] * len(xlabels))
+        ylabels = ax.get_yticklabels()
+        self._check_text_labels(ylabels, [""] * len(ylabels))
+
+        _check_plot_works(self.ts.plot.kde)
+        _check_plot_works(self.ts.plot.density)
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.kde(logy=True, ax=ax)
+        self._check_ax_scales(ax, yaxis="log")
+        xlabels = ax.get_xticklabels()
+        self._check_text_labels(xlabels, [""] * len(xlabels))
+        ylabels = ax.get_yticklabels()
+        self._check_text_labels(ylabels, [""] * len(ylabels))
+
+    @td.skip_if_no_scipy
+    def test_hist_kde_color(self):
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
+        self._check_ax_scales(ax, yaxis="log")
+        assert len(ax.patches) == 10
+        self._check_colors(ax.patches, facecolors=["b"] * 10)
+
+        _, ax = self.plt.subplots()
+        ax = self.ts.plot.kde(logy=True, color="r", ax=ax)
+        self._check_ax_scales(ax, yaxis="log")
+        lines = ax.get_lines()
+        assert len(lines) == 1
+        self._check_colors(lines, ["r"])
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
@@ -431,6 +484,63 @@ class TestDataFramePlots(TestPlotBase):
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             df.hist(legend=True, by=by, column=column, label="d")
+
+    def test_hist_df_kwargs(self):
+        df = DataFrame(np.random.randn(10, 2))
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 10
+
+    def test_hist_df_with_nonnumerics(self):
+        # GH 9853
+        with tm.RNGContext(1):
+            df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+        df["E"] = ["x", "y"] * 5
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(bins=5, ax=ax)
+        assert len(ax.patches) == 20
+
+        _, ax = self.plt.subplots()
+        ax = df.plot.hist(ax=ax)  # bins=10
+        assert len(ax.patches) == 40
+
+    def test_hist_secondary_legend(self):
+        # GH 9610
+        df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
+
+        # primary -> secondary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, ax=ax)
+        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        # both legends are dran on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax, labels=["a", "b (right)"])
+        assert ax.get_yaxis().get_visible()
+        assert ax.right_ax.get_yaxis().get_visible()
+        tm.close()
+
+        # secondary -> secondary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
+        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        # both legends are draw on left ax
+        # left axis must be invisible, right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
+        assert not ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
+        tm.close()
+
+        # secondary -> primary
+        _, ax = self.plt.subplots()
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
+        # right axes is returned
+        df["b"].plot.hist(ax=ax, legend=True)
+        # both legends are draw on left ax
+        # left and right axis must be visible
+        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
+        assert ax.left_ax.get_yaxis().get_visible()
+        assert ax.get_yaxis().get_visible()
+        tm.close()
 
 
 @td.skip_if_no_mpl

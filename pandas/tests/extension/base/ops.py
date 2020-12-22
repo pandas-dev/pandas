@@ -30,7 +30,17 @@ class BaseOpsUtil(BaseExtensionTests):
                 expected = s.combine(other, op)
                 self.assert_series_equal(result, expected)
         else:
-            with pytest.raises(exc):
+            msg = (
+                "unsupported operand type\\(s\\) for|"
+                "cannot perform [\\w_]+ with this index type: [\\w_]+|"
+                "Object with dtype category cannot perform the numpy op [\\w_]+|"
+                "cannot add [\\w_]+ and [\\w_]+|"
+                "can't multiply sequence by non-int of type '[\\w_]+'|"
+                'can only concatenate str \\(not "[\\w_]+"\\) to str|'
+                "Object with dtype category cannot perform the numpy op [\\w_]+|"
+                "Concatenation operation is not implemented for NumPy arrays"
+            )
+            with pytest.raises(exc, match=msg):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=Exception):
@@ -44,7 +54,12 @@ class BaseOpsUtil(BaseExtensionTests):
             self.assert_series_equal(result_div, expected_div)
             self.assert_series_equal(result_mod, expected_mod)
         else:
-            with pytest.raises(exc):
+            msg = (
+                "'tuple' object has no attribute 'dtype'|"
+                "cannot perform __r?divmod__ with this index type|"
+                "unsupported operand type\\(s\\) for divmod\\(\\)"
+            )
+            with pytest.raises(exc, match=msg):
                 divmod(s, other)
 
 
@@ -111,7 +126,8 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
         op_name = all_arithmetic_operators
-        with pytest.raises(AttributeError):
+        msg = "'[\\w_]+' object has no attribute '[\\w_]+'"
+        with pytest.raises(AttributeError, match=msg):
             getattr(data, op_name)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
@@ -145,7 +161,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
             # series
             s = pd.Series(data)
-            with pytest.raises(TypeError):
+            msg = "not supported between instances of '[\\w._]+' and '[\\w._]+'"
+            with pytest.raises(TypeError, match=msg):
                 op(s, other)
 
     def test_compare_scalar(self, data, all_compare_operators):

@@ -6,7 +6,16 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib, writers
+from pandas._libs import (
+    Interval,
+    NaT,
+    Period,
+    Timestamp,
+    algos as libalgos,
+    internals as libinternals,
+    lib,
+    writers,
+)
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -41,17 +50,15 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_object_dtype,
-    is_period_dtype,
     is_re,
     is_re_compilable,
     is_sparse,
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
@@ -68,7 +75,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -629,10 +636,6 @@ class Block(PandasObject):
             else:
                 raise
 
-        if isinstance(new_values, np.ndarray):
-            # TODO(EA2D): special case not needed with 2D EAs
-            new_values = new_values.reshape(self.shape)
-
         newb = self.make_block(new_values)
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -654,6 +657,16 @@ class Block(PandasObject):
 
             return Categorical(values, dtype=dtype)
 
+        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+            # if we are passed a datetime64[ns, tz]
+            if copy:
+                # this should be the only copy
+                values = values.copy()
+            # i.e. values.tz_localize("UTC").tz_convert(dtype.tz)
+            # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+            #  would be self.array_values().tz_localize(dtype.tz)
+            return DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
+
         if is_dtype_equal(values.dtype, dtype):
             if copy:
                 return values.copy()
@@ -663,27 +676,7 @@ class Block(PandasObject):
             values = values.astype(dtype, copy=copy)
 
         else:
-            if issubclass(dtype.type, str):
-                if values.dtype.kind in ["m", "M"]:
-                    # use native type formatting for datetime/tz/timedelta
-                    arr = pd_array(values)
-                    # Note: in the case where dtype is an np.dtype, i.e. not
-                    #  StringDtype, this matches arr.astype(dtype), xref GH#36153
-                    values = arr._format_native_types(na_rep="NaT")
-
-            elif is_object_dtype(dtype):
-                if values.dtype.kind in ["m", "M"]:
-                    # Wrap in Timedelta/Timestamp
-                    arr = pd_array(values)
-                    values = arr.astype(object)
-                else:
-                    values = values.astype(object)
-                # We still need to go through astype_nansafe for
-                #  e.g. dtype = Sparse[object, 0]
-
-            # astype_nansafe works with 1-d only
-            vals1d = values.ravel()
-            values = astype_nansafe(vals1d, dtype, copy=True)
+            values = astype_nansafe(values, dtype, copy=True)
 
         return values
 
@@ -2237,25 +2230,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
-        """
-        these automatically copy, so copy=True has no effect
-        raise on an except if raise == True
-        """
-        dtype = pandas_dtype(dtype)
-
-        # if we are passed a datetime64[ns, tz]
-        if is_datetime64tz_dtype(dtype):
-            values = self.values
-            if copy:
-                # this should be the only copy
-                values = values.copy()
-            values = DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
-            return self.make_block(values)
-
-        # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors)
-
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
@@ -2644,36 +2618,38 @@ def get_block_type(values, dtype=None):
     -------
     cls : class, subclass of Block
     """
+    # We use vtype and kind checks because they are much more performant
+    #  than is_foo_dtype
     dtype = dtype or values.dtype
     vtype = dtype.type
+    kind = dtype.kind
 
     cls: Type[Block]
 
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif is_categorical_dtype(values.dtype):
+    elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values.dtype)
-        cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values.dtype):
+    elif vtype is Timestamp:
         cls = DatetimeTZBlock
-    elif is_interval_dtype(dtype) or is_period_dtype(dtype):
+    elif vtype is Interval or vtype is Period:
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
-    elif issubclass(vtype, np.floating):
-        cls = FloatBlock
-    elif issubclass(vtype, np.timedelta64):
-        assert issubclass(vtype, np.integer)
+
+    elif kind == "M":
+        cls = DatetimeBlock
+    elif kind == "m":
         cls = TimeDeltaBlock
-    elif issubclass(vtype, np.complexfloating):
+    elif kind == "f":
+        cls = FloatBlock
+    elif kind == "c":
         cls = ComplexBlock
-    elif issubclass(vtype, np.integer):
+    elif kind == "i" or kind == "u":
         cls = IntBlock
-    elif dtype == np.bool_:
+    elif kind == "b":
         cls = BoolBlock
     else:
         cls = ObjectBlock

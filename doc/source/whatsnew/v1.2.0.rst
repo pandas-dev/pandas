@@ -747,6 +747,7 @@ I/O
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 - :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
+- Bug in the conversion of a sliced ``pyarrow.Table`` with missing values to a DataFrame (:issue:`38525`)
 
 Period
 ^^^^^^
@@ -858,8 +859,8 @@ Other
 - Bug in :meth:`Index.drop` raising ``InvalidIndexError`` when index has duplicates (:issue:`38051`)
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
 - Fixed bug in :func:`assert_series_equal` when comparing a datetime-like array with an equivalent non extension dtype array (:issue:`37609`)
-
-
+- Bug in :func:`.is_bool_dtype` would raise when passed a valid string such as ``"boolean"`` (:issue:`38386`)
+- Fixed regression in logical operators raising ``ValueError`` when columns of :class:`DataFrame` are a :class:`CategoricalIndex` with unused categories (:issue:`38367`)
 
 .. ---------------------------------------------------------------------------
 
