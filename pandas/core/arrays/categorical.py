@@ -2129,7 +2129,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique.
 
-        .. versionchanged:: 1.2.0
+        .. versionchanged:: 1.3.0
 
             Previously, unused categories were dropped from the new categories.
 

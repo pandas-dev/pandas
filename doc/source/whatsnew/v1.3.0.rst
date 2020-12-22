@@ -246,7 +246,7 @@ As an example of this, given:
         original = pd.Series(cat)
         unique = original.unique()
 
-*pandas < 1.2.0*:
+*pandas < 1.3.0*:
 
 .. code-block:: ipython
 
@@ -256,7 +256,7 @@ As an example of this, given:
     In [2]: original.dtype == unique.dtype
     False
 
-*pandas >= 1.2.0*
+*pandas >= 1.3.0*
 
 .. ipython:: python
 
