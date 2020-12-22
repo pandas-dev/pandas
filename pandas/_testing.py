@@ -2724,11 +2724,10 @@ def assert_produces_warning(
         extra_warnings = []
 
         for actual_warning in w:
-            if not expected_warning:
-                continue
-
             expected_warning = cast(Type[Warning], expected_warning)
-            if issubclass(actual_warning.category, expected_warning):
+            if expected_warning and issubclass(
+                actual_warning.category, expected_warning
+            ):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(

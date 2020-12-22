@@ -1622,7 +1622,7 @@ class TestMergeCategorical:
         merged = pd.merge(left, left, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("O")],
+            [CategoricalDtype(categories=["foo", "bar"]), np.dtype("O"), np.dtype("O")],
             index=["X", "Y_x", "Y_y"],
         )
         tm.assert_series_equal(result, expected)
@@ -1633,7 +1633,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), np.dtype("int64")],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                np.dtype("int64"),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
@@ -1713,7 +1717,11 @@ class TestMergeCategorical:
         merged = pd.merge(left, right, on="X")
         result = merged.dtypes.sort_index()
         expected = Series(
-            [CategoricalDtype(), np.dtype("O"), CategoricalDtype()],
+            [
+                CategoricalDtype(categories=["foo", "bar"]),
+                np.dtype("O"),
+                CategoricalDtype(categories=[1, 2]),
+            ],
             index=["X", "Y", "Z"],
         )
         tm.assert_series_equal(result, expected)
@@ -2349,3 +2357,20 @@ def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
     )
     with pytest.raises(MergeError, match=msg):
         getattr(pd, func)(left, right, on="a", **kwargs)
+
+
+def test_merge_right_left_index():
+    # GH#38616
+    left = DataFrame({"x": [1, 1], "z": ["foo", "foo"]})
+    right = DataFrame({"x": [1, 1], "z": ["foo", "foo"]})
+    result = pd.merge(left, right, how="right", left_index=True, right_on="x")
+    expected = DataFrame(
+        {
+            "x": [1, 1],
+            "x_x": [1, 1],
+            "z_x": ["foo", "foo"],
+            "x_y": [1, 1],
+            "z_y": ["foo", "foo"],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
