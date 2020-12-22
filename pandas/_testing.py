@@ -2775,7 +2775,8 @@ def _assert_caught_no_extra_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
     expected_warning: Optional[Union[Type[Warning], bool]],
-):
+) -> None:
+    """Assert that no extra warnings apart from the expected ones are caught."""
     extra_warnings = []
 
     for actual_warning in caught_warnings:
