@@ -218,14 +218,11 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     # a datetimelike
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if hasattr(dtype, "tz"):
-            # not a numpy dtype
-            if dtype.tz:
-                # convert to datetime and change timezone
-                from pandas import to_datetime
-
-                result = to_datetime(result).tz_localize("utc")
-                result = result.tz_convert(dtype.tz)
+        if isinstance(dtype, DatetimeTZDtype):
+            # convert to datetime and change timezone
+            i8values = result.astype("i8", copy=False)
+            cls = dtype.construct_array_type()
+            result = cls._simple_new(i8values, dtype=dtype)
         else:
             result = result.astype(dtype)
 
@@ -1268,6 +1265,7 @@ def maybe_infer_to_datetimelike(
         # safe coerce to datetime64
         try:
             # GH19671
+            # tznaive only
             v = tslib.array_to_datetime(v, require_iso8601=True, errors="raise")[0]
         except ValueError:
 
@@ -1279,12 +1277,10 @@ def maybe_infer_to_datetimelike(
             try:
 
                 values, tz = conversion.datetime_to_datetime64(v)
-                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
             except (ValueError, TypeError):
                 pass
-
-        except Exception:
-            pass
+            else:
+                return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
 
         return v.reshape(shape)
 
