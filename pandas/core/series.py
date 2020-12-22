@@ -106,8 +106,11 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
+    from pandas.core.resample import Resampler
 
 __all__ = ["Series"]
 
@@ -374,7 +377,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = na_value_for_dtype(dtype)
             keys = index
         else:
-            keys, values = tuple(), []
+            keys, values = (), []
 
         # Input is now list-like, so rely on "standard" construction:
 
@@ -775,7 +778,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 FutureWarning,
                 stacklevel=2,
             )
-        nv.validate_take(tuple(), kwargs)
+        nv.validate_take((), kwargs)
 
         indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
@@ -1114,7 +1117,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         dtype: object
         """
-        nv.validate_repeat(tuple(), {"axis": axis})
+        nv.validate_repeat((), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
         return self._constructor(new_values, index=new_index).__finalize__(
@@ -4849,6 +4852,54 @@ Keep all original rows and also all original values
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
+
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    def asfreq(
+        self,
+        freq,
+        method=None,
+        how: Optional[str] = None,
+        normalize: bool = False,
+        fill_value=None,
+    ) -> "Series":
+        return super().asfreq(
+            freq=freq,
+            method=method,
+            how=how,
+            normalize=normalize,
+            fill_value=fill_value,
+        )
+
+    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    def resample(
+        self,
+        rule,
+        axis=0,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
+        convention: str = "start",
+        kind: Optional[str] = None,
+        loffset=None,
+        base: Optional[int] = None,
+        on=None,
+        level=None,
+        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
+        offset: Optional["TimedeltaConvertibleTypes"] = None,
+    ) -> "Resampler":
+        return super().resample(
+            rule=rule,
+            axis=axis,
+            closed=closed,
+            label=label,
+            convention=convention,
+            kind=kind,
+            loffset=loffset,
+            base=base,
+            on=on,
+            level=level,
+            origin=origin,
+            offset=offset,
+        )
 
     def to_timestamp(self, freq=None, how="start", copy=True) -> "Series":
         """
