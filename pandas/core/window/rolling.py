@@ -314,26 +314,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _get_roll_func(self, func_name: str) -> Callable[..., Any]:
-        """
-        Wrap rolling function to check values passed.
-
-        Parameters
-        ----------
-        func_name : str
-            Cython function used to calculate rolling statistics
-
-        Returns
-        -------
-        func : callable
-        """
-        window_func = getattr(window_aggregations, func_name, None)
-        if window_func is None:
-            raise ValueError(
-                f"we do not support this function in window_aggregations.{func_name}"
-            )
-        return window_func
-
     @property
     def _index_array(self):
         # TODO: why do we get here with e.g. MultiIndex?
@@ -1007,10 +987,6 @@ class Window(BaseWindow):
     2013-01-01 09:00:06  4.0
     """
 
-    @property
-    def _constructor(self):
-        return Window
-
     def validate(self):
         super().validate()
 
@@ -1151,21 +1127,21 @@ class Window(BaseWindow):
     @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        window_func = self._get_roll_func("roll_weighted_sum")
+        window_func = window_aggregations.roll_weighted_sum
         return self._apply(window_func, name="sum", **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        window_func = self._get_roll_func("roll_weighted_mean")
+        window_func = window_aggregations.roll_weighted_mean
         return self._apply(window_func, name="mean", **kwargs)
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["var"])
     def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
+        window_func = partial(window_aggregations.roll_weighted_var, ddof=ddof)
         kwargs.pop("name", None)
         return self._apply(window_func, name="var", **kwargs)
 
@@ -1219,7 +1195,7 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def count(self):
-        window_func = self._get_roll_func("roll_sum")
+        window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="count")
 
     _shared_docs["apply"] = dedent(
@@ -1329,7 +1305,7 @@ class RollingAndExpandingMixin(BaseWindow):
         from pandas import Series
 
         window_func = partial(
-            self._get_roll_func("roll_apply"),
+            window_aggregations.roll_apply,
             args=args,
             kwargs=kwargs,
             raw=raw,
@@ -1345,7 +1321,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        window_func = self._get_roll_func("roll_sum")
+        window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
@@ -1361,7 +1337,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
-        window_func = self._get_roll_func("roll_max")
+        window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
     _shared_docs["min"] = dedent(
@@ -1403,12 +1379,12 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
-        window_func = self._get_roll_func("roll_min")
+        window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        window_func = self._get_roll_func("roll_mean")
+        window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
     _shared_docs["median"] = dedent(
@@ -1449,14 +1425,14 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def median(self, **kwargs):
-        window_func = self._get_roll_func("roll_median_c")
+        window_func = window_aggregations.roll_median_c
         # GH 32865. Move max window size calculation to
         # the median function implementation
         return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        window_func = self._get_roll_func("roll_var")
+        window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
@@ -1469,7 +1445,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
+        window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
             name="var",
@@ -1488,7 +1464,7 @@ class RollingAndExpandingMixin(BaseWindow):
     """
 
     def skew(self, **kwargs):
-        window_func = self._get_roll_func("roll_skew")
+        window_func = window_aggregations.roll_skew
         return self._apply(
             window_func,
             name="skew",
@@ -1581,7 +1557,7 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def kurt(self, **kwargs):
-        window_func = self._get_roll_func("roll_kurt")
+        window_func = window_aggregations.roll_kurt
         return self._apply(
             window_func,
             name="kurt",
@@ -1644,12 +1620,12 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         if quantile == 1.0:
-            window_func = self._get_roll_func("roll_max")
+            window_func = window_aggregations.roll_max
         elif quantile == 0.0:
-            window_func = self._get_roll_func("roll_min")
+            window_func = window_aggregations.roll_min
         else:
             window_func = partial(
-                self._get_roll_func("roll_quantile"),
+                window_aggregations.roll_quantile,
                 quantile=quantile,
                 interpolation=interpolation,
             )
@@ -1881,10 +1857,6 @@ class Rolling(RollingAndExpandingMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
-
-    @property
-    def _constructor(self):
-        return Rolling
 
     def validate(self):
         super().validate()
@@ -2140,6 +2112,10 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return Rolling
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
