@@ -218,66 +218,52 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(df, sorted_df)
 
     @pytest.mark.parametrize(
-        "expected_idx, ascending, na_position",
+        "expected_idx_non_na, ascending",
         [
             pytest.param(
-                [11, 12, 2, 3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14],
+                [3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14],
                 [True, True],
-                "first",
-                id="both_ascending_na_first",
+                id="both_ascending",
             ),
             pytest.param(
-                [11, 12, 2, 0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9],
+                [0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9],
                 [True, False],
-                "first",
-                id="first_ascending_na_first",
+                id="first_ascending",
             ),
             pytest.param(
-                [11, 12, 2, 9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
+                [9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
                 [False, True],
-                "first",
-                id="second_ascending_na_first",
+                id="second_ascending",
             ),
             pytest.param(
-                [11, 12, 2, 7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5],
+                [7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5],
                 [False, False],
-                "first",
-                id="both_descending_na_first",
-            ),
-            pytest.param(
-                [3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14, 2, 11, 12],
-                [True, True],
-                "last",
-                id="both_ascending_na_last",
-            ),
-            pytest.param(
-                [0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9, 2, 11, 12],
-                [True, False],
-                "last",
-                id="first_ascending_na_last",
-            ),
-            pytest.param(
-                [9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0, 2, 11, 12],
-                [False, True],
-                "last",
-                id="second_ascending_na_last",
-            ),
-            pytest.param(
-                [7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5, 2, 11, 12],
-                [False, False],
-                "last",
-                id="both_descending_na_last",
+                id="both_descending",
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        "na_position",
+        [
+            pytest.param("first", id="na_first"),
+            pytest.param("last", id="na_last"),
+        ],
+    )
     def test_sort_values_stable_multicolumn_sort(
-        self, expected_idx, ascending, na_position
+        self, expected_idx_non_na, ascending, na_position
     ):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 1, 1, 1, 6, 8, 4, 8, 8, np.nan, np.nan, 8, 8],
                 "B": [9, np.nan, 5, 2, 2, 2, 5, 4, 5, 3, 4, np.nan, np.nan, 4, 4],
             }
+        )
+        # All rows with NaN in col "B" only have unique value in "A", therefore,
+        # only the rows with NaNs in "A" have to be treated individually:
+        expected_idx = (
+            [11, 12, 2] + expected_idx_non_na
+            if na_position == "first"
+            else expected_idx_non_na + [2, 11, 12]
         )
         expected = df.take(expected_idx)
         sorted_df = df.sort_values(
