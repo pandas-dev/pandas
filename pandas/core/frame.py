@@ -4528,10 +4528,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @doc(
-        NDFrame.replace,
-        **_shared_doc_kwargs,
-    )
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
