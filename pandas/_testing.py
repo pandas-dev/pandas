@@ -10,7 +10,17 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
@@ -301,34 +311,24 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
+    args: Tuple[Any, ...] = (data,)
+    mode = "wb"
+    method = "write"
+    compress_method: Callable
+
     if compression == "zip":
         compress_method = zipfile.ZipFile
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
     elif compression == "gzip":
-        # pandas\_testing.py:288: error: Incompatible types in assignment
-        # (expression has type "Type[GzipFile]", variable has type
-        # "Type[ZipFile]")
-        compress_method = gzip.GzipFile  # type: ignore[assignment]
+        compress_method = gzip.GzipFile
     elif compression == "bz2":
-        # pandas\_testing.py:290: error: Incompatible types in assignment
-        # (expression has type "Type[BZ2File]", variable has type
-        # "Type[ZipFile]")
-        compress_method = bz2.BZ2File  # type: ignore[assignment]
+        compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
-
-    if compression == "zip":
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    else:
-        mode = "wb"
-        # pandas\_testing.py:302: error: Incompatible types in assignment
-        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
-        # Any]")
-        args = (data,)  # type: ignore[assignment]
-        method = "write"
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
@@ -834,7 +834,9 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
-            diff = np.sum((left.values != right.values).astype(int)) * 100.0 / len(left)
+            diff = (
+                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
+            )
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
@@ -2722,11 +2724,10 @@ def assert_produces_warning(
         extra_warnings = []
 
         for actual_warning in w:
-            if not expected_warning:
-                continue
-
             expected_warning = cast(Type[Warning], expected_warning)
-            if issubclass(actual_warning.category, expected_warning):
+            if expected_warning and issubclass(
+                actual_warning.category, expected_warning
+            ):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
