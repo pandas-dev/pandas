@@ -85,10 +85,10 @@ jobs:
       displayName: Take ownership of conda installation
       condition: eq('${{ parameters.name }}', 'macOS')
 
-    - script: conda update conda
+    - script: conda update --yes conda
       displayName: Update conda
 
-    - script: conda env create --quiet --file $(ENV_FILE)
+    - script: conda env create --quiet --yes --file $(ENV_FILE)
       displayName: Create Anaconda environment
 
     - script: |
