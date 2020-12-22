@@ -258,6 +258,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self._indexer = None
         self.dropna = dropna
 
     @final
@@ -312,15 +313,24 @@ class Grouper:
         # Keep self.grouper value before overriding
         if self._grouper is None:
             self._grouper = self.grouper
+            self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
             if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
-                # pandas\core\groupby\grouper.py:348: error: Item "None" of
-                # "Optional[Any]" has no attribute "take"  [union-attr]
-                ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
+                # Sometimes self._grouper will have been resorted while
+                # obj has not. In this case there is a mismatch when we
+                # call self._grouper.take(obj.index) so we need to undo the sorting
+                # before we call _grouper.take.
+                assert self._grouper is not None
+                if self._indexer is not None:
+                    reverse_indexer = self._indexer.argsort()
+                    unsorted_ax = self._grouper.take(reverse_indexer)
+                    ax = unsorted_ax.take(obj.index)
+                else:
+                    ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
