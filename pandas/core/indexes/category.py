@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
@@ -184,23 +183,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
-        dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
-
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
             raise cls._scalar_data_error(data)
 
-        assert isinstance(dtype, CategoricalDtype), dtype
-        data = extract_array(data, extract_numpy=True)
-
-        if not isinstance(data, Categorical):
-            data = Categorical(data, dtype=dtype)
-        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-            # we want to silently ignore dtype='category'
-            data = data._set_dtype(dtype)
-
-        data = data.copy() if copy else data
+        data = Categorical(
+            data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
+        )
 
         return cls._simple_new(data, name=name)
 
