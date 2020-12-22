@@ -357,6 +357,7 @@ class TestCommon:
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
 
+    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_asi8_deprecation(self, index):
         # GH#37877
         if isinstance(

@@ -543,6 +543,7 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_tda_add_dt64_object_array(self, box_with_array, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
         box = box_with_array
