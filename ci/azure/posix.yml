@@ -91,7 +91,7 @@ jobs:
     - script: conda env create --quiet --file $(ENV_FILE)
       displayName: Create Anaconda environment
 
-    - script: |
+    - bash: |
         source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
