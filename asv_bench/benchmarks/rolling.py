@@ -262,11 +262,12 @@ class TableMethod:
     param_names = ["method"]
 
     def setup(self, method):
-        df = pd.DataFrame(np.random.randn(10, 1000))
-        self.roll = df.rolling(2, method=method)
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
 
     def time_apply(self, method):
-        self.roll.apply(table_method_func, raw=True, engine="numba")
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
