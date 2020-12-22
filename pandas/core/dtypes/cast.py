@@ -1281,6 +1281,9 @@ def maybe_infer_to_datetimelike(
                 pass
             else:
                 return DatetimeIndex(values).tz_localize("UTC").tz_convert(tz=tz)
+        except TypeError:
+            # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
+            pass
 
         return v.reshape(shape)
 
