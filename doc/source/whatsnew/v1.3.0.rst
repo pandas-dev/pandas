@@ -273,6 +273,7 @@ Reshaping
 Sparse
 ^^^^^^
 
+- Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 -
 -
 
