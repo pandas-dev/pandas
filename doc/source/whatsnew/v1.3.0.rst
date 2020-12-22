@@ -268,7 +268,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`concat` raising ``ValueError`` when index of at least one of both inputs was non-unique and non-monotonic (:issue.`31308`)
 -
 
 Sparse
