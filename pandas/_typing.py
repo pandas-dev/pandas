@@ -158,3 +158,6 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
 ]
+
+# random generator
+RandomState = Optional[Union[int, ArrayLike, np.random.BitGenerator, np.random.RandomState]]
