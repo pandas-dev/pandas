@@ -80,10 +80,17 @@ jobs:
       displayName: 'Install extra packages'
 
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
-      displayName: 'Set conda path'
+      displayName: 'Add conda to PATH'
 
-    - script: ci/setup_env.sh
-      displayName: 'Setup environment and build pandas'
+    - script: conda env create --quiet --file $(ENV_FILE)
+      displayName: Create Anaconda environment
+
+    - script: |
+        source activate pandas-dev
+        conda list
+        python setup.py build_ext -q -j 4
+        python -m pip install --no-build-isolation -e .
+      displayName: 'Build'
 
     - script: |
         source activate pandas-dev
