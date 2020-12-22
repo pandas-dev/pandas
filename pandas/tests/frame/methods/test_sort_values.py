@@ -242,13 +242,14 @@ class TestDataFrameSortValues:
     def test_sort_values_stable_multicolumn_sort(
         self, expected_idx_non_na, ascending, na_position
     ):
+        # GH#38426 Clarify sort_values with mult. columns / labels is stable
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 1, 1, 1, 6, 8, 4, 8, 8, np.nan, np.nan, 8, 8],
                 "B": [9, np.nan, 5, 2, 2, 2, 5, 4, 5, 3, 4, np.nan, np.nan, 4, 4],
             }
         )
-        # All rows with NaN in col "B" only have unique value in "A", therefore,
+        # All rows with NaN in col "B" only have unique values in "A", therefore,
         # only the rows with NaNs in "A" have to be treated individually:
         expected_idx = (
             [11, 12, 2] + expected_idx_non_na
