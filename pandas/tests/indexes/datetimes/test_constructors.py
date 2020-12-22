@@ -374,7 +374,9 @@ class TestDatetimeIndex:
         assert result.tz is None
 
         # all NaT with tz
-        result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific kwargs to pd.Index
+            result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
 
         tm.assert_index_equal(result, exp, exact=True)
@@ -462,16 +464,18 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
-            Index(
-                [
-                    pd.NaT,
-                    Timestamp("2011-01-01 10:00"),
-                    pd.NaT,
-                    Timestamp("2011-01-02 10:00", tz="US/Eastern"),
-                ],
-                tz="Asia/Tokyo",
-                name="idx",
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                # subclass-specific kwargs to pd.Index
+                Index(
+                    [
+                        pd.NaT,
+                        Timestamp("2011-01-01 10:00"),
+                        pd.NaT,
+                        Timestamp("2011-01-02 10:00", tz="US/Eastern"),
+                    ],
+                    tz="Asia/Tokyo",
+                    name="idx",
+                )
 
     def test_construction_base_constructor(self):
         arr = [Timestamp("2011-01-01"), pd.NaT, Timestamp("2011-01-03")]

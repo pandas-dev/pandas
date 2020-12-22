@@ -252,6 +252,15 @@ class Index(IndexOpsMixin, PandasObject):
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
     ) -> "Index":
 
+        if kwargs:
+            warnings.warn(
+                "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
+                "'tupleize_cols' is deprecated and will raise TypeError in a "
+                "future version.  Use the specific Index subclass directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)

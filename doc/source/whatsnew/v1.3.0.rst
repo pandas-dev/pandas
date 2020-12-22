@@ -143,7 +143,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 -
 -
 

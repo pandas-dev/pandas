@@ -57,7 +57,7 @@ class TestNumericIndex:
                 idx.groupby(to_groupby), {1.0: idx[[0, 5]], 2.0: idx[[1, 4]]}
             )
 
-            to_groupby = Index(
+            to_groupby = pd.DatetimeIndex(
                 [
                     datetime(2011, 11, 1),
                     datetime(2011, 12, 1),
