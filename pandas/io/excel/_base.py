@@ -952,7 +952,7 @@ class ExcelFile:
              will be used.
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
-            - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+           - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
            Specifying ``engine="xlrd"`` will continue to be allowed for the
            indefinite future.
