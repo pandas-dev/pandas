@@ -20,6 +20,8 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
+
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
@@ -3684,16 +3686,9 @@ class MultiIndex(Index):
                 uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
-            other_uniq = set(rvals)
-            seen = set()
-            # pandas\core\indexes\multi.py:3503: error: "add" of "set" does not
-            # return a value  [func-returns-value]
-            uniq_tuples = [
-                x
-                for x in lvals
-                if x in other_uniq
-                and not (x in seen or seen.add(x))  # type: ignore[func-returns-value]
-            ]
+            left_unique = self.drop_duplicates()
+            indexer = left_unique.get_indexer(other.drop_duplicates())
+            uniq_tuples = left_unique.take(np.sort(indexer[indexer != -1]))
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
@@ -3709,6 +3704,12 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(
                 zip(*uniq_tuples), sortorder=0, names=result_names
             )
+
+    def _get_level_indexer_intersection(self, lvals, rvals):
+        try:
+            return Index(rvals).get_indexer(lvals)
+        except (InvalidIndexError, IncompatibleFrequency):
+            return Index(rvals).get_indexer_non_unique(lvals)[0]
 
     def difference(self, other, sort=None):
         """
