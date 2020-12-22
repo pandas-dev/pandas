@@ -1342,6 +1342,9 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
     from pandas.core.tools.datetimes import to_datetime
     from pandas.core.tools.timedeltas import to_timedelta
 
+    if not is_list_like(value):
+        raise TypeError("value must be listlike")
+
     if dtype is not None:
         is_datetime64 = is_datetime64_dtype(dtype)
         is_datetime64tz = is_datetime64tz_dtype(dtype)
@@ -1370,13 +1373,6 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                         raise TypeError(
                             f"cannot convert datetimelike to dtype [{dtype}]"
                         )
-            elif is_datetime64tz:
-
-                # our NaT doesn't support tz's
-                # this will coerce to DatetimeIndex with
-                # a matching dtype below
-                if is_scalar(value) and isna(value):
-                    value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, TD64NS_DTYPE):
 
@@ -1389,9 +1385,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
                 else:
                     raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
-            if is_scalar(value):
-                value = maybe_unbox_datetimelike(value, dtype)
-            elif not is_sparse(value):
+            if not is_sparse(value):
                 value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
