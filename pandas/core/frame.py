@@ -184,6 +184,9 @@ _shared_doc_kwargs = {
     "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -197,6 +200,9 @@ _shared_doc_kwargs = {
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 _numeric_only_doc = """numeric_only : boolean, default None
