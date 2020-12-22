@@ -70,6 +70,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
+
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
             _check_plot_works(autocorrelation_plot, series=self.ts)
