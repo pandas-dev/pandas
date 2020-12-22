@@ -8050,7 +8050,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {{'epoch','start','start_day'}}, Timestamp or str, default 'start_day'
+        origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
+            or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
@@ -8060,6 +8061,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'start_day': `origin` is the first day at midnight of the timeseries
 
             .. versionadded:: 1.1.0
+
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.3.0
 
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
@@ -8341,6 +8347,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        If you want to take the largest Timestamp as the end of the bins:
+
+        >>> ts.resample('17min', origin='end').sum()
+        2000-10-01 23:35:00     0
+        2000-10-01 23:52:00    18
+        2000-10-02 00:09:00    27
+        2000-10-02 00:26:00    63
+        Freq: 17T, dtype: int64
+
+        In contrast with the `start_day`, you can use `end_day` to take the ceiling
+        midnight of the largest Timestamp as the end of the bins and drop the bins
+        not containing data:
+
+        >>> ts.resample('17min', origin='end_day').sum()
+        2000-10-01 23:38:00     3
+        2000-10-01 23:55:00    15
+        2000-10-02 00:12:00    45
+        2000-10-02 00:29:00    45
         Freq: 17T, dtype: int64
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
