@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
-    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -587,29 +586,30 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # DatetimeLikeArrayMixin Super handles the rest.
         dtype = pandas_dtype(dtype)
 
-        if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
-            # GH#18951: datetime64_ns dtype but not equal means different tz
-            # FIXME: this doesn't match DatetimeBlock.astype, xref GH#33401
-            new_tz = getattr(dtype, "tz", None)
-            if self.tz is None:
-                return self.tz_localize(new_tz)
-            elif new_tz is None:
-                result = self.tz_convert("UTC").tz_localize(None)
-            else:
-                result = self.tz_convert(new_tz)
-
-            if copy:
-                result = result.copy()
-            if new_tz is None:
-                # Do we want .astype('datetime64[ns]') to be an ndarray.
-                # The astype in Block._astype expects this to return an
-                # ndarray, but we could maybe work around it there.
-                result = result._data
-            return result
-        elif is_datetime64tz_dtype(self.dtype) and is_dtype_equal(self.dtype, dtype):
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
+        elif is_datetime64tz_dtype(dtype) and self.tz is None:
+            # FIXME: GH#33401 this does not match Series behavior
+            return self.tz_localize(dtype.tz)
+
+        elif is_datetime64tz_dtype(dtype):
+            # GH#18951: datetime64_ns dtype but not equal means different tz
+            result = self.tz_convert(dtype.tz)
+            if copy:
+                result = result.copy()
+            return result
+
+        elif dtype == "M8[ns]":
+            # we must have self.tz is None, otherwise we would have gone through
+            #  the is_dtype_equal branch above.
+            result = self.tz_convert("UTC").tz_localize(None)
+            if copy:
+                result = result.copy()
+            return result
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
