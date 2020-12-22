@@ -172,7 +172,8 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
--
+- Bug where construcing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
+
 
 Datetimelike
 ^^^^^^^^^^^^
