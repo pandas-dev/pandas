@@ -76,14 +76,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
       displayName: 'Install extra packages'
-      condition: eq(parameters.name, 'Linux')
+      condition: eq('${{ parameters.name }}', 'Linux')
 
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Add conda to PATH'
 
     - bash: sudo chown -R $USER $CONDA  
       displayName: Take ownership of conda installation
-      condition: eq(parameters.name, 'macOS')
+      condition: eq('${{ parameters.name }}', 'macOS')
 
     - script: conda update conda'
       displayName: 'Update conda'
