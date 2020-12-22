@@ -747,7 +747,6 @@ I/O
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 - :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
-- Bug in :class:`Datetime64Formatter` that caused error on string representation with extension types of datetime64 values and ndim > 1 (:issue:`38390`)
 
 Period
 ^^^^^^
