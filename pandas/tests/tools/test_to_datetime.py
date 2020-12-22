@@ -85,6 +85,18 @@ class TestTimeConversionFormats:
         result = to_datetime(ser, format="%Y%m%d", errors="ignore")
         tm.assert_series_equal(result, expected)
 
+    def test_to_date_time_format_with_outofbound_number(self):
+        ser = Series([20181223, 20161017, 20201818])
+        expected = Series(
+            [
+                Timestamp("2018-12-23"),
+                Timestamp("2016-10-17"),
+                20201818,
+            ]
+        )
+        result = to_datetime(ser, format="%Y%m%d", errors="ignore")
+        tm.assert_series_equal(result, expected, check_series_type=True)
+
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format_YYYYMMDD(self, cache):
         s = Series([19801222, 19801222] + [19810105] * 5)

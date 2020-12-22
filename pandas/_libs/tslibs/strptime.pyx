@@ -121,7 +121,7 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
     result_timezone = np.empty(n, dtype='object')
-    new_result = np.empty(n, dtype='O8')
+    object_result = np.empty(n, dtype='O')
 
     dts.us = dts.ps = dts.as = 0
 
@@ -145,8 +145,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                if is_ignore:
-                    new_result[i] = int(val)
+                elif is_ignore:
+                    object_result[i] = int(val)
                     return_object_array = True
                     continue
                 raise ValueError(f"time data '{val}' does not match "
@@ -155,8 +155,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                if is_ignore:
-                    new_result[i] = int(val)
+                elif is_ignore:
+                    object_result[i] = int(val)
                     return_object_array = True
                     continue
                 raise ValueError(f"unconverted data remains: {val[found.end():]}")
@@ -168,8 +168,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                if is_ignore:
-                    new_result[i] = int(val)
+                elif is_ignore:
+                    object_result[i] = int(val)
                     return_object_array = True
                     continue
                 raise ValueError(f"time data {repr(val)} does not match format "
@@ -331,8 +331,8 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            if is_ignore:
-                new_result[i] = int(val)
+            elif is_ignore:
+                object_result[i] = int(val)
                 return_object_array = True
                 continue
             raise
@@ -355,16 +355,16 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            if is_ignore:
-                new_result[i] = int(val)
+            elif is_ignore:
+                object_result[i] = int(val)
                 return_object_array = True
                 continue
             raise
 
         result_timezone[i] = timezone
-        new_result[i] = result[i]
+        object_result[i] = result[i]
 
-    if return_object_array: return new_result, result_timezone.base
+    if return_object_array: return object_result, result_timezone.base
     return result, result_timezone.base
 
 
