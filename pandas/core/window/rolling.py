@@ -110,7 +110,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self._win_freq_i8 = None
-        self._scipy_weight_generator = None
         self.validate()
 
     @property
