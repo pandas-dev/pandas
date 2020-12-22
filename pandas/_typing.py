@@ -160,4 +160,4 @@ ColspaceArgType = Union[
 ]
 
 # random generator
-RandomState = Union[int, ArrayLike, np.random.BitGenerator, np.random.RandomState]
+RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]

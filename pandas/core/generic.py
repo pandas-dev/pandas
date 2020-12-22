@@ -5140,7 +5140,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         frac: Optional[float] = None,
         replace: bool_t = False,
         weights: Optional[Union[str, ArrayLike]] = None,
-        random_state: RandomState = None,
+        random_state: Optional[RandomState] = None,
         axis: Optional[Axis] = None,
         ignore_index: Optional[bool_t] = False,
     ) -> FrameOrSeries:
