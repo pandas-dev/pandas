@@ -255,6 +255,7 @@ def test_readjson_lines_chunks_fileurl(datapath):
 
 
 def test_chunksize_is_incremental():
+    # See https://github.com/pandas-dev/pandas/issues/34548
     jsonl = (
         """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
