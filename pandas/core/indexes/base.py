@@ -907,9 +907,7 @@ class Index(IndexOpsMixin, PandasObject):
         if data is None:
             data = ""
 
-        res = f"{klass_name}({data}{prepr})"
-
-        return res
+        return f"{klass_name}({data}{prepr})"
 
     def _format_space(self) -> str_t:
 
@@ -988,7 +986,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
-        if is_object_dtype(values.dtype):
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
 
             # could have nans
@@ -1616,7 +1613,7 @@ class Index(IndexOpsMixin, PandasObject):
         Drop MultiIndex levels by level _number_, not name.
         """
 
-        if len(levnums) == 0:
+        if not levnums:
             return self
         if len(levnums) >= self.nlevels:
             raise ValueError(
@@ -3154,7 +3151,7 @@ class Index(IndexOpsMixin, PandasObject):
                 target, method=method, limit=limit, tolerance=tolerance
             )
 
-        if method == "pad" or method == "backfill":
+        if method in ["pad", "backfill"]:
             indexer = self._get_fill_indexer(target, method, limit, tolerance)
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
@@ -3295,8 +3292,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> np.ndarray:
         # error: Unsupported left operand type for - ("ExtensionArray")
         distance = abs(self._values[indexer] - target)  # type: ignore[operator]
-        indexer = np.where(distance <= tolerance, indexer, -1)
-        return indexer
+        return np.where(distance <= tolerance, indexer, -1)
 
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
@@ -3426,8 +3422,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         converted_keyarr : array-like
         """
-        keyarr = com.asarray_tuplesafe(keyarr)
-        return keyarr
+        return com.asarray_tuplesafe(keyarr)
 
     def _convert_list_indexer(self, keyarr):
         """
@@ -3795,9 +3790,8 @@ class Index(IndexOpsMixin, PandasObject):
             other, level, how=how, return_indexers=return_indexers
         )
 
-        if flip_order:
-            if isinstance(result, tuple):
-                return result[0], result[2], result[1]
+        if flip_order and isinstance(result, tuple):
+            return result[0], result[2], result[1]
         return result
 
     @final
@@ -4329,7 +4323,7 @@ class Index(IndexOpsMixin, PandasObject):
         to_concat = [self]
 
         if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
+            to_concat += list(other)
         else:
             to_concat.append(other)
 
@@ -4821,9 +4815,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
         """
-        if self.holds_integer() or self.is_boolean():
-            return False
-        return True
+        return not self.holds_integer() and not self.is_boolean()
 
     def _get_values_for_loc(self, series: "Series", loc, key):
         """
@@ -5286,11 +5278,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         assert kind in ["getitem", "iloc"]
 
-        if key is None:
-            pass
-        elif is_integer(key):
-            pass
-        else:
+        if key is not None and not is_integer(key):
             raise self._invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t, kind):
@@ -5609,9 +5597,10 @@ class Index(IndexOpsMixin, PandasObject):
             elif op in {operator.ne, operator.lt, operator.gt}:
                 return np.zeros(len(self), dtype=bool)
 
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
+            self
+        ) != len(other):
+            raise ValueError("Lengths must match to compare")
 
         if not isinstance(other, ABCMultiIndex):
             other = extract_array(other, extract_numpy=True)
@@ -5931,11 +5920,20 @@ def ensure_has_len(seq):
 def trim_front(strings: List[str]) -> List[str]:
     """
     Trims zeros and decimal points.
+
+    Examples
+    --------
+    >>> trim_front([" a", " b"])
+    ['a', 'b']
+
+    >>> trim_front([" a", " "])
+    ['a', '']
     """
-    trimmed = strings
-    while len(strings) > 0 and all(x[0] == " " for x in trimmed):
-        trimmed = [x[1:] for x in trimmed]
-    return trimmed
+    if not strings:
+        return strings
+    while all(strings) and all(x[0] == " " for x in strings):
+        strings = [x[1:] for x in strings]
+    return strings
 
 
 def _validate_join_method(method: str):
@@ -6003,15 +6001,11 @@ def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.
             except ValueError:
                 data = np.array(data, dtype=np.float64, copy=copy)
 
-        elif inferred == "string":
-            pass
-        else:
+        elif inferred != "string":
             data = data.astype(dtype)
     elif is_float_dtype(dtype):
         inferred = lib.infer_dtype(data, skipna=False)
-        if inferred == "string":
-            pass
-        else:
+        if inferred != "string":
             data = data.astype(dtype)
     else:
         data = np.array(data, dtype=dtype, copy=copy)
