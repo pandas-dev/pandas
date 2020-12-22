@@ -354,11 +354,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        res_data = self._data.astype(dtype, copy=copy)
-        return Index(res_data, name=self.name)
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
