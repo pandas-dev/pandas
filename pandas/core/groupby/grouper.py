@@ -82,7 +82,8 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+    origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
+        or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
         If a timestamp is not used, these values are also supported:
@@ -92,6 +93,11 @@ class Grouper:
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
         .. versionadded:: 1.1.0
+
+        - 'end': `origin` is the last value of the timeseries
+        - 'end_day': `origin` is the ceiling midnight of the last day
+
+        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
