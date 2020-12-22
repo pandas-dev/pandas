@@ -81,7 +81,7 @@ jobs:
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Add conda to PATH'
 
-    - bash: sudo chown -R $USER $CONDA  
+    - script: sudo chown -R $USER $CONDA
       displayName: Take ownership of conda installation
       condition: eq('${{ parameters.name }}', 'macOS')
 
