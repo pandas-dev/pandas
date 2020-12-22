@@ -33,7 +33,6 @@ from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import (
-    astype_nansafe,
     find_common_type,
     maybe_cast_to_integer_array,
     maybe_promote,
@@ -694,21 +693,22 @@ class Index(IndexOpsMixin, PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
-        if needs_i8_conversion(dtype) and is_float_dtype(self.dtype):
-            # We can't put this into astype_nansafe bc astype_nansafe allows
-            #  casting np.nan to NaT
-            raise TypeError(
-                f"Cannot convert {type(self).__name__} to dtype {dtype}; integer "
-                "values are required for conversion"
+        elif is_categorical_dtype(dtype):
+            from pandas.core.indexes.category import CategoricalIndex
+
+            return CategoricalIndex(
+                self._values, name=self.name, dtype=dtype, copy=copy
             )
 
+        elif is_extension_array_dtype(dtype):
+            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
+
         try:
-            casted = astype_nansafe(self._values, dtype=dtype, copy=True)
-        except TypeError as err:
+            casted = self._values.astype(dtype, copy=copy)
+        except (TypeError, ValueError) as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
             ) from err
-
         return Index(casted, name=self.name, dtype=dtype)
 
     _index_shared_docs[
@@ -4442,15 +4442,16 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        # If other is a subclass of self and defines its own equals method, we
-        # dispatch to the subclass method. For instance for a MultiIndex,
-        # a d-level MultiIndex can equal d-tuple Index.
-        # Note: All EA-backed Index subclasses override equals
-        if (
-            isinstance(other, type(self))
-            and type(other) is not type(self)
-            and other.equals is not self.equals
-        ):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
+            # if other is not object, use other's logic for coercion
+            return other.equals(self)
+
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            return other.equals(self)
+
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
             return other.equals(self)
 
         return array_equivalent(self._values, other._values)

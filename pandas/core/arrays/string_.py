@@ -10,6 +10,7 @@ from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -285,10 +286,12 @@ class StringArray(PandasArray):
 
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, StringDtype):
+
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
         elif isinstance(dtype, _IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()

@@ -45,6 +45,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
+- Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 
 .. ---------------------------------------------------------------------------
@@ -137,7 +138,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-
+- Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 -
 -
 
@@ -181,7 +182,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
--
+- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 -
 
 Timedelta
@@ -229,6 +230,7 @@ Indexing
 Missing
 ^^^^^^^
 
+- Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 -
 -
 
@@ -246,7 +248,8 @@ I/O
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
--
+- Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
+  for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 
 Period
 ^^^^^^
@@ -275,6 +278,7 @@ Reshaping
 Sparse
 ^^^^^^
 
+- Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 -
 -
 
