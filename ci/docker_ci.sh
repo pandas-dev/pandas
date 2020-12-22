@@ -12,6 +12,6 @@ docker run -v $(pwd):/pandas quay.io/pypa/$IMAGE \
 . ~/virtualenvs/pandas-dev/bin/activate && \
 python -m pip install --no-deps -U pip wheel setuptools && \
 pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
-python setup.py build_ext -q -j2 && \
+python setup.py build_ext -q -j4 && \
 python -m pip install --no-build-isolation -e . && \
 pytest -m \"$PATTERN\" pandas --junitxml=test-data.xml"
