@@ -42,7 +42,7 @@ jobs:
 
   steps:
     - script: |
-        chomod 755 ci/docker_ci.sh
+        chmod 755 ci/docker_ci.sh
         ci/docker_ci.sh
       displayName: 'Run Docker Build / Tests'
 
