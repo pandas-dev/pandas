@@ -163,7 +163,7 @@ Selection
 
 .. note::
 
-   While standard Python / Numpy expressions for selecting and setting are
+   While standard Python / NumPy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
    recommend the optimized pandas data access methods, ``.at``, ``.iat``,
    ``.loc`` and ``.iloc``.
@@ -239,7 +239,7 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-By integer slices, acting similar to numpy/Python:
+By integer slices, acting similar to NumPy/Python:
 
 .. ipython:: python
 
@@ -721,6 +721,8 @@ We use the standard convention for referencing the matplotlib API:
    import matplotlib.pyplot as plt
 
    plt.close("all")
+
+The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window.
 
 .. ipython:: python
 

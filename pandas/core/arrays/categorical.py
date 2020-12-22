@@ -36,9 +36,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
@@ -298,7 +299,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     _can_hold_na = True
 
     def __init__(
-        self, values, categories=None, ordered=None, dtype=None, fastpath=False
+        self,
+        values,
+        categories=None,
+        ordered=None,
+        dtype=None,
+        fastpath=False,
+        copy: bool = True,
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(
@@ -321,7 +328,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if is_categorical_dtype(values):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
-        elif not isinstance(values, (ABCIndexClass, ABCSeries)):
+        elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
@@ -359,9 +366,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = extract_array(values).codes
+            old_codes = extract_array(values)._codes
             codes = recode_for_categories(
-                old_codes, values.dtype.categories, dtype.categories
+                old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
 
         else:
@@ -389,7 +396,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy=False):
-        return Categorical(scalars, dtype=dtype)
+        return Categorical(scalars, dtype=dtype, copy=copy)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
@@ -403,6 +410,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             If copy is set to False and dtype is categorical, the original
             object is returned.
         """
+        dtype = pandas_dtype(dtype)
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
@@ -1269,15 +1277,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
         """
-        ret = take_1d(self.categories.values, self._codes)
+        ret = take_1d(self.categories._values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
-        if is_extension_array_dtype(ret):
-            # When we're a Categorical[ExtensionArray], like Interval,
-            # we need to ensure __array__ get's all the way to an
-            # ndarray.
-            ret = np.asarray(ret)
-        return ret
+        # When we're a Categorical[ExtensionArray], like Interval,
+        # we need to ensure __array__ gets all the way to an
+        # ndarray.
+        return np.asarray(ret)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
@@ -2516,7 +2522,7 @@ def _get_codes_for_values(values, categories) -> np.ndarray:
         values = ensure_object(values)
         categories = ensure_object(categories)
 
-    if isinstance(categories, ABCIndexClass):
+    if isinstance(categories, ABCIndex):
         return coerce_indexer_dtype(categories.get_indexer_for(values), categories)
 
     # Only hit here when we've already coerced to object dtypee.

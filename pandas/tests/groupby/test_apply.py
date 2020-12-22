@@ -1087,3 +1087,25 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)
+
+
+def test_apply_dropna_with_indexed_same():
+    # GH 38227
+
+    df = DataFrame(
+        {
+            "col": [1, 2, 3, 4, 5],
+            "group": ["a", np.nan, np.nan, "b", "b"],
+        },
+        index=list("xxyxz"),
+    )
+    result = df.groupby("group").apply(lambda x: x)
+    expected = DataFrame(
+        {
+            "col": [1, 4, 5],
+            "group": ["a", "b", "b"],
+        },
+        index=list("xxz"),
+    )
+
+    tm.assert_frame_equal(result, expected)

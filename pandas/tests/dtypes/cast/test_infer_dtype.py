@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import (
-    cast_scalar_to_array,
+    infer_dtype_from,
     infer_dtype_from_array,
     infer_dtype_from_scalar,
 )
@@ -19,7 +19,6 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -142,12 +141,29 @@ def test_infer_dtype_from_scalar_errors():
 
 
 @pytest.mark.parametrize(
-    "arr, expected, pandas_dtype",
+    "value, expected, pandas_dtype",
     [
         ("foo", np.object_, False),
         (b"foo", np.object_, False),
-        (1, np.int_, False),
+        (1, np.int64, False),
         (1.5, np.float_, False),
+        (np.datetime64("2016-01-01"), np.dtype("M8[ns]"), False),
+        (Timestamp("20160101"), np.dtype("M8[ns]"), False),
+        (Timestamp("20160101", tz="UTC"), np.object_, False),
+        (Timestamp("20160101", tz="UTC"), "datetime64[ns, UTC]", True),
+    ],
+)
+def test_infer_dtype_from_scalar(value, expected, pandas_dtype):
+    dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=pandas_dtype)
+    assert is_dtype_equal(dtype, expected)
+
+    with pytest.raises(TypeError, match="must be list-like"):
+        infer_dtype_from_array(value, pandas_dtype=pandas_dtype)
+
+
+@pytest.mark.parametrize(
+    "arr, expected, pandas_dtype",
+    [
         ([1], np.int_, False),
         (np.array([1], dtype=np.int64), np.int64, False),
         ([np.nan, 1, ""], np.object_, False),
@@ -156,8 +172,6 @@ def test_infer_dtype_from_scalar_errors():
         (Categorical([1, 2, 3]), np.int64, False),
         (Categorical(list("aabc")), "category", True),
         (Categorical([1, 2, 3]), "category", True),
-        (Timestamp("20160101"), np.object_, False),
-        (np.datetime64("2016-01-01"), np.dtype("=M8[D]"), False),
         (date_range("20160101", periods=3), np.dtype("=M8[ns]"), False),
         (
             date_range("20160101", periods=3, tz="US/Eastern"),
@@ -178,21 +192,15 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
     assert is_dtype_equal(dtype, expected)
 
 
-@pytest.mark.parametrize(
-    "obj,dtype",
-    [
-        (1, np.int64),
-        (1.1, np.float64),
-        (Timestamp("2011-01-01"), "datetime64[ns]"),
-        (Timestamp("2011-01-01", tz="US/Eastern"), object),
-        (Period("2011-01-01", freq="D"), object),
-    ],
-)
-def test_cast_scalar_to_array(obj, dtype):
-    shape = (3, 2)
+@pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+def test_infer_dtype_from_scalar_zerodim_datetimelike(cls):
+    # ndarray.item() can incorrectly return int instead of td64/dt64
+    val = cls(1234, "ns")
+    arr = np.array(val)
 
-    exp = np.empty(shape, dtype=dtype)
-    exp.fill(obj)
+    dtype, res = infer_dtype_from_scalar(arr)
+    assert dtype.type is cls
+    assert isinstance(res, cls)
 
-    arr = cast_scalar_to_array(shape, obj, dtype=dtype)
-    tm.assert_numpy_array_equal(arr, exp)
+    dtype, res = infer_dtype_from(arr)
+    assert dtype.type is cls

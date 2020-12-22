@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -13,28 +13,23 @@ from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
-    is_float,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedArray, BaseMaskedDtype
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class FloatingDtype(BaseMaskedDtype):
+class FloatingDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size of floating dtype.
 
@@ -72,34 +67,6 @@ class FloatingDtype(BaseMaskedDtype):
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "FloatingArray":
-        """
-        Construct FloatingArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            float_arr = FloatingArray(data.copy(), ~mask, copy=False)
-            results.append(float_arr)
-
-        return FloatingArray._concat_same_type(results)
 
 
 def coerce_to_array(
@@ -199,7 +166,7 @@ def coerce_to_array(
     return values, mask
 
 
-class FloatingArray(BaseMaskedArray):
+class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
 
@@ -364,31 +331,17 @@ class FloatingArray(BaseMaskedArray):
             if incompatible type with an FloatingDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringArray, StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        # if the dtype is exactly the same, we can fastpath
-        if self.dtype == dtype:
-            # return the same object for copy=False
-            return self.copy() if copy else self
-        # if we are astyping to another nullable masked dtype, we can fastpath
-        if isinstance(dtype, BaseMaskedDtype):
-            # TODO deal with NaNs
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
-            # mask is copied depending on whether the data was copied, and
-            # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return StringArray._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = dict(na_value=np.nan)
+            kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            kwargs = {"na_value": np.datetime64("NaT")}
         else:
             kwargs = {}
 
@@ -477,71 +430,6 @@ class FloatingArray(BaseMaskedArray):
         #     return result
 
         return type(self)(result, mask, copy=False)
-
-    def _arith_method(self, other, op):
-        from pandas.arrays import IntegerArray
-
-        omask = None
-
-        if getattr(other, "ndim", 0) > 1:
-            raise NotImplementedError("can only perform ops with 1-d structures")
-
-        if isinstance(other, (IntegerArray, FloatingArray)):
-            other, omask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match")
-            if not (is_float_dtype(other) or is_integer_dtype(other)):
-                raise TypeError("can only perform ops with numeric values")
-
-        else:
-            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                raise TypeError("can only perform ops with numeric values")
-
-        if omask is None:
-            mask = self._mask.copy()
-            if other is libmissing.NA:
-                mask |= True
-        else:
-            mask = self._mask | omask
-
-        if op.__name__ == "pow":
-            # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask, False, mask)
-            # x ** 0 is 1.
-            if omask is not None:
-                mask = np.where((other == 0) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 0, False, mask)
-
-        elif op.__name__ == "rpow":
-            # 1 ** x is 1.
-            if omask is not None:
-                mask = np.where((other == 1) & ~omask, False, mask)
-            elif other is not libmissing.NA:
-                mask = np.where(other == 1, False, mask)
-            # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-        if other is libmissing.NA:
-            result = np.ones_like(self._data)
-        else:
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
-
-        # divmod returns a tuple
-        if op.__name__ == "divmod":
-            div, mod = result
-            return (
-                self._maybe_mask_result(div, mask, other, "floordiv"),
-                self._maybe_mask_result(mod, mask, other, "mod"),
-            )
-
-        return self._maybe_mask_result(result, mask, other, op.__name__)
 
 
 _dtype_docstring = """

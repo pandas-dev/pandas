@@ -329,7 +329,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
-        dtype = find_common_type(self._parent.dtypes)
+        dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
 

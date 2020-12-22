@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -79,6 +79,9 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     -------
     bool
     """
+    if ndim == 1 and is_integer(indexer):
+        # GH37748: allow indexer to be an integer for Series
+        return True
     if isinstance(indexer, tuple):
         if len(indexer) == ndim:
             return all(
@@ -294,7 +297,7 @@ def length_of_indexer(indexer, target=None) -> int:
             start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
-    elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 
