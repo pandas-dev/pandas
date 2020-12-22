@@ -167,7 +167,7 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("ufunc", [np.divmod])  # any others?
+@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: any others?
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")

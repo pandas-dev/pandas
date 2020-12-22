@@ -27,7 +27,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -1161,7 +1161,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self.values.copy(), index=index, name=name)
+        return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(self, index: bool = True, name=None):
         """
@@ -4030,7 +4030,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Uncategorized Methods
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> ArrayLike:
         """
         Return an array representing the data in the Index.
 
@@ -4049,7 +4049,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data.view(np.ndarray)
+        return self._data
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -4436,15 +4436,16 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        # If other is a subclass of self and defines its own equals method, we
-        # dispatch to the subclass method. For instance for a MultiIndex,
-        # a d-level MultiIndex can equal d-tuple Index.
-        # Note: All EA-backed Index subclasses override equals
-        if (
-            isinstance(other, type(self))
-            and type(other) is not type(self)
-            and other.equals is not self.equals
-        ):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
+            # if other is not object, use other's logic for coercion
+            return other.equals(self)
+
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            return other.equals(self)
+
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
             return other.equals(self)
 
         return array_equivalent(self._values, other._values)
@@ -4761,10 +4762,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        if needs_i8_conversion(self.dtype):
-            # TODO: these do not match the underlying EA argsort methods GH#37863
-            return self.asi8.argsort(*args, **kwargs)
-
         # This works for either ndarray or EA, is overriden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
@@ -5310,7 +5307,7 @@ class Index(IndexOpsMixin, PandasObject):
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
         # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self.values:
+        if (is_float(label) or is_integer(label)) and label not in self._values:
             raise self._invalid_indexer("slice", label)
 
         return label

@@ -2505,6 +2505,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
+        .. warning::
+
+           One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+           but the type of the subclass is lost upon storing.
+
         For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
@@ -5852,6 +5857,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
+            # TODO(EA2D): special case not needed with 2D EAs
             results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
@@ -7707,7 +7713,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    @final
+    @doc(**_shared_doc_kwargs)
     def asfreq(
         self: FrameOrSeries,
         freq,
@@ -7717,26 +7723,39 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_value=None,
     ) -> FrameOrSeries:
         """
-        Convert TimeSeries to specified frequency.
-
-        Optionally provide filling method to pad/backfill missing values.
+        Convert time series to specified frequency.
 
         Returns the original data conformed to a new index with the specified
-        frequency. ``resample`` is more appropriate if an operation, such as
-        summarization, is necessary to represent the data at the new frequency.
+        frequency.
+
+        If the index of this {klass} is a :class:`~pandas.PeriodIndex`, the new index
+        is the result of transforming the original index with
+        :meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
+        will map one-to-one to the new index).
+
+        Otherwise, the new index will be equivalent to ``pd.date_range(start, end,
+        freq=freq)`` where ``start`` and ``end`` are, respectively, the first and
+        last entries in the original index (see :func:`pandas.date_range`). The
+        values corresponding to any timesteps in the new index which were not present
+        in the original index will be null (``NaN``), unless a method for filling
+        such unknowns is provided (see the ``method`` parameter below).
+
+        The :meth:`resample` method is more appropriate if an operation on each group of
+        timesteps (such as an aggregate) is necessary to represent the data at the new
+        frequency.
 
         Parameters
         ----------
         freq : DateOffset or str
             Frequency DateOffset or string.
-        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
+        method : {{'backfill'/'bfill', 'pad'/'ffill'}}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
 
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {'start', 'end'}, default end
+        how : {{'start', 'end'}}, default end
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -7746,8 +7765,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller
-            Object converted to the specified frequency.
+        {klass}
+            {klass} object reindexed to the specified frequency.
 
         See Also
         --------
@@ -7764,7 +7783,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({'s':series})
+        >>> df = pd.DataFrame({{'s': series}})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -7963,7 +7982,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
-    @final
+    @doc(**_shared_doc_kwargs)
     def resample(
         self,
         rule,
@@ -7982,31 +8001,31 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Resample time-series data.
 
-        Convenience method for frequency conversion and resampling of time
-        series. Object must have a datetime-like index (`DatetimeIndex`,
-        `PeriodIndex`, or `TimedeltaIndex`), or pass datetime-like values
-        to the `on` or `level` keyword.
+        Convenience method for frequency conversion and resampling of time series.
+        The object must have a datetime-like index (`DatetimeIndex`, `PeriodIndex`,
+        or `TimedeltaIndex`), or the caller must pass the label of a datetime-like
+        series/index to the ``on``/``level`` keyword parameter.
 
         Parameters
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             Which axis to use for up- or down-sampling. For `Series` this
             will default to 0, i.e. along the rows. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-        closed : {'right', 'left'}, default None
+        closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        label : {'right', 'left'}, default None
+        label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        convention : {'start', 'end', 's', 'e'}, default 'start'
+        convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
-        kind : {'timestamp', 'period'}, optional, default None
+        kind : {{'timestamp', 'period'}}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
             `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
@@ -8031,7 +8050,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
+            or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
@@ -8042,6 +8062,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionadded:: 1.1.0
 
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.3.0
+
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -8049,13 +8074,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Resampler object
+        pandas.core.Resampler
+            :class:`~pandas.core.Resampler` object.
 
         See Also
         --------
-        groupby : Group by mapping, function, label, or list of labels.
         Series.resample : Resample a Series.
-        DataFrame.resample: Resample a DataFrame.
+        DataFrame.resample : Resample a DataFrame.
+        groupby : Group {klass} by mapping, function, label, or list of labels.
+        asfreq : Reindex a {klass} with the given frequency without grouping.
 
         Notes
         -----
@@ -8214,8 +8241,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
+        >>> d = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -8240,13 +8267,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
-        >>> df2 = pd.DataFrame(d2,
-        ...                    index=pd.MultiIndex.from_product([days,
-        ...                                                     ['morning',
-        ...                                                      'afternoon']]
-        ...                                                     ))
+        >>> d2 = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
+        >>> df2 = pd.DataFrame(
+        ...     d2,
+        ...     index=pd.MultiIndex.from_product(
+        ...         [days, ['morning', 'afternoon']]
+        ...     )
+        ... )
         >>> df2
                               price  volume
         2000-01-01 morning       10      50
@@ -8319,6 +8347,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        If you want to take the largest Timestamp as the end of the bins:
+
+        >>> ts.resample('17min', origin='end').sum()
+        2000-10-01 23:35:00     0
+        2000-10-01 23:52:00    18
+        2000-10-02 00:09:00    27
+        2000-10-02 00:26:00    63
+        Freq: 17T, dtype: int64
+
+        In contrast with the `start_day`, you can use `end_day` to take the ceiling
+        midnight of the largest Timestamp as the end of the bins and drop the bins
+        not containing data:
+
+        >>> ts.resample('17min', origin='end_day').sum()
+        2000-10-01 23:38:00     3
+        2000-10-01 23:55:00    15
+        2000-10-02 00:12:00    45
+        2000-10-02 00:29:00    45
         Freq: 17T, dtype: int64
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
@@ -8424,7 +8472,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         offset = to_offset(offset)
-        end_date = end = self.index[0] + offset
+        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+            # GH#29623 if first value is end of period, remove offset with n = 1
+            #  before adding the real offset
+            end_date = end = self.index[0] - offset.base + offset
+        else:
+            end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
         if isinstance(offset, Tick):
@@ -8439,8 +8492,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------
