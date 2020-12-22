@@ -105,7 +105,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
-from pandas.core.shared_docs import _shared_doc_kwargs, _shared_docs
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
@@ -128,17 +128,21 @@ if TYPE_CHECKING:
 # goal is to be able to define the docs close to function, while still being
 # able to share
 _shared_docs = {**_shared_docs}
-_shared_doc_kwargs.update(
-    {
-        "axes": "keywords for axes",
-        "klass": "Series/DataFrame",
-        "axes_single_arg": "int or labels for object",
-        "args_transpose": "axes to permute (int or label for object)",
-        "optional_by": """
-            by : str or list of str
-                Name or list of names to sort by""",
-    }
-)
+_shared_doc_kwargs = {
+    "axes": "keywords for axes",
+    "klass": "Series/DataFrame",
+    "axes_single_arg": "int or labels for object",
+    "args_transpose": "axes to permute (int or label for object)",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
+    "optional_by": """
+        by : str or list of str
+            Name or list of names to sort by""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
+}
 
 
 bool_t = bool  # Need alias because NDFrame has def bool:

@@ -665,12 +665,3 @@ _shared_docs[
     4     b
     dtype: object
 """
-
-_shared_doc_kwargs: Dict[str, str] = {
-    "inplace": """
-    inplace : boolean, default False
-        If True, performs operation inplace and returns None.""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
-}

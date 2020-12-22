@@ -97,7 +97,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
-from pandas.core.shared_docs import _shared_doc_kwargs, _shared_docs
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -111,23 +111,24 @@ if TYPE_CHECKING:
 
 __all__ = ["Series"]
 
-_shared_doc_kwargs.update(
-    {
-        "axes": "index",
-        "klass": "Series",
-        "axes_single_arg": "{0 or 'index'}",
-        "axis": """axis : {0 or 'index'}
-            Parameter needed for compatibility with DataFrame.""",
-        "inplace": """inplace : boolean, default False
-            If True, performs operation inplace and returns None.""",
-        "unique": "np.ndarray",
-        "duplicated": "Series",
-        "optional_by": "",
-        "optional_mapper": "",
-        "optional_labels": "",
-        "optional_axis": "",
-    }
-)
+_shared_doc_kwargs = {
+    "axes": "index",
+    "klass": "Series",
+    "axes_single_arg": "{0 or 'index'}",
+    "axis": """axis : {0 or 'index'}
+        Parameter needed for compatibility with DataFrame.""",
+    "inplace": """inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
+    "unique": "np.ndarray",
+    "duplicated": "Series",
+    "optional_by": "",
+    "optional_mapper": "",
+    "optional_labels": "",
+    "optional_axis": "",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
+}
 
 
 def _coerce_method(converter):
