@@ -255,12 +255,15 @@ def test_readjson_lines_chunks_fileurl(datapath):
 
 
 def test_chunksize_is_incremental():
-    jsonl = """{"a": 1, "b": 2}
+    jsonl = (
+        """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
-        {"a": 7, "b": 8}\n""" * 1000
+        {"a": 7, "b": 8}\n"""
+        * 1000
+    )
 
-    class MyReader():
+    class MyReader:
         def __init__(self, contents):
             self.read_count = 0
             self.stringio = StringIO(contents)
