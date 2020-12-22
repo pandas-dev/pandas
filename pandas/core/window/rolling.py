@@ -108,8 +108,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.min_periods = min_periods
         self.center = center
         self.win_type = win_type
-        self._win_freq_i8 = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
+        self._win_freq_i8 = None
         self.validate()
 
     @property
