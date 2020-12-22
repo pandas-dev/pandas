@@ -768,6 +768,10 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` was overwriting matplotlib's shared y axes behaviour when no ``sharey`` parameter was passed (:issue:`37942`)
 - Bug in :meth:`DataFrame.plot` was raising a ``TypeError`` with ``ExtensionDtype`` columns (:issue:`32073`)
 
+Styler
+^^^^^^
+
+- Bug in :meth:`Styler.render` HTML was generated incorrectly beacause of formatting error in rowspan attribute, it now matches with w3 syntax. (:issue:`38234`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
