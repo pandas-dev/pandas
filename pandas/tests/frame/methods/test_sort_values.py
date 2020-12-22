@@ -217,32 +217,72 @@ class TestDataFrameSortValues:
         sorted_df = df.sort_values(by="sort_col", kind="mergesort", ascending=False)
         tm.assert_frame_equal(df, sorted_df)
 
-    def test_sort_values_stable_descending_multicolumn_sort(self):
+    @pytest.mark.parametrize(
+        "expected_idx, ascending, na_position",
+        [
+            pytest.param(
+                [11, 12, 2, 3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14],
+                [True, True],
+                "first",
+                id="both_ascending_na_first",
+            ),
+            pytest.param(
+                [11, 12, 2, 0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9],
+                [True, False],
+                "first",
+                id="first_ascending_na_first",
+            ),
+            pytest.param(
+                [11, 12, 2, 9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
+                [False, True],
+                "first",
+                id="second_ascending_na_first",
+            ),
+            pytest.param(
+                [11, 12, 2, 7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5],
+                [False, False],
+                "first",
+                id="both_descending_na_first",
+            ),
+            pytest.param(
+                [3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14, 2, 11, 12],
+                [True, True],
+                "last",
+                id="both_ascending_na_last",
+            ),
+            pytest.param(
+                [0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9, 2, 11, 12],
+                [True, False],
+                "last",
+                id="first_ascending_na_last",
+            ),
+            pytest.param(
+                [9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0, 2, 11, 12],
+                [False, True],
+                "last",
+                id="second_ascending_na_last",
+            ),
+            pytest.param(
+                [7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5, 2, 11, 12],
+                [False, False],
+                "last",
+                id="both_descending_na_last",
+            ),
+        ],
+    )
+    def test_sort_values_stable_multicolumn_sort(
+        self, expected_idx, ascending, na_position
+    ):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 1, 1, 1, 6, 8, 4, 8, 8, np.nan, np.nan, 8, 8],
                 "B": [9, np.nan, 5, 2, 2, 2, 5, 4, 5, 3, 4, np.nan, np.nan, 4, 4],
             }
         )
-        # test sorting is stable
-        expected = DataFrame(
-            {
-                "A": [np.nan, np.nan, np.nan, 8, 8, 8, 8, 8, 6, 4, 2, 1, 1, 1, 1],
-                "B": [np.nan, np.nan, 5, 3, 4, 4, 4, 4, 5, 5, np.nan, 2, 2, 2, 9],
-            },
-            index=[11, 12, 2, 9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
+        expected = df.take(expected_idx)
+        sorted_df = df.sort_values(
+            ["A", "B"], ascending=ascending, na_position=na_position
         )
-        sorted_df = df.sort_values(["A", "B"], ascending=[0, 1], na_position="first")
-        tm.assert_frame_equal(sorted_df, expected)
-
-        expected = DataFrame(
-            {
-                "A": [8, 8, 8, 8, 8, 6, 4, 2, 1, 1, 1, 1, np.nan, np.nan, np.nan],
-                "B": [4, 4, 4, 4, 3, 5, 5, np.nan, 9, 2, 2, 2, 5, np.nan, np.nan],
-            },
-            index=[7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5, 2, 11, 12],
-        )
-        sorted_df = df.sort_values(["A", "B"], ascending=[0, 0], na_position="last")
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_stable_categorial(self):
