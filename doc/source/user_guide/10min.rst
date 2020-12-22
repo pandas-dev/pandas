@@ -163,7 +163,7 @@ Selection
 
 .. note::
 
-   While standard Python / Numpy expressions for selecting and setting are
+   While standard Python / NumPy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
    recommend the optimized pandas data access methods, ``.at``, ``.iat``,
    ``.loc`` and ``.iloc``.
@@ -239,7 +239,7 @@ Select via the position of the passed integers:
 
    df.iloc[3]
 
-By integer slices, acting similar to numpy/Python:
+By integer slices, acting similar to NumPy/Python:
 
 .. ipython:: python
 
