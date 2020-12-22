@@ -652,9 +652,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             if self.equals(target):
                 return np.arange(len(self), dtype="intp")
 
-            if self._is_non_comparable_own_type(target):
-                # different closed or incompatible subtype -> no matches
-                return np.repeat(np.intp(-1), len(target))
+            if not self._should_compare(target):
+                return self._get_indexer_non_comparable(target, method, unique=True)
 
             # non-overlapping -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
@@ -780,16 +779,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if not self._is_comparable_dtype(other.dtype):
             return False
         return other.closed == self.closed
-
-    # TODO: use should_compare and get rid of _is_non_comparable_own_type
-    def _is_non_comparable_own_type(self, other: "IntervalIndex") -> bool:
-        # different closed or incompatible subtype -> no matches
-
-        # TODO: once closed is part of IntervalDtype, we can just define
-        #  is_comparable_dtype GH#19371
-        if self.closed != other.closed:
-            return True
-        return not self._is_comparable_dtype(other.dtype)
 
     # --------------------------------------------------------------------
 
@@ -930,7 +919,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _assert_can_do_setop(self, other):
         super()._assert_can_do_setop(other)
 
-        if isinstance(other, IntervalIndex) and self._is_non_comparable_own_type(other):
+        if isinstance(other, IntervalIndex) and not self._should_compare(other):
             # GH#19016: ensure set op will not return a prohibited dtype
             raise TypeError(
                 "can only do set operations between two IntervalIndex "
