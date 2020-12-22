@@ -126,7 +126,8 @@ engine : str, default None
        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
          then ``openpyxl`` will be used.
        - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-       - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+       - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised. This
+         case will raise a ``ValueError`` in a future version of pandas.
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -1003,6 +1004,7 @@ class ExcelFile:
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
            - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+             This case will raise a ``ValueError`` in a future version of pandas.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1067,37 +1069,35 @@ class ExcelFile:
                     is not None
                 ):
                     engine = "openpyxl"
-                elif xlrd_version is not None and xlrd_version < "2":
-                    # If xlrd_version >= "2", we error below
-                    caller = inspect.stack()[1]
-                    if (
-                        caller.filename.endswith("pandas/io/excel/_base.py")
-                        and caller.function == "read_excel"
-                    ):
-                        stacklevel = 4
-                    else:
-                        stacklevel = 2
-                    warnings.warn(
-                        f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                        f"only the xls format is supported. As a result, the "
-                        f"openpyxl engine will be used if it is installed "
-                        f"and the engine argument is not specified. Either install "
-                        f"openpyxl or specify engine='xlrd' to silence this warning.",
-                        FutureWarning,
-                        stacklevel=stacklevel,
-                    )
+                else:
                     engine = "xlrd"
 
-        if (
-            engine == "xlrd"
-            and xlrd_version is not None
-            and xlrd_version >= "2"
-            and not ext == "xls"
-        ):
-            raise ValueError(
-                f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
-                f"only the xls format is supported."
-            )
+        if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
+            if xlrd_version >= "2":
+                raise ValueError(
+                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
+                    f"only the xls format is supported. Install openpyxl instead."
+                )
+            else:
+                # If xlrd_version >= "2", we error below
+                caller = inspect.stack()[1]
+                if (
+                    caller.filename.endswith("pandas/io/excel/_base.py")
+                    and caller.function == "read_excel"
+                ):
+                    stacklevel = 4
+                else:
+                    stacklevel = 2
+                warnings.warn(
+                    f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
+                    f"only the xls format is supported. As a result, the "
+                    f"openpyxl engine will be used if it is installed and the "
+                    f"engine argument is not specified. Install "
+                    f"openpyxl instead.",
+                    FutureWarning,
+                    stacklevel=stacklevel,
+                )
+        assert engine in self._engines, f"Engine {engine} not recognized"
 
         self.engine = engine
         self.storage_options = storage_options
