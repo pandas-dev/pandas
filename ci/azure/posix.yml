@@ -73,14 +73,20 @@ jobs:
 
   steps:
     - script: |
-        if [ "$(uname)" == "Linux" ]; then
-          sudo apt-get update
-          sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
-        fi
+        sudo apt-get update
+        sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
       displayName: 'Install extra packages'
+      condition: eq(parameters.name, 'Linux')
 
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Add conda to PATH'
+
+    - bash: sudo chown -R $USER $CONDA  
+      displayName: Take ownership of conda installation
+      condition: eq(parameters.name, 'macOS')
+
+    - script: conda update conda'
+      displayName: 'Update conda'
 
     - script: conda env create --quiet --file $(ENV_FILE)
       displayName: Create Anaconda environment
