@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._typing import Axis, FrameOrSeriesUnion
+from pandas._typing import AggFuncType, Axis, FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -27,7 +27,7 @@ ResType = Dict[int, Any]
 
 def frame_apply(
     obj: "DataFrame",
-    func,
+    func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
     result_type: Optional[str] = None,
