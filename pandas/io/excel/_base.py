@@ -954,8 +954,10 @@ class ExcelFile:
              then ``openpyxl`` will be used.
            - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
-           Specifying ``engine="xlrd"`` will continue to be allowed for the
-           indefinite future.
+           .. warning::
+
+            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
+            This is not supported, switch to using ``openpyxl`` instead.
     """
 
     from pandas.io.excel._odfreader import ODFReader
