@@ -40,6 +40,9 @@ from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
+_shared_doc_kwargs = {
+    "klass": "PeriodArray",
+}
 
 # --- Period index sketch
 
@@ -150,7 +153,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
-    @doc(PeriodArray.asfreq)
+    @doc(
+        PeriodArray.asfreq,
+        other="pandas.arrays.PeriodArray",
+        other_name="PeriodArray",
+        **_shared_doc_kwargs,
+    )
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
