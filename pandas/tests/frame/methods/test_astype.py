@@ -611,3 +611,31 @@ class TestAstype:
         # do real test: object dtype to a specified tz, different from construction tz.
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
+
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture, request):
+        tz = tz_naive_fixture
+        if tz is None:
+            mark = pytest.mark.xfail(
+                reason="GH#36153 uses ndarray formatting instead of DTA formatting"
+            )
+            request.node.add_marker(mark)
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        dta = dti._data
+        dta[0] = NaT
+
+        obj = frame_or_series(dta)
+        result = obj.astype("string")
+
+        # Check that Series/DataFrame.astype matches DatetimeArray.astype
+        expected = frame_or_series(dta.astype("string"))
+        tm.assert_equal(result, expected)
+
+        item = result.iloc[0]
+        if frame_or_series is DataFrame:
+            item = item.iloc[0]
+        assert item is pd.NA
+
+        # For non-NA values, we should match what we get for non-EA str
+        alt = obj.astype(str)
+        assert np.all(alt.iloc[1:] == result.iloc[1:])
