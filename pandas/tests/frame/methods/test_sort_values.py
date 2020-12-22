@@ -220,35 +220,25 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize(
         "expected_idx_non_na, ascending",
         [
-            pytest.param(
+            [
                 [3, 4, 5, 0, 1, 8, 6, 9, 7, 10, 13, 14],
                 [True, True],
-                id="both_ascending",
-            ),
-            pytest.param(
+            ],
+            [
                 [0, 3, 4, 5, 1, 8, 6, 7, 10, 13, 14, 9],
                 [True, False],
-                id="first_ascending",
-            ),
-            pytest.param(
+            ],
+            [
                 [9, 7, 10, 13, 14, 6, 8, 1, 3, 4, 5, 0],
                 [False, True],
-                id="second_ascending",
-            ),
-            pytest.param(
+            ],
+            [
                 [7, 10, 13, 14, 9, 6, 8, 1, 0, 3, 4, 5],
                 [False, False],
-                id="both_descending",
-            ),
+            ],
         ],
     )
-    @pytest.mark.parametrize(
-        "na_position",
-        [
-            pytest.param("first", id="na_first"),
-            pytest.param("last", id="na_last"),
-        ],
-    )
+    @pytest.mark.parametrize("na_position", ["first", "last"])
     def test_sort_values_stable_multicolumn_sort(
         self, expected_idx_non_na, ascending, na_position
     ):
