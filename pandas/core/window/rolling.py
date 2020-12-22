@@ -110,6 +110,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self._win_freq_i8 = None
+        self._scipy_weight_generator = None
         self.validate()
 
     @property
@@ -991,18 +992,17 @@ class Window(BaseWindow):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif is_integer(self.window):
-            if self.window <= 0:
-                raise ValueError("window must be > 0 ")
-            sig = import_optional_dependency(
-                "scipy.signal", extra="Scipy is required to generate window weight."
-            )
-            if not isinstance(self.win_type, str):
-                raise ValueError(f"Invalid win_type {self.win_type}")
-            if getattr(sig, self.win_type, None) is None:
-                raise ValueError(f"Invalid win_type {self.win_type}")
-        else:
-            raise ValueError(f"Invalid window {self.window}")
+        elif not is_integer(self.window) or self.window < 0:
+            raise ValueError("window must be an integer 0 or greater")
+
+        if not isinstance(self.win_type, str):
+            raise ValueError(f"Invalid win_type {self.win_type}")
+        signal = import_optional_dependency(
+            "scipy.signal", extra="Scipy is required to generate window weight."
+        )
+        self._scipy_weight_generator = getattr(signal, self.win_type, None)
+        if self._scipy_weight_generator is None:
+            raise ValueError(f"Invalid win_type {self.win_type}")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1042,11 +1042,7 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        signal = import_optional_dependency(
-            "scipy.signal", extra="Scipy is required to generate window weight."
-        )
-        assert self.win_type is not None  # for mypy
-        window = getattr(signal, self.win_type)(self.window, **kwargs)
+        window = self._scipy_weight_generator(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -1888,10 +1884,8 @@ class Rolling(RollingAndExpandingMixin):
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
             return
-        elif not is_integer(self.window):
-            raise ValueError("window must be an integer")
-        elif self.window < 0:
-            raise ValueError("window must be non-negative")
+        elif not is_integer(self.window) or self.window < 0:
+            raise ValueError("window must be an integer 0 or greater")
 
     def _validate_monotonic(self):
         """
