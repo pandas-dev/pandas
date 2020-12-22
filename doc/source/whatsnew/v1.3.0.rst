@@ -170,7 +170,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug in :class:`CategoricalIndex` incorrectly failing to raise ``TypeError`` when scalar data is passed (:issue:`38614`)
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 -
 
