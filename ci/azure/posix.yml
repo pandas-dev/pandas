@@ -78,14 +78,14 @@ jobs:
       displayName: 'Install extra packages'
       condition: eq('${{ parameters.name }}', 'Linux')
 
-    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
+    - bash: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
       displayName: 'Add conda to PATH'
 
-    - script: sudo chown -R $USER $CONDA
+    - bash: sudo chown -R $USER $CONDA
       displayName: Take ownership of conda installation
       condition: eq('${{ parameters.name }}', 'macOS')
 
-    - script: conda update --quiet --yes conda
+    - bash: conda update --quiet --yes conda
       displayName: Update conda
 
     - bash: conda env create --quiet --file $(ENV_FILE)
@@ -103,7 +103,7 @@ jobs:
         ci/run_tests.sh
       displayName: 'Test'
 
-    - script: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - bash: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
@@ -114,7 +114,7 @@ jobs:
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
 
-    - script: |
+    - bash: |
         source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
