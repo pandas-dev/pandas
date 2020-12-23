@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import DtypeArg
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -132,9 +133,13 @@ def _wrap_result(
     index_col=None,
     coerce_float: bool = True,
     parse_dates=None,
+    dtype: Optional[DtypeArg] = None,
 ):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
+
+    if dtype:
+        frame = frame.astype(dtype)
 
     frame = _parse_date_columns(frame, parse_dates)
 
@@ -308,6 +313,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: None = None,
+    dtype: Optional[DtypeArg] = None,
 ) -> DataFrame:
     ...
 
@@ -321,6 +327,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: int = 1,
+    dtype: Optional[DtypeArg] = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -333,6 +340,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
+    dtype: Optional[DtypeArg] = None,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
@@ -371,6 +379,9 @@ def read_sql_query(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
         rows to include in each chunk.
+    dtype : Type name or dict of columns
+        Data type for data or columns. E.g. np.float64 or
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
 
     Returns
     -------
@@ -394,6 +405,7 @@ def read_sql_query(
         coerce_float=coerce_float,
         parse_dates=parse_dates,
         chunksize=chunksize,
+        dtype=dtype,
     )
 
 
@@ -1307,6 +1319,7 @@ class SQLDatabase(PandasSQL):
         index_col=None,
         coerce_float=True,
         parse_dates=None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1320,6 +1333,7 @@ class SQLDatabase(PandasSQL):
                     index_col=index_col,
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
+                    dtype=dtype,
                 )
 
     def read_query(
@@ -1330,6 +1344,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         params=None,
         chunksize: Optional[int] = None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """
         Read SQL query into a DataFrame.
@@ -1361,6 +1376,11 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -1385,6 +1405,7 @@ class SQLDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
         else:
             data = result.fetchall()
@@ -1394,6 +1415,7 @@ class SQLDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
             return frame
 
@@ -1799,6 +1821,7 @@ class SQLiteDatabase(PandasSQL):
         index_col=None,
         coerce_float: bool = True,
         parse_dates=None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1815,6 +1838,7 @@ class SQLiteDatabase(PandasSQL):
                     index_col=index_col,
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
+                    dtype=dtype,
                 )
 
     def read_query(
@@ -1825,6 +1849,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         parse_dates=None,
         chunksize: Optional[int] = None,
+        dtype: Optional[DtypeArg] = None,
     ):
 
         args = _convert_params(sql, params)
@@ -1839,6 +1864,7 @@ class SQLiteDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
         else:
             data = self._fetchall_as_list(cursor)
@@ -1850,6 +1876,7 @@ class SQLiteDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
             return frame
 
