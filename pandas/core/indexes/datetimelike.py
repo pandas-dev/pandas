@@ -12,6 +12,7 @@ from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -683,12 +684,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
+
+        elif not self._should_compare(other):
+            return Index([], name=result_name)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            dtype = find_common_type([self.dtype, other.dtype])
+            this = self.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
+            return this.intersection(other, sort=sort)
 
         return self._intersection(other, sort=sort)
 
@@ -700,10 +710,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
             return other.copy()._get_reconciled_name_object(self)
-
-        if not isinstance(other, type(self)):
-            result = Index.intersection(self, other, sort=sort)
-            return result
 
         elif not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
