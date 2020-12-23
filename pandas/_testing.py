@@ -16,6 +16,7 @@ from typing import (
     ContextManager,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -2715,57 +2716,93 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        saw_warning = False
-        matched_message = False
-
         warnings.simplefilter(filter_level)
         yield w
-        extra_warnings = []
-
-        for actual_warning in w:
-            expected_warning = cast(Type[Warning], expected_warning)
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
-                saw_warning = True
-
-                if check_stacklevel and issubclass(
-                    actual_warning.category, (FutureWarning, DeprecationWarning)
-                ):
-                    _assert_raised_with_correct_stacklevel(actual_warning)
-
-                if match is not None and re.search(match, str(actual_warning.message)):
-                    matched_message = True
-
-            else:
-                extra_warnings.append(
-                    (
-                        actual_warning.category.__name__,
-                        actual_warning.message,
-                        actual_warning.filename,
-                        actual_warning.lineno,
-                    )
-                )
 
         if expected_warning:
             expected_warning = cast(Type[Warning], expected_warning)
-            if not saw_warning:
-                raise AssertionError(
-                    f"Did not see expected warning of class "
-                    f"{repr(expected_warning.__name__)}"
-                )
-
-            if match and not matched_message:
-                raise AssertionError(
-                    f"Did not see warning {repr(expected_warning.__name__)} "
-                    f"matching {match}"
-                )
-
-        if raise_on_extra_warnings and extra_warnings:
-            raise AssertionError(
-                f"Caused unexpected warning(s): {repr(extra_warnings)}"
+            _assert_caught_expected_warning(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+                match=match,
+                check_stacklevel=check_stacklevel,
             )
+
+        if raise_on_extra_warnings:
+            _assert_caught_no_extra_warnings(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+            )
+
+
+def _assert_caught_expected_warning(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Type[Warning],
+    match: Optional[str],
+    check_stacklevel: bool,
+) -> None:
+    """Assert that there was the expected warning among the caught warnings."""
+    saw_warning = False
+    matched_message = False
+
+    for actual_warning in caught_warnings:
+        if issubclass(actual_warning.category, expected_warning):
+            saw_warning = True
+
+            if check_stacklevel and issubclass(
+                actual_warning.category, (FutureWarning, DeprecationWarning)
+            ):
+                _assert_raised_with_correct_stacklevel(actual_warning)
+
+            if match is not None and re.search(match, str(actual_warning.message)):
+                matched_message = True
+
+    if not saw_warning:
+        raise AssertionError(
+            f"Did not see expected warning of class "
+            f"{repr(expected_warning.__name__)}"
+        )
+
+    if match and not matched_message:
+        raise AssertionError(
+            f"Did not see warning {repr(expected_warning.__name__)} "
+            f"matching {match}"
+        )
+
+
+def _assert_caught_no_extra_warnings(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> None:
+    """Assert that no extra warnings apart from the expected ones are caught."""
+    extra_warnings = []
+
+    for actual_warning in caught_warnings:
+        if _is_unexpected_warning(actual_warning, expected_warning):
+            extra_warnings.append(
+                (
+                    actual_warning.category.__name__,
+                    actual_warning.message,
+                    actual_warning.filename,
+                    actual_warning.lineno,
+                )
+            )
+
+    if extra_warnings:
+        raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
+
+
+def _is_unexpected_warning(
+    actual_warning: warnings.WarningMessage,
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> bool:
+    """Check if the actual warning issued is unexpected."""
+    if actual_warning and not expected_warning:
+        return True
+    expected_warning = cast(Type[Warning], expected_warning)
+    return bool(not issubclass(actual_warning.category, expected_warning))
 
 
 def _assert_raised_with_correct_stacklevel(
@@ -2773,7 +2810,7 @@ def _assert_raised_with_correct_stacklevel(
 ) -> None:
     from inspect import getframeinfo, stack
 
-    caller = getframeinfo(stack()[3][0])
+    caller = getframeinfo(stack()[4][0])
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "
