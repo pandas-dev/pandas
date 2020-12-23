@@ -25,11 +25,12 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import coerce_indexer_dtype, find_common_type
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_categorical_dtype,
+    is_dtype_equal,
     is_hashable,
     is_integer,
     is_iterator,
