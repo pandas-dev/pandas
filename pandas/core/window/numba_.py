@@ -208,10 +208,6 @@ def generate_numba_table_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_table(
@@ -219,7 +215,7 @@ def generate_numba_table_func(
     ):
         result = np.empty(values.shape)
         min_periods_mask = np.empty(values.shape)
-        for i in loop_range(len(result)):
+        for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
