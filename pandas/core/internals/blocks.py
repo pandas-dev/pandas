@@ -649,15 +649,7 @@ class Block(PandasObject):
     def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
         values = self.values
 
-        if is_categorical_dtype(dtype):
-
-            if is_categorical_dtype(values.dtype):
-                # GH#10696/GH#18593: update an existing categorical efficiently
-                return values.astype(dtype, copy=copy)
-
-            return Categorical(values, dtype=dtype)
-
-        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             # if we are passed a datetime64[ns, tz]
             if copy:
                 # this should be the only copy
