@@ -164,6 +164,14 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
             value = value.to_datetime64()
     elif isinstance(value, Timedelta):
         value = value.to_timedelta64()
+
+    if (isinstance(value, np.timedelta64) and dtype.kind == "M") or (
+        isinstance(value, np.datetime64) and dtype.kind == "m"
+    ):
+        # numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
+        #  vice-versa, but we do not want to allow this, so we need to
+        #  check explicitly
+        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
     return value
 
 
