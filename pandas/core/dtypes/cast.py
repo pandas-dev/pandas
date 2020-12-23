@@ -16,6 +16,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -923,11 +924,13 @@ def astype_dt64_to_dt64tz(
     from pandas.core.construction import ensure_wrapped_if_datetimelike
 
     values = ensure_wrapped_if_datetimelike(values)
+    values = cast("DatetimeArray", values)
     aware = isinstance(dtype, DatetimeTZDtype)
 
     if via_utc:
         # Series.astype behavior
         assert values.tz is None and aware  # caller is responsible for checking this
+        dtype = cast(DatetimeTZDtype, dtype)
 
         if copy:
             # this should be the only copy
@@ -940,10 +943,12 @@ def astype_dt64_to_dt64tz(
         # DatetimeArray/DatetimeIndex.astype behavior
 
         if values.tz is None and aware:
+            dtype = cast(DatetimeTZDtype, dtype)
             return values.tz_localize(dtype.tz)
 
         elif aware:
             # GH#18951: datetime64_tz dtype but not equal means different tz
+            dtype = cast(DatetimeTZDtype, dtype)
             result = values.tz_convert(dtype.tz)
             if copy:
                 result = result.copy()
