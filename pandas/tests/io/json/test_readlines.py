@@ -252,3 +252,31 @@ def test_readjson_lines_chunks_fileurl(datapath):
     with pd.read_json(file_url, lines=True, chunksize=1) as url_reader:
         for index, chuck in enumerate(url_reader):
             tm.assert_frame_equal(chuck, df_list_expected[index])
+
+
+def test_chunksize_is_incremental():
+    # See https://github.com/pandas-dev/pandas/issues/34548
+    jsonl = (
+        """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}\n"""
+        * 1000
+    )
+
+    class MyReader:
+        def __init__(self, contents):
+            self.read_count = 0
+            self.stringio = StringIO(contents)
+
+        def read(self, *args):
+            self.read_count += 1
+            return self.stringio.read(*args)
+
+        def __iter__(self):
+            self.read_count += 1
+            return iter(self.stringio)
+
+    reader = MyReader(jsonl)
+    assert len(list(pd.read_json(reader, lines=True, chunksize=100))) > 1
+    assert reader.read_count > 10

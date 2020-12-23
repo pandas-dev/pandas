@@ -630,7 +630,7 @@ class JsonReader(abc.Iterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, "read") and (not self.chunksize or not self.nrows):
+        if hasattr(data, "read") and not (self.chunksize or self.nrows):
             data = data.read()
             self.close()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
