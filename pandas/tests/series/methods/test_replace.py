@@ -290,7 +290,7 @@ class TestSeriesReplace:
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
-            (pd.Categorical("A", categories=["A", "B"]), [1]),
+            (pd.Categorical(["A"], categories=["A", "B"]), [1]),
             (pd.Categorical(("A",), categories=["A", "B"]), [1]),
             (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
         ],
