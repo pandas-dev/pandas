@@ -1684,7 +1684,7 @@ def test_groupby_categorical_indices_unused_categories():
     # GH#38642
     df = DataFrame(
         {
-            "key": pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]),
+            "key": Categorical(["b", "b", "a"], categories=["a", "b", "c"]),
             "col": range(3),
         }
     )
