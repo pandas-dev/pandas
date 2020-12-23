@@ -37,7 +37,7 @@ def nontemporal_method(request):
     separately from these non-temporal methods.
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -67,7 +67,7 @@ def interp_methods_ind(request):
     'values' as a parameterization
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -457,6 +457,82 @@ class TestSeriesInterpolateData:
         msg = f"`limit_direction` must be '{expected}' for method `{method}`"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method, limit_direction=limit_direction)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+                {"method": "pad", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                range(5),
+                range(5),
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.

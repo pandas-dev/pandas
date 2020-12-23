@@ -12,6 +12,9 @@ dependencies:
   - asv
 
   # building
+  # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
+  - c-compiler
+  - cxx-compiler
   - cython>=0.29.21
 
   # code checks
@@ -21,7 +24,7 @@ dependencies:
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.782
-  - pre-commit
+  - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
 

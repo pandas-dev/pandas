@@ -10,7 +10,18 @@ import re
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 import zipfile
 
@@ -107,6 +118,8 @@ ALL_NUMPY_DTYPES = (
     + OBJECT_DTYPES
     + BYTES_DTYPES
 )
+
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
 
 
 # set testing_mode
@@ -299,34 +312,24 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
+    args: Tuple[Any, ...] = (data,)
+    mode = "wb"
+    method = "write"
+    compress_method: Callable
+
     if compression == "zip":
         compress_method = zipfile.ZipFile
+        mode = "w"
+        args = (dest, data)
+        method = "writestr"
     elif compression == "gzip":
-        # pandas\_testing.py:288: error: Incompatible types in assignment
-        # (expression has type "Type[GzipFile]", variable has type
-        # "Type[ZipFile]")
-        compress_method = gzip.GzipFile  # type: ignore[assignment]
+        compress_method = gzip.GzipFile
     elif compression == "bz2":
-        # pandas\_testing.py:290: error: Incompatible types in assignment
-        # (expression has type "Type[BZ2File]", variable has type
-        # "Type[ZipFile]")
-        compress_method = bz2.BZ2File  # type: ignore[assignment]
+        compress_method = bz2.BZ2File
     elif compression == "xz":
         compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
-
-    if compression == "zip":
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    else:
-        mode = "wb"
-        # pandas\_testing.py:302: error: Incompatible types in assignment
-        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
-        # Any]")
-        args = (data,)  # type: ignore[assignment]
-        method = "write"
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
@@ -749,19 +752,19 @@ def assert_index_equal(
     """
     __tracebackhide__ = True
 
-    def _check_types(l, r, obj="Index"):
+    def _check_types(left, right, obj="Index"):
         if exact:
-            assert_class_equal(l, r, exact=exact, obj=obj)
+            assert_class_equal(left, right, exact=exact, obj=obj)
 
             # Skip exact dtype checking when `check_categorical` is False
             if check_categorical:
-                assert_attr_equal("dtype", l, r, obj=obj)
+                assert_attr_equal("dtype", left, right, obj=obj)
 
             # allow string-like to have different inferred_types
-            if l.inferred_type in ("string"):
-                assert r.inferred_type in ("string")
+            if left.inferred_type in ("string"):
+                assert right.inferred_type in ("string")
             else:
-                assert_attr_equal("inferred_type", l, r, obj=obj)
+                assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -832,7 +835,9 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
-            diff = np.sum((left.values != right.values).astype(int)) * 100.0 / len(left)
+            diff = (
+                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
+            )
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
@@ -1147,9 +1152,9 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for l, r in zip(left, right):
+            for left_arr, right_arr in zip(left, right):
                 # count up differences
-                if not array_equivalent(l, r, strict_nan=strict_nan):
+                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
@@ -1456,7 +1461,16 @@ def assert_series_equal(
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
-    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+    elif is_extension_array_dtype_and_needs_i8_conversion(
+        left.dtype, right.dtype
+    ) or is_extension_array_dtype_and_needs_i8_conversion(right.dtype, left.dtype):
+        assert_extension_array_equal(
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
+        )
+    elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
             left._values,
@@ -1768,7 +1782,7 @@ def box_expected(expected, box_cls, transpose=True):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
         if transpose:
-            # for vector operations, we we need a DataFrame to be a single-row,
+            # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
             #  vectors of the same length.
             expected = expected.T
@@ -1864,6 +1878,20 @@ def assert_copy(iter1, iter2, **eql_kwargs):
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg
+
+
+def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+    """
+    Checks that we have the combination of an ExtensionArraydtype and
+    a dtype that should be converted to int64
+
+    Returns
+    -------
+    bool
+
+    Related to issue #37609
+    """
+    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
 
 
 def getCols(k):
@@ -2167,15 +2195,15 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = dict(
-        i=makeIntIndex,
-        f=makeFloatIndex,
-        s=makeStringIndex,
-        u=makeUnicodeIndex,
-        dt=makeDateIndex,
-        td=makeTimedeltaIndex,
-        p=makePeriodIndex,
-    ).get(idx_type)
+    idx_func = {
+        "i": makeIntIndex,
+        "f": makeFloatIndex,
+        "s": makeStringIndex,
+        "u": makeUnicodeIndex,
+        "dt": makeDateIndex,
+        "td": makeTimedeltaIndex,
+        "p": makePeriodIndex,
+    }.get(idx_type)
     if idx_func:
         # pandas\_testing.py:2120: error: Cannot call function of unknown type
         idx = idx_func(nentries)  # type: ignore[operator]
@@ -2688,58 +2716,93 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        saw_warning = False
-        matched_message = False
-
         warnings.simplefilter(filter_level)
         yield w
-        extra_warnings = []
-
-        for actual_warning in w:
-            if not expected_warning:
-                continue
-
-            expected_warning = cast(Type[Warning], expected_warning)
-            if issubclass(actual_warning.category, expected_warning):
-                saw_warning = True
-
-                if check_stacklevel and issubclass(
-                    actual_warning.category, (FutureWarning, DeprecationWarning)
-                ):
-                    _assert_raised_with_correct_stacklevel(actual_warning)
-
-                if match is not None and re.search(match, str(actual_warning.message)):
-                    matched_message = True
-
-            else:
-                extra_warnings.append(
-                    (
-                        actual_warning.category.__name__,
-                        actual_warning.message,
-                        actual_warning.filename,
-                        actual_warning.lineno,
-                    )
-                )
 
         if expected_warning:
             expected_warning = cast(Type[Warning], expected_warning)
-            if not saw_warning:
-                raise AssertionError(
-                    f"Did not see expected warning of class "
-                    f"{repr(expected_warning.__name__)}"
-                )
-
-            if match and not matched_message:
-                raise AssertionError(
-                    f"Did not see warning {repr(expected_warning.__name__)} "
-                    f"matching {match}"
-                )
-
-        if raise_on_extra_warnings and extra_warnings:
-            raise AssertionError(
-                f"Caused unexpected warning(s): {repr(extra_warnings)}"
+            _assert_caught_expected_warning(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+                match=match,
+                check_stacklevel=check_stacklevel,
             )
+
+        if raise_on_extra_warnings:
+            _assert_caught_no_extra_warnings(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+            )
+
+
+def _assert_caught_expected_warning(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Type[Warning],
+    match: Optional[str],
+    check_stacklevel: bool,
+) -> None:
+    """Assert that there was the expected warning among the caught warnings."""
+    saw_warning = False
+    matched_message = False
+
+    for actual_warning in caught_warnings:
+        if issubclass(actual_warning.category, expected_warning):
+            saw_warning = True
+
+            if check_stacklevel and issubclass(
+                actual_warning.category, (FutureWarning, DeprecationWarning)
+            ):
+                _assert_raised_with_correct_stacklevel(actual_warning)
+
+            if match is not None and re.search(match, str(actual_warning.message)):
+                matched_message = True
+
+    if not saw_warning:
+        raise AssertionError(
+            f"Did not see expected warning of class "
+            f"{repr(expected_warning.__name__)}"
+        )
+
+    if match and not matched_message:
+        raise AssertionError(
+            f"Did not see warning {repr(expected_warning.__name__)} "
+            f"matching {match}"
+        )
+
+
+def _assert_caught_no_extra_warnings(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> None:
+    """Assert that no extra warnings apart from the expected ones are caught."""
+    extra_warnings = []
+
+    for actual_warning in caught_warnings:
+        if _is_unexpected_warning(actual_warning, expected_warning):
+            extra_warnings.append(
+                (
+                    actual_warning.category.__name__,
+                    actual_warning.message,
+                    actual_warning.filename,
+                    actual_warning.lineno,
+                )
+            )
+
+    if extra_warnings:
+        raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
+
+
+def _is_unexpected_warning(
+    actual_warning: warnings.WarningMessage,
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> bool:
+    """Check if the actual warning issued is unexpected."""
+    if actual_warning and not expected_warning:
+        return True
+    expected_warning = cast(Type[Warning], expected_warning)
+    return bool(not issubclass(actual_warning.category, expected_warning))
 
 
 def _assert_raised_with_correct_stacklevel(
@@ -2747,7 +2810,7 @@ def _assert_raised_with_correct_stacklevel(
 ) -> None:
     from inspect import getframeinfo, stack
 
-    caller = getframeinfo(stack()[3][0])
+    caller = getframeinfo(stack()[4][0])
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "

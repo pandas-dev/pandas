@@ -90,9 +90,20 @@ class TestCategoricalDtype(Base):
         assert hash(dtype) == hash(dtype2)
 
     def test_equality(self, dtype):
+        assert dtype == "category"
         assert is_dtype_equal(dtype, "category")
+        assert "category" == dtype
+        assert is_dtype_equal("category", dtype)
+
+        assert dtype == CategoricalDtype()
         assert is_dtype_equal(dtype, CategoricalDtype())
+        assert CategoricalDtype() == dtype
+        assert is_dtype_equal(CategoricalDtype(), dtype)
+
+        assert dtype != "foo"
         assert not is_dtype_equal(dtype, "foo")
+        assert "foo" != dtype
+        assert not is_dtype_equal("foo", dtype)
 
     def test_construction_from_string(self, dtype):
         result = CategoricalDtype.construct_from_string("category")
@@ -198,6 +209,14 @@ class TestCategoricalDtype(Base):
     def test_not_string(self):
         # though CategoricalDtype has object kind, it cannot be string
         assert not is_string_dtype(CategoricalDtype())
+
+    def test_repr_range_categories(self):
+        rng = pd.Index(range(3))
+        dtype = CategoricalDtype(categories=rng, ordered=False)
+        result = repr(dtype)
+
+        expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
+        assert result == expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -826,9 +845,26 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(None, ordered2)
         c3 = CategoricalDtype(None, ordered1)
-        assert c1 == c2
-        assert c2 == c1
+        assert c1 != c2
+        assert c2 != c1
         assert c2 == c3
+
+    def test_categorical_dtype_equality_requires_categories(self):
+        # CategoricalDtype with categories=None is *not* equal to
+        #  any fully-initialized CategoricalDtype
+        first = CategoricalDtype(["a", "b"])
+        second = CategoricalDtype()
+        third = CategoricalDtype(ordered=True)
+
+        assert second == second
+        assert third == third
+
+        assert first != second
+        assert second != first
+        assert first != third
+        assert third != first
+        assert second == third
+        assert third == second
 
     @pytest.mark.parametrize("categories", [list("abc"), None])
     @pytest.mark.parametrize("other", ["category", "not a category"])
