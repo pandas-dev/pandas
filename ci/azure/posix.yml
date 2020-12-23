@@ -107,7 +107,7 @@ jobs:
 
     - bash: |
         eval "$(conda shell.bash hook)"
-        conda activate pandas-dev 
+        conda activate pandas-dev
         pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
       displayName: 'Build versions'
 
@@ -120,6 +120,7 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
-        source activate pandas-dev
+        eval "$(conda shell.bash hook)"
+        conda activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
