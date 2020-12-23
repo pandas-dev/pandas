@@ -346,7 +346,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             if is_extension_array_dtype(dtype):
                 arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype)
+                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
             else:
                 return self._format_native_types()
         elif is_integer_dtype(dtype):
@@ -600,6 +600,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
+
+        if isinstance(value, list) and len(value) == 0:
+            # We treat empty list as our own dtype.
+            return type(self)._from_sequence([], dtype=self.dtype)
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods

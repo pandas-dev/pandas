@@ -40,6 +40,9 @@ from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
+_shared_doc_kwargs = {
+    "klass": "PeriodArray",
+}
 
 # --- Period index sketch
 
@@ -83,8 +86,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     hour : int, array, or Series, default None
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
-    tz : object, default None
-        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -150,7 +151,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
-    @doc(PeriodArray.asfreq)
+    @doc(
+        PeriodArray.asfreq,
+        other="pandas.arrays.PeriodArray",
+        other_name="PeriodArray",
+        **_shared_doc_kwargs,
+    )
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
@@ -186,7 +192,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        tz=None,
         dtype=None,
         copy=False,
         name=None,
@@ -630,27 +635,24 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
+        elif not self._should_compare(other):
+            # We can infer that the intersection is empty.
+            return Index([], name=result_name)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            # i.e. object dtype
+            return super().intersection(other, sort=sort)
+
         return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
-
-        if is_object_dtype(other.dtype):
-            return self.astype("O").intersection(other, sort=sort)
-
-        elif not self._is_comparable_dtype(other.dtype):
-            # We can infer that the intersection is empty.
-            # assert_can_do_setop ensures that this is not just a mismatched freq
-            this = self[:0].astype("O")
-            other = other[:0].astype("O")
-            return this.intersection(other, sort=sort)
-
         return self._setop(other, sort, opname="intersection")
 
     def difference(self, other, sort=None):
