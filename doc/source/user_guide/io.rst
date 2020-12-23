@@ -2831,15 +2831,15 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
 .. warning::
 
-   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ package for writing old-style ``.xls``
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
    excel files is no longer maintained.
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ package is now only for reading
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
    old-style ``.xls`` files.
 
    Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
    would result in using the ``xlrd`` engine in many cases, including new
    Excel 2007+ (``.xlsx``) files.
-   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__  is installed,
    many of these cases will now default to using the ``openpyxl`` engine.
    See the :func:`read_excel` documentation for more details.
 
