@@ -824,18 +824,20 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
             _regex_cache[fmt] = format_regex
 
     dts.us = dts.ps = dts.as = 0
-    result = np.empty(n, dtype='O')
-    iresult = result.view('i8')
+    result = np.empty(n, dtype='object')
+    aux_m8 = np.empty(1, dtype='M8[ns]')
+    aux_m8_int = aux_m8.view('i8')
+
     result_timezone = np.empty(n, dtype='object')
     for i in range(n):
         val = values[i]
         if isinstance(val, str):
             if val in nat_strings:
-                iresult[i] = NPY_NAT
+                result[i] = int(val)
                 continue
         else:
             if checknull_with_nat(val):
-                iresult[i] = NPY_NAT
+                result[i] = int(val)
                 continue
             else:
                 val = str(val)
@@ -845,14 +847,17 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
             found = format_regex.match(val)
             if not found:
                 result[i] = int(val)
-            if len(val) != found.end():
+                continue
+            elif len(val) != found.end():
                 result[i] = int(val)
+                continue
 
         # search
         else:
             found = format_regex.search(val)
             if not found:
                 result[i] = int(val)
+                continue
 
         iso_year = -1
         year = 1900
@@ -1008,6 +1013,7 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
                 day = datetime_result.day
         except ValueError:
             result[i] = int(val)
+            continue
         if weekday == -1:
             weekday = date(year, month, day).weekday()
 
@@ -1020,11 +1026,13 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
         dts.us = us
         dts.ps = ns * 1000
 
-        iresult[i] = dtstruct_to_dt64(&dts)
+        aux_m8_int[0] = dtstruct_to_dt64(&dts)
+        result[i] = aux_m8[0]
         try:
             check_dts_bounds(&dts)
         except ValueError:
             result[i] = int(val)
+            continue
 
         result_timezone[i] = timezone
 
