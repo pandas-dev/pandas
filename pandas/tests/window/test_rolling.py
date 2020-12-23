@@ -44,7 +44,7 @@ def test_constructor(frame_or_series):
 
     # GH 13383
 
-    msg = "window must be non-negative"
+    msg = "window must be an integer 0 or greater"
 
     with pytest.raises(ValueError, match=msg):
         c(-1)
