@@ -94,11 +94,11 @@ JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
 # dtypes
-
 Dtype = Union[
     "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
-DtypeArg = Optional[Union[Dtype, Dict[Label, Dtype]]]
+# DtypeArg specifies all allowable dtypes in a functions its dtype argument
+DtypeArg = Union[Dtype, Dict[Label, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # For functions like rename that convert one label to another

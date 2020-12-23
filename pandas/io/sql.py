@@ -133,7 +133,7 @@ def _wrap_result(
     index_col=None,
     coerce_float: bool = True,
     parse_dates=None,
-    dtype: DtypeArg = None,
+    dtype: Optional[DtypeArg] = None,
 ):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
@@ -313,7 +313,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: None = None,
-    dtype: DtypeArg = None,
+    dtype: Optional[DtypeArg] = None,
 ) -> DataFrame:
     ...
 
@@ -327,7 +327,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: int = 1,
-    dtype: DtypeArg = None,
+    dtype: Optional[DtypeArg] = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -340,7 +340,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
-    dtype: DtypeArg = None,
+    dtype: Optional[DtypeArg] = None,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
@@ -1319,7 +1319,7 @@ class SQLDatabase(PandasSQL):
         index_col=None,
         coerce_float=True,
         parse_dates=None,
-        dtype: DtypeArg = None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1344,7 +1344,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         params=None,
         chunksize: Optional[int] = None,
-        dtype: DtypeArg = None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """
         Read SQL query into a DataFrame.
@@ -1379,6 +1379,8 @@ class SQLDatabase(PandasSQL):
         dtype : Type name or dict of columns
             Data type for data or columns. E.g. np.float64 or
             {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -1819,7 +1821,7 @@ class SQLiteDatabase(PandasSQL):
         index_col=None,
         coerce_float: bool = True,
         parse_dates=None,
-        dtype: DtypeArg = None,
+        dtype: Optional[DtypeArg] = None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1847,7 +1849,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         parse_dates=None,
         chunksize: Optional[int] = None,
-        dtype: DtypeArg = None,
+        dtype: Optional[DtypeArg] = None,
     ):
 
         args = _convert_params(sql, params)
