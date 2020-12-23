@@ -133,9 +133,15 @@ _shared_doc_kwargs = {
     "klass": "Series/DataFrame",
     "axes_single_arg": "int or labels for object",
     "args_transpose": "axes to permute (int or label for object)",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 
@@ -2093,6 +2099,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
             ``io.excel.xlsm.writer``.
+
+            .. deprecated:: 1.2.0
+
+                As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+                maintained, the ``xlwt`` engine will be removed in a future version
+                of pandas.
+
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         encoding : str, optional
@@ -2497,6 +2510,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
+
+        .. warning::
+
+           One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+           but the type of the subclass is lost upon storing.
 
         For more information see the :ref:`user guide <io.hdf5>`.
 
@@ -3807,20 +3825,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
-    def _iset_item(self, loc: int, value) -> None:
-        self._mgr.iset(loc, value)
-        self._clear_item_cache()
-
-    def _set_item(self, key, value) -> None:
-        try:
-            loc = self._info_axis.get_loc(key)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self._mgr.insert(len(self._info_axis), key, value)
-            return
-
-        NDFrame._iset_item(self, loc, value)
-
     @final
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
@@ -4189,6 +4193,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
+            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+                # Set level to zero in case of MultiIndex and label is string,
+                #  because isin can't handle strings for MultiIndexes GH#36293
+                indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
                 # Check if label doesn't exist along axis
@@ -4374,9 +4382,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
              If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
              Choice of sorting algorithm. See also ndarray.np.sort for more
-             information.  `mergesort` is the only stable algorithm. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+             information. `mergesort` is the only stable algorithm. For
+             DataFrames, if sorting by multiple columns or labels, this
+             argument is ignored, defaulting to a stable sorting algorithm.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -5855,6 +5863,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
+            # TODO(EA2D): special case not needed with 2D EAs
             results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
@@ -6472,7 +6481,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     backfill = bfill
 
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(
+        _shared_docs["replace"],
+        klass=_shared_doc_kwargs["klass"],
+        inplace=_shared_doc_kwargs["inplace"],
+        replace_iloc=_shared_doc_kwargs["replace_iloc"],
+    )
     def replace(
         self,
         to_replace=None,
@@ -6482,282 +6496,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         regex=False,
         method="pad",
     ):
-        """
-        Replace values given in `to_replace` with `value`.
-
-        Values of the {klass} are replaced with other values dynamically.
-        This differs from updating with ``.loc`` or ``.iloc``, which require
-        you to specify a location to update with some value.
-
-        Parameters
-        ----------
-        to_replace : str, regex, list, dict, Series, int, float, or None
-            How to find the values that will be replaced.
-
-            * numeric, str or regex:
-
-                - numeric: numeric values equal to `to_replace` will be
-                  replaced with `value`
-                - str: string exactly matching `to_replace` will be replaced
-                  with `value`
-                - regex: regexs matching `to_replace` will be replaced with
-                  `value`
-
-            * list of str, regex, or numeric:
-
-                - First, if `to_replace` and `value` are both lists, they
-                  **must** be the same length.
-                - Second, if ``regex=True`` then all of the strings in **both**
-                  lists will be interpreted as regexs otherwise they will match
-                  directly. This doesn't matter much for `value` since there
-                  are only a few possible substitution regexes you can use.
-                - str, regex and numeric rules apply as above.
-
-            * dict:
-
-                - Dicts can be used to specify different replacement values
-                  for different existing values. For example,
-                  ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
-                  'y' with 'z'. To use a dict in this way the `value`
-                  parameter should be `None`.
-                - For a DataFrame a dict can specify that different values
-                  should be replaced in different columns. For example,
-                  ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
-                  and the value 'z' in column 'b' and replaces these values
-                  with whatever is specified in `value`. The `value` parameter
-                  should not be ``None`` in this case. You can treat this as a
-                  special case of passing two lists except that you are
-                  specifying the column to search in.
-                - For a DataFrame nested dictionaries, e.g.,
-                  ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
-                  'a' for the value 'b' and replace it with NaN. The `value`
-                  parameter should be ``None`` to use a nested dict in this
-                  way. You can nest regular expressions as well. Note that
-                  column names (the top-level dictionary keys in a nested
-                  dictionary) **cannot** be regular expressions.
-
-            * None:
-
-                - This means that the `regex` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or
-                  Series of such elements. If `value` is also ``None`` then
-                  this **must** be a nested dictionary or Series.
-
-            See the examples section for examples of each of these.
-        value : scalar, dict, list, str, regex, default None
-            Value to replace any values matching `to_replace` with.
-            For a DataFrame a dict of values can be used to specify which
-            value to use for each column (columns not in the dict will not be
-            filled). Regular expressions, strings and lists or dicts of such
-            objects are also allowed.
-        inplace : bool, default False
-            If True, in place. Note: this will modify any
-            other views on this object (e.g. a column from a DataFrame).
-            Returns the caller if this is True.
-        limit : int or None, default None
-            Maximum size gap to forward or backward fill.
-        regex : bool or same types as `to_replace`, default False
-            Whether to interpret `to_replace` and/or `value` as regular
-            expressions. If this is ``True`` then `to_replace` *must* be a
-            string. Alternatively, this could be a regular expression or a
-            list, dict, or array of regular expressions in which case
-            `to_replace` must be ``None``.
-        method : {{'pad', 'ffill', 'bfill', `None`}}
-            The method to use when for replacement, when `to_replace` is a
-            scalar, list or tuple and `value` is ``None``.
-
-        Returns
-        -------
-        {klass} or None
-            Object after replacement or None if ``inplace=True``.
-
-        Raises
-        ------
-        AssertionError
-            * If `regex` is not a ``bool`` and `to_replace` is not
-              ``None``.
-
-        TypeError
-            * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
-            * If `to_replace` is a ``dict`` and `value` is not a ``list``,
-              ``dict``, ``ndarray``, or ``Series``
-            * If `to_replace` is ``None`` and `regex` is not compilable
-              into a regular expression or is a list, dict, ndarray, or
-              Series.
-            * When replacing multiple ``bool`` or ``datetime64`` objects and
-              the arguments to `to_replace` does not match the type of the
-              value being replaced
-
-        ValueError
-            * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
-              `value` but they are not the same length.
-
-        See Also
-        --------
-        {klass}.fillna : Fill NA values.
-        {klass}.where : Replace values based on boolean condition.
-        Series.str.replace : Simple string replacement.
-
-        Notes
-        -----
-        * Regex substitution is performed under the hood with ``re.sub``. The
-          rules for substitution for ``re.sub`` are the same.
-        * Regular expressions will only substitute on strings, meaning you
-          cannot provide, for example, a regular expression matching floating
-          point numbers and expect the columns in your frame that have a
-          numeric dtype to be matched. However, if those floating point
-          numbers *are* strings, then you can do this.
-        * This method has *a lot* of options. You are encouraged to experiment
-          and play with this method to gain intuition about how it works.
-        * When dict is used as the `to_replace` value, it is like
-          key(s) in the dict are the to_replace part and
-          value(s) in the dict are the value parameter.
-
-        Examples
-        --------
-
-        **Scalar `to_replace` and `value`**
-
-        >>> s = pd.Series([0, 1, 2, 3, 4])
-        >>> s.replace(0, 5)
-        0    5
-        1    1
-        2    2
-        3    3
-        4    4
-        dtype: int64
-
-        >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
-        ...                    'B': [5, 6, 7, 8, 9],
-        ...                    'C': ['a', 'b', 'c', 'd', 'e']}})
-        >>> df.replace(0, 5)
-           A  B  C
-        0  5  5  a
-        1  1  6  b
-        2  2  7  c
-        3  3  8  d
-        4  4  9  e
-
-        **List-like `to_replace`**
-
-        >>> df.replace([0, 1, 2, 3], 4)
-           A  B  C
-        0  4  5  a
-        1  4  6  b
-        2  4  7  c
-        3  4  8  d
-        4  4  9  e
-
-        >>> df.replace([0, 1, 2, 3], [4, 3, 2, 1])
-           A  B  C
-        0  4  5  a
-        1  3  6  b
-        2  2  7  c
-        3  1  8  d
-        4  4  9  e
-
-        >>> s.replace([1, 2], method='bfill')
-        0    0
-        1    3
-        2    3
-        3    3
-        4    4
-        dtype: int64
-
-        **dict-like `to_replace`**
-
-        >>> df.replace({{0: 10, 1: 100}})
-             A  B  C
-        0   10  5  a
-        1  100  6  b
-        2    2  7  c
-        3    3  8  d
-        4    4  9  e
-
-        >>> df.replace({{'A': 0, 'B': 5}}, 100)
-             A    B  C
-        0  100  100  a
-        1    1    6  b
-        2    2    7  c
-        3    3    8  d
-        4    4    9  e
-
-        >>> df.replace({{'A': {{0: 100, 4: 400}}}})
-             A  B  C
-        0  100  5  a
-        1    1  6  b
-        2    2  7  c
-        3    3  8  d
-        4  400  9  e
-
-        **Regular expression `to_replace`**
-
-        >>> df = pd.DataFrame({{'A': ['bat', 'foo', 'bait'],
-        ...                    'B': ['abc', 'bar', 'xyz']}})
-        >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
-              A    B
-        0   new  abc
-        1   foo  new
-        2  bait  xyz
-
-        >>> df.replace({{'A': r'^ba.$'}}, {{'A': 'new'}}, regex=True)
-              A    B
-        0   new  abc
-        1   foo  bar
-        2  bait  xyz
-
-        >>> df.replace(regex=r'^ba.$', value='new')
-              A    B
-        0   new  abc
-        1   foo  new
-        2  bait  xyz
-
-        >>> df.replace(regex={{r'^ba.$': 'new', 'foo': 'xyz'}})
-              A    B
-        0   new  abc
-        1   xyz  new
-        2  bait  xyz
-
-        >>> df.replace(regex=[r'^ba.$', 'foo'], value='new')
-              A    B
-        0   new  abc
-        1   new  new
-        2  bait  xyz
-
-        Compare the behavior of ``s.replace({{'a': None}})`` and
-        ``s.replace('a', None)`` to understand the peculiarities
-        of the `to_replace` parameter:
-
-        >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
-
-        When one uses a dict as the `to_replace` value, it is like the
-        value(s) in the dict are equal to the `value` parameter.
-        ``s.replace({{'a': None}})`` is equivalent to
-        ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
-
-        >>> s.replace({{'a': None}})
-        0      10
-        1    None
-        2    None
-        3       b
-        4    None
-        dtype: object
-
-        When ``value=None`` and `to_replace` is a scalar, list or
-        tuple, `replace` uses the method parameter (default 'pad') to do the
-        replacement. So this is why the 'a' values are being replaced by 10
-        in rows 1 and 2 and 'b' in row 4 in this case.
-        The command ``s.replace('a', None)`` is actually equivalent to
-        ``s.replace(to_replace='a', value=None, method='pad')``:
-
-        >>> s.replace('a', None)
-        0    10
-        1    10
-        2    10
-        3     b
-        4     b
-        dtype: object
-        """
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -7710,7 +7448,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    @final
+    @doc(**_shared_doc_kwargs)
     def asfreq(
         self: FrameOrSeries,
         freq,
@@ -7720,26 +7458,39 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_value=None,
     ) -> FrameOrSeries:
         """
-        Convert TimeSeries to specified frequency.
-
-        Optionally provide filling method to pad/backfill missing values.
+        Convert time series to specified frequency.
 
         Returns the original data conformed to a new index with the specified
-        frequency. ``resample`` is more appropriate if an operation, such as
-        summarization, is necessary to represent the data at the new frequency.
+        frequency.
+
+        If the index of this {klass} is a :class:`~pandas.PeriodIndex`, the new index
+        is the result of transforming the original index with
+        :meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
+        will map one-to-one to the new index).
+
+        Otherwise, the new index will be equivalent to ``pd.date_range(start, end,
+        freq=freq)`` where ``start`` and ``end`` are, respectively, the first and
+        last entries in the original index (see :func:`pandas.date_range`). The
+        values corresponding to any timesteps in the new index which were not present
+        in the original index will be null (``NaN``), unless a method for filling
+        such unknowns is provided (see the ``method`` parameter below).
+
+        The :meth:`resample` method is more appropriate if an operation on each group of
+        timesteps (such as an aggregate) is necessary to represent the data at the new
+        frequency.
 
         Parameters
         ----------
         freq : DateOffset or str
             Frequency DateOffset or string.
-        method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
+        method : {{'backfill'/'bfill', 'pad'/'ffill'}}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
 
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {'start', 'end'}, default end
+        how : {{'start', 'end'}}, default end
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -7749,8 +7500,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller
-            Object converted to the specified frequency.
+        {klass}
+            {klass} object reindexed to the specified frequency.
 
         See Also
         --------
@@ -7767,7 +7518,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
-        >>> df = pd.DataFrame({'s':series})
+        >>> df = pd.DataFrame({{'s': series}})
         >>> df
                                s
         2000-01-01 00:00:00    0.0
@@ -7966,7 +7717,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
-    @final
+    @doc(**_shared_doc_kwargs)
     def resample(
         self,
         rule,
@@ -7985,31 +7736,31 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Resample time-series data.
 
-        Convenience method for frequency conversion and resampling of time
-        series. Object must have a datetime-like index (`DatetimeIndex`,
-        `PeriodIndex`, or `TimedeltaIndex`), or pass datetime-like values
-        to the `on` or `level` keyword.
+        Convenience method for frequency conversion and resampling of time series.
+        The object must have a datetime-like index (`DatetimeIndex`, `PeriodIndex`,
+        or `TimedeltaIndex`), or the caller must pass the label of a datetime-like
+        series/index to the ``on``/``level`` keyword parameter.
 
         Parameters
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
+        axis : {{0 or 'index', 1 or 'columns'}}, default 0
             Which axis to use for up- or down-sampling. For `Series` this
             will default to 0, i.e. along the rows. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-        closed : {'right', 'left'}, default None
+        closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        label : {'right', 'left'}, default None
+        label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        convention : {'start', 'end', 's', 'e'}, default 'start'
+        convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
-        kind : {'timestamp', 'period'}, optional, default None
+        kind : {{'timestamp', 'period'}}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
             `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
@@ -8034,7 +7785,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {'epoch', 'start', 'start_day'}, Timestamp or str, default 'start_day'
+        origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
+            or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
             If a timestamp is not used, these values are also supported:
@@ -8045,6 +7797,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionadded:: 1.1.0
 
+            - 'end': `origin` is the last value of the timeseries
+            - 'end_day': `origin` is the ceiling midnight of the last day
+
+            .. versionadded:: 1.3.0
+
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -8052,13 +7809,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Resampler object
+        pandas.core.Resampler
+            :class:`~pandas.core.Resampler` object.
 
         See Also
         --------
-        groupby : Group by mapping, function, label, or list of labels.
         Series.resample : Resample a Series.
-        DataFrame.resample: Resample a DataFrame.
+        DataFrame.resample : Resample a DataFrame.
+        groupby : Group {klass} by mapping, function, label, or list of labels.
+        asfreq : Reindex a {klass} with the given frequency without grouping.
 
         Notes
         -----
@@ -8217,8 +7976,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
+        >>> d = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...      'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
         >>> df = pd.DataFrame(d)
         >>> df['week_starting'] = pd.date_range('01/01/2018',
         ...                                     periods=8,
@@ -8243,13 +8002,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
-        >>> d2 = {'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}
-        >>> df2 = pd.DataFrame(d2,
-        ...                    index=pd.MultiIndex.from_product([days,
-        ...                                                     ['morning',
-        ...                                                      'afternoon']]
-        ...                                                     ))
+        >>> d2 = {{'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...       'volume': [50, 60, 40, 100, 50, 100, 40, 50]}}
+        >>> df2 = pd.DataFrame(
+        ...     d2,
+        ...     index=pd.MultiIndex.from_product(
+        ...         [days, ['morning', 'afternoon']]
+        ...     )
+        ... )
         >>> df2
                               price  volume
         2000-01-01 morning       10      50
@@ -8322,6 +8082,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
+        Freq: 17T, dtype: int64
+
+        If you want to take the largest Timestamp as the end of the bins:
+
+        >>> ts.resample('17min', origin='end').sum()
+        2000-10-01 23:35:00     0
+        2000-10-01 23:52:00    18
+        2000-10-02 00:09:00    27
+        2000-10-02 00:26:00    63
+        Freq: 17T, dtype: int64
+
+        In contrast with the `start_day`, you can use `end_day` to take the ceiling
+        midnight of the largest Timestamp as the end of the bins and drop the bins
+        not containing data:
+
+        >>> ts.resample('17min', origin='end_day').sum()
+        2000-10-01 23:38:00     3
+        2000-10-01 23:55:00    15
+        2000-10-02 00:12:00    45
+        2000-10-02 00:29:00    45
         Freq: 17T, dtype: int64
 
         To replace the use of the deprecated `base` argument, you can now use `offset`,
@@ -8427,7 +8207,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self
 
         offset = to_offset(offset)
-        end_date = end = self.index[0] + offset
+        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+            # GH#29623 if first value is end of period, remove offset with n = 1
+            #  before adding the real offset
+            end_date = end = self.index[0] - offset.base + offset
+        else:
+            end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
         if isinstance(offset, Tick):
@@ -8442,8 +8227,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Select final periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
-        select the last few rows based on a date offset.
+        For a DataFrame with a sorted DatetimeIndex, this function
+        selects the last few rows based on a date offset.
 
         Parameters
         ----------

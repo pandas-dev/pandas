@@ -91,7 +91,6 @@ void parser_set_default_options(parser_t *self) {
     self->skipinitialspace = 0;
     self->quoting = QUOTE_MINIMAL;
     self->allow_embedded_newline = 1;
-    self->strict = 0;
 
     self->expected_fields = -1;
     self->error_bad_lines = 0;
@@ -1031,15 +1030,9 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_CARRIAGE(c)) {
                     END_FIELD();
                     self->state = EAT_CRNL;
-                } else if (!self->strict) {
+                } else {
                     PUSH_CHAR(c);
                     self->state = IN_FIELD;
-                } else {
-                    int64_t bufsize = 100;
-                    self->error_msg = malloc(bufsize);
-                    snprintf(self->error_msg, bufsize,
-                            "delimiter expected after quote in quote");
-                    goto parsingerror;
                 }
                 break;
 

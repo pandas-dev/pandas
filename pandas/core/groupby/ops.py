@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -201,13 +202,10 @@ class BaseGrouper:
             try:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
-            except libreduction.InvalidApply as err:
-                # This Exception is raised if `f` triggers an exception
-                # but it is preferable to raise the exception in Python.
-                if "Let this error raise above us" not in str(err):
-                    # TODO: can we infer anything about whether this is
-                    #  worth-retrying in pure-python?
-                    raise
+            except IndexError:
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
+                pass
 
             else:
                 # If the fast apply path could be used we can return here.
@@ -521,7 +519,19 @@ class BaseGrouper:
             res_values = self._cython_operation(
                 kind, values, how, axis, min_count, **kwargs
             )
-            result = maybe_cast_result(result=res_values, obj=orig_values, how=how)
+            dtype = maybe_cast_result_dtype(orig_values.dtype, how)
+            if is_extension_array_dtype(dtype):
+                cls = dtype.construct_array_type()
+                return cls._from_sequence(res_values, dtype=dtype)
+            return res_values
+
+        elif is_float_dtype(values.dtype):
+            # FloatingArray
+            values = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+            res_values = self._cython_operation(
+                kind, values, how, axis, min_count, **kwargs
+            )
+            result = type(orig_values)._from_sequence(res_values)
             return result
 
         raise NotImplementedError(values.dtype)

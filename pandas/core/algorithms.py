@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -50,7 +51,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCRangeIndex,
     ABCSeries,
@@ -63,6 +64,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
+    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -215,7 +217,7 @@ def _reconstruct_data(
         values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
@@ -437,11 +439,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(
-        values, (ABCIndexClass, ABCSeries, ABCExtensionArray, np.ndarray)
-    ):
-        values = construct_1d_object_array_from_listlike(list(values))
-        # TODO: could use ensure_arraylike here
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+        values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
         values = np.array(values)
@@ -455,7 +454,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
-    if needs_i8_conversion(comps.dtype):
+    elif is_interval_dtype(comps.dtype):
+        return cast("IntervalArray", comps).isin(values)
+
+    elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
         return array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
@@ -701,7 +703,7 @@ def factorize(
         and values.freq is not None
     ):
         codes, uniques = values.factorize(sort=sort)
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             uniques = original._shallow_copy(uniques, name=None)
         elif isinstance(original, ABCSeries):
             from pandas import Index
@@ -740,8 +742,11 @@ def factorize(
     uniques = _reconstruct_data(uniques, dtype, original)
 
     # return original tenor
-    if isinstance(original, ABCIndexClass):
+    if isinstance(original, ABCIndex):
         if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            original._data = cast(
+                "Union[DatetimeArray, TimedeltaArray]", original._data
+            )
             uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):

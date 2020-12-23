@@ -25,7 +25,7 @@ from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndex
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
@@ -354,12 +354,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         elif not (hasattr(other, "ordered") and hasattr(other, "categories")):
             return False
         elif self.categories is None or other.categories is None:
-            # We're forced into a suboptimal corner thanks to math and
-            # backwards compatibility. We require that `CDT(...) == 'category'`
-            # for all CDTs **including** `CDT(None, ...)`. Therefore, *all*
-            # CDT(., .) = CDT(None, False) and *all*
-            # CDT(., .) = CDT(None, True).
-            return True
+            # For non-fully-initialized dtypes, these are only equal to
+            #  - the string "category" (handled above)
+            #  - other CategoricalDtype with categories=None
+            return self.categories is other.categories
         elif self.ordered or other.ordered:
             # At least one has ordered=True; equal if both have ordered=True
             # and the same values for categories in the same order.
@@ -499,7 +497,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        elif not isinstance(categories, ABCIndexClass):
+        elif not isinstance(categories, ABCIndex):
             categories = Index(categories, tupleize_cols=False)
 
         if not fastpath:
@@ -1171,3 +1169,15 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         return IntervalArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # NB: this doesn't handle checking for closed match
+        if not all(isinstance(x, IntervalDtype) for x in dtypes):
+            return np.dtype(object)
+
+        from pandas.core.dtypes.cast import find_common_type
+
+        common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
+        if common == object:
+            return np.dtype(object)
+        return IntervalDtype(common)

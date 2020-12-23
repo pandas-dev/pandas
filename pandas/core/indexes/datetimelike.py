@@ -147,7 +147,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if not is_period_dtype(self.dtype) and attrs["freq"]:
             # no need to infer if freq is None
             attrs["freq"] = "infer"
-        return Index(result, **attrs)
+        return type(self)(result, **attrs)
 
     # ------------------------------------------------------------------------
 
@@ -596,9 +596,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     # --------------------------------------------------------------------
     # Join/Set Methods
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        return is_dtype_equal(self.dtype, other.dtype)
 
     def _get_join_freq(self, other):
         """

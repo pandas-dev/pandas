@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type
 import warnings
 
 import numpy as np
@@ -19,21 +19,17 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
-from .masked import BaseMaskedDtype
-from .numeric import NumericArray
-
-if TYPE_CHECKING:
-    import pyarrow
+from .numeric import NumericArray, NumericDtype
 
 
-class FloatingDtype(BaseMaskedDtype):
+class FloatingDtype(NumericDtype):
     """
     An ExtensionDtype to hold a single size of floating dtype.
 
@@ -71,34 +67,6 @@ class FloatingDtype(BaseMaskedDtype):
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
-
-    def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "FloatingArray":
-        """
-        Construct FloatingArray from pyarrow Array/ChunkedArray.
-        """
-        import pyarrow
-
-        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
-
-        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
-            array = array.cast(pyarrow_type)
-
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            # pyarrow.ChunkedArray
-            chunks = array.chunks
-
-        results = []
-        for arr in chunks:
-            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
-            float_arr = FloatingArray(data.copy(), ~mask, copy=False)
-            results.append(float_arr)
-
-        return FloatingArray._concat_same_type(results)
 
 
 def coerce_to_array(
@@ -363,24 +331,10 @@ class FloatingArray(NumericArray):
             if incompatible type with an FloatingDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringArray, StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        # if the dtype is exactly the same, we can fastpath
-        if self.dtype == dtype:
-            # return the same object for copy=False
-            return self.copy() if copy else self
-        # if we are astyping to another nullable masked dtype, we can fastpath
-        if isinstance(dtype, BaseMaskedDtype):
-            # TODO deal with NaNs
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
-            # mask is copied depending on whether the data was copied, and
-            # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return StringArray._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):

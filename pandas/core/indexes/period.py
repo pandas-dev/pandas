@@ -9,7 +9,7 @@ from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -31,11 +31,7 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    _index_shared_docs,
-    ensure_index,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import ensure_index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
@@ -44,6 +40,9 @@ from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
+_shared_doc_kwargs = {
+    "klass": "PeriodArray",
+}
 
 # --- Period index sketch
 
@@ -87,8 +86,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     hour : int, array, or Series, default None
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
-    tz : object, default None
-        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -154,7 +151,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
-    @doc(PeriodArray.asfreq)
+    @doc(
+        PeriodArray.asfreq,
+        other="pandas.arrays.PeriodArray",
+        other_name="PeriodArray",
+        **_shared_doc_kwargs,
+    )
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
@@ -190,7 +192,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        tz=None,
         dtype=None,
         copy=False,
         name=None,
@@ -448,15 +449,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        target = ensure_index(target)
+    def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         if not self._should_compare(target):
             return self._get_indexer_non_comparable(target, method, unique=True)
 
         if isinstance(target, PeriodIndex):
-            target = target._get_engine_target()  # i.e. target.asi8
+            target = target._int64index  # i.e. target.asi8
             self_index = self._int64index
         else:
             self_index = self
@@ -467,7 +466,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 # convert tolerance to i8
                 tolerance = self._maybe_convert_timedelta(tolerance)
 
-        return Index.get_indexer(self_index, target, method, limit, tolerance)
+        return Index._get_indexer(self_index, target, method, limit, tolerance)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
