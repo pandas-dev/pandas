@@ -108,8 +108,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.min_periods = min_periods
         self.center = center
         self.win_type = win_type
-        self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
+        self._win_freq_i8 = None
         self.validate()
 
     @property
@@ -119,10 +119,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     @property
     def _on(self):
         return None
-
-    @property
-    def is_freq_type(self) -> bool:
-        return self.win_type == "freq"
 
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
@@ -329,9 +325,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         if isinstance(self.window, BaseIndexer):
             return self.window
-        if self.is_freq_type:
+        if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self.window
+                index_array=self._index_array, window_size=self._win_freq_i8
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -816,7 +812,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         # when we do the splitting for the groupby
         if self.on is not None:
             self.obj = self.obj.set_index(self._on)
-            self.on = None
         return super()._gotitem(key, ndim, subset=subset)
 
     def _validate_monotonic(self):
@@ -992,22 +987,21 @@ class Window(BaseWindow):
     def validate(self):
         super().validate()
 
+        if not isinstance(self.win_type, str):
+            raise ValueError(f"Invalid win_type {self.win_type}")
+        signal = import_optional_dependency(
+            "scipy.signal", extra="Scipy is required to generate window weight."
+        )
+        self._scipy_weight_generator = getattr(signal, self.win_type, None)
+        if self._scipy_weight_generator is None:
+            raise ValueError(f"Invalid win_type {self.win_type}")
+
         if isinstance(self.window, BaseIndexer):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif is_integer(self.window):
-            if self.window <= 0:
-                raise ValueError("window must be > 0 ")
-            sig = import_optional_dependency(
-                "scipy.signal", extra="Scipy is required to generate window weight."
-            )
-            if not isinstance(self.win_type, str):
-                raise ValueError(f"Invalid win_type {self.win_type}")
-            if getattr(sig, self.win_type, None) is None:
-                raise ValueError(f"Invalid win_type {self.win_type}")
-        else:
-            raise ValueError(f"Invalid window {self.window}")
+        elif not is_integer(self.window) or self.window < 0:
+            raise ValueError("window must be an integer 0 or greater")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1047,11 +1041,7 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        signal = import_optional_dependency(
-            "scipy.signal", extra="Scipy is required to generate window weight."
-        )
-        assert self.win_type is not None  # for mypy
-        window = getattr(signal, self.win_type)(self.window, **kwargs)
+        window = self._scipy_weight_generator(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -1669,9 +1659,7 @@ class RollingAndExpandingMixin(BaseWindow):
         # to the rolling constructors the data used when constructing self:
         # window width, frequency data, or a BaseIndexer subclass
         # GH 16058: offset window
-        window = (
-            self._get_cov_corr_window(other) if not self.is_freq_type else self.win_freq
-        )
+        window = self._get_cov_corr_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1814,9 +1802,7 @@ class RollingAndExpandingMixin(BaseWindow):
         # to the rolling constructors the data used when constructing self:
         # window width, frequency data, or a BaseIndexer subclass
         # GH 16058: offset window
-        window = (
-            self._get_cov_corr_window(other) if not self.is_freq_type else self.win_freq
-        )
+        window = self._get_cov_corr_window(other)
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -1878,9 +1864,17 @@ class Rolling(RollingAndExpandingMixin):
                 )
 
             # this will raise ValueError on non-fixed freqs
-            self.win_freq = self.window
-            self.window = self._determine_window_length()
-            self.win_type = "freq"
+            try:
+                freq = to_offset(self.window)
+            except (TypeError, ValueError) as err:
+                raise ValueError(
+                    f"passed window {self.window} is not "
+                    "compatible with a datetimelike index"
+                ) from err
+            if isinstance(self._on, ABCPeriodIndex):
+                self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
+            else:
+                self._win_freq_i8 = freq.nanos
 
             # min_periods must be an integer
             if self.min_periods is None:
@@ -1889,20 +1883,8 @@ class Rolling(RollingAndExpandingMixin):
         elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
             return
-        elif not is_integer(self.window):
-            raise ValueError("window must be an integer")
-        elif self.window < 0:
-            raise ValueError("window must be non-negative")
-
-    def _determine_window_length(self) -> Union[int, float]:
-        """
-        Calculate freq for PeriodIndexes based on Index freq. Can not use
-        nanos, because asi8 of PeriodIndex is not in nanos
-        """
-        freq = self._validate_freq()
-        if isinstance(self._on, ABCPeriodIndex):
-            return freq.nanos / (self._on.freq.nanos / self._on.freq.n)
-        return freq.nanos
+        elif not is_integer(self.window) or self.window < 0:
+            raise ValueError("window must be an integer 0 or greater")
 
     def _validate_monotonic(self):
         """
@@ -1916,18 +1898,6 @@ class Rolling(RollingAndExpandingMixin):
         if self.on is None:
             formatted = "index"
         raise ValueError(f"{formatted} must be monotonic")
-
-    def _validate_freq(self):
-        """
-        Validate & return window frequency.
-        """
-        try:
-            return to_offset(self.window)
-        except (TypeError, ValueError) as err:
-            raise ValueError(
-                f"passed window {self.window} is not "
-                "compatible with a datetimelike index"
-            ) from err
 
     _agg_see_also_doc = dedent(
         """
@@ -2138,8 +2108,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
             window = 0
-        elif self.is_freq_type:
+        elif self._win_freq_i8 is not None:
             rolling_indexer = VariableWindowIndexer
+            window = self._win_freq_i8
         else:
             rolling_indexer = FixedWindowIndexer
             index_array = None
