@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -31,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
+    is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -591,24 +593,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 return self.copy()
             return self
 
-        elif is_datetime64tz_dtype(dtype) and self.tz is None:
-            # FIXME: GH#33401 this does not match Series behavior
-            return self.tz_localize(dtype.tz)
-
-        elif is_datetime64tz_dtype(dtype):
-            # GH#18951: datetime64_ns dtype but not equal means different tz
-            result = self.tz_convert(dtype.tz)
-            if copy:
-                result = result.copy()
-            return result
-
-        elif dtype == "M8[ns]":
-            # we must have self.tz is None, otherwise we would have gone through
-            #  the is_dtype_equal branch above.
-            result = self.tz_convert("UTC").tz_localize(None)
-            if copy:
-                result = result.copy()
-            return result
+        elif is_datetime64_ns_dtype(dtype):
+            return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
 
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)

@@ -22,6 +22,7 @@ from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_dt64_to_dt64tz,
     astype_nansafe,
     convert_scalar_for_putitemlike,
     find_common_type,
@@ -649,14 +650,7 @@ class Block(PandasObject):
         values = self.values
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            # if we are passed a datetime64[ns, tz]
-            if copy:
-                # this should be the only copy
-                values = values.copy()
-            # i.e. values.tz_localize("UTC").tz_convert(dtype.tz)
-            # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
-            #  would be self.array_values().tz_localize(dtype.tz)
-            return DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
+            return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
 
         if is_dtype_equal(values.dtype, dtype):
             if copy:
