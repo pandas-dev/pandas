@@ -10,21 +10,22 @@ including other versions of pandas.
 
 .. warning::
 
-   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
-   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
-   writing excel files are no longer maintained. These are the only engines in pandas
-   that support the xls format.
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ package is now only for reading
+   old-style ``.xls`` files.
 
-   Previously, the default argument ``engine=None`` to ``pd.read_excel``
-   would result in using the ``xlrd`` engine in many cases. If
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files.
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
    many of these cases will now default to using the ``openpyxl`` engine.
-   See the :func:`read_excel` documentation for more details. Attempting to read
-   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
-   raise a warning. However users should be aware that ``xlrd`` is already
-   broken with certain package configurations, for example with Python 3.9
-   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
-   is anticipated to be unusable in the future.
+   See the :func:`read_excel` documentation for more details.
+
+   Thus, it is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
 
    Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
    unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
@@ -567,6 +568,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`Index.value_counts`)
 - Performance improvement in :meth:`pd.isin` for inputs with more than 1e6 elements (:issue:`36611`)
 - Performance improvement for :meth:`DataFrame.__setitem__` with list-like indexers (:issue:`37954`)
+- :meth:`read_json` now avoids reading entire file into memory when chunksize is specified (:issue:`34548`)
 
 .. ---------------------------------------------------------------------------
 

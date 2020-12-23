@@ -635,27 +635,24 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.equals(other):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
 
+        elif not self._should_compare(other):
+            # We can infer that the intersection is empty.
+            return Index([], name=result_name)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            # i.e. object dtype
+            return super().intersection(other, sort=sort)
+
         return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
-
-        if is_object_dtype(other.dtype):
-            return self.astype("O").intersection(other, sort=sort)
-
-        elif not self._is_comparable_dtype(other.dtype):
-            # We can infer that the intersection is empty.
-            # assert_can_do_setop ensures that this is not just a mismatched freq
-            this = self[:0].astype("O")
-            other = other[:0].astype("O")
-            return this.intersection(other, sort=sort)
-
         return self._setop(other, sort, opname="intersection")
 
     def difference(self, other, sort=None):
