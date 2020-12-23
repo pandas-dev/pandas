@@ -157,7 +157,7 @@ repos:
     -   id: check-no-pd-class
         name: check for pd class.
         types: [python]
-        entry: pd.testing.assert_series_equal
+        entry: pd.testing.
         language: pygrep
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
