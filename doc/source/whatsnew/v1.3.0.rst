@@ -262,6 +262,7 @@ Period
 Plotting
 ^^^^^^^^
 
+- Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 -
 -
 
