@@ -97,13 +97,12 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
-        import matplotlib.pyplot as plt
 
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
         if pass_axis:
-            _, ax = plt.subplots(3, 3)
+            _, ax = self.plt.subplots(3, 3)
 
         with tm.RNGContext(42):
             df = DataFrame(np.random.randn(100, 3))
