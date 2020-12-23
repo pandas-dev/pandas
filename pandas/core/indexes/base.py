@@ -2814,6 +2814,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not self._should_compare(other):
             # We can infer that the intersection is empty.
+            if isinstance(self, ABCMultiIndex):
+                return self[:0].rename(result_name)
             return Index([], name=result_name)
 
         elif not is_dtype_equal(self.dtype, other.dtype):

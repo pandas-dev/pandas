@@ -10,6 +10,8 @@ def test_equals(idx):
     assert idx.equals(idx)
     assert idx.equals(idx.copy())
     assert idx.equals(idx.astype(object))
+    assert idx.equals(idx.to_flat_index())
+    assert idx.equals(idx.to_flat_index().astype("category"))
 
     assert not idx.equals(list(idx))
     assert not idx.equals(np.array(idx))

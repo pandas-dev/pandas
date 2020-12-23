@@ -3449,8 +3449,8 @@ class MultiIndex(Index):
 
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
-            if not is_object_dtype(other.dtype):
-                # other cannot contain tuples, so cannot match self
+            if not self._should_compare(other):
+                # object Index or Categorical[object] may contain tuples
                 return False
             return array_equivalent(self._values, other._values)
 
@@ -3588,13 +3588,15 @@ class MultiIndex(Index):
     def _union(self, other, sort):
         other, result_names = self._convert_can_do_setop(other)
 
-        if not is_object_dtype(other.dtype):
+        if not self._should_compare(other):
             raise NotImplementedError(
                 "Can only union MultiIndex with MultiIndex or Index of tuples, "
                 "try mi.to_flat_index().union(other) instead."
             )
 
-        uniq_tuples = lib.fast_unique_multiple([self._values, other._values], sort=sort)
+        # We could get here with CategoricalIndex other
+        rvals = other._values.astype(object, copy=False)
+        uniq_tuples = lib.fast_unique_multiple([self._values, rvals], sort=sort)
 
         return MultiIndex.from_arrays(
             zip(*uniq_tuples), sortorder=0, names=result_names
@@ -3631,47 +3633,11 @@ class MultiIndex(Index):
                 names.append(None)
         return names
 
-    def intersection(self, other, sort=False):
-        """
-        Form the intersection of two MultiIndex objects.
-
-        Parameters
-        ----------
-        other : MultiIndex or array / Index of tuples
-        sort : False or None, default False
-            Sort the resulting MultiIndex if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default from ``True`` to ``False``, to match
-               behaviour from before 0.24.0
-
-        Returns
-        -------
-        Index
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        return self._intersection(other, sort=sort)
-
     def _intersection(self, other, sort=False):
         other, result_names = self._convert_can_do_setop(other)
 
-        if not self._is_comparable_dtype(other.dtype):
-            # The intersection is empty
-            return self[:0].rename(result_names)
-
         lvals = self._values
-        rvals = other._values
+        rvals = other._values.astype(object, copy=False)
 
         uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
