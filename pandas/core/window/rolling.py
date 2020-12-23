@@ -32,9 +32,7 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
-    is_float_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_scalar,
     needs_i8_conversion,
@@ -270,18 +268,14 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         if values is None:
             values = extract_array(self._selected_obj, extract_numpy=True)
 
-        # GH #12373 : rolling functions error on float32 data
-        # make sure the data is coerced to float64
-        if is_float_dtype(values.dtype):
-            values = ensure_float64(values)
-        elif is_integer_dtype(values.dtype):
-            values = ensure_float64(values)
-        elif needs_i8_conversion(values.dtype):
+        if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {self._window_type} for this "
                 f"dtype {values.dtype} are not implemented"
             )
         else:
+            # GH #12373 : rolling functions error on float32 data
+            # make sure the data is coerced to float64
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError) as err:

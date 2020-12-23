@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -85,7 +86,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import DatetimeArray, ExtensionArray
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -918,6 +919,56 @@ def coerce_indexer_dtype(indexer, categories):
     elif length < _int32_max:
         return ensure_int32(indexer)
     return ensure_int64(indexer)
+
+
+def astype_dt64_to_dt64tz(
+    values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
+) -> "DatetimeArray":
+    # GH#33401 we have inconsistent behaviors between
+    #  Datetimeindex[naive].astype(tzaware)
+    #  Series[dt64].astype(tzaware)
+    # This collects them in one place to prevent further fragmentation.
+
+    from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+    values = ensure_wrapped_if_datetimelike(values)
+    values = cast("DatetimeArray", values)
+    aware = isinstance(dtype, DatetimeTZDtype)
+
+    if via_utc:
+        # Series.astype behavior
+        assert values.tz is None and aware  # caller is responsible for checking this
+        dtype = cast(DatetimeTZDtype, dtype)
+
+        if copy:
+            # this should be the only copy
+            values = values.copy()
+        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        #  goes through the `not via_utc` path
+        return values.tz_localize("UTC").tz_convert(dtype.tz)
+
+    else:
+        # DatetimeArray/DatetimeIndex.astype behavior
+
+        if values.tz is None and aware:
+            dtype = cast(DatetimeTZDtype, dtype)
+            return values.tz_localize(dtype.tz)
+
+        elif aware:
+            # GH#18951: datetime64_tz dtype but not equal means different tz
+            dtype = cast(DatetimeTZDtype, dtype)
+            result = values.tz_convert(dtype.tz)
+            if copy:
+                result = result.copy()
+            return result
+
+        elif values.tz is not None and not aware:
+            result = values.tz_convert("UTC").tz_localize(None)
+            if copy:
+                result = result.copy()
+            return result
+
+        raise NotImplementedError("dtype_equal case should be handled elsewhere")
 
 
 def astype_td64_unit_conversion(
