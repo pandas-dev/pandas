@@ -100,7 +100,8 @@ jobs:
       displayName: 'Build'
 
     - bash: |
-        source activate pandas-dev
+        eval "$(conda shell.bash hook)"
+        conda activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
 
