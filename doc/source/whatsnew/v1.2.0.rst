@@ -16,7 +16,7 @@ including other versions of pandas.
    old-style ``.xls`` files.
 
    Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including for new
+   would result in using the ``xlrd`` engine in many cases, including new
    Excel 2007+ (``.xlsx``) files.
    If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
    many of these cases will now default to using the ``openpyxl`` engine.
