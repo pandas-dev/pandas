@@ -719,7 +719,9 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # datetimelike astype(int64) deprecated
+            astype_nansafe(arr, dtype=typ)
 
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])

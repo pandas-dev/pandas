@@ -55,7 +55,8 @@ class TestTimedeltaIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        result = idx.astype(int)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = idx.astype(int)
         expected = Int64Index(
             [100000000000000] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
         )
@@ -66,7 +67,8 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         rng = timedelta_range("1 days", periods=10)
-        result = rng.astype("i8")
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(rng.asi8, result.values)
 
@@ -75,9 +77,9 @@ class TestTimedeltaIndex:
         expected = pd.UInt64Index(
             np.array([3600000000000, 90000000000000], dtype="uint64")
         )
-
-        tm.assert_index_equal(arr.astype("uint64"), expected)
-        tm.assert_index_equal(arr.astype("uint32"), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_index_equal(arr.astype("uint64"), expected)
+            tm.assert_index_equal(arr.astype("uint32"), expected)
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
