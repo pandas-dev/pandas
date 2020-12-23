@@ -6,6 +6,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series, Timedelta, concat
 import pandas._testing as tm
+from pandas.api.indexers import BaseIndexer
 
 
 @td.skip_if_no_scipy
@@ -126,3 +127,15 @@ def test_consistent_win_type_freq(arg):
     s = Series(range(1))
     with pytest.raises(ValueError, match="Invalid win_type freq"):
         s.rolling(arg, win_type="freq")
+
+
+@td.skip_if_no_scipy
+def test_win_type_not_implemented():
+    class CustomIndexer(BaseIndexer):
+        def get_window_bounds(self, num_values, min_periods, center, closed):
+            return np.array([0, 1]), np.array([1, 2])
+
+    df = DataFrame({"values": range(2)})
+    indexer = CustomIndexer()
+    with pytest.raises(NotImplementedError, match="BaseIndexer subclasses not"):
+        df.rolling(indexer, win_type="boxcar")
