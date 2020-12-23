@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -2053,8 +2051,8 @@ class TestPivotTable:
 
     def test_pivot_table_no_column_raises(self):
         # GH 10326
-        def agg(l):
-            return np.mean(l)
+        def agg(arr):
+            return np.mean(arr)
 
         foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):
@@ -2102,7 +2100,6 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot("a", "b", "c")
 
-    @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")
