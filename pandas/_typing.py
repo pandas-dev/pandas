@@ -21,6 +21,8 @@ from typing import (
     Union,
 )
 
+from pandas.compat.numpy import np_version_under1p17
+
 import numpy as np
 
 # To prevent import cycles place any internal imports in the branch below
@@ -160,4 +162,7 @@ ColspaceArgType = Union[
 ]
 
 # random generator
-RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
+if np_version_under1p17:
+    RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
+else:
+    RandomState = Union[int, ArrayLike, np.random.RandomState]
