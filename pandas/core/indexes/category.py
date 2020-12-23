@@ -186,11 +186,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            # don't allow scalars
-            # if data is None, then categories must be provided
-            if data is not None or categories is None:
-                raise cls._scalar_data_error(data)
-            data = []
+            raise cls._scalar_data_error(data)
 
         data = Categorical(
             data, categories=categories, ordered=ordered, dtype=dtype, copy=copy

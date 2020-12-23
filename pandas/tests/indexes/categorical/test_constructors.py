@@ -6,6 +6,11 @@ import pandas._testing as tm
 
 
 class TestCategoricalIndexConstructors:
+    def test_construction_disallows_scalar(self):
+        msg = "must be called with a collection of some kind"
+        with pytest.raises(TypeError, match=msg):
+            CategoricalIndex(categories=list("abcd"), ordered=False)
+
     def test_construction(self):
 
         ci = CategoricalIndex(list("aabbca"), categories=list("abcd"), ordered=False)
@@ -20,7 +25,7 @@ class TestCategoricalIndexConstructors:
         assert not result.ordered
 
         # empty
-        result = CategoricalIndex(categories=categories)
+        result = CategoricalIndex([], categories=categories)
         tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes, np.array([], dtype="int8"))
         assert not result.ordered

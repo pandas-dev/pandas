@@ -91,7 +91,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # test empty
-        result = CategoricalIndex(categories=categories).insert(0, "a")
+        result = CategoricalIndex([], categories=categories).insert(0, "a")
         expected = CategoricalIndex(["a"], categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
