@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
@@ -18,7 +18,6 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
@@ -75,7 +74,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
+from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -649,15 +648,7 @@ class Block(PandasObject):
     def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
         values = self.values
 
-        if is_categorical_dtype(dtype):
-
-            if is_categorical_dtype(values.dtype):
-                # GH#10696/GH#18593: update an existing categorical efficiently
-                return values.astype(dtype, copy=copy)
-
-            return Categorical(values, dtype=dtype)
-
-        elif is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             # if we are passed a datetime64[ns, tz]
             if copy:
                 # this should be the only copy
@@ -676,24 +667,6 @@ class Block(PandasObject):
             values = values.astype(dtype, copy=copy)
 
         else:
-            if issubclass(dtype.type, str):
-                if values.dtype.kind in ["m", "M"]:
-                    # use native type formatting for datetime/tz/timedelta
-                    arr = pd_array(values)
-                    # Note: in the case where dtype is an np.dtype, i.e. not
-                    #  StringDtype, this matches arr.astype(dtype), xref GH#36153
-                    values = arr._format_native_types(na_rep="NaT")
-
-            elif is_object_dtype(dtype):
-                if values.dtype.kind in ["m", "M"]:
-                    # Wrap in Timedelta/Timestamp
-                    arr = pd_array(values)
-                    values = arr.astype(object)
-                else:
-                    values = values.astype(object)
-                # We still need to go through astype_nansafe for
-                #  e.g. dtype = Sparse[object, 0]
-
             values = astype_nansafe(values, dtype, copy=True)
 
         return values
@@ -2244,6 +2217,15 @@ class DatetimeLikeBlockMixin(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
+    def _can_hold_element(self, element: Any) -> bool:
+        arr = self.array_values()
+
+        try:
+            arr._validate_setitem_value(element)
+            return True
+        except (TypeError, ValueError):
+            return False
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
@@ -2275,32 +2257,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
 
         assert isinstance(values, np.ndarray), type(values)
         return values
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            if isinstance(element, list) and len(element) == 0:
-                # Following DatetimeArray._validate_setitem_value
-                #  convention, we treat this as object-dtype
-                #  (even though tipo is float64)
-                return True
-
-            elif self.is_datetimetz:
-                # require exact match, since non-nano does not exist
-                return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
-                    element, self.dtype
-                )
-
-            # GH#27419 if we get a non-nano datetime64 object
-            return is_datetime64_dtype(tipo)
-        elif element is NaT:
-            return True
-        elif isinstance(element, datetime):
-            if self.is_datetimetz:
-                return tz_compare(element.tzinfo, self.dtype.tz)
-            return element.tzinfo is None
-
-        return is_valid_nat_for_dtype(element, self.dtype)
 
     def set_inplace(self, locs, values):
         """
