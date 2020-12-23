@@ -1079,7 +1079,6 @@ class ExcelFile:
                     f"only the xls format is supported. Install openpyxl instead."
                 )
             else:
-                # If xlrd_version >= "2", we error below
                 caller = inspect.stack()[1]
                 if (
                     caller.filename.endswith("pandas/io/excel/_base.py")
@@ -1093,7 +1092,7 @@ class ExcelFile:
                     f"only the xls format is supported. As a result, the "
                     f"openpyxl engine will be used if it is installed and the "
                     f"engine argument is not specified. Install "
-                    f"openpyxl instead.",
+                    f"openpyxl instead. {caller.filename} -- {caller.function}",
                     FutureWarning,
                     stacklevel=stacklevel,
                 )
