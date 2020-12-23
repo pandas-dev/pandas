@@ -1181,10 +1181,16 @@ class TestExcelFileRead:
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
-        expected = pd.read_excel("test1" + read_ext, engine=engine)
-        with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
-        tm.assert_frame_equal(result, expected)
+        if read_ext == ".xlsb" and engine == "pyxlsb":
+            # GH 38667 - should default to pyxlsb but doesn't
+            with pytest.raises(IOError, match="File contains no valid workbook part"):
+                with open("test1" + read_ext, "rb") as f:
+                    pd.read_excel(f)
+        else:
+            with open("test1" + read_ext, "rb") as f:
+                result = pd.read_excel(f)
+            expected = pd.read_excel("test1" + read_ext, engine=engine)
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
         xlrd_version is not None and xlrd_version >= "2",
