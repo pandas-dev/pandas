@@ -92,8 +92,8 @@ jobs:
       displayName: Create Anaconda environment
 
     - bash: |
-        source activate pandas-dev
-        conda env list
+        conda activate pandas-dev
+        conda list
         python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
       displayName: 'Build'
