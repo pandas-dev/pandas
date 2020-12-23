@@ -968,30 +968,38 @@ class TestDataframeNoneCoercion:
 
 class TestDatetimelikeCoercion:
     @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
-    def test_setitem_dt64_string_scalar(self, tz_aware_fixture, indexer):
+    def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer):
         # dispatching _can_hold_element to underling DatetimeArray
         # TODO(EA2D) use tz_naive_fixture once DatetimeBlock is backed by DTA
-        dti = date_range("2016-01-01", periods=3, tz=tz_aware_fixture)
+        tz = tz_naive_fixture
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
         ser = Series(dti)
 
         values = ser._values
 
         indexer(ser)[0] = "2018-01-01"
-        assert ser.dtype == dti.dtype
-        assert ser._values is values
+
+        if tz is None:
+            # TODO(EA2D): we can make this no-copy in tz-naive case too
+            assert ser.dtype == dti.dtype
+        else:
+            assert ser._values is values
 
     @pytest.mark.parametrize("box", [list, np.array, pd.array])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
     @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
-    def test_setitem_dt64_string_values(self, tz_aware_fixture, indexer, key, box):
+    def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer, key, box):
         # dispatching _can_hold_element to underling DatetimeArray
         # TODO(EA2D) use tz_naive_fixture once DatetimeBlock is backed by DTA
+        tz = tz_naive_fixture
+
         if isinstance(key, slice) and indexer is loc:
             key = slice(0, 1)
 
-        dti = date_range("2016-01-01", periods=3, tz=tz_aware_fixture)
+        dti = date_range("2016-01-01", periods=3, tz=tz)
         ser = Series(dti)
 
         values = ser._values
@@ -1000,7 +1008,12 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(newvals)
 
         indexer(ser)[key] = newvals
-        assert ser._values is values
+
+        if tz is None:
+            # TODO(EA2D): we can make this no-copy in tz-naive case too
+            assert ser.dtype == dti.dtype
+        else:
+            assert ser._values is values
 
 
 def test_extension_array_cross_section():
