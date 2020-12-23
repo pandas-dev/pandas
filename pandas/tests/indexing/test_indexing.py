@@ -980,11 +980,8 @@ class TestDatetimelikeCoercion:
 
         indexer(ser)[0] = "2018-01-01"
 
-        if tz is None:
-            # TODO(EA2D): we can make this no-copy in tz-naive case too
-            assert ser.dtype == dti.dtype
-        else:
-            assert ser._values is values
+        assert ser.dtype == dti.dtype
+        assert ser._values is values
 
     @pytest.mark.parametrize("box", [list, np.array, pd.array])
     @pytest.mark.parametrize(
@@ -1008,12 +1005,7 @@ class TestDatetimelikeCoercion:
         values._validate_setitem_value(newvals)
 
         indexer(ser)[key] = newvals
-
-        if tz is None:
-            # TODO(EA2D): we can make this no-copy in tz-naive case too
-            assert ser.dtype == dti.dtype
-        else:
-            assert ser._values is values
+        assert ser._values is values
 
 
 def test_extension_array_cross_section():
