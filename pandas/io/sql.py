@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, List, Optional, Union, overload
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, overload
 import warnings
 
 import numpy as np
@@ -78,7 +78,9 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
-def _handle_date_column(col, utc=None, format=None):
+def _handle_date_column(
+    col, utc: Optional[bool] = None, format: Optional[Union[str, Dict[str, Any]]] = None
+):
     if isinstance(format, dict):
         # GH35185 Allow custom error values in parse_dates argument of
         # read_sql like functions.
@@ -129,7 +131,7 @@ def _wrap_result(
     data,
     columns,
     index_col=None,
-    coerce_float=True,
+    coerce_float: bool = True,
     parse_dates=None,
     dtype: DtypeArg = None,
 ):
@@ -208,11 +210,11 @@ def read_sql_table(
 
 
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
+    schema: Optional[str] = None,
+    index_col: Optional[Union[str, Sequence[str]]] = None,
+    coerce_float: bool = True,
     parse_dates=None,
     columns=None,
     chunksize: Optional[int] = None,
@@ -334,7 +336,7 @@ def read_sql_query(
     sql,
     con,
     index_col=None,
-    coerce_float=True,
+    coerce_float: bool = True,
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
@@ -438,8 +440,8 @@ def read_sql(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
+    index_col: Optional[Union[str, Sequence[str]]] = None,
+    coerce_float: bool = True,
     params=None,
     parse_dates=None,
     columns=None,
@@ -500,6 +502,64 @@ def read_sql(
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
+
+    Examples
+    --------
+    Read data from SQL via either a SQL query or a SQL tablename.
+    When using a SQLite database only SQL queries are accepted,
+    providing only the SQL tablename will result in an error.
+
+    >>> from sqlite3 import connect
+    >>> conn = connect(':memory:')
+    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
+    ...                   columns=['int_column', 'date_column'])
+    >>> df.to_sql('test_data', conn)
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
+       int_column date_column
+    0           0    10/11/12
+    1           1    12/11/10
+
+    >>> pd.read_sql('test_data', 'postgres:///db_name')  # doctest:+SKIP
+
+    Apply date parsing to columns through the ``parse_dates`` argument
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates=["date_column"])
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
+    Custom argument values for applying ``pd.to_datetime`` on a column are specified
+    via a dictionary format:
+    1. Ignore errors while parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"errors": "ignore"}})
+       int_column date_column
+    0           0  2012-10-11
+    1           1  2010-12-11
+
+    2. Apply a dayfirst date parsing order on the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"dayfirst": True}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
+
+    3. Apply custom formatting when date parsing the values of "date_column"
+
+    >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
+    ...             conn,
+    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+       int_column date_column
+    0           0  2012-11-10
+    1           1  2010-11-12
     """
     pandas_sql = pandasSQL_builder(con)
 
@@ -542,15 +602,15 @@ def read_sql(
 
 def to_sql(
     frame,
-    name,
+    name: str,
     con,
-    schema=None,
-    if_exists="fail",
-    index=True,
+    schema: Optional[str] = None,
+    if_exists: str = "fail",
+    index: bool = True,
     index_label=None,
-    chunksize=None,
+    chunksize: Optional[int] = None,
     dtype=None,
-    method=None,
+    method: Optional[str] = None,
 ) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
@@ -623,7 +683,7 @@ def to_sql(
     )
 
 
-def has_table(table_name, con, schema=None):
+def has_table(table_name: str, con, schema: Optional[str] = None):
     """
     Check if DataBase has named table.
 
@@ -668,7 +728,9 @@ def _engine_builder(con):
     return con
 
 
-def pandasSQL_builder(con, schema=None, meta=None, is_cursor=False):
+def pandasSQL_builder(
+    con, schema: Optional[str] = None, meta=None, is_cursor: bool = False
+):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
@@ -697,7 +759,7 @@ class SQLTable(PandasObject):
 
     def __init__(
         self,
-        name,
+        name: str,
         pandas_sql_engine,
         frame=None,
         index=True,
@@ -755,7 +817,7 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def _execute_insert(self, conn, keys, data_iter):
+    def _execute_insert(self, conn, keys: List[str], data_iter):
         """
         Execute SQL statement inserting data
 
@@ -770,7 +832,7 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.table.insert(), data)
 
-    def _execute_insert_multi(self, conn, keys, data_iter):
+    def _execute_insert_multi(self, conn, keys: List[str], data_iter):
         """
         Alternative to _execute_insert for DBs support multivalue INSERT.
 
@@ -817,7 +879,7 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def insert(self, chunksize=None, method=None):
+    def insert(self, chunksize: Optional[int] = None, method: Optional[str] = None):
 
         # set insert method
         if method is None:
@@ -854,7 +916,12 @@ class SQLTable(PandasObject):
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
-        self, result, chunksize, columns, coerce_float=True, parse_dates=None
+        self,
+        result,
+        chunksize: Optional[str],
+        columns,
+        coerce_float: bool = True,
+        parse_dates=None,
     ):
         """Return generator through chunked result set."""
         while True:
@@ -1163,7 +1230,7 @@ class SQLDatabase(PandasSQL):
 
     """
 
-    def __init__(self, engine, schema=None, meta=None):
+    def __init__(self, engine, schema: Optional[str] = None, meta=None):
         self.connectable = engine
         if not meta:
             from sqlalchemy.schema import MetaData
@@ -1182,19 +1249,17 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options(no_parameters=True).execute(
-            *args, **kwargs
-        )
+        return self.connectable.execution_options().execute(*args, **kwargs)
 
     def read_table(
         self,
-        table_name,
-        index_col=None,
-        coerce_float=True,
+        table_name: str,
+        index_col: Optional[Union[str, Sequence[str]]] = None,
+        coerce_float: bool = True,
         parse_dates=None,
         columns=None,
-        schema=None,
-        chunksize=None,
+        schema: Optional[str] = None,
+        chunksize: Optional[int] = None,
     ):
         """
         Read SQL database table into a DataFrame.
@@ -1249,7 +1314,7 @@ class SQLDatabase(PandasSQL):
     @staticmethod
     def _query_iterator(
         result,
-        chunksize,
+        chunksize: int,
         columns,
         index_col=None,
         coerce_float=True,
@@ -1273,12 +1338,12 @@ class SQLDatabase(PandasSQL):
 
     def read_query(
         self,
-        sql,
-        index_col=None,
-        coerce_float=True,
+        sql: str,
+        index_col: Optional[str] = None,
+        coerce_float: bool = True,
         parse_dates=None,
         params=None,
-        chunksize=None,
+        chunksize: Optional[int] = None,
         dtype: DtypeArg = None,
     ):
         """
@@ -1463,12 +1528,12 @@ class SQLDatabase(PandasSQL):
     def tables(self):
         return self.meta.tables
 
-    def has_table(self, name, schema=None):
+    def has_table(self, name: str, schema: Optional[str] = None):
         return self.connectable.run_callable(
             self.connectable.dialect.has_table, name, schema or self.meta.schema
         )
 
-    def get_table(self, table_name, schema=None):
+    def get_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
         if schema:
             tbl = self.meta.tables.get(".".join([schema, table_name]))
@@ -1484,7 +1549,7 @@ class SQLDatabase(PandasSQL):
 
         return tbl
 
-    def drop_table(self, table_name, schema=None):
+    def drop_table(self, table_name: str, schema: Optional[str] = None):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(only=[table_name], schema=schema)
@@ -1581,7 +1646,7 @@ class SQLiteTable(SQLTable):
             for stmt in self.table:
                 conn.execute(stmt)
 
-    def insert_statement(self, *, num_rows):
+    def insert_statement(self, *, num_rows: int):
         names = list(map(str, self.frame.columns))
         wld = "?"  # wildcard char
         escape = _get_valid_sqlite_name
@@ -1710,7 +1775,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con, is_cursor=False):
+    def __init__(self, con, is_cursor: bool = False):
         self.is_cursor = is_cursor
         self.con = con
 
@@ -1749,10 +1814,10 @@ class SQLiteDatabase(PandasSQL):
     @staticmethod
     def _query_iterator(
         cursor,
-        chunksize,
+        chunksize: int,
         columns,
         index_col=None,
-        coerce_float=True,
+        coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg = None,
     ):
@@ -1778,10 +1843,10 @@ class SQLiteDatabase(PandasSQL):
         self,
         sql,
         index_col=None,
-        coerce_float=True,
+        coerce_float: bool = True,
         params=None,
         parse_dates=None,
-        chunksize=None,
+        chunksize: Optional[int] = None,
         dtype: DtypeArg = None,
     ):
 
@@ -1891,7 +1956,7 @@ class SQLiteDatabase(PandasSQL):
         table.create()
         table.insert(chunksize, method)
 
-    def has_table(self, name, schema=None):
+    def has_table(self, name: str, schema: Optional[str] = None):
         # TODO(wesm): unused?
         # escape = _get_valid_sqlite_name
         # esc_name = escape(name)
@@ -1901,14 +1966,21 @@ class SQLiteDatabase(PandasSQL):
 
         return len(self.execute(query, [name]).fetchall()) > 0
 
-    def get_table(self, table_name, schema=None):
+    def get_table(self, table_name: str, schema: Optional[str] = None):
         return None  # not supported in fallback mode
 
-    def drop_table(self, name, schema=None):
+    def drop_table(self, name: str, schema: Optional[str] = None):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
+    def _create_sql_schema(
+        self,
+        frame,
+        table_name: str,
+        keys=None,
+        dtype=None,
+        schema: Optional[str] = None,
+    ):
         table = SQLiteTable(
             table_name,
             self,
@@ -1921,7 +1993,9 @@ class SQLiteDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None, schema=None):
+def get_schema(
+    frame, name: str, keys=None, con=None, dtype=None, schema: Optional[str] = None
+):
     """
     Get the SQL db table schema for the given frame.
 

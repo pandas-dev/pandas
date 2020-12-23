@@ -841,7 +841,7 @@ class _TestSQLApi(PandasSQLTest):
         with tm.assert_produces_warning(UserWarning):
             df.to_sql("test_timedelta", self.conn)
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
-        tm.assert_series_equal(result["foo"], df["foo"].astype("int64"))
+        tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
 
     def test_complex_raises(self):
         df = DataFrame({"a": [1 + 1j, 2j]})
@@ -1223,6 +1223,15 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
+
+    def test_column_with_percentage(self):
+        # GH 37157
+        df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
+        df.to_sql("test_column_percentage", self.conn, index=False)
+
+        res = sql.read_sql_table("test_column_percentage", self.conn)
+
+        tm.assert_frame_equal(res, df)
 
 
 class _EngineToConnMixin:

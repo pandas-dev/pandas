@@ -185,10 +185,16 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    mi3 = Index(mi.tolist(), names=mi.names)
+    with tm.assert_produces_warning(FutureWarning):
+        # subclass-specific keywords to pd.Index
+        mi3 = Index(mi.tolist(), names=mi.names)
+
     msg = r"Unexpected keyword arguments {'names'}"
     with pytest.raises(TypeError, match=msg):
-        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific keywords to pd.Index
+            Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+
     mi4 = Index(mi.tolist(), tupleize_cols=False)
     assert mi.identical(mi3)
     assert not mi.identical(mi4)
@@ -207,6 +213,16 @@ def test_equals_missing_values():
     assert not result
     result = i[1:2].equals(i[1])
     assert not result
+
+
+def test_equals_missing_values_differently_sorted():
+    # GH#38439
+    mi1 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = pd.MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    assert not mi1.equals(mi2)
+
+    mi2 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    assert mi1.equals(mi2)
 
 
 def test_is_():

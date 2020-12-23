@@ -62,6 +62,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Level,
+    PythonFuncType,
     Renamer,
     StorageOptions,
     Suffixes,
@@ -84,6 +85,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -91,7 +93,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_unbox_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -166,7 +167,10 @@ import pandas.plotting
 if TYPE_CHECKING:
     from typing import Literal
 
+    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
 
@@ -180,6 +184,9 @@ _shared_doc_kwargs = {
     "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -193,6 +200,9 @@ _shared_doc_kwargs = {
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 _numeric_only_doc = """numeric_only : boolean, default None
@@ -591,6 +601,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # For data is a scalar extension dtype
             if is_extension_array_dtype(dtype):
+                # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
@@ -598,24 +609,9 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
-                if dtype.kind in ["m", "M"]:
-                    data = maybe_unbox_datetimelike(data, dtype)
-
-                # Attempt to coerce to a numpy array
-                try:
-                    arr = np.array(data, dtype=dtype, copy=copy)
-                except (ValueError, TypeError) as err:
-                    exc = TypeError(
-                        "DataFrame constructor called with "
-                        f"incompatible data and dtype: {err}"
-                    )
-                    raise exc from err
-
-                if arr.ndim != 0:
-                    raise ValueError("DataFrame constructor not properly called!")
-
-                shape = (len(index), len(columns))
-                values = np.full(shape, arr)
+                values = construct_2d_arraylike_from_scalar(
+                    data, len(index), len(columns), dtype, copy
+                )
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
@@ -4586,20 +4582,23 @@ class DataFrame(NDFrame, OpsMixin):
         if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
             # We will infer fill_value to match the closest column
 
+            # Use a column that we know is valid for our column's dtype GH#38434
+            label = self.columns[0]
+
             if periods > 0:
                 result = self.iloc[:, :-periods]
                 for col in range(min(ncols, abs(periods))):
                     # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
                     # Define filler inside loop so we get a copy
                     filler = self.iloc[:, 0].shift(len(self))
-                    result.insert(0, col, filler, allow_duplicates=True)
+                    result.insert(0, label, filler, allow_duplicates=True)
             else:
                 result = self.iloc[:, -periods:]
                 for col in range(min(ncols, abs(periods))):
                     # Define filler inside loop so we get a copy
                     filler = self.iloc[:, -1].shift(len(self))
                     result.insert(
-                        len(result.columns), col, filler, allow_duplicates=True
+                        len(result.columns), label, filler, allow_duplicates=True
                     )
 
             result.columns = self.columns.copy()
@@ -7658,7 +7657,13 @@ NaN 12.3   33.0
         return result
 
     def apply(
-        self, func, axis: Axis = 0, raw: bool = False, result_type=None, args=(), **kwds
+        self,
+        func: AggFuncType,
+        axis: Axis = 0,
+        raw: bool = False,
+        result_type=None,
+        args=(),
+        **kwds,
     ):
         """
         Apply a function along an axis of the DataFrame.
@@ -7804,7 +7809,9 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func, na_action: Optional[str] = None) -> DataFrame:
+    def applymap(
+        self, func: PythonFuncType, na_action: Optional[str] = None
+    ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
 
@@ -9337,6 +9344,54 @@ NaN 12.3   33.0
             result = result.T
 
         return result
+
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    def asfreq(
+        self,
+        freq,
+        method=None,
+        how: Optional[str] = None,
+        normalize: bool = False,
+        fill_value=None,
+    ) -> "DataFrame":
+        return super().asfreq(
+            freq=freq,
+            method=method,
+            how=how,
+            normalize=normalize,
+            fill_value=fill_value,
+        )
+
+    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    def resample(
+        self,
+        rule,
+        axis=0,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
+        convention: str = "start",
+        kind: Optional[str] = None,
+        loffset=None,
+        base: Optional[int] = None,
+        on=None,
+        level=None,
+        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
+        offset: Optional["TimedeltaConvertibleTypes"] = None,
+    ) -> "Resampler":
+        return super().resample(
+            rule=rule,
+            axis=axis,
+            closed=closed,
+            label=label,
+            convention=convention,
+            kind=kind,
+            loffset=loffset,
+            base=base,
+            on=on,
+            level=level,
+            origin=origin,
+            offset=offset,
+        )
 
     def to_timestamp(
         self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True

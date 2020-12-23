@@ -40,7 +40,9 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
+- Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
+- Improved consistency of error message when passing an invalid ``win_type`` argument in :class:`Window` (:issue:`15969`)
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 
 .. ---------------------------------------------------------------------------
@@ -133,7 +135,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-
+- Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 -
 -
 
@@ -143,7 +145,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 -
 -
 
@@ -171,13 +173,14 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
--
--
+- Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
+- Bug where construcing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
+
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
--
+- Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 -
 
 Timedelta
@@ -196,7 +199,6 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
--
 
 Conversion
 ^^^^^^^^^^
@@ -226,6 +228,7 @@ Indexing
 Missing
 ^^^^^^^
 
+- Bug in :class:`Grouper` now correctly propagates ``dropna`` argument and :meth:`DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 -
 -
 
@@ -233,7 +236,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
--
+- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differntly ordered (:issue:`38439`)
 
 I/O
 ^^^
@@ -242,8 +245,10 @@ I/O
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
+- Bug in :func:`read_clipboard`, :func:`DataFrame.to_clipboard` not working in WSL (:issue:`38527`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
--
+- Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
+  for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 
 Period
 ^^^^^^
@@ -272,6 +277,7 @@ Reshaping
 Sparse
 ^^^^^^
 
+- Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
 -
 -
 
