@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import numpy as np
 import pytest
@@ -345,6 +345,14 @@ class TestCategoricalConstructors:
 
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
+
+    def test_constructor_date_objects(self):
+        # we dont cast date objects to timestamps, matching Index constructor
+        v = date.today()
+
+        cat = Categorical([v, v])
+        assert cat.categories.dtype == object
+        assert type(cat.categories[0]) is date
 
     def test_constructor_from_index_series_timedelta(self):
         idx = timedelta_range("1 days", freq="D", periods=3)
