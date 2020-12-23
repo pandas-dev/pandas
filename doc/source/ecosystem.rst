@@ -474,15 +474,16 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-=============== ========== ========================= ===============================================================
-Library         Accessor   Classes                   Description
-=============== ========== ========================= ===============================================================
-`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
-`pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
-`composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
-=============== ========== ========================= ===============================================================
+=============== ============ ==================================== ===============================================================
+Library         Accessor     Classes                              Description
+=============== ============ ==================================== ===============================================================
+`cyberpandas`_  ``ip``       ``Series``                           Provides common operations for working with IP addresses.
+`pdvega`_       ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
+`pandas_path`_  ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
+`composeml`_    ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
+`datatest`_     ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+=============== ============ ==================================== ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
@@ -492,3 +493,4 @@ Library         Accessor   Classes                   Description
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas
 .. _composeml: https://github.com/FeatureLabs/compose
+.. _datatest: https://datatest.readthedocs.io/

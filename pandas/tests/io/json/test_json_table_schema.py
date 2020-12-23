@@ -705,18 +705,14 @@ class TestTableOrientReader:
         "idx",
         [
             pd.Index(range(4)),
-            pd.Index(
-                pd.date_range(
-                    "2020-08-30",
-                    freq="d",
-                    periods=4,
-                ),
-                freq=None,
-            ),
-            pd.Index(
-                pd.date_range("2020-08-30", freq="d", periods=4, tz="US/Central"),
-                freq=None,
-            ),
+            pd.date_range(
+                "2020-08-30",
+                freq="d",
+                periods=4,
+            )._with_freq(None),
+            pd.date_range(
+                "2020-08-30", freq="d", periods=4, tz="US/Central"
+            )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
                     pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
