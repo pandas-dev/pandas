@@ -10,23 +10,24 @@ including other versions of pandas.
 
 .. warning::
 
-   The packages `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ for reading excel
-   files and `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ for
-   writing excel files are no longer maintained. These are the only engines in pandas
-   that support the xls format.
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`_ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ package is now only for reading
+   old-style ``.xls`` files.
 
-   Previously, the default argument ``engine=None`` to ``pd.read_excel``
-   would result in using the ``xlrd`` engine in many cases. If
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
+   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files.
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`_  is installed,
    many of these cases will now default to using the ``openpyxl`` engine.
-   See the :func:`read_excel` documentation for more details. Attempting to read
-   ``.xls`` files or specifying ``engine="xlrd"`` to ``pd.read_excel`` will not
-   raise a warning. However users should be aware that ``xlrd`` is already
-   broken with certain package configurations, for example with Python 3.9
-   when `defusedxml <https://github.com/tiran/defusedxml/>`_ is installed, and
-   is anticipated to be unusable in the future.
+   See the :func:`read_excel` documentation for more details.
 
-   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   Thus, it is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
+
+   Attempting to use the ``xlwt`` engine will raise a ``FutureWarning``
    unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
    While this option is now deprecated and will also raise a ``FutureWarning``,
    it can be globally set and the warning suppressed. Users are recommended to
@@ -567,6 +568,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`), changes of the underlying hash-function can lead to changes in float based indexes sort ordering for ties (e.g. :meth:`Index.value_counts`)
 - Performance improvement in :meth:`pd.isin` for inputs with more than 1e6 elements (:issue:`36611`)
 - Performance improvement for :meth:`DataFrame.__setitem__` with list-like indexers (:issue:`37954`)
+- :meth:`read_json` now avoids reading entire file into memory when chunksize is specified (:issue:`34548`)
 
 .. ---------------------------------------------------------------------------
 
@@ -747,6 +749,8 @@ I/O
 - :meth:`DataFrame.to_html` was ignoring ``formatters`` argument for ``ExtensionDtype`` columns (:issue:`36525`)
 - Bumped minimum xarray version to 0.12.3 to avoid reference to the removed ``Panel`` class (:issue:`27101`)
 - :meth:`DataFrame.to_csv` was re-opening file-like handles that also implement ``os.PathLike`` (:issue:`38125`)
+- Bug in the conversion of a sliced ``pyarrow.Table`` with missing values to a DataFrame (:issue:`38525`)
+- Bug in :func:`read_sql_table` raising a ``sqlalchemy.exc.OperationalError`` when column names contained a percentage sign (:issue:`37517`)
 
 Period
 ^^^^^^
@@ -766,6 +770,10 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` was overwriting matplotlib's shared y axes behaviour when no ``sharey`` parameter was passed (:issue:`37942`)
 - Bug in :meth:`DataFrame.plot` was raising a ``TypeError`` with ``ExtensionDtype`` columns (:issue:`32073`)
 
+Styler
+^^^^^^
+
+- Bug in :meth:`Styler.render` HTML was generated incorrectly beacause of formatting error in rowspan attribute, it now matches with w3 syntax. (:issue:`38234`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -791,8 +799,9 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.Resampler.quantile` raised ``TypeError`` when values were of type ``Timedelta`` (:issue:`29485`)
 - Bug in :meth:`.Rolling.median` and :meth:`.Rolling.quantile` returned wrong values for :class:`.BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
-- Bug in :meth:`.DataFrameGroupBy.head`, :meth:`.DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
+- Bug in :meth:`.DataFrameGroupBy.head`, :meth:`DataFrameGroupBy.tail`, :meth:`SeriesGroupBy.head`, and :meth:`SeriesGroupBy.tail` would raise when used with ``axis=1`` (:issue:`9772`)
 - Bug in :meth:`.DataFrameGroupBy.transform` would raise when used with ``axis=1`` and a transformation kernel (e.g. "shift") (:issue:`36308`)
+- Bug in :meth:`.DataFrameGroupBy.resample` using ``.agg`` with sum produced different result than just calling ``.sum`` (:issue:`33548`)
 - Bug in :meth:`.DataFrameGroupBy.apply` dropped values on ``nan`` group when returning the same axes with the original frame (:issue:`38227`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` couldn't handle with arraylike ``q`` when grouping by columns (:issue:`33795`)
 - Bug in :meth:`DataFrameGroupBy.rank` with ``datetime64tz`` or period dtype incorrectly casting results to those dtypes instead of returning ``float64`` dtype (:issue:`38187`)
@@ -859,7 +868,7 @@ Other
 - Bug in :meth:`RangeIndex.difference` returning :class:`Int64Index` in some cases where it should return :class:`RangeIndex` (:issue:`38028`)
 - Fixed bug in :func:`assert_series_equal` when comparing a datetime-like array with an equivalent non extension dtype array (:issue:`37609`)
 - Bug in :func:`.is_bool_dtype` would raise when passed a valid string such as ``"boolean"`` (:issue:`38386`)
-
+- Fixed regression in logical operators raising ``ValueError`` when columns of :class:`DataFrame` are a :class:`CategoricalIndex` with unused categories (:issue:`38367`)
 
 .. ---------------------------------------------------------------------------
 

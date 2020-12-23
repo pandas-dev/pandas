@@ -12,8 +12,8 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -82,6 +82,28 @@ class TestSetitemPeriodDtype:
 
         ser[3:5] = na_val
         assert ser[4] is NaT
+
+
+class TestSetitemScalarIndexer:
+    def test_setitem_negative_out_of_bounds(self):
+        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+
+        msg = "index -11 is out of bounds for axis 0 with size 10"
+        with pytest.raises(IndexError, match=msg):
+            ser[-11] = "foo"
+
+
+class TestSetitemSlices:
+    def test_setitem_slice_float_raises(self, datetime_series):
+        msg = (
+            "cannot do slice indexing on DatetimeIndex with these indexers "
+            r"\[{key}\] of type float"
+        )
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
+            datetime_series[4.0:10.0] = 0
+
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+            datetime_series[4.5:10.0] = 0
 
 
 class TestSetitemBooleanMask:
