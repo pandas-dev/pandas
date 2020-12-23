@@ -92,6 +92,7 @@ jobs:
       displayName: Create Anaconda environment
 
     - bash: |
+        eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
