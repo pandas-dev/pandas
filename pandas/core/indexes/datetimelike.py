@@ -658,6 +658,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         intersection specialized to the case with matching dtypes.
         """
+        other = cast("DatetimeTimedeltaMixin", other)
         if len(self) == 0:
             return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
