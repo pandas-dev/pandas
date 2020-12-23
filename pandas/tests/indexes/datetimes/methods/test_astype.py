@@ -29,7 +29,8 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        result = idx.astype(int)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = idx.astype(int)
         expected = Int64Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
@@ -38,7 +39,8 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         rng = date_range("1/1/2000", periods=10, name="idx")
-        result = rng.astype("i8")
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
@@ -48,9 +50,9 @@ class TestDatetimeIndex:
             np.array([946684800000000000, 946771200000000000], dtype="uint64"),
             name="idx",
         )
-
-        tm.assert_index_equal(arr.astype("uint64"), expected)
-        tm.assert_index_equal(arr.astype("uint32"), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_index_equal(arr.astype("uint64"), expected)
+            tm.assert_index_equal(arr.astype("uint32"), expected)
 
     def test_astype_with_tz(self):
 
