@@ -1081,7 +1081,9 @@ class ExcelFile:
             else:
                 caller = inspect.stack()[1]
                 if (
-                    caller.filename.endswith("pandas/io/excel/_base.py")
+                    caller.filename.endswith(
+                        os.path.join("pandas", "io", "excel", "_base.py")
+                    )
                     and caller.function == "read_excel"
                 ):
                     stacklevel = 4
@@ -1092,7 +1094,7 @@ class ExcelFile:
                     f"only the xls format is supported. As a result, the "
                     f"openpyxl engine will be used if it is installed and the "
                     f"engine argument is not specified. Install "
-                    f"openpyxl instead. {caller.filename} -- {caller.function}",
+                    f"openpyxl instead.",
                     FutureWarning,
                     stacklevel=stacklevel,
                 )

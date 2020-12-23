@@ -1180,6 +1180,13 @@ class TestExcelFileRead:
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
 
+    def test_excel_read_binary_via_read_excel(self, read_ext, engine):
+        # GH 38424
+        expected = pd.read_excel("test1" + read_ext, engine=engine)
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.skipif(
         xlrd_version is not None and xlrd_version >= "2",
         reason="xlrd no longer supports xlsx",
