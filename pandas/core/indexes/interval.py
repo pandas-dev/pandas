@@ -11,7 +11,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import AnyArrayLike, DtypeObj, Label
+from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -677,9 +677,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(
-        self, target: AnyArrayLike
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_indexer_non_unique(self, target: Index) -> Tuple[np.ndarray, np.ndarray]:
         target = ensure_index(target)
 
         if isinstance(target, IntervalIndex) and not self._should_compare(target):
