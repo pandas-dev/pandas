@@ -105,16 +105,16 @@ engine : str, default None
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
     Engine compatibility :
 
-    - "xlrd" supports most old/new Excel file formats.
+    - "xlrd" supports old-style Excel files (.xls).
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        is no longer maintained, and is not supported with
-        python >= 3.9. When ``engine=None``, the following logic will be
-        used to determine the engine.
+        now only supports old-style ``.xls`` files.
+        When ``engine=None``, the following logic will be
+        used to determine the engine:
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
           then `odf <https://pypi.org/project/odfpy/>`_ will be used.
@@ -920,7 +920,7 @@ class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
 
-    Uses xlrd engine by default. See read_excel for more documentation
+    See read_excel for more documentation
 
     Parameters
     ----------
@@ -933,7 +933,7 @@ class ExcelFile:
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
         Engine compatibility :
 
-        - ``xlrd`` supports most old/new Excel file formats.
+        - ``xlrd`` supports old-style Excel files (.xls).
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
@@ -941,9 +941,9 @@ class ExcelFile:
         .. versionchanged:: 1.2.0
 
            The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           is no longer maintained, and is not supported with
-           python >= 3.9. When ``engine=None``, the following logic will be
-           used to determine the engine.
+           now only supports old-style ``.xls`` files.
+           When ``engine=None``, the following logic will be
+           used to determine the engine:
 
            - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
@@ -954,8 +954,10 @@ class ExcelFile:
              then ``openpyxl`` will be used.
            - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
 
-           Specifying ``engine="xlrd"`` will continue to be allowed for the
-           indefinite future.
+           .. warning::
+
+            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
+            This is not supported, switch to using ``openpyxl`` instead.
     """
 
     from pandas.io.excel._odfreader import ODFReader
