@@ -74,7 +74,7 @@ class TestSeriesDropDuplicates:
         return request.param
 
     @pytest.fixture
-    def tc1(self, dtype, ordered):
+    def cat_series1(self, dtype, ordered):
         # Test case 1
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
@@ -87,7 +87,7 @@ class TestSeriesDropDuplicates:
         warn = None
         if tc.cat.categories.dtype.kind == "M":
             if len(tc) == 4:
-                # This is tc1
+                # This is cat_series1
                 input_arr = np.array([1, 2, 3, 3], dtype=np.dtype("datetime64[D]"))
             else:
                 # This is tc2
@@ -106,7 +106,8 @@ class TestSeriesDropDuplicates:
                 warn = FutureWarning
         return warn
 
-    def test_drop_duplicates_categorical_non_bool(self, tc1, request):
+    def test_drop_duplicates_categorical_non_bool(self, cat_series1, request):
+        tc1 = cat_series1
         warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, False, True])
@@ -123,7 +124,8 @@ class TestSeriesDropDuplicates:
             assert return_value is None
             tm.assert_series_equal(sc, tc1[~expected])
 
-    def test_drop_duplicates_categorical_non_bool_keeplast(self, tc1, request):
+    def test_drop_duplicates_categorical_non_bool_keeplast(self, cat_series1, request):
+        tc1 = cat_series1
         warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, True, False])
@@ -140,7 +142,8 @@ class TestSeriesDropDuplicates:
             assert return_value is None
             tm.assert_series_equal(sc, tc1[~expected])
 
-    def test_drop_duplicates_categorical_non_bool_keepfalse(self, tc1, request):
+    def test_drop_duplicates_categorical_non_bool_keepfalse(self, cat_series1, request):
+        tc1 = cat_series1
         warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, True, True])
@@ -158,7 +161,7 @@ class TestSeriesDropDuplicates:
             tm.assert_series_equal(sc, tc1[~expected])
 
     @pytest.fixture
-    def tc2(self, dtype, ordered):
+    def cat_series2(self, dtype, ordered):
         # Test case 2; TODO: better name
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
@@ -166,8 +169,9 @@ class TestSeriesDropDuplicates:
         tc2 = Series(Categorical(input2, categories=cat_array, ordered=ordered))
         return tc2
 
-    def test_drop_duplicates_categorical_non_bool2(self, tc2, request):
+    def test_drop_duplicates_categorical_non_bool2(self, cat_series2, request):
         # Test case 2; TODO: better name
+        tc2 = cat_series2
         warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, False, False, False, True, True, False])
@@ -184,7 +188,8 @@ class TestSeriesDropDuplicates:
             assert return_value is None
             tm.assert_series_equal(sc, tc2[~expected])
 
-    def test_drop_duplicates_categorical_non_bool2_keeplast(self, tc2, request):
+    def test_drop_duplicates_categorical_non_bool2_keeplast(self, cat_series2, request):
+        tc2 = cat_series2
         warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, True, True, False, False, False, False])
@@ -201,7 +206,10 @@ class TestSeriesDropDuplicates:
             assert return_value is None
             tm.assert_series_equal(sc, tc2[~expected])
 
-    def test_drop_duplicates_categorical_non_bool2_keepfalse(self, tc2, request):
+    def test_drop_duplicates_categorical_non_bool2_keepfalse(
+        self, cat_series2, request
+    ):
+        tc2 = cat_series2
         warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, True, True, False, True, True, False])
