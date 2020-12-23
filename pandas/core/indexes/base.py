@@ -2662,6 +2662,14 @@ class Index(IndexOpsMixin, PandasObject):
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
+            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
+                unpack_nested_dtype(other)
+            ):
+                raise NotImplementedError(
+                    "Can only union MultiIndex with MultiIndex or Index of tuples, "
+                    "try mi.to_flat_index().union(other) instead."
+                )
+
             dtype = find_common_type([self.dtype, other.dtype])
             if self._is_numeric_dtype and other._is_numeric_dtype:
                 # Right now, we treat union(int, float) a bit special.
@@ -2679,6 +2687,14 @@ class Index(IndexOpsMixin, PandasObject):
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
             return left.union(right, sort=sort)
+
+        elif not len(other) or self.equals(other):
+            # NB: whether this (and the `if not len(self)` check below) come before
+            #  or after the is_dtype_equal check above affects the returned dtype
+            return self._get_reconciled_name_object(other)
+
+        elif not len(self):
+            return other._get_reconciled_name_object(self)
 
         result = self._union(other, sort=sort)
 
@@ -2703,12 +2719,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
-        if not len(other) or self.equals(other):
-            return self
-
-        if not len(self):
-            return other
-
         # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
         rvals = other._values
