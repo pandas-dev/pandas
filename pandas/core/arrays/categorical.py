@@ -320,6 +320,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             self._dtype = self._dtype.update_dtype(dtype)
             return
 
+        if not is_list_like(values):
+            # GH#38433
+            warn(
+                "Allowing scalars in the Categorical constructor is deprecated "
+                "and will raise in a future version.  Use `[value]` instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            values = [values]
+
         # null_mask indicates missing values we want to exclude from inference.
         # This means: only missing values in list-likes (not arrays/ndframes).
         null_mask = np.array(False)

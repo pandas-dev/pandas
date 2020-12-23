@@ -937,6 +937,27 @@ class _TestSQLApi(PandasSQLTest):
         )
         tm.assert_frame_equal(df, result, check_index_type=True)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            None,
+            int,
+            float,
+            {"A": int, "B": float},
+        ],
+    )
+    def test_dtype_argument(self, dtype):
+        # GH10285 Add dtype argument to read_sql_query
+        df = DataFrame([[1.2, 3.4], [5.6, 7.8]], columns=["A", "B"])
+        df.to_sql("test_dtype_argument", self.conn)
+
+        expected = df.astype(dtype)
+        result = sql.read_sql_query(
+            "SELECT A, B FROM test_dtype_argument", con=self.conn, dtype=dtype
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
         sql.to_sql(df, "test_frame_integer_col_names", self.conn, if_exists="replace")
