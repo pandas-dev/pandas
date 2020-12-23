@@ -196,7 +196,8 @@ def create_subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = flatten_axes(ax)
+            if squeeze:
+                ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored", UserWarning
@@ -208,8 +209,8 @@ def create_subplots(
                     UserWarning,
                     stacklevel=4,
                 )
-            if len(ax) == naxes:
-                fig = ax[0].get_figure()
+            if ax.size == naxes:
+                fig = ax.flat[0].get_figure()
                 return fig, ax
             else:
                 raise ValueError(
