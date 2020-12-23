@@ -12,7 +12,6 @@ from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -654,7 +653,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)._with_freq(None)
         return new_idx
-
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
