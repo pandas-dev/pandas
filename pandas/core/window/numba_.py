@@ -50,17 +50,13 @@ def generate_numba_apply_func(
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ) -> np.ndarray:
         result = np.empty(len(begin))
-        for i in loop_range(len(result)):
+        for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -103,10 +99,6 @@ def generate_numba_groupby_ewma_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba = import_optional_dependency("numba")
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def groupby_ewma(
@@ -117,7 +109,7 @@ def generate_numba_groupby_ewma_func(
     ) -> np.ndarray:
         result = np.empty(len(values))
         alpha = 1.0 / (1.0 + com)
-        for i in loop_range(len(begin)):
+        for i in numba.prange(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
