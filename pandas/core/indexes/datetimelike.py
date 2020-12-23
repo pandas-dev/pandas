@@ -148,7 +148,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         if not is_period_dtype(self.dtype) and attrs["freq"]:
             # no need to infer if freq is None
             attrs["freq"] = "infer"
-        return Index(result, **attrs)
+        return type(self)(result, **attrs)
 
     # ------------------------------------------------------------------------
 
@@ -692,6 +692,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return self._get_reconciled_name_object(other)
 
         elif not self._should_compare(other):
+            # We can infer that the intersection is empty.
             return Index([], name=result_name)
 
         elif not is_dtype_equal(self.dtype, other.dtype):

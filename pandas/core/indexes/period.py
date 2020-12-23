@@ -658,8 +658,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
-        other, result_name = self._convert_can_do_setop(other)
-
         return self._setop(other, sort, opname="intersection")
 
     def difference(self, other, sort=None):

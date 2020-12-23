@@ -252,6 +252,15 @@ class Index(IndexOpsMixin, PandasObject):
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
     ) -> "Index":
 
+        if kwargs:
+            warnings.warn(
+                "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
+                "'tupleize_cols' is deprecated and will raise TypeError in a "
+                "future version.  Use the specific Index subclass directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -2182,7 +2191,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._can_hold_na:
             return self._isnan.nonzero()[0]
         else:
-            return np.array([], dtype=np.int64)
+            return np.array([], dtype=np.intp)
 
     @cache_readonly
     def hasnans(self) -> bool:
@@ -2719,12 +2728,12 @@ class Index(IndexOpsMixin, PandasObject):
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
                 indexer = self.get_indexer(other)
-                indexer = (indexer == -1).nonzero()[0]
+                missing = (indexer == -1).nonzero()[0]
             else:
-                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
+                missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
 
-            if len(indexer) > 0:
-                other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
+            if len(missing) > 0:
+                other_diff = algos.take_nd(rvals, missing, allow_fill=False)
                 result = concat_compat((lvals, other_diff))
 
             else:
@@ -2804,6 +2813,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._get_reconciled_name_object(other)
 
         elif not self._should_compare(other):
+            # We can infer that the intersection is empty.
             return Index([], name=result_name)
 
         elif not is_dtype_equal(self.dtype, other.dtype):
@@ -2832,13 +2842,14 @@ class Index(IndexOpsMixin, PandasObject):
                 return algos.unique1d(result)
 
         try:
-            indexer = Index(rvals).get_indexer(lvals)
-            indexer = indexer.take((indexer != -1).nonzero()[0])
+            indexer = other.get_indexer(lvals)
         except (InvalidIndexError, IncompatibleFrequency):
             # InvalidIndexError raised by get_indexer if non-unique
             # IncompatibleFrequency raised by PeriodIndex.get_indexer
-            indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
-            indexer = indexer[indexer != -1]
+            indexer, _ = other.get_indexer_non_unique(lvals)
+
+        mask = indexer != -1
+        indexer = indexer.take(mask.nonzero()[0])
 
         result = other.take(indexer).unique()._values
 
@@ -3520,7 +3531,7 @@ class Index(IndexOpsMixin, PandasObject):
                             "cannot reindex a non-unique index "
                             "with a method or limit"
                         )
-                    indexer, missing = self.get_indexer_non_unique(target)
+                    indexer, _ = self.get_indexer_non_unique(target)
 
         if preserve_names and target.nlevels == 1 and target.name != self.name:
             target = target.copy()
@@ -4913,10 +4924,7 @@ class Index(IndexOpsMixin, PandasObject):
             that = target.astype(dtype, copy=False)
             return this.get_indexer_non_unique(that)
 
-        if is_categorical_dtype(target.dtype):
-            tgt_values = np.asarray(target)
-        else:
-            tgt_values = target._get_engine_target()
+        tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), missing
