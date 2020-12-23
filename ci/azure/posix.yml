@@ -105,7 +105,10 @@ jobs:
         ci/run_tests.sh
       displayName: 'Test'
 
-    - bash: source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - bash: |
+        eval "$(conda shell.bash hook)"
+        conda activate pandas-dev 
+        pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
