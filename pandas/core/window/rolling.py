@@ -27,7 +27,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -110,15 +110,22 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self._win_freq_i8 = None
+        if self.on is None:
+            if self.axis == 0:
+                self._on = self.obj.index
+            else:
+                # i.e. self.axis == 1
+                self._on = self.obj.columns
+        elif isinstance(self.on, Index):
+            self._on = self.on
+        elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
+            self._on = Index(self.obj[self.on])
+        else:
+            raise ValueError(
+                f"invalid on specified as {self.on}, "
+                "must be a column (of DataFrame), an Index or None"
+            )
         self.validate()
-
-    @property
-    def is_datetimelike(self) -> Optional[bool]:
-        return None
-
-    @property
-    def _on(self):
-        return None
 
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
@@ -1822,37 +1829,16 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
-    @cache_readonly
-    def is_datetimelike(self) -> bool:
-        return isinstance(
-            self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-        )
-
-    @cache_readonly
-    def _on(self) -> Index:
-        if self.on is None:
-            if self.axis == 0:
-                return self.obj.index
-            else:
-                # i.e. self.axis == 1
-                return self.obj.columns
-        elif isinstance(self.on, Index):
-            return self.on
-        elif isinstance(self.obj, ABCDataFrame) and self.on in self.obj.columns:
-            return Index(self.obj[self.on])
-        else:
-            raise ValueError(
-                f"invalid on specified as {self.on}, "
-                "must be a column (of DataFrame), an Index or None"
-            )
-
     def validate(self):
         super().validate()
 
         # we allow rolling on a datetimelike index
-        if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, BaseOffset, timedelta)
-        ):
+        if (
+            self.obj.empty
+            or isinstance(
+                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
+            )
+        ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
 
