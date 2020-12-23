@@ -34,14 +34,14 @@ class TestSeriesPlots(TestPlotBase):
             _check_plot_works(self.ts.hist, by=self.ts.index.month, bins=5)
 
         fig, ax = self.plt.subplots(1, 1)
-        _check_plot_works(self.ts.hist, ax=ax)
-        _check_plot_works(self.ts.hist, ax=ax, figure=fig)
-        _check_plot_works(self.ts.hist, figure=fig)
+        _check_plot_works(self.ts.hist, ax=ax, default_axes=True)
+        _check_plot_works(self.ts.hist, ax=ax, figure=fig, default_axes=True)
+        _check_plot_works(self.ts.hist, figure=fig, default_axes=True)
         tm.close()
 
         fig, (ax1, ax2) = self.plt.subplots(1, 2)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
-        _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
+        _check_plot_works(self.ts.hist, figure=fig, ax=ax1, default_axes=True)
+        _check_plot_works(self.ts.hist, figure=fig, ax=ax2, default_axes=True)
 
         with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
