@@ -2962,3 +2962,15 @@ class TestFromScalar:
 
         obj = constructor(td64, dtype=object)
         assert isinstance(get1(obj), np.timedelta64)
+
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
+        scalar = cls("NaT", "ns")
+        dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
+
+        with pytest.raises(TypeError, match="Cannot cast"):
+            constructor(scalar, dtype=dtype)
+
+        scalar = cls(4, "ns")
+        with pytest.raises(TypeError, match="Cannot cast"):
+            constructor(scalar, dtype=dtype)
