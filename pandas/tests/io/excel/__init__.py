@@ -17,6 +17,10 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:As the xlwt package is no longer maintained:FutureWarning"
     ),
+    # GH 38571
+    pytest.mark.filterwarnings(
+        "ignore:.*In xlrd >= 2.0, only the xls format is supported:FutureWarning"
+    ),
 ]
 
 
