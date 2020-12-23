@@ -833,11 +833,11 @@ cdef array_strptime_object(ndarray[object] values, object fmt, bint exact=True):
         val = values[i]
         if isinstance(val, str):
             if val in nat_strings:
-                result[i] = int(val)
+                result[i] = NPY_NAT
                 continue
         else:
             if checknull_with_nat(val):
-                result[i] = int(val)
+                result[i] = NPY_NAT
                 continue
             else:
                 val = str(val)
