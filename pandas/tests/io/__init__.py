@@ -14,4 +14,8 @@ pytestmark = [
         r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
         ":PendingDeprecationWarning"
     ),
+    # GH 26552
+    pytest.mark.filterwarnings(
+        "ignore:As the xlwt package is no longer maintained:FutureWarning"
+    ),
 ]

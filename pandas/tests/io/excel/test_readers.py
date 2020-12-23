@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
+from pandas.tests.io.excel import xlrd_version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -56,6 +57,13 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if engine == "pyxlsb" and read_ext != ".xlsb":
         return False
     if read_ext == ".xlsb" and engine != "pyxlsb":
+        return False
+    if (
+        engine == "xlrd"
+        and xlrd_version is not None
+        and xlrd_version >= "2"
+        and read_ext != ".xls"
+    ):
         return False
     return True
 
@@ -614,6 +622,19 @@ class TestReaders:
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
 
+    def test_missing_file_raises(self, read_ext):
+        bad_file = f"foo{read_ext}"
+        # CI tests with zh_CN.utf8, translates to "No such file or directory"
+        with pytest.raises(
+            FileNotFoundError, match=r"(No such file or directory|没有那个文件或目录)"
+        ):
+            pd.read_excel(bad_file)
+
+    def test_corrupt_bytes_raises(self, read_ext, engine):
+        bad_stream = b"foo"
+        with pytest.raises(ValueError, match="File is not a recognized excel file"):
+            pd.read_excel(bad_stream)
+
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (
@@ -1158,6 +1179,19 @@ class TestExcelFileRead:
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
 
+    def test_excel_read_binary_via_read_excel(self, read_ext, engine):
+        # GH 38424
+        if read_ext == ".xlsb" and engine == "pyxlsb":
+            pytest.xfail("GH 38667 - should default to pyxlsb but doesn't")
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
+        expected = pd.read_excel("test1" + read_ext, engine=engine)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(
+        xlrd_version is not None and xlrd_version >= "2",
+        reason="xlrd no longer supports xlsx",
+    )
     def test_excel_high_surrogate(self, engine):
         # GH 23809
         expected = DataFrame(["\udc88"], columns=["Column1"])
