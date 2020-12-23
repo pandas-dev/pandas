@@ -1233,7 +1233,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             # so we resort to this
             # GH 14776, 30667
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
