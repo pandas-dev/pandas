@@ -30,7 +30,6 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: localhost
 
         options: >-
           --health-cmd pg_isready
@@ -52,6 +51,9 @@ jobs:
       run:
           # mysql -e 'create database pandas_nosetest;'
           psql -c 'create database pandas_nosetest;' -U postgres
+      env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
 
     - name: Cache conda
       uses: actions/cache@v1
