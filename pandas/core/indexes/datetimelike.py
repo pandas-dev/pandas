@@ -12,7 +12,6 @@ from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -654,54 +653,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)._with_freq(None)
         return new_idx
-
-    def intersection(self, other, sort=False):
-        """
-        Specialized intersection for DatetimeIndex/TimedeltaIndex.
-
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : Same type as self or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-            .. versionchanged:: 0.25.0
-
-               The `sort` keyword is added
-
-        Returns
-        -------
-        y : Index or same type as self
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        elif not self._should_compare(other):
-            # We can infer that the intersection is empty.
-            return Index([], name=result_name)
-
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype, copy=False)
-            other = other.astype(dtype, copy=False)
-            return this.intersection(other, sort=sort)
-
-        return self._intersection(other, sort=sort)
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """

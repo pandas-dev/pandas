@@ -11,7 +11,6 @@ from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
@@ -632,30 +631,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
         result = type(self)._simple_new(parr, name=res_name)
         return result
-
-    def intersection(self, other, sort=False):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        elif not self._should_compare(other):
-            # We can infer that the intersection is empty.
-            # assert_can_do_setop ensures that this is not just a mismatched freq
-            return Index([], name=result_name)
-
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            # we can get here with Categorical or object
-            dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype, copy=False)
-            other = other.astype(dtype, copy=False)
-            return this.intersection(other, sort=sort)
-
-        return self._intersection(other, sort=sort)
 
     def _intersection(self, other, sort=False):
         return self._setop(other, sort, opname="intersection")
