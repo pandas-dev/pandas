@@ -933,7 +933,7 @@ class ExcelFile:
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
         Engine compatibility :
 
-        - ``xlrd`` old-style Excel files (.xls).
+        - ``xlrd`` supports old-style Excel files (.xls).
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
