@@ -950,6 +950,8 @@ def inspect_excel_format(
 
         if peek.startswith(XLS_SIGNATURE):
             return "xls"
+        elif not peek.startswith(ZIP_SIGNATURE):
+            raise ValueError("File is not a recognized excel file")
 
         # ZipFile typing is overly-strict
         # https://github.com/python/typeshed/issues/4212

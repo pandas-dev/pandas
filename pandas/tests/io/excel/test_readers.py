@@ -2,7 +2,6 @@ from datetime import datetime, time
 from functools import partial
 import os
 from urllib.error import URLError
-from zipfile import BadZipFile
 
 import numpy as np
 import pytest
@@ -633,7 +632,7 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        with pytest.raises(BadZipFile, match="File is not a zip file"):
+        with pytest.raises(ValueError, match="File is not a recognized excel file"):
             pd.read_excel(bad_stream)
 
     @tm.network
