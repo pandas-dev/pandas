@@ -36,6 +36,7 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "breaks",
         [
@@ -80,6 +81,7 @@ class ConstructorTests:
             result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])
     def test_constructor_nan(self, constructor, breaks, closed):
         # GH 18421
@@ -93,6 +95,7 @@ class ConstructorTests:
         assert result.dtype.subtype == expected_subtype
         tm.assert_numpy_array_equal(np.array(result), expected_values)
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "breaks",
         [
@@ -378,6 +381,7 @@ class TestClassConstructors(ConstructorTests):
         with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "data, closed",
         [
