@@ -774,7 +774,7 @@ def test_datetimeindex():
 
     # from datetime combos
     # GH 7888
-    date1 = date.today()
+    date1 = np.datetime64("today")
     date2 = datetime.today()
     date3 = Timestamp.today()
 
@@ -782,6 +782,12 @@ def test_datetimeindex():
         index = MultiIndex.from_product([[d1], [d2]])
         assert isinstance(index.levels[0], pd.DatetimeIndex)
         assert isinstance(index.levels[1], pd.DatetimeIndex)
+
+    # but NOT date objects, matching Index behavior
+    date4 = date.today()
+    index = MultiIndex.from_product([[date4], [date2]])
+    assert not isinstance(index.levels[0], pd.DatetimeIndex)
+    assert isinstance(index.levels[1], pd.DatetimeIndex)
 
 
 def test_constructor_with_tz():
@@ -804,3 +810,26 @@ def test_constructor_with_tz():
     assert result.names == ["dt1", "dt2"]
     tm.assert_index_equal(result.levels[0], index)
     tm.assert_index_equal(result.levels[1], columns)
+
+
+def test_multiindex_inference_consistency():
+    # check that inference behavior matches the base class
+
+    v = date.today()
+
+    arr = [v, v]
+
+    idx = Index(arr)
+    assert idx.dtype == object
+
+    mi = MultiIndex.from_arrays([arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object
+
+    mi = MultiIndex.from_product([arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object
+
+    mi = MultiIndex.from_tuples([(x,) for x in arr])
+    lev = mi.levels[0]
+    assert lev.dtype == object

@@ -185,10 +185,16 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    mi3 = Index(mi.tolist(), names=mi.names)
+    with tm.assert_produces_warning(FutureWarning):
+        # subclass-specific keywords to pd.Index
+        mi3 = Index(mi.tolist(), names=mi.names)
+
     msg = r"Unexpected keyword arguments {'names'}"
     with pytest.raises(TypeError, match=msg):
-        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific keywords to pd.Index
+            Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+
     mi4 = Index(mi.tolist(), tupleize_cols=False)
     assert mi.identical(mi3)
     assert not mi.identical(mi4)
