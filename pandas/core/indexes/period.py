@@ -11,6 +11,7 @@ from pandas._typing import DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
