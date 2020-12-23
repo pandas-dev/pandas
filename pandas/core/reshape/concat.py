@@ -512,7 +512,7 @@ class _Concatenator:
                     # 1-ax to convert BlockManager axis to DataFrame axis
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
-                        indexers[ax] = obj_labels.reindex(new_labels)[1]
+                        indexers[ax] = obj_labels.get_indexer(new_labels)
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
