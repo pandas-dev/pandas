@@ -1,7 +1,6 @@
 """
 Routines for casting.
 """
-
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import (
@@ -17,6 +16,7 @@ from typing import (
     Type,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -164,6 +164,14 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
             value = value.to_datetime64()
     elif isinstance(value, Timedelta):
         value = value.to_timedelta64()
+
+    if (isinstance(value, np.timedelta64) and dtype.kind == "M") or (
+        isinstance(value, np.datetime64) and dtype.kind == "m"
+    ):
+        # numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
+        #  vice-versa, but we do not want to allow this, so we need to
+        #  check explicitly
+        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
     return value
 
 
@@ -997,6 +1005,14 @@ def astype_nansafe(
 
     elif is_datetime64_dtype(arr):
         if dtype == np.int64:
+            warnings.warn(
+                f"casting {arr.dtype} values to int64 with .astype(...) "
+                "is deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                # stacklevel chosen to be correct when reached via Series.astype
+                stacklevel=7,
+            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
@@ -1009,6 +1025,14 @@ def astype_nansafe(
 
     elif is_timedelta64_dtype(arr):
         if dtype == np.int64:
+            warnings.warn(
+                f"casting {arr.dtype} values to int64 with .astype(...) "
+                "is deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                # stacklevel chosen to be correct when reached via Series.astype
+                stacklevel=7,
+            )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)

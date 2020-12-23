@@ -26,6 +26,11 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    def test_categorical_scalar_deprecated(self):
+        # GH#38433
+        with tm.assert_produces_warning(FutureWarning):
+            Categorical("A", categories=["A", "B"])
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"
@@ -202,13 +207,13 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Scalars should be converted to lists
-        cat = Categorical(1)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#38433
+            cat = Categorical(1)
         assert len(cat.categories) == 1
         assert cat.categories[0] == 1
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
-
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
