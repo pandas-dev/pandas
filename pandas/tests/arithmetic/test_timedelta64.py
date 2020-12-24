@@ -16,6 +16,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    offsets,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -70,7 +71,12 @@ class TestTimedelta64ArrayLikeComparisons:
 
     @pytest.mark.parametrize(
         "td_scalar",
-        [timedelta(days=1), Timedelta(days=1), Timedelta(days=1).to_timedelta64()],
+        [
+            timedelta(days=1),
+            Timedelta(days=1),
+            Timedelta(days=1).to_timedelta64(),
+            offsets.Hour(24),
+        ],
     )
     def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
         # regression test for GH#5963
@@ -84,7 +90,18 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
-    @pytest.mark.parametrize("invalid", [345600000000000, "a"])
+    @pytest.mark.parametrize(
+        "invalid",
+        [
+            345600000000000,
+            "a",
+            Timestamp.now(),
+            Timestamp.now("UTC"),
+            Timestamp.now().to_datetime64(),
+            Timestamp.now().to_pydatetime(),
+            Timestamp.now().date(),
+        ],
+    )
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
         # GH#13624 for str
         box = box_with_array
@@ -261,7 +278,6 @@ class TestTimedelta64ArithmeticUnsorted:
             tm.assert_index_equal(result, exp)
             assert result.freq == "H"
 
-        idx = TimedeltaIndex(["2H", "4H", "6H", "8H", "10H"], freq="2H", name="x")
         for result in [-idx, np.negative(idx)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(
@@ -413,10 +429,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"], name="foo")
         dti = pd.date_range("20130101", periods=3, name="bar")
 
-        # TODO(wesm): unused?
-        # td = Timedelta('1 days')
-        # dt = Timestamp('20130101')
-
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", pd.NaT, "0 days"], name="foo")
         tm.assert_index_equal(result, expected)
@@ -543,7 +555,6 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_tda_add_dt64_object_array(self, box_with_array, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
         box = box_with_array
@@ -555,10 +566,7 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        warn = None
-        if box is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
 
