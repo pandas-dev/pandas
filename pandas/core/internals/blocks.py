@@ -83,6 +83,7 @@ from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
     from pandas import Index
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 class Block(PandasObject):
@@ -1077,6 +1078,7 @@ class Block(PandasObject):
                 if not inplace:
                     blk = self.copy()
                 arr = blk.array_values()
+                arr = cast("NDArrayBackedExtensionArray", arr)
                 if transpose:
                     arr = arr.T
                 arr.putmask(mask, new)
