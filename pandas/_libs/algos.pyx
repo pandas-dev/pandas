@@ -1067,6 +1067,8 @@ def rank_2d(
             mask = values == NPY_NAT
 
         np.putmask(values, mask, nan_value)
+    else:
+        mask = np.zeros_like(values, dtype=bool)
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
@@ -1097,45 +1099,36 @@ def rank_2d(
 
     values = _take_2d(values, _as)
     argsorted = _as.astype('i8')
-
     for i in range(n):
-        if rank_t is object:
-            dups = sum_ranks = infs = 0
-        else:
-            dups = sum_ranks = 0
+        dups = sum_ranks = infs = 0
 
         total_tie_count = 0
         count = 0.0
         for j in range(k):
-            if rank_t is not object:
-                sum_ranks += j + 1
-                dups += 1
-
             val = values[i, j]
 
-            if rank_t is not uint64_t:
-                if rank_t is object:
-                    skip_condition = (val is nan_value) and keep_na
-                else:
-                    skip_condition = (val == nan_value) and keep_na
-                if skip_condition:
-                    ranks[i, argsorted[i, j]] = NaN
-
-                    if rank_t is object:
-                        infs += 1
-
-                    continue
+            if mask[i, argsorted[i, j]] and keep_na:
+                ranks[i, argsorted[i, j]] = NaN
+                infs += 1
+                continue
 
             count += 1.0
 
-            if rank_t is object:
-                sum_ranks += (j - infs) + 1
-                dups += 1
+            sum_ranks += (j - infs) + 1
+            dups += 1
 
             if rank_t is object:
-                condition = j == k - 1 or are_diff(values[i, j + 1], val)
+                condition = (
+                    j == k - 1 or
+                    are_diff(values[i, j + 1], val) or
+                    (mask[i, argsorted[i, j + 1]] and keep_na)
+                )
             else:
-                condition = j == k - 1 or values[i, j + 1] != val
+                condition = (
+                    j == k - 1 or
+                    values[i, j + 1] != val or
+                    (mask[i, argsorted[i, j + 1]] and keep_na)
+                )
 
             if condition:
                 if tiebreak == TIEBREAK_AVERAGE:
@@ -1161,11 +1154,13 @@ def rank_2d(
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
+
         if pct:
             if tiebreak == TIEBREAK_DENSE:
                 ranks[i, :] /= total_tie_count
             else:
                 ranks[i, :] /= count
+
     if axis == 0:
         return ranks.T
     else:
