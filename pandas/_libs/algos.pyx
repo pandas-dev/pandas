@@ -1154,13 +1154,11 @@ def rank_2d(
                     for z in range(j - dups + 1, j + 1):
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
-
         if pct:
             if tiebreak == TIEBREAK_DENSE:
                 ranks[i, :] /= total_tie_count
             else:
                 ranks[i, :] /= count
-
     if axis == 0:
         return ranks.T
     else:
