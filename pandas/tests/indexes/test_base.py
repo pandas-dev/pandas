@@ -1033,8 +1033,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_all_dates(self, index, expected):
-        with tm.assert_produces_warning(FutureWarning):
-            assert index.is_all_dates is expected
+        assert index.is_all_dates is expected
 
     def test_summary(self, index):
         self._check_method_works(Index._summary, index)
