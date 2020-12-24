@@ -3676,41 +3676,8 @@ class MultiIndex(Index):
                 zip(*uniq_tuples), sortorder=0, names=result_names
             )
 
-    def difference(self, other, sort=None):
-        """
-        Compute set difference of two MultiIndex objects
-
-        Parameters
-        ----------
-        other : MultiIndex
-        sort : False or None, default None
-            Sort the resulting MultiIndex if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
-
-        Returns
-        -------
-        diff : MultiIndex
-        """
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
+    def _difference(self, other, sort):
         other, result_names = self._convert_can_do_setop(other)
-
-        if len(other) == 0:
-            return self.rename(result_names)
-
-        if self.equals(other):
-            return MultiIndex(
-                levels=self.levels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
 
         this = self._get_unique_index()
 
