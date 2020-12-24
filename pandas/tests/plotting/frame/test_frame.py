@@ -1660,7 +1660,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_almost_equal(yerr_0_0, expected_0_0)
 
         msg = re.escape(
-            "Asymmetrical error bars should be provided with the shape 3, 2, 5)"
+            "Asymmetrical error bars should be provided with the shape (3, 2, 5)"
         )
         with pytest.raises(ValueError, match=msg):
             df.plot(yerr=err.T)
