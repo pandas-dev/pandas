@@ -1555,7 +1555,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError(f"{kind} doesn't allow negative values")
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):
