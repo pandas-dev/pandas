@@ -89,6 +89,9 @@ repos:
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
+
+            # Check for use of pandas.testing instead of tm
+            pd.testing.\
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -154,11 +157,6 @@ repos:
             pandas/tests/io/excel/test_writers\.py|
             pandas/tests/io/pytables/common\.py|
             pandas/tests/io/pytables/test_store\.py$
-    -   id: check-no-pd-class
-        name: check for pd class.
-        types: [python]
-        entry: pd.testing.\.
-        language: pygrep
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
