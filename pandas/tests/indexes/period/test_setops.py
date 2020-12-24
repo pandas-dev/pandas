@@ -318,7 +318,8 @@ class TestPeriodIndex:
             (rng7, other7, expected7),
         ]:
             result_difference = rng.difference(other, sort=sort)
-            if sort is None:
+            if sort is None and len(other):
+                # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
 

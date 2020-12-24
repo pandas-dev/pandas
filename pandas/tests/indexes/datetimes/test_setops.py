@@ -326,7 +326,8 @@ class TestDatetimeIndexSetOps:
             (rng3, other3, expected3),
         ]:
             result_diff = rng.difference(other, sort)
-            if sort is None:
+            if sort is None and len(other):
+                # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()
             tm.assert_index_equal(result_diff, expected)
 
