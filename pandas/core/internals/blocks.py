@@ -1,4 +1,3 @@
-from datetime import timedelta
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
@@ -8,7 +7,6 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
-    NaT,
     Period,
     Timestamp,
     algos as libalgos,
@@ -86,6 +84,7 @@ from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
     from pandas import Index
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 class Block(PandasObject):
@@ -919,7 +918,11 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
-            if lib.is_scalar(value):
+            if self.dtype.kind in ["m", "M"]:
+                arr = self.array_values().T
+                arr[indexer] = value
+                return self
+            elif lib.is_scalar(value):
                 value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
@@ -1064,6 +1067,17 @@ class Block(PandasObject):
         if self._can_hold_element(new):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
+            if self.dtype.kind in ["m", "M"]:
+                blk = self
+                if not inplace:
+                    blk = self.copy()
+                arr = blk.array_values()
+                arr = cast("NDArrayBackedExtensionArray", arr)
+                if transpose:
+                    arr = arr.T
+                arr.putmask(mask, new)
+                return [blk]
+
             if lib.is_scalar(new):
                 new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
@@ -2375,16 +2389,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     @property
     def _holder(self):
         return TimedeltaArray
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, np.timedelta64)
-        elif element is NaT:
-            return True
-        elif isinstance(element, (timedelta, np.timedelta64)):
-            return True
-        return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
         # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
