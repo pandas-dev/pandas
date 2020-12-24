@@ -702,8 +702,8 @@ class TestJoin:
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
-                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
-                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+                [Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
