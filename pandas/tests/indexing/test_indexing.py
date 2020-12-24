@@ -10,7 +10,7 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series, date_range
+from pandas import DataFrame, Index, NaT, Series, date_range, offsets, timedelta_range
 import pandas._testing as tm
 from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
@@ -970,7 +970,6 @@ class TestDatetimelikeCoercion:
     @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
     def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer):
         # dispatching _can_hold_element to underling DatetimeArray
-        # TODO(EA2D) use tz_naive_fixture once DatetimeBlock is backed by DTA
         tz = tz_naive_fixture
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
@@ -978,11 +977,15 @@ class TestDatetimelikeCoercion:
 
         values = ser._values
 
-        indexer(ser)[0] = "2018-01-01"
+        newval = "2018-01-01"
+        values._validate_setitem_value(newval)
+
+        indexer(ser)[0] = newval
 
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
+            assert ser._values._data is values._data
         else:
             assert ser._values is values
 
@@ -993,7 +996,6 @@ class TestDatetimelikeCoercion:
     @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
     def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer, key, box):
         # dispatching _can_hold_element to underling DatetimeArray
-        # TODO(EA2D) use tz_naive_fixture once DatetimeBlock is backed by DTA
         tz = tz_naive_fixture
 
         if isinstance(key, slice) and indexer is loc:
@@ -1012,8 +1014,43 @@ class TestDatetimelikeCoercion:
         if tz is None:
             # TODO(EA2D): we can make this no-copy in tz-naive case too
             assert ser.dtype == dti.dtype
+            assert ser._values._data is values._data
         else:
             assert ser._values is values
+
+    @pytest.mark.parametrize("scalar", ["3 Days", offsets.Hour(4)])
+    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    def test_setitem_td64_scalar(self, indexer, scalar):
+        # dispatching _can_hold_element to underling TimedeltaArray
+        tdi = timedelta_range("1 Day", periods=3)
+        ser = Series(tdi)
+
+        values = ser._values
+        values._validate_setitem_value(scalar)
+
+        indexer(ser)[0] = scalar
+        assert ser._values._data is values._data
+
+    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize(
+        "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
+    )
+    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    def test_setitem_td64_string_values(self, indexer, key, box):
+        # dispatching _can_hold_element to underling TimedeltaArray
+        if isinstance(key, slice) and indexer is loc:
+            key = slice(0, 1)
+
+        tdi = timedelta_range("1 Day", periods=3)
+        ser = Series(tdi)
+
+        values = ser._values
+
+        newvals = box(["10 Days", "44 hours"])
+        values._validate_setitem_value(newvals)
+
+        indexer(ser)[key] = newvals
+        assert ser._values._data is values._data
 
 
 def test_extension_array_cross_section():

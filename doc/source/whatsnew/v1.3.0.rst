@@ -43,6 +43,7 @@ Other enhancements
 - Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 - Improved consistency of error message when passing an invalid ``win_type`` argument in :class:`Window` (:issue:`15969`)
+- :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 
 .. ---------------------------------------------------------------------------
 
@@ -182,7 +183,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
 - Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
--
+- Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise ``TypeError`` (:issue:`38575`)
 
 Timedelta
 ^^^^^^^^^
@@ -261,6 +262,7 @@ Period
 Plotting
 ^^^^^^^^
 
+- Bug in :func:`scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 -
 -
 

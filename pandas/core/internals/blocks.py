@@ -1,4 +1,3 @@
-from datetime import timedelta
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
@@ -8,7 +7,6 @@ import numpy as np
 
 from pandas._libs import (
     Interval,
-    NaT,
     Period,
     Timestamp,
     algos as libalgos,
@@ -22,6 +20,7 @@ from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
+    astype_dt64_to_dt64tz,
     astype_nansafe,
     convert_scalar_for_putitemlike,
     find_common_type,
@@ -85,6 +84,7 @@ from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
     from pandas import Index
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 class Block(PandasObject):
@@ -649,14 +649,7 @@ class Block(PandasObject):
         values = self.values
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            # if we are passed a datetime64[ns, tz]
-            if copy:
-                # this should be the only copy
-                values = values.copy()
-            # i.e. values.tz_localize("UTC").tz_convert(dtype.tz)
-            # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
-            #  would be self.array_values().tz_localize(dtype.tz)
-            return DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
+            return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
 
         if is_dtype_equal(values.dtype, dtype):
             if copy:
@@ -925,7 +918,11 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
-            if lib.is_scalar(value):
+            if self.dtype.kind in ["m", "M"]:
+                arr = self.array_values().T
+                arr[indexer] = value
+                return self
+            elif lib.is_scalar(value):
                 value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
@@ -1035,9 +1032,7 @@ class Block(PandasObject):
             # GH#37833 np.putmask is more performant than __setitem__
             np.putmask(values, mask, value)
 
-    def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
-    ) -> List["Block"]:
+    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1048,16 +1043,13 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
-        inplace : bool, default False
-            Perform inplace modification.
         axis : int
-        transpose : bool, default False
-            Set to True if self is stored with axes reversed.
 
         Returns
         -------
         List[Block]
         """
+        transpose = self.ndim == 2
         mask = _extract_bool_array(mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1070,6 +1062,17 @@ class Block(PandasObject):
         if self._can_hold_element(new):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
+            if self.dtype.kind in ["m", "M"]:
+                blk = self
+                if not inplace:
+                    blk = self.copy()
+                arr = blk.array_values()
+                arr = cast("NDArrayBackedExtensionArray", arr)
+                if transpose:
+                    arr = arr.T
+                arr.putmask(mask, new)
+                return [blk]
+
             if lib.is_scalar(new):
                 new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
@@ -1083,8 +1086,6 @@ class Block(PandasObject):
                     new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
                 new = new.astype(new_values.dtype)
 
-            if new_values is self.values and not inplace:
-                new_values = new_values.copy()
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
             # doesn't check this and will simply truncate / pad
@@ -1105,6 +1106,7 @@ class Block(PandasObject):
                     # `np.place` on the other hand uses the ``new`` values at it is
                     # to place in the masked locations of ``new_values``
                     np.place(new_values, mask, new)
+                    # i.e. new_values[mask] = new
                 elif mask.shape[-1] == len(new) or len(new) == 1:
                     np.putmask(new_values, mask, new)
                 else:
@@ -1149,18 +1151,10 @@ class Block(PandasObject):
                 nv = _putmask_smart(val, mask, n)
                 return nv
 
-            new_blocks = self.split_and_operate(mask, f, inplace)
+            new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
 
-        if inplace:
-            return [self]
-
-        if transpose:
-            if new_values is None:
-                new_values = self.values if inplace else self.values.copy()
-            new_values = new_values.T
-
-        return [self.make_block(new_values)]
+        return [self]
 
     def coerce_to_target_dtype(self, other):
         """
@@ -1703,17 +1697,13 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
-    ) -> List["Block"]:
+    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
         """
         See Block.putmask.__doc__
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
         mask = _extract_bool_array(mask)
 
-        new_values = self.values if inplace else self.values.copy()
+        new_values = self.values
 
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
@@ -2381,16 +2371,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin):
     @property
     def _holder(self):
         return TimedeltaArray
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, np.timedelta64)
-        elif element is NaT:
-            return True
-        elif isinstance(element, (timedelta, np.timedelta64)):
-            return True
-        return is_valid_nat_for_dtype(element, self.dtype)
 
     def fillna(self, value, **kwargs):
         # TODO(EA2D): if we operated on array_values, TDA.fillna would handle
