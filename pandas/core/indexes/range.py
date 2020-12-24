@@ -576,9 +576,6 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self.start, self.step
             end_s = self.start + self.step * (len(self) - 1)

@@ -711,6 +711,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             #  so intersection will preserve freq
             return True
 
+        elif not len(self) or not len(other):
+            return False
+
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
             #  is a multiple of our freq
@@ -794,9 +797,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return left
 
     def _union(self, other, sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
 
