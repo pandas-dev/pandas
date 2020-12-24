@@ -1160,6 +1160,45 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
         assert isinstance(table.table.c["time"].type, sqltypes.TIMESTAMP)
 
+    @pytest.mark.parametrize(
+        "integer, expected",
+        [
+            ("int8", "SMALLINT"),
+            ("Int8", "SMALLINT"),
+            ("uint8", "SMALLINT"),
+            ("UInt8", "SMALLINT"),
+            ("int16", "SMALLINT"),
+            ("Int16", "SMALLINT"),
+            ("uint16", "INTEGER"),
+            ("UInt16", "INTEGER"),
+            ("int32", "INTEGER"),
+            ("Int32", "INTEGER"),
+            ("uint32", "BIGINT"),
+            ("UInt32", "BIGINT"),
+            ("int64", "BIGINT"),
+            ("Int64", "BIGINT"),
+            (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
+        ],
+    )
+    def test_sqlalchemy_integer_mapping(self, integer, expected):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
+
+        result = str(table.table.c.a.type)
+        assert result == expected
+
+    @pytest.mark.parametrize("integer", ["uint64", "UInt64"])
+    def test_sqlalchemy_integer_overload_mapping(self, integer):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        with pytest.raises(
+            ValueError, match="Unsigned 64 bit integer datatype is not supported"
+        ):
+            sql.SQLTable("test_type", db, frame=df)
+
     def test_database_uri_string(self):
 
         # Test read_sql and .to_sql method with a database URI (GH10654)
