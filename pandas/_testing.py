@@ -1358,7 +1358,7 @@ def assert_series_equal(
     check_index : bool, default True
         Whether to check index equivalence. If False, then compare only values.
 
-        .. versionadded:: 1.2.0
+        .. versionadded:: 1.3.0
 
     Examples
     --------
