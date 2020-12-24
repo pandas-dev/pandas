@@ -1099,6 +1099,7 @@ def rank_2d(
 
     values = _take_2d(values, _as)
     argsorted = _as.astype('i8')
+    
     for i in range(n):
         dups = sum_ranks = infs = 0
 
