@@ -231,6 +231,7 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
             # convert to datetime and change timezone
             i8values = result.astype("i8", copy=False)
             cls = dtype.construct_array_type()
+            # equiv: DatetimeArray(i8values).tz_localize("UTC").tz_convert(dtype.tz)
             result = cls._simple_new(i8values, dtype=dtype)
         else:
             result = result.astype(dtype)
