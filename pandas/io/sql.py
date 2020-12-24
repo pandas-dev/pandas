@@ -1124,6 +1124,7 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            SmallInteger,
             Text,
             Time,
         )
@@ -1154,8 +1155,13 @@ class SQLTable(PandasObject):
             else:
                 return Float(precision=53)
         elif col_type == "integer":
-            if col.dtype == "int32":
+            # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+            if col.dtype.name.lower() in ("int8", "uint8", "int16"):
+                return SmallInteger
+            elif col.dtype.name.lower() in ("uint16", "int32"):
                 return Integer
+            elif col.dtype.name.lower() == "uint64":
+                raise ValueError("Unsigned 64 bit integer datatype is not supported")
             else:
                 return BigInteger
         elif col_type == "boolean":
