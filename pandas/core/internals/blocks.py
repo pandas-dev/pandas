@@ -1032,9 +1032,7 @@ class Block(PandasObject):
             # GH#37833 np.putmask is more performant than __setitem__
             np.putmask(values, mask, value)
 
-    def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
-    ) -> List["Block"]:
+    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1045,16 +1043,13 @@ class Block(PandasObject):
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
         new : a ndarray/object
-        inplace : bool, default False
-            Perform inplace modification.
         axis : int
-        transpose : bool, default False
-            Set to True if self is stored with axes reversed.
 
         Returns
         -------
         List[Block]
         """
+        transpose = self.ndim == 2
         mask = _extract_bool_array(mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
@@ -1091,8 +1086,6 @@ class Block(PandasObject):
                     new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
                 new = new.astype(new_values.dtype)
 
-            if new_values is self.values and not inplace:
-                new_values = new_values.copy()
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
             # doesn't check this and will simply truncate / pad
@@ -1113,6 +1106,7 @@ class Block(PandasObject):
                     # `np.place` on the other hand uses the ``new`` values at it is
                     # to place in the masked locations of ``new_values``
                     np.place(new_values, mask, new)
+                    # i.e. new_values[mask] = new
                 elif mask.shape[-1] == len(new) or len(new) == 1:
                     np.putmask(new_values, mask, new)
                 else:
@@ -1157,18 +1151,10 @@ class Block(PandasObject):
                 nv = _putmask_smart(val, mask, n)
                 return nv
 
-            new_blocks = self.split_and_operate(mask, f, inplace)
+            new_blocks = self.split_and_operate(mask, f, True)
             return new_blocks
 
-        if inplace:
-            return [self]
-
-        if transpose:
-            if new_values is None:
-                new_values = self.values if inplace else self.values.copy()
-            new_values = new_values.T
-
-        return [self.make_block(new_values)]
+        return [self]
 
     def coerce_to_target_dtype(self, other):
         """
@@ -1711,17 +1697,13 @@ class ExtensionBlock(Block):
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
-    ) -> List["Block"]:
+    def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
         """
         See Block.putmask.__doc__
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
         mask = _extract_bool_array(mask)
 
-        new_values = self.values if inplace else self.values.copy()
+        new_values = self.values
 
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
