@@ -687,6 +687,30 @@ def process_class_docstrings(app, what, name, obj, options, lines):
         lines[:] = joined.split("\n")
 
 
+_BUSINED_ALIASES = [
+    "pandas.tseries.offsets." + name
+    for name in [
+        "BDay",
+        "CDay",
+        "BMonthEnd",
+        "BMonthBegin",
+        "CBMonthEnd",
+        "CBMonthBegin",
+    ]
+]
+
+
+def process_business_alias_docstrings(app, what, name, obj, options, lines):
+    """
+    Starting with sphinx 3.4, the "autodoc-process-docstring" event also
+    gets called for alias classes. This results in numpydoc adding the
+    methods/attributes to the docstring, which we don't want (+ this
+    causes warnings with sphinx).
+    """
+    if name in _BUSINED_ALIASES:
+        lines[:] = []
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -716,6 +740,7 @@ def setup(app):
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
+    app.connect("autodoc-process-docstring", process_business_alias_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
