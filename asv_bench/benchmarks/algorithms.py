@@ -5,7 +5,6 @@ import numpy as np
 from pandas._libs import lib
 
 import pandas as pd
-from pandas.core.algorithms import make_duplicates_of_left_unique_in_right
 
 from .pandas_vb_common import tm
 
@@ -173,17 +172,6 @@ class SortIntegerArray:
 
     def time_argsort(self, N):
         self.array.argsort()
-
-
-class RemoveDuplicates:
-    def setup(self):
-        N = 10 ** 5
-        na = np.arange(int(N / 2))
-        self.left = np.concatenate([na[: int(N / 4)], na[: int(N / 4)]])
-        self.right = np.concatenate([na, na])
-
-    def time_make_duplicates_of_left_unique_in_right(self):
-        make_duplicates_of_left_unique_in_right(self.left, self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
