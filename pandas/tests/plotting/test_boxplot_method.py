@@ -91,8 +91,9 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError):
-            df.boxplot(return_type="NOTATYPE")
+        msg = "return_type must be {'axes', 'dict', 'both'}"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(return_type="NOT_A_TYPE")
 
         result = df.boxplot()
         self._check_box_return_type(result, "axes")
@@ -431,7 +432,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
-        with pytest.raises(ValueError):
+        msg = "The number of passed axes must be 3, the same as the output plot"
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):

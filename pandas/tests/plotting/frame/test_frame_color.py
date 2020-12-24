@@ -1,5 +1,5 @@
 """ Test cases for DataFrame.plot """
-
+import re
 import warnings
 
 import numpy as np
@@ -63,7 +63,7 @@ class TestDataFrameColor(TestPlotBase):
 
     def test_color_empty_string(self):
         df = DataFrame(np.random.randn(10, 2))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid color argument:"):
             df.plot(color="")
 
     def test_color_and_style_arguments(self):
@@ -79,7 +79,12 @@ class TestDataFrameColor(TestPlotBase):
         assert color == ["red", "black"]
         # passing both 'color' and 'style' arguments should not be allowed
         # if there is a color symbol in the style strings:
-        with pytest.raises(ValueError):
+        msg = (
+            "Cannot pass 'style' string with a color symbol and 'color' keyword "
+            "argument. Please use one or the other or pass 'style' without a color "
+            "symbol"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
     @pytest.mark.parametrize(
@@ -217,7 +222,7 @@ class TestDataFrameColor(TestPlotBase):
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
@@ -585,7 +590,11 @@ class TestDataFrameColor(TestPlotBase):
         bp = df.plot.box(color=(0, 1, 0), sym="#123456", return_type="dict")
         _check_colors(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), "#123456")
 
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "color dict contains invalid key 'xxxx'. The key must be either "
+            "['boxes', 'whiskers', 'medians', 'caps']"
+        )
+        with pytest.raises(ValueError, match=msg):
             # Color contains invalid key results in ValueError
             df.plot.box(color={"boxes": "red", "xxxx": "blue"})
 
@@ -641,6 +650,36 @@ class TestDataFrameColor(TestPlotBase):
 
     def test_invalid_colormap(self):
         df = DataFrame(np.random.randn(3, 2), columns=["A", "B"])
-
-        with pytest.raises(ValueError):
+        msg = (
+            "'invalid_colormap' is not a valid value for name; supported values are "
+            "'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', "
+            "'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', "
+            "'GnBu', 'GnBu_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', "
+            "'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', "
+            "'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', "
+            "'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', "
+            "'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', "
+            "'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', "
+            "'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', "
+            "'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r', "
+            "'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', "
+            "'YlOrRd', 'YlOrRd_r', 'afmhot', 'afmhot_r', 'autumn', 'autumn_r', "
+            "'binary', 'binary_r', 'bone', 'bone_r', 'brg', 'brg_r', 'bwr', "
+            "'bwr_r', 'cividis', 'cividis_r', 'cool', 'cool_r', 'coolwarm', "
+            "'coolwarm_r', 'copper', 'copper_r', 'cubehelix', 'cubehelix_r', "
+            "'flag', 'flag_r', 'gist_earth', 'gist_earth_r', 'gist_gray', "
+            "'gist_gray_r', 'gist_heat', 'gist_heat_r', 'gist_ncar', "
+            "'gist_ncar_r', 'gist_rainbow', 'gist_rainbow_r', 'gist_stern', "
+            "'gist_stern_r', 'gist_yarg', 'gist_yarg_r', 'gnuplot', 'gnuplot2', "
+            "'gnuplot2_r', 'gnuplot_r', 'gray', 'gray_r', 'hot', 'hot_r', 'hsv', "
+            "'hsv_r', 'inferno', 'inferno_r', 'jet', 'jet_r', 'magma', 'magma_r', "
+            "'nipy_spectral', 'nipy_spectral_r', 'ocean', 'ocean_r', 'pink', "
+            "'pink_r', 'plasma', 'plasma_r', 'prism', 'prism_r', 'rainbow', "
+            "'rainbow_r', 'seismic', 'seismic_r', 'spring', 'spring_r', 'summer', "
+            "'summer_r', 'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', "
+            "'tab20b_r', 'tab20c', 'tab20c_r', 'terrain', 'terrain_r', 'turbo', "
+            "'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', "
+            "'twilight_shifted_r', 'viridis', 'viridis_r', 'winter', 'winter_r'"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.plot(colormap="invalid_colormap")
