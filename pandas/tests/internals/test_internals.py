@@ -454,6 +454,9 @@ class TestBlockManager:
         # coerce all
         mgr = create_mgr("c: f4; d: f2; e: f8")
 
+        warn = FutureWarning if t == "int64" else None
+        # datetimelike.astype(int64) deprecated
+
         t = np.dtype(t)
         tmgr = mgr.astype(t)
         assert tmgr.iget(0).dtype.type == t
@@ -464,7 +467,8 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        tmgr = mgr.astype(t, errors="ignore")
+        with tm.assert_produces_warning(warn):
+            tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
         assert tmgr.iget(5).dtype.type == t

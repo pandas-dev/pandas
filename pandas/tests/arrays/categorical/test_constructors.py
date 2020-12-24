@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import numpy as np
 import pytest
@@ -26,6 +26,11 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    def test_categorical_scalar_deprecated(self):
+        # GH#38433
+        with tm.assert_produces_warning(FutureWarning):
+            Categorical("A", categories=["A", "B"])
+
     def test_validate_ordered(self):
         # see gh-14058
         exp_msg = "'ordered' must either be 'True' or 'False'"
@@ -202,13 +207,13 @@ class TestCategoricalConstructors:
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        # Scalars should be converted to lists
-        cat = Categorical(1)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#38433
+            cat = Categorical(1)
         assert len(cat.categories) == 1
         assert cat.categories[0] == 1
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
-
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
@@ -345,6 +350,14 @@ class TestCategoricalConstructors:
 
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
+
+    def test_constructor_date_objects(self):
+        # we dont cast date objects to timestamps, matching Index constructor
+        v = date.today()
+
+        cat = Categorical([v, v])
+        assert cat.categories.dtype == object
+        assert type(cat.categories[0]) is date
 
     def test_constructor_from_index_series_timedelta(self):
         idx = timedelta_range("1 days", freq="D", periods=3)

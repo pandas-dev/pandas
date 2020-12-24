@@ -785,7 +785,7 @@ class TestSeriesConstructors:
             dtype="datetime64[ns]",
         )
 
-        result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ns]")
@@ -800,7 +800,9 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        dts.astype("int64")
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -810,8 +812,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(dts, dtype=np.int64)
-        expected = Series(dts.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            result = Series(dts, dtype=np.int64)
+            expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
@@ -1287,13 +1291,16 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
+        # FIXME: dont leave commented-out
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
         #    with pytest.raises(TypeError):
         #        td.astype('m8[%s]' % t)
 
         # valid astype
-        td.astype("int64")
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int64) deprecated
+            td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1410,8 +1417,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(index, dtype=np.int64)
-        expected = Series(index.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # asype(np.int64) deprecated, use .view(np.int64) instead
+            result = Series(index, dtype=np.int64)
+            expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
