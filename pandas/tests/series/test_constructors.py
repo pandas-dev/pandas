@@ -9,12 +9,7 @@ import pytest
 from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    IntervalDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -94,6 +89,17 @@ class TestSeriesConstructors:
         # Coercion
         assert float(Series([1.0])) == 1.0
         assert int(Series([1.0])) == 1
+
+    def test_scalar_extension_dtype(self, ea_scalar_and_dtype):
+        # GH 28401
+
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+
+        ser = Series(ea_scalar, index=range(3))
+        expected = Series([ea_scalar] * 3, dtype=ea_dtype)
+
+        assert ser.dtype == ea_dtype
+        tm.assert_series_equal(ser, expected)
 
     def test_constructor(self, datetime_series):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -550,7 +556,7 @@ class TestSeriesConstructors:
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        tm.assert_index_equal(s.index, Index(np.arange(3)))
+        tm.assert_index_equal(s.index, Index(range(3)), exact=True)
 
     @pytest.mark.parametrize(
         "input",
@@ -779,7 +785,7 @@ class TestSeriesConstructors:
             dtype="datetime64[ns]",
         )
 
-        result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ns]")
@@ -794,7 +800,9 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        dts.astype("int64")
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -804,8 +812,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(dts, dtype=np.int64)
-        expected = Series(dts.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            result = Series(dts, dtype=np.int64)
+            expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
@@ -1107,23 +1117,13 @@ class TestSeriesConstructors:
         expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "data,dtype",
-        [
-            (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
-            (
-                Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
-            ),
-        ],
-    )
-    def test_constructor_dict_extension(self, data, dtype):
-        d = {"a": data}
+    def test_constructor_dict_extension(self, ea_scalar_and_dtype):
+        ea_scalar, ea_dtype = ea_scalar_and_dtype
+        d = {"a": ea_scalar}
         result = Series(d, index=["a"])
-        expected = Series(data, index=["a"], dtype=dtype)
+        expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
 
-        assert result.dtype == dtype
+        assert result.dtype == ea_dtype
 
         tm.assert_series_equal(result, expected)
 
@@ -1291,13 +1291,16 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
+        # FIXME: dont leave commented-out
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
         #    with pytest.raises(TypeError):
         #        td.astype('m8[%s]' % t)
 
         # valid astype
-        td.astype("int64")
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int64) deprecated
+            td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1414,8 +1417,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(index, dtype=np.int64)
-        expected = Series(index.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # asype(np.int64) deprecated, use .view(np.int64) instead
+            result = Series(index, dtype=np.int64)
+            expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

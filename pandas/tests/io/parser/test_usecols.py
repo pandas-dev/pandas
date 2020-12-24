@@ -104,11 +104,7 @@ def test_usecols_name_length_conflict(all_parsers):
 7,8,9
 10,11,12"""
     parser = all_parsers
-    msg = (
-        "Number of passed names did not match number of header fields in the file"
-        if parser.engine == "python"
-        else "Passed header names mismatches usecols"
-    )
+    msg = "Number of passed names did not match number of header fields in the file"
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), names=["a", "b"], header=None, usecols=[1])
@@ -477,14 +473,14 @@ def test_incomplete_first_row(all_parsers, usecols):
         (
             "19,29,39\n" * 2 + "10,20,30,40",
             [0, 1, 2],
-            dict(header=None),
+            {"header": None},
             DataFrame([[19, 29, 39], [19, 29, 39], [10, 20, 30]]),
         ),
         # see gh-9549
         (
             ("A,B,C\n1,2,3\n3,4,5\n1,2,4,5,1,6\n1,2,3,,,1,\n1,2,3\n5,6,7"),
             ["A", "B", "C"],
-            dict(),
+            {},
             DataFrame(
                 {
                     "A": [1, 3, 1, 1, 1, 5],
@@ -507,39 +503,39 @@ def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
     [
         (
             ["a", "b", "c", "d"],
-            dict(),
+            {},
             DataFrame({"a": [1, 5], "b": [2, 6], "c": [3, 7], "d": [4, 8]}),
             None,
         ),
         (
             ["a", "b", "c", "f"],
-            dict(),
+            {},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),
-        (["a", "b", "f"], dict(), None, _msg_validate_usecols_names.format(r"\['f'\]")),
+        (["a", "b", "f"], {}, None, _msg_validate_usecols_names.format(r"\['f'\]")),
         (
             ["a", "b", "f", "g"],
-            dict(),
+            {},
             None,
             _msg_validate_usecols_names.format(r"\[('f', 'g'|'g', 'f')\]"),
         ),
         # see gh-14671
         (
             None,
-            dict(header=0, names=["A", "B", "C", "D"]),
+            {"header": 0, "names": ["A", "B", "C", "D"]},
             DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 7], "D": [4, 8]}),
             None,
         ),
         (
             ["A", "B", "C", "f"],
-            dict(header=0, names=["A", "B", "C", "D"]),
+            {"header": 0, "names": ["A", "B", "C", "D"]},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),
         (
             ["A", "B", "f"],
-            dict(names=["A", "B", "C", "D"]),
+            {"names": ["A", "B", "C", "D"]},
             None,
             _msg_validate_usecols_names.format(r"\['f'\]"),
         ),
@@ -559,12 +555,7 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
 
 
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
-    if all_parsers.engine != "c":
-        reason = "see gh-16469: works on the C engine but not the Python engine"
-        # Number of passed names did not match number of header fields in the file
-        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
-
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers

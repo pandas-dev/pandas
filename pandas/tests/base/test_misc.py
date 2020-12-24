@@ -77,7 +77,7 @@ def test_memory_usage(index_or_series_obj):
         if isinstance(obj, Index):
             expected = 0
         else:
-            expected = 80 if IS64 else 48
+            expected = 108 if IS64 else 64
         assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up

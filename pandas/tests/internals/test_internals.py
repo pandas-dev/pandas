@@ -267,7 +267,7 @@ class TestBlock:
     def test_split(self):
         # GH#37799
         values = np.random.randn(3, 4)
-        blk = make_block(values, placement=[3, 1, 6])
+        blk = make_block(values, placement=[3, 1, 6], ndim=2)
         result = blk._split()
 
         # check that we get views, not copies
@@ -276,9 +276,9 @@ class TestBlock:
 
         assert len(result) == 3
         expected = [
-            make_block(values[[0]], placement=[3]),
-            make_block(values[[1]], placement=[1]),
-            make_block(values[[2]], placement=[6]),
+            make_block(values[[0]], placement=[3], ndim=2),
+            make_block(values[[1]], placement=[1], ndim=2),
+            make_block(values[[2]], placement=[6], ndim=2),
         ]
         for res, exp in zip(result, expected):
             assert_block_equal(res, exp)
@@ -342,7 +342,9 @@ class TestBlockManager:
     def test_iget(self):
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
-        block = make_block(values=values.copy(), placement=np.arange(3))
+        block = make_block(
+            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+        )
         mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
@@ -452,6 +454,9 @@ class TestBlockManager:
         # coerce all
         mgr = create_mgr("c: f4; d: f2; e: f8")
 
+        warn = FutureWarning if t == "int64" else None
+        # datetimelike.astype(int64) deprecated
+
         t = np.dtype(t)
         tmgr = mgr.astype(t)
         assert tmgr.iget(0).dtype.type == t
@@ -462,7 +467,8 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        tmgr = mgr.astype(t, errors="ignore")
+        with tm.assert_produces_warning(warn):
+            tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
         assert tmgr.iget(5).dtype.type == t
@@ -1150,17 +1156,17 @@ def test_make_block_no_pandas_array():
     arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
-    result = make_block(arr, slice(len(arr)))
+    result = make_block(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # PandasArray, PandasDtype
-    result = make_block(arr, slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 
     # ndarray, PandasDtype
-    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
+    result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
     assert result.is_integer is True
     assert result.is_extension is False
 

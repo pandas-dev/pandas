@@ -344,9 +344,11 @@ cdef class {{name}}HashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof({{dtype}}_t) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef:
@@ -669,10 +671,11 @@ cdef class StringHashTable(HashTable):
             self.table = NULL
 
     def sizeof(self, deep=False):
-        """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(char *) +      # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, str val):
         cdef:
@@ -994,9 +997,11 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(PyObject *) +  # keys
-                                       sizeof(Py_ssize_t) +  # vals
-                                       sizeof(uint32_t))  # flags
+        overhead = 4 * sizeof(uint32_t) + 3 * sizeof(uint32_t*)
+        for_flags = max(1, self.table.n_buckets >> 5) * sizeof(uint32_t)
+        for_pairs =  self.table.n_buckets * (sizeof(PyObject *) +  # keys
+                                             sizeof(Py_ssize_t))   # vals
+        return overhead + for_flags + for_pairs
 
     cpdef get_item(self, object val):
         cdef:

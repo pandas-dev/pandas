@@ -65,7 +65,7 @@ class TestGetItem:
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
-        tdi = pd.timedelta_range(0, periods=10)
+        tdi = timedelta_range(0, periods=10)
         with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 

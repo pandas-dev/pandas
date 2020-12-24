@@ -3,17 +3,27 @@ Concat routines.
 """
 
 from collections import abc
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Type, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeriesUnion, Label
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
@@ -296,7 +306,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+        objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -350,7 +360,7 @@ class _Concatenator:
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
 
-        # consolidate data & figure out what our result ndim is going to be
+        # figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
             if not isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -360,14 +370,12 @@ class _Concatenator:
                 )
                 raise TypeError(msg)
 
-            # consolidate
-            obj._consolidate_inplace()
             ndims.add(obj.ndim)
 
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample = None
+        sample: Optional["NDFrame"] = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -437,6 +445,8 @@ class _Concatenator:
                     # to line up
                     if self._is_frame and axis == 1:
                         name = 0
+                    # mypy needs to know sample is not an NDFrame
+                    sample = cast("FrameOrSeriesUnion", sample)
                     obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)
@@ -502,14 +512,7 @@ class _Concatenator:
                     # 1-ax to convert BlockManager axis to DataFrame axis
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
-                        # We have to remove the duplicates from obj_labels
-                        # in new labels to make them unique, otherwise we would
-                        # duplicate or duplicates again
-                        if not obj_labels.is_unique:
-                            new_labels = algos.make_duplicates_of_left_unique_in_right(
-                                np.asarray(obj_labels), np.asarray(new_labels)
-                            )
-                        indexers[ax] = obj_labels.reindex(new_labels)[1]
+                        indexers[ax] = obj_labels.get_indexer(new_labels)
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
@@ -531,7 +534,7 @@ class _Concatenator:
     def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
         return [
-            self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)
+            self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
             for i in range(ndim)
         ]
 
@@ -545,6 +548,7 @@ class _Concatenator:
             copy=self.copy,
         )
 
+    @cache_readonly
     def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
