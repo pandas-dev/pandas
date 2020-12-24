@@ -241,21 +241,43 @@ class TestSetitemCallable:
 class TestSetitemCasting:
     def test_setitem_nan_casts(self):
         # these induce dtype changes
-        expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
+
         ser = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-        ser[::2] = np.nan
-        tm.assert_series_equal(ser, expected)
+        expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
+        key = slice(None, None, 2)
+        tm.check_setitem_equivalents(ser, key, expected)
 
         # gets coerced to float, right?
-        expected = Series([np.nan, 1, np.nan, 0])
         ser = Series([True, True, False, False])
-        ser[::2] = np.nan
-        tm.assert_series_equal(ser, expected)
+        expected = Series([np.nan, 1, np.nan, 0])
+        key = slice(None, None, 2)
+        tm.check_setitem_equivalents(ser, key, expected)
 
-        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
         ser = Series(np.arange(10))
-        ser[:5] = np.nan
-        tm.assert_series_equal(ser, expected)
+        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
+        key = slice(None, 5)
+        tm.check_setitem_equivalents(ser, key, expected)
+
+    def test_setitem_nan_into_int(self):
+        # change dtypes
+        # GH#4463
+        ser = Series([1, 2, 3])
+        expected = Series([np.nan, 2, 3])
+        key = 0
+        tm.check_setitem_equivalents(ser, key, expected)
+
+    def test_setitem_nan_into_bool(self):
+        # change dtypes
+        # GH#4463
+        ser = Series([False])
+        expected = Series([np.nan])
+        key = 0
+        tm.check_setitem_equivalents(ser, key, expected)
+
+        ser = Series([False, True])
+        expected = Series([np.nan, 1.0])
+        key = 0
+        tm.check_setitem_equivalents(ser, key, expected)
 
 
 class TestSetitemWithExpansion:

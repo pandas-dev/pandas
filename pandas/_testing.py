@@ -3143,3 +3143,78 @@ def get_op_from_name(op_name: str) -> Callable:
         op = lambda x, y: rop(y, x)
 
     return op
+
+
+# -----------------------------------------------------------------------------
+# Indexing test helpers
+
+
+def getitem(x):
+    return x
+
+
+def setitem(x):
+    return x
+
+
+def loc(x):
+    return x.loc
+
+
+def iloc(x):
+    return x.iloc
+
+
+def check_setitem_equivalents(obj: Series, key: Union[int, slice], expected: Series):
+    """
+    Check each of several methods that _should_ be equivalent to `obj[key] = np.nan`
+
+    We assume that
+        - obj.index is the default Index(range(len(obj)))
+        - the setitem does not expand the obj
+    """
+    orig = obj.copy()
+
+    if isinstance(key, int):
+        for indexer in [setitem, loc, iloc]:
+            obj = orig.copy()
+            indexer(obj)[key] = np.nan
+            assert_series_equal(obj, expected)
+
+        key = slice(key, key + 1)
+
+    # setitem with slice
+    for indexer in [setitem, iloc]:
+        # Note: no .loc because that handles slice edges differently
+        obj = orig.copy()
+        indexer(obj)[key] = np.nan
+        assert_series_equal(obj, expected)
+
+    # list of ints
+    ilkey = list(range(len(obj)))[key]
+    for indexer in [setitem, loc, iloc]:
+        obj = orig.copy()
+        indexer(obj)[ilkey] = np.nan
+        assert_series_equal(obj, expected)
+
+    # setitem with boolean mask
+    mask = np.zeros(obj.shape, dtype=bool)
+    mask[key] = True
+    for indexer in [setitem, loc, iloc]:
+        obj = orig.copy()
+        indexer(obj)[mask] = np.nan
+        assert_series_equal(obj, expected)
+
+    # Series.where
+    obj = orig.copy()
+    res = obj.where(~mask, np.nan)
+    assert_equal(res, expected)
+
+    # Index equivalents
+    if Index(orig).dtype == orig.dtype:
+        obj = orig.copy()
+        res = Index(obj).where(~mask, np.nan)
+        assert_index_equal(res, Index(expected))
+
+        # TODO: implement the same for Index(obj).putmask(mask, np.nan)
+        #  once that behavior matches
