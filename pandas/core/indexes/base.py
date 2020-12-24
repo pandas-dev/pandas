@@ -411,37 +411,37 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas import DatetimeIndex
 
             return DatetimeIndex
-        if dtype == "m8[ns]":
+        elif dtype == "m8[ns]":
             from pandas import TimedeltaIndex
 
             return TimedeltaIndex
-        if isinstance(dtype, CategoricalDtype):
+        elif isinstance(dtype, CategoricalDtype):
             from pandas import CategoricalIndex
 
             return CategoricalIndex
-        if isinstance(dtype, IntervalDtype):
+        elif isinstance(dtype, IntervalDtype):
             from pandas import IntervalIndex
 
             return IntervalIndex
-        if isinstance(dtype, PeriodDtype):
+        elif isinstance(dtype, PeriodDtype):
             from pandas import PeriodIndex
 
             return PeriodIndex
 
-        if is_float_dtype(dtype):
+        elif is_float_dtype(dtype):
             from pandas import Float64Index
 
             return Float64Index
-        if is_unsigned_integer_dtype(dtype):
+        elif is_unsigned_integer_dtype(dtype):
             from pandas import UInt64Index
 
             return UInt64Index
-        if is_signed_integer_dtype(dtype):
+        elif is_signed_integer_dtype(dtype):
             from pandas import Int64Index
 
             return Int64Index
 
-        if dtype == object:
+        elif dtype == object:
             # NB: assuming away MultiIndex
             return Index
 
