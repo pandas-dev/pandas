@@ -823,7 +823,6 @@ Reshaping
 - Bug in :meth:`DataFrame.combine_first` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging :class:`.DatetimeIndex` with empty DataFrame (:issue:`36895`)
 - Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
-- Bug in :func:`concat` resulting in a ``ValueError`` when at least one of both inputs had a non-unique index (:issue:`36263`)
 - Bug in :meth:`DataFrame.merge` and :meth:`pandas.merge` returning inconsistent ordering in result for ``how=right`` and ``how=left`` (:issue:`35382`)
 - Bug in :func:`merge_ordered` couldn't handle list-like ``left_by`` or ``right_by`` (:issue:`35269`)
 - Bug in :func:`merge_ordered` returned wrong join result when length of ``left_by`` or ``right_by`` equals to the rows of ``left`` or ``right`` (:issue:`38166`)
