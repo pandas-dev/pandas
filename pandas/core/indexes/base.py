@@ -3692,7 +3692,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
-            #  not handle this in case of not alphabetically monotonic GH#38502
+            #  not handle this in case of not lexicographically monotonic GH#38502
             try:
                 return self._join_monotonic(
                     other, how=how, return_indexers=return_indexers

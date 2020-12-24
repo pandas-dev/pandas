@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+    merge,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
@@ -817,19 +826,31 @@ def test_join_cross(input_col, output_cols):
     tm.assert_frame_equal(result, expected)
 
 
-def test_join_multiindex_not_alphabetical_categorical():
+@pytest.mark.parametrize(
+    "categories, values",
+    [
+        (["Y", "X"], ["Y", "X", "X"]),
+        ([2, 1], [2, 1, 1]),
+        ([2.5, 1.5], [2.5, 1.5, 1.5]),
+        (
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31")],
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31"), Timestamp("2019-12-31")],
+        ),
+    ],
+)
+def test_join_multiindex_not_alphabetical_categorical(categories, values):
     # GH#38502
     left = DataFrame(
         {
             "first": ["A", "A"],
-            "second": Categorical(["Y", "X"], categories=["Y", "X"]),
+            "second": Categorical(categories, categories=categories),
             "value": [1, 2],
         }
     ).set_index(["first", "second"])
     right = DataFrame(
         {
             "first": ["A", "A", "B"],
-            "second": Categorical(["Y", "X", "X"], categories=["Y", "X"]),
+            "second": Categorical(values, categories=categories),
             "value": [3, 4, 5],
         }
     ).set_index(["first", "second"])
@@ -838,7 +859,7 @@ def test_join_multiindex_not_alphabetical_categorical():
     expected = DataFrame(
         {
             "first": ["A", "A"],
-            "second": Categorical(["Y", "X"], categories=["Y", "X"]),
+            "second": Categorical(categories, categories=categories),
             "value_left": [1, 2],
             "value_right": [3, 4],
         }
