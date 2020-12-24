@@ -1710,8 +1710,8 @@ def assert_frame_equal(
     else:
         for i, col in enumerate(left.columns):
             assert col in right
-            lcol = left._ixs(i, axis=1)
-            rcol = right._ixs(i, axis=1)
+            lcol = left.iloc[:, i]
+            rcol = right.iloc[:, i]
             # GH #38183
             # use check_index=False, because we do not want to run
             # assert_index_equal for each column,
