@@ -124,7 +124,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return result
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         return True
 
     # ------------------------------------------------------------------------

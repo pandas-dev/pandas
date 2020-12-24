@@ -9466,7 +9466,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
-        if ax.is_all_dates:
+        if ax._is_all_dates:
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)

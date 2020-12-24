@@ -530,7 +530,7 @@ class TestFancy:
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
-        assert df.index.is_all_dates
+        assert df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
@@ -538,7 +538,7 @@ class TestFancy:
             df.loc["2011", 0]
 
         df = DataFrame()
-        assert not df.index.is_all_dates
+        assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 

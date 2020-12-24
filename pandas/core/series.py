@@ -423,7 +423,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        if labels.is_all_dates:
+        if labels._is_all_dates:
             deep_labels = labels
             if isinstance(labels, CategoricalIndex):
                 deep_labels = labels.categories

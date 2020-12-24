@@ -1269,7 +1269,7 @@ class LinePlot(MPLPlot):
         # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and (data.index.is_all_dates and self.use_index)
+            and (data.index._is_all_dates and self.use_index)
             and (not self.subplots or (self.subplots and self.sharex))
         )
 
