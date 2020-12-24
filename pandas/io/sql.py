@@ -383,6 +383,8 @@ def read_sql_query(
         Data type for data or columns. E.g. np.float64 or
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
 
+        .. versionadded:: 1.3.0
+
     Returns
     -------
     DataFrame or Iterator[DataFrame]
@@ -609,7 +611,7 @@ def to_sql(
     index: bool = True,
     index_label=None,
     chunksize: Optional[int] = None,
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     method: Optional[str] = None,
 ) -> None:
     """
@@ -768,7 +770,7 @@ class SQLTable(PandasObject):
         index_label=None,
         schema=None,
         keys=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
     ):
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -1108,9 +1110,9 @@ class SQLTable(PandasObject):
 
     def _sqlalchemy_type(self, col):
 
-        dtype = self.dtype or {}
-        if col.name in dtype:
-            return self.dtype[col.name]
+        dtype: DtypeArg = self.dtype or {}
+        if isinstance(dtype, dict) and col.name in dtype:
+            return dtype[col.name]
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
@@ -1203,7 +1205,18 @@ class PandasSQL(PandasObject):
             "connectable or sqlite connection"
         )
 
-    def to_sql(self, *args, **kwargs):
+    def to_sql(
+        self,
+        frame,
+        name,
+        if_exists="fail",
+        index=True,
+        index_label=None,
+        schema=None,
+        chunksize=None,
+        dtype: Optional[DtypeArg] = None,
+        method=None,
+    ):
         raise ValueError(
             "PandasSQL must be created with an SQLAlchemy "
             "connectable or sqlite connection"
@@ -1430,7 +1443,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         chunksize=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         method=None,
     ):
         """
@@ -1477,7 +1490,7 @@ class SQLDatabase(PandasSQL):
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
 
-        if dtype is not None:
+        if dtype is not None and isinstance(dtype, dict):
             from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
@@ -1563,7 +1576,7 @@ class SQLDatabase(PandasSQL):
         frame: DataFrame,
         table_name: str,
         keys: Optional[List[str]] = None,
-        dtype: Optional[dict] = None,
+        dtype: Optional[DtypeArg] = None,
         schema: Optional[str] = None,
     ):
         table = SQLTable(
@@ -1734,8 +1747,8 @@ class SQLiteTable(SQLTable):
         return create_stmts
 
     def _sql_type_name(self, col):
-        dtype = self.dtype or {}
-        if col.name in dtype:
+        dtype: DtypeArg = self.dtype or {}
+        if isinstance(dtype, dict) and col.name in dtype:
             return dtype[col.name]
 
         # Infer type of column, while ignoring missing values.
@@ -1895,7 +1908,7 @@ class SQLiteDatabase(PandasSQL):
         index_label=None,
         schema=None,
         chunksize=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         method=None,
     ):
         """
@@ -1941,7 +1954,7 @@ class SQLiteDatabase(PandasSQL):
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
 
-        if dtype is not None:
+        if dtype is not None and isinstance(dtype, dict):
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
                     raise ValueError(f"{col} ({my_type}) not a string")
@@ -1980,7 +1993,7 @@ class SQLiteDatabase(PandasSQL):
         frame,
         table_name: str,
         keys=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         schema: Optional[str] = None,
     ):
         table = SQLiteTable(
@@ -1996,7 +2009,12 @@ class SQLiteDatabase(PandasSQL):
 
 
 def get_schema(
-    frame, name: str, keys=None, con=None, dtype=None, schema: Optional[str] = None
+    frame,
+    name: str,
+    keys=None,
+    con=None,
+    dtype: Optional[DtypeArg] = None,
+    schema: Optional[str] = None,
 ):
     """
     Get the SQL db table schema for the given frame.
