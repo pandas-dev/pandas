@@ -1063,15 +1063,12 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if self.dtype.kind in ["m", "M"]:
-                blk = self
-                if not inplace:
-                    blk = self.copy()
-                arr = blk.array_values()
+                arr = self.array_values()
                 arr = cast("NDArrayBackedExtensionArray", arr)
                 if transpose:
                     arr = arr.T
                 arr.putmask(mask, new)
-                return [blk]
+                return [self]
 
             if lib.is_scalar(new):
                 new = convert_scalar_for_putitemlike(new, self.values.dtype)
