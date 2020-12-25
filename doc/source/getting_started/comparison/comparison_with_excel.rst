@@ -128,25 +128,26 @@ This can be achieved by using ``pandas.pivot_table`` for examples and reference,
 please see `pandas.pivot_table <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.pivot_table.html>`__
 
 
-Formulae
+Formulas
 ~~~~~~~~
 
-Let's create a new column "girls_count" and try to compute the number of boys in
+In spreadsheets, `formulas <https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_
+are often created in individual cells and then `dragged <https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_
+into other cells to compute them for other columns. In pandas, you'll be doing more operations on
+full columns.
+
+As an example, let's create a new column "girls_count" and try to compute the number of boys in
 each class.
 
 .. ipython:: python
 
     df["girls_count"] = [21, 12, 21, 31, 23, 17]
     df
-
-
-    def get_count(row):
-        return row["student_count"] - row["girls_count"]
-
-
-    df["boys_count"] = df.apply(get_count, axis=1)
+    df["boys_count"] = df["student_count"] - df["girls_count"]
     df
 
+Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
+us. See :ref:`10min_tut_05_columns` for more information.
 
 VLOOKUP
 ~~~~~~~
