@@ -64,6 +64,26 @@ effectively.
 Commonly used Excel functionalities
 -----------------------------------
 
+Importing data
+~~~~~~~~~~~~~~
+
+Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`_
+and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
+formats. Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/master/pandas/tests/io/data/csv/tips.csv>`_
+dataset from the pandas tests, which is a CSV file.
+
+In Excel, you would download and then `open the CSV <https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba>`_.
+In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read_csv`:
+
+.. ipython:: python
+
+   url = (
+       "https://raw.github.com/pandas-dev"
+       "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+   )
+   tips = pd.read_csv(url)
+   tips
+
 Fill Handle
 ~~~~~~~~~~~
 
@@ -121,12 +141,23 @@ This is supported in pandas via :meth:`~DataFrame.drop_duplicates`.
     df.drop_duplicates(["class", "student_count"])
 
 
-Pivot Table
-~~~~~~~~~~~
+Pivot Tables
+~~~~~~~~~~~~
 
-This can be achieved by using ``pandas.pivot_table`` for examples and reference,
-please see `pandas.pivot_table <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.pivot_table.html>`__
+`PivotTables <https://support.microsoft.com/en-us/office/create-a-pivottable-to-analyze-worksheet-data-a9a84538-bfe9-40a9-a8e9-f99134456576>`_
+from Excel can be replicated in pandas through :ref:`reshaping`. Using the ``tips`` dataset again,
+let's find the average gratuity by size of the party and sex of the server.
 
+In Excel, we use the following configuration for the PivotTable:
+
+.. image:: ../../_static/excel_pivot.png
+   :align: center
+
+The equivalent in pandas:
+
+.. ipython:: python
+
+   pd.pivot_table(df, values='tip', index=['size'], columns=['sex'], aggfunc=np.average)
 
 Formulas
 ~~~~~~~~
@@ -197,7 +228,7 @@ VLOOKUP
 Adding a row
 ~~~~~~~~~~~~
 
-To appended a row, we can just assign values to an index using ``loc``.
+To appended a row, we can just assign values to an index using :meth:`~DataFrame.loc`.
 
 NOTE: If the index already exists, the values in that index will be over written.
 
