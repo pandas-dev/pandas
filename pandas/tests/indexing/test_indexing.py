@@ -535,9 +535,7 @@ class TestFancy:
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            with tm.assert_produces_warning(FutureWarning):
-                # This does an is_all_dates check
-                df.loc["2011", 0]
+            df.loc["2011", 0]
 
         df = DataFrame()
         assert not df.index._is_all_dates
