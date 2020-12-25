@@ -22,6 +22,7 @@ from typing import (
 )
 
 import numpy as np
+
 from pandas.compat.numpy import np_version_under1p17
 
 # To prevent import cycles place any internal imports in the branch below
