@@ -17,7 +17,7 @@ dependencies:
 
   # optional
   - beautifulsoup4
-  - blosc
+  - blosc=1.17.0
   - python-blosc
   - fastparquet=0.3.2
   - html5lib
