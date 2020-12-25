@@ -76,8 +76,9 @@ def test_numpy_ufuncs_basic(index, func):
             msg = (
                 r"loop of ufunc does not support argument 0 of type .* which "
                 f"has no callable {func.__name__} method"
+                f"|object has no attribute {func.__name__}"
             )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises((TypeError, AttributeError), match=msg):
                 with np.errstate(all="ignore"):
                     func(index)
 
