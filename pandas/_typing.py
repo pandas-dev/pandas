@@ -162,6 +162,6 @@ ColspaceArgType = Union[
 
 # random generator
 if np_version_under1p17:
-    RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
-else:
     RandomState = Union[int, ArrayLike, np.random.RandomState]
+else:
+    RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
