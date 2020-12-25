@@ -25,7 +25,7 @@ jobs:
         env_file: [ci/deps/actions-37-locale.yaml, ci/deps/actions-37-cov.yaml]
 
     env:
-      ENV_FILE: ${{ env_file }}
+      ENV_FILE: ${{ matrix.env_file }}
       PATTERN: ((not slow and not network and not clipboard) or (single and db))
       # LOCALE_OVERRIDE: zh_CN.UTF-8
 
