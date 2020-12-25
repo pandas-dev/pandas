@@ -416,3 +416,31 @@ class TestRank:
         expected = DataFrame({"a": exp_order[random_order]}, dtype="float64")
         result = df.rank()
         tm.assert_frame_equal(result, expected)
+
+    def test_df_series_inf_nan_consistency(self):
+        # GH#32593
+        index = [5, 4, 3, 2, 1, 6, 7, 8, 9, 10]
+        col1 = [5, 4, 3, 5, 8, 5, 2, 1, 6, 6]
+        col2 = [5, 4, np.nan, 5, 8, 5, np.inf, np.nan, 6, -np.inf]
+        df = DataFrame(
+            index=index,
+            data={
+                "col1": col1,
+                "col2": col2,
+            },
+            dtype="f8",
+        )
+        df_result = df.rank()
+
+        series_result = df.copy()
+        series_result["col1"] = df["col1"].rank()
+        series_result["col2"] = df["col2"].rank()
+
+        tm.assert_frame_equal(df_result, series_result)
+
+    def test_rank_both_inf(self):
+        # GH#32593
+        df = DataFrame({"a": [-np.inf, 0, np.inf]})
+        expected = DataFrame({"a": [1.0, 2.0, 3.0]})
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)
