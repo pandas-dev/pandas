@@ -71,8 +71,8 @@ class TestSeriesRepr:
         str(string_series.astype(int))
         str(object_series)
 
-        str(Series(tm.randn(1000), index=np.arange(1000)))
-        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
+        str(Series(np.random.randn(1000), index=np.arange(1000)))
+        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(Series(dtype=object))
@@ -104,7 +104,7 @@ class TestSeriesRepr:
             repr(string_series)
 
         biggie = Series(
-            tm.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+            np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
         )
         repr(biggie)
 
