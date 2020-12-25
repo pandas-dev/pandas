@@ -17,9 +17,9 @@ dependencies:
 
   # optional
   - beautifulsoup4
-  - blosc
+  - blosc=1.15.0
   - python-blosc
-  - fastparquet
+  - fastparquet=0.3.2
   - html5lib
   - ipython
   - jinja2
@@ -33,7 +33,7 @@ dependencies:
   - pyarrow>=0.17
   - pytables>=3.5.1
   - scipy
-  - xarray
+  - xarray=0.12.3
   - xlrd<2.0
   - xlsxwriter
   - xlwt
