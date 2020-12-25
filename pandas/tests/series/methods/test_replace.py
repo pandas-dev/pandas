@@ -210,7 +210,7 @@ class TestSeriesReplace:
 
     @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
     def test_replace_int_with_na(self, dtype):
-        result = pd.Series([0, 1]).astype(dtype)
+        result = pd.Series([0, None]).astype(dtype)
         result.replace(0, pd.NA)
         expected = pd.Series([0, None]).astype(dtype)
         expected.fillna(0).replace(0, pd.NA)
