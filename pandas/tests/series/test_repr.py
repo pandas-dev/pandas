@@ -184,9 +184,7 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        with tm.assert_produces_warning(FutureWarning):
-            # Index.is_all_dates deprecated
-            ts = Series(np.random.randn(len(index)), index)
+        ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
