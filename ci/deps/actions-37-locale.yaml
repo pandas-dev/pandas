@@ -34,7 +34,7 @@ dependencies:
   - pytables>=3.5.1
   - scipy
   - xarray=0.12.3
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - moto
