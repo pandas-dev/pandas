@@ -2144,7 +2144,7 @@ class _TestPostgreSQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:5432/pandas"
         )
 
     @classmethod
