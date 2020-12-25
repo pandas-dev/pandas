@@ -19,16 +19,20 @@ jobs:
       run:
         shell: bash -l {0}
 
+    strategy:
+      fail-fast: true
+      matrix:
+        env_file: [ci/deps/actions-37-locale.yaml, ci/deps/actions-37-cov.yaml]
+
     env:
-      CONDA_PY: "37"
-      ENV_FILE: ci/deps/actions-37-locale.yaml
+      ENV_FILE: ${{ env_file }}
       PATTERN: ((not slow and not network and not clipboard) or (single and db))
-      LOCALE_OVERRIDE: zh_CN.UTF-8
+      # LOCALE_OVERRIDE: zh_CN.UTF-8
 
     services:
       mysql:
         image: mysql
-        env: 
+        env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
         options: >-
@@ -72,12 +76,24 @@ jobs:
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
-        use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+        use-only-tar-bz2: true
 
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
         python -m pip install -e . --no-build-isolation --no-use-pep517
+
+    - name: Set Environment Variables for Locale Build
+    - env:
+        LOCALE_OVERRIDE: zh_CN.UTF-8
+      if: env.ENV_FILE == ci/deps/actions-37-locale.yaml
+
+    - name: Set Environment Variables for Coverage Build
+    - env:
+        LOCALE_OVERRIDE: zh_CN.UTF-8
+        PANDAS_TESTING_MODE: deprecate
+        COVERAGE: true
+      if: env.ENV_FILE == ci/deps/actions-37-cov.yaml
 
     - name: Test
       run: |
