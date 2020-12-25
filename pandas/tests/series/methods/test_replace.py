@@ -208,6 +208,14 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
+    def test_replace_int_with_na(self, dtype):
+        result = pd.Series([0, 1]).astype(dtype)
+        result.replace(0, pd.NA)
+        expected = pd.Series([0, None]).astype(dtype)
+        expected.fillna(0).replace(0, pd.NA)
+        tm.assert_series_equal(result, expected)
+
     def test_replace2(self):
         N = 100
         ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
