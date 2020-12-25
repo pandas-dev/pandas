@@ -75,8 +75,7 @@ jobs:
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
-        python -m pip install --no-deps -U pip wheel setupstools
-        python -m pip install --no-build-isolation -e .
+        python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Test
       run: ci/run_tests.sh
@@ -155,8 +154,7 @@ jobs:
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
-        python -m pip install --no-deps -U pip wheel setupstools
-        python -m pip install --no-build-isolation -e .
+        python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Test
       run: ci/run_tests.sh
