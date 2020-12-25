@@ -267,6 +267,11 @@ def _json_normalize(
         data = [data]
 
     if record_path is None:
+        if np.ndim(data) == 0:
+            # GH35923 Fix pd.json_normalize to not skip the first element of a
+            # generator input
+            data = list(data)
+
         if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for

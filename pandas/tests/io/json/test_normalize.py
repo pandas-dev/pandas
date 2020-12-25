@@ -518,6 +518,17 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_generator(self, state_data):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        def generator_data():
+            yield from state_data[0]["counties"]
+
+        result = json_normalize(generator_data())
+        expected = DataFrame(state_data[0]["counties"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
