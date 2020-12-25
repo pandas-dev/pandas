@@ -103,8 +103,8 @@ values.
 Drop Duplicates
 ~~~~~~~~~~~~~~~
 
-Another commonly used function is Drop Duplicates. This is directly supported in
-pandas.
+Excel has built-in functionality for `removing duplicate values <https://support.microsoft.com/en-us/office/find-and-remove-duplicates-00e35bea-b46a-4d5d-b28e-66a552dc138d>`_.
+This is supported in pandas via :meth:`~DataFrame.drop_duplicates`.
 
 .. ipython:: python
 
