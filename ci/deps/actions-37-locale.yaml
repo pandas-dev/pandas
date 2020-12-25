@@ -34,7 +34,7 @@ dependencies:
   - pytables>=3.5.1
   - scipy
   - xarray
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto
@@ -42,5 +42,5 @@ dependencies:
 
   # sql
   - psycopg2
-  - pymysql
+  - pymysql<0.10.0
   - sqlalchemy
