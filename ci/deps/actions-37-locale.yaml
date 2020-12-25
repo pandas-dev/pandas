@@ -17,13 +17,13 @@ dependencies:
 
   # optional
   - beautifulsoup4
-  - blosc=1.15.0
+  - blosc
   - python-blosc
-  - fastparquet=0.3.2
+  - fastparquet
   - html5lib
   - ipython
   - jinja2
-  - lxml=4.3.0
+  - lxml
   - matplotlib
   - nomkl
   - numexpr
@@ -33,14 +33,14 @@ dependencies:
   - pyarrow>=0.17
   - pytables>=3.5.1
   - scipy
-  - xarray=0.12.3
-  - xlrd<2.0
+  - xarray
+  - xlrd
   - xlsxwriter
   - xlwt
   - moto
   - flask
 
   # sql
-  - psycopg2=2.8
-  - pymysql=0.8.1
-  - sqlalchemy=1.3.0
+  - psycopg2
+  - pymysql
+  - sqlalchemy

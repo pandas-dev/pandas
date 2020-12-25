@@ -15,6 +15,9 @@ jobs:
   Linux_py37_locale:
     name: Linux_py37_locale
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
 
     env:
       CONDA_PY: "37"
@@ -41,24 +44,12 @@ jobs:
 
     steps:
 
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v2
-
-    # - name: Initialize Database
-    #   run:
-    #       # mysql -e 'create database pandas_nosetest;'
-    #       psql -c 'create database pandas_nosetest;' -U postgres
-    #   env:
-    #       POSTGRES_HOST: localhost
-    #       POSTGRES_PORT: 5432
 
     - name: Cache conda
       uses: actions/cache@v1
       env:
-        # Increase this value to reset cache if the environment file has not changed
         CACHE_NUMBER: 0
       with:
         path: ~/conda_pkgs_dir
