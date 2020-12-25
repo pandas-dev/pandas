@@ -84,15 +84,13 @@ jobs:
         python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Set Environment Variables for Locale Build
-    - env:
-        LOCALE_OVERRIDE: zh_CN.UTF-8
+      run: echo "::set-env name=LOCALE_OVERRIDE::zh_CN.UTF-8"
       if: env.ENV_FILE == ci/deps/actions-37-locale.yaml
 
     - name: Set Environment Variables for Coverage Build
-    - env:
-        LOCALE_OVERRIDE: zh_CN.UTF-8
-        PANDAS_TESTING_MODE: deprecate
-        COVERAGE: true
+      run: |
+        echo "::set-env name=PANDAS_TESTING_MODE::deprecate"
+        echo "::set-env name=COVERAGE::true"
       if: env.ENV_FILE == ci/deps/actions-37-cov.yaml
 
     - name: Test
