@@ -34,13 +34,13 @@ dependencies:
   - pytables>=3.5.1
   - scipy
   - xarray=0.12.3
-  - xlrd
+  - xlrd<2.0
   - xlsxwriter
   - xlwt
   - moto
   - flask
 
   # sql
-  - psycopg2=2.7
+  - psycopg2=2.8
   - pymysql=0.7.11
   - sqlalchemy=1.3.0
