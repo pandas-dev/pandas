@@ -352,6 +352,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            warnings.warn(
+                f"casting {self.dtype} values to int64 with .astype(...) is "
+                "deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
             values = self.asi8
 
             if is_unsigned_integer_dtype(dtype):
@@ -600,6 +608,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
+
+        if isinstance(value, list) and len(value) == 0:
+            # We treat empty list as our own dtype.
+            return type(self)._from_sequence([], dtype=self.dtype)
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
