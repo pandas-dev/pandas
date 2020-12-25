@@ -20,31 +20,22 @@ cache:
   directories:
     - $HOME/.cache # cython cache
 
-env:
-  global:
-    - PYTEST_WORKERS="auto"
-    # create a github personal access token
-    # cd pandas-dev/pandas
-    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
-    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
-
 git:
   depth: false
 
-matrix:
-  fast_finish: true
+fast_finish: true
 
-  include:
-    - arch: arm64
-      env:
-        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+arch: arm64
 
-  allow_failures:
-    # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719
-    - arch: arm64
-      env:
-        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+env:
+  - PYTEST_WORKERS=1
+  - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
+  - ENV_FILE="ci/deps/travis-37-arm64.yaml"
+  - PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
+allow_failures:
+  # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719
+  - arch: arm64
 
 before_install:
   - echo "before_install"
@@ -67,7 +58,6 @@ install:
 
 script:
   - echo "script start"
-  - echo "$JOB"
   - source activate pandas-dev
   - ci/run_tests.sh
 

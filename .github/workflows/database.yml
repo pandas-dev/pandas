@@ -10,24 +10,98 @@ on:
 
 env:
   PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+  PATTERN: ((not slow and not network and not clipboard) or (single and db))
 
 jobs:
   Linux_py37_locale:
-    name: Linux_py37_locale
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
 
-    strategy:
-      fail-fast: true
-      matrix:
-        env_file: [ci/deps/actions-37-locale.yaml, ci/deps/actions-37-cov.yaml]
+    env:
+      ENV_FILE: ci/deps/actions-37-locale.yaml
+      LOCALE_OVERRIDE: zh_CN.UTF-8
+
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Cache conda
+      uses: actions/cache@v1
+      env:
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      run: |
+        python -m pip install -no-deps -U pip wheel setupstools
+        python setup.py build_ext -j 2
+        python -m pip install --no-build-isolation -e .
+
+    - name: Test
+      run: ci/run_tests.sh
+      if: always()
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+  Linux_py37_cov:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
 
     env:
-      ENV_FILE: ${{ matrix.env_file }}
-      PATTERN: ((not slow and not network and not clipboard) or (single and db))
-      # LOCALE_OVERRIDE: zh_CN.UTF-8
+      ENV_FILE: ci/deps/actions-37-cov.yaml
+      PANDAS_TESTING_MODE: deprecate
+      COVERAGE: true
 
     services:
       mysql:
@@ -80,22 +154,12 @@ jobs:
 
     - name: Build Pandas
       run: |
+        python -m pip install -no-deps -U pip wheel setupstools
         python setup.py build_ext -j 2
-        python -m pip install -e . --no-build-isolation --no-use-pep517
-
-    - name: Set Environment Variables for Locale Build
-      run: echo "::set-env name=LOCALE_OVERRIDE::zh_CN.UTF-8"
-      if: env.ENV_FILE == 'ci/deps/actions-37-locale.yaml'
-
-    - name: Set Environment Variables for Coverage Build
-      run: |
-        echo "::set-env name=PANDAS_TESTING_MODE::deprecate"
-        echo "::set-env name=COVERAGE::true"
-      if: env.ENV_FILE == 'ci/deps/actions-37-cov.yaml'
+        python -m pip install --no-build-isolation -e .
 
     - name: Test
-      run: |
-        ci/run_tests.sh
+      run: ci/run_tests.sh
       if: always()
 
     - name: Publish test results
