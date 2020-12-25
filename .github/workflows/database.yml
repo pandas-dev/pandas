@@ -85,13 +85,13 @@ jobs:
 
     - name: Set Environment Variables for Locale Build
       run: echo "::set-env name=LOCALE_OVERRIDE::zh_CN.UTF-8"
-      if: env.ENV_FILE == ci/deps/actions-37-locale.yaml
+      if: env.ENV_FILE == 'ci/deps/actions-37-locale.yaml'
 
     - name: Set Environment Variables for Coverage Build
       run: |
         echo "::set-env name=PANDAS_TESTING_MODE::deprecate"
         echo "::set-env name=COVERAGE::true"
-      if: env.ENV_FILE == ci/deps/actions-37-cov.yaml
+      if: env.ENV_FILE == 'ci/deps/actions-37-cov.yaml'
 
     - name: Test
       run: |
