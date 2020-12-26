@@ -49,15 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, DatetimeIndexOpsMixin):
-        # Two different error message patterns depending on the dtype
-        msg = (
-            f"ufunc '{func.__name__}' not supported for the input types, and the "
-            "inputs could not be safely coerced to any supported types according to "
-            "the casting rule ''safe''"
-            f"|f ufunc does not support argument 0 of type .* which has no callable "
-            f"{func.__name__} method"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with tm.external_error_raised(TypeError):
             with np.errstate(all="ignore"):
                 func(index)
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
@@ -73,12 +65,7 @@ def test_numpy_ufuncs_basic(index, func):
         if len(index) == 0:
             pass
         else:
-            msg = (
-                r"loop of ufunc does not support argument 0 of type .* which "
-                f"has no callable {func.__name__} method"
-                f"|object has no attribute {func.__name__}"
-            )
-            with pytest.raises((TypeError, AttributeError), match=msg):
+            with tm.external_error_raised((TypeError, AttributeError)):
                 with np.errstate(all="ignore"):
                     func(index)
 
