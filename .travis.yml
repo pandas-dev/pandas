@@ -16,6 +16,7 @@ services:
 # travis cache --delete inside the project directory from the travis command line client
 # The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
+  apt: true
   ccache: true
   directories:
     - $HOME/.cache # cython cache
@@ -29,15 +30,10 @@ arch: arm64
 
 env:
   global:
-    - PYTEST_WORKERS=1
+    - PYTEST_WORKERS=2
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
     - ENV_FILE="ci/deps/travis-37-arm64.yaml"
     - PATTERN="(not slow and not network and not clipboard and not arm_slow)"
-
-jobs:
-  allow_failures:
-    # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719
-    - arch: arm64
 
 before_install:
   - echo "before_install"
