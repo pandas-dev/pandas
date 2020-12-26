@@ -160,7 +160,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
-- Performance improvement in :meth:`array.mean` (:issue:`34814`)
+- Performance improvement in :meth:`Series.mean` for ``ExtensionDtype`` columns (:issue:`34814`)
 -
 
 .. ---------------------------------------------------------------------------
