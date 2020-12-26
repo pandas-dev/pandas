@@ -48,8 +48,8 @@ A ``Series`` is the data structure that represents one column of a ``DataFrame``
 ~~~~~~~~~
 
 Every ``DataFrame`` and ``Series`` has an ``Index``, which are labels on the *rows* of the data. In
-pandas, if no index is specified, an integer index is used by default (first row = 0, second row =
-1, and so on), analogous to row headings/numbers in spreadsheets.
+pandas, if no index is specified, a :class:`~pandas.RangeIndex` is used by default (first row = 0,
+second row = 1, and so on), analogous to row headings/numbers in spreadsheets.
 
 In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that
 use use as the row identifier in a worksheet. Unlike spreadsheets, these ``Index`` values can actually be
