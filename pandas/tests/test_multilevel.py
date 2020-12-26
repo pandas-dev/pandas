@@ -423,3 +423,9 @@ def test_is_lexsorted_deprecation():
     # GH 32259
     with tm.assert_produces_warning():
         MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).is_lexsorted()
+
+
+def test_lexsort_depth_deprecation():
+    # GH 32259
+    with tm.assert_produces_warning():
+        MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).lexsort_depth

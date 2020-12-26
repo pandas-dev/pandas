@@ -1851,6 +1851,7 @@ class MultiIndex(Index):
         """
         return self._get_lexsort_depth == self.nlevels
 
+    @cache_readonly
     def lexsort_depth(self):
         warnings.warn(
             "MultiIndex.lexsort_depth is deprecated as a public function, "
@@ -1859,7 +1860,7 @@ class MultiIndex(Index):
             FutureWarning,
             stacklevel=2,
         )
-        return self._get_lexsort_depth()
+        return self._get_lexsort_depth
 
     @cache_readonly
     def _get_lexsort_depth(self):
