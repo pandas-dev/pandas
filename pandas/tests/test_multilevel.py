@@ -401,11 +401,11 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_lexsorted() is False
+        assert df.index._is_lexsorted() is False
         assert df.index.is_monotonic is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_lexsorted() is True
+        assert sorted.index._is_lexsorted() is True
         assert sorted.index.is_monotonic is True
 
         expected = DataFrame(
@@ -417,3 +417,9 @@ class TestSorted:
         )
         result = sorted.loc[pd.IndexSlice["B":"C", "a":"c"], :]
         tm.assert_frame_equal(result, expected)
+
+
+def test_is_lexsorted_deprecation():
+    # GH 32259
+    with tm.assert_produces_warning():
+        MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).is_lexsorted()
