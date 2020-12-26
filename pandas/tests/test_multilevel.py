@@ -417,15 +417,3 @@ class TestSorted:
         )
         result = sorted.loc[pd.IndexSlice["B":"C", "a":"c"], :]
         tm.assert_frame_equal(result, expected)
-
-
-def test_is_lexsorted_deprecation():
-    # GH 32259
-    with tm.assert_produces_warning():
-        MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).is_lexsorted()
-
-
-def test_lexsort_depth_deprecation():
-    # GH 32259
-    with tm.assert_produces_warning():
-        MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]]).lexsort_depth
