@@ -158,7 +158,7 @@ The equivalent in pandas:
 
 .. ipython:: python
 
-   pd.pivot_table(df, values="tip", index=["size"], columns=["sex"],
+   pd.pivot_table(tips, values="tip", index=["size"], columns=["sex"],
                   aggfunc=np.average)
 
 Formulas
