@@ -16,6 +16,7 @@ from typing import (
     ContextManager,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -1293,6 +1294,8 @@ def assert_series_equal(
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
+    *,
+    check_index=True,
 ):
     """
     Check that left and right Series are equal.
@@ -1352,6 +1355,10 @@ def assert_series_equal(
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    check_index : bool, default True
+        Whether to check index equivalence. If False, then compare only values.
+
+        .. versionadded:: 1.3.0
 
     Examples
     --------
@@ -1387,18 +1394,20 @@ def assert_series_equal(
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
-    # index comparison
-    assert_index_equal(
-        left.index,
-        right.index,
-        exact=check_index_type,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_categorical=check_categorical,
-        rtol=rtol,
-        atol=atol,
-        obj=f"{obj}.index",
-    )
+    if check_index:
+        # GH #38183
+        assert_index_equal(
+            left.index,
+            right.index,
+            exact=check_index_type,
+            check_names=check_names,
+            check_exact=check_exact,
+            check_categorical=check_categorical,
+            rtol=rtol,
+            atol=atol,
+            obj=f"{obj}.index",
+        )
+
     if check_freq and isinstance(left.index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         lidx = left.index
         ridx = right.index
@@ -1703,6 +1712,10 @@ def assert_frame_equal(
             assert col in right
             lcol = left.iloc[:, i]
             rcol = right.iloc[:, i]
+            # GH #38183
+            # use check_index=False, because we do not want to run
+            # assert_index_equal for each column,
+            # as we already checked it for the whole dataframe before.
             assert_series_equal(
                 lcol,
                 rcol,
@@ -1716,6 +1729,7 @@ def assert_frame_equal(
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                 rtol=rtol,
                 atol=atol,
+                check_index=False,
             )
 
 
@@ -2715,57 +2729,93 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        saw_warning = False
-        matched_message = False
-
         warnings.simplefilter(filter_level)
         yield w
-        extra_warnings = []
-
-        for actual_warning in w:
-            expected_warning = cast(Type[Warning], expected_warning)
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
-                saw_warning = True
-
-                if check_stacklevel and issubclass(
-                    actual_warning.category, (FutureWarning, DeprecationWarning)
-                ):
-                    _assert_raised_with_correct_stacklevel(actual_warning)
-
-                if match is not None and re.search(match, str(actual_warning.message)):
-                    matched_message = True
-
-            else:
-                extra_warnings.append(
-                    (
-                        actual_warning.category.__name__,
-                        actual_warning.message,
-                        actual_warning.filename,
-                        actual_warning.lineno,
-                    )
-                )
 
         if expected_warning:
             expected_warning = cast(Type[Warning], expected_warning)
-            if not saw_warning:
-                raise AssertionError(
-                    f"Did not see expected warning of class "
-                    f"{repr(expected_warning.__name__)}"
-                )
-
-            if match and not matched_message:
-                raise AssertionError(
-                    f"Did not see warning {repr(expected_warning.__name__)} "
-                    f"matching {match}"
-                )
-
-        if raise_on_extra_warnings and extra_warnings:
-            raise AssertionError(
-                f"Caused unexpected warning(s): {repr(extra_warnings)}"
+            _assert_caught_expected_warning(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+                match=match,
+                check_stacklevel=check_stacklevel,
             )
+
+        if raise_on_extra_warnings:
+            _assert_caught_no_extra_warnings(
+                caught_warnings=w,
+                expected_warning=expected_warning,
+            )
+
+
+def _assert_caught_expected_warning(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Type[Warning],
+    match: Optional[str],
+    check_stacklevel: bool,
+) -> None:
+    """Assert that there was the expected warning among the caught warnings."""
+    saw_warning = False
+    matched_message = False
+
+    for actual_warning in caught_warnings:
+        if issubclass(actual_warning.category, expected_warning):
+            saw_warning = True
+
+            if check_stacklevel and issubclass(
+                actual_warning.category, (FutureWarning, DeprecationWarning)
+            ):
+                _assert_raised_with_correct_stacklevel(actual_warning)
+
+            if match is not None and re.search(match, str(actual_warning.message)):
+                matched_message = True
+
+    if not saw_warning:
+        raise AssertionError(
+            f"Did not see expected warning of class "
+            f"{repr(expected_warning.__name__)}"
+        )
+
+    if match and not matched_message:
+        raise AssertionError(
+            f"Did not see warning {repr(expected_warning.__name__)} "
+            f"matching {match}"
+        )
+
+
+def _assert_caught_no_extra_warnings(
+    *,
+    caught_warnings: Sequence[warnings.WarningMessage],
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> None:
+    """Assert that no extra warnings apart from the expected ones are caught."""
+    extra_warnings = []
+
+    for actual_warning in caught_warnings:
+        if _is_unexpected_warning(actual_warning, expected_warning):
+            extra_warnings.append(
+                (
+                    actual_warning.category.__name__,
+                    actual_warning.message,
+                    actual_warning.filename,
+                    actual_warning.lineno,
+                )
+            )
+
+    if extra_warnings:
+        raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
+
+
+def _is_unexpected_warning(
+    actual_warning: warnings.WarningMessage,
+    expected_warning: Optional[Union[Type[Warning], bool]],
+) -> bool:
+    """Check if the actual warning issued is unexpected."""
+    if actual_warning and not expected_warning:
+        return True
+    expected_warning = cast(Type[Warning], expected_warning)
+    return bool(not issubclass(actual_warning.category, expected_warning))
 
 
 def _assert_raised_with_correct_stacklevel(
@@ -2773,7 +2823,7 @@ def _assert_raised_with_correct_stacklevel(
 ) -> None:
     from inspect import getframeinfo, stack
 
-    caller = getframeinfo(stack()[3][0])
+    caller = getframeinfo(stack()[4][0])
     msg = (
         "Warning not set with correct stacklevel. "
         f"File where warning is raised: {actual_warning.filename} != "
