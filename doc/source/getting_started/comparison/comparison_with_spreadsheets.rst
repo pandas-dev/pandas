@@ -68,7 +68,7 @@ Commonly used spreadsheet functionalities
 Importing data
 ~~~~~~~~~~~~~~
 
-Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`_
+Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
 and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
 formats. Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/master/pandas/tests/io/data/csv/tips.csv>`_
 dataset from the pandas tests, which is a CSV file.
@@ -180,7 +180,7 @@ each class.
     df
 
 Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
-us. See :ref:`10min_tut_05_columns` for more information.
+us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`.
 
 VLOOKUP
 ~~~~~~~
