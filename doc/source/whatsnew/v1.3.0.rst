@@ -143,7 +143,9 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-
+ 
+-
+-
 
 Categorical
 ^^^^^^^^^^^
