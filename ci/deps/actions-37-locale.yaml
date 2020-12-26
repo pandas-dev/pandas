@@ -23,7 +23,7 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
-  - lxml
+  - lxml=4.3.0
   - matplotlib
   - nomkl
   - numexpr
@@ -41,6 +41,6 @@ dependencies:
   - flask
 
   # sql
-  - psycopg2
-  - pymysql<0.10.0
-  - sqlalchemy
+  - psycopg2=2.7
+  - pymysql=0.7.11
+  - sqlalchemy=1.3.0
