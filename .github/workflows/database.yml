@@ -53,7 +53,7 @@ jobs:
           - 5432:5432
 
     steps:
-    - name: Install libmagic
+    - name: Install xvfb
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
@@ -141,7 +141,7 @@ jobs:
           - 5432:5432
 
     steps:
-    - name: Install libmagic
+    - name: Install xvfb
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
