@@ -72,6 +72,11 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
+    - name: Environment Detail
+      run: |
+        conda env list
+        conda list
+
     - name: Build Pandas
       run: |
         python setup.py build_ext -j 2
