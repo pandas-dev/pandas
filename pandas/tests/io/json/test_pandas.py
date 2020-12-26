@@ -1264,6 +1264,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with pytest.raises(ValueError, match=msg):
             read_json(json)
 
+        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
+
     def test_read_json_large_numbers2(self):
         # GH18842
         json = '{"articleId": "1404366058080022500245"}'
