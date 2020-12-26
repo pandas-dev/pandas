@@ -54,8 +54,10 @@ jobs:
 
     steps:
     - name: Install libmagic
-      run: sudo apt-get install -y libmagic
-      
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmagic-dev
+
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -140,7 +142,9 @@ jobs:
 
     steps:
     - name: Install libmagic
-      run: sudo apt-get install -y libmagic
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmagic-dev
 
     - name: Checkout
       uses: actions/checkout@v2
