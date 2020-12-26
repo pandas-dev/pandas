@@ -859,4 +859,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.5..v1.2.0|HEAD
+.. contributors:: v1.1.5..v1.2.0
