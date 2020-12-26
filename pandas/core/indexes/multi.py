@@ -1849,10 +1849,20 @@ class MultiIndex(Index):
         ...                            ['bb', 'aa', 'aa', 'bb']])._is_lexsorted()
         False
         """
-        return self.lexsort_depth == self.nlevels
+        return self.get_lexsort_depth == self.nlevels
+
+    def lexsort_depth(self):
+        warnings.warn(
+            "MultiIndex.lexsort_depth is deprecated as a public function, "
+            "users should use MultiIndex.is_monotonic_increasing to check "
+            "is a MultiIndex is sorted.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._get_lexsort_depth()
 
     @cache_readonly
-    def lexsort_depth(self):
+    def _get_lexsort_depth(self):
         if self.sortorder is not None:
             return self.sortorder
 
@@ -2190,7 +2200,7 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if self.lexsort_depth == 0:
+                    if self.get_lexsort_depth == 0:
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -2761,10 +2771,10 @@ class MultiIndex(Index):
         return super().slice_locs(start, end, step, kind=kind)
 
     def _partial_tup_index(self, tup, side="left"):
-        if len(tup) > self.lexsort_depth:
+        if len(tup) > self.get_lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
-                f"({self.lexsort_depth})"
+                f"({self.get_lexsort_depth})"
             )
 
         n = len(tup)
@@ -2903,7 +2913,7 @@ class MultiIndex(Index):
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
-        i = self.lexsort_depth
+        i = self.get_lexsort_depth
         lead_key, follow_key = key[:i], key[i:]
         start, stop = (
             self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
@@ -3156,7 +3166,7 @@ class MultiIndex(Index):
                 stop = getattr(stop, "stop", stop)
                 return convert_indexer(start, stop, step)
 
-            elif level > 0 or self.lexsort_depth == 0 or step is not None:
+            elif level > 0 or self.get_lexsort_depth == 0 or step is not None:
                 # need to have like semantics here to right
                 # searching as when we are using a slice
                 # so include the stop+1 (so we include stop)
@@ -3171,7 +3181,7 @@ class MultiIndex(Index):
 
             idx = self._get_loc_single_level_index(level_index, key)
 
-            if level > 0 or self.lexsort_depth == 0:
+            if level > 0 or self.get_lexsort_depth == 0:
                 # Desired level is not sorted
                 locs = np.array(level_codes == idx, dtype=bool, copy=False)
                 if not locs.any():
@@ -3228,10 +3238,10 @@ class MultiIndex(Index):
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
-        if true_slices and true_slices[-1] >= self.lexsort_depth:
+        if true_slices and true_slices[-1] >= self.get_lexsort_depth:
             raise UnsortedIndexError(
                 "MultiIndex slicing requires the index to be lexsorted: slicing "
-                f"on levels {true_slices}, lexsort depth {self.lexsort_depth}"
+                f"on levels {true_slices}, lexsort depth {self.get_lexsort_depth}"
             )
         # indexer
         # this is the list of all values that we want to select

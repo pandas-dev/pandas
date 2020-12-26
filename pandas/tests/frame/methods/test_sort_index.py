@@ -614,7 +614,7 @@ class TestDataFrameSortIndex:
 
         # it works!
         result = df.sort_index(level=0)
-        assert result.index.lexsort_depth == 3
+        assert result.index._get_lexsort_depth == 3
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
@@ -623,7 +623,7 @@ class TestDataFrameSortIndex:
         # it works!
         result = df.sort_index(level=0)
         assert (result.dtypes.values == df.dtypes.values).all()
-        assert result.index.lexsort_depth == 3
+        assert result.index._get_lexsort_depth == 3
 
     def test_sort_index_level_by_name(self):
         mi = MultiIndex(
