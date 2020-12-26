@@ -54,7 +54,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v1
 
     - name: Cache conda
       uses: actions/cache@v1
@@ -137,7 +137,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v1
 
     - name: Cache conda
       uses: actions/cache@v1
