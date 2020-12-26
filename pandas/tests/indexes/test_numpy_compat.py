@@ -49,7 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, DatetimeIndexOpsMixin):
-        with tm.external_error_raised(TypeError):
+        with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
