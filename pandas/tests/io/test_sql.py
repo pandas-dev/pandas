@@ -1334,7 +1334,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas_nosetest"
+        conn = "mysql://root@localhost:3306/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -2760,7 +2760,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2780,7 +2780,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
