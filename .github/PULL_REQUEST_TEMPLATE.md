@@ -1,4 +1,4 @@
-- [ ] closes #xxxx
+- [ ] closes #38694
 - [ ] tests added / passed
 - [ ] passes `pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files`
 - [ ] whatsnew entry
