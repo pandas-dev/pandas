@@ -633,7 +633,7 @@ the pandas-equivalent operations compared to software you already know:
 
 .. container:: custom-button
 
-    :ref:`Learn more <compare_with_excel>`
+    :ref:`Learn more <compare_with_spreadsheets>`
 
 .. raw:: html
 

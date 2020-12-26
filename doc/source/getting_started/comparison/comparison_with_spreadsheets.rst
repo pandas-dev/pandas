@@ -1,16 +1,17 @@
-.. _compare_with_excel:
+.. _compare_with_spreadsheets:
 
 {{ header }}
 
-Comparison with Excel
-*********************
+Comparison with spreadsheets
+****************************
 
-Since many potential pandas users have some familiarity with `Excel
-<https://support.microsoft.com/en-us/excel>`_, this page is meant to provide some examples of how
-various Excel operations would be performed using pandas. Much of this will be the
-same/similar in `Google Sheets <https://support.google.com/a/users/answer/9282959>`_, `LibreOffice
-Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_, `Apple
-Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
+Since many potential pandas users have some familiarity with spreadsheet programs like
+`Excel <https://support.microsoft.com/en-us/excel>`_, this page is meant to provide some examples
+of how various spreadsheet operations would be performed using pandas. This page will use
+terminology and link to documentation for Excel, but much will be the same/similar in
+`Google Sheets <https://support.google.com/a/users/answer/9282959>`_,
+`LibreOffice Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_,
+`Apple Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
 Excel-compatible spreadsheet software.
 
 .. include:: comparison_boilerplate.rst
@@ -48,11 +49,11 @@ A ``Series`` is the data structure that represents one column of a ``DataFrame``
 
 Every ``DataFrame`` and ``Series`` has an ``Index``, which are labels on the *rows* of the data. In
 pandas, if no index is specified, an integer index is used by default (first row = 0, second row =
-1, and so on), analogous to row headings/numbers in Excel.
+1, and so on), analogous to row headings/numbers in spreadsheets.
 
 In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that
-use use as the row identifier in a worksheet. Unlike Excel, these ``Index`` values can actually be
-used to reference the rows. For example, in Excel, you would reference the first row as ``A1:Z1``,
+use use as the row identifier in a worksheet. Unlike spreadsheets, these ``Index`` values can actually be
+used to reference the rows. For example, in spreadsheets, you would reference the first row as ``A1:Z1``,
 while in pandas you could use ``populations.loc['Chicago']``.
 
 Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a
@@ -61,8 +62,8 @@ particular row don't change.
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.
 
-Commonly used Excel functionalities
------------------------------------
+Commonly used spreadsheet functionalities
+-----------------------------------------
 
 Importing data
 ~~~~~~~~~~~~~~
@@ -88,7 +89,7 @@ Fill Handle
 ~~~~~~~~~~~
 
 Create a series of numbers following a set pattern in a certain set of cells. In
-Excel this would be done by shift+drag after entering the first number or by
+a spreadsheet, this would be done by shift+drag after entering the first number or by
 entering the first two or three values and then dragging.
 
 This can be achieved by creating a series and assigning it to the desired cells.
@@ -145,7 +146,7 @@ Pivot Tables
 ~~~~~~~~~~~~
 
 `PivotTables <https://support.microsoft.com/en-us/office/create-a-pivottable-to-analyze-worksheet-data-a9a84538-bfe9-40a9-a8e9-f99134456576>`_
-from Excel can be replicated in pandas through :ref:`reshaping`. Using the ``tips`` dataset again,
+from spreadsheets can be replicated in pandas through :ref:`reshaping`. Using the ``tips`` dataset again,
 let's find the average gratuity by size of the party and sex of the server.
 
 In Excel, we use the following configuration for the PivotTable:
