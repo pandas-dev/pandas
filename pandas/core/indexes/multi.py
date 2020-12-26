@@ -1856,7 +1856,7 @@ class MultiIndex(Index):
         warnings.warn(
             "MultiIndex.lexsort_depth is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing to check "
-            "is a MultiIndex is sorted.",
+            "if a MultiIndex is sorted.",
             FutureWarning,
             stacklevel=2,
         )
