@@ -135,13 +135,15 @@ class TestSeriesStatReductions:
 
             # Series.median(Series('abc'))
             # check on string data
-            msg = (
-                "could not convert string to float|"
-                r"complex\(\) arg is a malformed string|"
-                "can't multiply sequence by non-int of type 'str'|"
-                "Could not convert abc to numeric"
-            )
-            if name not in ["sum", "min", "max"]:
+
+            if name == "prod":
+                with tm.external_error_raised(TypeError):
+                    f(Series(list("abc")))
+            elif name not in ["sum", "min", "max"]:
+                if name == "mean":
+                    msg = "Could not convert abc to numeric"
+                else:
+                    msg = "could not convert string to float"
                 with pytest.raises(TypeError, match=msg):
                     f(Series(list("abc")))
 
