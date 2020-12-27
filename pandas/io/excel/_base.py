@@ -1067,7 +1067,7 @@ class ExcelFile:
 
         if engine is None:
             try:
-                engine = config.get_option(f"io.excel.{ext}.", silent=True)
+                engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="read")
             except KeyError as err:
