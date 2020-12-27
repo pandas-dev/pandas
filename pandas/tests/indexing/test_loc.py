@@ -1644,6 +1644,12 @@ class TestLabelSlicing:
         expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
         tm.assert_equal(result, expected)
 
+    def test_loc_getitem_slice_columns_mixed_dtype(self):
+        df1 = pd.DataFrame({'test':1, 1:2, 2:3}, index=[0])
+        df2 = pd.DataFrame({1:2, 2:3}, index=[0])
+        breakpoint()
+        tm.assert_equal(df1.loc[:, 1:], df2)
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
