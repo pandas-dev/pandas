@@ -449,10 +449,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     comps = _ensure_arraylike(comps)
     comps = extract_array(comps, extract_numpy=True)
-    if is_categorical_dtype(comps.dtype):
-        # TODO(extension)
-        # handle categoricals
-        return cast("Categorical", comps).isin(values)
+    if is_extension_array_dtype(comps.dtype):
+        return comps.isin(values)
 
     if needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
@@ -464,11 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(comps.dtype) or is_extension_array_dtype(
-        values.dtype
-    ):
-        if type(comps).__name__ == "IntegerArray":
-            comps = comps._data  # type: ignore[attr-defined, assignment]
+    elif is_extension_array_dtype(values.dtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
