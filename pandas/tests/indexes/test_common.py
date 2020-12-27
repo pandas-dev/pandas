@@ -341,9 +341,14 @@ class TestCommon:
         else:
             index.name = "idx"
 
+        warn = None
+        if dtype in ["int64", "uint64"]:
+            if needs_i8_conversion(index.dtype):
+                warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            result = index.astype(dtype)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+                result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -357,6 +362,7 @@ class TestCommon:
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
 
+    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_asi8_deprecation(self, index):
         # GH#37877
         if isinstance(

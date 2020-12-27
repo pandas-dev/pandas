@@ -254,7 +254,8 @@ class TestGrouping:
         )
         result = s.groupby(pd.Grouper(level="three", freq="M")).sum()
         expected = Series(
-            [28], index=Index([Timestamp("2013-01-31")], freq="M", name="three")
+            [28],
+            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
         )
         tm.assert_series_equal(result, expected)
 
