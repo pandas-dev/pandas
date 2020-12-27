@@ -98,7 +98,8 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(pd.date_range("1/1/2001", periods=10))
-                with pytest.raises(TypeError):
+                msg = f"'DatetimeArray' does not implement reduction '{name}'"
+                with pytest.raises(TypeError, match=msg):
                     f(ds)
 
             # skipna or no
@@ -132,13 +133,21 @@ class TestSeriesStatReductions:
                 exp = alternate(s)
                 assert res == exp
 
+            # Series.median(Series('abc'))
             # check on string data
+            msg = (
+                "could not convert string to float|"
+                r"complex\(\) arg is a malformed string|"
+                "can't multiply sequence by non-int of type 'str'|"
+                "Could not convert abc to numeric"
+            )
             if name not in ["sum", "min", "max"]:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     f(Series(list("abc")))
 
             # Invalid axis.
-            with pytest.raises(ValueError):
+            msg = "No axis named 1 for object type Series"
+            with pytest.raises(ValueError, match=msg):
                 f(string_series_, axis=1)
 
             # Unimplemented numeric_only parameter.
