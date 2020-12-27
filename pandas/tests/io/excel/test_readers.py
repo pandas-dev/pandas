@@ -1181,8 +1181,6 @@ class TestExcelFileRead:
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
-        if read_ext == ".xlsb" and engine == "pyxlsb":
-            pytest.xfail("GH 38667 - should default to pyxlsb but doesn't")
         with open("test1" + read_ext, "rb") as f:
             result = pd.read_excel(f)
         expected = pd.read_excel("test1" + read_ext, engine=engine)

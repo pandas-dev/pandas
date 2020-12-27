@@ -23,32 +23,38 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def get_default_writer(ext):
+def get_default_engine(ext, mode="read"):
     """
-    Return the default writer for the given extension.
+    Return the default reader/writer for the given extension.
 
     Parameters
     ----------
     ext : str
         The excel file extension for which to get the default engine.
+    mode : str
+        Whether to get the default engine for reading or writing.
+        Either 'read' or 'write'
 
     Returns
     -------
     str
         The default engine for the extension.
     """
-    _default_writers = {
+    _default_engines = {
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
-        "xls": "xlwt",
+        "xlsb": "pyxlsb",
+        "xls": "xlrd",
         "ods": "odf",
     }
-    xlsxwriter = import_optional_dependency(
-        "xlsxwriter", raise_on_missing=False, on_version="warn"
-    )
-    if xlsxwriter:
-        _default_writers["xlsx"] = "xlsxwriter"
-    return _default_writers[ext]
+    if mode == "write":
+        _default_engines["xls"] = "xlwt"
+        xlsxwriter = import_optional_dependency(
+            "xlsxwriter", raise_on_missing=False, on_version="warn"
+        )
+        if xlsxwriter:
+            _default_engines["xlsx"] = "xlsxwriter"
+    return _default_engines[ext]
 
 
 def get_writer(engine_name):
