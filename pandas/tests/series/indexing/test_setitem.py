@@ -242,41 +242,47 @@ class TestSetitemCallable:
 @pytest.mark.parametrize(
     "obj,expected,key",
     [
-        (
+        pytest.param(
             # these induce dtype changes
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
             Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
             slice(None, None, 2),
+            id="int_series_slice_key_step",
         ),
-        (
-            # gets coerced to float, right?
+        pytest.param(
             Series([True, True, False, False]),
-            Series([np.nan, 1, np.nan, 0]),
+            Series([np.nan, True, np.nan, False], dtype=object),
             slice(None, None, 2),
+            id="bool_series_slice_key_step",
         ),
-        (
+        pytest.param(
             # these induce dtype changes
             Series(np.arange(10)),
             Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9]),
             slice(None, 5),
+            id="int_series_slice_key",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([1, 2, 3]),
             Series([np.nan, 2, 3]),
             0,
+            id="int_series_int_key",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([False]),
-            Series([np.nan]),
+            Series([np.nan], dtype=object),
+            # TODO: maybe go to float64 since we are changing the _whole_ Series?
             0,
+            id="bool_series_int_key_change_all",
         ),
-        (
+        pytest.param(
             # changes dtype GH#4463
             Series([False, True]),
-            Series([np.nan, 1.0]),
+            Series([np.nan, True], dtype=object),
             0,
+            id="bool_series_int_key",
         ),
     ],
 )
@@ -328,10 +334,8 @@ class TestSetitemCastingEquivalents:
         tm.assert_series_equal(res, expected)
 
     def test_index_where(self, obj, key, expected, request):
-        if obj.dtype == bool:
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.xfail(reason=msg)
-            request.node.add_marker(mark)
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
@@ -341,6 +345,9 @@ class TestSetitemCastingEquivalents:
 
     @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
     def test_index_putmask(self, obj, key, expected):
+        if Index(obj).dtype != obj.dtype:
+            pytest.skip("test not applicable for this dtype")
+
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 

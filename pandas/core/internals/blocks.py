@@ -25,7 +25,6 @@ from pandas.core.dtypes.cast import (
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
-    infer_dtype_from_scalar,
     maybe_box_datetimelike,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
@@ -924,24 +923,7 @@ class Block(PandasObject):
 
         else:
             # current dtype cannot store value, coerce to common dtype
-            # TODO: can we just use coerce_to_target_dtype for all this
-            if hasattr(value, "dtype"):
-                dtype = value.dtype
-
-            elif lib.is_scalar(value) and not isna(value):
-                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            else:
-                # e.g. we are bool dtype and value is nan
-                # TODO: watch out for case with listlike value and scalar/empty indexer
-                dtype, _ = maybe_promote(np.array(value).dtype)
-                return self.astype(dtype).setitem(indexer, value)
-
-            dtype = find_common_type([values.dtype, dtype])
-            assert not is_dtype_equal(self.dtype, dtype)
-            # otherwise should have _can_hold_element
-
-            return self.astype(dtype).setitem(indexer, value)
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -1403,16 +1385,7 @@ class Block(PandasObject):
         else:
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
-            if (
-                (self.is_integer or self.is_bool)
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # GH#3733 special case to avoid object-dtype casting
-                #  and go through numexpr path instead.
-                # In integer case, np.where will cast to floats
-                pass
-            elif not self._can_hold_element(other):
+            if not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
@@ -1421,13 +1394,8 @@ class Block(PandasObject):
                 )
                 return self._maybe_downcast(blocks, "infer")
 
-            if not (
-                (self.is_integer or self.is_bool)
-                and lib.is_float(other)
-                and np.isnan(other)
-            ):
-                # convert datetime to datetime64, timedelta to timedelta64
-                other = convert_scalar_for_putitemlike(other, values.dtype)
+            # convert datetime to datetime64, timedelta to timedelta64
+            other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to ndarray
@@ -2733,9 +2701,8 @@ def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
         return _putmask_preserve(v, n)
 
     # change the dtype if needed
-    dtype, _ = maybe_promote(n.dtype)
-
-    v = v.astype(dtype)
+    dtype = find_common_type([n.dtype, v.dtype])
+    v = v.astype(dtype, copy=False)
 
     return _putmask_preserve(v, n)
 
