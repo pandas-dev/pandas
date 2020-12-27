@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed a regression in ``groupby().rolling()`` where :class:`MultiIndex` levels were dropped (:issue:`38523`)
 -
 
 .. ---------------------------------------------------------------------------
