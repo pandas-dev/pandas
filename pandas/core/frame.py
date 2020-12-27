@@ -90,7 +90,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_native,
-    maybe_box_datetimelike,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
