@@ -41,7 +41,9 @@ class TestPeriodArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("scalar", ["foo", Timestamp.now(), Timedelta(days=4)])
+    @pytest.mark.parametrize(
+        "scalar", ["foo", Timestamp.now(), Timedelta(days=4), 9, 9.5]
+    )
     def test_compare_invalid_scalar(self, box_with_array, scalar):
         # comparison with scalar that cannot be interpreted as a Period
         pi = pd.period_range("2000", periods=4)

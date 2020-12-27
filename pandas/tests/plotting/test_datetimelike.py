@@ -277,16 +277,9 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         df2 = df.copy()
         df2.index = df.index.astype(object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # This warning will be emitted
-            # pandas/core/frame.py:3216:
-            # FutureWarning: Automatically casting object-dtype Index of datetimes
-            # to DatetimeIndex is deprecated and will be removed in a future version.
-            # Explicitly cast to DatetimeIndex instead.
-            # return klass(values, index=self.index, name=name, fastpath=True)
-            df2.plot(ax=ax)
-            diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
-            assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
+        df2.plot(ax=ax)
+        diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
+        assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
 
     def test_irregular_datetime64_repr_bug(self):
         ser = tm.makeTimeSeries()
@@ -997,16 +990,9 @@ class TestTSPlot(TestPlotBase):
         # np.datetime64
         idx = date_range("1/1/2000", periods=10)
         idx = idx[[0, 2, 5, 9]].astype(object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # This warning will be emitted
-            # pandas/core/frame.py:3216:
-            # FutureWarning: Automatically casting object-dtype Index of datetimes
-            # to DatetimeIndex is deprecated and will be removed in a future version.
-            # Explicitly cast to DatetimeIndex instead.
-            # return klass(values, index=self.index, name=name, fastpath=True)
-            df = DataFrame(np.random.randn(len(idx), 3), idx)
-            _, ax = self.plt.subplots()
-            _check_plot_works(df.plot, ax=ax)
+        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        _, ax = self.plt.subplots()
+        _check_plot_works(df.plot, ax=ax)
 
     def test_time(self):
         t = datetime(1, 1, 1, 3, 30, 0)

@@ -1061,7 +1061,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        subtype = dtype._subtype_with_str
+        subtype = pandas_dtype(dtype._subtype_with_str)
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)

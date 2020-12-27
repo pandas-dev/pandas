@@ -106,8 +106,11 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
+    from pandas.core.resample import Resampler
 
 __all__ = ["Series"]
 
@@ -125,6 +128,9 @@ _shared_doc_kwargs = {
     "optional_mapper": "",
     "optional_labels": "",
     "optional_axis": "",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 
@@ -430,13 +436,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # need to set here because we changed the index
                     if fastpath:
                         self._mgr.set_axis(axis, labels)
-                    warnings.warn(
-                        "Automatically casting object-dtype Index of datetimes to "
-                        "DatetimeIndex is deprecated and will be removed in a "
-                        "future version.  Explicitly cast to DatetimeIndex instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -4473,7 +4472,12 @@ Keep all original rows and also all original values
         """
         return super().pop(item=item)
 
-    @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])
+    @doc(
+        NDFrame.replace,
+        klass=_shared_doc_kwargs["klass"],
+        inplace=_shared_doc_kwargs["inplace"],
+        replace_iloc=_shared_doc_kwargs["replace_iloc"],
+    )
     def replace(
         self,
         to_replace=None,
@@ -4849,6 +4853,54 @@ Keep all original rows and also all original values
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
+
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    def asfreq(
+        self,
+        freq,
+        method=None,
+        how: Optional[str] = None,
+        normalize: bool = False,
+        fill_value=None,
+    ) -> "Series":
+        return super().asfreq(
+            freq=freq,
+            method=method,
+            how=how,
+            normalize=normalize,
+            fill_value=fill_value,
+        )
+
+    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    def resample(
+        self,
+        rule,
+        axis=0,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
+        convention: str = "start",
+        kind: Optional[str] = None,
+        loffset=None,
+        base: Optional[int] = None,
+        on=None,
+        level=None,
+        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
+        offset: Optional["TimedeltaConvertibleTypes"] = None,
+    ) -> "Resampler":
+        return super().resample(
+            rule=rule,
+            axis=axis,
+            closed=closed,
+            label=label,
+            convention=convention,
+            kind=kind,
+            loffset=loffset,
+            base=base,
+            on=on,
+            level=level,
+            origin=origin,
+            offset=offset,
+        )
 
     def to_timestamp(self, freq=None, how="start", copy=True) -> "Series":
         """
