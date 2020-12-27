@@ -1021,7 +1021,7 @@ def rank_1d(
         ndarray[float64_t, ndim=1] grp_sizes, out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
-        bint keep_na, at_end, next_val_diff
+        bint keep_na, at_end, next_val_diff, check_labels
         rank_t nan_fill_val
         int64_t[:] labels_
 
@@ -1030,8 +1030,10 @@ def rank_1d(
 
     N = in_arr.shape[0]
     if labels is None:
+        check_labels = 0
         labels_ = np.zeros(N, dtype="int")
     else:
+        check_labels = 1
         labels_ = labels
 
     out = np.empty(N)
@@ -1116,7 +1118,7 @@ def rank_1d(
 
         if (next_val_diff
                 or mask[_as[i]] ^ mask[_as[i+1]]
-                or labels_[_as[i]] != labels_[_as[i+1]]
+                or (check_labels and labels_[_as[i]] != labels_[_as[i+1]])
         ):
             # if keep_na, check for missing values and assign back
             # to the result where appropriate
@@ -1159,7 +1161,7 @@ def rank_1d(
             # decrement that from their position. fill in the size of each
             # group encountered (used by pct calculations later). also be
             # sure to reset any of the items helping to calculate dups
-            if at_end or labels_[_as[i]] != labels_[_as[i+1]]:
+            if at_end or (check_labels and labels_[_as[i]] != labels_[_as[i+1]]):
                 if tiebreak != TIEBREAK_DENSE:
                     for j in range(grp_start, i + 1):
                         grp_sizes[_as[j]] = (i - grp_start + 1 -

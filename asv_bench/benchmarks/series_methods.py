@@ -356,7 +356,7 @@ class Rank:
     ]
 
     def setup(self, dtype):
-        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=dtype)
+        self.s = Series(np.random.randint(0, 1000, size=10000), dtype=dtype)
 
     def time_frame_quantile(self, dtype):
         self.s.rank()
