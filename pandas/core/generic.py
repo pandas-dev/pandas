@@ -8858,7 +8858,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     elif len(cond[icond]) == len(other):
 
                         # try to not change dtype at first
-                        new_other = np.asarray(self)
+                        new_other = self._values
                         new_other = new_other.copy()
                         new_other[icond] = other
                         other = new_other
@@ -9467,12 +9467,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax._is_all_dates:
-            if is_object_dtype(ax.dtype):
-                warnings.warn(
-                    "Treating object-dtype Index of date objects as DatetimeIndex "
-                    "is deprecated, will be removed in a future version.",
-                    FutureWarning,
-                )
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)
