@@ -208,12 +208,12 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
-    def test_replace_Int_with_na(self):
+    def test_replace_Int_with_na(self, any_nullable_int_dtype):
         # GH 38267
-        result = pd.Series([0, None], dtype=pd.conftest.any_nullable_int_dtype).replace(0, pd.NA)
-        expected = pd.Series([pd.NA, pd.NA], dtype=pd.conftest.any_nullable_int_dtype)
+        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
         tm.assert_series_equal(result, expected)
-        result = pd.Series([0, 1], dtype=pd.conftest.any_nullable_int_dtype).replace(0, pd.NA).replace(1, pd.NA)
+        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA).replace(1, pd.NA)
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
