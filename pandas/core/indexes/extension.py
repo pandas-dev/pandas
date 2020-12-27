@@ -11,7 +11,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
+from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype, pandas_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -248,28 +248,17 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+        # overriding IndexOpsMixin improves performance GH#38083
+        return self._data.searchsorted(value, side=side, sorter=sorter)
+
     # ---------------------------------------------------------------------
-
-    def _check_indexing_method(self, method):
-        """
-        Raise if we have a get_indexer `method` that is not supported or valid.
-        """
-        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
-        if method is None:
-            return
-
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for {type(self).__name__}"
-            )
-
-        raise ValueError("Invalid fill method")
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         result = self._data.repeat(repeats, axis=axis)
         return type(self)._simple_new(result, name=self.name)
 
@@ -305,9 +294,12 @@ class ExtensionIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
+        dtype = pandas_dtype(dtype)
+        if is_dtype_equal(self.dtype, dtype):
+            if not copy:
+                # Ensure that self.astype(self.dtype) is self
+                return self
+            return self.copy()
 
         new_values = self._data.astype(dtype, copy=copy)
 

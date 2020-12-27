@@ -227,6 +227,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _is_numeric_dtype = False
 
     _data: DatetimeArray
+    inferred_freq: Optional[str]
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
@@ -337,7 +338,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # we use a special reduce here because we need
         # to simply set the .tz (and not reinterpret it)
 
-        d = dict(data=self._data)
+        d = {"data": self._data}
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
@@ -407,10 +408,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         this = self
 
         if isinstance(other, DatetimeIndex):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
+            if (self.tz is None) ^ (other.tz is None):
                 raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
@@ -717,7 +715,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-            parsed, reso = parsing.parse_time_string(label, freq)
+            try:
+                parsed, reso = parsing.parse_time_string(label, freq)
+            except parsing.DateParseError as err:
+                raise self._invalid_indexer("slice", label) from err
+
             reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
@@ -732,7 +734,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         elif isinstance(label, (self._data._recognized_scalars, date)):
             self._deprecate_mismatched_indexing(label)
         else:
-            self._invalid_indexer("slice", label)
+            raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
 
@@ -740,8 +742,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
         reso = Resolution.from_attrname(reso)
-        loc = self._partial_date_slice(reso, parsed)
-        return loc
+        return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
@@ -813,9 +814,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 raise
 
     # --------------------------------------------------------------------
-
-    def is_type_compatible(self, kind: str) -> bool:
-        return kind == self.inferred_type or kind == "datetime"
 
     @property
     def inferred_type(self) -> str:
@@ -927,6 +925,15 @@ def date_range(
 ) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex.
+
+    Returns the range of equally spaced time points (where the difference between any
+    two adjacent points is specified by the given frequency) such that they all
+    satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp.,
+    the first and last time points in that range that fall on the boundary of ``freq``
+    (if given as a frequency string) or that are valid for ``freq`` (if given as a
+    :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``,
+    ``end``, or ``freq`` is *not* specified, this missing parameter can be computed
+    given ``periods``, the number of timesteps in the range. See the note below.)
 
     Parameters
     ----------

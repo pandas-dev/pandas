@@ -64,10 +64,6 @@ class Expanding(RollingAndExpandingMixin):
     def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
         super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
 
-    @property
-    def _constructor(self):
-        return Expanding
-
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -280,6 +276,10 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
+
+    @property
+    def _constructor(self):
+        return Expanding
 
     def _get_window_indexer(self) -> GroupbyIndexer:
         """

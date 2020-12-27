@@ -9,9 +9,12 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_float,
+    is_float_dtype,
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_number,
@@ -19,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -189,7 +192,7 @@ class MPLPlot:
             for kw, err in zip(["xerr", "yerr"], [xerr, yerr])
         }
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndexClass)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -383,6 +386,20 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
+    def _convert_to_ndarray(self, data):
+        # GH32073: cast to float if values contain nulled integers
+        if (
+            is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
+        ) and is_extension_array_dtype(data.dtype):
+            return data.to_numpy(dtype="float", na_value=np.nan)
+
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        if len(data) > 0:
+            return np.asarray(data)
+
+        return data
+
     def _compute_plot_data(self):
         data = self.data
 
@@ -423,13 +440,7 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
-        # np.ndarray before plot.
-        numeric_data = numeric_data.copy()
-        for col in numeric_data:
-            numeric_data[col] = np.asarray(numeric_data[col])
-
-        self.data = numeric_data
+        self.data = numeric_data.apply(self._convert_to_ndarray)
 
     def _make_plot(self):
         raise AbstractMethodError(self)
@@ -667,7 +678,7 @@ class MPLPlot:
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, ABCIndexClass):
+        if isinstance(x, ABCIndex):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -737,7 +748,7 @@ class MPLPlot:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndexClass)):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -1221,8 +1232,8 @@ class LinePlot(MPLPlot):
 
         raise ValueError(
             "When stacked is True, each column must be either "
-            "all positive or negative."
-            f"{label} contains both positive and negative values"
+            "all positive or all negative. "
+            f"Column '{label}' contains both positive and negative values"
         )
 
     @classmethod
@@ -1544,7 +1555,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError(f"{kind} doesn't allow negative values")
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):
@@ -1580,7 +1591,7 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
+                blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
                 # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
                 # types in assignment (expression has type "None", variable has
