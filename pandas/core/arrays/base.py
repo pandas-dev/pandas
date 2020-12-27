@@ -591,7 +591,7 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    def argmin(self):
+    def argmin(self, axis=None, skipna: bool = True):
         """
         Return the index of minimum value.
 
@@ -606,9 +606,11 @@ class ExtensionArray:
         --------
         ExtensionArray.argmax
         """
+        if not skipna:
+            raise NotImplementedError
         return nargminmax(self, "argmin")
 
-    def argmax(self):
+    def argmax(self, axis=None, skipna: bool = True):
         """
         Return the index of maximum value.
 
@@ -623,6 +625,8 @@ class ExtensionArray:
         --------
         ExtensionArray.argmin
         """
+        if not skipna:
+            raise NotImplementedError
         return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
