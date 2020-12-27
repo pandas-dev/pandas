@@ -1623,8 +1623,7 @@ class TestSeriesConstructors:
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
-        with tm.assert_produces_warning(FutureWarning):
-            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)

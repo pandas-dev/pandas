@@ -294,7 +294,9 @@ def test_intersection(idx, sort):
     # assert result.equals(tuples)
 
 
-@pytest.mark.parametrize("method", ["intersection", "union"])
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
 def test_setop_with_categorical(idx, sort, method):
     other = idx.to_flat_index().astype("category")
     res_names = [None] * idx.nlevels
