@@ -89,6 +89,9 @@ repos:
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
+
+            # Check for use of pandas.testing instead of tm
+            pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives

@@ -1049,7 +1049,7 @@ def test_groupby_get_by_index():
     df = DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = DataFrame({"A": ["S", "W"], "B": [1.0, 2.0]}).set_index("A")
-    pd.testing.assert_frame_equal(res, expected)
+    tm.assert_frame_equal(res, expected)
 
 
 @pytest.mark.parametrize(
