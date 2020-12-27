@@ -76,3 +76,4 @@ after_script:
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - ci/print_skipped.py
   - echo "after_script done"
+  

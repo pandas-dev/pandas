@@ -1334,7 +1334,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost:3306/pandas"
+        conn = "mysql://root@localhost/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -2071,11 +2071,12 @@ class _TestMySQLAlchemy:
     """
 
     flavor = "mysql"
+    port = 3306
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:3306/pandas",
+            f"mysql+{cls.driver}://root@localhost:{port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2140,11 +2141,12 @@ class _TestPostgreSQLAlchemy:
     """
 
     flavor = "postgresql"
+    port = 5432
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres:postgres@localhost:5432/pandas"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:{port}/pandas"
         )
 
     @classmethod
