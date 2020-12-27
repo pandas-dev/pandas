@@ -2076,7 +2076,7 @@ class _TestMySQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:{port}/pandas",
+            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2146,7 +2146,7 @@ class _TestPostgreSQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres:postgres@localhost:{port}/pandas"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
         )
 
     @classmethod
