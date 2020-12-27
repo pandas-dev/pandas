@@ -1650,7 +1650,7 @@ class TestLabelSlicing:
         expected = DataFrame(
             data=[[2, 3]], index=[0], columns=pd.Index([1, 2], dtype=object)
         )
-        tm.assert_equal(df.loc[:, 1:], expected)
+        tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
 class TestLocBooleanMask:
