@@ -147,7 +147,7 @@ pandas possible. Thanks to `all of our contributors <https://github.com/pandas-d
 
 If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
-pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
+pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
 This will help ensure the success of the development of pandas as a world-class open-source
 project and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project.
 
