@@ -268,7 +268,7 @@ SciPy                     1.12.0             Miscellaneous statistical functions
 xlsxwriter                1.0.2              Excel writing
 blosc                     1.17.0             Compression for HDF5
 fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.3.2              Parquet reading / writing
+fastparquet               0.4.0              Parquet reading / writing
 gcsfs                     0.6.0              Google Cloud Storage access
 html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
@@ -278,7 +278,7 @@ openpyxl                  2.6.0              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
-pymysql                   0.8.1             MySQL engine for sqlalchemy
+pymysql                   0.8.1              MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O

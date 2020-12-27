@@ -19,7 +19,7 @@ dependencies:
   - beautifulsoup4
   - blosc=1.17.0
   - python-blosc
-  - fastparquet=0.3.2
+  - fastparquet=0.4.0
   - html5lib
   - ipython
   - jinja2
