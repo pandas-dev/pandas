@@ -168,6 +168,7 @@ def maybe_box_native(value: Union[ABCSeries, Scalar]) -> Union[ABCSeries, Scalar
     elif is_integer_dtype(value):
         with suppress(ValueError):
             value = int(value)
+    return value
 
 
 def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
