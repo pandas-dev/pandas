@@ -26,7 +26,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
-    maybe_box_datetimelike,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
@@ -746,11 +745,6 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         values = self.values
-        if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):
-            # The only non-DatetimeLike class that also has a non-trivial
-            #  try_coerce_args is ObjectBlock, but that overrides replace,
-            #  so does not get here.
-            to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
         if not mask.any():
@@ -845,7 +839,6 @@ class Block(PandasObject):
             if isna(s):
                 return ~mask
 
-            s = maybe_box_datetimelike(s)
             return compare_or_regex_search(self.values, s, regex, mask)
 
         if self.is_object:
@@ -919,8 +912,6 @@ class Block(PandasObject):
                 arr = self.array_values().T
                 arr[indexer] = value
                 return self
-            elif lib.is_scalar(value):
-                value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
             # current dtype cannot store value, coerce to common dtype
@@ -1066,9 +1057,6 @@ class Block(PandasObject):
                     arr = arr.T
                 arr.putmask(mask, new)
                 return [self]
-
-            if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
             if transpose:
                 new_values = new_values.T
