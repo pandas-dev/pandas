@@ -263,12 +263,12 @@ Jinja2                    2.10               Conditional formatting with DataFra
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
 PyTables                  3.5.1              HDF5-based reading / writing
-SQLAlchemy                1.2.8              SQL support for databases other than sqlite
+SQLAlchemy                1.3.0              SQL support for databases other than sqlite
 SciPy                     1.12.0             Miscellaneous statistical functions
 xlsxwriter                1.0.2              Excel writing
-blosc                     1.15.0             Compression for HDF5
+blosc                     1.17.0             Compression for HDF5
 fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.3.2              Parquet reading / writing
+fastparquet               0.4.0              Parquet reading / writing
 gcsfs                     0.6.0              Google Cloud Storage access
 html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
@@ -278,7 +278,7 @@ openpyxl                  2.6.0              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
-pymysql                   0.7.11             MySQL engine for sqlalchemy
+pymysql                   0.8.1              MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
