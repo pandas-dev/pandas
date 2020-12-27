@@ -9244,7 +9244,7 @@ NaN 12.3   33.0
         data = data.apply(f, axis=axis)
         # Ensure index is type stable (should always use int index)
         if data.empty:
-            data.index = Index([], dtype="int64")
+            data.index = Index([], dtype=int)
 
         return data
 

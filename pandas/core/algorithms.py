@@ -955,7 +955,7 @@ def mode(values, dropna: bool = True) -> Series:
 
     result = _reconstruct_data(result, original.dtype, original)
     # Ensure index is type stable (should always use int index)
-    index = None if len(result) else Index([], dtype="int64")
+    index = None if len(result) else Index([], dtype=int)
     return Series(result, index=index)
 
 
