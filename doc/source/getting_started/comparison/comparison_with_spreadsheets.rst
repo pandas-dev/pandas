@@ -158,8 +158,9 @@ The equivalent in pandas:
 
 .. ipython:: python
 
-   pd.pivot_table(tips, values="tip", index=["size"], columns=["sex"],
-                  aggfunc=np.average)
+    pd.pivot_table(
+        tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average
+    )
 
 Formulas
 ~~~~~~~~
@@ -189,39 +190,33 @@ VLOOKUP
 
     import random
 
-    df1 = pd.DataFrame(
-        {
-            "keys": [1, 2, 3, 4, 5, 6, 7],
-            "first_names": [
-                "harry",
-                "ron",
-                "hermione",
-                "rubius",
-                "albus",
-                "severus",
-                "luna",
-            ],
-        }
-    )
+    first_names = [
+        "harry",
+        "ron",
+        "hermione",
+        "rubius",
+        "albus",
+        "severus",
+        "luna",
+    ]
+    keys = [1, 2, 3, 4, 5, 6, 7]
+    df1 = pd.DataFrame({"keys": keys, "first_names": first_names})
     df1
 
-    random_names = pd.DataFrame(
-        {
-            "surnames": [
-                "hadrid",
-                "malfoy",
-                "lovegood",
-                "dumbledore",
-                "grindelwald",
-                "granger",
-                "weasly",
-                "riddle",
-                "longbottom",
-                "snape",
-            ],
-            "keys": [random.randint(1, 7) for x in range(0, 10)],
-        }
-    )
+    surnames = [
+        "hadrid",
+        "malfoy",
+        "lovegood",
+        "dumbledore",
+        "grindelwald",
+        "granger",
+        "weasly",
+        "riddle",
+        "longbottom",
+        "snape",
+    ]
+    keys = [random.randint(1, 7) for x in range(0, 10)]
+    random_names = pd.DataFrame({"surnames": surnames, "keys": keys})
 
     random_names
 
