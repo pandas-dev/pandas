@@ -619,8 +619,7 @@ class TestParquetPyArrow(Base):
 
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
-        msg = "Unhandled type for Arrow to Parquet schema conversion"
-        self.check_error_on_write(df, pa, NotImplementedError, msg)
+        self.check_external_error_on_write(df, pa, NotImplementedError)
 
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})

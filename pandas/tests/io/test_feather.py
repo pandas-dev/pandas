@@ -29,6 +29,14 @@ class TestFeather:
             with tm.ensure_clean() as path:
                 to_feather(df, path)
 
+    def check_external_error_on_write(self, df):
+        # check that we are raising the exception
+        # on writing
+
+        with tm.external_error_raised(Exception):
+            with tm.ensure_clean() as path:
+                to_feather(df, path)
+
     def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
 
         if expected is None:
@@ -96,7 +104,7 @@ class TestFeather:
         # https://github.com/wesm/feather/issues/53
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
-        self.check_error_on_write(df, ValueError, "Duplicate column names found")
+        self.check_external_error_on_write(df)
 
     def test_stringify_columns(self):
 
@@ -127,8 +135,7 @@ class TestFeather:
 
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
-        msg = "Expected bytes, got a 'int' object"
-        self.check_error_on_write(df, pyarrow.ArrowTypeError, msg)
+        self.check_external_error_on_write(df)
 
     def test_rw_use_threads(self):
         df = pd.DataFrame({"A": np.arange(100000)})
