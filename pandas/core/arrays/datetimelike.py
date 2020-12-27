@@ -1641,6 +1641,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     # --------------------------------------------------------------
+    # Reductions
+
+    def any(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#33478
+        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+
+    def all(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#33478
+        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+
+    # --------------------------------------------------------------
     # Frequency Methods
 
     def _maybe_clear_freq(self):
