@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import numpy as np
+import pandas as pd
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
@@ -304,8 +305,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         from pandas.core.arrays import BooleanArray
 
-        result = isin(self._data, values)
-        return BooleanArray(result, self._mask.copy(), copy=False)
+        result = isin(self._data, values) * np.invert(self._mask)
+        if any(x is pd.NA for x in values):
+            result += self._mask
+        mask = np.zeros_like(self, dtype=bool)
+        return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
