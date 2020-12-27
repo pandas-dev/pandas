@@ -149,6 +149,5 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
 
 @td.skip_if_installed("gcsfs")
 def test_gcs_not_present_exception():
-    with pytest.raises(ImportError) as e:
+    with pytest.raises(ImportError, match="gcsfs library is required"):
         read_csv("gs://test/test.csv")
-        assert "gcsfs library is required" in str(e.value)
