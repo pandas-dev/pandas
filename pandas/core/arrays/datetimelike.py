@@ -1644,11 +1644,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # Reductions
 
     def any(self, *, axis: Optional[int] = None, skipna: bool = True):
-        # GH#33479 discussion of desired behavior long-term
+        # GH#34479 discussion of desired behavior long-term
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     def all(self, *, axis: Optional[int] = None, skipna: bool = True):
-        # GH#33479 discussion of desired behavior long-term
+        # GH#34479 discussion of desired behavior long-term
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------
