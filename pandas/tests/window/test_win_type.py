@@ -121,6 +121,14 @@ def test_window_with_args():
 
 
 @td.skip_if_no_scipy
+def test_win_type_with_method_invalid():
+    with pytest.raises(
+        NotImplementedError, match="'single' is the only supported method type."
+    ):
+        Series(range(1)).rolling(1, win_type="triang", method="table")
+
+
+@td.skip_if_no_scipy
 @pytest.mark.parametrize("arg", [2000000000, "2s", Timedelta("2s")])
 def test_consistent_win_type_freq(arg):
     # GH 15969
