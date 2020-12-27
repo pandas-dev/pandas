@@ -26,7 +26,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
-    maybe_box_datetimelike,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
@@ -37,9 +36,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
-    is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
@@ -53,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_sparse,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
@@ -749,11 +745,6 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         values = self.values
-        if lib.is_scalar(to_replace) and isinstance(values, np.ndarray):
-            # The only non-DatetimeLike class that also has a non-trivial
-            #  try_coerce_args is ObjectBlock, but that overrides replace,
-            #  so does not get here.
-            to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
         if not mask.any():
@@ -848,7 +839,6 @@ class Block(PandasObject):
             if isna(s):
                 return ~mask
 
-            s = maybe_box_datetimelike(s)
             return compare_or_regex_search(self.values, s, regex, mask)
 
         if self.is_object:
@@ -922,12 +912,10 @@ class Block(PandasObject):
                 arr = self.array_values().T
                 arr[indexer] = value
                 return self
-            elif lib.is_scalar(value):
-                value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
             # current dtype cannot store value, coerce to common dtype
-
+            # TODO: can we just use coerce_to_target_dtype for all this
             if hasattr(value, "dtype"):
                 dtype = value.dtype
 
@@ -1070,9 +1058,6 @@ class Block(PandasObject):
                 arr.putmask(mask, new)
                 return [self]
 
-            if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, self.values.dtype)
-
             if transpose:
                 new_values = new_values.T
 
@@ -1164,33 +1149,9 @@ class Block(PandasObject):
         # if we cannot then coerce to object
         dtype, _ = infer_dtype_from(other, pandas_dtype=True)
 
-        if is_dtype_equal(self.dtype, dtype):
-            return self
+        new_dtype = find_common_type([self.dtype, dtype])
 
-        if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
-            # we don't upcast to bool
-            return self.astype(object)
-
-        elif (self.is_float or self.is_complex) and (
-            is_integer_dtype(dtype) or is_float_dtype(dtype)
-        ):
-            # don't coerce float/complex to int
-            return self
-
-        elif self.is_datetime or is_datetime64_any_dtype(dtype):
-            # The is_dtype_equal check above ensures that at most one of
-            #  these two conditions hold, so we must cast to object.
-            return self.astype(object)
-
-        elif self.is_timedelta or is_timedelta64_dtype(dtype):
-            # The is_dtype_equal check above ensures that at most one of
-            #  these two conditions hold, so we must cast to object.
-            return self.astype(object)
-
-        try:
-            return self.astype(dtype)
-        except (ValueError, TypeError, OverflowError):
-            return self.astype(object)
+        return self.astype(new_dtype, copy=False)
 
     def interpolate(
         self,

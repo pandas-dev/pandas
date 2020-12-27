@@ -11,7 +11,7 @@ from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
+from pandas._libs import algos, hashtable as htable, iNaT, lib
 from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
@@ -59,7 +59,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core.construction import array, extract_array
+from pandas.core.construction import (
+    array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
@@ -1906,10 +1910,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
     ):
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
-        value_ser = array([value]) if is_scalar(value) else array(value)
-        value = value_ser[0] if is_scalar(value) else value_ser
-        if isinstance(value, Timestamp) and value.tzinfo is None:
-            value = value.to_datetime64()
+        arr = ensure_wrapped_if_datetimelike(arr)
 
     result = arr.searchsorted(value, side=side, sorter=sorter)
     return result
