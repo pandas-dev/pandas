@@ -927,7 +927,7 @@ def mode(values, dropna: bool = True) -> Series:
     -------
     mode : Series
     """
-    from pandas import Series
+    from pandas import Index, Series
 
     values = _ensure_arraylike(values)
     original = values
@@ -954,7 +954,9 @@ def mode(values, dropna: bool = True) -> Series:
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
-    return Series(result)
+    # Ensure index is type stable (should always use int index)
+    index = None if len(result) else Index([], dtype="int64")
+    return Series(result, index=index)
 
 
 def rank(
