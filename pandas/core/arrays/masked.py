@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import numpy as np
-import pandas as pd
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
@@ -19,6 +18,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+import pandas as pd
 from pandas.core import nanops
 from pandas.core.algorithms import factorize_array, isin, take
 from pandas.core.array_algos import masked_reductions
