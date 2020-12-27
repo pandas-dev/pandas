@@ -155,6 +155,7 @@ class TestFloatSubtype(AstypeTests):
         with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 
+    @pytest.mark.xfail(reason="GH#15832")
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
         index = interval_range(-10.0, 10.0)
@@ -163,7 +164,21 @@ class TestFloatSubtype(AstypeTests):
             "Cannot convert interval[float64] to interval[uint64]; subtypes are "
             "incompatible"
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
+            index.astype(dtype)
+
+        # float64 -> integer-like fails with non-integer valued floats
+        index = interval_range(0.0, 10.0, freq=0.25)
+        dtype = IntervalDtype("int64")
+        msg = (
+            "Casting float interval index to integer would result in duplicate "
+            "intervals in range"
+        )
+        with pytest.raises(ValueError, match=msg):
+            index.astype(dtype)
+
+        dtype = IntervalDtype("uint64")
+        with pytest.raises(ValueError, match=msg):
             index.astype(dtype)
 
     @pytest.mark.parametrize("subtype", ["datetime64[ns]", "timedelta64[ns]"])
