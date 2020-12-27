@@ -208,11 +208,15 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32", "Int64"])
-    def test_replace_Int_with_na(self, dtype):
+    def test_replace_Int_with_na(self):
         # GH 38267
-        result = pd.Series([0, None], dtype=dtype).replace(0, pd.NA)
-        expected = pd.Series([pd.NA, pd.NA], dtype=dtype)
+        from pandas.conftest import any_nullable_int_dtype
+        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
+        tm.assert_series_equal(result, expected)
+        
+        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, 1], dtype=any_nullable_int_dtype)
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
