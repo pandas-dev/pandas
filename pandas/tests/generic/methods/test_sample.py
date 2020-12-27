@@ -66,69 +66,78 @@ class TestSample:
 
     def test_sample_invalid_random_state(self, obj):
         # Check for error when random_state argument invalid.
-        with pytest.raises(ValueError):
-            obj.sample(random_state="astring!")
+        msg = (
+            "random_state must be an integer, array-like, a BitGenerator, a numpy "
+            "RandomState, or None"
+        )
+        with pytest.raises(ValueError, match=msg):
+            obj.sample(random_state="a_string")
 
     def test_sample_wont_accept_n_and_frac(self, obj):
         # Giving both frac and N throws error
-        with pytest.raises(ValueError):
+        msg = "Please enter a value for `frac` OR `n`, not both"
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, frac=0.3)
 
     def test_sample_requires_positive_n_frac(self, obj):
-        with pytest.raises(ValueError):
+        msg = "A negative number of rows requested. Please provide positive value."
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=-3)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             obj.sample(frac=-0.3)
 
     def test_sample_requires_integer_n(self, obj):
         # Make sure float values of `n` give error
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Only integers accepted as `n` values"):
             obj.sample(n=3.2)
 
     def test_sample_invalid_weight_lengths(self, obj):
         # Weight length must be right
-        with pytest.raises(ValueError):
+        msg = "Weights and axis to be sampled must be of same length"
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=[0, 1])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bad_weights = [0.5] * 11
             obj.sample(n=3, weights=bad_weights)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Fewer non-zero entries in p than size"):
             bad_weight_series = Series([0, 0, 0.2])
             obj.sample(n=4, weights=bad_weight_series)
 
     def test_sample_negative_weights(self, obj):
         # Check won't accept negative weights
-        with pytest.raises(ValueError):
-            bad_weights = [-0.1] * 10
+        bad_weights = [-0.1] * 10
+        msg = "weight vector many not include negative values"
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=bad_weights)
 
     def test_sample_inf_weights(self, obj):
         # Check inf and -inf throw errors:
 
-        with pytest.raises(ValueError):
-            weights_with_inf = [0.1] * 10
-            weights_with_inf[0] = np.inf
+        weights_with_inf = [0.1] * 10
+        weights_with_inf[0] = np.inf
+        msg = "weight vector may not include `inf` values"
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=weights_with_inf)
 
-        with pytest.raises(ValueError):
-            weights_with_ninf = [0.1] * 10
-            weights_with_ninf[0] = -np.inf
+        weights_with_ninf = [0.1] * 10
+        weights_with_ninf[0] = -np.inf
+        with pytest.raises(ValueError, match=msg):
             obj.sample(n=3, weights=weights_with_ninf)
 
     def test_sample_zero_weights(self, obj):
         # All zeros raises errors
 
         zero_weights = [0] * 10
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid weights: weights sum to zero"):
             obj.sample(n=3, weights=zero_weights)
 
     def test_sample_missing_weights(self, obj):
         # All missing weights
 
         nan_weights = [np.nan] * 10
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid weights: weights sum to zero"):
             obj.sample(n=3, weights=nan_weights)
 
     def test_sample_none_weights(self, obj):
@@ -205,10 +214,15 @@ class TestSampleDataFrame:
         # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
         ser = Series(range(10))
-        with pytest.raises(ValueError):
+        msg = "Strings cannot be passed as weights when sampling from a Series."
+        with pytest.raises(ValueError, match=msg):
             ser.sample(n=3, weights="weight_column")
 
-        with pytest.raises(ValueError):
+        msg = (
+            "Strings can only be passed to weights when sampling from rows on a "
+            "DataFrame"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.sample(n=1, weights="weight_column", axis=1)
 
         # Check weighting key error
@@ -246,18 +260,21 @@ class TestSampleDataFrame:
         )
 
         # Check out of range axis values
-        with pytest.raises(ValueError):
+        msg = "No axis named 2 for object type DataFrame"
+        with pytest.raises(ValueError, match=msg):
             df.sample(n=1, axis=2)
 
-        with pytest.raises(ValueError):
+        msg = "No axis named not_a_name for object type DataFrame"
+        with pytest.raises(ValueError, match=msg):
             df.sample(n=1, axis="not_a_name")
 
-        with pytest.raises(ValueError):
-            ser = Series(range(10))
+        ser = Series(range(10))
+        with pytest.raises(ValueError, match="No axis named 1 for object type Series"):
             ser.sample(n=1, axis=1)
 
         # Test weight length compared to correct axis
-        with pytest.raises(ValueError):
+        msg = "Weights and axis to be sampled must be of same length"
+        with pytest.raises(ValueError, match=msg):
             df.sample(n=1, axis=1, weights=[0.5] * 10)
 
     def test_sample_axis1(self):
@@ -294,7 +311,8 @@ class TestSampleDataFrame:
 
         # No overlap in weight and sampled DataFrame indices
         ser4 = Series([1, 0], index=[1, 2])
-        with pytest.raises(ValueError):
+
+        with pytest.raises(ValueError, match="Invalid weights: weights sum to zero"):
             df.sample(1, weights=ser4)
 
     def test_sample_is_copy(self):
