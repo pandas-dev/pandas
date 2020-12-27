@@ -1646,8 +1646,8 @@ class TestLabelSlicing:
 
     def test_loc_getitem_slice_columns_mixed_dtype(self):
         # GH: 20975
-        df = pd.DataFrame({'test': 1, 1: 2, 2: 3}, index=[0])
-        expected = pd.DataFrame(data=[[2, 3]], index=[0], columns=Index([1, 2],
+        df = DataFrame({'test': 1, 1: 2, 2: 3}, index=[0])
+        expected = DataFrame(data=[[2, 3]], index=[0], columns=Index([1, 2],
                                 dtype=object))
         tm.assert_equal(df.loc[:, 1:], expected)
 
