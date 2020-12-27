@@ -246,8 +246,21 @@ NOTE: If the index already exists, the values in that index will be over written
     df1
 
 
-Search and Replace
-~~~~~~~~~~~~~~~~~~
+Find and Replace
+~~~~~~~~~~~~~~~~
 
-The ``replace`` method that comes associated with the ``DataFrame`` object can perform
-this function. Please see `pandas.DataFrame.replace <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.replace.html>`__ for examples.
+`Excel's Find dialog <https://support.microsoft.com/en-us/office/find-or-replace-text-and-numbers-on-a-worksheet-0e304ca5-ecef-4808-b90f-fdb42f892e90>`_
+takes you to cells that match, one by one. In pandas, this operation is generally done for an
+entire column or ``DataFrame`` at once through :ref:`conditional expressions <10min_tut_03_subset.rows_and_columns>`.
+
+.. ipython:: python
+
+    tips
+    tips == "Sun"
+    tips["day"].str.contains("S")
+
+pandas' :meth:`~DataFrame.replace` is comparable to Excel's ``Replace All``.
+
+.. ipython:: python
+
+    tips.replace("Thur", "Thu")
