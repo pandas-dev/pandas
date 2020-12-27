@@ -147,7 +147,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     return value
 
 
-def maybe_box_native(value: Union[ABCSeries, Scalar]) -> Union[ABCSeries, Scalar]:
+def maybe_box_native(value: "Union[Series, Scalar]") -> "Union[Series, Scalar]":
     """
     If passed a scalar cast the scalar to a python native type.
 
