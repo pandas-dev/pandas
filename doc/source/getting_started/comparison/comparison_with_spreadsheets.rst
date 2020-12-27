@@ -62,11 +62,18 @@ particular row don't change.
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.
 
-Commonly used spreadsheet functionalities
------------------------------------------
+Data input / output
+-------------------
 
-Importing data
-~~~~~~~~~~~~~~
+Constructing a DataFrame from values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In a spreadsheet, `values can be typed directly into cells <https://support.microsoft.com/en-us/office/enter-data-manually-in-worksheet-cells-c798181d-d75a-41b1-92ad-6c0800f80038>`_.
+
+.. include:: includes/construct_dataframe.rst
+
+Reading external data
+~~~~~~~~~~~~~~~~~~~~~
 
 Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-external-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__
 and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various
@@ -95,6 +102,28 @@ In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read
    )
    tips = pd.read_csv(url)
    tips
+
+Like `Excel's Text Import Wizard <https://support.microsoft.com/en-us/office/text-import-wizard-c5b02af6-fda1-4440-899f-f78bafe41857>`_,
+``read_csv`` can take a number of parameters to specify how the data should be parsed. For
+example, if the data was instead tab delimited, and did not have column names, the pandas command
+would be:
+
+.. code-block:: python
+
+   tips = pd.read_csv("tips.csv", sep="\t", header=None)
+
+   # alternatively, read_table is an alias to read_csv with tab delimiter
+   tips = pd.read_table("tips.csv", header=None)
+
+Exporting data
+~~~~~~~~~~~~~~
+
+By default, desktop spreadsheet software will save to its respective file format (``.xlsx``, ``.ods``, etc). You can, however, `save to other file formats <https://support.microsoft.com/en-us/office/save-a-workbook-in-another-file-format-6a16c862-4a36-48f9-a300-c2ca0065286e>`_.
+
+:ref:`pandas can create Excel files <io.excel_writer>`, :ref:`CSV <io.store_in_csv>`, or :ref:`a number of other formats <io>`.
+
+Commonly used spreadsheet functionalities
+-----------------------------------------
 
 Fill Handle
 ~~~~~~~~~~~
