@@ -1017,13 +1017,12 @@ def rank_1d(
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, K, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
-        ndarray[int64_t] _as
-        ndarray[float64_t] grp_sizes
-        ndarray[rank_t] masked_vals
-        ndarray[uint8_t] mask
-        bint keep_na
+        ndarray[int64_t, ndim=1] _as
+        ndarray[float64_t, ndim=1] grp_sizes, out
+        ndarray[rank_t, ndim=1] masked_vals
+        ndarray[uint8_t, ndim=1] mask
+        bint keep_na, at_end, next_val_diff
         rank_t nan_fill_val
-        ndarray[float64_t] out
         int64_t[:] labels_
 
     tiebreak = tiebreakers[ties_method]
@@ -1036,7 +1035,7 @@ def rank_1d(
         labels_ = labels
 
     out = np.empty(N)
-    grp_sizes = np.ones_like(in_arr, dtype="float")
+    grp_sizes = np.ones_like(out)
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -1149,7 +1148,7 @@ def rank_1d(
             # reset the dups and sum_ranks, knowing that a new value is
             # coming up. the conditional also needs to handle nan equality
             # and the end of iteration
-            if (next_val_diff or mask[_as[i]] ^ mask[_as[i+1]]):
+            if next_val_diff or mask[_as[i]] ^ mask[_as[i+1]]:
                 dups = sum_ranks = 0
                 grp_vals_seen += 1
                 grp_tie_count += 1

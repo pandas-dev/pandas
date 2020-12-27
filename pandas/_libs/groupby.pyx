@@ -1117,7 +1117,7 @@ def group_rank(float64_t[:, :] out,
     This method modifies the `out` parameter rather than returning an object
     """
     cdef:
-        ndarray[float64_t] result
+        ndarray[float64_t, ndim=1] result
 
     result = rank_1d(
         in_arr=values[:, 0],
