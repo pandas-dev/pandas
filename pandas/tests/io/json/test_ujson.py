@@ -875,8 +875,8 @@ class TestNumpyJSONTests:
         ],
     )
     def test_array_numpy_except(self, bad_input, exc_type, err_msg, kwargs):
-        # with pytest.raises(exc_type, match=re.escape(err_msg)):
-        ujson.decode(ujson.dumps(bad_input), numpy=True, **kwargs)
+        with pytest.raises(exc_type, match=re.escape(err_msg)):
+            ujson.decode(ujson.dumps(bad_input), numpy=True, **kwargs)
 
     def test_array_numpy_labelled(self):
         labelled_input = {"a": []}
