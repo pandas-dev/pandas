@@ -337,12 +337,10 @@ class TestDataFrameMisc:
         df = DataFrame()
 
         with warnings.catch_warnings(record=True) as wrn:
-            # _AXIS_NUMBERS, _AXIS_NAMES lookups
             inspect.getmembers(df)
 
-        # some versions give FutureWarning, others DeprecationWarning
-        assert len(wrn)
-        assert any(x.category in [FutureWarning, DeprecationWarning] for x in wrn)
+        # some versions may give FutureWarning, others DeprecationWarning
+        assert not len(wrn)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
