@@ -8846,7 +8846,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     other = other._values
                     if axis == 0:
                         other = np.reshape(other, (-1, 1))
-                    if axis == 1:
+                    elif axis == 1:
                         other = np.reshape(other, (1, -1))
 
                     other = np.broadcast_to(other, self.shape)
