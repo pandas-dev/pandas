@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
 from pandas.core.arrays.numeric import NumericArray
-from pandas.core.construction import extract_array
 
 
 def to_numeric(arg, errors="raise", downcast=None):
@@ -128,9 +127,6 @@ def to_numeric(arg, errors="raise", downcast=None):
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
-        if is_extension_array_dtype(arg) and isinstance(values, NumericArray):
-            is_numeric_extension_dtype = True
-            values = extract_array(arg)
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
@@ -151,9 +147,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    if is_numeric_extension_dtype or (
-        is_extension_array_dtype(arg) and isinstance(values, NumericArray)
-    ):
+    if is_extension_array_dtype(arg) and isinstance(values, NumericArray):
         is_numeric_extension_dtype = True
         mask, values = values._mask, values._data
 
