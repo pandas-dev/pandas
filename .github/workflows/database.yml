@@ -86,6 +86,9 @@ jobs:
       run: ci/run_tests.sh
       if: always()
 
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+
     - name: Publish test results
       uses: actions/upload-artifact@master
       with:
@@ -168,6 +171,9 @@ jobs:
     - name: Test
       run: ci/run_tests.sh
       if: always()
+
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
       uses: actions/upload-artifact@master
