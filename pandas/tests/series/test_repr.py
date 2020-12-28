@@ -237,6 +237,18 @@ class TestSeriesRepr:
         )
         assert result == expected
 
+    def test_series_repr_float_like_object_no_truncate(self):
+        series = Series(["3.50"])
+        result = repr(series)
+        expected = "0    3.50\ndtype: object"
+        assert result == expected
+
+    def test_mixed_series_repr_float_like_object_no_truncate(self):
+        series = Series([1.20, "1.00"])
+        result = repr(series)
+        expected = "0     1.2\n1    1.00\ndtype: object"
+        assert result == expected
+
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
