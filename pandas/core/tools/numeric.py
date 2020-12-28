@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_number,
@@ -122,7 +121,6 @@ def to_numeric(arg, errors="raise", downcast=None):
     is_series = False
     is_index = False
     is_scalars = False
-    is_numeric_extension_dtype = False
 
     if isinstance(arg, ABCSeries):
         is_series = True
@@ -147,9 +145,11 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    if is_extension_array_dtype(arg) and isinstance(values, NumericArray):
-        is_numeric_extension_dtype = True
-        mask, values = values._mask, values._data
+    if isinstance(values, NumericArray):
+        mask = values._mask
+        values = values._data[~mask]
+    else:
+        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -197,7 +197,11 @@ def to_numeric(arg, errors="raise", downcast=None):
                     if values.dtype == dtype:
                         break
 
-    if is_numeric_extension_dtype:
+    if mask is not None:
+        buf = np.zeros(mask.shape, dtype=values.dtype)
+        buf[~mask] = values
+        values = buf
+
         if is_integer_dtype(values):
             from pandas.core.arrays import IntegerArray
 
