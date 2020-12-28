@@ -198,18 +198,17 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     if mask is not None:
-        buf = np.zeros(mask.shape, dtype=values.dtype)
-        buf[~mask] = values
-        values = buf
+        data = np.zeros(mask.shape, dtype=values.dtype)
+        data[~mask] = values
 
-        if is_integer_dtype(values):
+        if is_integer_dtype(data):
             from pandas.core.arrays import IntegerArray
 
-            values = IntegerArray(values, mask)
-        elif is_float_dtype(values):
+            values = IntegerArray(data, mask)
+        elif is_float_dtype(data):
             from pandas.core.arrays import FloatingArray
 
-            values = FloatingArray(values, mask)
+            values = FloatingArray(data, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
