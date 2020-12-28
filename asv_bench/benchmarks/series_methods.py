@@ -348,6 +348,7 @@ class NanOps:
     def time_func(self, func, N, dtype):
         self.func()
 
+
 class Rank:
 
     param_names = ["dtype"]
