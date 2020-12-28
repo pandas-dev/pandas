@@ -725,3 +725,19 @@ def test_to_numeric_from_nullable_string(values, expected):
     s = Series(values, dtype="string")
     result = to_numeric(s)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, input_dtype, downcast, expected_dtype",
+    (
+        ([1, 1], "Int64", "integer", "Int8"),
+        ([450, 300], "Int64", "integer", "Int16"),
+        ([1, 1], "Float64", "float", "Float32"),
+        ([1, 1], "Float64", "integer", "Int8"),
+    ),
+)
+def test_downcast_nullable_numeric(data, input_dtype, downcast, expected_dtype):
+    arr = pd.array(data, dtype=input_dtype)
+    result = pd.to_numeric(arr, downcast=downcast)
+    expected = pd.array(data, dtype=expected_dtype)
+    tm.assert_extension_array_equal(result, expected)
