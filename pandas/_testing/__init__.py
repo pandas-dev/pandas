@@ -1581,3 +1581,23 @@ def get_op_from_name(op_name: str) -> Callable:
         op = lambda x, y: rop(y, x)
 
     return op
+
+
+# -----------------------------------------------------------------------------
+# Indexing test helpers
+
+
+def getitem(x):
+    return x
+
+
+def setitem(x):
+    return x
+
+
+def loc(x):
+    return x.loc
+
+
+def iloc(x):
+    return x.iloc

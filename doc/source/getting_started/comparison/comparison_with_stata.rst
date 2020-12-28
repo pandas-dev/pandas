@@ -8,17 +8,7 @@ For potential users coming from `Stata <https://en.wikipedia.org/wiki/Stata>`__
 this page is meant to demonstrate how different Stata operations would be
 performed in pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows. This means that we can refer to the
-libraries as ``pd`` and ``np``, respectively, for the rest of the document.
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
-
+.. include:: comparison_boilerplate.rst
 
 .. note::
 
@@ -48,13 +38,16 @@ General terminology translation
     ``NaN``, ``.``
 
 
-``DataFrame`` / ``Series``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+``DataFrame``
+~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to a Stata data set -- a two-dimensional
 data source with labeled columns that can be of different types. As will be
 shown in this document, almost any operation that can be applied to a data set
 in Stata can also be accomplished in pandas.
+
+``Series``
+~~~~~~~~~~
 
 A ``Series`` is the data structure that represents one column of a
 ``DataFrame``. Stata doesn't have a separate data structure for a single column,
