@@ -52,7 +52,7 @@ def get_default_engine(ext, mode="read"):
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
         "xls": "xlwt",
-        "ods": "odf"
+        "ods": "odf",
     }
     if mode == "write":
         xlsxwriter = import_optional_dependency(

@@ -123,6 +123,10 @@ engine : str, default None
          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
        - Otherwise if ``path_or_buffer`` is an xls format,
          ``xlrd`` will be used.
+       - Otherwise if ``path_or_buffer`` is in xlsb format,
+         ``pyxlsb`` will be used.
+
+         .. versionadded:: 1.3.0
        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
          then ``openpyxl`` will be used.
        - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -1005,6 +1009,8 @@ class ExcelFile:
              ``xlrd`` will be used.
            - Otherwise if ``path_or_buffer`` is in xlsb format,
              ``pyxlsb`` will be used.
+
+           .. versionadded:: 1.3.0
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
