@@ -89,6 +89,9 @@ repos:
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
+
+            # Check for use of pandas.testing instead of tm
+            pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -159,7 +162,7 @@ repos:
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v3.4.0
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$

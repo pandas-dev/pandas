@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,6 +23,13 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+
+I/O
+^^^
+
+- Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
+- Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
+
 -
 -
 
