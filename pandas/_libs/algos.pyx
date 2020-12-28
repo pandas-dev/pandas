@@ -801,7 +801,7 @@ def rank_1d(
 ):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
-    
+
     Parameters
     ----------
     in_arr : array of rank_t values to be ranked
@@ -840,14 +840,14 @@ def rank_1d(
     keep_na = na_option == 'keep'
 
     N = len(in_arr)
+    out = np.empty(N)
+    grp_sizes = np.ones(N)
+
     check_labels = labels is not None
     if labels is None:
         labels_ = np.zeros(N, dtype="int")
     else:
         labels_ = labels
-
-    out = np.empty(N)
-    grp_sizes = np.ones(N)
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -926,8 +926,8 @@ def rank_1d(
             next_val_diff = True
 
         if (next_val_diff
-                or mask[_as[i]] ^ mask[_as[i+1]]
-                or (check_labels and labels_[_as[i]] != labels_[_as[i+1]])
+                or (mask[_as[i]] ^ mask[_as[i+1]])
+                or (check_labels and (labels_[_as[i]] != labels_[_as[i+1]]))
         ):
             # if keep_na, check for missing values and assign back
             # to the result where appropriate
@@ -959,7 +959,7 @@ def rank_1d(
             # reset the dups and sum_ranks, knowing that a new value is
             # coming up. the conditional also needs to handle nan equality
             # and the end of iteration
-            if next_val_diff or mask[_as[i]] ^ mask[_as[i+1]]:
+            if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
                 dups = sum_ranks = 0
                 grp_vals_seen += 1
                 grp_tie_count += 1
@@ -970,7 +970,7 @@ def rank_1d(
             # decrement that from their position. fill in the size of each
             # group encountered (used by pct calculations later). also be
             # sure to reset any of the items helping to calculate dups
-            if at_end or (check_labels and labels_[_as[i]] != labels_[_as[i+1]]):
+            if at_end or (check_labels and (labels_[_as[i]] != labels_[_as[i+1]])):
                 if tiebreak != TIEBREAK_DENSE:
                     for j in range(grp_start, i + 1):
                         grp_sizes[_as[j]] = (i - grp_start + 1 -
