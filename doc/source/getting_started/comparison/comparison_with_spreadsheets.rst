@@ -133,8 +133,127 @@ By default, desktop spreadsheet software will save to its respective file format
 
 :ref:`pandas can create Excel files <io.excel_writer>`, :ref:`CSV <io.store_in_csv>`, or :ref:`a number of other formats <io>`.
 
-Commonly used spreadsheet functionalities
------------------------------------------
+Data operations
+---------------
+
+Operations on columns
+~~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, `formulas
+<https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_
+are often created in individual cells and then `dragged
+<https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_
+into other cells to compute them for other columns. In pandas, you're able to do operations on whole
+columns directly.
+
+.. include:: includes/column_operations.rst
+
+Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
+us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`.
+
+
+Filtering
+~~~~~~~~~
+
+`In Excel, filtering is done through a graphical menu. <https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e>`_
+
+.. image:: ../../_static/excel_filter.png
+   :alt: Screenshot showing filtering of the total_bill column to values greater than 10
+   :align: center
+
+.. include:: includes/filtering.rst
+
+If/then logic
+~~~~~~~~~~~~~
+
+Let's say we want to make a ``bucket`` column with values of ``low`` and ``high``, based on whether
+the ``total_bill`` is less or more than $10.
+
+In spreadsheets, logical comparison can be done with `conditional formulas
+<https://support.microsoft.com/en-us/office/create-conditional-formulas-ca916c57-abd8-4b44-997c-c309b7307831>`_.
+We'd use a formula of ``=IF(A2 < 10, "low", "high")``, dragged to all cells in a new ``bucket``
+column.
+
+.. image:: ../../_static/excel_conditional.png
+   :alt: Screenshot showing the formula from above in a bucket column of the tips spreadsheet
+   :align: center
+
+.. include:: includes/if_then.rst
+
+Date functionality
+~~~~~~~~~~~~~~~~~~
+
+*This section will refer to "dates", but timestamps are handled similarly.*
+
+We can think of date functionality in two parts: parsing, and output. In spreadsheets, date values
+are generally parsed automatically, though there is a `DATEVALUE
+<https://support.microsoft.com/en-us/office/datevalue-function-df8b07d4-7761-4a93-bc33-b7471bbff252>`_
+function if you need it. In pandas, you need to explicitly convert plain text to datetime objects,
+either :ref:`while reading from a CSV <io.read_csv_table.datetime>` or :ref:`once in a DataFrame
+<10min_tut_09_timeseries.properties>`.
+
+Once parsed, spreadsheets display the dates in a default format, though `the format can be changed
+<https://support.microsoft.com/en-us/office/format-a-date-the-way-you-want-8e10019e-d5d8-47a1-ba95-db95123d273e>`_.
+In pandas, you'll generally want to keep dates as ``datetime`` objects while you're doing
+calculations with them. Outputting *parts* of dates (such as the year) is done through `date
+functions
+<https://support.microsoft.com/en-us/office/date-and-time-functions-reference-fd1b5961-c1ae-4677-be58-074152f97b81>`_
+in spreadsheets, and :ref:`datetime properties <10min_tut_09_timeseries.properties>` in pandas.
+
+Given ``date1`` and ``date2`` in columns ``A`` and ``B`` of a spreadsheet, you might have these
+formulas:
+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+
+    * - column
+      - formula
+    * - ``date1_year``
+      - ``=YEAR(A2)``
+    * - ``date2_month``
+      - ``=MONTH(B2)``
+    * - ``date1_next``
+      - ``=DATE(YEAR(A2),MONTH(A2)+1,1)``
+    * - ``months_between``
+      - ``=DATEDIF(A2,B2,"M")``
+
+The equivalent pandas operations are shown below.
+
+.. include:: includes/time_date.rst
+
+See :ref:`timeseries` for more details.
+
+
+Selection of columns
+~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, you can select columns you want by:
+
+- `Hiding columns <https://support.microsoft.com/en-us/office/hide-or-show-rows-or-columns-659c2cad-802e-44ee-a614-dde8443579f8>`_
+- `Deleting columns <https://support.microsoft.com/en-us/office/insert-or-delete-rows-and-columns-6f40e6e4-85af-45e0-b39d-65dd504a3246>`_
+- `Referencing a range <https://support.microsoft.com/en-us/office/create-or-change-a-cell-reference-c7b8b95d-c594-4488-947e-c835903cebaa>`_ from one worksheet into another
+
+Since spreadsheet columns are typically `named in a header row
+<https://support.microsoft.com/en-us/office/turn-excel-table-headers-on-or-off-c91d1742-312c-4480-820f-cf4b534c8b3b>`_,
+renaming a column is simply a matter of changing the text in that first cell.
+
+.. include:: includes/column_selection.rst
+
+
+Sorting by values
+~~~~~~~~~~~~~~~~~
+
+Sorting in spreadsheets is accomplished via `the sort dialog <https://support.microsoft.com/en-us/office/sort-data-in-a-range-or-table-62d0b95d-2a90-4610-a6ae-2e545c4a4654>`_.
+
+.. image:: ../../_static/excel_sort.png
+   :alt: Screenshot dialog from Excel showing sorting by the sex then total_bill columns
+   :align: center
+
+.. include:: includes/sorting.rst
+
+Other considerations
+--------------------
 
 Fill Handle
 ~~~~~~~~~~~
@@ -157,21 +276,6 @@ This can be achieved by creating a series and assigning it to the desired cells.
 
     df
 
-Filters
-~~~~~~~
-
-Filters can be achieved by using slicing.
-
-The examples filter by 0 on column AAA, and also show how to filter by multiple
-values.
-
-.. ipython:: python
-
-   df[df.AAA == 0]
-
-   df[(df.AAA == 0) | (df.AAA == 2)]
-
-
 Drop Duplicates
 ~~~~~~~~~~~~~~~
 
@@ -192,7 +296,6 @@ This is supported in pandas via :meth:`~DataFrame.drop_duplicates`.
 
     df.drop_duplicates(["class", "student_count"])
 
-
 Pivot Tables
 ~~~~~~~~~~~~
 
@@ -203,6 +306,7 @@ let's find the average gratuity by size of the party and sex of the server.
 In Excel, we use the following configuration for the PivotTable:
 
 .. image:: ../../_static/excel_pivot.png
+   :alt: Screenshot showing a PivotTable in Excel, using sex as the column, size as the rows, then average tip as the values
    :align: center
 
 The equivalent in pandas:
@@ -212,27 +316,6 @@ The equivalent in pandas:
     pd.pivot_table(
         tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average
     )
-
-Formulas
-~~~~~~~~
-
-In spreadsheets, `formulas <https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_
-are often created in individual cells and then `dragged <https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_
-into other cells to compute them for other columns. In pandas, you'll be doing more operations on
-full columns.
-
-As an example, let's create a new column "girls_count" and try to compute the number of boys in
-each class.
-
-.. ipython:: python
-
-    df["girls_count"] = [21, 12, 21, 31, 23, 17]
-    df
-    df["boys_count"] = df["student_count"] - df["girls_count"]
-    df
-
-Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for
-us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`.
 
 VLOOKUP
 ~~~~~~~
