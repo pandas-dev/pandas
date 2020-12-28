@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, overload
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Union, cast, overload
 import warnings
 
 import numpy as np
@@ -1493,10 +1493,13 @@ class SQLDatabase(PandasSQL):
 
             .. versionadded:: 0.24.0
         """
-        if dtype and not is_dict_like(dtype):
-            dtype = {col_name: dtype for col_name in frame}
+        if dtype is not None:
+            if not is_dict_like(dtype):
+                dtype = {col_name: dtype for col_name in frame}
+            else:
+                dtype = cast(dict, dtype)
 
-        if dtype is not None and isinstance(dtype, dict):
+        if dtype:
             from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
