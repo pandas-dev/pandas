@@ -252,4 +252,22 @@ class GroupbyEWM:
         self.gb_ewm.mean(engine=engine)
 
 
+def table_method_func(x):
+    return np.sum(x, axis=0) + 1
+
+
+class TableMethod:
+
+    params = ["single", "table"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
+
+    def time_apply(self, method):
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
