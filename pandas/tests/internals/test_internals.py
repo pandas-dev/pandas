@@ -377,11 +377,11 @@ class TestBlockManager:
         idx = mgr2.items.get_loc("baz")
         assert mgr2.iget(idx).dtype == np.object_
 
-        mgr2.insert(len(mgr2.items), "quux", tm.randn(N).astype(int))
+        mgr2.insert(len(mgr2.items), "quux", np.random.randn(N).astype(int))
         idx = mgr2.items.get_loc("quux")
         assert mgr2.iget(idx).dtype == np.int_
 
-        mgr2.iset(mgr2.items.get_loc("quux"), tm.randn(N))
+        mgr2.iset(mgr2.items.get_loc("quux"), np.random.randn(N))
         assert mgr2.iget(idx).dtype == np.float_
 
     def test_copy(self, mgr):
@@ -615,11 +615,11 @@ class TestBlockManager:
         assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.iset(mgr.items.get_loc("f"), tm.randn(N))
-        mgr.iset(mgr.items.get_loc("d"), tm.randn(N))
-        mgr.iset(mgr.items.get_loc("b"), tm.randn(N))
-        mgr.iset(mgr.items.get_loc("g"), tm.randn(N))
-        mgr.iset(mgr.items.get_loc("h"), tm.randn(N))
+        mgr.iset(mgr.items.get_loc("f"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("d"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("b"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("g"), np.random.randn(N))
+        mgr.iset(mgr.items.get_loc("h"), np.random.randn(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()

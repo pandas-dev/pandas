@@ -4,6 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_number
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, isna, timedelta_range
 import pandas._testing as tm
@@ -400,7 +402,7 @@ class TestSeriesAggregate:
         # test reducing functions in
         # pandas.core.base.SelectionMixin._cython_table
         result = series.agg(func)
-        if tm.is_number(expected):
+        if is_number(expected):
             assert np.isclose(result, expected, equal_nan=True)
         else:
             assert result == expected
