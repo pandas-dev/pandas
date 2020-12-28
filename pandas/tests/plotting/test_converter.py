@@ -54,13 +54,13 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
-    def test_register_by_default(self):
+    def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
-            "'import matplotlib.units; "
+            "import matplotlib.units; "
             "import pandas as pd; "
             "units = dict(matplotlib.units.registry); "
-            "assert pd.Timestamp in units)'"
+            "assert pd.Timestamp not in units"
         )
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
