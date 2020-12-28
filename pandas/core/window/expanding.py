@@ -24,6 +24,14 @@ class Expanding(RollingAndExpandingMixin):
     center : bool, default False
         Set the labels at the center of the window.
     axis : int or str, default 0
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -59,10 +67,14 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis"]
+    _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
+    def __init__(
+        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
+    ):
+        super().__init__(
+            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
     def _get_window_indexer(self) -> BaseIndexer:
         """

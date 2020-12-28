@@ -1123,3 +1123,8 @@ def test_rolling_skew_kurt_large_value_range(method, values):
     result = getattr(s.rolling(4), method)()
     expected = Series([np.nan] * 3 + values)
     tm.assert_series_equal(result, expected)
+
+
+def test_invalid_method():
+    with pytest.raises(ValueError, match="method must be 'table' or 'single"):
+        Series(range(1)).rolling(1, method="foo")
