@@ -877,10 +877,10 @@ class TestiLoc2:
     
     def test_iloc_truncate_data_wrong_axis_single_column(self):
         # GH30263
-        df = DataFrame({"A": array([1] * 10, dtype="Int64")})
+        df = DataFrame({"A": np.array([1] * 10, dtype="Int64")})
         df = df.iloc[:, :5]
-        expected = (10, 1)
-        tm.assert_equal(df.shape, expected)
+        expected = np.array([10, 1])
+        tm.assert_equal(np.array(df.shape), expected)
 
 
 class TestILocErrors:
