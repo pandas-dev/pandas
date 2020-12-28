@@ -293,6 +293,7 @@ def test_series_equal_exact_for_nonnumeric():
     tm.assert_series_equal(s2, s1, check_exact=True)
 
     msg = """Series are different
+
 Series values are different \\(100\\.0 %\\)
 \\[index\\]: \\[0, 1\\]
 \\[left\\]:  \\[a, b\\]
@@ -301,6 +302,7 @@ Series values are different \\(100\\.0 %\\)
         tm.assert_series_equal(s1, s3, check_exact=True)
 
     msg = """Series are different
+
 Series values are different \\(100\\.0 %\\)
 \\[index\\]: \\[0, 1\\]
 \\[left\\]:  \\[b, a\\]
