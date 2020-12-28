@@ -1157,6 +1157,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
+    @overload
+    def dot(self, other: Series) -> Series:
+        ...
+
+    @overload
+    def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> Optional[DataFrame]:
+        ...
+
     def dot(self, other):
         """
         Compute the matrix multiplication between the DataFrame and other.
@@ -1266,6 +1274,16 @@ class DataFrame(NDFrame, OpsMixin):
                 return self._constructor_sliced(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
+
+    @overload
+    def __matmul__(self, other: Series) -> Series:
+        ...
+
+    @overload
+    def __matmul__(
+        self, other: Union[DataFrame, Index, ArrayLike]
+    ) -> Optional[DataFrame]:
+        ...
 
     def __matmul__(self, other):
         """
