@@ -653,3 +653,22 @@ class TestDataFrameIndexingWhere:
         expected.loc[0, :] = np.nan
 
         tm.assert_equal(result, expected)
+
+    def test_where_ea_other(self):
+        # GH#38729/GH#38742
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        arr = pd.array([7, pd.NA, 9])
+        ser = Series(arr)
+        mask = np.ones(df.shape, dtype=bool)
+        mask[1, :] = False
+
+        # TODO: ideally we would get Int64 instead of object
+        result = df.where(mask, ser, axis=0)
+        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        ser2 = Series(arr[:2], index=["A", "B"])
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected["B"] = expected["B"].astype(object)
+        result = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result, expected)
