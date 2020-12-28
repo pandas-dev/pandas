@@ -64,7 +64,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray, ravel_compat
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -346,12 +346,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             if is_extension_array_dtype(dtype):
                 arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype)
+                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
             else:
                 return self._format_native_types()
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            warnings.warn(
+                f"casting {self.dtype} values to int64 with .astype(...) is "
+                "deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
             values = self.asi8
 
             if is_unsigned_integer_dtype(dtype):
@@ -601,6 +609,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(value, type(self)):
             return value
 
+        if isinstance(value, list) and len(value) == 0:
+            # We treat empty list as our own dtype.
+            return type(self)._from_sequence([], dtype=self.dtype)
+
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = array(value)
@@ -679,6 +691,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         Series
         """
+        if self.ndim != 1:
+            raise NotImplementedError
+
         from pandas import Index, Series
 
         if dropna:
@@ -694,6 +709,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return Series(result._values, index=index, name=result.name)
 
+    @ravel_compat
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
@@ -820,6 +836,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             value = to_offset(value)
             self._validate_frequency(self, value)
 
+            if self.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
+
         self._freq = value
 
     @property
@@ -918,7 +937,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @property
     def _is_unique(self) -> bool:
-        return len(unique1d(self.asi8)) == len(self)
+        return len(unique1d(self.asi8.ravel("K"))) == self.size
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

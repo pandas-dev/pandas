@@ -335,10 +335,6 @@ cdef class Slider:
         self.buf.shape[0] = 0
 
 
-class InvalidApply(Exception):
-    pass
-
-
 def apply_frame_axis0(object frame, object f, object names,
                       const int64_t[:] starts, const int64_t[:] ends):
     cdef:
@@ -365,11 +361,7 @@ def apply_frame_axis0(object frame, object f, object names,
             chunk = slider.dummy
             object.__setattr__(chunk, 'name', names[i])
 
-            try:
-                piece = f(chunk)
-            except Exception as err:
-                # We can't be more specific without knowing something about `f`
-                raise InvalidApply("Let this error raise above us") from err
+            piece = f(chunk)
 
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
