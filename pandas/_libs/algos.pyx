@@ -845,7 +845,7 @@ def rank_1d(
 
     check_labels = labels is not None
     if labels is None:
-        labels_ = np.zeros(N, dtype="int")
+        labels_ = np.zeros(N, dtype=np.int64)
     else:
         labels_ = labels
 
