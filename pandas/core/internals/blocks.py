@@ -1355,9 +1355,6 @@ class Block(PandasObject):
                 # TODO(EA2D): not neceesssary with 2D EAs
                 cond = cond.T
 
-        if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray like")
-
         return other, cond
 
     def where(
