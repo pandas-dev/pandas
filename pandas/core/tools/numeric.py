@@ -7,6 +7,9 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
+    is_extension_array_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_number,
     is_numeric_dtype,
     is_scalar,
@@ -15,6 +18,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
+from pandas.core.arrays.numeric import NumericArray
+from pandas.core.construction import extract_array
 
 
 def to_numeric(arg, errors="raise", downcast=None):
@@ -118,10 +123,14 @@ def to_numeric(arg, errors="raise", downcast=None):
     is_series = False
     is_index = False
     is_scalars = False
+    is_numeric_extension_dtype = False
 
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
+        if is_extension_array_dtype(arg) and isinstance(values, NumericArray):
+            is_numeric_extension_dtype = True
+            values = extract_array(arg)
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
@@ -141,6 +150,14 @@ def to_numeric(arg, errors="raise", downcast=None):
         raise TypeError("arg must be a list, tuple, 1-d array, or Series")
     else:
         values = arg
+
+    if is_numeric_extension_dtype or (
+        is_extension_array_dtype(arg) and isinstance(values, NumericArray)
+    ):
+        is_numeric_extension_dtype = True
+        mask = values._mask
+        values = values.to_numpy()
+        values[mask] = 0
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -187,6 +204,16 @@ def to_numeric(arg, errors="raise", downcast=None):
                     # successful conversion
                     if values.dtype == dtype:
                         break
+
+    if is_numeric_extension_dtype:
+        if is_integer_dtype(values):
+            from pandas.core.arrays import IntegerArray
+
+            values = IntegerArray(values, mask)
+        elif is_float_dtype(values):
+            from pandas.core.arrays import FloatingArray
+
+            values = FloatingArray(values, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
