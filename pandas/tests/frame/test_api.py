@@ -330,7 +330,6 @@ class TestDataFrameMisc:
         result.iloc[key] = 10
         assert obj.iloc[key] == 0
 
-    @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):
         # GH#33628 accessing _constructor_expanddim should not
         #  raise NotImplementedError
@@ -339,6 +338,7 @@ class TestDataFrameMisc:
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
+    @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
         # GH38740
         df = DataFrame()
