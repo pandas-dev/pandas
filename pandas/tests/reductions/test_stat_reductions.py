@@ -133,18 +133,9 @@ class TestSeriesStatReductions:
                 exp = alternate(s)
                 assert res == exp
 
-            # Series.median(Series('abc'))
             # check on string data
-
-            if name == "prod":
-                with tm.external_error_raised(TypeError):
-                    f(Series(list("abc")))
-            elif name not in ["sum", "min", "max"]:
-                if name == "mean":
-                    msg = "Could not convert abc to numeric"
-                else:
-                    msg = "could not convert string to float"
-                with pytest.raises(TypeError, match=msg):
+            if name not in ["sum", "min", "max"]:
+                with pytest.raises(TypeError, match=None):
                     f(Series(list("abc")))
 
             # Invalid axis.
