@@ -5,6 +5,7 @@ import pytest
 
 from pandas import (
     DatetimeIndex,
+    Index,
     MultiIndex,
     NaT,
     Series,
@@ -238,24 +239,113 @@ class TestSetitemCallable:
         tm.assert_series_equal(ser, expected)
 
 
-class TestSetitemCasting:
-    def test_setitem_nan_casts(self):
-        # these induce dtype changes
-        expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
-        ser = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-        ser[::2] = np.nan
-        tm.assert_series_equal(ser, expected)
+@pytest.mark.parametrize(
+    "obj,expected,key",
+    [
+        (
+            # these induce dtype changes
+            Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
+            slice(None, None, 2),
+        ),
+        (
+            # gets coerced to float, right?
+            Series([True, True, False, False]),
+            Series([np.nan, 1, np.nan, 0]),
+            slice(None, None, 2),
+        ),
+        (
+            # these induce dtype changes
+            Series(np.arange(10)),
+            Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9]),
+            slice(None, 5),
+        ),
+        (
+            # changes dtype GH#4463
+            Series([1, 2, 3]),
+            Series([np.nan, 2, 3]),
+            0,
+        ),
+        (
+            # changes dtype GH#4463
+            Series([False]),
+            Series([np.nan]),
+            0,
+        ),
+        (
+            # changes dtype GH#4463
+            Series([False, True]),
+            Series([np.nan, 1.0]),
+            0,
+        ),
+    ],
+)
+class TestSetitemCastingEquivalents:
+    """
+    Check each of several methods that _should_ be equivalent to `obj[key] = np.nan`
 
-        # gets coerced to float, right?
-        expected = Series([np.nan, 1, np.nan, 0])
-        ser = Series([True, True, False, False])
-        ser[::2] = np.nan
-        tm.assert_series_equal(ser, expected)
+    We assume that
+        - obj.index is the default Index(range(len(obj)))
+        - the setitem does not expand the obj
+    """
 
-        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
-        ser = Series(np.arange(10))
-        ser[:5] = np.nan
-        tm.assert_series_equal(ser, expected)
+    def test_int_key(self, obj, key, expected, indexer_sli):
+        if not isinstance(key, int):
+            return
+
+        obj = obj.copy()
+        indexer_sli(obj)[key] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_slice_key(self, obj, key, expected, indexer_si):
+        # Note: no .loc because that handles slice edges differently
+        obj = obj.copy()
+        indexer_si(obj)[key] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_intlist_key(self, obj, key, expected, indexer_sli):
+        ilkey = list(range(len(obj)))[key]
+
+        obj = obj.copy()
+        indexer_sli(obj)[ilkey] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_mask_key(self, obj, key, expected, indexer_sli):
+        # setitem with boolean mask
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        indexer_sli(obj)[mask] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_series_where(self, obj, key, expected):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        res = obj.where(~mask, np.nan)
+        tm.assert_series_equal(res, expected)
+
+    def test_index_where(self, obj, key, expected, request):
+        if obj.dtype == bool:
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.xfail(reason=msg)
+            request.node.add_marker(mark)
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).where(~mask, np.nan)
+        tm.assert_index_equal(res, Index(expected))
+
+    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
+    def test_index_putmask(self, obj, key, expected):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).putmask(mask, np.nan)
+        tm.assert_index_equal(res, Index(expected))
 
 
 class TestSetitemWithExpansion:
