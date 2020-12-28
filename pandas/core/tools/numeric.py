@@ -155,9 +155,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         is_extension_array_dtype(arg) and isinstance(values, NumericArray)
     ):
         is_numeric_extension_dtype = True
-        mask = values._mask
-        values = values.to_numpy()
-        values[mask] = 0
+        mask, values = values._mask, values._data
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
