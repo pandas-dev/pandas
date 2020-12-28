@@ -1538,29 +1538,6 @@ class _iLocIndexer(_LocationIndexer):
         """
         info_axis = self.obj._info_axis_number
 
-        # maybe partial set
-        take_split_path = not self.obj._mgr.is_single_block
-
-        # if there is only one block/type, still have to take split path
-        # unless the block is one-dimensional or it can hold the value
-        if not take_split_path and self.obj._mgr.blocks:
-            if self.ndim > 1:
-                # in case of dict, keys are indices
-                val = list(value.values()) if isinstance(value, dict) else value
-                blk = self.obj._mgr.blocks[0]
-                take_split_path = not blk._can_hold_element(val)
-
-        # if we have any multi-indexes that have non-trivial slices
-        # (not null slices) then we must take the split path, xref
-        # GH 10360, GH 27841
-        if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
-            for i, ax in zip(indexer, self.obj.axes):
-                if isinstance(ax, ABCMultiIndex) and not (
-                    is_integer(i) or com.is_null_slice(i)
-                ):
-                    take_split_path = True
-                    break
-
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
@@ -1629,7 +1606,7 @@ class _iLocIndexer(_LocationIndexer):
                 return
 
         # align and set the values
-        if take_split_path:
+        if self.ndim > 1:
             # We have to operate column-wise
             self._setitem_with_indexer_split_path(indexer, value, name)
         else:
@@ -1648,17 +1625,43 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("too many indices for array")
         if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
             raise ValueError(r"Cannot set values with ndim > 2")
-
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             from pandas import Series
 
             value = self._align_series(indexer, Series(value))
 
+        info_idx = indexer[1]
+        pi = indexer[0]
+
+        if com.is_null_slice(info_idx) and is_scalar(value):
+            # We can go directly through BlockManager.setitem without worrying
+            #  about alignment.
+            # TODO: do we need to do some kind of copy_with_setting check?
+            self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
+            return
+
+        if is_integer(info_idx):
+            if is_integer(pi):
+                # We need to watch out for case where we are treating a listlike
+                #  as a scalar, e.g. test_setitem_iloc_scalar_single for JSONArray
+
+                mgr = self.obj._mgr
+                blkno = mgr.blknos[info_idx]
+                blkloc = mgr.blklocs[info_idx]
+                blk = mgr.blocks[blkno]
+
+                if blk._can_hold_element(value):
+                    # NB: we are assuming here that _can_hold_element is accurate
+                    # TODO: do we need to do some kind of copy_with_setting check?
+                    self.obj._check_is_chained_assignment_possible()
+                    blk.setitem_inplace((pi, blkloc), value)
+                    self.obj._maybe_update_cacher(clear=True)
+                    return
+
         # Ensure we have something we can iterate over
         info_axis = indexer[1]
         ilocs = self._ensure_iterable_column_indexer(info_axis)
 
-        pi = indexer[0]
         lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
@@ -1775,6 +1778,9 @@ class _iLocIndexer(_LocationIndexer):
             raise ValueError("Setting with non-unique columns is not allowed.")
 
         else:
+            # TODO: not totally clear why we are requiring this
+            self._align_frame(indexer[0], value)
+
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:

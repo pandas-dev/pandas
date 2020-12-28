@@ -991,6 +991,26 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
+    def setitem_inplace(self, indexer, value):
+        """
+        setitem but only inplace.
+
+        Notes
+        -----
+        Assumes self is 2D and that indexer is a 2-tuple.
+        """
+        if lib.is_scalar(value) and not self.is_extension:
+            # Convert timedelta/datetime to timedelta64/datetime64
+            value = convert_scalar_for_putitemlike(value, self.dtype)
+
+        pi = indexer[0]
+        if self.is_extension:
+            # TODO(EA2D): not needed with 2D EAs
+            self.values[pi] = value
+        else:
+            blkloc = indexer[1]
+            self.values[blkloc, pi] = value
+
     def _putmask_simple(self, mask: np.ndarray, value: Any):
         """
         Like putmask but
