@@ -110,7 +110,7 @@ asv_bench/pandas/
 doc/source/generated
 doc/source/user_guide/styled.xlsx
 doc/source/reference/api
-doc/source/_static
+doc/source/_static/*.html
 doc/source/vbench
 doc/source/vbench.rst
 doc/source/index.rst
