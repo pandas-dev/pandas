@@ -282,25 +282,8 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_equal(result, expected)
 
     def test_setitem_slice_mismatch_length_raises(self, data):
-        # This class is a test mixin class, based on which test class it's mixed
-        # with the expected error messages can vary. This regular expression
-        # catches all the variants of those messages. It's formatted as a big OR
-        # statement: /m1|m2|m3|m4/
-
-        msg = (
-            # pandas.core.arrays.period.PeriodArray
-            # pandas.core.arrays.datetimes.DatetimeArray
-            "cannot set using a slice indexer with a different length than the value|"
-            # string_arrow.ArrowStringArray
-            "Length of indexer and values mismatch|"
-            # pandas.tests.extension.decimal.array.DecimalArray
-            "cannot copy sequence with size \\d to array axis with dimension \\d|"
-            # All the rest
-            "could not broadcast input array from "
-            "shape \\(\\d,?\\) into shape \\(\\d,?\\)"
-        )
         arr = data[:5]
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -309,17 +292,8 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_extension_array_equal(arr, data[-5:])
 
     def test_setitem_scalar_key_sequence_raise(self, data):
-        # Check the comment on test_setitem_slice_mismatch_length_raises for more info.
-        msg = (
-            # pandas.core.arrays.string_arrow.ArrowStringArray
-            "Must pass scalars with scalar indexer|"
-            # pandas.core.arrays.datetimes.DatetimeArray
-            "Could not convert object to NumPy datetime|"
-            # All the rest
-            "setting an array element with a sequence"
-        )
         arr = data[:5].copy()
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
