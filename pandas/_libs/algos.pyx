@@ -973,12 +973,10 @@ def rank_1d(
             if at_end or (check_labels and (labels_[_as[i]] != labels_[_as[i+1]])):
                 if tiebreak != TIEBREAK_DENSE:
                     for j in range(grp_start, i + 1):
-                        grp_sizes[_as[j]] = (i - grp_start + 1 -
-                                                grp_na_count)
+                        grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
                 else:
                     for j in range(grp_start, i + 1):
-                        grp_sizes[_as[j]] = (grp_tie_count -
-                                                (grp_na_count > 0))
+                        grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
                 dups = sum_ranks = 0
                 grp_na_count = 0
                 grp_tie_count = 0
