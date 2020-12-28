@@ -731,7 +731,7 @@ def test_to_numeric_from_nullable_string(values, expected):
     "data, input_dtype, downcast, expected_dtype",
     (
         ([1, 1], "Int64", "integer", "Int8"),
-        ([1.0, 1.0], "Float64", "integer", "Int8"),
+        ([1.0, pd.NA], "Float64", "integer", "Int8"),
         ([1.0, 1.1], "Float64", "integer", "Float64"),
         ([1, pd.NA], "Int64", "integer", "Int8"),
         ([450, 300], "Int64", "integer", "Int16"),
