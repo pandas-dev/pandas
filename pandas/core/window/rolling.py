@@ -174,9 +174,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Split data into blocks & return conformed data.
         """
         # filter out the on from the object
-        if self.on is not None and not isinstance(self.on, Index):
-            if obj.ndim == 2:
-                obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+        if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
+            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         if self.axis == 1:
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
@@ -238,10 +237,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         return self.window
 
-    @property
-    def _window_type(self) -> str:
-        return type(self).__name__
-
     def __repr__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -252,7 +247,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if getattr(self, attr_name, None) is not None
         )
         attrs = ",".join(attrs_list)
-        return f"{self._window_type} [{attrs}]"
+        return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
@@ -278,7 +273,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                f"ops for {self._window_type} for this "
+                f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
         else:
@@ -2158,7 +2153,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         Validate that on is monotonic;
         in this case we have to check only for nans, because
-        monotonicy was already validated at a higher level.
+        monotonicity was already validated at a higher level.
         """
         if self._on.hasnans:
             self._raise_monotonic_error()
