@@ -237,16 +237,22 @@ class TestSeriesRepr:
         )
         assert result == expected
 
-    def test_series_repr_float_like_object_no_truncate(self):
-        series = Series(["3.50"])
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (["3.50"], "0    3.50\ndtype: object"),
+            ([1.20, "1.00"], "0     1.2\n1    1.00\ndtype: object"),
+            ([np.nan], "0   NaN\ndtype: float64"),
+            ([None], "0    None\ndtype: object"),
+            (["3.50", np.nan], "0    3.50\n1     NaN\ndtype: object"),
+            ([3.50, np.nan], "0    3.5\n1    NaN\ndtype: float64"),
+            ([3.50, np.nan, "3.50"], "0     3.5\n1     NaN\n2    3.50\ndtype: object"),
+            ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
+        ],
+    )
+    def test_repr_str_float_truncation(self, data, expected):
+        series = Series(data)
         result = repr(series)
-        expected = "0    3.50\ndtype: object"
-        assert result == expected
-
-    def test_mixed_series_repr_float_like_object_no_truncate(self):
-        series = Series([1.20, "1.00"])
-        result = repr(series)
-        expected = "0     1.2\n1    1.00\ndtype: object"
         assert result == expected
 
 

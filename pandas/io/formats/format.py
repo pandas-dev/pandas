@@ -1300,7 +1300,7 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(float_format(v))
+                fmt_values.append(_trim_zeros_single_float(float_format(v)))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
@@ -1309,10 +1309,6 @@ class GenericArrayFormatter:
                 else:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
-
-        fmt_values = _trim_zeros_float(
-            str_floats=fmt_values, decimal=".", is_float_type=is_float_type
-        )
 
         return fmt_values
 
@@ -1829,45 +1825,50 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
     return padded
 
 
+def _trim_zeros_single_float(str_float: str) -> str:
+    """
+    Trims trailing zeros after a decimal point,
+    leaving just one if necessary.
+    """
+    str_float = str_float.rstrip("0")
+    if str_float.endswith("."):
+        str_float += "0"
+
+    return str_float
+
+
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]],
-    decimal: str = ".",
-    is_float_type: Optional[np.ndarray] = None,
+    str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
-    Trims zeros, leaving just one before the decimal points if need be.
+    Trims the maximum number of trailing zeros equally from
+    all numbers containing decimals, leaving just one if
+    necessary.
     """
     trimmed = str_floats
     number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
-    float_locs = (
-        is_float_type
-        if is_float_type is not None
-        else np.ones(len(trimmed), dtype=bool)
-    )
 
-    def is_number_with_decimal(x, i):
-        return re.match(number_regex, x) is not None and float_locs[i]
+    def is_number_with_decimal(x):
+        return re.match(number_regex, x) is not None
 
     def should_trim(values: Union[np.ndarray, List[str]]) -> bool:
         """
         Determine if an array of strings should be trimmed.
 
         Returns True if all numbers containing decimals (defined by the
-        above regular expression and the specification of float locations
-        `float_locs`) within the array end in a zero, otherwise returns False.
+        above regular expression) within the array end in a zero, otherwise
+        returns False.
         """
-        numbers = [x for i, x in enumerate(values) if is_number_with_decimal(x, i)]
+        numbers = [x for x in values if is_number_with_decimal(x)]
         return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
 
     while should_trim(trimmed):
-        trimmed = [
-            x[:-1] if is_number_with_decimal(x, i) else x for i, x in enumerate(trimmed)
-        ]
+        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
     result = [
-        x + "0" if is_number_with_decimal(x, i) and x.endswith(decimal) else x
-        for i, x in enumerate(trimmed)
+        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
+        for x in trimmed
     ]
     return result
 
