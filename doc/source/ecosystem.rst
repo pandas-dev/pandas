@@ -90,6 +90,9 @@ Compose is a machine learning tool for labeling data and prediction engineering.
 Visualization
 -------------
 
+While :ref:`pandas has built-in support for data visualization with matplotlib <visualization>`,
+there are a number of other pandas-compatible libraries.
+
 `Altair <https://altair-viz.github.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
