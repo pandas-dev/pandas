@@ -1,7 +1,6 @@
 from copy import deepcopy
 import inspect
 import pydoc
-import warnings
 
 import numpy as np
 import pytest
@@ -342,8 +341,5 @@ class TestDataFrameMisc:
     def test_inspect_getmembers(self):
         # GH38740
         df = DataFrame()
-
-        with warnings.catch_warnings(record=True) as wrn:
+        with tm.assert_produces_warning(None):
             inspect.getmembers(df)
-
-        assert not len(wrn)
