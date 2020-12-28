@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
-    is_float_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -201,14 +200,10 @@ def to_numeric(arg, errors="raise", downcast=None):
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
-        if is_integer_dtype(data):
-            from pandas.core.arrays import IntegerArray
+        from pandas.core.arrays import FloatingArray, IntegerArray
 
-            values = IntegerArray(data, mask)
-        elif is_float_dtype(data):
-            from pandas.core.arrays import FloatingArray
-
-            values = FloatingArray(data, mask)
+        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
+        values = klass(data, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
