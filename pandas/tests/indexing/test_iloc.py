@@ -874,6 +874,13 @@ class TestiLoc2:
         df.iloc[1] = rhs
         expected = DataFrame({"x": [1, 9], "y": [2.0, 99.0]})
         tm.assert_frame_equal(df, expected)
+    
+    def test_iloc_truncate_data_wrong_axis_single_column(self):
+        # GH30263
+        df = DataFrame({"A": array([1] * 10, dtype="Int64")})
+        df = df.iloc[:, :5]
+        expected = (10, 1)
+        tm.assert_equal(df.shape, expected)
 
 
 class TestILocErrors:
