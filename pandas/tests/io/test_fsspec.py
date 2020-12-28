@@ -222,7 +222,6 @@ def test_s3_parquet(s3_resource, s3so):
 
 
 @td.skip_if_installed("fsspec")
-@td.skip_if_installed("fsspec")
 def test_not_present_exception():
     msg = "Missing optional dependency 'fsspec'|fsspec library is required"
     with pytest.raises(ImportError, match=msg):
