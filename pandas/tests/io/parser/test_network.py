@@ -200,12 +200,13 @@ class TestS3:
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
     def test_read_s3_fails(self, s3so):
-        with pytest.raises(IOError):
+        msg = "The specified bucket does not exist"
+        with pytest.raises(IOError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with pytest.raises(IOError):
+        with pytest.raises(IOError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
     def test_write_s3_csv_fails(self, tips_df, s3so):

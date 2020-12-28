@@ -213,7 +213,7 @@ def test_inconsistent_number_of_rows(datapath):
 def test_zero_variables(datapath):
     # Check if the SAS file has zero variables (PR #18184)
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
-    with pytest.raises(EmptyDataError):
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         pd.read_sas(fname)
 
 
@@ -221,7 +221,8 @@ def test_corrupt_read(datapath):
     # We don't really care about the exact failure, the important thing is
     # that the resource should be cleaned up afterwards (BUG #35566)
     fname = datapath("io", "sas", "data", "corrupt.sas7bdat")
-    with pytest.raises(AttributeError):
+    msg = "'SAS7BDATReader' object has no attribute 'row_count'"
+    with pytest.raises(AttributeError, match=msg):
         pd.read_sas(fname)
 
 
