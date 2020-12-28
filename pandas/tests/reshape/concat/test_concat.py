@@ -1,5 +1,6 @@
 from collections import abc, deque
 from decimal import Decimal
+from pandas.errors import InvalidIndexError
 from warnings import catch_warnings
 
 import numpy as np
@@ -443,6 +444,26 @@ class TestConcatenate:
         )
         result = pd.concat({"First": Series(range(3)), "Another": Series(range(4))})
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
+@pytest.mark.parametrize("join", ["inner", "outer"])
+def test_concat_duplicates_error(index_maker, join):
+    # if index_maker is tm.makeMultiIndex:
+    # TODO: This generator only makes Indexs of size 4
+    # pytest.skip()
+    index_unique = index_maker(k=4)
+    index_non_unique = index_unique[[0, 0, 1, 2, 3]]
+    with pytest.raises(InvalidIndexError):
+        _ = pd.concat(
+            [
+                pd.DataFrame(
+                    np.ones((1, len(index_non_unique))), columns=index_non_unique
+                ),
+                pd.DataFrame(np.ones((1, len(index_unique))), columns=index_unique),
+            ],
+            join=join,
+        )
 
 
 @pytest.mark.parametrize("pdt", [Series, pd.DataFrame])

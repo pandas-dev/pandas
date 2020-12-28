@@ -89,6 +89,19 @@ def get_objs_combined_axis(
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
+    if all_indexes_same(obs_idxes):
+        idx = obs_idxes[0]
+        if sort:
+            try:
+                idx = idx.sort_values()
+                copy = False
+            except TypeError:
+                pass
+        if copy:
+            idx = idx.copy()
+        return idx
+    elif not all(idx.is_unique for idx in obs_idxes):
+        raise InvalidIndexError()
     return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
