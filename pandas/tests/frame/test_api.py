@@ -336,11 +336,14 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
+        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+            df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
+
+    def test_inspect_getmembers(self):
+        # GH38740
+        df = DataFrame()
+
         with warnings.catch_warnings(record=True) as wrn:
             inspect.getmembers(df)
 
-        # some versions may give FutureWarning, others DeprecationWarning
         assert not len(wrn)
-
-        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
-            df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
