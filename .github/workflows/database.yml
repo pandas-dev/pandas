@@ -87,7 +87,7 @@ jobs:
       if: always()
 
     - name: Build Version
-    - run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
       uses: actions/upload-artifact@master
@@ -173,7 +173,7 @@ jobs:
       if: always()
 
     - name: Build Version
-    - run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
 
     - name: Publish test results
       uses: actions/upload-artifact@master
