@@ -635,16 +635,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def _intersection(self, other, sort=False):
         return self._setop(other, sort, opname="intersection")
 
-    def difference(self, other, sort=None):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            return self[:0].rename(result_name)
-
-        return self._difference(other, sort=sort)
-
     def _difference(self, other, sort):
 
         if is_object_dtype(other):
@@ -656,17 +646,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return self._setop(other, sort, opname="difference")
 
     def _union(self, other, sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, type(self))
-
-        if not is_dtype_equal(self.dtype, other.dtype):
-            this = self.astype("O")
-            other = other.astype("O")
-            return this._union(other, sort=sort)
-
         return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------

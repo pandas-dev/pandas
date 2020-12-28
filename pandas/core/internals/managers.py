@@ -565,7 +565,6 @@ class BlockManager(PandasObject):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -578,9 +577,7 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
     def diff(self, n: int, axis: int) -> "BlockManager":

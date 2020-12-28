@@ -8858,7 +8858,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     elif len(cond[icond]) == len(other):
 
                         # try to not change dtype at first
-                        new_other = np.asarray(self)
+                        new_other = self._values
                         new_other = new_other.copy()
                         new_other[icond] = other
                         other = new_other
@@ -9467,12 +9467,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax._is_all_dates:
-            if is_object_dtype(ax.dtype):
-                warnings.warn(
-                    "Treating object-dtype Index of date objects as DatetimeIndex "
-                    "is deprecated, will be removed in a future version.",
-                    FutureWarning,
-                )
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)
@@ -11002,6 +10996,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         on: Optional[str] = None,
         axis: Axis = 0,
         closed: Optional[str] = None,
+        method: str = "single",
     ):
         axis = self._get_axis_number(axis)
 
@@ -11015,6 +11010,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 on=on,
                 axis=axis,
                 closed=closed,
+                method=method,
             )
 
         return Rolling(
@@ -11026,12 +11022,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             on=on,
             axis=axis,
             closed=closed,
+            method=method,
         )
 
     @final
     @doc(Expanding)
     def expanding(
-        self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
+        self,
+        min_periods: int = 1,
+        center: Optional[bool_t] = None,
+        axis: Axis = 0,
+        method: str = "single",
     ) -> Expanding:
         axis = self._get_axis_number(axis)
         if center is not None:
@@ -11043,7 +11044,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             center = False
 
-        return Expanding(self, min_periods=min_periods, center=center, axis=axis)
+        return Expanding(
+            self, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
     @final
     @doc(ExponentialMovingWindow)
