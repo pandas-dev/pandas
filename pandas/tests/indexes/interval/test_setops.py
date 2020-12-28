@@ -158,6 +158,7 @@ class TestIntervalIndex:
             index.left.astype("float64"), index.right, closed=closed
         )
         result = index.symmetric_difference(other, sort=sort)
+        expected = empty_index(dtype="float64", closed=closed)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
