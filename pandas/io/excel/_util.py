@@ -40,21 +40,29 @@ def get_default_engine(ext, mode="read"):
     str
         The default engine for the extension.
     """
-    _default_engines = {
+    _default_readers = {
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
         "xlsb": "pyxlsb",
         "xls": "xlrd",
         "ods": "odf",
     }
+    _default_writers = {
+        "xlsx": "openpyxl",
+        "xlsm": "openpyxl",
+        "xlsb": "pyxlsb",
+        "xls": "xlwt",
+        "ods": "odf"
+    }
     if mode == "write":
-        _default_engines["xls"] = "xlwt"
         xlsxwriter = import_optional_dependency(
             "xlsxwriter", raise_on_missing=False, on_version="warn"
         )
         if xlsxwriter:
-            _default_engines["xlsx"] = "xlsxwriter"
-    return _default_engines[ext]
+            _default_writers["xlsx"] = "xlsxwriter"
+        return _default_writers[ext]
+    else:
+        return _default_readers[ext]
 
 
 def get_writer(engine_name):

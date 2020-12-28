@@ -1066,12 +1066,10 @@ class ExcelFile:
             )
 
         if engine is None:
-            try:
-                engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
-                if engine == "auto":
-                    engine = get_default_engine(ext, mode="read")
-            except KeyError as err:
-                raise ValueError(f"No engine for filetype: '{ext}'") from err
+            # ext will always be valid, otherwise inspect_excel format would raise
+            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            if engine == "auto":
+                engine = get_default_engine(ext, mode="read")
 
         if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
             if xlrd_version >= "2":
