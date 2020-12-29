@@ -741,7 +741,7 @@ def _build_names_mapper(
     among the columns of the inputs or between the rows and the columns.
 
     Parameters
-    ---------
+    ----------
     rownames: list[str]
     colnames: list[str]
 
