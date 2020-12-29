@@ -112,7 +112,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_named_tuple,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -129,7 +128,7 @@ from pandas.core.aggregation import (
     transform,
 )
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
@@ -147,13 +146,14 @@ from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    get_names_from_index,
     init_dict,
     init_ndarray,
     masked_rec_array_to_mgr,
+    nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
     to_arrays,
+    treat_as_nested,
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
@@ -184,6 +184,9 @@ _shared_doc_kwargs = {
     "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -197,6 +200,9 @@ _shared_doc_kwargs = {
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 _numeric_only_doc = """numeric_only : boolean, default None
@@ -559,27 +565,16 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
+        elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    if is_named_tuple(data[0]) and columns is None:
-                        columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
-                    columns = ensure_index(columns)
-
-                    # set the index
-                    if index is None:
-                        if isinstance(data[0], Series):
-                            index = get_names_from_index(data)
-                        elif isinstance(data[0], Categorical):
-                            index = ibase.default_index(len(data[0]))
-                        else:
-                            index = ibase.default_index(len(data))
-
+                if treat_as_nested(data):
+                    arrays, columns, index = nested_data_to_arrays(
+                        data, columns, index, dtype
+                    )
                     mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
@@ -9235,7 +9230,12 @@ NaN 12.3   33.0
         def f(s):
             return s.mode(dropna=dropna)
 
-        return data.apply(f, axis=axis)
+        data = data.apply(f, axis=axis)
+        # Ensure index is type stable (should always use int index)
+        if data.empty:
+            data.index = ibase.default_index(0)
+
+        return data
 
     def quantile(
         self,

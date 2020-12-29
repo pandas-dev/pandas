@@ -122,16 +122,13 @@ def test_center_reindex_series(raw, series):
     s = [f"x{x:d}" for x in range(12)]
     minp = 10
 
-    warn = None if raw else FutureWarning
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
-        # GH#36697 is_all_dates deprecated
-        series_xp = (
-            series.reindex(list(series.index) + s)
-            .rolling(window=25, min_periods=minp)
-            .apply(f, raw=raw)
-            .shift(-12)
-            .reindex(series.index)
-        )
+    series_xp = (
+        series.reindex(list(series.index) + s)
+        .rolling(window=25, min_periods=minp)
+        .apply(f, raw=raw)
+        .shift(-12)
+        .reindex(series.index)
+    )
     series_rs = series.rolling(window=25, min_periods=minp, center=True).apply(
         f, raw=raw
     )
@@ -143,15 +140,12 @@ def test_center_reindex_frame(raw, frame):
     s = [f"x{x:d}" for x in range(12)]
     minp = 10
 
-    warn = None if raw else FutureWarning
-    with tm.assert_produces_warning(warn, check_stacklevel=False):
-        # GH#36697 is_all_dates deprecated
-        frame_xp = (
-            frame.reindex(list(frame.index) + s)
-            .rolling(window=25, min_periods=minp)
-            .apply(f, raw=raw)
-            .shift(-12)
-            .reindex(frame.index)
-        )
+    frame_xp = (
+        frame.reindex(list(frame.index) + s)
+        .rolling(window=25, min_periods=minp)
+        .apply(f, raw=raw)
+        .shift(-12)
+        .reindex(frame.index)
+    )
     frame_rs = frame.rolling(window=25, min_periods=minp, center=True).apply(f, raw=raw)
     tm.assert_frame_equal(frame_xp, frame_rs)

@@ -267,7 +267,7 @@ class TestSeriesArithmetic:
 
     def test_alignment_doesnt_change_tz(self):
         # GH#33671
-        dti = pd.date_range("2016-01-01", periods=10, tz="CET")
+        dti = date_range("2016-01-01", periods=10, tz="CET")
         dti_utc = dti.tz_convert("UTC")
         ser = Series(10, index=dti)
         ser_utc = Series(10, index=dti_utc)
@@ -399,7 +399,7 @@ class TestSeriesComparison:
     )
     def test_ser_cmp_result_names(self, names, op):
         # datetime64 dtype
-        dti = pd.date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
+        dti = date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
         assert result.name == names[2]
@@ -624,9 +624,13 @@ class TestSeriesComparison:
             ),
         ],
     )
-    def test_comp_ops_df_compat(self, left, right):
+    def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = "Can only compare identically-labeled Series objects"
+        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        if frame_or_series is not Series:
+            left = left.to_frame()
+            right = right.to_frame()
+
         with pytest.raises(ValueError, match=msg):
             left == right
         with pytest.raises(ValueError, match=msg):
@@ -641,22 +645,6 @@ class TestSeriesComparison:
             left < right
         with pytest.raises(ValueError, match=msg):
             right < left
-
-        msg = "Can only compare identically-labeled DataFrame objects"
-        with pytest.raises(ValueError, match=msg):
-            left.to_frame() == right.to_frame()
-        with pytest.raises(ValueError, match=msg):
-            right.to_frame() == left.to_frame()
-
-        with pytest.raises(ValueError, match=msg):
-            left.to_frame() != right.to_frame()
-        with pytest.raises(ValueError, match=msg):
-            right.to_frame() != left.to_frame()
-
-        with pytest.raises(ValueError, match=msg):
-            left.to_frame() < right.to_frame()
-        with pytest.raises(ValueError, match=msg):
-            right.to_frame() < left.to_frame()
 
     def test_compare_series_interval_keyword(self):
         # GH#25338
@@ -724,7 +712,7 @@ class TestTimeSeriesArithmetic:
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = Series(pd.date_range("2012-01-01", periods=3))
+        series = Series(date_range("2012-01-01", periods=3))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
         expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
@@ -746,58 +734,46 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result2, expected)
 
 
-@pytest.mark.parametrize(
-    "names",
-    [
-        ("foo", None, None),
-        ("Egon", "Venkman", None),
-        ("NCC1701D", "NCC1701D", "NCC1701D"),
-    ],
-)
-@pytest.mark.parametrize("box", [list, tuple, np.array, pd.Index, pd.Series, pd.array])
-@pytest.mark.parametrize("flex", [True, False])
-def test_series_ops_name_retention(flex, box, names, all_binary_operators, request):
-    # GH#33930 consistent name retention
-    op = all_binary_operators
-
-    if op is ops.rfloordiv and box in [list, tuple] and not flex:
-        mark = pytest.mark.xfail(
-            reason="op fails because of inconsistent ndarray-wrapping GH#28759"
-        )
-        request.node.add_marker(mark)
-
-    left = Series(range(10), name=names[0])
-    right = Series(range(10), name=names[1])
-
-    name = op.__name__.strip("_")
-    is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
-    is_rlogical = is_logical and name.startswith("r")
-
-    right = box(right)
-    if flex:
-        if is_logical:
-            # Series doesn't have these as flex methods
-            return
-        result = getattr(left, name)(right)
-    else:
-        # GH#37374 logical ops behaving as set ops deprecated
-        warn = FutureWarning if is_rlogical and box is Index else None
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            result = op(left, right)
-
-    if box is pd.Index and is_rlogical:
-        # Index treats these as set operators, so does not defer
-        assert isinstance(result, pd.Index)
-        return
-
-    assert isinstance(result, Series)
-    if box in [pd.Index, pd.Series]:
-        assert result.name == names[2]
-    else:
-        assert result.name == names[0]
-
-
 class TestNamePreservation:
+    @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
+    @pytest.mark.parametrize("flex", [True, False])
+    def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
+        # GH#33930 consistent name renteiton
+        op = all_binary_operators
+
+        if op is ops.rfloordiv and box in [list, tuple]:
+            pytest.xfail("op fails because of inconsistent ndarray-wrapping GH#28759")
+
+        left = Series(range(10), name=names[0])
+        right = Series(range(10), name=names[1])
+
+        name = op.__name__.strip("_")
+        is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
+        is_rlogical = is_logical and name.startswith("r")
+
+        right = box(right)
+        if flex:
+            if is_logical:
+                # Series doesn't have these as flex methods
+                return
+            result = getattr(left, name)(right)
+        else:
+            # GH#37374 logical ops behaving as set ops deprecated
+            warn = FutureWarning if is_rlogical and box is Index else None
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+                result = op(left, right)
+
+        if box is Index and is_rlogical:
+            # Index treats these as set operators, so does not defer
+            assert isinstance(result, Index)
+            return
+
+        assert isinstance(result, Series)
+        if box in [Index, Series]:
+            assert result.name == names[2]
+        else:
+            assert result.name == names[0]
+
     def test_binop_maybe_preserve_name(self, datetime_series):
         # names match, preserve
         result = datetime_series * datetime_series
