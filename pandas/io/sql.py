@@ -1501,7 +1501,6 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-        if dtype is not None:
             from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
@@ -1970,7 +1969,6 @@ class SQLiteDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-        if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
                     raise ValueError(f"{col} ({my_type}) not a string")
