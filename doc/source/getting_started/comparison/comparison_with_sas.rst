@@ -8,16 +8,7 @@ For potential users coming from `SAS <https://en.wikipedia.org/wiki/SAS_(softwar
 this page is meant to demonstrate how different SAS operations would be
 performed in pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows:
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
-
+.. include:: comparison_boilerplate.rst
 
 .. note::
 
@@ -48,13 +39,16 @@ General terminology translation
     ``NaN``, ``.``
 
 
-``DataFrame`` / ``Series``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+``DataFrame``
+~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to a SAS data set - a two-dimensional
 data source with labeled columns that can be of different types. As will be
 shown in this document, almost any operation that can be applied to a data set
 using SAS's ``DATA`` step, can also be accomplished in pandas.
+
+``Series``
+~~~~~~~~~~
 
 A ``Series`` is the data structure that represents one column of a
 ``DataFrame``. SAS doesn't have a separate data structure for a single column,

@@ -8,15 +8,7 @@ Since many potential pandas users have some familiarity with
 `SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows:
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
+.. include:: comparison_boilerplate.rst
 
 Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read
 the data into a DataFrame called ``tips`` and assume we have a database table of the same name and

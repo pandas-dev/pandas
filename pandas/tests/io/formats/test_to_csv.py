@@ -640,3 +640,25 @@ z
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
+
+
+def test_to_csv_iterative_compression_name(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        df.to_csv(path, compression=compression, chunksize=1)
+        tm.assert_frame_equal(
+            pd.read_csv(path, compression=compression, index_col=0), df
+        )
+
+
+def test_to_csv_iterative_compression_buffer(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with io.BytesIO() as buffer:
+        df.to_csv(buffer, compression=compression, chunksize=1)
+        buffer.seek(0)
+        tm.assert_frame_equal(
+            pd.read_csv(buffer, compression=compression, index_col=0), df
+        )
+        assert not buffer.closed
