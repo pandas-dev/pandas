@@ -454,16 +454,14 @@ def test_concat_duplicates_error(index_maker, join):
     # pytest.skip()
     index_unique = index_maker(k=4)
     index_non_unique = index_unique[[0, 0, 1, 2, 3]]
+
+    df_non_unique = pd.DataFrame(
+        np.ones((1, len(index_non_unique))), columns=index_non_unique
+    )
+    df_unique = pd.DataFrame(np.ones((1, len(index_unique))), columns=index_unique)
+
     with pytest.raises(InvalidIndexError):
-        _ = pd.concat(
-            [
-                pd.DataFrame(
-                    np.ones((1, len(index_non_unique))), columns=index_non_unique
-                ),
-                pd.DataFrame(np.ones((1, len(index_unique))), columns=index_unique),
-            ],
-            join=join,
-        )
+        _ = pd.concat([df_non_unique, df_unique], join=join)
 
 
 @pytest.mark.parametrize("pdt", [Series, pd.DataFrame])
