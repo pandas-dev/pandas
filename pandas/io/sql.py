@@ -1495,13 +1495,13 @@ class SQLDatabase(PandasSQL):
 
             .. versionadded:: 0.24.0
         """
-        if dtype is not None:
+        if dtype:
             if not is_dict_like(dtype):
                 dtype = {col_name: dtype for col_name in frame}
             else:
                 dtype = cast(dict, dtype)
 
-        if dtype:
+        if dtype is not None:
             from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
@@ -1964,13 +1964,13 @@ class SQLiteDatabase(PandasSQL):
 
             .. versionadded:: 0.24.0
         """
-        if dtype is not None:
+        if dtype:
             if not is_dict_like(dtype):
                 dtype = {col_name: dtype for col_name in frame}
             else:
                 dtype = cast(dict, dtype)
 
-        if dtype:
+        if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
                     raise ValueError(f"{col} ({my_type}) not a string")
