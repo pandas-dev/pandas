@@ -14,7 +14,13 @@ from pandas.util._decorators import doc
 from pandas import DataFrame, MultiIndex, get_option
 from pandas.core import generic
 
-from pandas.io.common import IOHandles, get_handle, is_fsspec_url, stringify_path
+from pandas.io.common import (
+    IOHandles,
+    get_handle,
+    is_fsspec_url,
+    is_url,
+    stringify_path,
+)
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -66,8 +72,10 @@ def _get_path_or_handle(
         fs, path_or_handle = fsspec.core.url_to_fs(
             path_or_handle, **(storage_options or {})
         )
-    elif storage_options:
-        raise ValueError("storage_options passed with buffer or non-fsspec filepath")
+    elif storage_options and (not is_url(path_or_handle) or mode != "rb"):
+        # can't write to a remote url
+        # without making use of fsspec at the moment
+        raise ValueError("storage_options passed with buffer, or non-supported URL")
 
     handles = None
     if (
@@ -79,7 +87,9 @@ def _get_path_or_handle(
         # use get_handle only when we are very certain that it is not a directory
         # fsspec resources can also point to directories
         # this branch is used for example when reading from non-fsspec URLs
-        handles = get_handle(path_or_handle, mode, is_text=False)
+        handles = get_handle(
+            path_or_handle, mode, is_text=False, storage_options=storage_options
+        )
         fs = None
         path_or_handle = handles.handle
     return path_or_handle, handles, fs
@@ -307,7 +317,9 @@ class FastParquetImpl(BaseImpl):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories
             # this branch is used for example when reading from non-fsspec URLs
-            handles = get_handle(path, "rb", is_text=False)
+            handles = get_handle(
+                path, "rb", is_text=False, storage_options=storage_options
+            )
             path = handles.handle
         parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
@@ -404,10 +416,12 @@ def to_parquet(
         return None
 
 
+@doc(storage_options=generic._shared_docs["storage_options"])
 def read_parquet(
     path,
     engine: str = "auto",
     columns=None,
+    storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,
 ):
@@ -432,13 +446,18 @@ def read_parquet(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
+    engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
+
+    {storage_options}
+
+        .. versionadded:: 1.3.0
+
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
         for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
@@ -448,6 +467,7 @@ def read_parquet(
         support dtypes) may change without notice.
 
         .. versionadded:: 1.2.0
+
     **kwargs
         Any additional kwargs are passed to the engine.
 
@@ -456,6 +476,11 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
     return impl.read(
-        path, columns=columns, use_nullable_dtypes=use_nullable_dtypes, **kwargs
+        path,
+        columns=columns,
+        storage_options=storage_options,
+        use_nullable_dtypes=use_nullable_dtypes,
+        **kwargs,
     )

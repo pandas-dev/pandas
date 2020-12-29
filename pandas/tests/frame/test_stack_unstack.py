@@ -1081,7 +1081,7 @@ class TestDataFrameReshape:
         index = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 1)], names=["a", "b"])
         df = DataFrame(
             {
-                "A": pd.core.arrays.integer_array([0, 1, None]),
+                "A": pd.array([0, 1, None], dtype="Int64"),
                 "B": pd.Categorical(["a", "a", "b"]),
             },
             index=index,

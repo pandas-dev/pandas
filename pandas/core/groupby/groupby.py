@@ -51,7 +51,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
@@ -729,14 +729,28 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
-        # the values/counts are repeated according to the group index
-        # shortcut if we have an already ordered grouper
-        if not self.grouper.is_monotonic:
-            index = Index(np.concatenate(self._get_indices(self.grouper.result_index)))
-            result.set_axis(index, axis=self.axis, inplace=True)
-            result = result.sort_index(axis=self.axis)
+        if self.grouper.is_monotonic:
+            # shortcut if we have an already ordered grouper
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+            return result
 
-        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        # row order is scrambled => sort the rows by position in original index
+        original_positions = Index(
+            np.concatenate(self._get_indices(self.grouper.result_index))
+        )
+        result.set_axis(original_positions, axis=self.axis, inplace=True)
+        result = result.sort_index(axis=self.axis)
+
+        dropped_rows = len(result.index) < len(self.obj.index)
+
+        if dropped_rows:
+            # get index by slicing original index according to original positions
+            # slice drops attrs => use set_axis when no rows were dropped
+            sorted_indexer = result.index
+            result.index = self._selected_obj.index[sorted_indexer]
+        else:
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+
         return result
 
     @final
@@ -1178,7 +1192,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             key = base.OutputKey(label=name, position=idx)
 
             if is_numeric_dtype(obj.dtype):
-                result = maybe_downcast_to_dtype(result, obj.dtype)
+                result = maybe_downcast_numeric(result, obj.dtype)
 
             if self.grouper._filter_empty_groups:
                 mask = counts.ravel() > 0
@@ -1188,7 +1202,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                result = maybe_downcast_to_dtype(values[mask], result.dtype)
+                    result = maybe_downcast_numeric(values[mask], result.dtype)
 
             output[key] = result
 
@@ -1219,7 +1233,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             # so we resort to this
             # GH 14776, 30667
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:

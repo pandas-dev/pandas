@@ -11,7 +11,7 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_little_endian
-from pandas.compat.numpy import _np_version_under1p19
+from pandas.compat.numpy import _np_version_under1p19, _np_version_under1p20
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
@@ -1369,7 +1369,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_ragged(self):
         data = {"A": np.random.randn(10), "B": np.random.randn(8)}
-        with pytest.raises(ValueError, match="arrays must all be same length"):
+        with pytest.raises(ValueError, match="All arrays must be of the same length"):
             DataFrame(data)
 
     def test_constructor_scalar(self):
@@ -2915,3 +2915,90 @@ class TestDataFrameConstructorWithDatetimeTZ:
         msg = "Set type is unordered"
         with pytest.raises(TypeError, match=msg):
             DataFrame({"a": {1, 2, 3}})
+
+
+def get1(obj):
+    if isinstance(obj, Series):
+        return obj.iloc[0]
+    else:
+        return obj.iloc[0, 0]
+
+
+class TestFromScalar:
+    @pytest.fixture(params=[list, dict, None])
+    def constructor(self, request, frame_or_series):
+        box = request.param
+
+        extra = {"index": range(2)}
+        if frame_or_series is DataFrame:
+            extra["columns"] = ["A"]
+
+        if box is None:
+            return functools.partial(frame_or_series, **extra)
+
+        elif box is dict:
+            if frame_or_series is Series:
+                return lambda x, **kwargs: frame_or_series(
+                    {0: x, 1: x}, **extra, **kwargs
+                )
+            else:
+                return lambda x, **kwargs: frame_or_series({"A": x}, **extra, **kwargs)
+        else:
+            if frame_or_series is Series:
+                return lambda x, **kwargs: frame_or_series([x, x], **extra, **kwargs)
+            else:
+                return lambda x, **kwargs: frame_or_series(
+                    {"A": [x, x]}, **extra, **kwargs
+                )
+
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_from_nat_scalar(self, dtype, constructor):
+        obj = constructor(pd.NaT, dtype=dtype)
+        assert np.all(obj.dtypes == dtype)
+        assert np.all(obj.isna())
+
+    def test_from_timedelta_scalar_preserves_nanos(self, constructor):
+        td = Timedelta(1)
+
+        obj = constructor(td, dtype="m8[ns]")
+        assert get1(obj) == td
+
+    def test_from_timestamp_scalar_preserves_nanos(self, constructor):
+        ts = Timestamp.now() + Timedelta(1)
+
+        obj = Series(ts, index=range(1), dtype="M8[ns]")
+        assert get1(obj) == ts
+
+    def test_from_timedelta64_scalar_object(self, constructor, request):
+        if getattr(constructor, "func", None) is DataFrame and _np_version_under1p20:
+            # getattr check means we only xfail when box is None
+            mark = pytest.mark.xfail(
+                reason="np.array(td64, dtype=object) converts to int"
+            )
+            request.node.add_marker(mark)
+
+        td = Timedelta(1)
+        td64 = td.to_timedelta64()
+
+        obj = constructor(td64, dtype=object)
+        assert isinstance(get1(obj), np.timedelta64)
+
+    @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
+        node = request.node
+        params = node.callspec.params
+        if params["frame_or_series"] is DataFrame and params["constructor"] is not None:
+            mark = pytest.mark.xfail(
+                reason="DataFrame incorrectly allows mismatched datetimelike"
+            )
+            node.add_marker(mark)
+
+        scalar = cls("NaT", "ns")
+        dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
+
+        with pytest.raises(TypeError, match="Cannot cast"):
+            constructor(scalar, dtype=dtype)
+
+        scalar = cls(4, "ns")
+        with pytest.raises(TypeError, match="Cannot cast"):
+            constructor(scalar, dtype=dtype)
