@@ -151,17 +151,6 @@ Here are some things to check when reviewing a pull request.
   for regression fixes and small bug fixes, the next minor milestone otherwise)
 * Changes should comply with our :ref:`policies.version`.
 
-Autofixing formatting errors
-----------------------------
-
-We use several styling checks (e.g. ``black``, ``flake8``, ``isort``) which are run after
-you make a pull request. If there is a scenario where any of these checks fail then you
-can comment::
-
-    @github-actions pre-commit
-
-on that pull request. This will trigger a workflow which will autofix formatting errors.
-
 Backporting
 -----------
 
