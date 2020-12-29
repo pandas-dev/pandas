@@ -457,11 +457,28 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
+            def _calculate_center_offset(window) -> int:
+                """
+                Calculate an offset necessary to have the window label to be centered.
+
+                Parameters
+                ----------
+                window: ndarray or int
+                    window weights or window
+
+                Returns
+                -------
+                int
+                """
+                if not is_integer(window):
+                    window = len(window)
+                return int((window - 1) / 2.0)
+
             offset = (
-                calculate_center_offset(window)
-                if center
+                _calculate_center_offset(self.window)
+                if self.center
                 and not isinstance(
-                    self._get_window_indexer(window), VariableWindowIndexer
+                    self._get_window_indexer(self.window), VariableWindowIndexer
                 )
                 else 0
             )
@@ -492,10 +509,10 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             # if use_numba_cache:
             #     NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
-            if center and not isinstance(
-                self._get_window_indexer(window), VariableWindowIndexer
+            if self.center and not isinstance(
+                self._get_window_indexer(), VariableWindowIndexer
             ):
-                result = self._center_window(result, window)
+                result = self._center_window(result, self.window)
 
             return result
 
