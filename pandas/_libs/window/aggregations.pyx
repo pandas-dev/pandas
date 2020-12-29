@@ -55,38 +55,10 @@ cdef:
 
     float64_t NaN = <float64_t>np.NaN
 
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
-
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
 ):
     return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
-
-# Cython implementations of rolling sum, mean, variance, skewness,
-# other statistical moment functions
-#
-# Misc implementation notes
-# -------------------------
-#
-# - In Cython x * x is faster than x ** 2 for C types, this should be
-#   periodically revisited to see if it's still true.
-#
-
-# original C implementation by N. Devillard.
-# This code in public domain.
-# Function :   kth_smallest()
-# In       :   array of elements, # of elements in the array, rank k
-# Out      :   one element
-# Job      :   find the kth smallest element in the array
-
-#             Reference:
-
-#               Author: Wirth, Niklaus
-#                Title: Algorithms + data structures = programs
-#            Publisher: Englewood Cliffs: Prentice-Hall, 1976
-# Physical description: 366 p.
-#               Series: Prentice-Hall Series in Automatic Computation
 
 # ----------------------------------------------------------------------
 # Rolling sum
@@ -774,7 +746,6 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 
 def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp):
-    # GH 32865. win argument kept for compatibility
     cdef:
         float64_t val, res, prev
         bint err = False
@@ -1167,9 +1138,8 @@ def roll_apply(object obj,
     arr = np.asarray(obj)
 
     # ndarray input
-    if raw:
-        if not arr.flags.c_contiguous:
-            arr = arr.copy('C')
+    if raw and not arr.flags.c_contiguous:
+        arr = arr.copy('C')
 
     counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
@@ -1195,17 +1165,17 @@ def roll_apply(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_weighted_sum(float64_t[:] values, float64_t[:] weights, int minp):
+def roll_weighted_sum(const float64_t[:] values, const float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_weighted_mean(float64_t[:] values, float64_t[:] weights, int minp):
+def roll_weighted_mean(const float64_t[:] values, const float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
-                                                float64_t[:] weights,
-                                                int minp, bint avg):
+cdef float64_t[:] _roll_weighted_sum_mean(const float64_t[:] values,
+                                          const float64_t[:] weights,
+                                          int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
@@ -1270,7 +1240,7 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
                 if c < minp:
                     output[in_i] = NaN
 
-    return np.asarray(output)
+    return output
 
 
 # ----------------------------------------------------------------------
@@ -1424,7 +1394,7 @@ cdef inline void remove_weighted_var(float64_t val,
             mean[0] = 0
 
 
-def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
+def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
                       int64_t minp, unsigned int ddof):
     """
     Calculates weighted rolling variance using West's online algorithm.
