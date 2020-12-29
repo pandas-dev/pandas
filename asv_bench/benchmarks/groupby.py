@@ -358,6 +358,26 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class FillNA:
+    def setup(self):
+        N = 100
+        self.df = DataFrame(
+            {"group": [1] * N + [2] * N, "value": [np.nan, 1.0] * N}
+        ).set_index("group")
+
+    def time_df_ffill(self):
+        self.df.groupby("group").fillna(method="ffill")
+
+    def time_df_bfill(self):
+        self.df.groupby("group").fillna(method="bfill")
+
+    def time_srs_ffill(self):
+        self.df.groupby("group")["value"].fillna(method="ffill")
+
+    def time_srs_bfill(self):
+        self.df.groupby("group")["value"].fillna(method="bfill")
+
+
 class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
@@ -466,7 +486,7 @@ class Float32:
         tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
         tmp = np.concatenate((tmp1, tmp2))
         arr = np.repeat(tmp, 10)
-        self.df = DataFrame(dict(a=arr, b=arr))
+        self.df = DataFrame({"a": arr, "b": arr})
 
     def time_sum(self):
         self.df.groupby(["a"])["b"].sum()

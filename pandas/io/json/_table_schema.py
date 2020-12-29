@@ -26,7 +26,7 @@ from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
+    from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
 
@@ -322,10 +322,6 @@ def parse_table_schema(json, precise_float):
         field["name"]: convert_json_field_to_pandas_type(field)
         for field in table["schema"]["fields"]
     }
-
-    # Cannot directly use as_type with timezone data on object; raise for now
-    if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():

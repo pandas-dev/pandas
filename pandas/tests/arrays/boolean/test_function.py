@@ -5,14 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture
-def data():
-    return pd.array(
-        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
-        dtype="boolean",
-    )
-
-
 @pytest.mark.parametrize(
     "ufunc", [np.add, np.logical_or, np.logical_and, np.logical_xor]
 )
@@ -85,11 +77,18 @@ def test_ufunc_reduce_raises(values):
 def test_value_counts_na():
     arr = pd.array([True, False, pd.NA], dtype="boolean")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA], dtype="Int64")
+    expected = pd.Series([1, 1, 1], index=[False, True, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([1, 1], index=[True, False], dtype="Int64")
+    expected = pd.Series([1, 1], index=[False, True], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_normalize():
+    s = pd.Series([True, False, pd.NA], dtype="boolean")
+    result = s.value_counts(normalize=True)
+    expected = pd.Series([1, 1], index=[False, True], dtype="Float64") / 2
     tm.assert_series_equal(result, expected)
 
 

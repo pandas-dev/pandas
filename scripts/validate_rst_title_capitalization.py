@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Validate that the titles in the rst files follow the proper capitalization convention.
 
@@ -30,6 +30,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "BigQuery",
     "STATA",
     "Interval",
+    "IntervalArray",
     "PEP8",
     "Period",
     "Series",
@@ -137,10 +138,16 @@ CAPITALIZATION_EXCEPTIONS = {
     "Google",
     "CategoricalDtype",
     "UTC",
-    "Panel",
     "False",
     "Styler",
     "os",
+    "UTC",
+    "str",
+    "msgpack",
+    "ExtensionArray",
+    "LZMA",
+    "Numba",
+    "Timestamp",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

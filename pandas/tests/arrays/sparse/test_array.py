@@ -14,11 +14,6 @@ import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
-@pytest.fixture(params=["integer", "block"])
-def kind(request):
-    return request.param
-
-
 class TestSparseArray:
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
@@ -279,7 +274,7 @@ class TestSparseArray:
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
 
     def test_take_all_empty(self):
-        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        a = pd.array([0, 0], dtype=SparseDtype("int64"))
         result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
         tm.assert_sp_array_equal(a, result)
 

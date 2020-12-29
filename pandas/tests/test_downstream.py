@@ -20,7 +20,7 @@ def import_module(name):
 
     try:
         return importlib.import_module(name)
-    except ModuleNotFoundError:  # noqa
+    except ModuleNotFoundError:
         pytest.skip(f"skipping as {name} not available")
 
 
@@ -41,7 +41,6 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
-@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
@@ -117,7 +116,7 @@ def test_pandas_gbq(df):
 @tm.network
 def test_pandas_datareader():
 
-    pandas_datareader = import_module("pandas_datareader")  # noqa
+    pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
@@ -125,7 +124,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_geopandas():
 
-    geopandas = import_module("geopandas")  # noqa
+    geopandas = import_module("geopandas")
     fp = geopandas.datasets.get_path("naturalearth_lowres")
     assert geopandas.read_file(fp) is not None
 
@@ -135,7 +134,7 @@ def test_geopandas():
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
-    pyarrow = import_module("pyarrow")  # noqa
+    pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
@@ -150,6 +149,18 @@ def test_missing_required_dependency():
     # https://github.com/MacPython/pandas-wheels/pull/50
 
     pyexe = sys.executable.replace("\\", "/")
+
+    # We skip this test if pandas is installed as a site package. We first
+    # import the package normally and check the path to the module before
+    # executing the test which imports pandas with site packages disabled.
+    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
+    output = subprocess.check_output(call).decode()
+    if "site-packages" in output:
+        pytest.skip("pandas installed as site package")
+
+    # This test will fail if pandas is installed as a site package. The flags
+    # prevent pandas being imported and the test will report Failed: DID NOT
+    # RAISE <class 'subprocess.CalledProcessError'>
     call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (

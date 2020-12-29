@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -79,6 +79,9 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     -------
     bool
     """
+    if ndim == 1 and is_integer(indexer):
+        # GH37748: allow indexer to be an integer for Series
+        return True
     if isinstance(indexer, tuple):
         if len(indexer) == ndim:
             return all(
@@ -105,7 +108,7 @@ def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
         return True
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
-            indexer = tuple([indexer])
+            indexer = (indexer,)
         return any(isinstance(idx, np.ndarray) and len(idx) == 0 for idx in indexer)
     return False
 
@@ -144,7 +147,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     no_op = False
 
     if isinstance(indexer, (np.ndarray, list)):
-        # We can ignore other listlikes becasue they are either
+        # We can ignore other listlikes because they are either
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
@@ -294,7 +297,7 @@ def length_of_indexer(indexer, target=None) -> int:
             start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
-    elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)
 

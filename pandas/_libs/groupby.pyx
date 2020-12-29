@@ -344,7 +344,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 @cython.boundscheck(False)
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
-                         int64_t limit):
+                         int64_t limit, bint dropna):
     """
     Indexes how to fill values forwards or backwards within a group.
 
@@ -358,6 +358,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     direction : {'ffill', 'bfill'}
         Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
+    dropna : Flag to indicate if NaN groups should return all NaN values
 
     Notes
     -----
@@ -381,7 +382,9 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     with nogil:
         for i in range(N):
             idx = sorted_labels[i]
-            if mask[idx] == 1:  # is missing
+            if dropna and labels[idx] == -1:  # nan-group gets nan-values
+                curr_fill_idx = -1
+            elif mask[idx] == 1:  # is missing
                 # Stop filling once we've hit the limit
                 if filled_vals >= limit and limit != -1:
                     curr_fill_idx = -1
@@ -900,13 +903,12 @@ def group_last(rank_t[:, :] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -926,9 +928,7 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                # None should not be treated like other NA-like
-                # so that it won't be converted to nan
-                if not checknull(val) or val is None:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -936,8 +936,8 @@ def group_last(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                if nobs[i, j] < min_count:
+                    out[i, j] = None
                 else:
                     out[i, j] = resx[i, j]
     else:
@@ -958,7 +958,7 @@ def group_last(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -983,8 +983,9 @@ def group_last(rank_t[:, :] out,
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
               ndarray[rank_t, ndim=2] values,
-              const int64_t[:] labels, int64_t rank=1,
-              Py_ssize_t min_count=-1):
+              const int64_t[:] labels,
+              int64_t min_count=-1, int64_t rank=1
+              ):
     """
     Only aggregates on axis=0
     """
@@ -995,13 +996,12 @@ def group_nth(rank_t[:, :] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     if rank_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
@@ -1021,9 +1021,7 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                # None should not be treated like other NA-like
-                # so that it won't be converted to nan
-                if not checknull(val) or val is None:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -1032,8 +1030,8 @@ def group_nth(rank_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                if nobs[i, j] < min_count:
+                    out[i, j] = None
                 else:
                     out[i, j] = resx[i, j]
 
@@ -1056,7 +1054,7 @@ def group_nth(rank_t[:, :] out,
 
             for i in range(ncounts):
                 for j in range(K):
-                    if nobs[i, j] == 0:
+                    if nobs[i, j] < min_count:
                         if rank_t is int64_t:
                             out[i, j] = NPY_NAT
                         elif rank_t is uint64_t:
@@ -1293,13 +1291,12 @@ def group_max(groupby_t[:, :] out,
         bint runtime_error = False
         int64_t[:, :] nobs
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     maxx = np.empty_like(out)
@@ -1336,11 +1333,12 @@ def group_max(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break
                     else:
+
                         out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
@@ -1368,13 +1366,12 @@ def group_min(groupby_t[:, :] out,
         bint runtime_error = False
         int64_t[:, :] nobs
 
-    assert min_count == -1, "'min_count' only used in add and prod"
-
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
+    min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
 
     minx = np.empty_like(out)
@@ -1410,7 +1407,7 @@ def group_min(groupby_t[:, :] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     if groupby_t is uint64_t:
                         runtime_error = True
                         break

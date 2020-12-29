@@ -29,7 +29,7 @@ from pandas.plotting._matplotlib.misc import (
 from pandas.plotting._matplotlib.tools import table
 
 if TYPE_CHECKING:
-    from pandas.plotting._matplotlib.core import MPLPlot  # noqa: F401
+    from pandas.plotting._matplotlib.core import MPLPlot
 
 PLOT_CLASSES: Dict[str, Type["MPLPlot"]] = {
     "line": LinePlot,
