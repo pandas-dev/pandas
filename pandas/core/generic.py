@@ -89,9 +89,10 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas as pd
 from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import create_series_with_explicit_dtype, extract_array
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -8788,6 +8789,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -8827,14 +8831,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if other.ndim <= self.ndim:
 
                 _, other = self.align(
-                    other, join="left", axis=axis, level=level, fill_value=np.nan
+                    other,
+                    join="left",
+                    axis=axis,
+                    level=level,
+                    fill_value=np.nan,
+                    copy=False,
                 )
 
                 # if we are NOT aligned, raise as we cannot where index
-                if axis is None and not all(
-                    other._get_axis(i).equals(ax) for i, ax in enumerate(self.axes)
-                ):
+                if axis is None and not other._indexed_same(self):
                     raise InvalidIndexError
+
+                elif other.ndim < self.ndim:
+                    # TODO(EA2D): avoid object-dtype cast in EA case GH#38729
+                    other = other._values
+                    if axis == 0:
+                        other = np.reshape(other, (-1, 1))
+                    elif axis == 1:
+                        other = np.reshape(other, (1, -1))
+
+                    other = np.broadcast_to(other, self.shape)
 
             # slice me out of the other
             else:
@@ -8842,7 +8859,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "cannot align with a higher dimensional NDFrame"
                 )
 
-        if isinstance(other, np.ndarray):
+        if not isinstance(other, (MultiIndex, NDFrame)):
+            # mainly just catching Index here
+            other = extract_array(other, extract_numpy=True)
+
+        if isinstance(other, (np.ndarray, ExtensionArray)):
 
             if other.shape != self.shape:
 
@@ -8887,10 +8908,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             align = self._get_axis_number(axis) == 1
 
-        if align and isinstance(other, NDFrame):
-            other = other.reindex(self._info_axis, axis=self._info_axis_number)
         if isinstance(cond, NDFrame):
-            cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
+            cond = cond.reindex(
+                self._info_axis, axis=self._info_axis_number, copy=False
+            )
 
         block_axis = self._get_block_manager_axis(axis)
 
