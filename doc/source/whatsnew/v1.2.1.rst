@@ -17,6 +17,7 @@ Fixed regressions
 - The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
 - :meth:`to_csv` created corrupted zip files when there were more rows than ``chunksize`` (issue:`38714`)
 - Bug in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
+- Bug in :meth:`read_csv` with `float_precision="high"` caused segfault or wrong parsing of long exponents strings (:issue:`38753`)
 -
 
 .. ---------------------------------------------------------------------------
