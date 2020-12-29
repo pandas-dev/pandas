@@ -206,7 +206,8 @@ def check_round_trip(
 
 
 def test_invalid_engine(df_compat):
-    with pytest.raises(ValueError):
+    msg = "engine must be one of 'pyarrow', 'fastparquet'"
+    with pytest.raises(ValueError, match=msg):
         check_round_trip(df_compat, "foo", "bar")
 
 
@@ -333,10 +334,16 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 
 
 class Base:
-    def check_error_on_write(self, df, engine, exc):
+    def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
         with tm.ensure_clean() as path:
-            with pytest.raises(exc):
+            with pytest.raises(exc, match=err_msg):
+                to_parquet(df, path, engine, compression=None)
+
+    def check_external_error_on_write(self, df, engine, exc):
+        # check that an external library is raising the exception on writing
+        with tm.ensure_clean() as path:
+            with tm.external_error_raised(exc):
                 to_parquet(df, path, engine, compression=None)
 
     @tm.network
@@ -360,7 +367,8 @@ class TestBasic(Base):
             pd.Timestamp("20130101"),
             np.array([1, 2, 3]),
         ]:
-            self.check_error_on_write(obj, engine, ValueError)
+            msg = "to_parquet only supports IO with DataFrames"
+            self.check_error_on_write(obj, engine, ValueError, msg)
 
     def test_columns_dtypes(self, engine):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
@@ -372,20 +380,21 @@ class TestBasic(Base):
     def test_columns_dtypes_invalid(self, engine):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
+        msg = "parquet must have string column names"
         # numeric
         df.columns = [0, 1]
-        self.check_error_on_write(df, engine, ValueError)
+        self.check_error_on_write(df, engine, ValueError, msg)
 
         # bytes
         df.columns = [b"foo", b"bar"]
-        self.check_error_on_write(df, engine, ValueError)
+        self.check_error_on_write(df, engine, ValueError, msg)
 
         # python object
         df.columns = [
             datetime.datetime(2011, 1, 1, 0, 0),
             datetime.datetime(2011, 1, 1, 1, 1),
         ]
-        self.check_error_on_write(df, engine, ValueError)
+        self.check_error_on_write(df, engine, ValueError, msg)
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
@@ -493,7 +502,11 @@ class TestBasic(Base):
         # Not able to write column multi-indexes with non-string column names.
         mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
         df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
-        self.check_error_on_write(df, engine, ValueError)
+        msg = (
+            r"\s*parquet must have string column names for all values in\s*"
+            "each level of the MultiIndex"
+        )
+        self.check_error_on_write(df, engine, ValueError, msg)
 
     def test_write_column_multiindex_nonstring(self, pa):
         # GH #34777
@@ -507,8 +520,11 @@ class TestBasic(Base):
         ]
         df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
         df.columns.names = ["Level1", "Level2"]
-
-        self.check_error_on_write(df, engine, ValueError)
+        msg = (
+            r"\s*parquet must have string column names for all values in\s*"
+            "each level of the MultiIndex"
+        )
+        self.check_error_on_write(df, engine, ValueError, msg)
 
     def test_write_column_multiindex_string(self, pa):
         # GH #34777
@@ -546,8 +562,8 @@ class TestBasic(Base):
         arrays = [1, 2, 3, 4]
         df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
         df.columns.name = "NonStringCol"
-
-        self.check_error_on_write(df, engine, ValueError)
+        msg = r"parquet must have string column names"
+        self.check_error_on_write(df, engine, ValueError, msg)
 
 
 class TestParquetPyArrow(Base):
@@ -591,7 +607,7 @@ class TestParquetPyArrow(Base):
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
-        self.check_error_on_write(df, pa, ValueError)
+        self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
     def test_unsupported(self, pa):
         if LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"):
@@ -599,17 +615,17 @@ class TestParquetPyArrow(Base):
             df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
             # pyarrow 0.11 raises ArrowTypeError
             # older pyarrows raise ArrowInvalid
-            self.check_error_on_write(df, pa, Exception)
+            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
-        self.check_error_on_write(df, pa, NotImplementedError)
+        self.check_external_error_on_write(df, pa, NotImplementedError)
 
         # mixed python objects
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
-        self.check_error_on_write(df, pa, Exception)
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
     def test_categorical(self, pa):
 
@@ -908,7 +924,8 @@ class TestParquetFastParquet(Base):
 
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
-        self.check_error_on_write(df, fp, ValueError)
+        msg = "Cannot create parquet dataset with duplicate column names"
+        self.check_error_on_write(df, fp, ValueError, msg)
 
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
@@ -919,11 +936,12 @@ class TestParquetFastParquet(Base):
 
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        self.check_error_on_write(df, fp, ValueError)
+        self.check_error_on_write(df, fp, ValueError, "cannot infer type for")
 
         # mixed
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
-        self.check_error_on_write(df, fp, ValueError)
+        msg = "Can't infer object conversion type"
+        self.check_error_on_write(df, fp, ValueError, msg)
 
     def test_categorical(self, fp):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
@@ -1002,7 +1020,11 @@ class TestParquetFastParquet(Base):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with pytest.raises(ValueError):
+        msg = (
+            "Cannot use both partition_on and partition_cols. Use partition_cols for "
+            "partitioning data"
+        )
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean_dir() as path:
                 df.to_parquet(
                     path,

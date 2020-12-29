@@ -271,32 +271,6 @@ def test_setitem(datetime_series, string_series):
     tm.assert_series_equal(s, expected)
 
 
-def test_setitem_dtypes():
-    # change dtypes
-    # GH 4463
-    expected = Series([np.nan, 2, 3])
-
-    s = Series([1, 2, 3])
-    s.iloc[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([1, 2, 3])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([1, 2, 3])
-    s[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([False])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, Series([np.nan]))
-
-    s = Series([False, True])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, Series([np.nan, 1.0]))
-
-
 def test_setslice(datetime_series):
     sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
