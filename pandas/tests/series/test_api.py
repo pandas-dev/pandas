@@ -1,11 +1,12 @@
-import pydoc
 import inspect
+import pydoc
 
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas.util._test_decorators import skip_if_no
+
+import pandas as pd
 from pandas import DataFrame, Index, Series, date_range
 import pandas._testing as tm
 
