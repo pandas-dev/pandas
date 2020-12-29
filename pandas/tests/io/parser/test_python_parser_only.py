@@ -348,8 +348,6 @@ def test_decimal_and_exponential_erroneous(python_parser_only, thousands, value)
     1,1	{value}
     """
     )
-    result = python_parser_only.read_csv(
-        data, "\t", decimal=",", thousands=thousands
-    )
+    result = python_parser_only.read_csv(data, "\t", decimal=",", thousands=thousands)
     expected = DataFrame({"a": [1.1], "b": [value]})
     tm.assert_frame_equal(result, expected)
