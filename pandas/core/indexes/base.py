@@ -6173,7 +6173,7 @@ def _maybe_cast_data_without_dtype(subarr):
 
     elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
         # TODO: Returns IntegerArray for integer-na case in the future
-        data = np.asarray(subarr).astype(np.float64)
+        data = np.asarray(subarr).astype(np.float64, copy=False)
         return data
 
     elif inferred == "interval":
