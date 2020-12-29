@@ -1,6 +1,5 @@
 from collections import abc, deque
 from decimal import Decimal
-from pandas.errors import InvalidIndexError
 from warnings import catch_warnings
 
 import numpy as np
@@ -11,6 +10,7 @@ from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.errors import InvalidIndexError
 from pandas.tests.extension.decimal import to_decimal
 
 
