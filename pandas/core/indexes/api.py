@@ -89,19 +89,6 @@ def get_objs_combined_axis(
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    if all_indexes_same(obs_idxes):
-        idx = obs_idxes[0]
-        if sort:
-            try:
-                idx = idx.sort_values()
-                copy = False
-            except TypeError:
-                pass
-        if copy:
-            idx = idx.copy()
-        return idx
-    elif not all(idx.is_unique for idx in obs_idxes):
-        raise InvalidIndexError()
     return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
@@ -148,13 +135,17 @@ def _get_combined_index(
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
         index = Index([])
-    elif len(indexes) == 1:
+    elif len(indexes) == 1 or all_indexes_same(indexes):
         index = indexes[0]
     elif intersect:
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
+        if not index.is_unique:
+            raise InvalidIndexError("Duplicated values in intersection of indices.")
     else:
+        if not all(idx.is_unique for idx in indexes):
+            raise InvalidIndexError("Cannot union indices with duplicate values.")
         index = union_indexes(indexes, sort=sort)
         index = ensure_index(index)
 
