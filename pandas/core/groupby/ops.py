@@ -495,7 +495,7 @@ class BaseGrouper:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        # TODO: general case implementation overrideable by EAs.
+        # TODO: general case implementation overridable by EAs.
         orig_values = values
 
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):

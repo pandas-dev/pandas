@@ -4842,7 +4842,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        # This works for either ndarray or EA, is overriden
+        # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
 
@@ -4974,7 +4974,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         if not is_dtype_equal(self.dtype, target.dtype):
-            # TODO: if object, could use infer_dtype to pre-empt costly
+            # TODO: if object, could use infer_dtype to preempt costly
             #  conversion if still non-comparable?
             dtype = find_common_type([self.dtype, target.dtype])
             if (

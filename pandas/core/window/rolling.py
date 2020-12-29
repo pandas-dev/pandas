@@ -1858,7 +1858,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 window=window, min_periods=self.min_periods, center=self.center
             )
             # GH 31286: Through using var instead of std we can avoid numerical
-            # issues when the result of var is withing floating proint precision
+            # issues when the result of var is within floating proint precision
             # while std is not.
             return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 

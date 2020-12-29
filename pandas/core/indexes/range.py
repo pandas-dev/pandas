@@ -643,7 +643,7 @@ class RangeIndex(Int64Index):
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
-            # We wont end up with RangeIndex, so fall back
+            # We won't end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,

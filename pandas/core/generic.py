@@ -5560,7 +5560,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return False
 
         if self._mgr.any_extension_types:
-            # Even if they have the same dtype, we cant consolidate them,
+            # Even if they have the same dtype, we can't consolidate them,
             #  so we pretend this is "mixed'"
             return True
 
@@ -10647,7 +10647,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Add the operations to the cls; evaluate the doc strings again
         """
-        axis_descr, name1, name2 = _doc_parms(cls)
+        axis_descr, name1, name2 = _doc_params(cls)
 
         @doc(
             _bool_doc,
@@ -11207,8 +11207,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._find_valid_index("last")
 
 
-def _doc_parms(cls):
-    """Return a tuple of the doc parms."""
+def _doc_params(cls):
+    """Return a tuple of the doc params."""
     axis_descr = (
         f"{{{', '.join(f'{a} ({i})' for i, a in enumerate(cls._AXIS_ORDERS))}}}"
     )

@@ -35,7 +35,7 @@ def create_valid_python_identifier(name: str) -> str:
 
     # Create a dict with the special characters and their replacement string.
     # EXACT_TOKEN_TYPES contains these special characters
-    # toke.tok_name contains a readable description of the replacement string.
+    # token.tok_name contains a readable description of the replacement string.
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
         # The ignore here is because of a bug in mypy that is resolved in 0.740
