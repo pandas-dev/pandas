@@ -138,10 +138,13 @@ def _get_combined_index(
     elif len(indexes) == 1 or all_indexes_same(indexes):
         index = indexes[0]
     elif intersect:
+        duplicates = union_indexes(
+            [index[index.duplicated(keep="first")] for index in indexes]
+        )
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
-        if not index.is_unique:
+        if len(duplicates.intersection(index)) > 0:
             raise InvalidIndexError("Duplicated values in intersection of indices.")
     else:
         if not all(idx.is_unique for idx in indexes):
