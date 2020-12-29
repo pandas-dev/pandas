@@ -295,7 +295,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-
+- Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
 -
 -
 
