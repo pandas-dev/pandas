@@ -1111,8 +1111,10 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col):
 
         dtype: DtypeArg = self.dtype or {}
-        if isinstance(dtype, dict) and col.name in dtype:
-            return dtype[col.name]
+        if is_dict_like(dtype):
+            dtype = cast(dict, dtype)
+            if col.name in dtype:
+                return dtype[col.name]
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
@@ -1757,8 +1759,10 @@ class SQLiteTable(SQLTable):
 
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
-        if isinstance(dtype, dict) and col.name in dtype:
-            return dtype[col.name]
+        if is_dict_like(dtype):
+            dtype = cast(dict, dtype)
+            if col.name in dtype:
+                return dtype[col.name]
 
         # Infer type of column, while ignoring missing values.
         # Needed for inserting typed data containing NULLs, GH 8778.
@@ -1960,10 +1964,13 @@ class SQLiteDatabase(PandasSQL):
 
             .. versionadded:: 0.24.0
         """
-        if dtype and not is_dict_like(dtype):
-            dtype = {col_name: dtype for col_name in frame}
+        if dtype is not None:
+            if not is_dict_like(dtype):
+                dtype = {col_name: dtype for col_name in frame}
+            else:
+                dtype = cast(dict, dtype)
 
-        if dtype is not None and isinstance(dtype, dict):
+        if dtype:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
                     raise ValueError(f"{col} ({my_type}) not a string")
