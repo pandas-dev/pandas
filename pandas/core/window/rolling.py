@@ -459,7 +459,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
-                    result = np.asarray(result)
 
             if numba_cache_key is not None:
                 NUMBA_FUNC_CACHE[numba_cache_key] = func
