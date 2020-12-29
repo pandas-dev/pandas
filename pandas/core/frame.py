@@ -490,14 +490,13 @@ class DataFrame(NDFrame, OpsMixin):
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
+    _accessors: Set[str] = {"sparse"}
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
+    _constructor_sliced: Type[Series] = Series
 
     @property
     def _constructor(self) -> Type[DataFrame]:
         return DataFrame
-
-    _constructor_sliced: Type[Series] = Series
-    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
-    _accessors: Set[str] = {"sparse"}
 
     @property
     def _constructor_expanddim(self):
