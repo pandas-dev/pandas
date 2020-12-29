@@ -1351,6 +1351,30 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("neg_exp", [-617, -100000, -99999999999999999])
+def test_very_negative_exponent(all_parsers, neg_exp):
+    # GH#38753
+    parser = all_parsers
+    data = f"data\n10E{neg_exp}"
+    for precision in parser.float_precision_choices:
+        result = parser.read_csv(StringIO(data), float_precision=precision)
+        expected = DataFrame({"data": [0.0]})
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
+def test_too_many_exponent_digits(all_parsers, exp):
+    # GH#38753
+    parser = all_parsers
+    data = f"data\n10E{exp}"
+    for precision in parser.float_precision_choices:
+        if precision == "round_trip":
+            continue
+        result = parser.read_csv(StringIO(data), float_precision=precision)
+        expected = DataFrame({"data": [f"10E{exp}"]})
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("iterator", [True, False])
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
