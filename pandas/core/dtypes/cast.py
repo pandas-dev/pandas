@@ -725,7 +725,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         dtype = np.dtype(object)
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = Timestamp(val)
+        try:
+            val = Timestamp(val)
+        except OutOfBoundsDatetime:
+            return np.dtype(object), val
+
         if val is NaT or val.tz is None:
             dtype = np.dtype("M8[ns]")
         else:

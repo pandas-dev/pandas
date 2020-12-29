@@ -3002,3 +3002,9 @@ class TestFromScalar:
         scalar = cls(4, "ns")
         with pytest.raises(TypeError, match="Cannot cast"):
             constructor(scalar, dtype=dtype)
+
+    def test_from_out_of_bounds_datetime(self, constructor):
+        scalar = datetime(9999, 1, 1)
+        result = constructor(scalar)
+
+        assert type(get1(result)) is datetime
