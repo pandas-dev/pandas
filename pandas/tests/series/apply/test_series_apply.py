@@ -778,10 +778,14 @@ class TestSeriesMap:
             ),
         ],
     )
-    def test_apply_series_on_date_time_index_aware_series(self, dti, exp):
+    @pytest.mark.parametrize("aware", [True, False])
+    def test_apply_series_on_date_time_index_aware_series(self, dti, exp, aware):
         # GH 25959
         # Calling apply on a localized time series should not cause an error
-        index = dti.tz_localize("UTC").index
+        if aware:
+            index = dti.tz_localize("UTC").index
+        else:
+            index = dti.index
         result = Series(index).apply(lambda x: Series([1, 2]))
         tm.assert_frame_equal(result, exp)
 
