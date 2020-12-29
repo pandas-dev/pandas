@@ -1221,33 +1221,33 @@ def nankurt(
 
     with np.errstate(invalid="ignore", divide="ignore"):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-        numer = count * (count + 1) * (count - 1) * m4
-        denom = (count - 2) * (count - 3) * m2 ** 2
+        numerator = count * (count + 1) * (count - 1) * m4
+        denominator = (count - 2) * (count - 3) * m2 ** 2
 
     # floating point error
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
     # to fix the fperr to treat denom <1e-14 as zero
-    numer = _zero_out_fperr(numer)
-    denom = _zero_out_fperr(denom)
+    numerator = _zero_out_fperr(numerator)
+    denominator = _zero_out_fperr(denominator)
 
-    if not isinstance(denom, np.ndarray):
+    if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
         # doing division
         if count < 4:
             return np.nan
-        if denom == 0:
+        if denominator == 0:
             return 0
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        result = numer / denom - adj
+        result = numerator / denominator - adj
 
     dtype = values.dtype
     if is_float_dtype(dtype):
         result = result.astype(dtype)
 
     if isinstance(result, np.ndarray):
-        result = np.where(denom == 0, 0, result)
+        result = np.where(denominator == 0, 0, result)
         result[count < 4] = np.nan
 
     return result

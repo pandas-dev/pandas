@@ -746,7 +746,7 @@ def _convert_object_array(
     content: List[Scalar], dtype: Optional[DtypeObj] = None
 ) -> List[Scalar]:
     """
-    Internal function ot convert object array.
+    Internal function to convert object array.
 
     Parameters
     ----------
