@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
+    is_named_tuple,
     is_object_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -106,7 +107,7 @@ def masked_rec_array_to_mgr(
     # essentially process a record array then fill it
     fdata = ma.getdata(data)
     if index is None:
-        index = get_names_from_index(fdata)
+        index = _get_names_from_index(fdata)
         if index is None:
             index = ibase.default_index(len(data))
     index = ensure_index(index)
@@ -286,6 +287,41 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
 
 
+def nested_data_to_arrays(
+    data: Sequence,
+    columns: Optional[Index],
+    index: Optional[Index],
+    dtype: Optional[DtypeObj],
+):
+    """
+    Convert a single sequence of arrays to multiple arrays.
+    """
+    # By the time we get here we have already checked treat_as_nested(data)
+
+    if is_named_tuple(data[0]) and columns is None:
+        columns = data[0]._fields
+
+    arrays, columns = to_arrays(data, columns, dtype=dtype)
+    columns = ensure_index(columns)
+
+    if index is None:
+        if isinstance(data[0], ABCSeries):
+            index = _get_names_from_index(data)
+        elif isinstance(data[0], Categorical):
+            index = ibase.default_index(len(data[0]))
+        else:
+            index = ibase.default_index(len(data))
+
+    return arrays, columns, index
+
+
+def treat_as_nested(data) -> bool:
+    """
+    Check if we should use nested_data_to_arrays.
+    """
+    return len(data) > 0 and is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1
+
+
 # ---------------------------------------------------------------------
 
 
@@ -432,7 +468,7 @@ def reorder_arrays(arrays, arr_columns, columns):
     return arrays, arr_columns
 
 
-def get_names_from_index(data):
+def _get_names_from_index(data):
     has_some_name = any(getattr(s, "name", None) is not None for s in data)
     if not has_some_name:
         return ibase.default_index(len(data))
