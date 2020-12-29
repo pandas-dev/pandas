@@ -1807,7 +1807,7 @@ class ExtensionBlock(Block):
         # return same dims as we currently have
         if not isinstance(slicer, tuple) and self.ndim == 2:
             # reached via getitem_block via _slice_take_blocks_ax0
-            # TODO(EA2D): wont be necessary with 2D EAs
+            # TODO(EA2D): won't be necessary with 2D EAs
             slicer = (slicer, slice(None))
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
@@ -1817,7 +1817,7 @@ class ExtensionBlock(Block):
                     "invalid slicing for a 1-ndim ExtensionArray", first
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
-            # TODO(EA2D): wont be necessary with 2D EAs
+            # TODO(EA2D): won't be necessary with 2D EAs
             new_locs = self.mgr_locs[first]
             if len(new_locs):
                 # effectively slice(None)
@@ -2280,7 +2280,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         ndim inference and validation.
 
-        This is overriden by the DatetimeTZBlock to check the case of 2D
+        This is overridden by the DatetimeTZBlock to check the case of 2D
         data (values.ndim == 2), which should only be allowed if ndim is
         also 2.
         The case of 1D array is still allowed with both ndim of 1 or 2, as

@@ -275,7 +275,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
-                # TODO: PandasArray didnt used to copy, need tests for this
+                # TODO: PandasArray didn't used to copy, need tests for this
                 new_values = self._from_backing_data(new_values)
             else:
                 # fill with value
