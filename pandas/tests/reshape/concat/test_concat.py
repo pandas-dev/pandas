@@ -464,6 +464,36 @@ def test_concat_duplicates_error(index_maker, join):
         _ = pd.concat([df_non_unique, df_unique], join=join)
 
 
+@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
+@pytest.mark.xfail(reason="Not implemented")
+def test_concat_intersection_duplicates(index_maker):
+    # Currently failing: https://github.com/pandas-dev/pandas/pull/38745/files#r549577521
+    # Concat is valid if the intersection does not contain duplicates
+    index_full = index_maker(k=4)
+    index_unique = index_full[[0, 1, 2]]
+    index_non_unique = index_full[[1, 2, 3, 3]]
+
+    df_unique = pd.DataFrame(
+        np.ones((1, len(index_unique))),
+        columns=index_unique,
+    )
+    df_non_unique = pd.DataFrame(
+        np.zeros((1, len(index_non_unique))),
+        columns=index_non_unique,
+    )
+
+    result = pd.concat([df_unique, df_non_unique], join="inner")
+
+    tm.assert_frame_equal(
+        result,
+        pd.DataFrame(
+            [[1, 1], [0, 0]],
+            columns=index_full[[1, 2]],
+            index=[0, 0],
+        ),
+    )
+
+
 @pytest.mark.parametrize("pdt", [Series, pd.DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
 def test_concat_no_unnecessary_upcast(dt, pdt):
