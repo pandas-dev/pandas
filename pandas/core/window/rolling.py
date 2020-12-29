@@ -1097,8 +1097,8 @@ class Window(BaseWindow):
                 if values.ndim > 1:
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
-                    result = calc(values)
-                    result = np.asarray(result)
+                    # Our weighted aggregations return memoryviews
+                    result = np.asarray(calc(values))
 
             if self.center:
                 result = self._center_window(result, offset)
