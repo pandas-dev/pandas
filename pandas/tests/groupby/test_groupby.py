@@ -2058,6 +2058,7 @@ def test_groupby_list_level():
     [
         (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
         (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+        (1, "{0: [0], ...}"),
     ],
 )
 def test_groups_repr_truncates(max_seq_items, expected):

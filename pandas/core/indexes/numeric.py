@@ -46,11 +46,20 @@ class NumericIndex(Index):
     _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
-        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, data, cls)
 
-        # Coerce to ndarray if not already ndarray or Index
+        subarr = cls._ensure_array(data, dtype, copy)
+        return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        cls._validate_dtype(dtype)
+
         if not isinstance(data, (np.ndarray, Index)):
+            # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
                 raise cls._scalar_data_error(data)
 
@@ -74,7 +83,7 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
-        return cls._simple_new(subarr, name=name)
+        return subarr
 
     @classmethod
     def _validate_dtype(cls, dtype: Dtype) -> None:

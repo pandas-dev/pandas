@@ -33,6 +33,11 @@ For example:
         storage_options=headers
     )
 
+.. _whatsnew_130.window_method_table:
+
+:class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
+``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
+See ref:`window.overview` for performance and functional benefits. (:issue:`15095`)
 
 .. _whatsnew_130.enhancements.other:
 
@@ -44,6 +49,7 @@ Other enhancements
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 - Improved consistency of error message when passing an invalid ``win_type`` argument in :class:`Window` (:issue:`15969`)
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
+- Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 
 .. ---------------------------------------------------------------------------
 
@@ -183,7 +189,10 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
 - Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
-- Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise ``TypeError`` (:issue:`38575`)
+- Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise ``TypeError`` (:issue:`38575`, :issue:`38764`)
+- Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
+- Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -202,8 +211,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
 - Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
--
--
+- Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 
 Conversion
 ^^^^^^^^^^
@@ -218,7 +226,7 @@ Strings
 
 Interval
 ^^^^^^^^
-- Bug in :meth:`IntervalIndex.intersection` always returning object-dtype when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
+- Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
 -
 -
 
@@ -247,6 +255,7 @@ MultiIndex
 I/O
 ^^^
 
+- Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
@@ -290,7 +299,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-
+- Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
 -
 -
 
