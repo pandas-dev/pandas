@@ -249,19 +249,15 @@ def test_multi_char_sep_quotes(python_parser_only, quoting):
     parser = python_parser_only
 
     data = 'a,,b\n1,,a\n2,,"2,,b"'
-    msg = "ignored when a multi-char delimiter is used"
-
-    def fail_read():
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
     if quoting == csv.QUOTE_NONE:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "Expected 2 fields in line 3, saw 3"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
     else:
-        fail_read()
+        msg = "ignored when a multi-char delimiter is used"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
 
 def test_none_delimiter(python_parser_only, capsys):
@@ -286,20 +282,15 @@ def test_none_delimiter(python_parser_only, capsys):
 @pytest.mark.parametrize("skipfooter", [0, 1])
 def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     # see gh-13879 and gh-15910
-    msg = "parsing errors in the skipped footer rows"
     parser = python_parser_only
-
-    def fail_read():
+    if skipfooter:
+        msg = "parsing errors in the skipped footer rows"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
-
-    if skipfooter:
-        fail_read()
     else:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "unexpected end of data|expected after"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), skipfooter=skipfooter)
 
 
 def test_malformed_skipfooter(python_parser_only):
