@@ -2253,7 +2253,7 @@ def test_int64_add_overflow():
 
 class TestMode:
     def test_no_mode(self):
-        exp = Series([], dtype=np.float64)
+        exp = Series([], dtype=np.float64, index=Index([], dtype=int))
         tm.assert_series_equal(algos.mode([]), exp)
 
     def test_mode_single(self):
