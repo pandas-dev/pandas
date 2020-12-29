@@ -435,7 +435,7 @@ if is_platform_mac():
             "MACOSX_DEPLOYMENT_TARGET", current_system
         )
         if (
-            LooseVersion(python_target) < "10.9"
+            LooseVersion(str(python_target)) < "10.9"
             and LooseVersion(current_system) >= "10.9"
         ):
             os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
