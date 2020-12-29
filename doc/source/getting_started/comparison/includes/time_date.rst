@@ -1,6 +1,7 @@
 :orphan:
 
 .. ipython:: python
+   :flake8-add-ignore: F821
 
    tips["date1"] = pd.Timestamp("2013-01-15")
    tips["date2"] = pd.Timestamp("2015-02-15")
@@ -16,6 +17,7 @@
    ].head()
 
 .. ipython:: python
+   :flake8-add-ignore: F821
    :suppress:
 
    tips = tips.drop(

@@ -4,6 +4,7 @@ DataFrames can be filtered in multiple ways; the most intuitive of which is usin
 :ref:`boolean indexing <indexing.boolean>`
 
 .. ipython:: python
+   :flake8-add-ignore: F821
 
    tips[tips["total_bill"] > 10]
 
@@ -11,6 +12,7 @@ The above statement is simply passing a ``Series`` of ``True``/``False`` objects
 returning all rows with ``True``.
 
 .. ipython:: python
+   :flake8-add-ignore: F821
 
     is_dinner = tips["time"] == "Dinner"
     is_dinner
