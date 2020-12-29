@@ -286,7 +286,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
 -
 
 Sparse
