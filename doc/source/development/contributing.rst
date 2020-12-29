@@ -1610,28 +1610,6 @@ request by pushing to the branch on GitHub::
 
     git push origin shiny-new-feature
 
-Autofixing formatting errors
-----------------------------
-
-We use several styling checks(e.g. ``black``, ``flake8``, ``isort``) which are run after 
-you make a pull request. If there is a scenario where any of these checks fail then you
-can comment::
-
-    @githubactions pre-commit
-
-on that pull request. This will trigger a workflow which will autofix formatting errors.
-
-Backporting (optional)
-----------------------
-
-In the case you want to apply changes to a stable branch from a newer branch then you 
-can comment::
-
-    @meeseeksdev backport
-
-This will trigger a workflow which will backport a given change to a branch
-(e.g. @meeseeksdev backport 1.2.x)
-
 Delete your merged branch (optional)
 ------------------------------------
 
