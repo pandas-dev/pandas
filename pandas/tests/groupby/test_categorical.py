@@ -1691,8 +1691,8 @@ def test_groupby_categorical_indices_unused_categories():
     grouped = df.groupby("key", sort=False)
     result = grouped.indices
     expected = {
-        "b": np.array([0, 1]),
-        "a": np.array([2]),
+        "b": np.array([0, 1], dtype="int64"),
+        "a": np.array([2], dtype="int64"),
         "c": np.array([], dtype="int64"),
     }
     assert result.keys() == expected.keys()
