@@ -333,7 +333,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
-    def delete(self, loc):
+    def delete(self: _T, loc) -> _T:
         """
         Make new Index with passed location(-s) deleted
 
@@ -341,11 +341,10 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         -------
         new_index : Index
         """
-        new_vals = np.delete(self._data._ndarray, loc)
-        arr = self._data._from_backing_data(new_vals)
+        arr = self._data.delete(loc)
         return type(self)._simple_new(arr, name=self.name)
 
-    def insert(self, loc: int, item):
+    def insert(self: _T, loc: int, item) -> _T:
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values.
@@ -371,7 +370,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return type(self)._simple_new(new_arr, name=self.name)
 
     @doc(Index.where)
-    def where(self, cond, other=None):
+    def where(self: _T, cond: np.ndarray, other=None) -> _T:
         res_values = self._data.where(cond, other)
         return type(self)._simple_new(res_values, name=self.name)
 

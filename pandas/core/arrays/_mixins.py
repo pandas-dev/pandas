@@ -325,7 +325,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self, mask, value):
+    def putmask(self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
@@ -343,7 +343,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(self, mask, value):
+    def where(
+        self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
+    ) -> NDArrayBackedExtensionArrayT:
         """
         Analogue to np.where(mask, self, value)
 
@@ -360,4 +362,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         value = self._validate_setitem_value(value)
 
         res_values = np.where(mask, self._ndarray, value)
+        return self._from_backing_data(res_values)
+
+    def delete(self: NDArrayBackedExtensionArrayT, loc) -> NDArrayBackedExtensionArrayT:
+        res_values = np.delete(self._ndarray, loc)
         return self._from_backing_data(res_values)
