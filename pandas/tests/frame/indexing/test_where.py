@@ -356,11 +356,11 @@ class TestDataFrameIndexingWhere:
 
         # GH 3311
         df = DataFrame(
-            dict(
-                A=date_range("20130102", periods=5),
-                B=date_range("20130104", periods=5),
-                C=np.random.randn(5),
-            )
+            {
+                "A": date_range("20130102", periods=5),
+                "B": date_range("20130104", periods=5),
+                "C": np.random.randn(5),
+            }
         )
 
         stamp = datetime(2013, 1, 3)
@@ -399,7 +399,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
-        df = pd.DataFrame(columns=["a"])
+        df = DataFrame(columns=["a"])
         cond = df
         assert (cond.dtypes == object).all()
 
@@ -618,7 +618,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
@@ -642,3 +642,14 @@ class TestDataFrameIndexingWhere:
         expected = Series(A, name="A")
 
         tm.assert_series_equal(result, expected)
+
+    def test_where_categorical_filtering(self):
+        # GH#22609 Verify filtering operations on DataFrames with categorical Series
+        df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df["b"].astype("category")
+
+        result = df.where(df["a"] > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)

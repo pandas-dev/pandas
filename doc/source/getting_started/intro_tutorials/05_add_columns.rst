@@ -39,8 +39,7 @@ in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_no2.csv",
-                              index_col=0, parse_dates=True)
+    air_quality = pd.read_csv("data/air_quality_no2.csv", index_col=0, parse_dates=True)
     air_quality.head()
 
 .. raw:: html
@@ -95,8 +94,9 @@ I want to check the ratio of the values in Paris versus Antwerp and save the res
 
 .. ipython:: python
 
-    air_quality["ratio_paris_antwerp"] = \
+    air_quality["ratio_paris_antwerp"] = (
         air_quality["station_paris"] / air_quality["station_antwerp"]
+    )
     air_quality.head()
 
 The calculation is again element-wise, so the ``/`` is applied *for the
@@ -107,10 +107,12 @@ values in each row*.
         </li>
     </ul>
 
-Also other mathematical operators (+, -, \*, /) or
-logical operators (<, >, =,…) work element wise. The latter was already
+Also other mathematical operators (``+``, ``-``, ``\*``, ``/``) or
+logical operators (``<``, ``>``, ``=``,…) work element wise. The latter was already
 used in the :ref:`subset data tutorial <10min_tut_03_subset>` to filter
 rows of a table using a conditional expression.
+
+If you need more advanced logic, you can use arbitrary Python code via :meth:`~DataFrame.apply`.
 
 .. raw:: html
 
@@ -122,9 +124,12 @@ I want to rename the data columns to the corresponding station identifiers used 
 .. ipython:: python
 
     air_quality_renamed = air_quality.rename(
-        columns={"station_antwerp": "BETR801",
-                 "station_paris": "FR04014",
-                 "station_london": "London Westminster"})
+        columns={
+            "station_antwerp": "BETR801",
+            "station_paris": "FR04014",
+            "station_london": "London Westminster",
+        }
+    )
 
 .. ipython:: python
 

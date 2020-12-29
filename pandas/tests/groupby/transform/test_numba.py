@@ -127,3 +127,19 @@ def test_use_global_config():
     with option_context("compute.use_numba", True):
         result = grouped.transform(func_1, engine=None)
     tm.assert_frame_equal(expected, result)
+
+
+@td.skip_if_no("numba", "0.46.0")
+@pytest.mark.parametrize(
+    "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
+)
+def test_multifunc_notimplimented(agg_func):
+    data = DataFrame(
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
+    )
+    grouped = data.groupby(0)
+    with pytest.raises(NotImplementedError, match="Numba engine can"):
+        grouped.transform(agg_func, engine="numba")
+
+    with pytest.raises(NotImplementedError, match="Numba engine can"):
+        grouped[1].transform(agg_func, engine="numba")

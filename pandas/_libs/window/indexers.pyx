@@ -48,12 +48,12 @@ def calculate_variable_window_bounds(
         bint center_window = False
         int index_growth_sign = 1
         ndarray[int64_t, ndim=1] start, end
-        int64_t start_bound, end_bound
+        int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
 
-    # if windows is variable, default is 'right', otherwise default is 'both'
+    # default is 'right'
     if closed is None:
-        closed = 'right' if index is not None else 'both'
+        closed = 'right'
 
     if closed in ['right', 'both']:
         right_closed = True

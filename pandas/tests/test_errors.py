@@ -2,7 +2,7 @@ import pytest
 
 from pandas.errors import AbstractMethodError
 
-import pandas as pd  # noqa
+import pandas as pd
 
 
 @pytest.mark.parametrize(

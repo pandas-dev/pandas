@@ -40,7 +40,7 @@ class BaseSetitemTests(BaseExtensionTests):
             ser[slice(3)] = value
         self.assert_series_equal(ser, original)
 
-    def test_setitem_empty_indxer(self, data, box_in_series):
+    def test_setitem_empty_indexer(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()

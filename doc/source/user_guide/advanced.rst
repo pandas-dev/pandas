@@ -62,12 +62,14 @@ demonstrate different ways to initialize MultiIndexes.
 
 .. ipython:: python
 
-   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+   arrays = [
+       ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+       ["one", "two", "one", "two", "one", "two", "one", "two"],
+   ]
    tuples = list(zip(*arrays))
    tuples
 
-   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
    index
 
    s = pd.Series(np.random.randn(8), index=index)
@@ -78,8 +80,8 @@ to use the :meth:`MultiIndex.from_product` method:
 
 .. ipython:: python
 
-   iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
-   pd.MultiIndex.from_product(iterables, names=['first', 'second'])
+   iterables = [["bar", "baz", "foo", "qux"], ["one", "two"]]
+   pd.MultiIndex.from_product(iterables, names=["first", "second"])
 
 You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
@@ -89,9 +91,10 @@ the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 
 .. ipython:: python
 
-   df = pd.DataFrame([['bar', 'one'], ['bar', 'two'],
-                      ['foo', 'one'], ['foo', 'two']],
-                     columns=['first', 'second'])
+   df = pd.DataFrame(
+       [["bar", "one"], ["bar", "two"], ["foo", "one"], ["foo", "two"]],
+       columns=["first", "second"],
+   )
    pd.MultiIndex.from_frame(df)
 
 As a convenience, you can pass a list of arrays directly into ``Series`` or
@@ -99,8 +102,10 @@ As a convenience, you can pass a list of arrays directly into ``Series`` or
 
 .. ipython:: python
 
-   arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),
-             np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]
+   arrays = [
+       np.array(["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"]),
+       np.array(["one", "two", "one", "two", "one", "two", "one", "two"]),
+   ]
    s = pd.Series(np.random.randn(8), index=arrays)
    s
    df = pd.DataFrame(np.random.randn(8, 4), index=arrays)
@@ -119,7 +124,7 @@ of the index is up to you:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(3, 8), index=['A', 'B', 'C'], columns=index)
+   df = pd.DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
    df
    pd.DataFrame(np.random.randn(6, 6), index=index[:6], columns=index[:6])
 
@@ -129,7 +134,7 @@ bit easier on the eyes. Note that how the index is displayed can be controlled u
 
 .. ipython:: python
 
-   with pd.option_context('display.multi_sparse', False):
+   with pd.option_context("display.multi_sparse", False):
        df
 
 It's worth keeping in mind that there's nothing preventing you from using
@@ -157,7 +162,7 @@ location at a particular level:
 .. ipython:: python
 
    index.get_level_values(0)
-   index.get_level_values('second')
+   index.get_level_values("second")
 
 Basic indexing on axis with MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,10 +174,10 @@ completely analogous way to selecting a column in a regular DataFrame:
 
 .. ipython:: python
 
-   df['bar']
-   df['bar', 'one']
-   df['bar']['one']
-   s['qux']
+   df["bar"]
+   df["bar", "one"]
+   df["bar"]["one"]
+   s["qux"]
 
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
@@ -190,7 +195,7 @@ For example:
 
    df.columns.levels  # original MultiIndex
 
-   df[['foo','qux']].columns.levels  # sliced
+   df[["foo","qux"]].columns.levels  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
@@ -198,17 +203,17 @@ highly performant. If you want to see only the used levels, you can use the
 
 .. ipython:: python
 
-   df[['foo', 'qux']].columns.to_numpy()
+   df[["foo", "qux"]].columns.to_numpy()
 
    # for a specific level
-   df[['foo', 'qux']].columns.get_level_values(0)
+   df[["foo", "qux"]].columns.get_level_values(0)
 
 To reconstruct the ``MultiIndex`` with only the used levels, the
 :meth:`~MultiIndex.remove_unused_levels` method may be used.
 
 .. ipython:: python
 
-   new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
+   new_mi = df[["foo", "qux"]].columns.remove_unused_levels()
    new_mi.levels
 
 Data alignment and using ``reindex``
@@ -229,7 +234,7 @@ called with another ``MultiIndex``, or even a list or array of tuples:
 .. ipython:: python
 
    s.reindex(index[:3])
-   s.reindex([('foo', 'two'), ('bar', 'one'), ('qux', 'one'), ('baz', 'one')])
+   s.reindex([("foo", "two"), ("bar", "one"), ("qux", "one"), ("baz", "one")])
 
 .. _advanced.advanced_hierarchical:
 
@@ -244,7 +249,7 @@ keys take the form of tuples. For example, the following works as you would expe
 
    df = df.T
    df
-   df.loc[('bar', 'two')]
+   df.loc[("bar", "two")]
 
 Note that ``df.loc['bar', 'two']`` would also work in this example, but this shorthand
 notation can lead to ambiguity in general.
@@ -254,7 +259,7 @@ like this:
 
 .. ipython:: python
 
-   df.loc[('bar', 'two'), 'A']
+   df.loc[("bar", "two"), "A"]
 
 You don't have to specify all levels of the ``MultiIndex`` by passing only the
 first elements of the tuple. For example, you can use "partial" indexing to
@@ -262,7 +267,7 @@ get all elements with ``bar`` in the first level as follows:
 
 .. ipython:: python
 
-   df.loc['bar']
+   df.loc["bar"]
 
 This is a shortcut for the slightly more verbose notation ``df.loc[('bar',),]`` (equivalent
 to ``df.loc['bar',]`` in this example).
@@ -271,20 +276,20 @@ to ``df.loc['bar',]`` in this example).
 
 .. ipython:: python
 
-   df.loc['baz':'foo']
+   df.loc["baz":"foo"]
 
 You can slice with a 'range' of values, by providing a slice of tuples.
 
 .. ipython:: python
 
-   df.loc[('baz', 'two'):('qux', 'one')]
-   df.loc[('baz', 'two'):'foo']
+   df.loc[("baz", "two"):("qux", "one")]
+   df.loc[("baz", "two"):"foo"]
 
 Passing a list of labels or tuples works similar to reindexing:
 
 .. ipython:: python
 
-   df.loc[[('bar', 'two'), ('qux', 'one')]]
+   df.loc[[("bar", "two"), ("qux", "one")]]
 
 .. note::
 
@@ -298,8 +303,10 @@ whereas a tuple of lists refer to several values within a level:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3, 4, 5, 6],
-                 index=pd.MultiIndex.from_product([["A", "B"], ["c", "d", "e"]]))
+   s = pd.Series(
+       [1, 2, 3, 4, 5, 6],
+       index=pd.MultiIndex.from_product([["A", "B"], ["c", "d", "e"]]),
+   )
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
 
@@ -329,37 +336,44 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1', 'A3'), ...), :]             # noqa: E999
+      df.loc[(slice("A1", "A3"), ...), :]  # noqa: E999
 
    You should **not** do this:
  
    .. code-block:: python
 
-      df.loc[(slice('A1', 'A3'), ...)]                # noqa: E999
+      df.loc[(slice("A1", "A3"), ...)]  # noqa: E999
 
 .. ipython:: python
 
    def mklbl(prefix, n):
        return ["%s%s" % (prefix, i) for i in range(n)]
 
-   miindex = pd.MultiIndex.from_product([mklbl('A', 4),
-                                         mklbl('B', 2),
-                                         mklbl('C', 4),
-                                         mklbl('D', 2)])
-   micolumns = pd.MultiIndex.from_tuples([('a', 'foo'), ('a', 'bar'),
-                                          ('b', 'foo'), ('b', 'bah')],
-                                         names=['lvl0', 'lvl1'])
-   dfmi = pd.DataFrame(np.arange(len(miindex) * len(micolumns))
-                         .reshape((len(miindex), len(micolumns))),
-                       index=miindex,
-                       columns=micolumns).sort_index().sort_index(axis=1)
+
+   miindex = pd.MultiIndex.from_product(
+       [mklbl("A", 4), mklbl("B", 2), mklbl("C", 4), mklbl("D", 2)]
+   )
+   micolumns = pd.MultiIndex.from_tuples(
+       [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")], names=["lvl0", "lvl1"]
+   )
+   dfmi = (
+       pd.DataFrame(
+           np.arange(len(miindex) * len(micolumns)).reshape(
+               (len(miindex), len(micolumns))
+           ),
+           index=miindex,
+           columns=micolumns,
+       )
+       .sort_index()
+       .sort_index(axis=1)
+   )
    dfmi
 
 Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
-   dfmi.loc[(slice('A1', 'A3'), slice(None), ['C1', 'C3']), :]
+   dfmi.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
 
 
 You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax
@@ -368,36 +382,36 @@ using ``:``, rather than using ``slice(None)``.
 .. ipython:: python
 
    idx = pd.IndexSlice
-   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
+   dfmi.loc[idx[:, :, ["C1", "C3"]], idx[:, "foo"]]
 
 It is possible to perform quite complicated selections using this method on multiple
 axes at the same time.
 
 .. ipython:: python
 
-   dfmi.loc['A1', (slice(None), 'foo')]
-   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
+   dfmi.loc["A1", (slice(None), "foo")]
+   dfmi.loc[idx[:, :, ["C1", "C3"]], idx[:, "foo"]]
 
 Using a boolean indexer you can provide selection related to the *values*.
 
 .. ipython:: python
 
-   mask = dfmi[('a', 'foo')] > 200
-   dfmi.loc[idx[mask, :, ['C1', 'C3']], idx[:, 'foo']]
+   mask = dfmi[("a", "foo")] > 200
+   dfmi.loc[idx[mask, :, ["C1", "C3"]], idx[:, "foo"]]
 
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.
 
 .. ipython:: python
 
-   dfmi.loc(axis=0)[:, :, ['C1', 'C3']]
+   dfmi.loc(axis=0)[:, :, ["C1", "C3"]]
 
 Furthermore, you can *set* the values using the following methods.
 
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
+   df2.loc(axis=0)[:, :, ["C1", "C3"]] = -10
    df2
 
 You can use a right-hand-side of an alignable object as well.
@@ -405,7 +419,7 @@ You can use a right-hand-side of an alignable object as well.
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc[idx[:, :, ['C1', 'C3']], :] = df2 * 1000
+   df2.loc[idx[:, :, ["C1", "C3"]], :] = df2 * 1000
    df2
 
 .. _advanced.xs:
@@ -419,12 +433,12 @@ selecting data at a particular level of a ``MultiIndex`` easier.
 .. ipython:: python
 
    df
-   df.xs('one', level='second')
+   df.xs("one", level="second")
 
 .. ipython:: python
 
    # using the slicers
-   df.loc[(slice(None), 'one'), :]
+   df.loc[(slice(None), "one"), :]
 
 You can also select on the columns with ``xs``, by
 providing the axis argument.
@@ -432,36 +446,36 @@ providing the axis argument.
 .. ipython:: python
 
    df = df.T
-   df.xs('one', level='second', axis=1)
+   df.xs("one", level="second", axis=1)
 
 .. ipython:: python
 
    # using the slicers
-   df.loc[:, (slice(None), 'one')]
+   df.loc[:, (slice(None), "one")]
 
 ``xs`` also allows selection with multiple keys.
 
 .. ipython:: python
 
-   df.xs(('one', 'bar'), level=('second', 'first'), axis=1)
+   df.xs(("one", "bar"), level=("second", "first"), axis=1)
 
 .. ipython:: python
 
    # using the slicers
-   df.loc[:, ('bar', 'one')]
+   df.loc[:, ("bar", "one")]
 
 You can pass ``drop_level=False`` to ``xs`` to retain
 the level that was selected.
 
 .. ipython:: python
 
-   df.xs('one', level='second', axis=1, drop_level=False)
+   df.xs("one", level="second", axis=1, drop_level=False)
 
 Compare the above with the result using ``drop_level=True`` (the default value).
 
 .. ipython:: python
 
-   df.xs('one', level='second', axis=1, drop_level=True)
+   df.xs("one", level="second", axis=1, drop_level=True)
 
 .. ipython:: python
    :suppress:
@@ -479,8 +493,9 @@ values across a level. For instance:
 
 .. ipython:: python
 
-   midx = pd.MultiIndex(levels=[['zero', 'one'], ['x', 'y']],
-                        codes=[[1, 1, 0, 0], [1, 0, 1, 0]])
+   midx = pd.MultiIndex(
+       levels=[["zero", "one"], ["x", "y"]], codes=[[1, 1, 0, 0], [1, 0, 1, 0]]
+   )
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
    df2 = df.mean(level=0)
@@ -543,7 +558,7 @@ used to move the values from the ``MultiIndex`` to a column.
 
 .. ipython:: python
 
-   df.rename_axis(index=['abc', 'def'])
+   df.rename_axis(index=["abc", "def"])
 
 Note that the columns of a ``DataFrame`` are an index, so that using
 ``rename_axis`` with the ``columns`` argument will change the name of that
@@ -561,7 +576,7 @@ When working with an ``Index`` object directly, rather than via a ``DataFrame``,
 
 .. ipython:: python
 
-   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"]], names=["x", "y"])
    mi.names
 
    mi2 = mi.rename("new name", level=0)
@@ -586,6 +601,7 @@ they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_in
 .. ipython:: python
 
    import random
+
    random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
@@ -600,9 +616,9 @@ are named.
 
 .. ipython:: python
 
-   s.index.set_names(['L1', 'L2'], inplace=True)
-   s.sort_index(level='L1')
-   s.sort_index(level='L2')
+   s.index.set_names(["L1", "L2"], inplace=True)
+   s.sort_index(level="L1")
+   s.sort_index(level="L2")
 
 On higher dimensional objects, you can sort any of the other axes by level if
 they have a ``MultiIndex``:
@@ -617,10 +633,10 @@ return a copy of the data rather than a view:
 
 .. ipython:: python
 
-   dfm = pd.DataFrame({'jim': [0, 0, 1, 1],
-                       'joe': ['x', 'x', 'z', 'y'],
-                       'jolie': np.random.rand(4)})
-   dfm = dfm.set_index(['jim', 'joe'])
+   dfm = pd.DataFrame(
+       {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
+   )
+   dfm = dfm.set_index(["jim", "joe"])
    dfm
 
 .. code-block:: ipython
@@ -661,7 +677,7 @@ And now selection works as expected.
 
 .. ipython:: python
 
-   dfm.loc[(0, 'y'):(1, 'z')]
+   dfm.loc[(0, "y"):(1, "z")]
 
 Take methods
 ------------
@@ -754,18 +770,18 @@ and allows efficient indexing and storage of an index with a large number of dup
 .. ipython:: python
 
    from pandas.api.types import CategoricalDtype
-   df = pd.DataFrame({'A': np.arange(6),
-                      'B': list('aabbca')})
-   df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
+
+   df = pd.DataFrame({"A": np.arange(6), "B": list("aabbca")})
+   df["B"] = df["B"].astype(CategoricalDtype(list("cab")))
    df
    df.dtypes
-   df['B'].cat.categories
+   df["B"].cat.categories
 
 Setting the index will create a ``CategoricalIndex``.
 
 .. ipython:: python
 
-   df2 = df.set_index('B')
+   df2 = df.set_index("B")
    df2.index
 
 Indexing with ``__getitem__/.iloc/.loc`` works similarly to an ``Index`` with duplicates.
@@ -773,13 +789,13 @@ The indexers **must** be in the category or the operation will raise a ``KeyErro
 
 .. ipython:: python
 
-   df2.loc['a']
+   df2.loc["a"]
 
 The ``CategoricalIndex`` is **preserved** after indexing:
 
 .. ipython:: python
 
-   df2.loc['a'].index
+   df2.loc["a"].index
 
 Sorting the index will sort by the order of the categories (recall that we
 created the index with ``CategoricalDtype(list('cab'))``, so the sorted
@@ -804,17 +820,18 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. ipython:: python
 
-   df3 = pd.DataFrame({'A': np.arange(3),
-                       'B': pd.Series(list('abc')).astype('category')})
-   df3 = df3.set_index('B')
+   df3 = pd.DataFrame(
+       {"A": np.arange(3), "B": pd.Series(list("abc")).astype("category")}
+   )
+   df3 = df3.set_index("B")
    df3
 
 .. ipython:: python
 
-   df3.reindex(['a', 'e'])
-   df3.reindex(['a', 'e']).index
-   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe')))
-   df3.reindex(pd.Categorical(['a', 'e'], categories=list('abe'))).index
+   df3.reindex(["a", "e"])
+   df3.reindex(["a", "e"]).index
+   df3.reindex(pd.Categorical(["a", "e"], categories=list("abe")))
+   df3.reindex(pd.Categorical(["a", "e"], categories=list("abe"))).index
 
 .. warning::
 
@@ -823,16 +840,14 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
    .. ipython:: python
 
-      df4 = pd.DataFrame({'A': np.arange(2),
-                          'B': list('ba')})
-      df4['B'] = df4['B'].astype(CategoricalDtype(list('ab')))
-      df4 = df4.set_index('B')
+      df4 = pd.DataFrame({"A": np.arange(2), "B": list("ba")})
+      df4["B"] = df4["B"].astype(CategoricalDtype(list("ab")))
+      df4 = df4.set_index("B")
       df4.index
 
-      df5 = pd.DataFrame({'A': np.arange(2),
-                          'B': list('bc')})
-      df5['B'] = df5['B'].astype(CategoricalDtype(list('bc')))
-      df5 = df5.set_index('B')
+      df5 = pd.DataFrame({"A": np.arange(2), "B": list("bc")})
+      df5["B"] = df5["B"].astype(CategoricalDtype(list("bc")))
+      df5 = df5.set_index("B")
       df5.index
 
    .. code-block:: ipython
@@ -916,12 +931,18 @@ example, be millisecond offsets.
 
 .. ipython:: python
 
-   dfir = pd.concat([pd.DataFrame(np.random.randn(5, 2),
-                                  index=np.arange(5) * 250.0,
-                                  columns=list('AB')),
-                     pd.DataFrame(np.random.randn(6, 2),
-                                  index=np.arange(4, 10) * 250.1,
-                                  columns=list('AB'))])
+   dfir = pd.concat(
+       [
+           pd.DataFrame(
+               np.random.randn(5, 2), index=np.arange(5) * 250.0, columns=list("AB")
+           ),
+           pd.DataFrame(
+               np.random.randn(6, 2),
+               index=np.arange(4, 10) * 250.1,
+               columns=list("AB"),
+           ),
+       ]
+   )
    dfir
 
 Selection operations then will always work on a value basis, for all selection operators.
@@ -929,7 +950,7 @@ Selection operations then will always work on a value basis, for all selection o
 .. ipython:: python
 
    dfir[0:1000.4]
-   dfir.loc[0:1001, 'A']
+   dfir.loc[0:1001, "A"]
    dfir.loc[1000.4]
 
 You could retrieve the first 1 second (1000 ms) of data as such:
@@ -963,8 +984,9 @@ An ``IntervalIndex`` can be used in ``Series`` and in ``DataFrame`` as the index
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1, 2, 3, 4]},
-                     index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
+   df = pd.DataFrame(
+       {"A": [1, 2, 3, 4]}, index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+   )
    df
 
 Label based indexing via ``.loc`` along the edges of an interval works as you would expect,
@@ -1041,9 +1063,9 @@ datetime-like intervals:
 
    pd.interval_range(start=0, end=5)
 
-   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4)
+   pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=4)
 
-   pd.interval_range(end=pd.Timedelta('3 days'), periods=3)
+   pd.interval_range(end=pd.Timedelta("3 days"), periods=3)
 
 The ``freq`` parameter can used to specify non-default frequencies, and can utilize a variety
 of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like intervals:
@@ -1052,20 +1074,18 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
 
    pd.interval_range(start=0, periods=5, freq=1.5)
 
-   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4, freq='W')
+   pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=4, freq="W")
 
-   pd.interval_range(start=pd.Timedelta('0 days'), periods=3, freq='9H')
+   pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
 
 Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
 are closed on.  Intervals are closed on the right side by default.
 
 .. ipython:: python
 
-   pd.interval_range(start=0, end=4, closed='both')
+   pd.interval_range(start=0, end=4, closed="both")
 
-   pd.interval_range(start=0, end=4, closed='neither')
-
-.. versionadded:: 0.23.0
+   pd.interval_range(start=0, end=4, closed="neither")
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
@@ -1075,8 +1095,7 @@ in the resulting ``IntervalIndex``:
 
    pd.interval_range(start=0, end=6, periods=4)
 
-   pd.interval_range(pd.Timestamp('2018-01-01'),
-                     pd.Timestamp('2018-02-28'), periods=3)
+   pd.interval_range(pd.Timestamp("2018-01-01"), pd.Timestamp("2018-02-28"), periods=3)
 
 Miscellaneous indexing FAQ
 --------------------------
@@ -1114,7 +1133,7 @@ normal Python ``list``. Monotonicity of an index can be tested with the :meth:`~
 
 .. ipython:: python
 
-    df = pd.DataFrame(index=[2, 3, 3, 4, 5], columns=['data'], data=list(range(5)))
+    df = pd.DataFrame(index=[2, 3, 3, 4, 5], columns=["data"], data=list(range(5)))
     df.index.is_monotonic_increasing
 
     # no rows 0 or 1, but still returns rows 2, 3 (both of them), and 4:
@@ -1128,8 +1147,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
 
 .. ipython:: python
 
-    df = pd.DataFrame(index=[2, 3, 1, 4, 3, 5],
-                      columns=['data'], data=list(range(6)))
+    df = pd.DataFrame(index=[2, 3, 1, 4, 3, 5], columns=["data"], data=list(range(6)))
     df.index.is_monotonic_increasing
 
     # OK because 2 and 4 are in the index
@@ -1151,7 +1169,7 @@ the :meth:`~Index.is_unique` attribute.
 
 .. ipython:: python
 
-   weakly_monotonic = pd.Index(['a', 'b', 'c', 'c'])
+   weakly_monotonic = pd.Index(["a", "b", "c", "c"])
    weakly_monotonic
    weakly_monotonic.is_monotonic_increasing
    weakly_monotonic.is_monotonic_increasing & weakly_monotonic.is_unique
@@ -1169,7 +1187,7 @@ consider the following ``Series``:
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(6), index=list('abcdef'))
+   s = pd.Series(np.random.randn(6), index=list("abcdef"))
    s
 
 Suppose we wished to slice from ``c`` to ``e``, using integers this would be
@@ -1192,7 +1210,7 @@ slicing include both endpoints:
 
 .. ipython:: python
 
-    s.loc['c':'e']
+    s.loc["c":"e"]
 
 This is most definitely a "practicality beats purity" sort of thing, but it is
 something to watch out for if you expect label-based slicing to behave exactly

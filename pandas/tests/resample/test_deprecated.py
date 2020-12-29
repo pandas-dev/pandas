@@ -41,24 +41,29 @@ def test_deprecating_on_loffset_and_base():
     # GH 31809
 
     idx = pd.date_range("2001-01-01", periods=4, freq="T")
-    df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
+    df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", base=0)
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", loffset="0s")
-    with tm.assert_produces_warning(FutureWarning):
+
+    # not checking the stacklevel for .groupby().resample() because it's complicated to
+    # reconcile it with the stacklevel for Series.resample() and DataFrame.resample();
+    # see GH #37603
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", loffset="0s").sum()
+    msg = "'offset' and 'base' cannot be present at the same time"
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            df.groupby("a").resample("3T", base=0, offset=0).sum()
+
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", base=0).sum()
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", loffset="0s").sum()
-    msg = "'offset' and 'base' cannot be present at the same time"
-    with tm.assert_produces_warning(FutureWarning):
-        with pytest.raises(ValueError, match=msg):
-            df.groupby("a").resample("3T", base=0, offset=0).sum()
 
 
 @all_ts
@@ -226,7 +231,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
 )
 def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, offset):
     # GH 23882
-    s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+    s = Series(0, index=pd.period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(end_freq, base=base).mean()

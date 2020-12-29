@@ -68,7 +68,8 @@ API changes
      :suppress:
 
      import pandas.tseries.offsets as offsets
-     d = pd.Timestamp('2014-01-01 09:00')
+
+     d = pd.Timestamp("2014-01-01 09:00")
 
   .. ipython:: python
 
@@ -100,15 +101,15 @@ Enhancements
      import pandas.tseries.offsets as offsets
 
      day = offsets.Day()
-     day.apply(pd.Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp("2014-01-01 09:00"))
 
      day = offsets.Day(normalize=True)
-     day.apply(pd.Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp("2014-01-01 09:00"))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
 - The file parsers ``read_csv`` and ``read_table`` now ignore line comments provided by
-  the parameter `comment`, which accepts only a single character for the C reader.
+  the parameter ``comment``, which accepts only a single character for the C reader.
   In particular, they allow for comments before file data begins (:issue:`2685`)
 - Add ``NotImplementedError`` for simultaneous use of ``chunksize`` and ``nrows``
   for read_csv() (:issue:`6774`).
@@ -123,8 +124,9 @@ Enhancements
 
   .. ipython:: python
 
-     rng = pd.date_range('3/6/2012 00:00', periods=10, freq='D',
-                         tz='dateutil/Europe/London')
+     rng = pd.date_range(
+         "3/6/2012 00:00", periods=10, freq="D", tz="dateutil/Europe/London"
+     )
      rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
@@ -150,7 +152,7 @@ Performance
 - Improvements in Series.transform for significant performance gains (:issue:`6496`)
 - Improvements in DataFrame.transform with ufuncs and built-in grouper functions for significant performance gains (:issue:`7383`)
 - Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
-- Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
+- Improvements in ``MultiIndex.from_product`` for large iterables (:issue:`7627`)
 
 
 .. _whatsnew_0141.experimental:
@@ -217,7 +219,7 @@ Bug fixes
 - Bug in ``.loc`` with a list of indexers on a single-multi index level (that is not nested) (:issue:`7349`)
 - Bug in ``Series.map`` when mapping a dict with tuple keys of different lengths (:issue:`7333`)
 - Bug all ``StringMethods`` now work on empty Series (:issue:`7242`)
-- Fix delegation of `read_sql` to `read_sql_query` when query does not contain 'select' (:issue:`7324`).
+- Fix delegation of ``read_sql`` to ``read_sql_query`` when query does not contain 'select' (:issue:`7324`).
 - Bug where a string column name assignment to a ``DataFrame`` with a
   ``Float64Index`` raised a ``TypeError`` during a call to ``np.isnan``
   (:issue:`7366`).
@@ -269,7 +271,7 @@ Bug fixes
 - Bug in ``pandas.core.strings.str_contains`` does not properly match in a case insensitive fashion when ``regex=False`` and ``case=False`` (:issue:`7505`)
 - Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, and ``rolling_corr`` for two arguments with mismatched index  (:issue:`7512`)
 - Bug in ``to_sql`` taking the boolean column as text column (:issue:`7678`)
-- Bug in grouped `hist` doesn't handle `rot` kw and `sharex` kw properly (:issue:`7234`)
+- Bug in grouped ``hist`` doesn't handle ``rot`` kw and ``sharex`` kw properly (:issue:`7234`)
 - Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
 - Bug (regression) in ``PeriodIndex`` constructor when passed ``Series`` objects (:issue:`7701`).
 

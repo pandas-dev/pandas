@@ -155,6 +155,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_merge(data, na_value)
 
+    @pytest.mark.xfail(reason="SparseArray does not support setitem")
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
@@ -316,9 +320,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         data._sparse_values[0] = data._sparse_values[1]
         assert result._sparse_values[0] != result._sparse_values[1]
 
-    @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
-    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
         # overriding because Sparse[int64, 0] cannot handle na_value
         self._check_unsupported(data)
@@ -353,7 +355,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
-        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
 

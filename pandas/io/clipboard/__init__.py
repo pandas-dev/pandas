@@ -45,6 +45,7 @@ __version__ = "1.7.0"
 import contextlib
 import ctypes
 from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+import distutils.spawn
 import os
 import platform
 import subprocess
@@ -274,7 +275,7 @@ def init_dev_clipboard_clipboard():
             fo.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard", "rt") as fo:
+        with open("/dev/clipboard") as fo:
             content = fo.read()
         return content
 
@@ -521,9 +522,8 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        with open("/proc/version", "r") as f:
-            if "Microsoft" in f.read():
-                return init_wsl_clipboard()
+        if distutils.spawn.find_executable("wslconfig.exe"):
+            return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
