@@ -9233,7 +9233,7 @@ NaN 12.3   33.0
         data = data.apply(f, axis=axis)
         # Ensure index is type stable (should always use int index)
         if data.empty:
-            data.index = Index([], dtype=int)
+            data.index = ibase.default_index(0)
 
         return data
 

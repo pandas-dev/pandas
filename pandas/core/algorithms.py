@@ -927,7 +927,8 @@ def mode(values, dropna: bool = True) -> Series:
     -------
     mode : Series
     """
-    from pandas import Index, Series
+    from pandas import Series
+    import pandas.core.indexes.base as ibase
 
     values = _ensure_arraylike(values)
     original = values
@@ -955,8 +956,7 @@ def mode(values, dropna: bool = True) -> Series:
 
     result = _reconstruct_data(result, original.dtype, original)
     # Ensure index is type stable (should always use int index)
-    index = None if len(result) else Index([], dtype=int)
-    return Series(result, index=index)
+    return Series(result, index=ibase.default_index(len(result)))
 
 
 def rank(
