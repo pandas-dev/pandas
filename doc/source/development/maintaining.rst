@@ -162,8 +162,8 @@ can comment::
 
 on that pull request. This will trigger a workflow which will autofix formatting errors.
 
-Backporting (optional)
-----------------------
+Backporting
+-----------
 
 In the case you want to apply changes to a stable branch from a newer branch then you
 can comment::
