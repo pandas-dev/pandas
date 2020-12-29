@@ -1016,7 +1016,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     _union = _setop("union")
     difference = _setop("difference")
-    symmetric_difference = _setop("symmetric_difference")
 
     # --------------------------------------------------------------------
 
