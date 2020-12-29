@@ -166,14 +166,23 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     elif isinstance(value, Timedelta):
         value = value.to_timedelta64()
 
-    if (isinstance(value, np.timedelta64) and dtype.kind == "M") or (
-        isinstance(value, np.datetime64) and dtype.kind == "m"
-    ):
-        # numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
-        #  vice-versa, but we do not want to allow this, so we need to
-        #  check explicitly
-        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
+    _disallow_mismatched_datetimelike(value, dtype)
     return value
+
+
+def _disallow_mismatched_datetimelike(value: DtypeObj, dtype: DtypeObj):
+    """
+    numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
+    vice-versa, but we do not want to allow this, so we need to
+    check explicitly
+    """
+    vdtype = getattr(value, "dtype", None)
+    if vdtype is None:
+        return
+    elif (vdtype.kind == "m" and dtype.kind == "M") or (
+        vdtype.kind == "M" and dtype.kind == "m"
+    ):
+        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
@@ -1715,6 +1724,8 @@ def construct_1d_ndarray_preserving_na(
     if dtype is not None and dtype.kind == "U":
         subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
     else:
+        if dtype is not None:
+            _disallow_mismatched_datetimelike(values, dtype)
         subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr

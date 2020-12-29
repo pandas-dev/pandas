@@ -2925,12 +2925,31 @@ def get1(obj):
 
 
 class TestFromScalar:
-    @pytest.fixture
-    def constructor(self, frame_or_series):
-        if frame_or_series is Series:
-            return functools.partial(Series, index=range(2))
+    @pytest.fixture(params=[list, dict, None])
+    def constructor(self, request, frame_or_series):
+        box = request.param
+
+        extra = {"index": range(2)}
+        if frame_or_series is DataFrame:
+            extra["columns"] = ["A"]
+
+        if box is None:
+            return functools.partial(frame_or_series, **extra)
+
+        elif box is dict:
+            if frame_or_series is Series:
+                return lambda x, **kwargs: frame_or_series(
+                    {0: x, 1: x}, **extra, **kwargs
+                )
+            else:
+                return lambda x, **kwargs: frame_or_series({"A": x}, **extra, **kwargs)
         else:
-            return functools.partial(DataFrame, index=range(2), columns=range(2))
+            if frame_or_series is Series:
+                return lambda x, **kwargs: frame_or_series([x, x], **extra, **kwargs)
+            else:
+                return lambda x, **kwargs: frame_or_series(
+                    {"A": [x, x]}, **extra, **kwargs
+                )
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_from_nat_scalar(self, dtype, constructor):
@@ -2951,7 +2970,8 @@ class TestFromScalar:
         assert get1(obj) == ts
 
     def test_from_timedelta64_scalar_object(self, constructor, request):
-        if constructor.func is DataFrame and _np_version_under1p20:
+        if getattr(constructor, "func", None) is DataFrame and _np_version_under1p20:
+            # getattr check means we only xfail when box is None
             mark = pytest.mark.xfail(
                 reason="np.array(td64, dtype=object) converts to int"
             )
@@ -2964,7 +2984,15 @@ class TestFromScalar:
         assert isinstance(get1(obj), np.timedelta64)
 
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
-    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
+        node = request.node
+        params = node.callspec.params
+        if params["frame_or_series"] is DataFrame and params["constructor"] is not None:
+            mark = pytest.mark.xfail(
+                reason="DataFrame incorrectly allows mismatched datetimelike"
+            )
+            node.add_marker(mark)
+
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
