@@ -842,9 +842,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            if isinstance(self.obj, ABCSeries) or not any(isinstance(x, slice) for x in tup):
-                # GH#10521 IndexingError is not raised for slices for objs with one row
-                #  so we have to catch this case here
+            if isinstance(self.obj, ABCSeries) or not any(
+                isinstance(x, slice) for x in tup
+            ):
+                # GH#10521 Series should reduce MultiIndex dimensions instead of
+                #  DataFrame, IndexingError is not raised when slice(None,None,None)
+                #  with one row.
                 with suppress(IndexingError):
                     return self._handle_lowerdim_multi_index_axis0(tup)
 
