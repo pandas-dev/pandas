@@ -225,6 +225,20 @@ class Groupby:
         getattr(self.groupby_roll_offset, method)()
 
 
+class GroupbyLargeGroups:
+    # https://github.com/pandas-dev/pandas/issues/38038
+    # specific example where the rolling operation on a larger dataframe
+    # is relatively cheap (few but large groups), but creation of
+    # MultiIndex of result can be expensive
+
+    def setup(self):
+        N = 100000
+        self.df = pd.DataFrame({"A": [1, 2] * int(N / 2), "B": np.random.randn(N)})
+
+    def time_rolling_multiindex_creation(self):
+        self.df.groupby("A").rolling(3).mean()
+
+
 class GroupbyEWM:
 
     params = ["cython", "numba"]
@@ -236,6 +250,24 @@ class GroupbyEWM:
 
     def time_groupby_mean(self, engine):
         self.gb_ewm.mean(engine=engine)
+
+
+def table_method_func(x):
+    return np.sum(x, axis=0) + 1
+
+
+class TableMethod:
+
+    params = ["single", "table"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
+
+    def time_apply(self, method):
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

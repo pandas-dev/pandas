@@ -393,7 +393,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1, np.int64),
             (1.1, 1.1, np.float64),
-            (False, 0, np.int64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -409,7 +409,7 @@ class TestInsertIndexCoercion(CoercionBase):
         [
             (1, 1.0, np.float64),
             (1.1, 1.1, np.float64),
-            (False, 0.0, np.float64),
+            (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
@@ -506,7 +506,9 @@ class TestInsertIndexCoercion(CoercionBase):
         else:
             msg = r"Unexpected keyword arguments {'freq'}"
             with pytest.raises(TypeError, match=msg):
-                pd.Index(data, freq="M")
+                with tm.assert_produces_warning(FutureWarning):
+                    # passing keywords to pd.Index
+                    pd.Index(data, freq="M")
 
     def test_insert_index_complex128(self):
         pytest.xfail("Test not implemented")

@@ -161,7 +161,6 @@ cdef extern from "parser/tokenizer.h":
 
         char commentchar
         int allow_embedded_newline
-        int strict                 # raise exception on bad CSV */
 
         int usecols
 
@@ -739,8 +738,8 @@ cdef class TextReader:
                 elif self.names is None and nuse < passed_count:
                     self.leading_cols = field_count - passed_count
                 elif passed_count != field_count:
-                    raise ValueError('Passed header names '
-                                     'mismatches usecols')
+                    raise ValueError('Number of passed names did not match number of '
+                                     'header fields in the file')
             # oh boy, #2442, #2981
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count

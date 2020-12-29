@@ -24,12 +24,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
-    ABCIndex,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -204,7 +199,7 @@ def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
-    elif isinstance(values, ABCIndexClass):
+    elif isinstance(values, ABCIndex):
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:

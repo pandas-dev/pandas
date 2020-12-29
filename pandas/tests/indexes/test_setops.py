@@ -98,13 +98,20 @@ def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
         ("Period[D]", "float64", "object"),
     ],
 )
-def test_union_dtypes(left, right, expected):
+@pytest.mark.parametrize("names", [("foo", "foo", "foo"), ("foo", "bar", None)])
+def test_union_dtypes(left, right, expected, names):
     left = pandas_dtype(left)
     right = pandas_dtype(right)
-    a = pd.Index([], dtype=left)
-    b = pd.Index([], dtype=right)
-    result = a.union(b).dtype
-    assert result == expected
+    a = pd.Index([], dtype=left, name=names[0])
+    b = pd.Index([], dtype=right, name=names[1])
+    result = a.union(b)
+    assert result.dtype == expected
+    assert result.name == names[2]
+
+    # Testing name retention
+    # TODO: pin down desired dtype; do we want it to be commutative?
+    result = a.intersection(b)
+    assert result.name == names[2]
 
 
 def test_dunder_inplace_setops_deprecated(index):
@@ -118,6 +125,16 @@ def test_dunder_inplace_setops_deprecated(index):
 
     with tm.assert_produces_warning(FutureWarning):
         index ^= index
+
+
+@pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
+def test_intersection_duplicates(values):
+    # GH#31326
+    a = pd.Index(values)
+    b = pd.Index([3, 3])
+    result = a.intersection(b)
+    expected = pd.Index([3])
+    tm.assert_index_equal(result, expected)
 
 
 class TestSetOps:
@@ -231,13 +248,14 @@ class TestSetOps:
         # GH#10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            if is_datetime64tz_dtype(first):
-                with pytest.raises(ValueError, match="Tz-aware"):
-                    # `second.values` casts to tznaive
-                    # TODO: should the symmetric_difference then be the union?
-                    first.symmetric_difference(case)
-                continue
             result = first.symmetric_difference(case)
+
+            if is_datetime64tz_dtype(first):
+                # second.values casts to tznaive
+                expected = first.union(case)
+                tm.assert_index_equal(result, expected)
+                continue
+
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
@@ -378,6 +396,25 @@ class TestSetOps:
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
+    def test_intersection_name_retention_with_nameless(self, index):
+        if isinstance(index, MultiIndex):
+            index = index.rename(list(range(index.nlevels)))
+        else:
+            index = index.rename("foo")
+
+        other = np.asarray(index)
+
+        result = index.intersection(other)
+        assert result.name == index.name
+
+        # empty other, same dtype
+        result = index.intersection(other[:0])
+        assert result.name == index.name
+
+        # empty `self`
+        result = index[:0].intersection(other)
+        assert result.name == index.name
+
     def test_difference_preserves_type_empty(self, index, sort):
         # GH#20040
         # If taking difference of a set and itself, it
@@ -385,7 +422,19 @@ class TestSetOps:
         if not index.is_unique:
             return
         result = index.difference(index, sort=sort)
-        expected = index.drop(index)
+        expected = index[:0]
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_difference_name_retention_equals(self, index, sort, names):
+        if isinstance(index, MultiIndex):
+            names = [[x] * index.nlevels for x in names]
+        index = index.rename(names[0])
+        other = index.rename(names[1])
+
+        assert index.equals(other)
+
+        result = index.difference(other)
+        expected = index[:0].rename(names[2])
         tm.assert_index_equal(result, expected)
 
     def test_intersection_difference_match_empty(self, index, sort):
@@ -395,6 +444,25 @@ class TestSetOps:
         # of an index with itself.  Test for all types
         if not index.is_unique:
             return
-        inter = index.intersection(index.drop(index))
+        inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
-        tm.assert_index_equal(inter, diff)
+        tm.assert_index_equal(inter, diff, exact=True)
+
+
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+def test_setop_with_categorical(index, sort, method):
+    if isinstance(index, MultiIndex):
+        # tested separately in tests.indexes.multi.test_setops
+        return
+
+    other = index.astype("category")
+
+    result = getattr(index, method)(other, sort=sort)
+    expected = getattr(index, method)(index, sort=sort)
+    tm.assert_index_equal(result, expected)
+
+    result = getattr(index, method)(other[:5], sort=sort)
+    expected = getattr(index, method)(index[:5], sort=sort)
+    tm.assert_index_equal(result, expected)

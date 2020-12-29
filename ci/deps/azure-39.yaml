@@ -15,3 +15,8 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
+
+  # optional dependencies
+  - pytables
+  - scipy
+  - pyarrow=1.0
