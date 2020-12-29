@@ -704,3 +704,8 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     expected = df.copy()
     result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
+
+    ser = Series([0], index=mi)
+    result = ser.loc["x", :, "z"]
+    expected = Series([0], index=Index(["y"], name="b"))
+    tm.assert_series_equal(result, expected)
