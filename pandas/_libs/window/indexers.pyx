@@ -46,7 +46,6 @@ def calculate_variable_window_bounds(
         bint left_closed = False
         bint right_closed = False
         bint center_window = False
-        int index_growth_sign = 1
         ndarray[int64_t, ndim=1] start, end
         int64_t start_bound, end_bound, index_growth_sign = 1
         Py_ssize_t i, j
