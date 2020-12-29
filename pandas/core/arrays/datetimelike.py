@@ -741,7 +741,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.zeros(self.shape, dtype=bool)
 
         if not isinstance(values, type(self)):
-            inferrable = [
+            inferable = [
                 "timedelta",
                 "timedelta64",
                 "datetime",
@@ -751,7 +751,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             ]
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
+                if inferred not in inferable:
                     if inferred == "string":
                         pass
 
