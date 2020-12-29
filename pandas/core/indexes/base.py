@@ -2653,6 +2653,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"None or False; {sort} was passed."
             )
 
+    @final
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
@@ -2703,12 +2704,59 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([1, 2, 3, 4])
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
+
+        MultiIndex case
+
+        >>> idx1 = pd.MultiIndex.from_arrays(
+        ...     [[1, 1, 2, 2], ["Red", "Blue", "Red", "Blue"]]
+        ... )
+        >>> idx1
+        MultiIndex([(1,  'Red'),
+            (1, 'Blue'),
+            (2,  'Red'),
+            (2, 'Blue')],
+           )
+        >>> idx2 = pd.MultiIndex.from_arrays(
+        ...     [[3, 3, 2, 2], ["Red", "Green", "Red", "Green"]]
+        ... )
+        >>> idx2
+        MultiIndex([(3,   'Red'),
+            (3, 'Green'),
+            (2,   'Red'),
+            (2, 'Green')],
+           )
+        >>> idx1.union(idx2)
+        MultiIndex([(1,  'Blue'),
+            (1,   'Red'),
+            (2,  'Blue'),
+            (2, 'Green'),
+            (2,   'Red'),
+            (3, 'Green'),
+            (3,   'Red')],
+           )
+        >>> idx1.union(idx2, sort=False)
+        MultiIndex([(1,   'Red'),
+            (1,  'Blue'),
+            (2,   'Red'),
+            (2,  'Blue'),
+            (3,   'Red'),
+            (3, 'Green'),
+            (2, 'Green')],
+           )
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
+            if isinstance(self, ABCMultiIndex) and not is_object_dtype(
+                unpack_nested_dtype(other)
+            ):
+                raise NotImplementedError(
+                    "Can only union MultiIndex with MultiIndex or Index of tuples, "
+                    "try mi.to_flat_index().union(other) instead."
+                )
+
             dtype = find_common_type([self.dtype, other.dtype])
             if self._is_numeric_dtype and other._is_numeric_dtype:
                 # Right now, we treat union(int, float) a bit special.
@@ -2726,6 +2774,14 @@ class Index(IndexOpsMixin, PandasObject):
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
             return left.union(right, sort=sort)
+
+        elif not len(other) or self.equals(other):
+            # NB: whether this (and the `if not len(self)` check below) come before
+            #  or after the is_dtype_equal check above affects the returned dtype
+            return self._get_reconciled_name_object(other)
+
+        elif not len(self):
+            return other._get_reconciled_name_object(self)
 
         result = self._union(other, sort=sort)
 
@@ -2750,12 +2806,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
-        if not len(other) or self.equals(other):
-            return self
-
-        if not len(self):
-            return other
-
         # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
         rvals = other._values
@@ -2816,6 +2866,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(result, name=name)
 
     # TODO: standardize return type of non-union setops type(self vs other)
+    @final
     def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
@@ -3033,9 +3084,17 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
+        if not self._should_compare(other):
+            return self.union(other).rename(result_name)
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            dtype = find_common_type([self.dtype, other.dtype])
+            this = self.astype(dtype, copy=False)
+            that = other.astype(dtype, copy=False)
+            return this.symmetric_difference(that, sort=sort).rename(result_name)
+
         this = self._get_unique_index()
         other = other._get_unique_index()
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer_for(other)
 
         # {this} minus {other}
         common_indexer = indexer.take((indexer != -1).nonzero()[0])
@@ -3055,7 +3114,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return Index(the_diff, dtype=self.dtype, name=result_name)
+        return Index(the_diff, name=result_name)
 
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
