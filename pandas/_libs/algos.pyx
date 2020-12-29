@@ -328,8 +328,11 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
+        const int64_t[:] labels_n, labels_nobs
 
     N, K = (<object>mat).shape
+    # For compatibility when calling rank_1d
+    labels_n = np.zeros(N, dtype=np.int64)
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -337,7 +340,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
     ranked_mat = np.empty((N, K), dtype=np.float64)
 
     for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i])
+        ranked_mat[:, i] = rank_1d(mat[:, i], labels=labels_n)
 
     for xi in range(K):
         for yi in range(xi + 1):
@@ -363,8 +366,9 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                         j += 1
 
                 if not all_ranks:
-                    maskedx = rank_1d(maskedx)
-                    maskedy = rank_1d(maskedy)
+                    labels_nobs = np.zeros(nobs, dtype=np.int64)
+                    maskedx = rank_1d(maskedx, labels=labels_nobs)
+                    maskedy = rank_1d(maskedy, labels=labels_nobs)
 
                 mean = (nobs + 1) / 2.
 
@@ -793,11 +797,11 @@ ctypedef fused rank_t:
 @cython.boundscheck(False)
 def rank_1d(
     ndarray[rank_t, ndim=1] in_arr,
+    const int64_t[:] labels,
     ties_method="average",
     bint ascending=True,
-    na_option="keep",
     bint pct=False,
-    labels=None,
+    na_option="keep",
 ):
     """
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
@@ -805,6 +809,9 @@ def rank_1d(
     Parameters
     ----------
     in_arr : array of rank_t values to be ranked
+    labels : array containing unique label for each group, with its ordering
+        matching up to the corresponding record in `values`. If not called
+        from a groupby operation, will be an array of 0's
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
         'average'
         * average: average rank of group
@@ -815,14 +822,12 @@ def rank_1d(
     ascending : boolean, default True
         False for ranks by high (1) to low (N)
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
+    pct : boolean, default False
+        Compute percentage rank of data within each group
     na_option : {'keep', 'top', 'bottom'}, default 'keep'
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
-    pct : boolean, default False
-        Compute percentage rank of data within each group
-    labels : optional array containing group labels (used only when called
-             from group_rank())
     """
     cdef:
         TiebreakEnumType tiebreak
@@ -834,7 +839,6 @@ def rank_1d(
         ndarray[uint8_t, ndim=1] mask
         bint keep_na, at_end, next_val_diff, check_labels
         rank_t nan_fill_val
-        int64_t[:] labels_
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
@@ -842,12 +846,9 @@ def rank_1d(
     N = len(in_arr)
     out = np.empty(N)
     grp_sizes = np.ones(N)
-
-    check_labels = labels is not None
-    if labels is None:
-        labels_ = np.zeros(N, dtype=np.int64)
-    else:
-        labels_ = labels
+    # If all 0 labels, can short-circuit later label
+    # comparisons
+    check_labels = np.count_nonzero(labels) != 0
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -874,7 +875,7 @@ def rank_1d(
             nan_fill_val = np.iinfo(np.uint64).max
         else:
             nan_fill_val = np.inf
-        order = (masked_vals, mask, labels_)
+        order = (masked_vals, mask, labels)
     else:
         if rank_t is object:
             nan_fill_val = NegInfinity()
@@ -885,7 +886,7 @@ def rank_1d(
         else:
             nan_fill_val = -np.inf
 
-        order = (masked_vals, ~mask, labels_)
+        order = (masked_vals, ~mask, labels)
 
     np.putmask(masked_vals, mask, nan_fill_val)
 
@@ -903,85 +904,170 @@ def rank_1d(
     # that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    for i in range(N):
-        at_end = i == N - 1
-        # dups and sum_ranks will be incremented each loop where
-        # the value / group remains the same, and should be reset
-        # when either of those change
-        # Used to calculate tiebreakers
-        dups += 1
-        sum_ranks += i - grp_start + 1
+    # TODO: de-duplicate once cython supports conditional nogil
+    if rank_t is object:
+        for i in range(N):
+            at_end = i == N - 1
+            # dups and sum_ranks will be incremented each loop where
+            # the value / group remains the same, and should be reset
+            # when either of those change
+            # Used to calculate tiebreakers
+            dups += 1
+            sum_ranks += i - grp_start + 1
 
-        # Update out only when there is a transition of values or labels.
-        # When a new value or group is encountered, go back #dups steps(
-        # the number of occurrence of current value) and assign the ranks
-        # based on the starting index of the current group (grp_start)
-        # and the current index
-        if not at_end:
-            if rank_t is object:
-                next_val_diff = are_diff(masked_vals[_as[i]], masked_vals[_as[i+1]])
-            else:
-                next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
-        else:
-            next_val_diff = True
-
-        if (next_val_diff
-                or (mask[_as[i]] ^ mask[_as[i+1]])
-                or (check_labels and (labels_[_as[i]] != labels_[_as[i+1]]))
-        ):
-            # if keep_na, check for missing values and assign back
-            # to the result where appropriate
-            if keep_na and mask[_as[i]]:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j]] = NaN
-                    grp_na_count = dups
-            elif tiebreak == TIEBREAK_AVERAGE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j]] = sum_ranks / <float64_t>dups
-            elif tiebreak == TIEBREAK_MIN:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j]] = i - grp_start - dups + 2
-            elif tiebreak == TIEBREAK_MAX:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j]] = i - grp_start + 1
-            elif tiebreak == TIEBREAK_FIRST:
-                for j in range(i - dups + 1, i + 1):
-                    if ascending:
-                        out[_as[j]] = j + 1 - grp_start
-                    else:
-                        out[_as[j]] = 2 * i - j - dups + 2 - grp_start
-            elif tiebreak == TIEBREAK_DENSE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j]] = grp_vals_seen
-
-            # look forward to the next value (using the sorting in _as)
-            # if the value does not equal the current value then we need to
-            # reset the dups and sum_ranks, knowing that a new value is
-            # coming up. the conditional also needs to handle nan equality
-            # and the end of iteration
-            if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
-                dups = sum_ranks = 0
-                grp_vals_seen += 1
-                grp_tie_count += 1
-
-            # Similar to the previous conditional, check now if we are
-            # moving to a new group. If so, keep track of the index where
-            # the new group occurs, so the tiebreaker calculations can
-            # decrement that from their position. fill in the size of each
-            # group encountered (used by pct calculations later). also be
-            # sure to reset any of the items helping to calculate dups
-            if at_end or (check_labels and (labels_[_as[i]] != labels_[_as[i+1]])):
-                if tiebreak != TIEBREAK_DENSE:
-                    for j in range(grp_start, i + 1):
-                        grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
+            # Update out only when there is a transition of values or labels.
+            # When a new value or group is encountered, go back #dups steps(
+            # the number of occurrence of current value) and assign the ranks
+            # based on the starting index of the current group (grp_start)
+            # and the current index
+            if not at_end:
+                if rank_t is object:
+                    next_val_diff = are_diff(masked_vals[_as[i]], masked_vals[_as[i+1]])
                 else:
-                    for j in range(grp_start, i + 1):
-                        grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
-                dups = sum_ranks = 0
-                grp_na_count = 0
-                grp_tie_count = 0
-                grp_start = i + 1
-                grp_vals_seen = 1
+                    next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
+            else:
+                next_val_diff = True
+
+            if (next_val_diff
+                    or (mask[_as[i]] ^ mask[_as[i+1]])
+                    or (check_labels and (labels[_as[i]] != labels[_as[i+1]]))
+            ):
+                # if keep_na, check for missing values and assign back
+                # to the result where appropriate
+                if keep_na and mask[_as[i]]:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j]] = NaN
+                        grp_na_count = dups
+                elif tiebreak == TIEBREAK_AVERAGE:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j]] = sum_ranks / <float64_t>dups
+                elif tiebreak == TIEBREAK_MIN:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j]] = i - grp_start - dups + 2
+                elif tiebreak == TIEBREAK_MAX:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j]] = i - grp_start + 1
+                elif tiebreak == TIEBREAK_FIRST:
+                    for j in range(i - dups + 1, i + 1):
+                        if ascending:
+                            out[_as[j]] = j + 1 - grp_start
+                        else:
+                            out[_as[j]] = 2 * i - j - dups + 2 - grp_start
+                elif tiebreak == TIEBREAK_DENSE:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j]] = grp_vals_seen
+
+                # look forward to the next value (using the sorting in _as)
+                # if the value does not equal the current value then we need to
+                # reset the dups and sum_ranks, knowing that a new value is
+                # coming up. the conditional also needs to handle nan equality
+                # and the end of iteration
+                if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
+                    dups = sum_ranks = 0
+                    grp_vals_seen += 1
+                    grp_tie_count += 1
+
+                # Similar to the previous conditional, check now if we are
+                # moving to a new group. If so, keep track of the index where
+                # the new group occurs, so the tiebreaker calculations can
+                # decrement that from their position. fill in the size of each
+                # group encountered (used by pct calculations later). also be
+                # sure to reset any of the items helping to calculate dups
+                if at_end or (check_labels and (labels[_as[i]] != labels[_as[i+1]])):
+                    if tiebreak != TIEBREAK_DENSE:
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
+                    else:
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
+                    dups = sum_ranks = 0
+                    grp_na_count = 0
+                    grp_tie_count = 0
+                    grp_start = i + 1
+                    grp_vals_seen = 1
+    else:
+        with nogil:
+            for i in range(N):
+                at_end = i == N - 1
+                # dups and sum_ranks will be incremented each loop where
+                # the value / group remains the same, and should be reset
+                # when either of those change
+                # Used to calculate tiebreakers
+                dups += 1
+                sum_ranks += i - grp_start + 1
+
+                # Update out only when there is a transition of values or labels.
+                # When a new value or group is encountered, go back #dups steps(
+                # the number of occurrence of current value) and assign the ranks
+                # based on the starting index of the current group (grp_start)
+                # and the current index
+                if not at_end:
+                    if rank_t is object:
+                        next_val_diff = are_diff(masked_vals[_as[i]],
+                                                 masked_vals[_as[i+1]])
+                    else:
+                        next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
+                else:
+                    next_val_diff = True
+
+                if (next_val_diff
+                        or (mask[_as[i]] ^ mask[_as[i+1]])
+                        or (check_labels and (labels[_as[i]] != labels[_as[i+1]]))
+                ):
+                    # if keep_na, check for missing values and assign back
+                    # to the result where appropriate
+                    if keep_na and mask[_as[i]]:
+                        for j in range(i - dups + 1, i + 1):
+                            out[_as[j]] = NaN
+                            grp_na_count = dups
+                    elif tiebreak == TIEBREAK_AVERAGE:
+                        for j in range(i - dups + 1, i + 1):
+                            out[_as[j]] = sum_ranks / <float64_t>dups
+                    elif tiebreak == TIEBREAK_MIN:
+                        for j in range(i - dups + 1, i + 1):
+                            out[_as[j]] = i - grp_start - dups + 2
+                    elif tiebreak == TIEBREAK_MAX:
+                        for j in range(i - dups + 1, i + 1):
+                            out[_as[j]] = i - grp_start + 1
+                    elif tiebreak == TIEBREAK_FIRST:
+                        for j in range(i - dups + 1, i + 1):
+                            if ascending:
+                                out[_as[j]] = j + 1 - grp_start
+                            else:
+                                out[_as[j]] = 2 * i - j - dups + 2 - grp_start
+                    elif tiebreak == TIEBREAK_DENSE:
+                        for j in range(i - dups + 1, i + 1):
+                            out[_as[j]] = grp_vals_seen
+
+                    # look forward to the next value (using the sorting in _as)
+                    # if the value does not equal the current value then we need to
+                    # reset the dups and sum_ranks, knowing that a new value is
+                    # coming up. the conditional also needs to handle nan equality
+                    # and the end of iteration
+                    if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
+                        dups = sum_ranks = 0
+                        grp_vals_seen += 1
+                        grp_tie_count += 1
+
+                    # Similar to the previous conditional, check now if we are
+                    # moving to a new group. If so, keep track of the index where
+                    # the new group occurs, so the tiebreaker calculations can
+                    # decrement that from their position. fill in the size of each
+                    # group encountered (used by pct calculations later). also be
+                    # sure to reset any of the items helping to calculate dups
+                    if at_end or (check_labels and
+                                  (labels[_as[i]] != labels[_as[i+1]])):
+                        if tiebreak != TIEBREAK_DENSE:
+                            for j in range(grp_start, i + 1):
+                                grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
+                        else:
+                            for j in range(grp_start, i + 1):
+                                grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
+                        dups = sum_ranks = 0
+                        grp_na_count = 0
+                        grp_tie_count = 0
+                        grp_start = i + 1
+                        grp_vals_seen = 1
 
     if pct:
         for i in range(N):
@@ -1018,6 +1104,7 @@ def rank_2d(
         bint keep_na = False
         float64_t count = 0.0
         bint condition, skip_condition
+        const int64_t[:] labels
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1060,6 +1147,8 @@ def rank_2d(
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
+    # For compatibility when calling rank_1d
+    labels = np.zeros(k, dtype=np.int64)
 
     if rank_t is object:
         try:
@@ -1067,8 +1156,13 @@ def rank_2d(
         except TypeError:
             values = in_arr
             for i in range(len(values)):
-                ranks[i] = rank_1d(in_arr[i], ties_method=ties_method,
-                                   ascending=ascending, pct=pct)
+                ranks[i] = rank_1d(
+                    in_arr[i],
+                    labels=labels,
+                    ties_method=ties_method,
+                    ascending=ascending,
+                    pct=pct
+                )
             if axis == 0:
                 return ranks.T
             else:
