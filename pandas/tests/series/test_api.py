@@ -172,7 +172,7 @@ class TestSeriesMisc:
 
     @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
-        # GH38740
+        # GH38782
         ser = Series()
         with tm.assert_produces_warning(None):
             inspect.getmembers(ser)
