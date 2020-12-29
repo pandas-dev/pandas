@@ -2,7 +2,17 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Sequence, Type, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Hashable,
+    List,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 from warnings import warn
 
 import numpy as np
@@ -57,6 +67,10 @@ from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
+
+if TYPE_CHECKING:
+    from pandas import Index
+
 
 CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
@@ -1708,13 +1722,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             mask = self.isna()
 
             new_codes = self._validate_setitem_value(value)
-
-            if isinstance(value, (np.ndarray, Categorical)):
-                # We get ndarray or Categorical if called via Series.fillna,
-                #  where it will unwrap another aligned Series before getting here
-                codes[mask] = new_codes[mask]
-            else:
-                codes[mask] = new_codes
+            np.putmask(codes, mask, new_codes)
 
         return self._from_backing_data(codes)
 
@@ -2510,7 +2518,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories) -> np.ndarray:
+def _get_codes_for_values(values, categories: "Index") -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
 
