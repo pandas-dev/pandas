@@ -31,5 +31,8 @@ class TestPipe:
             obj = obj["A"]
 
         f = lambda x, y: y
-        with pytest.raises(ValueError):
+
+        msg = "y is both the pipe target and a keyword argument"
+
+        with pytest.raises(ValueError, match=msg):
             obj.pipe((f, "y"), x=1, y=0)

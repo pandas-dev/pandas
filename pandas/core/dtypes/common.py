@@ -639,6 +639,19 @@ def is_dtype_equal(source, target) -> bool:
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
+    if isinstance(target, str):
+        if not isinstance(source, str):
+            # GH#38516 ensure we get the same behavior from
+            #  is_dtype_equal(CDT, "category") and CDT == "category"
+            try:
+                src = get_dtype(source)
+                if isinstance(src, ExtensionDtype):
+                    return src == target
+            except (TypeError, AttributeError):
+                return False
+    elif isinstance(source, str):
+        return is_dtype_equal(target, source)
+
     try:
         source = get_dtype(source)
         target = get_dtype(target)
@@ -1397,7 +1410,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
+        return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)
 

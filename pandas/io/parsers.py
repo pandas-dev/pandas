@@ -74,7 +74,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
+from pandas.io.common import IOHandles, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -774,7 +774,7 @@ class TextFileReader(abc.Iterator):
 
     def __init__(self, f, engine=None, **kwds):
 
-        self.f = stringify_path(f)
+        self.f = f
 
         if engine is not None:
             engine_specified = True
@@ -859,14 +859,14 @@ class TextFileReader(abc.Iterator):
 
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
-        if is_file_like(f):
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__next__"):
             # The C engine doesn't need the file-like to have the "__next__"
             # attribute. However, the Python engine explicitly calls
             # "__next__(...)" when iterating through such an object, meaning it
             # needs to have that attribute
-            if engine != "c" and not hasattr(f, "__next__"):
-                msg = "The 'python' engine cannot iterate through this file buffer."
-                raise ValueError(msg)
+            raise ValueError(
+                "The 'python' engine cannot iterate through this file buffer."
+            )
 
     def _clean_options(self, options, engine):
         result = options.copy()
@@ -1689,9 +1689,8 @@ class ParserBase:
                     values, set(col_na_values) | col_na_fvalues, try_num_bool=False
                 )
             else:
-                is_str_or_ea_dtype = is_string_dtype(
-                    cast_type
-                ) or is_extension_array_dtype(cast_type)
+                is_ea = is_extension_array_dtype(cast_type)
+                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
                 # skip inference if specified dtype is object
                 # or casting to an EA
                 try_num_bool = not (cast_type and is_str_or_ea_dtype)
@@ -1706,16 +1705,16 @@ class ParserBase:
                     not is_dtype_equal(cvals, cast_type)
                     or is_extension_array_dtype(cast_type)
                 ):
-                    try:
-                        if (
-                            is_bool_dtype(cast_type)
-                            and not is_categorical_dtype(cast_type)
-                            and na_count > 0
-                        ):
-                            raise ValueError(f"Bool column has NA values in column {c}")
-                    except (AttributeError, TypeError):
-                        # invalid input to is_bool_dtype
-                        pass
+                    if not is_ea and na_count > 0:
+                        try:
+                            if is_bool_dtype(cast_type):
+                                raise ValueError(
+                                    f"Bool column has NA values in column {c}"
+                                )
+                        except (AttributeError, TypeError):
+                            # invalid input to is_bool_dtype
+                            pass
+                    cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -2984,7 +2983,11 @@ class PythonParser(ParserBase):
         for line in lines:
             rl = []
             for x in line:
-                if not isinstance(x, str) or self.comment not in x:
+                if (
+                    not isinstance(x, str)
+                    or self.comment not in x
+                    or x in self.na_values
+                ):
                     rl.append(x)
                 else:
                     x = x[: x.find(self.comment)]

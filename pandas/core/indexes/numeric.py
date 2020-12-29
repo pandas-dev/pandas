@@ -46,11 +46,20 @@ class NumericIndex(Index):
     _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
-        cls._validate_dtype(dtype)
         name = maybe_extract_name(name, data, cls)
 
-        # Coerce to ndarray if not already ndarray or Index
+        subarr = cls._ensure_array(data, dtype, copy)
+        return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        cls._validate_dtype(dtype)
+
         if not isinstance(data, (np.ndarray, Index)):
+            # Coerce to ndarray if not already ndarray or Index
             if is_scalar(data):
                 raise cls._scalar_data_error(data)
 
@@ -74,7 +83,7 @@ class NumericIndex(Index):
             raise ValueError("Index data must be 1-dimensional")
 
         subarr = np.asarray(subarr)
-        return cls._simple_new(subarr, name=name)
+        return subarr
 
     @classmethod
     def _validate_dtype(cls, dtype: Dtype) -> None:
@@ -182,23 +191,6 @@ class NumericIndex(Index):
         """
         return False
 
-    def _union(self, other, sort):
-        # Right now, we treat union(int, float) a bit special.
-        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
-        # We may change union(int, float) to go to object.
-        # float | [u]int -> float  (the special case)
-        # <T>   | <T>    -> T
-        # <T>   | <U>    -> object
-        needs_cast = (is_integer_dtype(self.dtype) and is_float_dtype(other.dtype)) or (
-            is_integer_dtype(other.dtype) and is_float_dtype(self.dtype)
-        )
-        if needs_cast:
-            first = self.astype("float")
-            second = other.astype("float")
-            return first._union(second, sort)
-        else:
-            return super()._union(other, sort)
-
 
 _num_index_shared_docs[
     "class_descr"
@@ -257,10 +249,6 @@ class IntegerIndex(NumericIndex):
         if data.dtype.kind != cls._default_dtype.kind:
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        # See GH#26778, further casting may occur in NumericIndex._union
-        return other.dtype == "f8" or other.dtype == self.dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -422,7 +410,3 @@ class Float64Index(NumericIndex):
             return True
 
         return is_float(other) and np.isnan(other) and self.hasnans
-
-    def _can_union_without_object_cast(self, other) -> bool:
-        # See GH#26778, further casting may occur in NumericIndex._union
-        return is_numeric_dtype(other.dtype)

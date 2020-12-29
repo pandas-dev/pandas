@@ -380,6 +380,8 @@ NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 
+.. ipython:: python
+
    mask = pd.array([True, False, True, False, pd.NA, False], dtype="boolean")
    mask
    df1[mask]
