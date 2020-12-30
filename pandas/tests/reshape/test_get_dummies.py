@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -30,7 +32,8 @@ class TestGetDummies:
         return dtype
 
     def test_get_dummies_raises_on_dtype_object(self, df):
-        with pytest.raises(ValueError):
+        msg = "dtype=object is not a valid dtype for get_dummies"
+        with pytest.raises(ValueError, match=msg):
             get_dummies(df, dtype="object")
 
     def test_get_dummies_basic(self, sparse, dtype):
@@ -296,11 +299,19 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_bad_length(self, df, sparse):
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Length of 'prefix' (1) did not match the length of the columns being "
+            "encoded (2)"
+        )
+        with pytest.raises(ValueError, match=msg):
             get_dummies(df, prefix=["too few"], sparse=sparse)
 
     def test_dataframe_dummies_prefix_sep_bad_length(self, df, sparse):
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Length of 'prefix_sep' (1) did not match the length of the columns being "
+            "encoded (2)"
+        )
+        with pytest.raises(ValueError, match=msg):
             get_dummies(df, prefix_sep=["bad"], sparse=sparse)
 
     def test_dataframe_dummies_prefix_dict(self, sparse):
