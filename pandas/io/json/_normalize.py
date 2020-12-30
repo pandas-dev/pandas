@@ -261,13 +261,15 @@ def _json_normalize(
 
     if isinstance(data, list) and not data:
         return DataFrame()
-    elif isinstance(data, abc.Iterator):
-        # GH35923 Fix pd.json_normalize to not skip the first element of a
-        # generator input
-        data = list(data)
     elif isinstance(data, dict):
         # A bit of a hackjob
         data = [data]
+    elif isinstance(data, abc.Iterable) and not isinstance(data, str):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        data = list(data)
+    else:
+        raise NotImplementedError
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):

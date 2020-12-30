@@ -1,3 +1,4 @@
+from contextlib import nullcontext as does_not_raise
 import json
 
 import numpy as np
@@ -167,6 +168,22 @@ class TestJSONNormalize:
         result = json_normalize([])
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, record_path, error",
+        [
+            ([{"a": 0}, {"a": 1}], None, does_not_raise()),
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", does_not_raise()),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, pytest.raises(NotImplementedError)),
+            (None, None, pytest.raises(NotImplementedError)),
+        ],
+    )
+    def test_accepted_types(self, data, record_path, error):
+        with error:
+            result = json_normalize(data, record_path=record_path)
+            expected = DataFrame([0, 1], columns=["a"])
+
+            tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
