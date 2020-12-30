@@ -1332,6 +1332,22 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
+    def _maybe_reshape_where_args(self, values, other, cond, axis):
+        transpose = self.ndim == 2
+
+        cond = _extract_bool_array(cond)
+
+        # If the default broadcasting would go in the wrong direction, then
+        # explicitly reshape other instead
+        if getattr(other, "ndim", 0) >= 1:
+            if values.ndim - 1 == other.ndim and axis == 1:
+                other = other.reshape(tuple(other.shape + (1,)))
+            elif transpose and values.ndim == self.ndim - 1:
+                # TODO(EA2D): not neceesssary with 2D EAs
+                cond = cond.T
+
+        return other, cond
+
     def where(
         self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
@@ -1354,7 +1370,6 @@ class Block(PandasObject):
         """
         import pandas.core.computation.expressions as expressions
 
-        cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
@@ -1365,17 +1380,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        # If the default broadcasting would go in the wrong direction, then
-        # explicitly reshape other instead
-        if getattr(other, "ndim", 0) >= 1:
-            if values.ndim - 1 == other.ndim and axis == 1:
-                other = other.reshape(tuple(other.shape + (1,)))
-            elif transpose and values.ndim == self.ndim - 1:
-                # TODO(EA2D): not neceesssary with 2D EAs
-                cond = cond.T
-
-        if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray like")
+        other, cond = self._maybe_reshape_where_args(values, other, cond, axis)
 
         if cond.ravel("K").all():
             result = values
@@ -2128,6 +2133,26 @@ class DatetimeLikeBlockMixin(Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
+    def where(
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
+    ) -> List["Block"]:
+        # TODO(EA2D): reshape unnecessary with 2D EAs
+        arr = self.array_values().reshape(self.shape)
+
+        other, cond = self._maybe_reshape_where_args(arr, other, cond, axis)
+
+        try:
+            res_values = arr.T.where(cond, other).T
+        except (ValueError, TypeError):
+            return super().where(
+                other, cond, errors=errors, try_cast=try_cast, axis=axis
+            )
+
+        # TODO(EA2D): reshape not needed with 2D EAs
+        res_values = res_values.reshape(self.values.shape)
+        nb = self.make_block_same_class(res_values)
+        return [nb]
+
     def _can_hold_element(self, element: Any) -> bool:
         arr = self.array_values()
 
@@ -2196,6 +2221,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     fillna = DatetimeBlock.fillna  # i.e. Block.fillna
     fill_value = DatetimeBlock.fill_value
     _can_hold_na = DatetimeBlock._can_hold_na
+    where = DatetimeBlock.where
 
     array_values = ExtensionBlock.array_values
 

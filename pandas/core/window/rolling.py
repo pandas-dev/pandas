@@ -769,28 +769,22 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             numba_cache_key,
             **kwargs,
         )
-        # Reconstruct the resulting MultiIndex from tuples
+        # Reconstruct the resulting MultiIndex
         # 1st set of levels = group by labels
-        # 2nd set of levels = original index
-        # Ignore 2nd set of levels if a group by label include an index level
-        result_index_names = [
-            grouping.name for grouping in self._groupby.grouper._groupings
-        ]
-        grouped_object_index = None
+        # 2nd set of levels = original DataFrame/Series index
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
 
-        column_keys = [
+        drop_columns = [
             key
-            for key in result_index_names
+            for key in groupby_keys
             if key not in self.obj.index.names or key is None
         ]
-
-        if len(column_keys) == len(result_index_names):
-            grouped_object_index = self.obj.index
-            grouped_index_name = [*grouped_object_index.names]
-            result_index_names += grouped_index_name
-        else:
-            # Our result will have still kept the column in the result
-            result = result.drop(columns=column_keys, errors="ignore")
+        if len(drop_columns) != len(groupby_keys):
+            # Our result will have kept groupby columns which should be dropped
+            result = result.drop(columns=drop_columns, errors="ignore")
 
         codes = self._groupby.grouper.codes
         levels = self._groupby.grouper.levels

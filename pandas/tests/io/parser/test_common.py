@@ -1259,15 +1259,14 @@ def test_float_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_scientific_no_exponent(all_parsers):
+def test_scientific_no_exponent(all_parsers_all_precisions):
     # see gh-12215
     df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
-    parser = all_parsers
+    parser, precision = all_parsers_all_precisions
 
-    for precision in parser.float_precision_choices:
-        df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
-        tm.assert_frame_equal(df_roundtrip, df)
+    df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
+    tm.assert_frame_equal(df_roundtrip, df)
 
 
 @pytest.mark.parametrize("conv", [None, np.int64, np.uint64])
@@ -1352,27 +1351,28 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
 
 
 @pytest.mark.parametrize("neg_exp", [-617, -100000, -99999999999999999])
-def test_very_negative_exponent(all_parsers, neg_exp):
+def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     # GH#38753
-    parser = all_parsers
+    parser, precision = all_parsers_all_precisions
     data = f"data\n10E{neg_exp}"
-    for precision in parser.float_precision_choices:
-        result = parser.read_csv(StringIO(data), float_precision=precision)
-        expected = DataFrame({"data": [0.0]})
-        tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    expected = DataFrame({"data": [0.0]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
-def test_too_many_exponent_digits(all_parsers, exp):
+def test_too_many_exponent_digits(all_parsers_all_precisions, exp):
     # GH#38753
-    parser = all_parsers
+    parser, precision = all_parsers_all_precisions
     data = f"data\n10E{exp}"
-    for precision in parser.float_precision_choices:
-        if precision == "round_trip":
-            continue
-        result = parser.read_csv(StringIO(data), float_precision=precision)
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    if precision == "round_trip":
+        value = np.inf if exp > 0 else 0.0
+        expected = DataFrame({"data": [value]})
+    else:
         expected = DataFrame({"data": [f"10E{exp}"]})
-        tm.assert_frame_equal(result, expected)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("iterator", [True, False])
