@@ -29,7 +29,14 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -2259,7 +2266,7 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         data=None,
     ):
         super().__init__(

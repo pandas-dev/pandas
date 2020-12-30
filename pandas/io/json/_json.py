@@ -11,6 +11,8 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
+    DtypeArg,
+    FrameOrSeriesUnion,
     IndexLabel,
     JSONSerializable,
     StorageOptions,
@@ -296,7 +298,7 @@ def read_json(
     path_or_buf=None,
     orient=None,
     typ="frame",
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     convert_axes=None,
     convert_dates=True,
     keep_default_dates: bool = True,
@@ -775,7 +777,7 @@ class Parser:
         self,
         json,
         orient,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=False,
@@ -809,7 +811,7 @@ class Parser:
         self.convert_dates = convert_dates
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
-        self.obj = None
+        self.obj: Optional[FrameOrSeriesUnion] = None
 
     def check_keys_split(self, decoded):
         """
