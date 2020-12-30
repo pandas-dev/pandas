@@ -807,10 +807,19 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
+        # check that the setitem below is not a no-op
+        assert not (float_frame["C"] == 4).all()
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
             sliced.loc[:, "C"] = 4.0
 
+        assert (float_frame["C"] == 4).all()
+
+        # GH#35417 setting with setitem creates a new array, so we get the warning
+        #  but do not modify the original
+        with pytest.raises(com.SettingWithCopyError, match=msg):
+            sliced["C"] = 5.0
         assert (float_frame["C"] == 4).all()
 
     def test_getitem_setitem_non_ix_labels(self):

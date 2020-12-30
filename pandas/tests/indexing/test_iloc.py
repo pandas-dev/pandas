@@ -707,6 +707,11 @@ class TestiLoc2:
         original_df.loc[:, "a"] = [4, 4, 4]
         assert (sliced_df["a"] == 4).all()
 
+        # GH#35417 but setting with setitem creates a new array, so
+        #  sliced_df is not changed
+        original_df["a"] = [5, 5, 5]
+        assert (sliced_df["a"] == 4).all()
+
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
         assert sliced_series is not original_series
