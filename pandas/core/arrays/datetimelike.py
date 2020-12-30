@@ -36,7 +36,7 @@ from pandas._libs.tslibs.timestamps import (
     integer_op_not_supported,
     round_nsint64,
 )
-from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj
+from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -265,7 +265,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype: Optional[Dtype] = None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)

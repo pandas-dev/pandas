@@ -247,7 +247,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         CategoricalDtype(categories=['x', 'y'], ordered=False)
         """
 
-        if dtype is not None and isinstance(dtype, CategoricalDtype):
+        if dtype is not None:
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
                 if dtype == "category":
@@ -272,7 +272,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # ordered=None.
             dtype = CategoricalDtype(categories, ordered)
 
-        return dtype
+        return cast(CategoricalDtype, dtype)
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> "CategoricalDtype":
