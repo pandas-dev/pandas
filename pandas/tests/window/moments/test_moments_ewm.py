@@ -218,11 +218,12 @@ def test_ewma_halflife_arg(series):
     msg = "comass, span, halflife, and alpha are mutually exclusive"
     with pytest.raises(ValueError, match=msg):
         series.ewm(span=20, halflife=50)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         series.ewm(com=9.5, halflife=50)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         series.ewm(com=9.5, span=20, halflife=50)
-    with pytest.raises(ValueError):
+    msg = "Must pass one of comass, span, halflife, or alpha"
+    with pytest.raises(ValueError, match=msg):
         series.ewm()
 
 
