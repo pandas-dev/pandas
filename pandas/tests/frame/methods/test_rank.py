@@ -423,11 +423,11 @@ class TestRank:
         col1 = [5, 4, 3, 5, 8, 5, 2, 1, 6, 6]
         col2 = [5, 4, np.nan, 5, 8, 5, np.inf, np.nan, 6, -np.inf]
         df = DataFrame(
-            index=index,
             data={
                 "col1": col1,
                 "col2": col2,
             },
+            index=index,
             dtype="f8",
         )
         df_result = df.rank()
