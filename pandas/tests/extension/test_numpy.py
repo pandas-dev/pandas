@@ -315,6 +315,11 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
     pass
 
 
+@skip_nested
+class TestArgReduce(base.BaseArgReduceTests):
+    pass
+
+
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
     def test_fillna_scalar(self, data_missing):

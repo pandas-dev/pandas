@@ -249,6 +249,10 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
 
+class TestArgReduce(base.BaseArgReduceTests):
+    pass
+
+
 class TestPrinting(base.BasePrintingTests):
     pass
 

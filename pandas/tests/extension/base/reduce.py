@@ -68,3 +68,11 @@ class BaseBooleanReduceTests(BaseReduceTests):
         op_name = all_boolean_reductions
         s = pd.Series(data)
         self.check_reduce(s, op_name, skipna)
+
+
+class BaseArgReduceTests(BaseReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("op_name", ["argmin", "argmax", "idxmin", "idxmax"])
+    def test_reduce_series(self, data, op_name, skipna):
+        s = pd.Series(data)
+        self.check_reduce(s, op_name, skipna)

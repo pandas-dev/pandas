@@ -166,6 +166,10 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
     pass
 
 
+class TestArgReduce(base.BaseArgReduceTests):
+    pass
+
+
 class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize("dropna", [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")

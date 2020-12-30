@@ -4,6 +4,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
@@ -223,3 +224,16 @@ class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
 
 class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
     pass
+
+
+class TestArgReduce(base.BaseArgReduceTests):
+    def check_reduce(self, s, op_name, skipna):
+        result = getattr(s, op_name)(skipna=skipna)
+        if not skipna and s.isna().any():
+            if op_name in ["argmin", "argmax"]:
+                expected = -1
+            else:
+                expected = np.nan
+        else:
+            expected = getattr(s.dropna().astype("int64"), op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
