@@ -85,8 +85,10 @@ def test_series_groupby_value_counts(
     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
-def test_series_groupby_value_counts_with_grouper():
+@pytest.mark.parametrize("categorical", [True, False])
+def test_series_groupby_value_counts_with_grouper(categorical):
     # GH28479
+    # GH38672 (categorical)
     df = DataFrame(
         {
             "Timestamp": [
@@ -101,6 +103,9 @@ def test_series_groupby_value_counts_with_grouper():
             "Food": ["apple", "apple", "banana", "banana", "orange", "orange", "pear"],
         }
     ).drop([3])
+
+    if categorical:
+        df["Food"] = df["Food"].astype("category")
 
     df["Datetime"] = to_datetime(df["Timestamp"].apply(lambda t: str(t)), unit="s")
     dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
