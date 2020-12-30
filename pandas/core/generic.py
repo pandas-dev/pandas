@@ -10351,6 +10351,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
+
         return self._reduce(
             func,
             name=name,
