@@ -1351,7 +1351,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
@@ -1367,7 +1367,7 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("max", args, kwargs)
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
@@ -1409,12 +1409,12 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("min", args, kwargs)
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
@@ -1456,13 +1456,13 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def median(self, **kwargs):
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
         window_func = window_aggregations.roll_median_c
         # GH 32865. Move max window size calculation to
         # the median function implementation
         return self._apply(window_func, name="median", **kwargs)
 
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         window_func = window_aggregations.roll_var
 
@@ -1475,7 +1475,7 @@ class RollingAndExpandingMixin(BaseWindow):
             **kwargs,
         )
 
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
@@ -1650,7 +1650,14 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
+    def quantile(
+        self,
+        quantile: float,
+        interpolation: str = "linear",
+        engine=None,
+        engine_kwargs=None,
+        **kwargs,
+    ):
         if quantile == 1.0:
             window_func = window_aggregations.roll_max
         elif quantile == 0.0:
@@ -1995,45 +2002,49 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof=1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_rolling_func("std", args, kwargs)
-        return super().std(ddof=ddof, **kwargs)
+        return super().std(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof=1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_rolling_func("var", args, kwargs)
-        return super().var(ddof=ddof, **kwargs)
+        return super().var(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @Substitution(name="rolling", func_name="skew")
     @Appender(_doc_template)
@@ -2079,9 +2090,20 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["quantile"])
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(
+        self,
+        quantile,
+        interpolation="linear",
+        engine=None,
+        engine_kwargs=None,
+        **kwargs,
+    ):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            **kwargs,
         )
 
     @Substitution(name="rolling", func_name="cov")
