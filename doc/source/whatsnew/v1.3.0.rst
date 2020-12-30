@@ -50,6 +50,7 @@ Other enhancements
 - Improved consistency of error message when passing an invalid ``win_type`` argument in :class:`Window` (:issue:`15969`)
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
+- :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 
 .. ---------------------------------------------------------------------------
 
@@ -234,7 +235,7 @@ Indexing
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
--
+- Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 -
 
 Missing
@@ -263,6 +264,8 @@ I/O
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
 - Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
+- Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
+
 
 Period
 ^^^^^^
