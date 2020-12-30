@@ -895,10 +895,10 @@ class TestSeriesReductions:
             s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        msg = "Series.any does not implement numeric_only"
+        msg = "Series.any does not implement bool_only"
         with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        msg = "Series.all does not implement numeric_only."
+        msg = "Series.all does not implement bool_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 

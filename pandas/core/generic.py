@@ -10351,15 +10351,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
-
-        return self._reduce(
-            func,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=bool_only,
-            filter_type="bool",
-        )
+        try:
+            return self._reduce(
+                func,
+                name=name,
+                axis=axis,
+                skipna=skipna,
+                numeric_only=bool_only,
+                filter_type="bool",
+            )
+        except NotImplementedError as exc:
+            err_msg = str(exc)
+            if err_msg.endswith("does not implement numeric_only."):
+                raise NotImplementedError(
+                    err_msg.replace("numeric_only", "bool_only")
+                ) from exc
+            raise
 
     def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
         return self._logical_func(
