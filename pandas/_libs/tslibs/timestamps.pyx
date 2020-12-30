@@ -291,7 +291,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "Comparison of Timestamp with datetime.date is deprecated in "
                 "order to match the standard library behavior.  "
                 "In a future version these will be considered non-comparable."
-                "Use ts == pd.Timestamp(dt) instead.", FutureWarning
+                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.", FutureWarning
             )
             return NotImplemented
         else:
