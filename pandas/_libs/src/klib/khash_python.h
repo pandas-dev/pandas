@@ -1,6 +1,14 @@
 #include <string.h>
 #include <Python.h>
 
+
+// use numpy's definitions for complex
+#include <numpy/arrayobject.h>
+typedef npy_complex64 khcomplex64_t;
+typedef npy_complex128 khcomplex128_t;
+
+
+
 // khash should report usage to tracemalloc
 #if PY_VERSION_HEX >= 0x03060000
 #include <pymem.h>
@@ -127,6 +135,32 @@ KHASH_MAP_INIT_FLOAT64(float64, size_t)
 	KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func, kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
+
+khint32_t PANDAS_INLINE kh_complex128_hash_func(khcomplex128_t val){
+    return kh_float64_hash_func(val.real)^kh_float64_hash_func(val.imag);
+}
+khint32_t PANDAS_INLINE kh_complex64_hash_func(khcomplex64_t val){
+    return kh_float32_hash_func(val.real)^kh_float32_hash_func(val.imag);
+}
+
+#define kh_complex_hash_equal(a, b) \
+  (kh_floats_hash_equal(a.real, b.real) && kh_floats_hash_equal(a.imag, b.imag))
+
+
+#define KHASH_MAP_INIT_COMPLEX64(name, khval_t)								\
+	KHASH_INIT(name, khcomplex64_t, khval_t, 1, kh_complex64_hash_func, kh_complex_hash_equal)
+
+KHASH_MAP_INIT_COMPLEX64(complex64, size_t)
+
+
+#define KHASH_MAP_INIT_COMPLEX128(name, khval_t)								\
+	KHASH_INIT(name, khcomplex128_t, khval_t, 1, kh_complex128_hash_func, kh_complex_hash_equal)
+
+KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
+
+
+#define kh_exist_complex64(h, k) (kh_exist(h, k))
+#define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
