@@ -110,6 +110,21 @@ def to_numeric(arg, errors="raise", downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
+
+    Downcasting of ``ExtensionDtype`` is supported:
+
+    >>> s = pd.Series([1, 2, 3], dtype="Int64")
+    >>> pd.to_numeric(s, downcast="integer")
+    0    1
+    1    2
+    2    3
+    dtype: Int8
+    >>> s = pd.Series([1.0, 2.1, 3.0], dtype="Float64")
+    >>> pd.to_numeric(s, downcast="float")
+    0    1.0
+    1    2.1
+    2    3.0
+    dtype: Float32
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
