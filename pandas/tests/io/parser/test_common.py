@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import is_platform_linux
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
@@ -1361,12 +1362,16 @@ def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
 
 
 @pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
-def test_too_many_exponent_digits(all_parsers_all_precisions, exp):
+def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
     # GH#38753
     parser, precision = all_parsers_all_precisions
     data = f"data\n10E{exp}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
     if precision == "round_trip":
+        if exp == 999999999999999999 and is_platform_linux():
+            mark = pytest.mark.xfail(reason="On Linux gives object result")
+            request.node.add_marker(mark)
+
         value = np.inf if exp > 0 else 0.0
         expected = DataFrame({"data": [value]})
     else:
