@@ -730,7 +730,7 @@ The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/ap
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
-   ts.plot()
+   ts.plot();
 
 On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
 of the columns with labels:
@@ -743,10 +743,10 @@ of the columns with labels:
 
    df = df.cumsum()
 
-   plt.figure()
-   df.plot()
+   plt.figure();
+   df.plot();
    @savefig frame_plot_basic.png
-   plt.legend(loc='best')
+   plt.legend(loc='best');
 
 Getting data in/out
 -------------------

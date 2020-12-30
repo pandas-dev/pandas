@@ -6,22 +6,26 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# dtype, ttype, c_type
-dtypes = [('float64', 'float64', 'float64_t'),
-          ('float32', 'float32', 'float32_t'),
-          ('uint64', 'uint64', 'uint64_t'),
-          ('uint32', 'uint32', 'uint32_t'),
-          ('uint16', 'uint16', 'uint16_t'),
-          ('uint8', 'uint8', 'uint8_t'),
-          ('object', 'pymap', 'object'),
-          ('int64', 'int64', 'int64_t'),
-          ('int32', 'int32', 'int32_t'),
-          ('int16', 'int16', 'int16_t'),
-          ('int8', 'int8', 'int8_t')]
+# dtype, ttype, c_type, to_c_type, to_dtype
+dtypes = [('complex128', 'complex128', 'khcomplex128_t',
+                         'to_khcomplex128_t', 'to_complex128'),
+          ('complex64', 'complex64', 'khcomplex64_t',
+                        'to_khcomplex64_t', 'to_complex64'),
+          ('float64', 'float64', 'float64_t', '', ''),
+          ('float32', 'float32', 'float32_t', '', ''),
+          ('uint64', 'uint64', 'uint64_t', '', ''),
+          ('uint32', 'uint32', 'uint32_t', '', ''),
+          ('uint16', 'uint16', 'uint16_t', '', ''),
+          ('uint8', 'uint8', 'uint8_t', '', ''),
+          ('object', 'pymap', 'object', '', ''),
+          ('int64', 'int64', 'int64_t', '', ''),
+          ('int32', 'int32', 'int32_t', '', ''),
+          ('int16', 'int16', 'int16_t', '', ''),
+          ('int8', 'int8', 'int8_t', '', '')]
 
 }}
 
-{{for dtype, ttype, c_type in dtypes}}
+{{for dtype, ttype, c_type, to_c_type, to_dtype in dtypes}}
 
 
 @cython.wraparound(False)
@@ -30,7 +34,7 @@ dtypes = [('float64', 'float64', 'float64_t'),
 cdef build_count_table_{{dtype}}(ndarray[{{dtype}}] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{else}}
-cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
+cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
                                  kh_{{ttype}}_t *table, bint dropna):
 {{endif}}
     cdef:
@@ -46,7 +50,6 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 
     for i in range(n):
         val = values[i]
-
         if not checknull(val) or not dropna:
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
@@ -59,13 +62,9 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         kh_resize_{{ttype}}(table, n)
 
         for i in range(n):
-            val = values[i]
+            val = {{to_c_type}}(values[i])
 
-            {{if dtype == 'float64' or dtype == 'float32'}}
-            if val == val or not dropna:
-            {{else}}
-            if True:
-            {{endif}}
+            if not is_nan_{{c_type}}(val) or not dropna:
                 k = kh_get_{{ttype}}(table, val)
                 if k != table.n_buckets:
                     table.vals[k] += 1
@@ -80,7 +79,7 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 {{if dtype == 'object'}}
 cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
-cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
+cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -114,7 +113,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
     with nogil:
         for k in range(table.n_buckets):
             if kh_exist_{{ttype}}(table, k):
-                result_keys[i] = table.keys[k]
+                result_keys[i] = {{to_dtype}}(table.keys[k])
                 result_counts[i] = table.vals[k]
                 i += 1
     {{endif}}
@@ -133,12 +132,12 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 {{if dtype == 'object'}}
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
+def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0
         {{if dtype != 'object'}}
-        {{dtype}}_t value
+        {{c_type}} value
         {{endif}}
         Py_ssize_t i, n = len(values)
         khiter_t k
@@ -160,7 +159,8 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         with nogil:
             for i in range(n - 1, -1, -1):
                 # equivalent: range(n)[::-1], which cython doesn't like in nogil
-                kh_put_{{ttype}}(table, values[i], &ret)
+                value = {{to_c_type}}(values[i])
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     elif keep == 'first':
@@ -171,7 +171,8 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         {{else}}
         with nogil:
             for i in range(n):
-                kh_put_{{ttype}}(table, values[i], &ret)
+                value = {{to_c_type}}(values[i])
+                kh_put_{{ttype}}(table, value, &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
@@ -184,20 +185,18 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
                 out[i] = 1
             else:
                 k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
-                table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
         {{else}}
         with nogil:
             for i in range(n):
-                value = values[i]
+                value = {{to_c_type}}(values[i])
                 k = kh_get_{{ttype}}(table, value)
                 if k != table.n_buckets:
                     out[table.vals[k]] = 1
                     out[i] = 1
                 else:
                     k = kh_put_{{ttype}}(table, value, &ret)
-                    table.keys[k] = value
                     table.vals[k] = i
                     out[i] = 0
         {{endif}}
@@ -215,7 +214,7 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
 {{if dtype == 'object'}}
 def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
+def ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
@@ -248,7 +247,8 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
-            kh_put_{{ttype}}(table, values[i], &ret)
+            val = {{to_c_type}}(values[i])
+            kh_put_{{ttype}}(table, val, &ret)
     {{endif}}
 
     # test membership
@@ -263,7 +263,7 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
     {{else}}
     with nogil:
         for i in range(n):
-            val = arr[i]
+            val = {{to_c_type}}(arr[i])
             k = kh_get_{{ttype}}(table, val)
             result[i] = (k != table.n_buckets)
     {{endif}}
@@ -281,7 +281,9 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values):
 {{py:
 
 # dtype, ctype, table_type, npy_dtype
-dtypes = [('float64', 'float64_t', 'float64', 'float64'),
+dtypes = [('complex128', 'khcomplex128_t', 'complex128', 'complex128'),
+          ('complex64', 'khcomplex64_t', 'complex64', 'complex64'),
+          ('float64', 'float64_t', 'float64', 'float64'),
           ('float32', 'float32_t', 'float32', 'float32'),
           ('int64', 'int64_t', 'int64', 'int64'),
           ('int32', 'int32_t', 'int32', 'int32'),
@@ -307,7 +309,7 @@ def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
 
 
-def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
+def mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         int count, max_count = 1

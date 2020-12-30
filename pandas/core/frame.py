@@ -5526,9 +5526,9 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information. `mergesort` and `stable` are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
         na_position : {'first', 'last'}, default 'last'
@@ -9230,7 +9230,12 @@ NaN 12.3   33.0
         def f(s):
             return s.mode(dropna=dropna)
 
-        return data.apply(f, axis=axis)
+        data = data.apply(f, axis=axis)
+        # Ensure index is type stable (should always use int index)
+        if data.empty:
+            data.index = ibase.default_index(0)
+
+        return data
 
     def quantile(
         self,
