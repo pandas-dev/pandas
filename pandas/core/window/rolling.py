@@ -1927,12 +1927,6 @@ class Rolling(RollingAndExpandingMixin):
 
             self._validate_monotonic()
 
-            # we don't allow center for offset based windows
-            if self.center and self.obj.empty:
-                raise NotImplementedError(
-                    "center is not implemented for offset based windows"
-                )
-
             # this will raise ValueError on non-fixed freqs
             try:
                 freq = to_offset(self.window)
