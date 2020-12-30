@@ -22,7 +22,7 @@ import pytz
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, dtypes, timezones, to_offset
 from pandas._libs.tslibs.offsets import BaseOffset
-from pandas._typing import DtypeArg, DtypeObj, Ordered
+from pandas._typing import Dtype, DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndex
@@ -185,7 +185,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         values=None,
         categories=None,
         ordered: Optional[bool] = None,
-        dtype: Optional[DtypeArg] = None,
+        dtype: Optional[Dtype] = None,
     ) -> "CategoricalDtype":
         """
         Construct dtype from the input parameters used in :class:`Categorical`.

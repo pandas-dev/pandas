@@ -25,7 +25,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, DtypeArg, Shape
+from pandas._typing import ArrayLike, Dtype, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -189,7 +189,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[DtypeArg] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -212,7 +212,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[DtypeArg] = None, copy=False
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -394,7 +394,7 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Optional[DtypeArg] = None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -1070,7 +1070,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype: Optional[DtypeArg] = None) -> ArrayLike:
+    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         """
         Return a view on the array.
 

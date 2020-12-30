@@ -26,7 +26,7 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import AnyArrayLike, DtypeArg
+from pandas._typing import AnyArrayLike, Dtype
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -198,7 +198,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         cls: Type["PeriodArray"],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         *,
-        dtype: Optional[DtypeArg] = None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
         if dtype and isinstance(dtype, PeriodDtype):
