@@ -321,9 +321,9 @@ class TestDataFrameMisc:
         result.iloc[key] = 10
         assert obj.iloc[key] == 0
 
-    def test_constructor_expanddim_lookup(self):
+    def test_constructor_expanddim(self):
         # GH#33628 accessing _constructor_expanddim should not raise NotImplementedError
-        # GH38782 pandas has no container higher than DatafFame (two-dim), so
+        # GH38782 pandas has no container higher than DataFrame (two-dim), so
         # DataFrame._constructor_expand_dim, doesn't make sense, so is removed.
         df = DataFrame()
 
