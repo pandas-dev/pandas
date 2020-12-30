@@ -363,7 +363,6 @@ def test_groupby_function_rename(mframe):
         "pct_change",
     ],
 )
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_selection_with_methods(df, method):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))
@@ -380,6 +379,7 @@ def test_groupby_selection_with_methods(df, method):
     tm.assert_frame_equal(res, exp)
 
 
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_selection_tshift_raises(df):
     rng = date_range("2014", periods=len(df))
     df.index = rng
