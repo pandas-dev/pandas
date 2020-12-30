@@ -144,6 +144,8 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
+    # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
+    # save mask to reconstruct the full array after casting
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
@@ -196,6 +198,7 @@ def to_numeric(arg, errors="raise", downcast=None):
                     if values.dtype == dtype:
                         break
 
+    # GH33013: for IntegerArray & FloatingArray need to reconstruct full array
     if mask is not None:
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
