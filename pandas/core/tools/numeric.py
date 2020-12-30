@@ -111,7 +111,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     3   -3.0
     dtype: float64
 
-    Downcasting of ``ExtensionDtype`` is supported:
+    Downcasting of nullable integer and floating dtypes is supported:
 
     >>> s = pd.Series([1, 2, 3], dtype="Int64")
     >>> pd.to_numeric(s, downcast="integer")
