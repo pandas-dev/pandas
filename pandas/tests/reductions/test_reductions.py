@@ -527,9 +527,17 @@ class TestIndexReductions:
     def test_min_max_categorical(self):
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation min\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.min()
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation max\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.max()
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
@@ -881,16 +889,20 @@ class TestSeriesReductions:
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
-        # bool_only is not implemented with level option.
-        with pytest.raises(NotImplementedError):
+        msg = "Option bool_only is not implemented with option level"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        with pytest.raises(NotImplementedError):
+        # TODO GH38810 change this error message to:
+        # "Series.any does not implement bool_only"
+        msg = "Series.any does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        with pytest.raises(NotImplementedError):
+        msg = "Series.all does not implement numeric_only."
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
     def test_all_any_boolean(self):
@@ -1023,13 +1035,21 @@ class TestSeriesReductions:
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmin' not allowed for this dtype|"
+            "attempt to get argmin of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin(skipna=False)
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmax' not allowed for this dtype|"
+            "attempt to get argmax of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax(skipna=False)
 
     def test_idxminmax_with_inf(self):
