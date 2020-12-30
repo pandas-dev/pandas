@@ -11,6 +11,7 @@ import pytz
 
 import pandas as pd
 from pandas import DataFrame
+import pandas._testing as tm
 
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
 bigquery = pytest.importorskip("google.cloud.bigquery")
@@ -195,7 +196,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         "if_exists, expected_num_rows, expectation",
         [
             ("append", 300, does_not_raise()),
-            ("fail", 200, pytest.raises(pandas_gbq.gbq.TableCreationError)),
+            ("fail", 200, tm.external_error_raised(pandas_gbq.gbq.TableCreationError)),
             ("replace", 100, does_not_raise()),
         ],
     )
