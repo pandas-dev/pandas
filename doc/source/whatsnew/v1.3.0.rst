@@ -264,6 +264,8 @@ I/O
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
 - Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
+- Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
+
 
 Period
 ^^^^^^
