@@ -1022,17 +1022,19 @@ def rank_2d(
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
         ndarray[int64_t, ndim=2] argsorted
+        ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
         int64_t idx
         bint keep_na = False
         float64_t count = 0.0
-        bint condition
+        bint condition, mask_check
 
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
+    mask_check = rank_t is not uint64_t
 
     if axis == 0:
         values = np.asarray(in_arr).T.copy()
@@ -1109,7 +1111,7 @@ def rank_2d(
         for j in range(k):
             val = values[i, j]
             idx = argsorted[i, j]
-            if mask[i, idx] and keep_na:
+            if keep_na and mask_check and mask[i, idx]:
                 ranks[i, idx] = NaN
                 infs += 1
                 continue
@@ -1123,13 +1125,13 @@ def rank_2d(
                 condition = (
                     j == k - 1 or
                     are_diff(values[i, j + 1], val) or
-                    (mask[i, argsorted[i, j + 1]] and keep_na)
+                    (keep_na and mask_check and mask[i, argsorted[i, j + 1]])
                 )
             else:
                 condition = (
                     j == k - 1 or
                     values[i, j + 1] != val or
-                    (mask[i, argsorted[i, j + 1]] and keep_na)
+                    (keep_na and mask_check and mask[i, argsorted[i, j + 1]])
                 )
 
             if condition:
