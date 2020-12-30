@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_
 from pandas.core.dtypes.missing import isna_compat
 
 
-def putmask_simple(values: ArrayLike, mask: np.ndarray, value: Any):
+def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
     """
     ExtensionArray-compatible implementation of np.putmask.  The main
     difference is we do not handle repeating or truncating like numpy.

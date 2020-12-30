@@ -54,7 +54,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, A
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import putmask_simple, putmask_smart
+from pandas.core.array_algos.putmask import putmask_inplace, putmask_smart
 from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
@@ -435,7 +435,7 @@ class Block(PandasObject):
 
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
-            putmask_simple(nb.values, mask, value)
+            putmask_inplace(nb.values, mask, value)
             # TODO: should be nb._maybe_downcast?
             return self._maybe_downcast([nb], downcast)
 
@@ -760,7 +760,7 @@ class Block(PandasObject):
             )
 
         blk = self if inplace else self.copy()
-        putmask_simple(blk.values, mask, value)
+        putmask_inplace(blk.values, mask, value)
         blocks = blk.convert(numeric=False, copy=not inplace)
         return blocks
 
@@ -1529,7 +1529,7 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                putmask_simple(nb.values, mask, value)
+                putmask_inplace(nb.values, mask, value)
                 return [nb]
             else:
                 regex = _should_use_regex(regex, to_replace)
