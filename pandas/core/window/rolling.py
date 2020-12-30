@@ -174,9 +174,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Split data into blocks & return conformed data.
         """
         # filter out the on from the object
-        if self.on is not None and not isinstance(self.on, Index):
-            if obj.ndim == 2:
-                obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+        if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
+            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         if self.axis == 1:
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
@@ -238,10 +237,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         return self.window
 
-    @property
-    def _window_type(self) -> str:
-        return type(self).__name__
-
     def __repr__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -252,7 +247,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if getattr(self, attr_name, None) is not None
         )
         attrs = ",".join(attrs_list)
-        return f"{self._window_type} [{attrs}]"
+        return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
@@ -278,7 +273,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                f"ops for {self._window_type} for this "
+                f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
         else:
@@ -464,7 +459,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
-                    result = np.asarray(result)
 
             if numba_cache_key is not None:
                 NUMBA_FUNC_CACHE[numba_cache_key] = func
@@ -775,28 +769,22 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             numba_cache_key,
             **kwargs,
         )
-        # Reconstruct the resulting MultiIndex from tuples
+        # Reconstruct the resulting MultiIndex
         # 1st set of levels = group by labels
-        # 2nd set of levels = original index
-        # Ignore 2nd set of levels if a group by label include an index level
-        result_index_names = [
-            grouping.name for grouping in self._groupby.grouper._groupings
-        ]
-        grouped_object_index = None
+        # 2nd set of levels = original DataFrame/Series index
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
 
-        column_keys = [
+        drop_columns = [
             key
-            for key in result_index_names
+            for key in groupby_keys
             if key not in self.obj.index.names or key is None
         ]
-
-        if len(column_keys) == len(result_index_names):
-            grouped_object_index = self.obj.index
-            grouped_index_name = [*grouped_object_index.names]
-            result_index_names += grouped_index_name
-        else:
-            # Our result will have still kept the column in the result
-            result = result.drop(columns=column_keys, errors="ignore")
+        if len(drop_columns) != len(groupby_keys):
+            # Our result will have kept groupby columns which should be dropped
+            result = result.drop(columns=drop_columns, errors="ignore")
 
         codes = self._groupby.grouper.codes
         levels = self._groupby.grouper.levels
@@ -1102,8 +1090,8 @@ class Window(BaseWindow):
                 if values.ndim > 1:
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
-                    result = calc(values)
-                    result = np.asarray(result)
+                    # Our weighted aggregations return memoryviews
+                    result = np.asarray(calc(values))
 
             if self.center:
                 result = self._center_window(result, offset)
@@ -1864,7 +1852,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 window=window, min_periods=self.min_periods, center=self.center
             )
             # GH 31286: Through using var instead of std we can avoid numerical
-            # issues when the result of var is withing floating proint precision
+            # issues when the result of var is within floating proint precision
             # while std is not.
             return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 
@@ -2158,7 +2146,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         Validate that on is monotonic;
         in this case we have to check only for nans, because
-        monotonicy was already validated at a higher level.
+        monotonicity was already validated at a higher level.
         """
         if self._on.hasnans:
             self._raise_monotonic_error()
