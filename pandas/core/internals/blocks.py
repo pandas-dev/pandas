@@ -1,7 +1,6 @@
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
-import warnings
 
 import numpy as np
 
@@ -42,9 +41,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
-    is_float_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_re,
@@ -54,9 +51,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import putmask_inplace, putmask_smart
 from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
@@ -437,7 +435,7 @@ class Block(PandasObject):
 
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
-            nb._putmask_simple(mask, value)
+            putmask_inplace(nb.values, mask, value)
             # TODO: should be nb._maybe_downcast?
             return self._maybe_downcast([nb], downcast)
 
@@ -762,7 +760,7 @@ class Block(PandasObject):
             )
 
         blk = self if inplace else self.copy()
-        blk._putmask_simple(mask, value)
+        putmask_inplace(blk.values, mask, value)
         blocks = blk.convert(numeric=False, copy=not inplace)
         return blocks
 
@@ -991,35 +989,6 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
-    def _putmask_simple(self, mask: np.ndarray, value: Any):
-        """
-        Like putmask but
-
-        a) we do not cast on failure
-        b) we do not handle repeating or truncating like numpy.
-
-        Parameters
-        ----------
-        mask : np.ndarray[bool]
-            We assume _extract_bool_array has already been called.
-        value : Any
-            We assume self._can_hold_element(value)
-        """
-        values = self.values
-
-        if lib.is_scalar(value) and isinstance(values, np.ndarray):
-            value = convert_scalar_for_putitemlike(value, values.dtype)
-
-        if self.is_extension or (self.is_object and not lib.is_scalar(value)):
-            # GH#19266 using np.putmask gives unexpected results with listlike value
-            if is_list_like(value) and len(value) == len(values):
-                values[mask] = value[mask]
-            else:
-                values[mask] = value
-        else:
-            # GH#37833 np.putmask is more performant than __setitem__
-            np.putmask(values, mask, value)
-
     def putmask(self, mask, new, axis: int = 0) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
@@ -1121,7 +1090,7 @@ class Block(PandasObject):
                     # we need to explicitly astype here to make a copy
                     n = n.astype(dtype)
 
-                nv = _putmask_smart(val, mask, n)
+                nv = putmask_smart(val, mask, n)
                 return nv
 
             new_blocks = self.split_and_operate(mask, f, True)
@@ -1560,7 +1529,7 @@ class Block(PandasObject):
                 nb = self.coerce_to_target_dtype(value)
                 if nb is self and not inplace:
                     nb = nb.copy()
-                nb._putmask_simple(mask, value)
+                putmask_inplace(nb.values, mask, value)
                 return [nb]
             else:
                 regex = _should_use_regex(regex, to_replace)
@@ -2663,86 +2632,6 @@ def safe_reshape(arr, new_shape: Shape):
         # TODO(EA2D): special case will be unnecessary with 2D EAs
         arr = np.asarray(arr).reshape(new_shape)
     return arr
-
-
-def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
-    """
-    Return a new ndarray, try to preserve dtype if possible.
-
-    Parameters
-    ----------
-    v : np.ndarray
-        `values`, updated in-place.
-    mask : np.ndarray[bool]
-        Applies to both sides (array like).
-    n : `new values` either scalar or an array like aligned with `values`
-
-    Returns
-    -------
-    values : ndarray with updated values
-        this *may* be a copy of the original
-
-    See Also
-    --------
-    ndarray.putmask
-    """
-    # we cannot use np.asarray() here as we cannot have conversions
-    # that numpy does when numeric are mixed with strings
-
-    # n should be the length of the mask or a scalar here
-    if not is_list_like(n):
-        n = np.repeat(n, len(mask))
-
-    # see if we are only masking values that if putted
-    # will work in the current dtype
-    try:
-        nn = n[mask]
-    except TypeError:
-        # TypeError: only integer scalar arrays can be converted to a scalar index
-        pass
-    else:
-        # make sure that we have a nullable type
-        # if we have nulls
-        if not isna_compat(v, nn[0]):
-            pass
-        elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
-            # only compare integers/floats
-            pass
-        elif not (is_float_dtype(v.dtype) or is_integer_dtype(v.dtype)):
-            # only compare integers/floats
-            pass
-        else:
-
-            # we ignore ComplexWarning here
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", np.ComplexWarning)
-                nn_at = nn.astype(v.dtype)
-
-            comp = nn == nn_at
-            if is_list_like(comp) and comp.all():
-                nv = v.copy()
-                nv[mask] = nn_at
-                return nv
-
-    n = np.asarray(n)
-
-    def _putmask_preserve(nv, n):
-        try:
-            nv[mask] = n[mask]
-        except (IndexError, ValueError):
-            nv[mask] = n
-        return nv
-
-    # preserves dtype if possible
-    if v.dtype.kind == n.dtype.kind:
-        return _putmask_preserve(v, n)
-
-    # change the dtype if needed
-    dtype, _ = maybe_promote(n.dtype)
-
-    v = v.astype(dtype)
-
-    return _putmask_preserve(v, n)
 
 
 def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
