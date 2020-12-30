@@ -178,7 +178,7 @@ class TestJSONNormalize:
             (None, None, pytest.raises(NotImplementedError)),
         ],
     )
-    def test_accepted_types(self, data, record_path, error):
+    def test_accepted_input(self, data, record_path, error):
         with error:
             result = json_normalize(data, record_path=record_path)
             expected = DataFrame([0, 1], columns=["a"])
