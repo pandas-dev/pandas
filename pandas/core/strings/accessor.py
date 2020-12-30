@@ -1547,10 +1547,10 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["koala", "fox", "chameleon"])
+        >>> s = pd.Series(["koala", "nox", "chameleon"])
         >>> s
         0        koala
-        1          fox
+        1          nox
         2    chameleon
         dtype: object
 
@@ -1568,19 +1568,19 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str.slice(stop=2)
         0    ko
-        1    fo
+        1    no
         2    ch
         dtype: object
 
         >>> s.str.slice(step=2)
         0      kaa
-        1       fx
+        1       nx
         2    caeen
         dtype: object
 
         >>> s.str.slice(start=0, stop=5, step=3)
         0    kl
-        1     f
+        1     n
         2    cm
         dtype: object
 
