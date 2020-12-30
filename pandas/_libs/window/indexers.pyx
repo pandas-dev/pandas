@@ -11,7 +11,7 @@ def calculate_variable_window_bounds(
     int64_t num_values,
     int64_t window_size,
     object min_periods,  # unused but here to match get_window_bounds signature
-    object center,
+    bint center,
     object closed,
     const int64_t[:] index
 ):

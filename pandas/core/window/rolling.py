@@ -335,15 +335,11 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         if isinstance(self.window, BaseIndexer):
             return self.window
 
-        if self.is_freq_type:
-            return VariableWindowIndexer(
-                index_array=self._on.asi8, window_size=self.window, center=self.center
-            )
-
-        # TODO: is this replacing above if clause or adding another case?
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
-                index_array=self._index_array, window_size=self._win_freq_i8
+                index_array=self._index_array,
+                window_size=self._win_freq_i8,
+                center=self.center,
             )
         return FixedWindowIndexer(window_size=self.window)
 
@@ -477,9 +473,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             offset = (
                 _calculate_center_offset(self.window)
                 if self.center
-                and not isinstance(
-                    self._get_window_indexer(self.window), VariableWindowIndexer
-                )
+                and not isinstance(self._get_window_indexer(), VariableWindowIndexer)
                 else 0
             )
             additional_nans = np.array([np.nan] * offset)
