@@ -248,13 +248,14 @@ class TestSetOps:
         # GH#10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            if is_datetime64tz_dtype(first):
-                with pytest.raises(ValueError, match="Tz-aware"):
-                    # `second.values` casts to tznaive
-                    # TODO: should the symmetric_difference then be the union?
-                    first.symmetric_difference(case)
-                continue
             result = first.symmetric_difference(case)
+
+            if is_datetime64tz_dtype(first):
+                # second.values casts to tznaive
+                expected = first.union(case)
+                tm.assert_index_equal(result, expected)
+                continue
+
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
@@ -448,7 +449,9 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
-@pytest.mark.parametrize("method", ["intersection", "union"])
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
 def test_setop_with_categorical(index, sort, method):
     if isinstance(index, MultiIndex):
         # tested separately in tests.indexes.multi.test_setops

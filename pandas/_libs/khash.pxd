@@ -1,5 +1,7 @@
 from cpython.object cimport PyObject
 from numpy cimport (
+    complex64_t,
+    complex128_t,
     float32_t,
     float64_t,
     int8_t,
@@ -18,6 +20,26 @@ cdef extern from "khash_python.h":
 
     ctypedef uint32_t khint_t
     ctypedef khint_t khiter_t
+
+    ctypedef struct khcomplex128_t:
+        double real
+        double imag
+
+    bint are_equivalent_khcomplex128_t \
+    "kh_complex_hash_equal" (khcomplex128_t a, khcomplex128_t b) nogil
+
+    ctypedef struct khcomplex64_t:
+        float real
+        float imag
+
+    bint are_equivalent_khcomplex64_t \
+    "kh_complex_hash_equal" (khcomplex64_t a, khcomplex64_t b) nogil
+
+    bint are_equivalent_float64_t \
+    "kh_floats_hash_equal" (float64_t a, float64_t b) nogil
+
+    bint are_equivalent_float32_t \
+    "kh_floats_hash_equal" (float32_t a, float32_t b) nogil
 
     ctypedef struct kh_pymap_t:
         khint_t n_buckets, size, n_occupied, upper_bound
