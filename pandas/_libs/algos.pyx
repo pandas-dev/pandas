@@ -1025,9 +1025,10 @@ def rank_2d(
         rank_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        int64_t idx
         bint keep_na = False
         float64_t count = 0.0
-        bint condition, skip_condition
+        bint condition
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1107,9 +1108,9 @@ def rank_2d(
         count = 0.0
         for j in range(k):
             val = values[i, j]
-
-            if mask[i, argsorted[i, j]] and keep_na:
-                ranks[i, argsorted[i, j]] = NaN
+            idx = argsorted[i, j]
+            if mask[i, idx] and keep_na:
+                ranks[i, idx] = NaN
                 infs += 1
                 continue
 
