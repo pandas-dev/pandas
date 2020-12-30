@@ -1066,7 +1066,7 @@ class TestStringMethods:
         values = Series(["fooBAD__barBAD", np.nan])
 
         # test with compiled regex
-        pat = re.compile(r"BAD[_]*")
+        pat = re.compile(r"BAD_*")
         result = values.str.replace(pat, "", regex=True)
         exp = Series(["foobar", np.nan])
         tm.assert_series_equal(result, exp)
@@ -1095,7 +1095,7 @@ class TestStringMethods:
         # case and flags provided to str.replace will have no effect
         # and will produce warnings
         values = Series(["fooBAD__barBAD__bad", np.nan])
-        pat = re.compile(r"BAD[_]*")
+        pat = re.compile(r"BAD_*")
 
         with pytest.raises(ValueError, match="case and flags cannot be"):
             result = values.str.replace(pat, "", flags=re.IGNORECASE)
