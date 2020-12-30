@@ -9,7 +9,16 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Grouper,
+    MultiIndex,
+    Series,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
@@ -85,10 +94,8 @@ def test_series_groupby_value_counts(
     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
-@pytest.mark.parametrize("categorical", [True, False])
-def test_series_groupby_value_counts_with_grouper(categorical):
+def test_series_groupby_value_counts_with_grouper():
     # GH28479
-    # GH38672 (categorical)
     df = DataFrame(
         {
             "Timestamp": [
@@ -104,9 +111,6 @@ def test_series_groupby_value_counts_with_grouper(categorical):
         }
     ).drop([3])
 
-    if categorical:
-        df["Food"] = df["Food"].astype("category")
-
     df["Datetime"] = to_datetime(df["Timestamp"].apply(lambda t: str(t)), unit="s")
     dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
 
@@ -114,5 +118,32 @@ def test_series_groupby_value_counts_with_grouper(categorical):
     result = dfg["Food"].value_counts().sort_index()
     expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_groupby_value_counts_on_categorical():
+    # GH38672
+
+    s = Series(Categorical(["a"], categories=["a", "b"]))
+    result = s.groupby([0]).value_counts()
+
+    expected = Series(
+        data=[1, 0],
+        index=MultiIndex.from_arrays(
+            [
+                [0, 0],
+                CategoricalIndex(
+                    ["a", "b"], categories=["a", "b"], ordered=False, dtype="category"
+                ),
+            ]
+        ),
+        name=0,
+    )
+
+    # Expected:
+    # 0  a    1
+    #    b    0
+    # Name: 0, dtype: int64
 
     tm.assert_series_equal(result, expected)
