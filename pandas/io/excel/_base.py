@@ -1051,16 +1051,11 @@ class ExcelFile:
 
             xlrd_version = LooseVersion(xlrd.__version__)
 
-        if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase, bytes)):
-            ext = inspect_excel_format(
-                content=path_or_buffer, storage_options=storage_options
-            )
-        elif xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
         else:
-            # path_or_buffer is path-like, use stringified path
             ext = inspect_excel_format(
-                path=str(self._io), storage_options=storage_options
+                content=path_or_buffer, storage_options=storage_options
             )
 
         if engine is None:
