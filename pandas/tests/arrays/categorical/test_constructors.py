@@ -723,3 +723,10 @@ class TestCategoricalConstructors:
         result = Categorical._from_sequence(cat, dtype=None, copy=True)
 
         assert not np.shares_memory(result._codes, cat._codes)
+
+    def test_constructor_datetime64_non_nano(self):
+        categories = np.arange(10).view("M8[D]")
+        values = categories[::2]
+
+        cat = Categorical(values, categories=categories)
+        assert (cat == values).all()
