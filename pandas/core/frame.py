@@ -492,20 +492,12 @@ class DataFrame(NDFrame, OpsMixin):
     _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
     _accessors: Set[str] = {"sparse"}
     _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
-    _constructor_sliced: Type[Series] = Series
 
     @property
     def _constructor(self) -> Type[DataFrame]:
         return DataFrame
 
-    @property
-    def _constructor_expanddim(self):
-        # GH#31549 raising NotImplementedError on a property causes trouble
-        #  for `inspect`
-        def constructor(*args, **kwargs):
-            raise NotImplementedError("Not supported for DataFrames!")
-
-        return constructor
+    _constructor_sliced: Type[Series] = Series
 
     # ----------------------------------------------------------------------
     # Constructors

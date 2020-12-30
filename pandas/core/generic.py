@@ -375,14 +375,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
-    @property
-    def _constructor_expanddim(self):
-        """
-        Used when a manipulation result has one higher dimension as the
-        original, such as Series.to_frame()
-        """
-        raise NotImplementedError
-
     # ----------------------------------------------------------------------
     # Internals
 

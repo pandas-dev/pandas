@@ -219,7 +219,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
--
+- Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 -
 
 .. ---------------------------------------------------------------------------
