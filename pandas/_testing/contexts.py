@@ -1,14 +1,9 @@
-import bz2
 from contextlib import contextmanager
-import gzip
 import os
 from shutil import rmtree
 import tempfile
-import zipfile
 
-from pandas.compat import get_lzma_file, import_lzma
-
-lzma = import_lzma()
+from pandas.io.common import get_handle
 
 
 @contextmanager
@@ -28,36 +23,8 @@ def decompress_file(path, compression):
     -------
     file object
     """
-    if compression is None:
-        f = open(path, "rb")
-    elif compression == "gzip":
-        # pandas\_testing.py:243: error: Incompatible types in assignment
-        # (expression has type "IO[Any]", variable has type "BinaryIO")
-        f = gzip.open(path, "rb")  # type: ignore[assignment]
-    elif compression == "bz2":
-        # pandas\_testing.py:245: error: Incompatible types in assignment
-        # (expression has type "BZ2File", variable has type "BinaryIO")
-        f = bz2.BZ2File(path, "rb")  # type: ignore[assignment]
-    elif compression == "xz":
-        f = get_lzma_file(lzma)(path, "rb")
-    elif compression == "zip":
-        zip_file = zipfile.ZipFile(path)
-        zip_names = zip_file.namelist()
-        if len(zip_names) == 1:
-            # pandas\_testing.py:252: error: Incompatible types in assignment
-            # (expression has type "IO[bytes]", variable has type "BinaryIO")
-            f = zip_file.open(zip_names.pop())  # type: ignore[assignment]
-        else:
-            raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
-    else:
-        raise ValueError(f"Unrecognized compression type: {compression}")
-
-    try:
-        yield f
-    finally:
-        f.close()
-        if compression == "zip":
-            zip_file.close()
+    with get_handle(path, "rb", compression=compression, is_text=False) as handle:
+        yield handle.handle
 
 
 @contextmanager

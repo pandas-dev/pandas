@@ -151,7 +151,7 @@ def test_groupby_with_origin():
     count_ts = ts.groupby(simple_grouper).agg("count")
     count_ts = count_ts[middle:end]
     count_ts2 = ts2.groupby(simple_grouper).agg("count")
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
     # test origin on 1970-01-01 00:00:00
