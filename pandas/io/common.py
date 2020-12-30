@@ -4,10 +4,10 @@ import bz2
 from collections import abc
 import dataclasses
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
+from io import BufferedIOBase, BytesIO, RawIOBase, StringIO, TextIOWrapper
 import mmap
 import os
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, cast
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union, cast
 from urllib.parse import (
     urljoin,
     urlparse as parse_url,
@@ -713,17 +713,36 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name: Optional[str] = None,
         **kwargs,
     ):
-        if mode in ["wb", "rb"]:
-            mode = mode.replace("b", "")
+        mode = mode.replace("b", "")
         self.archive_name = archive_name
+        self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
+
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
+
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = (
+                BytesIO() if isinstance(data, bytes) else StringIO()
+            )
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
         # ZipFile needs a non-empty string
         archive_name = self.archive_name or self.filename or "zip"
-        super().writestr(archive_name, data)
+        with self.multiple_write_buffer:
+            super().writestr(archive_name, self.multiple_write_buffer.getvalue())
+
+    def close(self):
+        self.flush()
+        super().close()
 
     @property
     def closed(self):
