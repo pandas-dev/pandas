@@ -467,7 +467,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
 
-            # Slice data and insert inbetween
+            # Slice data and insert in-between
             new_data = [
                 *self._data[0:key].chunks,
                 pa.array([value], type=pa.string()),
@@ -616,7 +616,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         # Index cannot hold ExtensionArrays yet
         index = Index(type(self)(vc.field(0)).astype(object))
-        # No missings, so we can adhere to the interface and return a numpy array.
+        # No missing values so we can adhere to the interface and return a numpy array.
         counts = np.array(vc.field(1))
 
         if dropna and self._data.null_count > 0:

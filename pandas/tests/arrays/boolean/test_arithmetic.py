@@ -46,7 +46,7 @@ def test_add_mul(left_array, right_array, opname, exp):
 
 
 def test_sub(left_array, right_array):
-    with tm.external_error_raised(TypeError):
+    with pytest.raises(TypeError):
         # numpy points to ^ operator or logical_xor function instead
         left_array - right_array
 
@@ -92,29 +92,13 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    msg = (
-        "ufunc '\\w+' did not contain a loop with signature matching types|"
-        "ufunc '\\w+' not supported for the input types, and the inputs could "
-        "not be safely coerced to any supported types|"
-        "\\w+ cannot perform the operation \\w+"
-    )
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         ops("foo")
-
-    msg = (
-        "unsupported operand type\\(s\\) for|"
-        "Concatenation operation is not implemented for NumPy arrays"
-    )
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
     if op not in ("__mul__", "__rmul__"):
         # TODO(extension) numpy's mul with object array sees booleans as numbers
-        msg = (
-            "unsupported operand type\\(s\\) for|"
-            'can only concatenate str \\(not "bool"\\) to str|'
-            "not all arguments converted during string formatting"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             ops(pd.Series("foo", index=s.index))

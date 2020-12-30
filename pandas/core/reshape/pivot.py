@@ -740,8 +740,8 @@ def _build_names_mapper(
     A row or column name is replaced if it is duplicate among the rows of the inputs,
     among the columns of the inputs or between the rows and the columns.
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     rownames: list[str]
     colnames: list[str]
 

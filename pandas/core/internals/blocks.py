@@ -1064,9 +1064,7 @@ class Block(PandasObject):
             # If the default repeat behavior in np.putmask would go in the
             # wrong direction, then explicitly repeat and reshape new instead
             if getattr(new, "ndim", 0) >= 1:
-                if self.ndim - 1 == new.ndim and axis == 1:
-                    new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
-                new = new.astype(new_values.dtype)
+                new = new.astype(new_values.dtype, copy=False)
 
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
@@ -1103,13 +1101,6 @@ class Block(PandasObject):
                 if isinstance(new, np.ndarray):
                     new = new.T
                 axis = new_values.ndim - axis - 1
-
-            # Pseudo-broadcast
-            if getattr(new, "ndim", 0) >= 1:
-                if self.ndim - 1 == new.ndim:
-                    new_shape = list(new.shape)
-                    new_shape.insert(axis, 1)
-                    new = new.reshape(tuple(new_shape))
 
             # operate column-by-column
             def f(mask, val, idx):
@@ -1341,6 +1332,22 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
+    def _maybe_reshape_where_args(self, values, other, cond, axis):
+        transpose = self.ndim == 2
+
+        cond = _extract_bool_array(cond)
+
+        # If the default broadcasting would go in the wrong direction, then
+        # explicitly reshape other instead
+        if getattr(other, "ndim", 0) >= 1:
+            if values.ndim - 1 == other.ndim and axis == 1:
+                other = other.reshape(tuple(other.shape + (1,)))
+            elif transpose and values.ndim == self.ndim - 1:
+                # TODO(EA2D): not neceesssary with 2D EAs
+                cond = cond.T
+
+        return other, cond
+
     def where(
         self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
@@ -1363,7 +1370,6 @@ class Block(PandasObject):
         """
         import pandas.core.computation.expressions as expressions
 
-        cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
         assert errors in ["raise", "ignore"]
@@ -1374,17 +1380,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        # If the default broadcasting would go in the wrong direction, then
-        # explicitly reshape other instead
-        if getattr(other, "ndim", 0) >= 1:
-            if values.ndim - 1 == other.ndim and axis == 1:
-                other = other.reshape(tuple(other.shape + (1,)))
-            elif transpose and values.ndim == self.ndim - 1:
-                # TODO(EA2D): not neceesssary with 2D EAs
-                cond = cond.T
-
-        if not hasattr(cond, "shape"):
-            raise ValueError("where must have a condition that is ndarray like")
+        other, cond = self._maybe_reshape_where_args(values, other, cond, axis)
 
         if cond.ravel("K").all():
             result = values
@@ -1816,7 +1812,7 @@ class ExtensionBlock(Block):
         # return same dims as we currently have
         if not isinstance(slicer, tuple) and self.ndim == 2:
             # reached via getitem_block via _slice_take_blocks_ax0
-            # TODO(EA2D): wont be necessary with 2D EAs
+            # TODO(EA2D): won't be necessary with 2D EAs
             slicer = (slicer, slice(None))
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
@@ -1826,7 +1822,7 @@ class ExtensionBlock(Block):
                     "invalid slicing for a 1-ndim ExtensionArray", first
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
-            # TODO(EA2D): wont be necessary with 2D EAs
+            # TODO(EA2D): won't be necessary with 2D EAs
             new_locs = self.mgr_locs[first]
             if len(new_locs):
                 # effectively slice(None)
@@ -2137,6 +2133,26 @@ class DatetimeLikeBlockMixin(Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
+    def where(
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
+    ) -> List["Block"]:
+        # TODO(EA2D): reshape unnecessary with 2D EAs
+        arr = self.array_values().reshape(self.shape)
+
+        other, cond = self._maybe_reshape_where_args(arr, other, cond, axis)
+
+        try:
+            res_values = arr.T.where(cond, other).T
+        except (ValueError, TypeError):
+            return super().where(
+                other, cond, errors=errors, try_cast=try_cast, axis=axis
+            )
+
+        # TODO(EA2D): reshape not needed with 2D EAs
+        res_values = res_values.reshape(self.values.shape)
+        nb = self.make_block_same_class(res_values)
+        return [nb]
+
     def _can_hold_element(self, element: Any) -> bool:
         arr = self.array_values()
 
@@ -2205,6 +2221,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     fillna = DatetimeBlock.fillna  # i.e. Block.fillna
     fill_value = DatetimeBlock.fill_value
     _can_hold_na = DatetimeBlock._can_hold_na
+    where = DatetimeBlock.where
 
     array_values = ExtensionBlock.array_values
 
@@ -2289,7 +2306,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         """
         ndim inference and validation.
 
-        This is overriden by the DatetimeTZBlock to check the case of 2D
+        This is overridden by the DatetimeTZBlock to check the case of 2D
         data (values.ndim == 2), which should only be allowed if ndim is
         also 2.
         The case of 1D array is still allowed with both ndim of 1 or 2, as
