@@ -7,6 +7,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
+    is_integer_dtype,
     is_number,
     is_numeric_dtype,
     is_scalar,
@@ -15,6 +16,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
+from pandas.core.arrays.numeric import NumericArray
 
 
 def to_numeric(arg, errors="raise", downcast=None):
@@ -108,6 +110,21 @@ def to_numeric(arg, errors="raise", downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
+
+    Downcasting of nullable integer and floating dtypes is supported:
+
+    >>> s = pd.Series([1, 2, 3], dtype="Int64")
+    >>> pd.to_numeric(s, downcast="integer")
+    0    1
+    1    2
+    2    3
+    dtype: Int8
+    >>> s = pd.Series([1.0, 2.1, 3.0], dtype="Float64")
+    >>> pd.to_numeric(s, downcast="float")
+    0    1.0
+    1    2.1
+    2    3.0
+    dtype: Float32
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -141,6 +158,14 @@ def to_numeric(arg, errors="raise", downcast=None):
         raise TypeError("arg must be a list, tuple, 1-d array, or Series")
     else:
         values = arg
+
+    # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
+    # save mask to reconstruct the full array after casting
+    if isinstance(values, NumericArray):
+        mask = values._mask
+        values = values._data[~mask]
+    else:
+        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -187,6 +212,16 @@ def to_numeric(arg, errors="raise", downcast=None):
                     # successful conversion
                     if values.dtype == dtype:
                         break
+
+    # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
+    if mask is not None:
+        data = np.zeros(mask.shape, dtype=values.dtype)
+        data[~mask] = values
+
+        from pandas.core.arrays import FloatingArray, IntegerArray
+
+        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
+        values = klass(data, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
