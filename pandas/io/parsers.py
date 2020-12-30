@@ -3513,17 +3513,11 @@ def _get_empty_meta(columns, index_col, index_names, dtype: Optional[DtypeArg] =
         default_dtype = dtype or object
         dtype = defaultdict(lambda: default_dtype)
     else:
-        # Save a copy of the dictionary.
         dtype = cast(dict, dtype)
-        _dtype = dtype.copy()
-
-        dtype = defaultdict(lambda: object)
-        dtype = cast(dict, dtype)
-
-        # Convert column indexes to column names.
-        for k, v in _dtype.items():
-            col = columns[k] if is_integer(k) else k
-            dtype[col] = v
+        dtype = defaultdict(
+            lambda: object,
+            {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
+        )
 
     # Even though we have no data, the "index" of the empty DataFrame
     # could for example still be an empty MultiIndex. Thus, we need to
