@@ -331,7 +331,7 @@ class TestSetitemCoercion(CoercionBase):
         if exp_dtype is IndexError:
             # float + int -> int
             temp = obj.copy()
-            with pytest.raises(exp_dtype):
+            with tm.external_error_raised(exp_dtype):
                 temp[5] = 5
             mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
             request.node.add_marker(mark)
