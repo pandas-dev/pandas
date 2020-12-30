@@ -561,7 +561,7 @@ class ExtensionArray:
         ascending : bool, default True
             Whether the indices should result in an ascending
             or descending sort.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
