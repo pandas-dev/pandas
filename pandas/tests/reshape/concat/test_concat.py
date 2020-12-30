@@ -5,12 +5,13 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.errors import InvalidIndexError
 from pandas.tests.extension.decimal import to_decimal
 
 
@@ -446,52 +447,55 @@ class TestConcatenate:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
 @pytest.mark.parametrize("join", ["inner", "outer"])
-def test_concat_duplicates_error(index_maker, join):
-    # if index_maker is tm.makeMultiIndex:
-    # TODO: This generator only makes Indexs of size 4
-    # pytest.skip()
-    index_unique = index_maker(k=4)
+def test_concat_duplicates_error(index, join):
+    # https://github.com/pandas-dev/pandas/issues/6963
+    # Needs an index with 4 unique values
+    index = index.unique()
+    if len(index) < 4:
+        pytest.skip()
+
+    index_unique = index[:4]
     index_non_unique = index_unique[[0, 0, 1, 2, 3]]
 
-    df_non_unique = pd.DataFrame(
+    df_non_unique = DataFrame(
         np.ones((1, len(index_non_unique))), columns=index_non_unique
     )
-    df_unique = pd.DataFrame(np.ones((1, len(index_unique))), columns=index_unique)
+    df_unique = DataFrame(np.ones((1, len(index_unique))), columns=index_unique)
 
     with pytest.raises(InvalidIndexError):
         _ = pd.concat([df_non_unique, df_unique], join=join)
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
 @pytest.mark.xfail(reason="Not implemented")
-def test_concat_intersection_duplicates(index_maker):
-    # Currently failing: https://github.com/pandas-dev/pandas/pull/38745/files#r549577521
+def test_concat_intersection_duplicates(index):
+    # ailing: https://github.com/pandas-dev/pandas/pull/38745/files#r549577521
     # Concat is valid if the intersection does not contain duplicates
-    index_full = index_maker(k=4)
-    index_unique = index_full[[0, 1, 2]]
-    index_non_unique = index_full[[1, 2, 3, 3]]
+    # Needs an index with 4 unique values
+    index = index.unique()
+    if len(index) < 4:
+        pytest.skip()
 
-    df_unique = pd.DataFrame(
+    index_unique = index[[0, 1, 2]]
+    index_non_unique = index[[1, 2, 3, 3]]
+
+    df_unique = DataFrame(
         np.ones((1, len(index_unique))),
         columns=index_unique,
     )
-    df_non_unique = pd.DataFrame(
+    df_non_unique = DataFrame(
         np.zeros((1, len(index_non_unique))),
         columns=index_non_unique,
     )
 
     result = pd.concat([df_unique, df_non_unique], join="inner")
-
-    tm.assert_frame_equal(
-        result,
-        pd.DataFrame(
-            [[1, 1], [0, 0]],
-            columns=index_full[[1, 2]],
-            index=[0, 0],
-        ),
+    expected = DataFrame(
+        [[1, 1], [0, 0]],
+        columns=index[[1, 2]],
+        index=[0, 0],
     )
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pdt", [Series, pd.DataFrame])

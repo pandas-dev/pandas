@@ -2,13 +2,12 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
-from sys import intern
-from pandas.errors import InvalidIndexError
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.indexes.api import get_objs_combined_axis
 
 import pandas as pd
 from pandas import (
@@ -24,6 +23,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_datetime64tz_dtype, pandas_dtype
+from pandas.core.indexes.api import get_objs_combined_axis
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),
@@ -468,28 +468,36 @@ def test_setop_with_categorical(index, sort, method):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
 @pytest.mark.parametrize("reverse", [True, False])
-def test_valid_intersection_w_dupes(index_maker, reverse):
-    # TODO: it would be good to ensure these are unique (categoricals aren't)
-    full = index_maker(k=4)
-    series = [pd.Series(1, index=full[[0, 1, 1, 2]]), pd.Series(0, index=full[[0, 2]])]
+def test_valid_intersection_w_dupes(index, reverse):
+    # Make sure base index is unique and has at least 3 values
+    index = index.unique()
+    if len(index) < 3:
+        pytest.skip()
+
+    series = [
+        pd.Series(1, index=index[[0, 0, 1, 2]]),
+        pd.Series(0, index=index[[1, 2]]),
+    ]
     if reverse:
         series = reversed(series)
 
     result = get_objs_combined_axis(series, intersect=True)
+    expected = index[[1, 2]]
 
-    tm.assert_index_equal(full[[0, 2]], result, check_order=False)
+    tm.assert_index_equal(result, expected, check_order=False)
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
 @pytest.mark.parametrize("reverse", [True, False])
-def test_invalid_intersection_w_dupes(index_maker, reverse):
-    # TODO: it would be good to ensure these are unique (categoricals aren't)
-    full = index_maker(k=4)
+def test_invalid_intersection_w_dupes(index, reverse):
+    # Make sure base index is unique and has at least 3 values
+    index = index.unique()
+    if len(index) < 3:
+        pytest.skip()
+
     series = [
-        pd.Series(1, index=full[[0, 1, 1, 2]]),
-        pd.Series(0, index=full[[0, 1, 2]]),
+        pd.Series(1, index=index[[0, 0, 1, 2]]),
+        pd.Series(0, index=index[[0, 2]]),
     ]
     if reverse:
         series = reversed(series)
