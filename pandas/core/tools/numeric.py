@@ -198,7 +198,7 @@ def to_numeric(arg, errors="raise", downcast=None):
                     if values.dtype == dtype:
                         break
 
-    # GH33013: for IntegerArray & FloatingArray need to reconstruct full array
+    # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
     if mask is not None:
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
