@@ -741,7 +741,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.zeros(self.shape, dtype=bool)
 
         if not isinstance(values, type(self)):
-            inferrable = [
+            inferable = [
                 "timedelta",
                 "timedelta64",
                 "datetime",
@@ -751,7 +751,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             ]
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
+                if inferred not in inferable:
                     if inferred == "string":
                         pass
 
@@ -1639,6 +1639,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
+
+    # --------------------------------------------------------------
+    # Reductions
+
+    def any(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#34479 discussion of desired behavior long-term
+        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+
+    def all(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#34479 discussion of desired behavior long-term
+        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------
     # Frequency Methods

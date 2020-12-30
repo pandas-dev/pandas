@@ -2077,7 +2077,7 @@ def objects_to_datetime64ns(
             require_iso8601=require_iso8601,
         )
         result = result.reshape(data.shape, order=order)
-    except ValueError as e:
+    except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
             # If tzaware, these values represent unix timestamps, so we
@@ -2085,7 +2085,7 @@ def objects_to_datetime64ns(
             values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
-            raise e
+            raise err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array

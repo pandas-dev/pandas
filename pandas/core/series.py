@@ -436,13 +436,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # need to set here because we changed the index
                     if fastpath:
                         self._mgr.set_axis(axis, labels)
-                    warnings.warn(
-                        "Automatically casting object-dtype Index of datetimes to "
-                        "DatetimeIndex is deprecated and will be removed in a "
-                        "future version.  Explicitly cast to DatetimeIndex instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -3073,9 +3066,9 @@ Keep all original rows and also all original values
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort' or 'heapsort'}, default 'quicksort'
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. 'mergesort' is the only stable  algorithm.
+            information. 'mergesort' and 'stable' are the only stable  algorithms.
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
@@ -3286,9 +3279,9 @@ Keep all original rows and also all original values
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information.  'mergesort' is the only stable algorithm. For
+            information. 'mergesort' and 'stable' are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
         na_position : {'first', 'last'}, default 'last'
@@ -3427,9 +3420,9 @@ Keep all original rows and also all original values
         ----------
         axis : {0 or "index"}
             Has no effect but is accepted for compatibility with numpy.
-        kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See np.sort for more
-            information. 'mergesort' is the only stable algorithm.
+        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
+            Choice of sorting algorithm. See :func:`numpy.sort` for more
+            information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
             Has no effect but is accepted for compatibility with numpy.
 
