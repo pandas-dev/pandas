@@ -842,6 +842,14 @@ def test_omit_nuisance(df):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
 
+def test_omit_nuisance_sem(df):
+    # GH 38774 - sem should work with nuisance columns
+    grouped = df.groupby("A")
+    result = grouped.sem()
+    expected = df.loc[:, ["A", "C", "D"]].groupby("A").sem()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_omit_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
 

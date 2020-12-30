@@ -20,6 +20,7 @@ Fixed regressions
 - Bug in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression in :meth:`DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
 - Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
+- Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
 - :func:`read_excel` does not work for non-rawbyte file handles (issue:`38788`)
 - Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings (:issue:`38753`)
 -
