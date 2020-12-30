@@ -1,6 +1,13 @@
 :orphan:
 
 .. ipython:: python
+   :suppress:
+
+   # ensure tips is defined when scanning with flake8-rst
+   if 'tips' not in vars():
+       tips = {}
+
+.. ipython:: python
 
    tips["date1"] = pd.Timestamp("2013-01-15")
    tips["date2"] = pd.Timestamp("2015-02-15")
