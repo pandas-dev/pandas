@@ -2823,15 +2823,6 @@ class TestDataFrameConstructorWithDatetimeTZ:
         d = DataFrame({"A": "foo", "B": ts}, index=dr)
         assert d["B"].isna().all()
 
-    def test_frame_timeseries_to_records(self):
-        index = date_range("1/1/2000", periods=10)
-        df = DataFrame(np.random.randn(10, 3), index=index, columns=["a", "b", "c"])
-
-        result = df.to_records()
-        result["index"].dtype == "M8[ns]"
-
-        result = df.to_records(index=False)
-
     def test_frame_timeseries_column(self):
         # GH19157
         dr = date_range(start="20130101T10:00:00", periods=3, freq="T", tz="US/Eastern")
@@ -2984,14 +2975,7 @@ class TestFromScalar:
         assert isinstance(get1(obj), np.timedelta64)
 
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
-    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
-        node = request.node
-        params = node.callspec.params
-        if params["frame_or_series"] is DataFrame and params["constructor"] is not None:
-            mark = pytest.mark.xfail(
-                reason="DataFrame incorrectly allows mismatched datetimelike"
-            )
-            node.add_marker(mark)
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
 
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]

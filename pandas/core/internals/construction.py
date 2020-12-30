@@ -271,7 +271,9 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
                 nan_dtype = np.dtype(object)
             else:
                 nan_dtype = dtype
-            val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
+
+            na_val = arrays[missing].iat[0]
+            val = construct_1d_arraylike_from_scalar(na_val, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
