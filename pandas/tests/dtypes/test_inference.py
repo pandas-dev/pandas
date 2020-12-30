@@ -131,7 +131,7 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with pytest.raises(RecursionError):
+    with tm.external_error_raised(RecursionError):
         foo()
 
 

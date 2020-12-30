@@ -69,9 +69,8 @@ class TestHashTable:
         assert table.get_item(index + 1) == 41
         assert index + 2 not in table
 
-        with pytest.raises(KeyError) as excinfo:
+        with pytest.raises(KeyError, match=str(index + 2)):
             table.get_item(index + 2)
-        assert str(index + 2) in str(excinfo.value)
 
     def test_map(self, table_type, dtype):
         # PyObjectHashTable has no map-method
