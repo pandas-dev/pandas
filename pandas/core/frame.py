@@ -9230,7 +9230,12 @@ NaN 12.3   33.0
         def f(s):
             return s.mode(dropna=dropna)
 
-        return data.apply(f, axis=axis)
+        data = data.apply(f, axis=axis)
+        # Ensure index is type stable (should always use int index)
+        if data.empty:
+            data.index = ibase.default_index(0)
+
+        return data
 
     def quantile(
         self,
