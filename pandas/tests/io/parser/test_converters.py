@@ -12,7 +12,7 @@ import pandas as pd
 from pandas import DataFrame, Index
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_xfail")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_converters_type_must_be_dict(all_parsers):
