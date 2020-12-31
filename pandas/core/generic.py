@@ -2576,7 +2576,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.read_hdf : Read from HDF file.
+        read_hdf : Read from HDF file.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
         DataFrame.to_sql : Write to a sql table.
         DataFrame.to_feather : Write out feather-format for DataFrames.
