@@ -223,7 +223,7 @@ class TestCasting(base.BaseCastingTests):
     )
     def test_consistent_casting(self, dtype, expected):
         # GH 28448
-        result = Categorical("2015-01-01").astype(dtype)
+        result = Categorical(["2015-01-01"]).astype(dtype)
         assert result == expected
 
 

@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import is_platform_linux
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
@@ -1177,6 +1178,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(reason="GH38630, sometimes gives ResourceWarning", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1306,15 +1308,14 @@ def test_float_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_scientific_no_exponent(all_parsers):
+def test_scientific_no_exponent(all_parsers_all_precisions):
     # see gh-12215
     df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
-    parser = all_parsers
+    parser, precision = all_parsers_all_precisions
 
-    for precision in parser.float_precision_choices:
-        df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
-        tm.assert_frame_equal(df_roundtrip, df)
+    df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
+    tm.assert_frame_equal(df_roundtrip, df)
 
 
 @skip_pyarrow
@@ -1399,6 +1400,36 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
     expected = DataFrame(exp_data)
 
     result = parser.read_csv(StringIO(data), header=None)
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize("neg_exp", [-617, -100000, -99999999999999999])
+def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
+    # GH#38753
+    parser, precision = all_parsers_all_precisions
+    data = f"data\n10E{neg_exp}"
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    expected = DataFrame({"data": [0.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
+def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
+    # GH#38753
+    parser, precision = all_parsers_all_precisions
+    data = f"data\n10E{exp}"
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    if precision == "round_trip":
+        if exp == 999999999999999999 and is_platform_linux():
+            mark = pytest.mark.xfail(reason="GH38794, on Linux gives object result")
+            request.node.add_marker(mark)
+
+        value = np.inf if exp > 0 else 0.0
+        expected = DataFrame({"data": [value]})
+    else:
+        expected = DataFrame({"data": [f"10E{exp}"]})
+
     tm.assert_frame_equal(result, expected)
 
 

@@ -85,6 +85,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -92,7 +93,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_unbox_datetimelike,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -112,7 +112,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_named_tuple,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -129,7 +128,7 @@ from pandas.core.aggregation import (
     transform,
 )
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
@@ -147,13 +146,14 @@ from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    get_names_from_index,
     init_dict,
     init_ndarray,
     masked_rec_array_to_mgr,
+    nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
     to_arrays,
+    treat_as_nested,
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
@@ -167,7 +167,10 @@ import pandas.plotting
 if TYPE_CHECKING:
     from typing import Literal
 
+    from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
 
@@ -181,6 +184,9 @@ _shared_doc_kwargs = {
     "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -194,6 +200,9 @@ _shared_doc_kwargs = {
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 _numeric_only_doc = """numeric_only : boolean, default None
@@ -556,27 +565,16 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
+        elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    if is_named_tuple(data[0]) and columns is None:
-                        columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
-                    columns = ensure_index(columns)
-
-                    # set the index
-                    if index is None:
-                        if isinstance(data[0], Series):
-                            index = get_names_from_index(data)
-                        elif isinstance(data[0], Categorical):
-                            index = ibase.default_index(len(data[0]))
-                        else:
-                            index = ibase.default_index(len(data))
-
+                if treat_as_nested(data):
+                    arrays, columns, index = nested_data_to_arrays(
+                        data, columns, index, dtype
+                    )
                     mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
@@ -592,6 +590,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # For data is a scalar extension dtype
             if is_extension_array_dtype(dtype):
+                # TODO(EA2D): special case not needed with 2D EAs
 
                 values = [
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
@@ -599,24 +598,9 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
-                if dtype.kind in ["m", "M"]:
-                    data = maybe_unbox_datetimelike(data, dtype)
-
-                # Attempt to coerce to a numpy array
-                try:
-                    arr = np.array(data, dtype=dtype, copy=copy)
-                except (ValueError, TypeError) as err:
-                    exc = TypeError(
-                        "DataFrame constructor called with "
-                        f"incompatible data and dtype: {err}"
-                    )
-                    raise exc from err
-
-                if arr.ndim != 0:
-                    raise ValueError("DataFrame constructor not properly called!")
-
-                shape = (len(index), len(columns))
-                values = np.full(shape, arr)
+                values = construct_2d_arraylike_from_scalar(
+                    data, len(index), len(columns), dtype, copy
+                )
 
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
@@ -5542,9 +5526,9 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information. `mergesort` and `stable` are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
         na_position : {'first', 'last'}, default 'last'
@@ -9246,7 +9230,12 @@ NaN 12.3   33.0
         def f(s):
             return s.mode(dropna=dropna)
 
-        return data.apply(f, axis=axis)
+        data = data.apply(f, axis=axis)
+        # Ensure index is type stable (should always use int index)
+        if data.empty:
+            data.index = ibase.default_index(0)
+
+        return data
 
     def quantile(
         self,
@@ -9349,6 +9338,54 @@ NaN 12.3   33.0
             result = result.T
 
         return result
+
+    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
+    def asfreq(
+        self,
+        freq,
+        method=None,
+        how: Optional[str] = None,
+        normalize: bool = False,
+        fill_value=None,
+    ) -> "DataFrame":
+        return super().asfreq(
+            freq=freq,
+            method=method,
+            how=how,
+            normalize=normalize,
+            fill_value=fill_value,
+        )
+
+    @doc(NDFrame.resample, **_shared_doc_kwargs)
+    def resample(
+        self,
+        rule,
+        axis=0,
+        closed: Optional[str] = None,
+        label: Optional[str] = None,
+        convention: str = "start",
+        kind: Optional[str] = None,
+        loffset=None,
+        base: Optional[int] = None,
+        on=None,
+        level=None,
+        origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
+        offset: Optional["TimedeltaConvertibleTypes"] = None,
+    ) -> "Resampler":
+        return super().resample(
+            rule=rule,
+            axis=axis,
+            closed=closed,
+            label=label,
+            convention=convention,
+            kind=kind,
+            loffset=loffset,
+            base=base,
+            on=on,
+            level=level,
+            origin=origin,
+            offset=offset,
+        )
 
     def to_timestamp(
         self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
