@@ -345,20 +345,6 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.api_breaking:
-
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _whatsnew_110.api_breaking._testing.assert_frame_equal:
-
-Added ``check_freq`` argument to ``assert_frame_equal``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``check_freq`` argument was added to :func:`assert_frame_equal` and defaults to ``True``. :func:`assert_frame_equal` now raises ``AssertionError`` if the indexes do not have the same frequency. Before pandas 1.1.0, the index frequency was not checked by :func:`assert_frame_equal`.
-
-.. ---------------------------------------------------------------------------
-
 .. _whatsnew_110.notable_bug_fixes:
 
 Notable bug fixes
