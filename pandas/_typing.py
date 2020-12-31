@@ -167,4 +167,6 @@ ColspaceArgType = Union[
 if np_version_under1p17:
     RandomState = Type[Union[int, ArrayLike, np.random.RandomState]]
 else:
-    RandomState = Type[Union[int, ArrayLike, np.random.Generator, np.random.RandomState]]
+    RandomState = Type[
+        Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
+    ]
