@@ -844,7 +844,7 @@ def rank_1d(
     keep_na = na_option == 'keep'
 
     N = len(in_arr)
-    assert(len(labels) == N)
+    assert(<Py_ssize_t>len(labels) == N)
     out = np.empty(N)
     grp_sizes = np.ones(N)
     # If all 0 labels, can short-circuit later label
