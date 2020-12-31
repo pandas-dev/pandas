@@ -132,7 +132,7 @@ def test_unsortedindex_doc_examples():
         dfm.loc[(0, "y"):(1, "z")]
 
     assert not dfm.index._is_lexsorted()
-    assert dfm.index._get_lexsort_depth == 1
+    assert dfm.index._lexsort_depth == 1
 
     # sort it
     dfm = dfm.sort_index()
@@ -140,7 +140,7 @@ def test_unsortedindex_doc_examples():
     dfm.loc[(0, "y"):(1, "z")]
 
     assert dfm.index._is_lexsorted()
-    assert dfm.index._get_lexsort_depth == 2
+    assert dfm.index._lexsort_depth == 2
 
 
 def test_reconstruct_sort():
