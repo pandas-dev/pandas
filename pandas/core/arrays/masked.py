@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas as pd
+from pandas import NA
 from pandas.core import nanops
 from pandas.core.algorithms import factorize_array, isin, take
 from pandas.core.array_algos import masked_reductions
@@ -306,7 +306,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.core.arrays import BooleanArray
 
         result = isin(self._data, values) * np.invert(self._mask)
-        if any(x is pd.NA for x in values):
+        if any(x is NA for x in values):
             result += self._mask
         mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
