@@ -83,3 +83,16 @@ class TestDataFrameMask:
         expected = bools.astype(float).mask(mask)
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
+
+
+def test_mask_try_cast_deprecated(frame_or_series):
+
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.mask(mask, -1, try_cast=True)
