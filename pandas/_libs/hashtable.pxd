@@ -1,12 +1,16 @@
 from numpy cimport intp_t, ndarray
 
 from pandas._libs.khash cimport (
+    complex64_t,
+    complex128_t,
     float32_t,
     float64_t,
     int8_t,
     int16_t,
     int32_t,
     int64_t,
+    kh_complex64_t,
+    kh_complex128_t,
     kh_float32_t,
     kh_float64_t,
     kh_int8_t,
@@ -19,6 +23,8 @@ from pandas._libs.khash cimport (
     kh_uint16_t,
     kh_uint32_t,
     kh_uint64_t,
+    khcomplex64_t,
+    khcomplex128_t,
     uint8_t,
     uint16_t,
     uint32_t,
@@ -89,6 +95,18 @@ cdef class Float32HashTable(HashTable):
 
     cpdef get_item(self, float32_t val)
     cpdef set_item(self, float32_t key, Py_ssize_t val)
+
+cdef class Complex64HashTable(HashTable):
+    cdef kh_complex64_t *table
+
+    cpdef get_item(self, complex64_t val)
+    cpdef set_item(self, complex64_t key, Py_ssize_t val)
+
+cdef class Complex128HashTable(HashTable):
+    cdef kh_complex128_t *table
+
+    cpdef get_item(self, complex128_t val)
+    cpdef set_item(self, complex128_t key, Py_ssize_t val)
 
 cdef class PyObjectHashTable(HashTable):
     cdef kh_pymap_t *table

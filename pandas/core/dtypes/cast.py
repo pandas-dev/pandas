@@ -1137,11 +1137,11 @@ def astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+    if copy or is_object_dtype(arr.dtype) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
-    return arr.view(dtype)
+    return arr.astype(dtype, copy=copy)
 
 
 def soft_convert_objects(
@@ -1527,13 +1527,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
         # catch a datetime/timedelta that is not of ns variety
         # and no coercion specified
         if is_array and value.dtype.kind in ["M", "m"]:
-            dtype = value.dtype
-
-            if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-                value = conversion.ensure_datetime64ns(value)
-
-            elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-                value = conversion.ensure_timedelta64ns(value)
+            value = sanitize_to_nanoseconds(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
@@ -1547,6 +1541,20 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
             value = maybe_infer_to_datetimelike(value)
 
     return value
+
+
+def sanitize_to_nanoseconds(values: np.ndarray) -> np.ndarray:
+    """
+    Safely convert non-nanosecond datetime64 or timedelta64 values to nanosecond.
+    """
+    dtype = values.dtype
+    if dtype.kind == "M" and dtype != DT64NS_DTYPE:
+        values = conversion.ensure_datetime64ns(values)
+
+    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
+        values = conversion.ensure_timedelta64ns(values)
+
+    return values
 
 
 def find_common_type(types: List[DtypeObj]) -> DtypeObj:
