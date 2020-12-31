@@ -341,18 +341,9 @@ def test_groupby_function_rename(mframe):
         assert f.__name__ == name
 
 
-@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-def test_groupby_selection_with_methods(df):
-    # some methods which require DatetimeIndex
-    rng = date_range("2014", periods=len(df))
-    df.index = rng
-
-    g = df.groupby(["A"])[["C"]]
-    g_exp = df[["C"]].groupby(df["A"])
-    # TODO check groupby with > 1 col ?
-
-    # methods which are called as .foo()
-    methods = [
+@pytest.mark.parametrize(
+    "method",
+    [
         "count",
         "corr",
         "cummax",
@@ -370,19 +361,44 @@ def test_groupby_selection_with_methods(df):
         "ffill",
         "bfill",
         "pct_change",
-    ]
+    ],
+)
+def test_groupby_selection_with_methods(df, method):
+    # some methods which require DatetimeIndex
+    rng = date_range("2014", periods=len(df))
+    df.index = rng
 
-    for m in methods:
-        res = getattr(g, m)()
-        exp = getattr(g_exp, m)()
+    g = df.groupby(["A"])[["C"]]
+    g_exp = df[["C"]].groupby(df["A"])
+    # TODO check groupby with > 1 col ?
 
-        # should always be frames!
-        tm.assert_frame_equal(res, exp)
+    res = getattr(g, method)()
+    exp = getattr(g_exp, method)()
+
+    # should always be frames!
+    tm.assert_frame_equal(res, exp)
+
+
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
+def test_groupby_selection_tshift_raises(df):
+    rng = date_range("2014", periods=len(df))
+    df.index = rng
+
+    g = df.groupby(["A"])[["C"]]
 
     # check that the index cache is cleared
     with pytest.raises(ValueError, match="Freq was not set in the index"):
         # GH#35937
         g.tshift()
+
+
+def test_groupby_selection_other_methods(df):
+    # some methods which require DatetimeIndex
+    rng = date_range("2014", periods=len(df))
+    df.index = rng
+
+    g = df.groupby(["A"])[["C"]]
+    g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
     tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
