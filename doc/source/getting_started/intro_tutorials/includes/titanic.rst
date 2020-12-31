@@ -1,5 +1,3 @@
-:orphan:
-
 .. raw:: html
 
     <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">

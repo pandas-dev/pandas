@@ -68,7 +68,12 @@ extensions = [
     "contributors",  # custom pandas extension
 ]
 
-exclude_patterns = ["**.ipynb_checkpoints"]
+exclude_patterns = [
+    "**.ipynb_checkpoints",
+    # to ensure that include files (partial pages) aren't built, exclude them
+    # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
+    "**/includes/**",
+]
 try:
     import nbconvert
 except ImportError:

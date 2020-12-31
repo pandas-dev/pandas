@@ -17,7 +17,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
 
-. include:: air_quality_no2.rst
+.. include:: includes/air_quality_no2.rst
 
 .. ipython:: python
 
