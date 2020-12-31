@@ -213,6 +213,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
+- Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 
 Conversion
 ^^^^^^^^^^
@@ -265,6 +266,7 @@ I/O
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
 - Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
+- Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - :func:`pandas.read_excel` now respects ``pandas.set_option`` (:issue:`34252`)
 
 Period
