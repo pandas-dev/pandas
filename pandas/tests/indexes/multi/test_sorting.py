@@ -7,6 +7,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
 import pandas._testing as tm
+from pandas.core.indexes.frozen import FrozenList
 
 
 def test_sortlevel(idx):
@@ -271,3 +272,13 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_remove_unused_levels_with_nan():
+    # GH 37510
+    idx = Index([(1, np.nan), (3, 4)]).rename(["id1", "id2"])
+    idx = idx.set_levels(["a", np.nan], level="id1")
+    idx = idx.remove_unused_levels()
+    result = idx.levels
+    expected = FrozenList([["a", np.nan], [4]])
+    assert str(result) == str(expected)
