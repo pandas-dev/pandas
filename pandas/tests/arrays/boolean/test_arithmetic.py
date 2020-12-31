@@ -1,4 +1,5 @@
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -46,8 +47,11 @@ def test_add_mul(left_array, right_array, opname, exp):
 
 
 def test_sub(left_array, right_array):
-    with tm.external_error_raised(TypeError):
-        # numpy points to ^ operator or logical_xor function instead
+    msg = re.escape(
+        "numpy boolean subtract, the `-` operator, is not supported, "
+        "use the bitwise_xor, the `^` operator, or the logical_xor function instead."
+    )
+    with pytest.raises(TypeError, match=msg):
         left_array - right_array
 
 
