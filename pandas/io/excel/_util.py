@@ -66,11 +66,11 @@ def get_default_engine(ext, mode="reader"):
     else:
         if (
             import_optional_dependency(
-                "openpyxl", raise_on_missing=False, on_version="warn"
+                "openpyxl", raise_on_missing=False, on_version="ignore"
             )
             is None
             and import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="raise"
+                "xlrd", raise_on_missing=False, on_version="ignore"
             )
             is not None
         ):

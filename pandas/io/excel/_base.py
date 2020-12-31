@@ -1008,7 +1008,7 @@ class ExcelFile:
            - Otherwise if ``path_or_buffer`` is an xls format,
              ``xlrd`` will be used.
            - Otherwise if ``path_or_buffer`` is in xlsb format,
-             ``pyxlsb`` will be used.
+             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
            .. versionadded:: 1.3.0
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
