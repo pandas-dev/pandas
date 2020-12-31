@@ -289,7 +289,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
 -
 -
 
