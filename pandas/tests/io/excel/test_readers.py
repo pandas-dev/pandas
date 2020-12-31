@@ -841,18 +841,30 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_multiindex_blank_after_name(self, read_ext):
         # GH34673: "both_name_blank_after_mi_name" sheet
+        mi_file = "testmultiindex" + read_ext
+        mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
+        expected = DataFrame(
+            [
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=mi,
+        )
         expected.index = MultiIndex.from_tuples(
             [("foo", np.nan), ("foo", "b"), ("bar", "a"), ("bar", "b")],
             names=["ilvl1", "ilvl2"],
         )
-        actual = pd.read_excel(
+        result = pd.read_excel(
             mi_file,
             sheet_name="both_name_blank_after_mi_name",
             index_col=[0, 1],
             header=[0, 1],
         )
-        tm.assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_excel_multiindex_header_only(self, read_ext):
         # see gh-11733.
