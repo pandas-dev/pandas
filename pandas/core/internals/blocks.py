@@ -1274,22 +1274,6 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def _maybe_reshape_where_args(self, values, other, cond, axis):
-        transpose = self.ndim == 2
-
-        cond = _extract_bool_array(cond)
-
-        # If the default broadcasting would go in the wrong direction, then
-        # explicitly reshape other instead
-        if getattr(other, "ndim", 0) >= 1:
-            if values.ndim - 1 == other.ndim and axis == 1:
-                other = other.reshape(tuple(other.shape + (1,)))
-            elif transpose and values.ndim == self.ndim - 1:
-                # TODO(EA2D): not neceesssary with 2D EAs
-                cond = cond.T
-
-        return other, cond
-
     def where(
         self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
@@ -1322,7 +1306,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        other, cond = self._maybe_reshape_where_args(values, other, cond, axis)
+        cond = _extract_bool_array(cond)
 
         if cond.ravel("K").all():
             result = values
@@ -2081,7 +2065,7 @@ class DatetimeLikeBlockMixin(Block):
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
-        other, cond = self._maybe_reshape_where_args(arr, other, cond, axis)
+        cond = _extract_bool_array(cond)
 
         try:
             res_values = arr.T.where(cond, other).T
