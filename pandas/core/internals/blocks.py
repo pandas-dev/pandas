@@ -2569,13 +2569,8 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
 
 def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
     """
-    If possible, reshape `arr` to have shape `new_shape`,
-    with a couple of exceptions (see gh-13012):
-
-    1) If `arr` is a ExtensionArray or Index, `arr` will be
-       returned as is.
-    2) If `arr` is a Series, the `_values` attribute will
-       be reshaped and returned.
+    Reshape `arr` to have shape `new_shape`, unless it is an ExtensionArray,
+    in which case it will be returned unchanged (see gh-13012).
 
     Parameters
     ----------
