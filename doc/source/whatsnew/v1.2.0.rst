@@ -829,7 +829,6 @@ Reshaping
 - Bug in :func:`merge_ordered` returned wrong join result when length of ``left_by`` or ``right_by`` equals to the rows of ``left`` or ``right`` (:issue:`38166`)
 - Bug in :func:`merge_ordered` didn't raise when elements in ``left_by`` or ``right_by`` not exist in ``left`` columns or ``right`` columns (:issue:`38167`)
 - Bug in :func:`DataFrame.drop_duplicates` not validating bool dtype for ``ignore_index`` keyword (:issue:`38274`)
-- Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
 
 Sparse
 ^^^^^^
