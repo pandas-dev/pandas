@@ -22,28 +22,6 @@ class TestABCClasses:
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
-    def test_abc_types(self):
-        assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCInt64Index)
-        assert isinstance(pd.UInt64Index([1, 2, 3]), gt.ABCUInt64Index)
-        assert isinstance(pd.Float64Index([1, 2, 3]), gt.ABCFloat64Index)
-        assert isinstance(self.multi_index, gt.ABCMultiIndex)
-        assert isinstance(self.datetime_index, gt.ABCDatetimeIndex)
-        assert isinstance(self.timedelta_index, gt.ABCTimedeltaIndex)
-        assert isinstance(self.period_index, gt.ABCPeriodIndex)
-        assert isinstance(self.categorical_df.index, gt.ABCCategoricalIndex)
-        assert isinstance(pd.Index(["a", "b", "c"]), gt.ABCIndex)
-        assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCIndex)
-        assert isinstance(pd.Series([1, 2, 3]), gt.ABCSeries)
-        assert isinstance(self.df, gt.ABCDataFrame)
-        assert isinstance(self.sparse_array, gt.ABCExtensionArray)
-        assert isinstance(self.categorical, gt.ABCCategorical)
-
-        assert isinstance(self.datetime_array, gt.ABCDatetimeArray)
-        assert not isinstance(self.datetime_index, gt.ABCDatetimeArray)
-
-        assert isinstance(self.timedelta_array, gt.ABCTimedeltaArray)
-        assert not isinstance(self.timedelta_index, gt.ABCTimedeltaArray)
-
     abc_pairs = [
         ("ABCInt64Index", pd.Int64Index([1, 2, 3])),
         ("ABCUInt64Index", pd.UInt64Index([1, 2, 3])),

@@ -12,7 +12,7 @@ import zipfile
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Buffer, FilePathOrBuffer, StorageOptions
+from pandas._typing import Buffer, DtypeArg, FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments, doc
@@ -309,7 +309,7 @@ def read_excel(
     index_col=None,
     usecols=None,
     squeeze=False,
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -433,7 +433,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         index_col=None,
         usecols=None,
         squeeze=False,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         true_values=None,
         false_values=None,
         skiprows=None,
@@ -1051,16 +1051,11 @@ class ExcelFile:
 
             xlrd_version = LooseVersion(xlrd.__version__)
 
-        if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase, bytes)):
-            ext = inspect_excel_format(
-                content=path_or_buffer, storage_options=storage_options
-            )
-        elif xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
+        if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
             ext = "xls"
         else:
-            # path_or_buffer is path-like, use stringified path
             ext = inspect_excel_format(
-                path=str(self._io), storage_options=storage_options
+                content=path_or_buffer, storage_options=storage_options
             )
 
         if engine is None:
