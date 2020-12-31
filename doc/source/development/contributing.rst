@@ -649,7 +649,7 @@ Thus, good style is a requirement for submitting code to pandas.
 There is a tool in pandas to help contributors verify their changes before
 contributing them to the project::
 
-   ./ci/code_checks.sh
+   `pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files`
 
 The script verifies the linting of code files, it looks for common mistake patterns
 (like missing spaces around sphinx directives that make the documentation not
