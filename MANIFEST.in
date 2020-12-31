@@ -5,9 +5,6 @@ include README.md
 include setup.py
 include pyproject.toml
 
-graft doc
-prune doc/build
-
 graft LICENSES
 
 graft pandas
@@ -20,8 +17,10 @@ global-exclude *.gz
 global-exclude *.h5
 global-exclude *.html
 global-exclude *.json
+global-exclude *.pdf
 global-exclude *.pickle
 global-exclude *.png
+global-exclude *.pptx
 global-exclude *.pyc
 global-exclude *.pyd
 global-exclude *.ods
