@@ -3,4 +3,3 @@
 * [ ] passes `pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files`
 * [ ] Ensure all linting tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing.html#code-standards) how to run them
 * [ ] whatsnew entry
-
