@@ -1,4 +1,5 @@
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -46,7 +47,7 @@ def test_add_mul(left_array, right_array, opname, exp):
 
 
 def test_sub(left_array, right_array):
-    with pytest.raises(TypeError):
+    with tm.external_error_raised(TypeError):
         # numpy points to ^ operator or logical_xor function instead
         left_array - right_array
 
@@ -92,13 +93,24 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     ops = getattr(s, op)
 
     # invalid scalars
-    with pytest.raises(TypeError):
+    msg = (
+        "did not contain a loop with signature matching types|"
+        "BooleanArray cannot perform the operation|"
+        "not supported for the input types, and the inputs could not be safely coerced "
+        "to any supported types according to the casting rule ''safe''"
+    )
+    with pytest.raises(TypeError, match=msg):
         ops("foo")
-    with pytest.raises(TypeError):
+    msg = re.escape("unsupported operand type(s) for")
+    with pytest.raises(TypeError, match=msg):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
     if op not in ("__mul__", "__rmul__"):
         # TODO(extension) numpy's mul with object array sees booleans as numbers
-        with pytest.raises(TypeError):
+        msg = (
+            r"unsupported operand type\(s\) for|can only concatenate str|"
+            "not all arguments converted during string formatting"
+        )
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
