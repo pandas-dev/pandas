@@ -12,7 +12,6 @@ from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @skip_pyarrow
@@ -240,6 +239,7 @@ def test_index_col_large_csv(all_parsers):
     tm.assert_frame_equal(result, df.set_index("a"))
 
 
+@skip_pyarrow
 def test_index_col_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -255,6 +255,7 @@ def test_index_col_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_index_col_header_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -267,6 +268,7 @@ def test_index_col_header_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -277,6 +279,7 @@ def test_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_multiindex_columns_index_col_with_data(all_parsers):
     # GH#38292
     parser = all_parsers
