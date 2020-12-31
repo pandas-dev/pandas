@@ -526,7 +526,7 @@ class TestGetLoc:
         xp = 0
         assert rs == xp
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="2"):
             index.get_loc(2)
 
     def test_get_loc_level(self):

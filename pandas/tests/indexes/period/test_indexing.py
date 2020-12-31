@@ -487,8 +487,15 @@ class TestGetIndexer:
             other2 = other.astype(dtype)
             if dtype == "object" and isinstance(other, PeriodIndex):
                 continue
-            # For object dtype we are liable to get a different exception message
-            with pytest.raises(TypeError):
+            # Two different error message patterns depending on dtypes
+            msg = "|".join(
+                re.escape(msg)
+                for msg in (
+                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                    " not supported between instances of ",
+                )
+            )
+            with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
 
     def test_get_indexer_non_unique(self):

@@ -49,8 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, DatetimeIndexOpsMixin):
-        # raise TypeError or ValueError (PeriodIndex)
-        with pytest.raises(Exception):
+        with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
@@ -66,7 +65,7 @@ def test_numpy_ufuncs_basic(index, func):
         if len(index) == 0:
             pass
         else:
-            with pytest.raises(Exception):
+            with tm.external_error_raised((TypeError, AttributeError)):
                 with np.errstate(all="ignore"):
                     func(index)
 
@@ -77,7 +76,6 @@ def test_numpy_ufuncs_basic(index, func):
 def test_numpy_ufuncs_other(index, func, request):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
-
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
         if isinstance(index, DatetimeIndex) and index.tz is not None:
             if func in [np.isfinite, np.isnan, np.isinf]:
@@ -96,13 +94,11 @@ def test_numpy_ufuncs_other(index, func, request):
             result = func(index)
             assert isinstance(result, np.ndarray)
         else:
-            # raise TypeError or ValueError (PeriodIndex)
-            with pytest.raises(Exception):
+            with tm.external_error_raised(TypeError):
                 func(index)
 
     elif isinstance(index, PeriodIndex):
-        # raise TypeError or ValueError (PeriodIndex)
-        with pytest.raises(Exception):
+        with tm.external_error_raised(TypeError):
             func(index)
 
     elif isinstance(index, (Float64Index, Int64Index, UInt64Index)):
@@ -114,5 +110,5 @@ def test_numpy_ufuncs_other(index, func, request):
         if len(index) == 0:
             pass
         else:
-            with pytest.raises(Exception):
+            with tm.external_error_raised(TypeError):
                 func(index)
