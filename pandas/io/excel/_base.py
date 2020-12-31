@@ -705,7 +705,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
                     if engine == "auto":
-                        engine = get_default_engine(ext, mode="write")
+                        engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
 
@@ -1072,18 +1072,10 @@ class ExcelFile:
             )
 
         if engine is None:
-            if (
-                import_optional_dependency(
-                    "openpyxl", raise_on_missing=False, on_version="warn"
-                )
-                is None
-                and xlrd_version is not None
-            ):
-                config.set_option("io.excel.xlsx.reader", "xlrd")
             # ext will always be valid, otherwise inspect_excel_format would raise
             engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
             if engine == "auto":
-                engine = get_default_engine(ext, mode="read")
+                engine = get_default_engine(ext, mode="reader")
 
         if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
             if xlrd_version >= "2":

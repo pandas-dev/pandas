@@ -23,7 +23,7 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def get_default_engine(ext, mode="read"):
+def get_default_engine(ext, mode="reader"):
     """
     Return the default reader/writer for the given extension.
 
@@ -31,9 +31,9 @@ def get_default_engine(ext, mode="read"):
     ----------
     ext : str
         The excel file extension for which to get the default engine.
-    mode : str
+    mode : str {'reader', 'writer'}
         Whether to get the default engine for reading or writing.
-        Either 'read' or 'write'
+        Either 'reader' or 'writer'
 
     Returns
     -------
@@ -54,7 +54,9 @@ def get_default_engine(ext, mode="read"):
         "xls": "xlwt",
         "ods": "odf",
     }
-    if mode == "write":
+    assert mode in ["reader", "writer"]
+    if mode == "writer":
+        # Prefer xlsxwriter over openpyxl if installed
         xlsxwriter = import_optional_dependency(
             "xlsxwriter", raise_on_missing=False, on_version="warn"
         )
@@ -62,6 +64,19 @@ def get_default_engine(ext, mode="read"):
             _default_writers["xlsx"] = "xlsxwriter"
         return _default_writers[ext]
     else:
+        if (
+            import_optional_dependency(
+                "openpyxl", raise_on_missing=False, on_version="warn"
+            )
+            is None
+            and import_optional_dependency(
+                "xlrd", raise_on_missing=False, on_version="raise"
+            )
+            is not None
+        ):
+            # if no openpyxl but xlrd installed, return xlrd
+            # the version is handled elsewhere
+            _default_readers["xlsx"] = "xlrd"
         return _default_readers[ext]
 
 

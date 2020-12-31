@@ -1230,7 +1230,6 @@ class TestExcelFileRead:
 
     def test_engine_invalid_option(self, read_ext):
         # read_ext includes the '.' hence the weird formatting
-        engine = pd.get_option(f"io.excel{read_ext}.reader")
         with pytest.raises(ValueError, match="Value must be one of *"):
-            pd.set_option(f"io.excel{read_ext}.reader", "abc")
-        pd.set_option(f"io.excel{read_ext}.reader", engine)
+            with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
+                pass
