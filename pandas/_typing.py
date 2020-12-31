@@ -23,8 +23,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat.numpy import np_version_under1p17
-
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
