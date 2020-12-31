@@ -45,7 +45,6 @@ from pandas._typing import (
     JSONSerializable,
     Label,
     Level,
-    RandomState,
     Renamer,
     StorageOptions,
     TimedeltaConvertibleTypes,
@@ -5149,7 +5148,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         frac: Optional[float] = None,
         replace: bool_t = False,
         weights: Optional[Union[str, ArrayLike]] = None,
-        random_state: Optional[RandomState] = None,
+        random_state: Optional[Any] = None,
         axis: Optional[Axis] = None,
         ignore_index: Optional[bool_t] = False,
     ) -> FrameOrSeries:
