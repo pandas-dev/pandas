@@ -94,8 +94,9 @@ JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
 # dtypes
+NpDtype = Union[str, np.dtype]
 Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
+    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Label, Dtype]]

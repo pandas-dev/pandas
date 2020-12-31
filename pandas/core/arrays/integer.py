@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -304,14 +304,14 @@ class IntegerArray(NumericArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "IntegerArray":
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype=None, copy: bool = False
+        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
