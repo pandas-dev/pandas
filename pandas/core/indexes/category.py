@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
@@ -184,28 +183,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
-        dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
-
         name = maybe_extract_name(name, data, cls)
 
-        if not is_categorical_dtype(data):
-            # don't allow scalars
-            # if data is None, then categories must be provided
-            if is_scalar(data):
-                if data is not None or categories is None:
-                    raise cls._scalar_data_error(data)
-                data = []
+        if is_scalar(data):
+            raise cls._scalar_data_error(data)
 
-        assert isinstance(dtype, CategoricalDtype), dtype
-        data = extract_array(data, extract_numpy=True)
-
-        if not isinstance(data, Categorical):
-            data = Categorical(data, dtype=dtype)
-        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-            # we want to silently ignore dtype='category'
-            data = data._set_dtype(dtype)
-
-        data = data.copy() if copy else data
+        data = Categorical(
+            data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
+        )
 
         return cls._simple_new(data, name=name)
 
@@ -365,11 +350,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        res_data = self._data.astype(dtype, copy=copy)
-        return Index(res_data, name=self.name)
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._require_scalar(value)
@@ -428,7 +408,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if len(missing):
             cats = self.categories.get_indexer(target)
 
-            if (cats == -1).any():
+            if not isinstance(cats, CategoricalIndex) or (cats == -1).any():
                 # coerce to a regular index here!
                 result = Index(np.array(self), name=self.name)
                 new_target, indexer, _ = result._reindex_non_unique(np.array(target))
