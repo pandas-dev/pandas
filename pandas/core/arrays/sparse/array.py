@@ -975,7 +975,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             # when concatenating block indices, we don't claim that you'll
-            # get an identical index as concating the values and then
+            # get an identical index as concatenating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
             # BlockIndex may have more blocks.

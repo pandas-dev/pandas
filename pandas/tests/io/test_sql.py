@@ -1334,7 +1334,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas_nosetest"
+        conn = "mysql://root@localhost/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -2071,11 +2071,12 @@ class _TestMySQLAlchemy:
     """
 
     flavor = "mysql"
+    port = 3306
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2140,11 +2141,12 @@ class _TestPostgreSQLAlchemy:
     """
 
     flavor = "postgresql"
+    port = 5432
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
         )
 
     @classmethod
@@ -2609,7 +2611,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self):
@@ -2628,7 +2630,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with tm.external_error_raised(sqlite3.ProgrammingError):
             tquery("select * from test", con=self.conn)
 
     def test_na_roundtrip(self):
@@ -2760,7 +2762,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2780,7 +2782,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
