@@ -1,5 +1,4 @@
 import operator
-import re
 
 import numpy as np
 import pytest
@@ -101,7 +100,10 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     )
     with pytest.raises(TypeError, match=msg):
         ops("foo")
-    msg = re.escape("unsupported operand type(s) for")
+    msg = (
+        r"unsupported operand type\(s\) for|"
+        "Concatenation operation is not implemented for NumPy arrays"
+    )
     with pytest.raises(TypeError, match=msg):
         ops(pd.Timestamp("20180101"))
 
@@ -110,7 +112,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         # TODO(extension) numpy's mul with object array sees booleans as numbers
         msg = (
             r"unsupported operand type\(s\) for|can only concatenate str|"
-            "not all arguments converted during string formatting"
+            "not all arguments converted during string formatting|"
         )
         with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
