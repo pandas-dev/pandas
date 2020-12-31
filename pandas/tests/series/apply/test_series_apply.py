@@ -454,7 +454,8 @@ class TestSeriesAggregate:
     )
     def test_agg_cython_table_raises(self, series, func, expected):
         # GH21224
-        with pytest.raises(expected):
+        msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+        with pytest.raises(expected, match=msg):
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
 
@@ -714,7 +715,7 @@ class TestSeriesMap:
         tm.assert_series_equal(result, exp)
         assert result.dtype == object
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
             s.map(lambda x: x, na_action="ignore")
 
     def test_map_datetimetz(self):
@@ -737,7 +738,7 @@ class TestSeriesMap:
         exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
             s.map(lambda x: x, na_action="ignore")
 
         # not vectorized
