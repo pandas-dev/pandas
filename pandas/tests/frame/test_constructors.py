@@ -2984,8 +2984,14 @@ class TestFromScalar:
         assert isinstance(get1(obj), np.timedelta64)
 
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
-    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
-
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
+        node = request.node
+        params = node.callspec.params
+        if params["frame_or_series"] is DataFrame and params["constructor"] is dict:
+            mark = pytest.mark.xfail(
+                reason="DataFrame incorrectly allows mismatched datetimelike"
+            )
+            node.add_marker(mark)
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
