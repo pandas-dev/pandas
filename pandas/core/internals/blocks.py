@@ -54,7 +54,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, A
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import putmask_inplace, putmask_smart
+from pandas.core.array_algos.putmask import (
+    putmask_inplace,
+    putmask_smart,
+    putmask_without_repeat,
+)
 from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
@@ -1030,38 +1034,7 @@ class Block(PandasObject):
             if transpose:
                 new_values = new_values.T
 
-            # If the default repeat behavior in np.putmask would go in the
-            # wrong direction, then explicitly repeat and reshape new instead
-            if getattr(new, "ndim", 0) >= 1:
-                new = new.astype(new_values.dtype, copy=False)
-
-            # we require exact matches between the len of the
-            # values we are setting (or is compat). np.putmask
-            # doesn't check this and will simply truncate / pad
-            # the output, but we want sane error messages
-            #
-            # TODO: this prob needs some better checking
-            # for 2D cases
-            if (
-                is_list_like(new)
-                and np.any(mask[mask])
-                and getattr(new, "ndim", 1) == 1
-            ):
-                if mask[mask].shape[-1] == len(new):
-                    # GH 30567
-                    # If length of ``new`` is less than the length of ``new_values``,
-                    # `np.putmask` would first repeat the ``new`` array and then
-                    # assign the masked values hence produces incorrect result.
-                    # `np.place` on the other hand uses the ``new`` values at it is
-                    # to place in the masked locations of ``new_values``
-                    np.place(new_values, mask, new)
-                    # i.e. new_values[mask] = new
-                elif mask.shape[-1] == len(new) or len(new) == 1:
-                    np.putmask(new_values, mask, new)
-                else:
-                    raise ValueError("cannot assign mismatch length to masked array")
-            else:
-                np.putmask(new_values, mask, new)
+            putmask_without_repeat(new_values, mask, new)
 
         # maybe upcast me
         elif mask.any():
@@ -1317,9 +1290,7 @@ class Block(PandasObject):
 
         return other, cond
 
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1330,7 +1301,6 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-        try_cast: bool, default False
         axis : int, default 0
 
         Returns
@@ -1369,9 +1339,7 @@ class Block(PandasObject):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(
-                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
-                )
+                blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
             if not (
@@ -1852,9 +1820,7 @@ class ExtensionBlock(Block):
             )
         ]
 
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -2102,9 +2068,7 @@ class DatetimeLikeBlockMixin(Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
@@ -2113,9 +2077,7 @@ class DatetimeLikeBlockMixin(Block):
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(
-                other, cond, errors=errors, try_cast=try_cast, axis=axis
-            )
+            return super().where(other, cond, errors=errors, axis=axis)
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
