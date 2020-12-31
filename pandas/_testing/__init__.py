@@ -130,6 +130,7 @@ ALL_NUMPY_DTYPES = (
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
 
+EMPTY_STRING_PATTERN = re.compile("^$")
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
