@@ -35,6 +35,7 @@ from numpy cimport (
 
 cnp.import_array()
 
+from numpy.math cimport NAN
 
 cimport pandas._libs.util as util
 from pandas._libs.khash cimport (
@@ -840,11 +841,18 @@ def rank_1d(
         bint keep_na, at_end, next_val_diff, check_labels
         rank_t nan_fill_val
 
+    # print(NAN)
+    # print(NaN)
+    # print("NAN eq?")
+    # print(NAN == np.inf)
+    # print(NAN == -np.inf)
+
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
 
     N = len(in_arr)
-    assert(<Py_ssize_t>len(labels) == N)
+    # TODO Cython 3.0: cast won't be necessary (#2992)
+    assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N)
     # If all 0 labels, can short-circuit later label
@@ -923,10 +931,7 @@ def rank_1d(
             # based on the starting index of the current group (grp_start)
             # and the current index
             if not at_end:
-                if rank_t is object:
-                    next_val_diff = are_diff(masked_vals[_as[i]], masked_vals[_as[i+1]])
-                else:
-                    next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
+                next_val_diff = are_diff(masked_vals[_as[i]], masked_vals[_as[i+1]])
             else:
                 next_val_diff = True
 
@@ -1004,11 +1009,7 @@ def rank_1d(
                 # based on the starting index of the current group (grp_start)
                 # and the current index
                 if not at_end:
-                    if rank_t is object:
-                        next_val_diff = are_diff(masked_vals[_as[i]],
-                                                 masked_vals[_as[i+1]])
-                    else:
-                        next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
+                    next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
                 else:
                     next_val_diff = True
 
@@ -1073,11 +1074,7 @@ def rank_1d(
 
     if pct:
         for i in range(N):
-            # We don't include NaN values in percentage
-            # rankings, so we assign them percentages of NaN.
-            if out[i] != out[i] or out[i] == NaN:
-                out[i] = NaN
-            elif grp_sizes[i] != 0:
+            if grp_sizes[i] != 0:
                 out[i] = out[i] / grp_sizes[i]
 
     return out
