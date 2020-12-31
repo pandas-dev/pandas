@@ -795,7 +795,7 @@ ctypedef fused rank_t:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    ndarray[rank_t, ndim=1] in_arr,
+    ndarray[rank_t, ndim=1] values,
     const int64_t[:] labels,
     ties_method="average",
     bint ascending=True,
@@ -807,7 +807,7 @@ def rank_1d(
 
     Parameters
     ----------
-    in_arr : array of rank_t values to be ranked
+    values : array of rank_t values to be ranked
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
         from a groupby operation, will be an array of 0's
@@ -832,7 +832,7 @@ def rank_1d(
         TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
-        ndarray[int64_t, ndim=1] _as
+        ndarray[int64_t, ndim=1] lexsort_indexer
         ndarray[float64_t, ndim=1] grp_sizes, out
         ndarray[rank_t, ndim=1] masked_vals
         ndarray[uint8_t, ndim=1] mask
@@ -842,7 +842,7 @@ def rank_1d(
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
 
-    N = len(in_arr)
+    N = len(values)
     # TODO Cython 3.0: cast won't be necessary (#2992)
     assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
@@ -854,10 +854,10 @@ def rank_1d(
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
     # in values array
-    if rank_t is object and in_arr.dtype != np.object_:
-        masked_vals = in_arr.astype('O')
+    if rank_t is object and values.dtype != np.object_:
+        masked_vals = values.astype('O')
     else:
-        masked_vals = in_arr.copy()
+        masked_vals = values.copy()
 
     if rank_t is object:
         mask = missing.isnaobj(masked_vals)
@@ -896,14 +896,14 @@ def rank_1d(
     # each label corresponds to a different group value,
     # the mask helps you differentiate missing values before
     # performing sort on the actual values
-    _as = np.lexsort(order).astype(np.int64, copy=False)
+    lexsort_indexer = np.lexsort(order).astype(np.int64, copy=False)
 
     if not ascending:
-        _as = _as[::-1]
+        lexsort_indexer = lexsort_indexer[::-1]
 
     # Loop over the length of the value array
-    # each incremental i value can be looked up in the _as array
-    # that we sorted previously, which gives us the location of
+    # each incremental i value can be looked up in the lexsort_indexer
+    # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
     # TODO: de-duplicate once cython supports conditional nogil
@@ -923,45 +923,49 @@ def rank_1d(
             # based on the starting index of the current group (grp_start)
             # and the current index
             if not at_end:
-                next_val_diff = are_diff(masked_vals[_as[i]], masked_vals[_as[i+1]])
+                next_val_diff = are_diff(masked_vals[lexsort_indexer[i]],
+                                         masked_vals[lexsort_indexer[i+1]])
             else:
                 next_val_diff = True
 
             if (next_val_diff
-                    or (mask[_as[i]] ^ mask[_as[i+1]])
-                    or (check_labels and (labels[_as[i]] != labels[_as[i+1]]))
+                    or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
+                    or (check_labels
+                        and (labels[lexsort_indexer[i]]
+                             != labels[lexsort_indexer[i+1]]))
             ):
                 # if keep_na, check for missing values and assign back
                 # to the result where appropriate
-                if keep_na and mask[_as[i]]:
+                if keep_na and mask[lexsort_indexer[i]]:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j]] = NaN
+                        out[lexsort_indexer[j]] = NaN
                         grp_na_count = dups
                 elif tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j]] = sum_ranks / <float64_t>dups
+                        out[lexsort_indexer[j]] = sum_ranks / <float64_t>dups
                 elif tiebreak == TIEBREAK_MIN:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j]] = i - grp_start - dups + 2
+                        out[lexsort_indexer[j]] = i - grp_start - dups + 2
                 elif tiebreak == TIEBREAK_MAX:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j]] = i - grp_start + 1
+                        out[lexsort_indexer[j]] = i - grp_start + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     for j in range(i - dups + 1, i + 1):
                         if ascending:
-                            out[_as[j]] = j + 1 - grp_start
+                            out[lexsort_indexer[j]] = j + 1 - grp_start
                         else:
-                            out[_as[j]] = 2 * i - j - dups + 2 - grp_start
+                            out[lexsort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
                 elif tiebreak == TIEBREAK_DENSE:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j]] = grp_vals_seen
+                        out[lexsort_indexer[j]] = grp_vals_seen
 
                 # look forward to the next value (using the sorting in _as)
                 # if the value does not equal the current value then we need to
                 # reset the dups and sum_ranks, knowing that a new value is
                 # coming up. the conditional also needs to handle nan equality
                 # and the end of iteration
-                if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
+                if next_val_diff or (mask[lexsort_indexer[i]]
+                                     ^ mask[lexsort_indexer[i+1]]):
                     dups = sum_ranks = 0
                     grp_vals_seen += 1
                     grp_tie_count += 1
@@ -972,13 +976,18 @@ def rank_1d(
                 # decrement that from their position. fill in the size of each
                 # group encountered (used by pct calculations later). also be
                 # sure to reset any of the items helping to calculate dups
-                if at_end or (check_labels and (labels[_as[i]] != labels[_as[i+1]])):
+                if (at_end or
+                        (check_labels
+                         and (labels[lexsort_indexer[i]]
+                              != labels[lexsort_indexer[i+1]]))):
                     if tiebreak != TIEBREAK_DENSE:
                         for j in range(grp_start, i + 1):
-                            grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
+                            grp_sizes[lexsort_indexer[j]] = \
+                                (i - grp_start + 1 - grp_na_count)
                     else:
                         for j in range(grp_start, i + 1):
-                            grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
+                            grp_sizes[lexsort_indexer[j]] = \
+                                (grp_tie_count - (grp_na_count > 0))
                     dups = sum_ranks = 0
                     grp_na_count = 0
                     grp_tie_count = 0
@@ -1001,45 +1010,50 @@ def rank_1d(
                 # based on the starting index of the current group (grp_start)
                 # and the current index
                 if not at_end:
-                    next_val_diff = masked_vals[_as[i]] != masked_vals[_as[i+1]]
+                    next_val_diff = (masked_vals[lexsort_indexer[i]]
+                                     != masked_vals[lexsort_indexer[i+1]])
                 else:
                     next_val_diff = True
 
                 if (next_val_diff
-                        or (mask[_as[i]] ^ mask[_as[i+1]])
-                        or (check_labels and (labels[_as[i]] != labels[_as[i+1]]))
+                        or (mask[lexsort_indexer[i]] ^ mask[lexsort_indexer[i+1]])
+                        or (check_labels
+                            and (labels[lexsort_indexer[i]]
+                                 != labels[lexsort_indexer[i+1]]))
                 ):
                     # if keep_na, check for missing values and assign back
                     # to the result where appropriate
-                    if keep_na and mask[_as[i]]:
+                    if keep_na and mask[lexsort_indexer[i]]:
                         for j in range(i - dups + 1, i + 1):
-                            out[_as[j]] = NaN
+                            out[lexsort_indexer[j]] = NaN
                             grp_na_count = dups
                     elif tiebreak == TIEBREAK_AVERAGE:
                         for j in range(i - dups + 1, i + 1):
-                            out[_as[j]] = sum_ranks / <float64_t>dups
+                            out[lexsort_indexer[j]] = sum_ranks / <float64_t>dups
                     elif tiebreak == TIEBREAK_MIN:
                         for j in range(i - dups + 1, i + 1):
-                            out[_as[j]] = i - grp_start - dups + 2
+                            out[lexsort_indexer[j]] = i - grp_start - dups + 2
                     elif tiebreak == TIEBREAK_MAX:
                         for j in range(i - dups + 1, i + 1):
-                            out[_as[j]] = i - grp_start + 1
+                            out[lexsort_indexer[j]] = i - grp_start + 1
                     elif tiebreak == TIEBREAK_FIRST:
                         for j in range(i - dups + 1, i + 1):
                             if ascending:
-                                out[_as[j]] = j + 1 - grp_start
+                                out[lexsort_indexer[j]] = j + 1 - grp_start
                             else:
-                                out[_as[j]] = 2 * i - j - dups + 2 - grp_start
+                                out[lexsort_indexer[j]] = \
+                                    (2 * i - j - dups + 2 - grp_start)
                     elif tiebreak == TIEBREAK_DENSE:
                         for j in range(i - dups + 1, i + 1):
-                            out[_as[j]] = grp_vals_seen
+                            out[lexsort_indexer[j]] = grp_vals_seen
 
-                    # look forward to the next value (using the sorting in _as)
-                    # if the value does not equal the current value then we need to
-                    # reset the dups and sum_ranks, knowing that a new value is
-                    # coming up. the conditional also needs to handle nan equality
-                    # and the end of iteration
-                    if next_val_diff or (mask[_as[i]] ^ mask[_as[i+1]]):
+                    # look forward to the next value (using the sorting in
+                    # lexsort_indexer) if the value does not equal the current
+                    # value then we need to reset the dups and sum_ranks,
+                    # knowing that a new value is coming up. the conditional
+                    # also needs to handle nan equality and the end of iteration
+                    if next_val_diff or (mask[lexsort_indexer[i]]
+                                         ^ mask[lexsort_indexer[i+1]]):
                         dups = sum_ranks = 0
                         grp_vals_seen += 1
                         grp_tie_count += 1
@@ -1051,13 +1065,16 @@ def rank_1d(
                     # group encountered (used by pct calculations later). also be
                     # sure to reset any of the items helping to calculate dups
                     if at_end or (check_labels and
-                                  (labels[_as[i]] != labels[_as[i+1]])):
+                                  (labels[lexsort_indexer[i]]
+                                   != labels[lexsort_indexer[i+1]])):
                         if tiebreak != TIEBREAK_DENSE:
                             for j in range(grp_start, i + 1):
-                                grp_sizes[_as[j]] = (i - grp_start + 1 - grp_na_count)
+                                grp_sizes[lexsort_indexer[j]] = \
+                                    (i - grp_start + 1 - grp_na_count)
                         else:
                             for j in range(grp_start, i + 1):
-                                grp_sizes[_as[j]] = (grp_tie_count - (grp_na_count > 0))
+                                grp_sizes[lexsort_indexer[j]] = \
+                                    (grp_tie_count - (grp_na_count > 0))
                         dups = sum_ranks = 0
                         grp_na_count = 0
                         grp_tie_count = 0

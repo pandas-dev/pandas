@@ -1107,7 +1107,7 @@ def group_rank(float64_t[:, :] out,
         ndarray[float64_t, ndim=1] result
 
     result = rank_1d(
-        in_arr=values[:, 0],
+        values=values[:, 0],
         labels=labels,
         ties_method=ties_method,
         ascending=ascending,
