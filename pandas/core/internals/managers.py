@@ -542,9 +542,7 @@ class BlockManager(PandasObject):
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(
-        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
-    ) -> "BlockManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> "BlockManager":
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -557,7 +555,6 @@ class BlockManager(PandasObject):
             other=other,
             cond=cond,
             errors=errors,
-            try_cast=try_cast,
             axis=axis,
         )
 
@@ -565,7 +562,6 @@ class BlockManager(PandasObject):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -578,9 +574,7 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
@@ -1358,7 +1352,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
-                # GH#32959 EABlock would fail since we cant make 0-width
+                # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []

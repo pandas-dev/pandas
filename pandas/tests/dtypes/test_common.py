@@ -641,7 +641,6 @@ def test_is_complex_dtype():
         (pd.CategoricalIndex(["a", "b"]).dtype, CategoricalDtype(["a", "b"])),
         (pd.CategoricalIndex(["a", "b"]), CategoricalDtype(["a", "b"])),
         (CategoricalDtype(), CategoricalDtype()),
-        (CategoricalDtype(["a", "b"]), CategoricalDtype()),
         (pd.DatetimeIndex([1, 2]), np.dtype("=M8[ns]")),
         (pd.DatetimeIndex([1, 2]).dtype, np.dtype("=M8[ns]")),
         ("<M8[ns]", np.dtype("<M8[ns]")),
@@ -716,9 +715,24 @@ def test__is_dtype_type(input_param, result):
 def test_astype_nansafe(val, typ):
     arr = np.array([val])
 
+    typ = np.dtype(typ)
+
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # datetimelike astype(int64) deprecated
+            astype_nansafe(arr, dtype=typ)
+
+
+def test_astype_nansafe_copy_false(any_int_dtype):
+    # GH#34457 use astype, not view
+    arr = np.array([1, 2, 3], dtype=any_int_dtype)
+
+    dtype = np.dtype("float64")
+    result = astype_nansafe(arr, dtype, copy=False)
+
+    expected = np.array([1.0, 2.0, 3.0], dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
@@ -738,6 +752,8 @@ def test_astype_nansafe(val, typ):
 def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
     arr = np.array([from_type("2018")])
 
+    to_type = np.dtype(to_type)
+
     with pytest.raises(TypeError, match="cannot astype"):
         astype_nansafe(arr, dtype=to_type)
 
@@ -745,7 +761,7 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
     arr = np.array([from_type("NaT")])
-    result = astype_nansafe(arr, dtype="object")
+    result = astype_nansafe(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]
 

@@ -4,10 +4,10 @@ import bz2
 from collections import abc
 import dataclasses
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
+from io import BufferedIOBase, BytesIO, RawIOBase, StringIO, TextIOWrapper
 import mmap
 import os
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, cast
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union, cast
 from urllib.parse import (
     urljoin,
     urlparse as parse_url,
@@ -280,12 +280,18 @@ def _get_filepath_or_buffer(
         fsspec_mode += "b"
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
-        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
-        if storage_options:
-            raise ValueError(
-                "storage_options passed with file object or non-fsspec file path"
-            )
-        req = urlopen(filepath_or_buffer)
+        # TODO: fsspec can also handle HTTP via requests, but leaving this
+        # unchanged. using fsspec appears to break the ability to infer if the
+        # server responded with gzipped data
+        storage_options = storage_options or {}
+
+        # waiting until now for importing to match intended lazy logic of
+        # urlopen function defined elsewhere in this module
+        import urllib.request
+
+        # assuming storage_options is to be interpretted as headers
+        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req = urlopen(req_info)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
@@ -707,17 +713,36 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name: Optional[str] = None,
         **kwargs,
     ):
-        if mode in ["wb", "rb"]:
-            mode = mode.replace("b", "")
+        mode = mode.replace("b", "")
         self.archive_name = archive_name
+        self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
+
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
+
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = (
+                BytesIO() if isinstance(data, bytes) else StringIO()
+            )
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
         # ZipFile needs a non-empty string
         archive_name = self.archive_name or self.filename or "zip"
-        super().writestr(archive_name, data)
+        with self.multiple_write_buffer:
+            super().writestr(archive_name, self.multiple_write_buffer.getvalue())
+
+    def close(self):
+        self.flush()
+        super().close()
 
     @property
     def closed(self):
