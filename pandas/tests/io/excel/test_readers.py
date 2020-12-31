@@ -853,10 +853,10 @@ class TestReaders:
                 [4, 5.5, pd.Timestamp("2015-01-04"), True],
             ],
             columns=mi,
-        )
-        expected.index = MultiIndex.from_tuples(
-            [("foo", np.nan), ("foo", "b"), ("bar", "a"), ("bar", "b")],
-            names=["ilvl1", "ilvl2"],
+            index=MultiIndex.from_tuples(
+                [("foo", np.nan), ("foo", "b"), ("bar", "a"), ("bar", "b")],
+                names=["ilvl1", "ilvl2"],
+            ),
         )
         result = pd.read_excel(
             mi_file,
