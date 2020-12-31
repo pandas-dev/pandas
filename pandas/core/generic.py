@@ -8791,7 +8791,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis=None,
         level=None,
         errors="raise",
-        try_cast=False,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -8942,7 +8941,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
                 errors=errors,
-                try_cast=try_cast,
                 axis=block_axis,
             )
             result = self._constructor(new_data)
@@ -8964,7 +8962,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis=None,
         level=None,
         errors="raise",
-        try_cast=False,
+        try_cast=lib.no_default,
     ):
         """
         Replace values where the condition is {cond_rev}.
@@ -8996,8 +8994,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
 
-        try_cast : bool, default False
+        try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
+
+            .. deprecated:: 1.3.0
+                Manually cast back if necessary.
 
         Returns
         -------
@@ -9087,9 +9088,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4  True  True
         """
         other = com.apply_if_callable(other, self)
-        return self._where(
-            cond, other, inplace, axis, level, errors=errors, try_cast=try_cast
-        )
+
+        if try_cast is not lib.no_default:
+            warnings.warn(
+                "try_cast keyword is deprecated and will be removed in a "
+                "future version",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+        return self._where(cond, other, inplace, axis, level, errors=errors)
 
     @final
     @doc(
@@ -9108,11 +9116,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis=None,
         level=None,
         errors="raise",
-        try_cast=False,
+        try_cast=lib.no_default,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = com.apply_if_callable(cond, self)
+
+        if try_cast is not lib.no_default:
+            warnings.warn(
+                "try_cast keyword is deprecated and will be removed in a "
+                "future version",
+                FutureWarning,
+                stacklevel=2,
+            )
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
@@ -9124,7 +9140,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             inplace=inplace,
             axis=axis,
             level=level,
-            try_cast=try_cast,
             errors=errors,
         )
 
