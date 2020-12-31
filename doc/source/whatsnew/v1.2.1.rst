@@ -15,14 +15,14 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
-- :meth:`to_csv` created corrupted zip files when there were more rows than ``chunksize`` (issue:`38714`)
+- Fixed regression in :meth:`to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
 - Fixed a regression in ``groupby().rolling()`` where :class:`MultiIndex` levels were dropped (:issue:`38523`)
-- Bug in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
+- Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression in :meth:`DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
 - Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
 - Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
-- :func:`read_excel` does not work for non-rawbyte file handles (issue:`38788`)
-- Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings (:issue:`38753`)
+- Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
+- Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 -
 
 .. ---------------------------------------------------------------------------
