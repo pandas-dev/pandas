@@ -7,6 +7,7 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Optional,
     Sequence,
     Type,
     TypeVar,
@@ -21,7 +22,7 @@ from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
+from pandas._typing import ArrayLike, Dtype, NpDtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -318,7 +319,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         values,
         categories=None,
         ordered=None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         fastpath=False,
         copy: bool = True,
     ):
@@ -423,7 +424,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return Categorical(scalars, dtype=dtype, copy=copy)
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
@@ -558,7 +559,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return cls(codes, dtype=dtype, fastpath=True)
 
     @classmethod
-    def from_codes(cls, codes, categories=None, ordered=None, dtype=None):
+    def from_codes(
+        cls, codes, categories=None, ordered=None, dtype: Optional[Dtype] = None
+    ):
         """
         Make a Categorical type from codes and categories or dtype.
 
@@ -1294,7 +1297,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # -------------------------------------------------------------
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         The numpy array interface.
 
