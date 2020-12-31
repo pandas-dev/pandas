@@ -1133,11 +1133,11 @@ def astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+    if copy or is_object_dtype(arr.dtype) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
-    return arr.view(dtype)
+    return arr.astype(dtype, copy=copy)
 
 
 def soft_convert_objects(
