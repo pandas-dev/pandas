@@ -186,15 +186,15 @@ p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
 	return result;
 }
 
-khint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
-    khint_t result = kh_put_str(table->table, key, ret);
+khuint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
+    khuint_t result = kh_put_str(table->table, key, ret);
 	if (*ret != 0) {
 		table->starts[(unsigned char)key[0]] = 1;
 	}
     return result;
 }
 
-khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
+khuint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
     unsigned char ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
@@ -207,6 +207,6 @@ void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 	KHASH_FREE(table);
 }
 
-void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
+void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khuint_t val) {
 	kh_resize_str(table->table, val);
 }
