@@ -843,6 +843,9 @@ class TestReaders:
 
     def test_read_excel_multiindex_blank_after_name(self, read_ext):
         # GH34673: "both_name_blank_after_mi_name" sheet
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb (GH4679")
+
         mi_file = "testmultiindex" + read_ext
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
         expected = DataFrame(
