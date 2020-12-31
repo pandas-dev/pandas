@@ -435,7 +435,10 @@ static const double __ac_HASH_UPPER = 0.77;
   @param  key   The integer [khuint64_t]
   @return       The hash value [khint_t]
  */
-#define kh_int64_hash_func(key) (khuint32_t)((key)>>33^(key)^(key)<<11)
+PANDAS_INLINE khint_t kh_int64_hash_func(khuint64_t key)
+{
+    return (khint_t)((key)>>33^(key)^(key)<<11);
+}
 /*! @function
   @abstract     64-bit integer comparison function
  */
