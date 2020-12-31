@@ -108,6 +108,27 @@ class BaseMethodsTests(BaseExtensionTests):
             getattr(data_na, method)()
 
     @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected
+    ):
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        ser = pd.Series(data_missing_for_sorting)
+        result = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "na_position, expected",
         [
             ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),

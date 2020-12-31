@@ -58,7 +58,6 @@ from .ops import (  # noqa
 )
 from .printing import BasePrintingTests  # noqa
 from .reduce import (  # noqa
-    BaseArgReduceTests,
     BaseBooleanReduceTests,
     BaseNoReduceTests,
     BaseNumericReduceTests,
