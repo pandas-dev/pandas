@@ -31,8 +31,9 @@ def parser_and_data(all_parsers, csv1):
     return parser, data, expected
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("compression", ["zip", "infer", "zip2"])
-def test_zip(parser_and_data, compression, pyarrow_xfail):
+def test_zip(parser_and_data, compression):
     parser, data, expected = parser_and_data
 
     with tm.ensure_clean("test_file.zip") as path:
@@ -48,8 +49,9 @@ def test_zip(parser_and_data, compression, pyarrow_xfail):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("compression", ["zip", "infer"])
-def test_zip_error_multiple_files(parser_and_data, compression, pyarrow_xfail):
+def test_zip_error_multiple_files(parser_and_data, compression):
     parser, data, expected = parser_and_data
 
     with tm.ensure_clean("combined_zip.zip") as path:
@@ -63,7 +65,8 @@ def test_zip_error_multiple_files(parser_and_data, compression, pyarrow_xfail):
             parser.read_csv(path, compression=compression)
 
 
-def test_zip_error_no_files(parser_and_data, pyarrow_xfail):
+@skip_pyarrow
+def test_zip_error_no_files(parser_and_data):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
@@ -74,7 +77,8 @@ def test_zip_error_no_files(parser_and_data, pyarrow_xfail):
             parser.read_csv(path, compression="zip")
 
 
-def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
+@skip_pyarrow
+def test_zip_error_invalid_zip(parser_and_data):
     parser, _, _ = parser_and_data
 
     with tm.ensure_clean() as path:
@@ -85,9 +89,7 @@ def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(
-    parser_and_data, compression_only, buffer, filename, pyarrow_xfail
-):
+def test_compression(parser_and_data, compression_only, buffer, filename):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
@@ -131,9 +133,8 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf_encoding(
-    all_parsers, csv_dir_path, utf_value, encoding_fmt, pyarrow_xfail
-):
+@skip_pyarrow
+def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
     # see gh-18071, gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
