@@ -615,8 +615,11 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise
         raise
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as err:
         if dtype is not None and raise_cast_failure:
+            raise
+        elif "Cannot cast" in str(err):
+            # via _disallow_mismatched_datetimelike
             raise
         else:
             subarr = np.array(arr, dtype=object, copy=copy)

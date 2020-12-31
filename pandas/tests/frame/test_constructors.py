@@ -2987,12 +2987,11 @@ class TestFromScalar:
     def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
         node = request.node
         params = node.callspec.params
-        if params["frame_or_series"] is DataFrame and params["constructor"] is not None:
+        if params["frame_or_series"] is DataFrame and params["constructor"] is dict:
             mark = pytest.mark.xfail(
                 reason="DataFrame incorrectly allows mismatched datetimelike"
             )
             node.add_marker(mark)
-
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
@@ -3002,3 +3001,9 @@ class TestFromScalar:
         scalar = cls(4, "ns")
         with pytest.raises(TypeError, match="Cannot cast"):
             constructor(scalar, dtype=dtype)
+
+    def test_from_out_of_bounds_datetime(self, constructor):
+        scalar = datetime(9999, 1, 1)
+        result = constructor(scalar)
+
+        assert type(get1(result)) is datetime
