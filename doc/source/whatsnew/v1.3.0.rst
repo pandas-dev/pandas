@@ -290,7 +290,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
 -
 
 Sparse
