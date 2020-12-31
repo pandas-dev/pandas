@@ -897,7 +897,7 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
         if labels[j] != -1:
             break
     else:
-        raise ValueError("cannot handle all null values")
+        return result
     cur = labels[j]
     start = j
 
