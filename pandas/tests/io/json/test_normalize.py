@@ -1,3 +1,4 @@
+from contextlib import nullcontext as does_not_raise
 import json
 
 import numpy as np
@@ -167,6 +168,22 @@ class TestJSONNormalize:
         result = json_normalize([])
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, record_path, error",
+        [
+            ([{"a": 0}, {"a": 1}], None, does_not_raise()),
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", does_not_raise()),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, pytest.raises(NotImplementedError)),
+            (None, None, pytest.raises(NotImplementedError)),
+        ],
+    )
+    def test_accepted_input(self, data, record_path, error):
+        with error:
+            result = json_normalize(data, record_path=record_path)
+            expected = DataFrame([0, 1], columns=["a"])
+
+            tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
@@ -518,16 +535,27 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_generator(self, state_data):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        def generator_data():
+            yield from state_data[0]["counties"]
+
+        result = json_normalize(generator_data())
+        expected = DataFrame(state_data[0]["counties"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
-        recs = [dict(flat1=1, flat2=2), dict(flat1=3, flat2=4)]
+        recs = [{"flat1": 1, "flat2": 2}, {"flat3": 3, "flat2": 4}]
         result = nested_to_record(recs)
         expected = recs
         assert result == expected
 
     def test_one_level_deep_flattens(self):
-        data = dict(flat1=1, dict1=dict(c=1, d=2))
+        data = {"flat1": 1, "dict1": {"c": 1, "d": 2}}
 
         result = nested_to_record(data)
         expected = {"dict1.c": 1, "dict1.d": 2, "flat1": 1}
@@ -535,7 +563,11 @@ class TestNestedToRecord:
         assert result == expected
 
     def test_nested_flattens(self):
-        data = dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+        data = {
+            "flat1": 1,
+            "dict1": {"c": 1, "d": 2},
+            "nested": {"e": {"c": 1, "d": 2}, "d": 2},
+        }
 
         result = nested_to_record(data)
         expected = {

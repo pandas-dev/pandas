@@ -218,9 +218,13 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
         assert axes.shape == (4, 1)
 
-        with pytest.raises(ValueError):
+        msg = "Layout of 1x1 must be larger than required size 3"
+
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(1, 1))
-        with pytest.raises(ValueError):
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, layout=(-1, -1))
 
     @pytest.mark.parametrize(
@@ -272,7 +276,9 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
-        with pytest.raises(ValueError):
+        msg = "The number of passed axes must be 3, the same as the output plot"
+
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             df.plot(subplots=True, ax=axes)
@@ -508,33 +514,33 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         "kwargs",
         [
             # stacked center
-            dict(kind="bar", stacked=True),
-            dict(kind="bar", stacked=True, width=0.9),
-            dict(kind="barh", stacked=True),
-            dict(kind="barh", stacked=True, width=0.9),
+            {"kind": "bar", "stacked": True},
+            {"kind": "bar", "stacked": True, "width": 0.9},
+            {"kind": "barh", "stacked": True},
+            {"kind": "barh", "stacked": True, "width": 0.9},
             # center
-            dict(kind="bar", stacked=False),
-            dict(kind="bar", stacked=False, width=0.9),
-            dict(kind="barh", stacked=False),
-            dict(kind="barh", stacked=False, width=0.9),
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": False, "width": 0.9},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": False, "width": 0.9},
             # subplots center
-            dict(kind="bar", subplots=True),
-            dict(kind="bar", subplots=True, width=0.9),
-            dict(kind="barh", subplots=True),
-            dict(kind="barh", subplots=True, width=0.9),
+            {"kind": "bar", "subplots": True},
+            {"kind": "bar", "subplots": True, "width": 0.9},
+            {"kind": "barh", "subplots": True},
+            {"kind": "barh", "subplots": True, "width": 0.9},
             # align edge
-            dict(kind="bar", stacked=True, align="edge"),
-            dict(kind="bar", stacked=True, width=0.9, align="edge"),
-            dict(kind="barh", stacked=True, align="edge"),
-            dict(kind="barh", stacked=True, width=0.9, align="edge"),
-            dict(kind="bar", stacked=False, align="edge"),
-            dict(kind="bar", stacked=False, width=0.9, align="edge"),
-            dict(kind="barh", stacked=False, align="edge"),
-            dict(kind="barh", stacked=False, width=0.9, align="edge"),
-            dict(kind="bar", subplots=True, align="edge"),
-            dict(kind="bar", subplots=True, width=0.9, align="edge"),
-            dict(kind="barh", subplots=True, align="edge"),
-            dict(kind="barh", subplots=True, width=0.9, align="edge"),
+            {"kind": "bar", "stacked": True, "align": "edge"},
+            {"kind": "bar", "stacked": True, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "stacked": True, "align": "edge"},
+            {"kind": "barh", "stacked": True, "width": 0.9, "align": "edge"},
+            {"kind": "bar", "stacked": False, "align": "edge"},
+            {"kind": "bar", "stacked": False, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "stacked": False, "align": "edge"},
+            {"kind": "barh", "stacked": False, "width": 0.9, "align": "edge"},
+            {"kind": "bar", "subplots": True, "align": "edge"},
+            {"kind": "bar", "subplots": True, "width": 0.9, "align": "edge"},
+            {"kind": "barh", "subplots": True, "align": "edge"},
+            {"kind": "barh", "subplots": True, "width": 0.9, "align": "edge"},
         ],
     )
     def test_bar_align_multiple_columns(self, kwargs):
@@ -545,12 +551,12 @@ class TestDataFramePlotsSubplots(TestPlotBase):
     @pytest.mark.parametrize(
         "kwargs",
         [
-            dict(kind="bar", stacked=False),
-            dict(kind="bar", stacked=True),
-            dict(kind="barh", stacked=False),
-            dict(kind="barh", stacked=True),
-            dict(kind="bar", subplots=True),
-            dict(kind="barh", subplots=True),
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": True},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": True},
+            {"kind": "bar", "subplots": True},
+            {"kind": "barh", "subplots": True},
         ],
     )
     def test_bar_align_single_column(self, kwargs):

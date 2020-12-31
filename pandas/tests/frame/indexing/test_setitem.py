@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.base import registry as ea_registry
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
@@ -197,6 +198,25 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "ea_name",
+        [
+            dtype.name
+            for dtype in ea_registry.dtypes
+            # property would require instantiation
+            if not isinstance(dtype.name, property)
+        ]
+        # mypy doesn't allow adding lists of different types
+        # https://github.com/python/mypy/issues/5492
+        + ["datetime64[ns, UTC]", "period[D]"],  # type: ignore[list-item]
+    )
+    def test_setitem_with_ea_name(self, ea_name):
+        # GH 38386
+        result = DataFrame([0])
+        result[ea_name] = [1]
+        expected = DataFrame({0: [0], ea_name: [1]})
+        tm.assert_frame_equal(result, expected)
+
     def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
         # GH#7492
         data_ns = np.array([1, "nat"], dtype="datetime64[ns]")
@@ -317,6 +337,24 @@ class TestDataFrameSetItem:
             expected_cols = Index([1.0, 2.0, 3.0, False], dtype=object)
 
         tm.assert_index_equal(df.columns, expected_cols)
+
+
+class TestDataFrameSetItemWithExpansion:
+    def test_setitem_listlike_views(self):
+        # GH#38148
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
+
+        # get one column as a view of df
+        ser = df["a"]
+
+        # add columns with list-like indexer
+        df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
+
+        # edit in place the first column to check view semantics
+        df.iloc[0, 0] = 100
+
+        expected = Series([100, 2, 3], name="a")
+        tm.assert_series_equal(ser, expected)
 
 
 class TestDataFrameSetItemSlicing:

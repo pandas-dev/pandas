@@ -824,7 +824,7 @@ def rank_1d(
         if values.dtype != np.object_:
             values = values.astype('O')
     else:
-        values = np.asarray(in_arr)
+        values = np.asarray(in_arr).copy()
 
     keep_na = na_option == 'keep'
 
@@ -834,11 +834,6 @@ def rank_1d(
         mask = np.isnan(values)
     elif rank_t is int64_t:
         mask = values == NPY_NAT
-
-        # create copy in case of NPY_NAT
-        # values are mutated inplace
-        if mask.any():
-            values = values.copy()
 
     # double sort first by mask and then by values to ensure nan values are
     # either at the beginning or the end. mask/(~mask) controls padding at
@@ -1027,16 +1022,19 @@ def rank_2d(
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
         ndarray[int64_t, ndim=2] argsorted
+        ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_value
         float64_t sum_ranks = 0
         int tiebreak = 0
+        int64_t idx
         bint keep_na = False
         float64_t count = 0.0
-        bint condition, skip_condition
+        bint condition, check_mask
 
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
+    check_mask = rank_t is not uint64_t
 
     if axis == 0:
         values = np.asarray(in_arr).T.copy()
@@ -1072,6 +1070,8 @@ def rank_2d(
             mask = values == NPY_NAT
 
         np.putmask(values, mask, nan_value)
+    else:
+        mask = np.zeros_like(values, dtype=bool)
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
@@ -1104,43 +1104,35 @@ def rank_2d(
     argsorted = _as.astype('i8')
 
     for i in range(n):
-        if rank_t is object:
-            dups = sum_ranks = infs = 0
-        else:
-            dups = sum_ranks = 0
+        dups = sum_ranks = infs = 0
 
         total_tie_count = 0
         count = 0.0
         for j in range(k):
-            if rank_t is not object:
-                sum_ranks += j + 1
-                dups += 1
-
             val = values[i, j]
-
-            if rank_t is not uint64_t:
-                if rank_t is object:
-                    skip_condition = (val is nan_value) and keep_na
-                else:
-                    skip_condition = (val == nan_value) and keep_na
-                if skip_condition:
-                    ranks[i, argsorted[i, j]] = NaN
-
-                    if rank_t is object:
-                        infs += 1
-
-                    continue
+            idx = argsorted[i, j]
+            if keep_na and check_mask and mask[i, idx]:
+                ranks[i, idx] = NaN
+                infs += 1
+                continue
 
             count += 1.0
 
-            if rank_t is object:
-                sum_ranks += (j - infs) + 1
-                dups += 1
+            sum_ranks += (j - infs) + 1
+            dups += 1
 
             if rank_t is object:
-                condition = j == k - 1 or are_diff(values[i, j + 1], val)
+                condition = (
+                    j == k - 1 or
+                    are_diff(values[i, j + 1], val) or
+                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                )
             else:
-                condition = j == k - 1 or values[i, j + 1] != val
+                condition = (
+                    j == k - 1 or
+                    values[i, j + 1] != val or
+                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                )
 
             if condition:
                 if tiebreak == TIEBREAK_AVERAGE:

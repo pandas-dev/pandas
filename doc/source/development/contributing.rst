@@ -147,8 +147,9 @@ Creating a development environment
 
 To test out code changes, you'll need to build pandas from source, which
 requires a C/C++ compiler and Python environment. If you're making documentation
-changes, you can skip to :ref:`contributing.documentation` but you won't be able
-to build the documentation locally before pushing your changes.
+changes, you can skip to :ref:`contributing.documentation` but if you skip
+creating the development environment you won't be able to build the documentation
+locally before pushing your changes.
 
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1608,6 +1609,17 @@ After the feature branch has been update locally, you can now update your pull
 request by pushing to the branch on GitHub::
 
     git push origin shiny-new-feature
+
+Autofixing formatting errors
+----------------------------
+
+We use several styling checks (e.g. ``black``, ``flake8``, ``isort``) which are run after
+you make a pull request. If there is a scenario where any of these checks fail then you
+can comment::
+
+    @github-actions pre-commit
+
+on that pull request. This will trigger a workflow which will autofix formatting errors.
 
 Delete your merged branch (optional)
 ------------------------------------

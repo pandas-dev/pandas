@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-from collections import defaultdict
+from collections import abc, defaultdict
 import copy
 from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
@@ -261,10 +261,15 @@ def _json_normalize(
 
     if isinstance(data, list) and not data:
         return DataFrame()
-
-    # A bit of a hackjob
-    if isinstance(data, dict):
+    elif isinstance(data, dict):
+        # A bit of a hackjob
         data = [data]
+    elif isinstance(data, abc.Iterable) and not isinstance(data, str):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        data = list(data)
+    else:
+        raise NotImplementedError
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):

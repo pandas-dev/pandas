@@ -91,7 +91,6 @@ void parser_set_default_options(parser_t *self) {
     self->skipinitialspace = 0;
     self->quoting = QUOTE_MINIMAL;
     self->allow_embedded_newline = 1;
-    self->strict = 0;
 
     self->expected_fields = -1;
     self->error_bad_lines = 0;
@@ -1031,15 +1030,9 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_CARRIAGE(c)) {
                     END_FIELD();
                     self->state = EAT_CRNL;
-                } else if (!self->strict) {
+                } else {
                     PUSH_CHAR(c);
                     self->state = IN_FIELD;
-                } else {
-                    int64_t bufsize = 100;
-                    self->error_msg = malloc(bufsize);
-                    snprintf(self->error_msg, bufsize,
-                            "delimiter expected after quote in quote");
-                    goto parsingerror;
                 }
                 break;
 
@@ -1733,7 +1726,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
         // Process string of digits.
         num_digits = 0;
         n = 0;
-        while (isdigit_ascii(*p)) {
+        while (num_digits < max_digits && isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -1754,10 +1747,13 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     } else if (exponent > 0) {
         number *= e[exponent];
     } else if (exponent < -308) {  // Subnormal
-        if (exponent < -616)       // Prevent invalid array access.
+        if (exponent < -616) {  // Prevent invalid array access.
             number = 0.;
-        number /= e[-308 - exponent];
-        number /= e[308];
+        } else {
+            number /= e[-308 - exponent];
+            number /= e[308];
+        }
+
     } else {
         number /= e[-exponent];
     }

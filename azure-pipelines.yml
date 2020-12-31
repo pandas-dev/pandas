@@ -1,11 +1,11 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 trigger:
 - master
-- 1.1.x
+- 1.2.x
 
 pr:
 - master
-- 1.1.x
+- 1.2.x
 
 variables:
   PYTEST_WORKERS: auto

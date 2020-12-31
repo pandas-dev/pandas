@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import is_platform_linux
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
@@ -195,12 +196,11 @@ skip
 """
     parser = all_parsers
     msg = "Expected 3 fields in line 6, saw 5"
-    reader = parser.read_csv(
+    with parser.read_csv(
         StringIO(data), header=1, comment="#", iterator=True, chunksize=1, skiprows=[2]
-    )
-
-    with pytest.raises(ParserError, match=msg):
-        reader.read(nrows)
+    ) as reader:
+        with pytest.raises(ParserError, match=msg):
+            reader.read(nrows)
 
 
 def test_unnamed_columns(all_parsers):
@@ -379,12 +379,12 @@ bar,12,13,14,15
     [
         (
             "A,B\nTrue,1\nFalse,2\nTrue,3",
-            dict(),
+            {},
             DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
         ),
         (
             "A,B\nYES,1\nno,2\nyes,3\nNo,3\nYes,3",
-            dict(true_values=["yes", "Yes", "YES"], false_values=["no", "NO", "No"]),
+            {"true_values": ["yes", "Yes", "YES"], "false_values": ["no", "NO", "No"]},
             DataFrame(
                 [[True, 1], [False, 2], [True, 3], [False, 3], [True, 3]],
                 columns=["A", "B"],
@@ -392,12 +392,12 @@ bar,12,13,14,15
         ),
         (
             "A,B\nTRUE,1\nFALSE,2\nTRUE,3",
-            dict(),
+            {},
             DataFrame([[True, 1], [False, 2], [True, 3]], columns=["A", "B"]),
         ),
         (
             "A,B\nfoo,bar\nbar,foo",
-            dict(true_values=["foo"], false_values=["bar"]),
+            {"true_values": ["foo"], "false_values": ["bar"]},
             DataFrame([[True, False], [False, True]], columns=["A", "B"]),
         ),
     ],
@@ -471,7 +471,6 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-    reader = parser.read_csv(StringIO(data), index_col=0, chunksize=2)
     expected = DataFrame(
         [
             ["foo", 2, 3, 4, 5],
@@ -485,7 +484,8 @@ bar2,12,13,14,15
     )
     expected = expected.set_index("index")
 
-    chunks = list(reader)
+    with parser.read_csv(StringIO(data), index_col=0, chunksize=2) as reader:
+        chunks = list(reader)
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
     tm.assert_frame_equal(chunks[2], expected[4:])
@@ -505,7 +505,8 @@ bar2,12,13,14,15
     msg = r"'chunksize' must be an integer >=1"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), chunksize=chunksize)
+        with parser.read_csv(StringIO(data), chunksize=chunksize) as _:
+            pass
 
 
 @pytest.mark.parametrize("chunksize", [2, 8])
@@ -520,11 +521,11 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0, nrows=5)
+    kwargs = {"index_col": 0, "nrows": 5}
 
-    reader = parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs)
     expected = parser.read_csv(StringIO(data), **kwargs)
-    tm.assert_frame_equal(concat(reader), expected)
+    with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
+        tm.assert_frame_equal(concat(reader), expected)
 
 
 def test_read_chunksize_and_nrows_changing_size(all_parsers):
@@ -537,16 +538,15 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0, nrows=5)
+    kwargs = {"index_col": 0, "nrows": 5}
 
-    reader = parser.read_csv(StringIO(data), chunksize=8, **kwargs)
     expected = parser.read_csv(StringIO(data), **kwargs)
+    with parser.read_csv(StringIO(data), chunksize=8, **kwargs) as reader:
+        tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
+        tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-    tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
-    tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
-
-    with pytest.raises(StopIteration, match=""):
-        reader.get_chunk(size=3)
+        with pytest.raises(StopIteration, match=""):
+            reader.get_chunk(size=3)
 
 
 def test_get_chunk_passed_chunksize(all_parsers):
@@ -557,14 +557,14 @@ def test_get_chunk_passed_chunksize(all_parsers):
 7,8,9
 1,2,3"""
 
-    reader = parser.read_csv(StringIO(data), chunksize=2)
-    result = reader.get_chunk()
+    with parser.read_csv(StringIO(data), chunksize=2) as reader:
+        result = reader.get_chunk()
 
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col=0)])
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": 0}])
 def test_read_chunksize_compat(all_parsers, kwargs):
     # see gh-12185
     data = """index,A,B,C,D
@@ -576,10 +576,9 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    reader = parser.read_csv(StringIO(data), chunksize=2, **kwargs)
-
     result = parser.read_csv(StringIO(data), **kwargs)
-    tm.assert_frame_equal(concat(reader), result)
+    with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
+        tm.assert_frame_equal(concat(reader), result)
 
 
 def test_read_chunksize_jagged_names(all_parsers):
@@ -588,22 +587,21 @@ def test_read_chunksize_jagged_names(all_parsers):
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
     expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
-    reader = parser.read_csv(StringIO(data), names=range(10), chunksize=4)
-
-    result = concat(reader)
+    with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
+        result = concat(reader)
     tm.assert_frame_equal(result, expected)
 
 
 def test_read_data_list(all_parsers):
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
     data = "A,B,C\nfoo,1,2,3\nbar,4,5,6"
 
     data_list = [["A", "B", "C"], ["foo", "1", "2", "3"], ["bar", "4", "5", "6"]]
     expected = parser.read_csv(StringIO(data), **kwargs)
 
-    parser = TextParser(data_list, chunksize=2, **kwargs)
-    result = parser.read()
+    with TextParser(data_list, chunksize=2, **kwargs) as parser:
+        result = parser.read()
 
     tm.assert_frame_equal(result, expected)
 
@@ -619,15 +617,15 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
-    reader = parser.read_csv(StringIO(data), iterator=True, **kwargs)
+    with parser.read_csv(StringIO(data), iterator=True, **kwargs) as reader:
 
-    first_chunk = reader.read(3)
-    tm.assert_frame_equal(first_chunk, expected[:3])
+        first_chunk = reader.read(3)
+        tm.assert_frame_equal(first_chunk, expected[:3])
 
-    last_chunk = reader.read(5)
+        last_chunk = reader.read(5)
     tm.assert_frame_equal(last_chunk, expected[3:])
 
 
@@ -639,8 +637,8 @@ bar,4,5,6
 baz,7,8,9
 """
 
-    reader = parser.read_csv(StringIO(data), iterator=True)
-    result = list(reader)
+    with parser.read_csv(StringIO(data), iterator=True) as reader:
+        result = list(reader)
 
     expected = DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
@@ -660,13 +658,13 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     lines = list(csv.reader(StringIO(data)))
-    reader = TextParser(lines, chunksize=2, **kwargs)
+    with TextParser(lines, chunksize=2, **kwargs) as reader:
+        chunks = list(reader)
 
     expected = parser.read_csv(StringIO(data), **kwargs)
-    chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
@@ -683,13 +681,13 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
     parser = all_parsers
-    kwargs = dict(index_col=0)
+    kwargs = {"index_col": 0}
 
     lines = list(csv.reader(StringIO(data)))
-    reader = TextParser(lines, chunksize=2, skiprows=[1], **kwargs)
+    with TextParser(lines, chunksize=2, skiprows=[1], **kwargs) as reader:
+        chunks = list(reader)
 
     expected = parser.read_csv(StringIO(data), **kwargs)
-    chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[1:3])
 
@@ -703,8 +701,8 @@ bar,4,5,6
 baz,7,8,9
 """
 
-    reader = parser.read_csv(StringIO(data), chunksize=1)
-    result = list(reader)
+    with parser.read_csv(StringIO(data), chunksize=1) as reader:
+        result = list(reader)
 
     assert len(result) == 3
     expected = DataFrame(
@@ -716,7 +714,7 @@ baz,7,8,9
 
 
 @pytest.mark.parametrize(
-    "kwargs", [dict(iterator=True, chunksize=1), dict(iterator=True), dict(chunksize=1)]
+    "kwargs", [{"iterator": True, "chunksize": 1}, {"iterator": True}, {"chunksize": 1}]
 )
 def test_iterator_skipfooter_errors(all_parsers, kwargs):
     msg = "'skipfooter' not supported for iteration"
@@ -724,7 +722,8 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs):
     data = "a\n1\n2"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), skipfooter=1, **kwargs)
+        with parser.read_csv(StringIO(data), skipfooter=1, **kwargs) as _:
+            pass
 
 
 def test_nrows_skipfooter_errors(all_parsers):
@@ -747,7 +746,7 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """,
-            dict(index_col=0, names=["index", "A", "B", "C", "D"]),
+            {"index_col": 0, "names": ["index", "A", "B", "C", "D"]},
             DataFrame(
                 [
                     [2, 3, 4, 5],
@@ -768,7 +767,7 @@ foo,three,12,13,14,15
 bar,one,12,13,14,15
 bar,two,12,13,14,15
 """,
-            dict(index_col=[0, 1], names=["index1", "index2", "A", "B", "C", "D"]),
+            {"index_col": [0, 1], "names": ["index1", "index2", "A", "B", "C", "D"]},
             DataFrame(
                 [
                     [2, 3, 4, 5],
@@ -908,7 +907,7 @@ bar"""
 def test_url(all_parsers, csv_dir_path):
     # TODO: FTP testing
     parser = all_parsers
-    kwargs = dict(sep="\t")
+    kwargs = {"sep": "\t"}
 
     url = (
         "https://raw.github.com/pandas-dev/pandas/master/"
@@ -924,7 +923,7 @@ def test_url(all_parsers, csv_dir_path):
 @pytest.mark.slow
 def test_local_file(all_parsers, csv_dir_path):
     parser = all_parsers
-    kwargs = dict(sep="\t")
+    kwargs = {"sep": "\t"}
 
     local_path = os.path.join(csv_dir_path, "salaries.csv")
     local_result = parser.read_csv(local_path, **kwargs)
@@ -1138,6 +1137,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(reason="GH38630, sometimes gives ResourceWarning", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1260,15 +1260,14 @@ def test_float_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_scientific_no_exponent(all_parsers):
+def test_scientific_no_exponent(all_parsers_all_precisions):
     # see gh-12215
     df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
-    parser = all_parsers
+    parser, precision = all_parsers_all_precisions
 
-    for precision in parser.float_precision_choices:
-        df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
-        tm.assert_frame_equal(df_roundtrip, df)
+    df_roundtrip = parser.read_csv(StringIO(data), float_precision=precision)
+    tm.assert_frame_equal(df_roundtrip, df)
 
 
 @pytest.mark.parametrize("conv", [None, np.int64, np.uint64])
@@ -1352,6 +1351,35 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("neg_exp", [-617, -100000, -99999999999999999])
+def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
+    # GH#38753
+    parser, precision = all_parsers_all_precisions
+    data = f"data\n10E{neg_exp}"
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    expected = DataFrame({"data": [0.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
+def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
+    # GH#38753
+    parser, precision = all_parsers_all_precisions
+    data = f"data\n10E{exp}"
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    if precision == "round_trip":
+        if exp == 999999999999999999 and is_platform_linux():
+            mark = pytest.mark.xfail(reason="GH38794, on Linux gives object result")
+            request.node.add_marker(mark)
+
+        value = np.inf if exp > 0 else 0.0
+        expected = DataFrame({"data": [value]})
+    else:
+        expected = DataFrame({"data": [f"10E{exp}"]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("iterator", [True, False])
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
@@ -1362,7 +1390,8 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     data = StringIO("foo,bar\n")
 
     if iterator:
-        result = next(iter(parser.read_csv(data, chunksize=nrows)))
+        with parser.read_csv(data, chunksize=nrows) as reader:
+            result = next(iter(reader))
     else:
         result = parser.read_csv(data, nrows=nrows)
 
@@ -1375,77 +1404,77 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
         # gh-10728: WHITESPACE_LINE
         (
             "a,b,c\n4,5,6\n ",
-            dict(),
+            {},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # gh-10548: EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
-            dict(comment="#"),
+            {"comment": "#"},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL_NOP
         (
             "a,b,c\n4,5,6\n\r",
-            dict(),
+            {},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_COMMENT
         (
             "a,b,c\n4,5,6#comment",
-            dict(comment="#"),
+            {"comment": "#"},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # SKIP_LINE
         (
             "a,b,c\n4,5,6\nskipme",
-            dict(skiprows=[2]),
+            {"skiprows": [2]},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_LINE_COMMENT
         (
             "a,b,c\n4,5,6\n#comment",
-            dict(comment="#", skip_blank_lines=False),
+            {"comment": "#", "skip_blank_lines": False},
             DataFrame([[4, 5, 6]], columns=["a", "b", "c"]),
             None,
         ),
         # IN_FIELD
         (
             "a,b,c\n4,5,6\n ",
-            dict(skip_blank_lines=False),
+            {"skip_blank_lines": False},
             DataFrame([["4", 5, 6], [" ", None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # EAT_CRNL
         (
             "a,b,c\n4,5,6\n\r",
-            dict(skip_blank_lines=False),
+            {"skip_blank_lines": False},
             DataFrame([[4, 5, 6], [None, None, None]], columns=["a", "b", "c"]),
             None,
         ),
         # ESCAPED_CHAR
         (
             "a,b,c\n4,5,6\n\\",
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF following escape character)|(unexpected end of data)",
         ),
         # ESCAPE_IN_QUOTED_FIELD
         (
             'a,b,c\n4,5,6\n"\\',
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF inside string starting at row 2)|(unexpected end of data)",
         ),
         # IN_QUOTED_FIELD
         (
             'a,b,c\n4,5,6\n"',
-            dict(escapechar="\\"),
+            {"escapechar": "\\"},
             None,
             "(EOF inside string starting at row 2)|(unexpected end of data)",
         ),
@@ -1503,16 +1532,16 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
     [
         # First, check to see that the response of parser when faced with no
         # provided columns raises the correct error, with or without usecols.
-        ("", dict(), None),
-        ("", dict(usecols=["X"]), None),
+        ("", {}, None),
+        ("", {"usecols": ["X"]}, None),
         (
             ",,",
-            dict(names=["Dummy", "X", "Dummy_2"], usecols=["X"]),
+            {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
             DataFrame(columns=["X"], index=[0], dtype=np.float64),
         ),
         (
             "",
-            dict(names=["Dummy", "X", "Dummy_2"], usecols=["X"]),
+            {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
             DataFrame(columns=["X"]),
         ),
     ],
@@ -1536,19 +1565,21 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
         # gh-8661, gh-8679: this should ignore six lines, including
         # lines with trailing whitespace and blank lines.
         (
-            dict(
-                header=None,
-                delim_whitespace=True,
-                skiprows=[0, 1, 2, 3, 5, 6],
-                skip_blank_lines=True,
-            ),
+            {
+                "header": None,
+                "delim_whitespace": True,
+                "skiprows": [0, 1, 2, 3, 5, 6],
+                "skip_blank_lines": True,
+            },
             DataFrame([[1.0, 2.0, 4.0], [5.1, np.nan, 10.0]]),
         ),
         # gh-8983: test skipping set of rows after a row with trailing spaces.
         (
-            dict(
-                delim_whitespace=True, skiprows=[1, 2, 3, 5, 6], skip_blank_lines=True
-            ),
+            {
+                "delim_whitespace": True,
+                "skiprows": [1, 2, 3, 5, 6],
+                "skip_blank_lines": True,
+            },
             DataFrame({"A": [1.0, 5.1], "B": [2.0, np.nan], "C": [4.0, 10]}),
         ),
     ],
@@ -1718,7 +1749,7 @@ eight,1,2,3"""
 
 def test_iteration_open_handle(all_parsers):
     parser = all_parsers
-    kwargs = dict(squeeze=True, header=None)
+    kwargs = {"squeeze": True, "header": None}
 
     with tm.ensure_clean() as path:
         with open(path, "w") as f:
@@ -1986,10 +2017,10 @@ def test_valid_file_buffer_seems_invalid(all_parsers):
 
 @pytest.mark.parametrize(
     "kwargs",
-    [dict(), dict(error_bad_lines=True)],  # Default is True.  # Explicitly pass in.
+    [{}, {"error_bad_lines": True}],  # Default is True.  # Explicitly pass in.
 )
 @pytest.mark.parametrize(
-    "warn_kwargs", [dict(), dict(warn_bad_lines=True), dict(warn_bad_lines=False)]
+    "warn_kwargs", [{}, {"warn_bad_lines": True}, {"warn_bad_lines": False}]
 )
 def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
     # see gh-15925
@@ -2056,10 +2087,9 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
             for i in range(1000):
                 f.write(str(i) + "\n")
 
-        result = parser.read_csv(path, chunksize=20)
-
-        for _ in result:
-            pass
+        with parser.read_csv(path, chunksize=20) as result:
+            for _ in result:
+                pass
 
 
 def test_read_csv_raises_on_header_prefix(all_parsers):
@@ -2310,3 +2340,35 @@ def test_memory_map_compression(all_parsers, compression):
             parser.read_csv(path, memory_map=True, compression=compression),
             expected,
         )
+
+
+def test_context_manager(all_parsers, datapath):
+    # make sure that opened files are closed
+    parser = all_parsers
+
+    path = datapath("io", "data", "csv", "iris.csv")
+
+    reader = parser.read_csv(path, chunksize=1)
+    assert not reader._engine.handles.handle.closed
+    try:
+        with reader:
+            next(reader)
+            assert False
+    except AssertionError:
+        assert reader._engine.handles.handle.closed
+
+
+def test_context_manageri_user_provided(all_parsers, datapath):
+    # make sure that user-provided handles are not closed
+    parser = all_parsers
+
+    with open(datapath("io", "data", "csv", "iris.csv"), mode="r") as path:
+
+        reader = parser.read_csv(path, chunksize=1)
+        assert not reader._engine.handles.handle.closed
+        try:
+            with reader:
+                next(reader)
+                assert False
+        except AssertionError:
+            assert not reader._engine.handles.handle.closed

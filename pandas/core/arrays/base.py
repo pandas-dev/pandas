@@ -21,7 +21,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -42,7 +41,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -50,7 +49,7 @@ from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = dict()
+_extension_array_shared_docs: Dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -562,7 +561,7 @@ class ExtensionArray:
         ascending : bool, default True
             Whether the indices should result in an ascending
             or descending sort.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
@@ -953,7 +952,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
@@ -1238,21 +1237,6 @@ class ExtensionOpsMixin:
        with NumPy arrays.
     """
 
-    def __init_subclass__(cls, **kwargs):
-        # We use __init_subclass__ to handle deprecations
-        super().__init_subclass__()
-
-        if cls.__name__ != "ExtensionScalarOpsMixin":
-            # We only want to warn for user-defined subclasses,
-            #  and cannot reference ExtensionScalarOpsMixin directly at this point.
-            warnings.warn(
-                "ExtensionOpsMixin and ExtensionScalarOpsMixin are deprecated "
-                "and will be removed in a future version. Use "
-                "pd.core.arraylike.OpsMixin instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-
     @classmethod
     def _create_arithmetic_method(cls, op):
         raise AbstractMethodError(cls)
@@ -1377,7 +1361,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
+            if isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

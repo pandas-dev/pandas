@@ -1,7 +1,7 @@
 """ Test cases for DataFrame.plot """
-
 from datetime import date, datetime
 import itertools
+import re
 import string
 import warnings
 
@@ -15,7 +15,6 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
@@ -149,9 +148,31 @@ class TestDataFramePlots(TestPlotBase):
         result = ax.axes
         assert result is axes[0]
 
+    def test_nullable_int_plot(self):
+        # GH 32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [1.0, 2.0, 3.0, 4.0, 5.0],
+                "C": [7, 5, np.nan, 3, 2],
+                "D": pd.to_datetime(dates, format="%Y"),
+                "E": pd.to_datetime(dates, format="%Y", utc=True),
+            },
+            dtype=np.int64,
+        )
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].plot, x="A", y="B")
+        _check_plot_works(df[["C", "A"]].plot, x="C", y="A")  # nullable value on x-axis
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+        _check_plot_works(df[["B", "C"]].plot, x="B", y="C")
+        _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
+        _check_plot_works(df[["A", "E"]].plot, x="A", y="E")
+
     def test_integer_array_plot(self):
         # GH 25587
-        arr = integer_array([1, 2, 3, 4], dtype="UInt32")
+        arr = pd.array([1, 2, 3, 4], dtype="UInt32")
 
         s = Series(arr)
         _check_plot_works(s.plot.line)
@@ -337,10 +358,10 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
-
-        with pytest.raises(ValueError):
+        msg = "Log-y scales are not supported in area plot"
+        with pytest.raises(ValueError, match=msg):
             df.plot.area(logy=True)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.plot.area(loglog=True)
 
     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
@@ -385,7 +406,12 @@ class TestDataFramePlots(TestPlotBase):
                 self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
                 _check_plot_works(mixed_df.plot, stacked=False)
-                with pytest.raises(ValueError):
+                msg = (
+                    "When stacked is True, each column must be either all positive or "
+                    "all negative. Column 'w' contains both positive and negative "
+                    "values"
+                )
+                with pytest.raises(ValueError, match=msg):
                     mixed_df.plot(stacked=True)
 
                 # Use an index with strictly positive values, preventing
@@ -456,22 +482,28 @@ class TestDataFramePlots(TestPlotBase):
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
-    def test_area_lim(self):
+    @pytest.mark.xfail(
+        strict=False,
+        reason="2020-12-01 this has been failing periodically on the "
+        "ymin==0 assertion for a week or so.",
+    )
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_area_lim(self, stacked):
         df = DataFrame(np.random.rand(6, 4), columns=["x", "y", "z", "four"])
 
         neg_df = -df
-        for stacked in [True, False]:
-            ax = _check_plot_works(df.plot.area, stacked=stacked)
-            xmin, xmax = ax.get_xlim()
-            ymin, ymax = ax.get_ylim()
-            lines = ax.get_lines()
-            assert xmin <= lines[0].get_data()[0][0]
-            assert xmax >= lines[0].get_data()[0][-1]
-            assert ymin == 0
 
-            ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
-            ymin, ymax = ax.get_ylim()
-            assert ymax == 0
+        ax = _check_plot_works(df.plot.area, stacked=stacked)
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        lines = ax.get_lines()
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
+        assert ymin == 0
+
+        ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
+        ymin, ymax = ax.get_ylim()
+        assert ymax == 0
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
@@ -623,9 +655,11 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="x", y="y")
         _check_plot_works(df.plot.scatter, x=1, y=2)
 
-        with pytest.raises(TypeError):
+        msg = re.escape("scatter() missing 1 required positional argument: 'y'")
+        with pytest.raises(TypeError, match=msg):
             df.plot.scatter(x="x")
-        with pytest.raises(TypeError):
+        msg = re.escape("scatter() missing 1 required positional argument: 'x'")
+        with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
         # GH 6951
@@ -823,8 +857,9 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError):
-            df.plot.box(return_type="NOTATYPE")
+        msg = "return_type must be {None, 'axes', 'dict', 'both'}"
+        with pytest.raises(ValueError, match=msg):
+            df.plot.box(return_type="not_a_type")
 
         result = df.plot.box(return_type="dict")
         self._check_box_return_type(result, "dict")
@@ -1282,44 +1317,47 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(np.random.randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = "a"
             for kind in plotting.PlotAccessor._common_kinds:
-
                 msg = "no numeric data to plot"
                 with pytest.raises(TypeError, match=msg):
                     df.plot(kind=kind)
 
         with tm.RNGContext(42):
             # area plot doesn't support positive/negative mixed data
-            kinds = ["area"]
             df = DataFrame(np.random.rand(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = "a"
-            for kind in kinds:
-                with pytest.raises(TypeError):
-                    df.plot(kind=kind)
+            with pytest.raises(TypeError, match="no numeric data to plot"):
+                df.plot(kind="area")
 
     def test_invalid_kind(self):
         df = DataFrame(np.random.randn(10, 2))
-        with pytest.raises(ValueError):
-            df.plot(kind="aasdf")
+        msg = "invalid_plot_kind is not a valid plot kind"
+        with pytest.raises(ValueError, match=msg):
+            df.plot(kind="invalid_plot_kind")
 
     @pytest.mark.parametrize(
         "x,y,lbl",
         [
             (["B", "C"], "A", "a"),
             (["A"], ["B", "C"], ["b", "c"]),
-            ("A", ["B", "C"], "badlabel"),
         ],
     )
     def test_invalid_xy_args(self, x, y, lbl):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="x must be a label or position"):
             df.plot(x=x, y=y, label=lbl)
+
+    def test_bad_label(self):
+        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        msg = "label should be list-like and same length as y"
+        with pytest.raises(ValueError, match=msg):
+            df.plot(x="A", y=["B", "C"], label="bad_label")
 
     @pytest.mark.parametrize("x,y", [("A", "B"), (["A"], "B")])
     def test_invalid_xy_args_dup_cols(self, x, y):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list("AAB"))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="x must be a label or position"):
             df.plot(x=x, y=y)
 
     @pytest.mark.parametrize(
@@ -1389,7 +1427,8 @@ class TestDataFramePlots(TestPlotBase):
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
-        with pytest.raises(ValueError):
+        msg = "pie requires either y column or 'subplots=True'"
+        with pytest.raises(ValueError, match=msg):
             df.plot.pie()
 
         ax = _check_plot_works(df.plot.pie, y="Y")
@@ -1493,11 +1532,11 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=1)
 
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             df.plot(yerr=np.random.randn(11))
 
         df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
-        with pytest.raises((ValueError, TypeError)):
+        with tm.external_error_raised(TypeError):
             df.plot(yerr=df_err)
 
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
@@ -1620,7 +1659,10 @@ class TestDataFramePlots(TestPlotBase):
         expected_0_0 = err[0, :, 0] * np.array([-1, 1])
         tm.assert_almost_equal(yerr_0_0, expected_0_0)
 
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Asymmetrical error bars should be provided with the shape (3, 2, 5)"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.plot(yerr=err.T)
 
         tm.close()
@@ -1810,9 +1852,10 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
         # force a garbage collection
         gc.collect()
+        msg = "weakly-referenced object no longer exists"
         for key in results:
             # check that every plot was collected
-            with pytest.raises(ReferenceError):
+            with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
                 results[key].lines
 
@@ -2068,7 +2111,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = DataFrame(["a", "b", "c"])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
     def test_missing_markers_legend(self):

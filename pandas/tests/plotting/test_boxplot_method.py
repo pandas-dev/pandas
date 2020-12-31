@@ -91,8 +91,9 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError):
-            df.boxplot(return_type="NOTATYPE")
+        msg = "return_type must be {'axes', 'dict', 'both'}"
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(return_type="NOT_A_TYPE")
 
         result = df.boxplot()
         self._check_box_return_type(result, "axes")
@@ -171,11 +172,11 @@ class TestDataFramePlots(TestPlotBase):
         "colors_kwd, expected",
         [
             (
-                dict(boxes="r", whiskers="b", medians="g", caps="c"),
-                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+                {"boxes": "r", "whiskers": "b", "medians": "g", "caps": "c"},
+                {"boxes": "r", "whiskers": "b", "medians": "g", "caps": "c"},
             ),
-            (dict(boxes="r"), dict(boxes="r")),
-            ("r", dict(boxes="r", whiskers="r", medians="r", caps="r")),
+            ({"boxes": "r"}, {"boxes": "r"}),
+            ("r", {"boxes": "r", "whiskers": "r", "medians": "r", "caps": "r"}),
         ],
     )
     def test_color_kwd(self, colors_kwd, expected):
@@ -187,7 +188,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize(
         "dict_colors, msg",
-        [(dict(boxes="r", invalid_key="r"), "invalid key 'invalid_key'")],
+        [({"boxes": "r", "invalid_key": "r"}, "invalid key 'invalid_key'")],
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
@@ -207,7 +208,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_specified_props_kwd(self, props, expected):
         # GH 30346
         df = DataFrame({k: np.random.random(100) for k in "ABC"})
-        kwd = {props: dict(color="C1")}
+        kwd = {props: {"color": "C1"}}
         result = df.boxplot(return_type="dict", **kwd)
 
         assert result[expected][0].get_color() == "C1"
@@ -431,7 +432,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
-        with pytest.raises(ValueError):
+        msg = "The number of passed axes must be 3, the same as the output plot"
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):
