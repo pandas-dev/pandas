@@ -1,7 +1,6 @@
 from copy import deepcopy
 import inspect
 import pydoc
-import warnings
 
 import numpy as np
 import pytest
@@ -330,19 +329,17 @@ class TestDataFrameMisc:
         result.iloc[key] = 10
         assert obj.iloc[key] == 0
 
-    @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):
         # GH#33628 accessing _constructor_expanddim should not
         #  raise NotImplementedError
         df = DataFrame()
 
-        with warnings.catch_warnings(record=True) as wrn:
-            # _AXIS_NUMBERS, _AXIS_NAMES lookups
-            inspect.getmembers(df)
-
-        # some versions give FutureWarning, others DeprecationWarning
-        assert len(wrn)
-        assert any(x.category in [FutureWarning, DeprecationWarning] for x in wrn)
-
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
+
+    @skip_if_no("jinja2")
+    def test_inspect_getmembers(self):
+        # GH38740
+        df = DataFrame()
+        with tm.assert_produces_warning(None):
+            inspect.getmembers(df)
