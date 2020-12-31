@@ -5,6 +5,7 @@ import pytest
 
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
+from pandas.core.indexes.frozen import FrozenList
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
 import pandas._testing as tm
 
@@ -273,26 +274,11 @@ def test_argsort(idx):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_remove_unused_levels_with_missing():
+def test_remove_unused_levels_with_nan():
     # GH 37510
-    df1 = DataFrame(
-        {
-            "L1": [1, 2, 3, 4],
-            "L2": [3, 4, 1, 2],
-            "L3": [1, 1, 1, 1],
-            "x": [1, 2, 3, 4],
-        }
-    )
-    df1 = df1.set_index(["L1", "L2", "L3"])
-    new_levels = ["n1", "n2", "n3", None]
-    df1.index = df1.index.set_levels(levels=new_levels, level="L1")
-    df1.index = df1.index.set_levels(levels=new_levels, level="L2")
-
-    result = df1.unstack("L3")[("x", 1)].sort_index().index
-    expected = MultiIndex(
-        levels=[["n1", "n2", "n3", None], ["n1", "n2", "n3", None]],
-        codes=[[0, 1, 2, 3], [2, 3, 0, 1]],
-        names=["L1", "L2"],
-    )
-
-    tm.assert_index_equal(result, expected)
+    idx = Index([(1, np.nan), (3, 4)], names=["id1", "id2"])
+    idx = idx.set_levels(["a", np.nan], level="id1")
+    idx = idx.remove_unused_levels()
+    result = idx.levels
+    expected = FrozenList([['a', np.nan], [4]])
+    assert str(result) == str(expected)
