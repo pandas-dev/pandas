@@ -35,7 +35,6 @@ class TestDataFrameSortIndex:
             ),
         )
         result = df.sort_index()
-        assert result.index._is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -43,7 +42,6 @@ class TestDataFrameSortIndex:
         # reconstruct
         result = df.sort_index().copy()
         result.index = result.index._sort_levels_monotonic()
-        assert result.index._is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -531,7 +529,6 @@ class TestDataFrameSortIndex:
             index=MultiIndex.from_product([[0.5, 0.8], list("ab")]),
         )
         result = result.sort_index()
-        assert result.index._is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -550,7 +547,6 @@ class TestDataFrameSortIndex:
         concatted = pd.concat([df, df], keys=[0.8, 0.5])
         result = concatted.sort_index()
 
-        assert result.index._is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -567,13 +563,10 @@ class TestDataFrameSortIndex:
         df.columns = df.columns.set_levels(
             pd.to_datetime(df.columns.levels[1]), level=1
         )
-        assert not df.columns._is_lexsorted()
         assert not df.columns.is_monotonic
         result = df.sort_index(axis=1)
-        assert result.columns._is_lexsorted()
         assert result.columns.is_monotonic
         result = df.sort_index(axis=1, level=1)
-        assert result.columns._is_lexsorted()
         assert result.columns.is_monotonic
 
     # TODO: better name, de-duplicate with test_sort_index_level above
