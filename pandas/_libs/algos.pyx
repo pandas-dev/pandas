@@ -844,6 +844,7 @@ def rank_1d(
     keep_na = na_option == 'keep'
 
     N = len(in_arr)
+    assert(len(labels) == N)
     out = np.empty(N)
     grp_sizes = np.ones(N)
     # If all 0 labels, can short-circuit later label
@@ -853,9 +854,10 @@ def rank_1d(
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
     # in values array
-    masked_vals = np.array(in_arr, copy=True)
-    if rank_t is object and masked_vals.dtype != np.object_:
-        masked_vals = masked_vals.astype('O')
+    if rank_t is object and in_arr.dtype != np.object_:
+        masked_vals = in_arr.astype('O')
+    else:
+        masked_vals = in_arr.copy()
 
     if rank_t is object:
         mask = missing.isnaobj(masked_vals)
