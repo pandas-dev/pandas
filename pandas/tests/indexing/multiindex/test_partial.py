@@ -178,9 +178,9 @@ class TestMultiIndexPartial:
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        with tm.external_error_raised(KeyError):
+        with pytest.raises(KeyError, match="6"):
             ymd.loc[(2000, 6)]
-        with tm.external_error_raised(KeyError):
+        with pytest.raises(KeyError, match="(2000, 6)"):
             ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------
