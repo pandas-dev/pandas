@@ -466,3 +466,19 @@ def test_setop_with_categorical(index, sort, method):
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
     tm.assert_index_equal(result, expected)
+
+
+def test_intersection_duplicates_all_indexes(index):
+    # GH#38743
+    if index.empty:
+        # No duplicates in empty indexes
+        return
+
+    def check_intersection_commutative(left, right):
+        assert left.intersection(right).equals(right.intersection(left))
+
+    idx = index
+    idx_non_unique = idx[[0, 0, 1, 2]]
+
+    check_intersection_commutative(idx, idx_non_unique)
+    assert idx.intersection(idx_non_unique).is_unique
