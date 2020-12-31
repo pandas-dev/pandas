@@ -192,12 +192,9 @@ class DocBuilder:
                 html_path = os.path.join(BUILD_PATH, "html")
                 path = os.path.join(html_path, *row[0].split("/")) + ".html"
 
-                if (
-                    not self.include_api
-                    and (
-                        os.path.join(html_path, "reference") in path
-                        or os.path.join(html_path, "generated") in path
-                    )
+                if not self.include_api and (
+                    os.path.join(html_path, "reference") in path
+                    or os.path.join(html_path, "generated") in path
                 ):
                     continue
 
