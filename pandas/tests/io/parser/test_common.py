@@ -74,7 +74,7 @@ def test_override_set_noconvert_columns():
 
 
 @skip_pyarrow
-def test_empty_decimal_marker(all_parsers, pyarrow_xfail):
+def test_empty_decimal_marker(all_parsers):
     data = """A|B|C
 1|2,334|5
 10|13|10.
@@ -176,7 +176,8 @@ c,3
     assert not result._is_view
 
 
-def test_malformed(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_malformed(all_parsers):
     # see gh-6607
     parser = all_parsers
     data = """ignore
@@ -190,8 +191,9 @@ A,B,C
         parser.read_csv(StringIO(data), header=1, comment="#")
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [5, 3, None])
-def test_malformed_chunks(all_parsers, nrows, pyarrow_xfail):
+def test_malformed_chunks(all_parsers, nrows):
     data = """ignore
 A,B,C
 skip
@@ -209,7 +211,8 @@ skip
             reader.read(nrows)
 
 
-def test_unnamed_columns(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
 6,7,8,9,10
@@ -314,7 +317,8 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_csv_wrong_num_columns(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_read_csv_wrong_num_columns(all_parsers):
     # Too few columns.
     data = """A,B,C,D,E,F
 1,2,3,4,5,6
@@ -430,8 +434,9 @@ def test_int_conversion(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [3, 3.0])
-def test_read_nrows(all_parsers, nrows, pyarrow_xfail):
+def test_read_nrows(all_parsers, nrows):
     # see gh-10476
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -451,8 +456,9 @@ bar2,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [1.2, "foo", -1])
-def test_read_nrows_bad(all_parsers, nrows, pyarrow_xfail):
+def test_read_nrows_bad(all_parsers, nrows):
     data = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -468,8 +474,9 @@ bar2,12,13,14,15
         parser.read_csv(StringIO(data), nrows=nrows)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("index_col", [0, "index"])
-def test_read_chunksize_with_index(all_parsers, index_col, pyarrow_xfail):
+def test_read_chunksize_with_index(all_parsers, index_col):
     parser = all_parsers
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -500,8 +507,9 @@ bar2,12,13,14,15
     tm.assert_frame_equal(chunks[2], expected[4:])
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("chunksize", [1.3, "foo", 0])
-def test_read_chunksize_bad(all_parsers, chunksize, pyarrow_xfail):
+def test_read_chunksize_bad(all_parsers, chunksize):
     data = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -518,8 +526,9 @@ bar2,12,13,14,15
             pass
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("chunksize", [2, 8])
-def test_read_chunksize_and_nrows(all_parsers, chunksize, pyarrow_xfail):
+def test_read_chunksize_and_nrows(all_parsers, chunksize):
     # see gh-15755
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -537,7 +546,8 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), expected)
 
 
-def test_read_chunksize_and_nrows_changing_size(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_read_chunksize_and_nrows_changing_size(all_parsers):
     data = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -558,7 +568,8 @@ bar2,12,13,14,15
             reader.get_chunk(size=3)
 
 
-def test_get_chunk_passed_chunksize(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_get_chunk_passed_chunksize(all_parsers):
     parser = all_parsers
     data = """A,B,C
 1,2,3
@@ -573,8 +584,9 @@ def test_get_chunk_passed_chunksize(all_parsers, pyarrow_xfail):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": 0}])
-def test_read_chunksize_compat(all_parsers, kwargs, pyarrow_xfail):
+def test_read_chunksize_compat(all_parsers, kwargs):
     # see gh-12185
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -590,7 +602,8 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), result)
 
 
-def test_read_chunksize_jagged_names(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_read_chunksize_jagged_names(all_parsers):
     # see gh-23509
     parser = all_parsers
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
@@ -601,7 +614,8 @@ def test_read_chunksize_jagged_names(all_parsers, pyarrow_xfail):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_data_list(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_read_data_list(all_parsers):
     parser = all_parsers
     kwargs = {"index_col": 0}
     data = "A,B,C\nfoo,1,2,3\nbar,4,5,6"
@@ -615,7 +629,8 @@ def test_read_data_list(all_parsers, pyarrow_xfail):
     tm.assert_frame_equal(result, expected)
 
 
-def test_iterator(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_iterator(all_parsers):
     # see gh-6607
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -638,7 +653,8 @@ bar2,12,13,14,15
     tm.assert_frame_equal(last_chunk, expected[3:])
 
 
-def test_iterator2(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_iterator2(all_parsers):
     parser = all_parsers
     data = """A,B,C
 foo,1,2,3
@@ -701,7 +717,8 @@ bar2,12,13,14,15
     tm.assert_frame_equal(chunks[0], expected[1:3])
 
 
-def test_iterator_stop_on_chunksize(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_iterator_stop_on_chunksize(all_parsers):
     # gh-3967: stopping iteration when chunksize is specified
     parser = all_parsers
     data = """A,B,C
@@ -722,10 +739,11 @@ baz,7,8,9
     tm.assert_frame_equal(concat(result), expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs", [{"iterator": True, "chunksize": 1}, {"iterator": True}, {"chunksize": 1}]
 )
-def test_iterator_skipfooter_errors(all_parsers, kwargs, pyarrow_xfail):
+def test_iterator_skipfooter_errors(all_parsers, kwargs):
     msg = "'skipfooter' not supported for iteration"
     parser = all_parsers
     data = "a\n1\n2"
@@ -1534,6 +1552,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -1553,7 +1572,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         ),
     ],
 )
-def test_read_empty_with_usecols(all_parsers, data, kwargs, expected, pyarrow_xfail):
+def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
     # see gh-12493
     parser = all_parsers
 
@@ -2174,7 +2193,8 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_row_bom(all_parsers, pyarrow_xfail):
+@skip_pyarrow
+def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
     data = '''\ufeff"Head1"	"Head2"	"Head3"'''
