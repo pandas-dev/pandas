@@ -663,13 +663,13 @@ index is sorted:
 
 .. ipython:: python
 
-   dfm.index.is_monotonic_increasing()
+   dfm.index.is_monotonic_increasing
 
 .. ipython:: python
 
    dfm = dfm.sort_index()
    dfm
-   dfm.index.is_monotonic_increasing()
+   dfm.index.is_monotonic_increasing
 
 And now selection works as expected.
 
