@@ -35,14 +35,15 @@ class TestSeriesRound:
         expected = Series([2.0, np.nan, 0.0])
         tm.assert_series_equal(result, expected)
 
-    def test_round_builtin(self):
-        ser = Series([1.123, 2.123, 3.123], index=range(3))
+    @pytest.mark.parametrize("dtype", ("float", "Float64"))
+    def test_round_builtin(self, dtype):
+        ser = Series([1.123, 2.123, 3.123], index=range(3), dtype=dtype)
         result = round(ser)
-        expected_rounded0 = Series([1.0, 2.0, 3.0], index=range(3))
+        expected_rounded0 = Series([1.0, 2.0, 3.0], index=range(3), dtype=dtype)
         tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
-        expected_rounded = Series([1.12, 2.12, 3.12], index=range(3))
+        expected_rounded = Series([1.12, 2.12, 3.12], index=range(3), dtype=dtype)
         result = round(ser, decimals)
         tm.assert_series_equal(result, expected_rounded)
 
