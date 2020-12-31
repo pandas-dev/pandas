@@ -156,8 +156,8 @@ class TestDataFramePlots(TestPlotBase):
                 "A": [1, 2, 3, 4, 5],
                 "B": [1.0, 2.0, 3.0, 4.0, 5.0],
                 "C": [7, 5, np.nan, 3, 2],
-                "D": pd.to_datetime(dates, format="%Y"),
-                "E": pd.to_datetime(dates, format="%Y", utc=True),
+                "D": pd.to_datetime(dates, format="%Y").view("i8"),
+                "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
             },
             dtype=np.int64,
         )

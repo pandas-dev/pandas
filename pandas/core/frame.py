@@ -9600,7 +9600,7 @@ def _from_nested_dict(data) -> collections.defaultdict:
     return new_data
 
 
-def _reindex_for_setitem(value, index: Index):
+def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
@@ -9608,7 +9608,7 @@ def _reindex_for_setitem(value, index: Index):
 
     # GH#4107
     try:
-        value = value.reindex(index)._values
+        reindexed_value = value.reindex(index)._values
     except ValueError as err:
         # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
         if not value.index.is_unique:
@@ -9618,7 +9618,7 @@ def _reindex_for_setitem(value, index: Index):
         raise TypeError(
             "incompatible index of inserted column with frame index"
         ) from err
-    return value
+    return reindexed_value
 
 
 def _maybe_atleast_2d(value):
