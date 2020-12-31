@@ -130,7 +130,7 @@ def test_min_count(func, min_count, value):
 
 def test_indicies_with_missing():
     # GH 9304
-    df = pd.DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
+    df = DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
     g = df.groupby(["a", "b"])
     result = g.indices
     expected = {(1.0, 2): np.array([0]), (1.0, 3): np.array([1])}
