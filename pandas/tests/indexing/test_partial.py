@@ -183,7 +183,8 @@ class TestPartialSetting:
         df.loc[3] = value
 
         exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype=dtype)
-        exp = exp.astype(dtype)
+        if dtype is not None:
+            exp = exp.astype(dtype)
         tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):
