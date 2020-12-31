@@ -39,7 +39,11 @@ class TestCommon:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
-            with pytest.raises(ValueError):
+            msg = (
+                "Cannot remove 1 levels from an index with 1 levels: at least one "
+                "level must be left."
+            )
+            with pytest.raises(ValueError, match=msg):
                 index.droplevel(level)
 
         for level in "wrong", ["wrong"]:
@@ -77,7 +81,11 @@ class TestCommon:
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, itm):
-        with pytest.raises(IndexError):
+        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
+            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+            "and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
             index[itm]
 
     def test_to_flat_index(self, index):
@@ -249,7 +257,8 @@ class TestCommon:
             assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
-            with pytest.raises(ValueError):
+            msg = "index must be monotonic increasing or decreasing"
+            with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
     def test_pickle(self, index):

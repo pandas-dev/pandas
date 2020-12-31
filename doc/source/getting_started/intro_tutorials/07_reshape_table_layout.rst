@@ -17,7 +17,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
 
-.. include:: titanic.rst
+.. include:: includes/titanic.rst
 
 .. ipython:: python
 
