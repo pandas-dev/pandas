@@ -174,8 +174,16 @@ class TestJSONNormalize:
         [
             ([{"a": 0}, {"a": 1}], None, does_not_raise()),
             ({"a": [{"a": 0}, {"a": 1}]}, "a", does_not_raise()),
-            ('{"a": [{"a": 0}, {"a": 1}]}', None, pytest.raises(NotImplementedError)),
-            (None, None, pytest.raises(NotImplementedError)),
+            (
+                '{"a": [{"a": 0}, {"a": 1}]}',
+                None,
+                pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN),
+            ),
+            (
+                None,
+                None,
+                pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN),
+            ),
         ],
     )
     def test_accepted_input(self, data, record_path, error):
