@@ -682,6 +682,9 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
+        ids, _, _ = self.grouper.group_info
+        val = self.obj._values
+
         def apply_series_value_counts():
             return self.apply(
                 Series.value_counts,
@@ -690,9 +693,6 @@ class SeriesGroupBy(GroupBy[Series]):
                 ascending=ascending,
                 bins=bins,
             )
-
-        ids, _, _ = self.grouper.group_info
-        val = self.obj._values
 
         if bins is not None:
             if not np.iterable(bins):
