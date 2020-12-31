@@ -228,7 +228,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
--
+- Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
 -
 
 Indexing
