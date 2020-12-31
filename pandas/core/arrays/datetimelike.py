@@ -36,7 +36,7 @@ from pandas._libs.tslibs.timestamps import (
     integer_op_not_supported,
     round_nsint64,
 )
-from pandas._typing import DatetimeLikeScalar, DtypeObj
+from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -107,7 +107,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
-    def __init__(self, data, dtype=None, freq=None, copy=False):
+    def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
     @classmethod
@@ -115,7 +115,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         cls: Type[DatetimeLikeArrayT],
         values: np.ndarray,
         freq: Optional[BaseOffset] = None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
     ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
@@ -265,7 +265,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
@@ -383,7 +383,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def view(self, dtype=None):
+    def view(self, dtype: Optional[Dtype] = None):
         if dtype is None or dtype is self.dtype:
             return type(self)(self._ndarray, dtype=self.dtype)
         return self._ndarray.view(dtype=dtype)

@@ -212,6 +212,7 @@ Numeric
 - Bug in :meth:`DataFrame.quantile`, :meth:`DataFrame.sort_values` causing incorrect subsequent indexing behavior (:issue:`38351`)
 - Bug in :meth:`DataFrame.select_dtypes` with ``include=np.number`` now retains numeric ``ExtensionDtype`` columns (:issue:`35340`)
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
+- Bug in :meth:`DataFrame.rank` with ``np.inf`` and mixture of ``np.nan`` and ``np.inf`` (:issue:`32593`)
 
 Conversion
 ^^^^^^^^^^
@@ -227,7 +228,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.intersection` and :meth:`IntervalIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38653`, :issue:`38741`)
--
+- Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of both Indexes has duplicates which are present in the other (:issue:`38743`)
 -
 
 Indexing
@@ -296,7 +297,7 @@ Sparse
 ^^^^^^
 
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``KeyError`` with columns that are a numeric :class:`Index` without a 0 (:issue:`18414`)
--
+- Bug in :meth:`SparseArray.astype` with ``copy=False`` producing incorrect results when going from integer dtype to floating dtype (:issue:`34456`)
 -
 
 ExtensionArray
