@@ -134,31 +134,31 @@ int main() {
 
 
 #if UINT_MAX == 0xffffffffu
-typedef unsigned int khint32_t;
+typedef unsigned int khuint32_t;
 #elif ULONG_MAX == 0xffffffffu
-typedef unsigned long khint32_t;
+typedef unsigned long khuint32_t;
 #endif
 
 #if ULONG_MAX == ULLONG_MAX
-typedef unsigned long khint64_t;
+typedef unsigned long khuint64_t;
 #else
-typedef unsigned long long khint64_t;
+typedef unsigned long long khuint64_t;
 #endif
 
 #if UINT_MAX == 0xffffu
-typedef unsigned int khint16_t;
+typedef unsigned int khuint16_t;
 #elif USHRT_MAX == 0xffffu
-typedef unsigned short khint16_t;
+typedef unsigned short khuint16_t;
 #endif
 
 #if UCHAR_MAX == 0xffu
-typedef unsigned char khint8_t;
+typedef unsigned char khuint8_t;
 #endif
 
 typedef double khfloat64_t;
 typedef float khfloat32_t;
 
-typedef khint32_t khint_t;
+typedef khuint32_t khint_t;
 typedef khint_t khiter_t;
 
 #define __ac_isempty(flag, i) ((flag[i>>5]>>(i&0x1fU))&1)
@@ -172,15 +172,15 @@ typedef khint_t khiter_t;
 
 
 // specializations of https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
-khint32_t PANDAS_INLINE murmur2_32to32(khint32_t k){
-    const khint32_t SEED = 0xc70f6907UL;
+khuint32_t PANDAS_INLINE murmur2_32to32(khuint32_t k){
+    const khuint32_t SEED = 0xc70f6907UL;
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
-    const khint32_t M_32 = 0x5bd1e995;
+    const khuint32_t M_32 = 0x5bd1e995;
     const int R_32 = 24;
 
     // Initialize the hash to a 'random' value
-    khint32_t h = SEED ^ 4;
+    khuint32_t h = SEED ^ 4;
 
     //handle 4 bytes:
     k *= M_32;
@@ -204,15 +204,15 @@ khint32_t PANDAS_INLINE murmur2_32to32(khint32_t k){
 //    - the same case for 32bit and 64bit builds
 //    - no performance difference could be measured compared to a possible x64-version
 
-khint32_t PANDAS_INLINE murmur2_32_32to32(khint32_t k1, khint32_t k2){
-    const khint32_t SEED = 0xc70f6907UL;
+khuint32_t PANDAS_INLINE murmur2_32_32to32(khuint32_t k1, khuint32_t k2){
+    const khuint32_t SEED = 0xc70f6907UL;
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
-    const khint32_t M_32 = 0x5bd1e995;
+    const khuint32_t M_32 = 0x5bd1e995;
     const int R_32 = 24;
 
     // Initialize the hash to a 'random' value
-    khint32_t h = SEED ^ 4;
+    khuint32_t h = SEED ^ 4;
 
     //handle first 4 bytes:
     k1 *= M_32;
@@ -238,9 +238,9 @@ khint32_t PANDAS_INLINE murmur2_32_32to32(khint32_t k1, khint32_t k2){
     return h;
 }
 
-khint32_t PANDAS_INLINE murmur2_64to32(khint64_t k){
-    khint32_t k1 = (khint32_t)k;
-    khint32_t k2 = (khint32_t)(k >> 32);
+khuint32_t PANDAS_INLINE murmur2_64to32(khuint64_t k){
+    khuint32_t k1 = (khuint32_t)k;
+    khuint32_t k2 = (khuint32_t)(k >> 32);
 
     return murmur2_32_32to32(k1, k2);
 }
@@ -263,7 +263,7 @@ static const double __ac_HASH_UPPER = 0.77;
 #define KHASH_DECLARE(name, khkey_t, khval_t)		 					\
 	typedef struct {													\
 		khint_t n_buckets, size, n_occupied, upper_bound;				\
-		khint32_t *flags;												\
+		khuint32_t *flags;												\
 		khkey_t *keys;													\
 		khval_t *vals;													\
 	} kh_##name##_t;													\
@@ -278,7 +278,7 @@ static const double __ac_HASH_UPPER = 0.77;
 #define KHASH_INIT2(name, SCOPE, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
 	typedef struct {													\
 		khint_t n_buckets, size, n_occupied, upper_bound;				\
-		khint32_t *flags;												\
+		khuint32_t *flags;												\
 		khkey_t *keys;													\
 		khval_t *vals;													\
 	} kh_##name##_t;													\
@@ -296,7 +296,7 @@ static const double __ac_HASH_UPPER = 0.77;
 	SCOPE void kh_clear_##name(kh_##name##_t *h)						\
 	{																	\
 		if (h && h->flags) {											\
-			memset(h->flags, 0xaa, __ac_fsize(h->n_buckets) * sizeof(khint32_t)); \
+			memset(h->flags, 0xaa, __ac_fsize(h->n_buckets) * sizeof(khuint32_t)); \
 			h->size = h->n_occupied = 0;								\
 		}																\
 	}																	\
@@ -316,15 +316,15 @@ static const double __ac_HASH_UPPER = 0.77;
 	}																	\
 	SCOPE void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets) \
 	{ /* This function uses 0.25*n_bucktes bytes of working space instead of [sizeof(key_t+val_t)+.25]*n_buckets. */ \
-		khint32_t *new_flags = 0;										\
+		khuint32_t *new_flags = 0;										\
 		khint_t j = 1;													\
 		{																\
 			kroundup32(new_n_buckets); 									\
 			if (new_n_buckets < 4) new_n_buckets = 4;					\
 			if (h->size >= (khint_t)(new_n_buckets * __ac_HASH_UPPER + 0.5)) j = 0;	/* requested size is too small */ \
 			else { /* hash table size to be changed (shrink or expand); rehash */ \
-				new_flags = (khint32_t*)KHASH_MALLOC(__ac_fsize(new_n_buckets) * sizeof(khint32_t));	\
-				memset(new_flags, 0xff, __ac_fsize(new_n_buckets) * sizeof(khint32_t)); \
+				new_flags = (khuint32_t*)KHASH_MALLOC(__ac_fsize(new_n_buckets) * sizeof(khuint32_t));	\
+				memset(new_flags, 0xff, __ac_fsize(new_n_buckets) * sizeof(khuint32_t)); \
 				if (h->n_buckets < new_n_buckets) {	/* expand */		\
 					h->keys = (khkey_t*)KHASH_REALLOC(h->keys, new_n_buckets * sizeof(khkey_t)); \
 					if (kh_is_map) h->vals = (khval_t*)KHASH_REALLOC(h->vals, new_n_buckets * sizeof(khval_t)); \
@@ -422,20 +422,20 @@ static const double __ac_HASH_UPPER = 0.77;
 
 /*! @function
   @abstract     Integer hash function
-  @param  key   The integer [khint32_t]
+  @param  key   The integer [khuint32_t]
   @return       The hash value [khint_t]
  */
-#define kh_int_hash_func(key) (khint32_t)(key)
+#define kh_int_hash_func(key) (khuint32_t)(key)
 /*! @function
   @abstract     Integer comparison function
  */
 #define kh_int_hash_equal(a, b) ((a) == (b))
 /*! @function
   @abstract     64-bit integer hash function
-  @param  key   The integer [khint64_t]
+  @param  key   The integer [khuint64_t]
   @return       The hash value [khint_t]
  */
-#define kh_int64_hash_func(key) (khint32_t)((key)>>33^(key)^(key)<<11)
+#define kh_int64_hash_func(key) (khuint32_t)((key)>>33^(key)^(key)<<11)
 /*! @function
   @abstract     64-bit integer comparison function
  */
@@ -608,7 +608,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  name  Name of the hash table [symbol]
  */
 #define KHASH_SET_INIT_INT(name)										\
-	KHASH_INIT(name, khint32_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint32_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing integer keys
@@ -623,20 +623,20 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
 // unsigend int to (signed) int (which would be implementation defined behavior)
 // this holds also for 64-, 16- and 8-bit integers
 #define KHASH_MAP_INIT_INT(name, khval_t)								\
-	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 #define KHASH_MAP_INIT_UINT(name, khval_t)								\
-	KHASH_INIT(name, khint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing 64-bit integer keys
   @param  name  Name of the hash table [symbol]
  */
 #define KHASH_SET_INIT_UINT64(name)										\
-	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_SET_INIT_INT64(name)										\
-	KHASH_INIT(name, khint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khuint64_t, char, 0, kh_int64_hash_func, kh_int64_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing 64-bit integer keys
@@ -644,10 +644,10 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_UINT64(name, khval_t)								\
-	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 #define KHASH_MAP_INIT_INT64(name, khval_t)								\
-	KHASH_INIT(name, khint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
+	KHASH_INIT(name, khuint64_t, khval_t, 1, kh_int64_hash_func, kh_int64_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing 16bit-integer keys
@@ -655,10 +655,10 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_INT16(name, khval_t)								\
-	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 #define KHASH_MAP_INIT_UINT16(name, khval_t)								\
-	KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing 8bit-integer keys
@@ -666,10 +666,10 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
   @param  khval_t  Type of values [type]
  */
 #define KHASH_MAP_INIT_INT8(name, khval_t)								\
-	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 #define KHASH_MAP_INIT_UINT8(name, khval_t)								\
-	KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+	KHASH_INIT(name, khuint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 
 
