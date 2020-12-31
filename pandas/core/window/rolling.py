@@ -1353,6 +1353,10 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                np.nansum, raw=True, engine=engine, engine_kwargs=engine_kwargs
+            )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1369,6 +1373,10 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("max", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                np.nanmax, raw=True, engine=engine, engine_kwargs=engine_kwargs
+            )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1411,11 +1419,19 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("min", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                np.nanmin, raw=True, engine=engine, engine_kwargs=engine_kwargs
+            )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                np.nanmean, raw=True, engine=engine, engine_kwargs=engine_kwargs
+            )
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1458,12 +1474,21 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def median(self, engine=None, engine_kwargs=None, **kwargs):
         window_func = window_aggregations.roll_median_c
-        # GH 32865. Move max window size calculation to
-        # the median function implementation
+        if maybe_use_numba(engine):
+            return self.apply(
+                np.nanmedian, raw=True, engine=engine, engine_kwargs=engine_kwargs
+            )
         return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                partial(np.nanstd, ddof=ddof),
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1477,6 +1502,13 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def var(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
+        if maybe_use_numba(engine):
+            return self.apply(
+                partial(np.nanvar, ddof=ddof),
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -1658,6 +1690,13 @@ class RollingAndExpandingMixin(BaseWindow):
         engine_kwargs=None,
         **kwargs,
     ):
+        if maybe_use_numba(engine):
+            return self.apply(
+                partial(np.nanquantile, q=quantile, interpolation=interpolation),
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
         if quantile == 1.0:
             window_func = window_aggregations.roll_max
         elif quantile == 0.0:
