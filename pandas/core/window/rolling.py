@@ -1241,6 +1241,7 @@ class RollingAndExpandingMixin(BaseWindow):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
+
     engine : str, default None
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
@@ -1366,8 +1367,38 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+    engine : str, default None
+        * ``'cython'`` : Runs rolling max through C-extensions from cython.
+        * ``'numba'`` : Runs rolling max through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with a Series.
+    pandas.DataFrame.%(name)s : Calling object with a DataFrame.
+    pandas.Series.max : Similar method for Series.
+    pandas.DataFrame.max : Similar method for DataFrame.
     """
     )
 
@@ -1386,8 +1417,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling min through C-extensions from cython.
+        * ``'numba'`` : Runs rolling min through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1441,9 +1489,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling median through C-extensions from cython.
+        * ``'numba'`` : Runs rolling median through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect
-        on the computed median.
+        on the computed result.
 
     Returns
     -------
@@ -1524,7 +1588,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Keyword arguments to be passed into func.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
     """
 
     def skew(self, **kwargs):
@@ -1544,7 +1609,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1636,6 +1702,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ----------
     quantile : float
         Quantile to compute. 0 <= quantile <= 1.
+
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
@@ -1646,6 +1713,23 @@ class RollingAndExpandingMixin(BaseWindow):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+
+    engine : str, default None
+        * ``'cython'`` : Runs rolling quantile through C-extensions from cython.
+        * ``'numba'`` : Runs rolling quantile through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
