@@ -891,9 +891,16 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
     if n == 0:
         return result
 
-    start = 0
-    cur = labels[0]
-    for i in range(1, n):
+    # Start at the first non-null entry
+    j = 0
+    for j in range(0, n):
+        if labels[j] != -1:
+            break
+    assert j != n
+    cur = labels[j]
+    start = j
+
+    for i in range(j+1, n):
         lab = labels[i]
 
         if lab != cur:
