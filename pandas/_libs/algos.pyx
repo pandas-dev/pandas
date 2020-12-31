@@ -849,7 +849,7 @@ def rank_1d(
     grp_sizes = np.ones(N)
     # If all 0 labels, can short-circuit later label
     # comparisons
-    check_labels = np.count_nonzero(labels) != 0
+    check_labels = np.any(labels)
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
