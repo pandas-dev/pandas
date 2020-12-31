@@ -685,7 +685,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
             values = values.astype("f8")
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
-            raise TypeError from err
+            raise TypeError(str(err)) from err
         if mask is not None:
             values[mask] = np.nan
 
