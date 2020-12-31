@@ -35,8 +35,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-from numpy.math cimport NAN
-
 cimport pandas._libs.util as util
 from pandas._libs.khash cimport (
     kh_destroy_int64,
@@ -840,12 +838,6 @@ def rank_1d(
         ndarray[uint8_t, ndim=1] mask
         bint keep_na, at_end, next_val_diff, check_labels
         rank_t nan_fill_val
-
-    # print(NAN)
-    # print(NaN)
-    # print("NAN eq?")
-    # print(NAN == np.inf)
-    # print(NAN == -np.inf)
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
