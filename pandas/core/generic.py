@@ -8984,7 +8984,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
 
-        try_cast : bool, default False
+        try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
 
             .. deprecated:: 1.3.0
