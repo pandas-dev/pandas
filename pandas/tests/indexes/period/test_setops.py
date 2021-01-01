@@ -318,7 +318,8 @@ class TestPeriodIndex:
             (rng7, other7, expected7),
         ]:
             result_difference = rng.difference(other, sort=sort)
-            if sort is None:
+            if sort is None and len(other):
+                # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
 
@@ -339,3 +340,10 @@ class TestPeriodIndex:
         expected = PeriodIndex(["20160920", "20160921"], freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
+
+    def test_intersection_equal_duplicates(self):
+        # GH#38302
+        idx = pd.period_range("2011-01-01", periods=2)
+        idx_dup = idx.append(idx)
+        result = idx_dup.intersection(idx_dup)
+        tm.assert_index_equal(result, idx)

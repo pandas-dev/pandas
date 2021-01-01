@@ -3,7 +3,14 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, period_range, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+    timedelta_range,
+    to_datetime,
+)
 
 from pandas.tseries.frequencies import infer_freq
 
@@ -121,12 +128,15 @@ class TimeDatetimeConverter:
 
 class Iteration:
 
-    params = [date_range, period_range]
+    params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
     def setup(self, time_index):
         N = 10 ** 6
-        self.idx = time_index(start="20140101", freq="T", periods=N)
+        if time_index is timedelta_range:
+            self.idx = time_index(start=0, freq="T", periods=N)
+        else:
+            self.idx = time_index(start="20140101", freq="T", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):

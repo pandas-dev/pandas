@@ -2,7 +2,7 @@ import contextlib
 import datetime as pydt
 from datetime import datetime, timedelta, tzinfo
 import functools
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -1002,7 +1002,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.format = None
         self.freq = freq
         self.locs: List[Any] = []  # unused, for matplotlib compat
-        self.formatdict = None
+        self.formatdict: Optional[Dict[Any, Any]] = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0
@@ -1072,7 +1072,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
+        n_decimals = int(np.ceil(np.log10(100 * 1e9 / abs(vmax - vmin))))
         if n_decimals > 9:
             n_decimals = 9
         return self.format_timedelta_ticks(x, pos, n_decimals)

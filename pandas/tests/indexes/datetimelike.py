@@ -1,4 +1,5 @@
 """ generic datetimelike tests """
+
 import numpy as np
 import pytest
 
@@ -9,18 +10,13 @@ from .common import Base
 
 
 class DatetimeLike(Base):
-    def test_argmax_axis_invalid(self):
-        # GH#23081
-        msg = r"`axis` must be fewer than the number of dimensions \(1\)"
+    def test_argsort_matches_array(self):
         rng = self.create_index()
-        with pytest.raises(ValueError, match=msg):
-            rng.argmax(axis=1)
-        with pytest.raises(ValueError, match=msg):
-            rng.argmin(axis=2)
-        with pytest.raises(ValueError, match=msg):
-            rng.min(axis=-2)
-        with pytest.raises(ValueError, match=msg):
-            rng.max(axis=-3)
+        rng = rng.insert(1, pd.NaT)
+
+        result = rng.argsort()
+        expected = rng._data.argsort()
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_can_hold_identifiers(self):
         idx = self.create_index()
@@ -31,6 +27,11 @@ class DatetimeLike(Base):
 
         idx = self.create_index()
         tm.assert_index_equal(idx, idx.shift(0))
+
+    def test_shift_empty(self):
+        # GH#14811
+        idx = self.create_index()[:0]
+        tm.assert_index_equal(idx, idx.shift(1))
 
     def test_str(self):
 
@@ -103,3 +104,23 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_where_cast_str(self):
+        index = self.create_index()
+
+        mask = np.ones(len(index), dtype=bool)
+        mask[-1] = False
+
+        result = index.where(mask, str(index[0]))
+        expected = index.where(mask, index[0])
+        tm.assert_index_equal(result, expected)
+
+        result = index.where(mask, [str(index[0])])
+        tm.assert_index_equal(result, expected)
+
+        msg = "value should be a '.*', 'NaT', or array of those"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, "foo")
+
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, ["foo"])

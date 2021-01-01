@@ -12,6 +12,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Sized,
     Tuple,
     TypeVar,
     Union,
@@ -205,7 +206,7 @@ def pprint_thing(
                 translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
-            escape_chars = escape_chars or tuple()
+            escape_chars = escape_chars or ()
 
         result = str(thing)
         for c in escape_chars:
@@ -307,7 +308,7 @@ def format_object_summary(
     name : name, optional
         defaults to the class name of the obj
     indent_for_name : bool, default True
-        Whether subsequent lines should be be indented to
+        Whether subsequent lines should be indented to
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
@@ -381,7 +382,11 @@ def format_object_summary(
         summary = f"[{first}, {last}]{close}"
     else:
 
-        if n > max_seq_items:
+        if max_seq_items == 1:
+            # If max_seq_items=1 show only last element
+            head = []
+            tail = [formatter(x) for x in obj[-1:]]
+        elif n > max_seq_items:
             n = min(max_seq_items // 2, 10)
             head = [formatter(x) for x in obj[:n]]
             tail = [formatter(x) for x in obj[-n:]]
@@ -503,7 +508,7 @@ def _justify(
 
 
 def format_object_attrs(
-    obj: Sequence, include_dtype: bool = True
+    obj: Sized, include_dtype: bool = True
 ) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
@@ -512,7 +517,7 @@ def format_object_attrs(
     Parameters
     ----------
     obj : object
-        must be iterable
+        Must be sized.
     include_dtype : bool
         If False, dtype won't be in the returned list
 
@@ -523,16 +528,16 @@ def format_object_attrs(
     """
     attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
-        # error: "Sequence[Any]" has no attribute "dtype"
+        # error: "Sized" has no attribute "dtype"
         attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
     if getattr(obj, "name", None) is not None:
-        # error: "Sequence[Any]" has no attribute "name"
+        # error: "Sized" has no attribute "name"
         attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
-    # error: "Sequence[Any]" has no attribute "names"
+    # error: "Sized" has no attribute "names"
     elif getattr(obj, "names", None) is not None and any(
         obj.names  # type: ignore[attr-defined]
     ):
-        # error: "Sequence[Any]" has no attribute "names"
+        # error: "Sized" has no attribute "names"
         attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:

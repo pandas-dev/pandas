@@ -30,7 +30,7 @@ numbers.
 Construction
 ------------
 
-Pandas can represent integer data with possibly missing values using
+pandas can represent integer data with possibly missing values using
 :class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
 implemented within pandas.
 
@@ -117,7 +117,7 @@ dtype if needed.
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of of ``DataFrame``.
+These dtypes can operate as part of ``DataFrame``.
 
 .. ipython:: python
 

@@ -27,6 +27,7 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 import locale
 from typing import Callable, Optional
+import warnings
 
 import numpy as np
 import pytest
@@ -51,10 +52,20 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
     object
         The imported module if successful, or False
     """
-    try:
-        mod = __import__(mod_name)
-    except ImportError:
-        return False
+    with warnings.catch_warnings():
+        # Suppress warnings that we can't do anything about,
+        #  e.g. from aiohttp
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module="aiohttp",
+            message=".*decorator is deprecated since Python 3.8.*",
+        )
+
+        try:
+            mod = __import__(mod_name)
+        except ImportError:
+            return False
 
     if not min_version:
         return mod
@@ -73,21 +84,6 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
                 return mod
 
     return False
-
-
-# TODO:
-# remove when gh-24839 is fixed.
-# this affects numpy 1.16 and pytables 3.4.4
-tables = safe_import("tables")
-xfail_non_writeable = pytest.mark.xfail(
-    tables
-    and LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyond 3.4.4 to support numpy 1.16.x"
-    ),
-)
 
 
 def _skip_if_no_mpl():

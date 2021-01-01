@@ -6,7 +6,7 @@ If you use _pandas_ for a scientific publication, we would appreciate citations 
 following paper:
 
 - [pandas on Zenodo](https://zenodo.org/record/3715232#.XoqFyC2ZOL8),
-   Please find us on Zenodo and replace with the citation for the version you are using. You cna replace the full author
+   Please find us on Zenodo and replace with the citation for the version you are using. You can replace the full author
    list from there with "The pandas development team" like in the example below.
 
         @software{reback2020pandas,

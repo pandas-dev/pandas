@@ -57,9 +57,7 @@ def test_first_last_nth(df):
 @pytest.mark.parametrize("method", ["first", "last"])
 def test_first_last_with_na_object(method, nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32123
-    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
-        "a"
-    )
+    groups = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby("a")
     result = getattr(groups, method)()
 
     if method == "first":
@@ -68,8 +66,8 @@ def test_first_last_with_na_object(method, nulls_fixture):
         values = [2, 3]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
-    expected = pd.DataFrame({"b": values}, index=idx)
+    idx = Index([1, 2], name="a")
+    expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
 
@@ -77,9 +75,7 @@ def test_first_last_with_na_object(method, nulls_fixture):
 @pytest.mark.parametrize("index", [0, -1])
 def test_nth_with_na_object(index, nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32123
-    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
-        "a"
-    )
+    groups = DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby("a")
     result = groups.nth(index)
 
     if index == 0:
@@ -88,8 +84,8 @@ def test_nth_with_na_object(index, nulls_fixture):
         values = [2, nulls_fixture]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
-    expected = pd.DataFrame({"b": values}, index=idx)
+    idx = Index([1, 2], name="a")
+    expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
 
@@ -98,11 +94,31 @@ def test_nth_with_na_object(index, nulls_fixture):
 def test_first_last_with_None(method):
     # https://github.com/pandas-dev/pandas/issues/32800
     # None should be preserved as object dtype
-    df = pd.DataFrame.from_dict({"id": ["a"], "value": [None]})
+    df = DataFrame.from_dict({"id": ["a"], "value": [None]})
     groups = df.groupby("id", as_index=False)
     result = getattr(groups, method)()
 
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):
@@ -142,7 +158,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = pd.DataFrame({"data": ["A"], "nans": pd.Series([np.nan], dtype=object)})
+    df = DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
 
     grouped = df.groupby("data")
     expected = df.set_index("data").nans
@@ -154,10 +170,10 @@ def test_first_last_nth_nan_dtype():
 
 def test_first_strings_timestamps():
     # GH 11244
-    test = pd.DataFrame(
+    test = DataFrame(
         {
-            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
-            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            Timestamp("2012-01-02 00:00:00"): ["c", "d"],
             "name": ["e", "e"],
             "aaaa": ["f", "g"],
         }
@@ -386,8 +402,8 @@ def test_first_last_tz(data, expected_first, expected_last):
 )
 def test_first_last_tz_multi_column(method, ts, alpha):
     # GH 21603
-    category_string = pd.Series(list("abc")).astype("category")
-    df = pd.DataFrame(
+    category_string = Series(list("abc")).astype("category")
+    df = DataFrame(
         {
             "group": [1, 1, 2],
             "category_string": category_string,
@@ -395,14 +411,14 @@ def test_first_last_tz_multi_column(method, ts, alpha):
         }
     )
     result = getattr(df.groupby("group"), method)()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "category_string": pd.Categorical(
                 [alpha, "c"], dtype=category_string.dtype
             ),
             "datetimetz": [ts, Timestamp("2013-01-03", tz="US/Eastern")],
         },
-        index=pd.Index([1, 2], name="group"),
+        index=Index([1, 2], name="group"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -491,55 +507,54 @@ def test_nth_multi_index_as_expected():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_head_tail():
+@pytest.mark.parametrize(
+    "op, n, expected_rows",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+@pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
+@pytest.mark.parametrize("as_index", [True, False])
+def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    g_as = df.groupby("A", as_index=True)
-    g_not_as = df.groupby("A", as_index=False)
+    g = df.groupby("A", as_index=as_index)
+    expected = df.iloc[expected_rows]
+    if columns is not None:
+        g = g[columns]
+        expected = expected[columns]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
 
-    # as_index= False, much easier
-    tm.assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
-    tm.assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-    empty_not_as = DataFrame(
-        columns=df.columns, index=pd.Index([], dtype=df.index.dtype)
+@pytest.mark.parametrize(
+    "op, n, expected_cols",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+def test_groupby_head_tail_axis_1(op, n, expected_cols):
+    # GH 9772
+    df = DataFrame(
+        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
     )
-    empty_not_as["A"] = empty_not_as["A"].astype(df.A.dtype)
-    empty_not_as["B"] = empty_not_as["B"].astype(df.B.dtype)
-    tm.assert_frame_equal(empty_not_as, g_not_as.head(0))
-    tm.assert_frame_equal(empty_not_as, g_not_as.tail(0))
-    tm.assert_frame_equal(empty_not_as, g_not_as.head(-1))
-    tm.assert_frame_equal(empty_not_as, g_not_as.tail(-1))
-
-    tm.assert_frame_equal(df, g_not_as.head(7))  # contains all
-    tm.assert_frame_equal(df, g_not_as.tail(7))
-
-    # as_index=True, (used to be different)
-    df_as = df
-
-    tm.assert_frame_equal(df_as.loc[[0, 2]], g_as.head(1))
-    tm.assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
-
-    empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
-    empty_as["A"] = empty_not_as["A"].astype(df.A.dtype)
-    empty_as["B"] = empty_not_as["B"].astype(df.B.dtype)
-    tm.assert_frame_equal(empty_as, g_as.head(0))
-    tm.assert_frame_equal(empty_as, g_as.tail(0))
-    tm.assert_frame_equal(empty_as, g_as.head(-1))
-    tm.assert_frame_equal(empty_as, g_as.tail(-1))
-
-    tm.assert_frame_equal(df_as, g_as.head(7))  # contains all
-    tm.assert_frame_equal(df_as, g_as.tail(7))
-
-    # test with selection
-    tm.assert_frame_equal(g_as[[]].head(1), df_as.loc[[0, 2], []])
-    tm.assert_frame_equal(g_as[["A"]].head(1), df_as.loc[[0, 2], ["A"]])
-    tm.assert_frame_equal(g_as[["B"]].head(1), df_as.loc[[0, 2], ["B"]])
-    tm.assert_frame_equal(g_as[["A", "B"]].head(1), df_as.loc[[0, 2]])
-
-    tm.assert_frame_equal(g_not_as[[]].head(1), df_as.loc[[0, 2], []])
-    tm.assert_frame_equal(g_not_as[["A"]].head(1), df_as.loc[[0, 2], ["A"]])
-    tm.assert_frame_equal(g_not_as[["B"]].head(1), df_as.loc[[0, 2], ["B"]])
-    tm.assert_frame_equal(g_not_as[["A", "B"]].head(1), df_as.loc[[0, 2]])
+    g = df.groupby([0, 0, 1], axis=1)
+    expected = df.iloc[:, expected_cols]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_group_selection_cache():
@@ -614,7 +629,7 @@ def test_nth_nan_in_grouper(dropna):
         columns=list("abc"),
     )
     result = df.groupby("a").nth(0, dropna=dropna)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[2, 3], [6, 7]], columns=list("bc"), index=Index(["abc", "def"], name="a")
     )
 

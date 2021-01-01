@@ -16,36 +16,7 @@
         </div>
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Titanic data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
-
-This tutorial uses the Titanic data set, stored as CSV. The data
-consists of the following data columns:
-
--  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
-   for survived.
--  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
--  Name: Name of passenger.
--  Sex: Gender of passenger.
--  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
--  Ticket: Ticket number of passenger.
--  Fare: Indicating the fare.
--  Cabin: The cabin of passenger.
--  Embarked: The embarked category.
-
-.. raw:: html
-
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
+.. include:: includes/titanic.rst
 
 .. ipython:: python
 
@@ -54,8 +25,8 @@ consists of the following data columns:
 
 .. raw:: html
 
-        </li>
-    </ul>
+            </li>
+        </ul>
     </div>
 
 How to manipulate textual data?
@@ -66,15 +37,15 @@ How to manipulate textual data?
     <ul class="task-bullet">
         <li>
 
-Make all name characters lowercase
+Make all name characters lowercase.
 
 .. ipython:: python
 
     titanic["Name"].str.lower()
 
 To make each of the strings in the ``Name`` column lowercase, select the ``Name`` column
-(see :ref:`tutorial on selection of data <10min_tut_03_subset>`), add the ``str`` accessor and
-apply the ``lower`` method. As such, each of the strings is converted element wise.
+(see the :ref:`tutorial on selection of data <10min_tut_03_subset>`), add the ``str`` accessor and
+apply the ``lower`` method. As such, each of the strings is converted element-wise.
 
 .. raw:: html
 
@@ -86,7 +57,7 @@ having a ``dt`` accessor, a number of
 specialized string methods are available when using the ``str``
 accessor. These methods have in general matching names with the
 equivalent built-in string methods for single elements, but are applied
-element-wise (remember :ref:`element wise calculations <10min_tut_05_columns>`?)
+element-wise (remember :ref:`element-wise calculations <10min_tut_05_columns>`?)
 on each of the values of the columns.
 
 .. raw:: html
@@ -94,7 +65,7 @@ on each of the values of the columns.
     <ul class="task-bullet">
         <li>
 
-Create a new column ``Surname`` that contains the surname of the Passengers by extracting the part before the comma.
+Create a new column ``Surname`` that contains the surname of the passengers by extracting the part before the comma.
 
 .. ipython:: python
 
@@ -135,7 +106,7 @@ More information on extracting parts of strings is available in the user guide s
     <ul class="task-bullet">
         <li>
 
-Extract the passenger data about the Countesses on board of the Titanic.
+Extract the passenger data about the countesses on board of the Titanic.
 
 .. ipython:: python
 
@@ -145,15 +116,15 @@ Extract the passenger data about the Countesses on board of the Titanic.
 
     titanic[titanic["Name"].str.contains("Countess")]
 
-(*Interested in her story? See *\ `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
+(*Interested in her story? See* `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
 
 The string method :meth:`Series.str.contains` checks for each of the values in the
 column ``Name`` if the string contains the word ``Countess`` and returns
-for each of the values ``True`` (``Countess`` is part of the name) of
+for each of the values ``True`` (``Countess`` is part of the name) or
 ``False`` (``Countess`` is not part of the name). This output can be used
 to subselect the data using conditional (boolean) indexing introduced in
 the :ref:`subsetting of data tutorial <10min_tut_03_subset>`. As there was
-only one Countess on the Titanic, we get one row as a result.
+only one countess on the Titanic, we get one row as a result.
 
 .. raw:: html
 
@@ -220,12 +191,11 @@ we can do a selection using the ``loc`` operator, introduced in the
     <ul class="task-bullet">
         <li>
 
-In the "Sex" column, replace values of "male" by "M" and values of "female" by "F"
+In the "Sex" column, replace values of "male" by "M" and values of "female" by "F".
 
 .. ipython:: python
 
-    titanic["Sex_short"] = titanic["Sex"].replace({"male": "M",
-                                                   "female": "F"})
+    titanic["Sex_short"] = titanic["Sex"].replace({"male": "M", "female": "F"})
     titanic["Sex_short"]
 
 Whereas :meth:`~Series.replace` is not a string method, it provides a convenient way
@@ -257,7 +227,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
         <h4>REMEMBER</h4>
 
 -  String methods are available using the ``str`` accessor.
--  String methods work element wise and can be used for conditional
+-  String methods work element-wise and can be used for conditional
    indexing.
 -  The ``replace`` method is a convenient method to convert values
    according to a given dictionary.

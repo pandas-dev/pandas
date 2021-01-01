@@ -3,6 +3,7 @@ import datetime
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import pandas._libs.json as json
+from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
@@ -14,7 +15,12 @@ class ODSWriter(ExcelWriter):
     supported_extensions = (".ods",)
 
     def __init__(
-        self, path: str, engine: Optional[str] = None, mode: str = "w", **engine_kwargs
+        self,
+        path: str,
+        engine: Optional[str] = None,
+        mode: str = "w",
+        storage_options: StorageOptions = None,
+        **engine_kwargs,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
 
@@ -23,7 +29,9 @@ class ODSWriter(ExcelWriter):
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
 
-        super().__init__(path, mode=mode, **engine_kwargs)
+        super().__init__(
+            path, mode=mode, storage_options=storage_options, **engine_kwargs
+        )
 
         self.book = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
@@ -34,7 +42,7 @@ class ODSWriter(ExcelWriter):
         """
         for sheet in self.sheets.values():
             self.book.spreadsheet.addElement(sheet)
-        self.book.save(self.path)
+        self.book.save(self.handles.handle)
 
     def write_cells(
         self,
@@ -174,7 +182,7 @@ class ODSWriter(ExcelWriter):
         Returns
         -------
         style_key : str
-            Unique style key for for later reference in sheet
+            Unique style key for later reference in sheet
         """
         from odf.style import (
             ParagraphProperties,

@@ -28,6 +28,11 @@ if TYPE_CHECKING:
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "orig",
+        "name",
+    }
+
     def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
@@ -236,8 +241,10 @@ class DatetimeProperties(Properties):
 
         See Also
         --------
-        Timestamp.isocalendar
-        datetime.date.isocalendar
+        Timestamp.isocalendar : Function return a 3-tuple containing ISO year,
+            week number, and weekday for the given Timestamp object.
+        datetime.date.isocalendar : Return a named tuple object with
+            three components: year, week and weekday.
 
         Examples
         --------
@@ -326,7 +333,8 @@ class TimedeltaProperties(Properties):
 
         See Also
         --------
-        datetime.timedelta
+        datetime.timedelta : A duration expressing the difference
+            between two date, time, or datetime.
 
         Examples
         --------
