@@ -1,4 +1,5 @@
 minimum_pre_commit_version: 2.9.2
+exclude: ^LICENSES/|\.(html|csv|svg)$
 repos:
 -   repo: https://github.com/python/black
     rev: 20.8b1
@@ -127,7 +128,7 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
         types: [python]
         files: ^pandas/tests/
-        exclude: ^pandas/tests/(arrays|computation|dtypes|extension|indexes|indexing|io|libs|reductions|resample|reshape|series|window)/
+        exclude: ^pandas/tests/(computation|extension|io)/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
@@ -144,7 +145,7 @@ repos:
         name: Check for use of foo.__class__ instead of type(foo)
         entry: \.__class__
         language: pygrep
-        files: \.(py|pyx)$
+        types_or: [python, cython]
     -   id: unwanted-typing
         name: Check for use of comment-based annotation syntax and missing error codes
         entry: |
@@ -172,9 +173,8 @@ repos:
     rev: v3.4.0
     hooks:
     -   id: end-of-file-fixer
-        exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
+        exclude: \.txt$
     -   id: trailing-whitespace
-        exclude: \.(html|svg)$
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.0.0
     hooks:
