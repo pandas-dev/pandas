@@ -2755,9 +2755,9 @@ class TestXSQLite(SQLiteMixIn):
 
 @pytest.mark.single
 @pytest.mark.db
-@pytest.mark.skip(
-    reason="gh-13611: there is no support for MySQL if SQLAlchemy is not installed"
-)
+# @pytest.mark.skip(
+#     reason="gh-13611: there is no support for MySQL if SQLAlchemy is not installed"
+# )
 class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
