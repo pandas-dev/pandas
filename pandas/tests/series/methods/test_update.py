@@ -109,6 +109,7 @@ class TestUpdate:
         result.update(target)
         tm.assert_series_equal(result, expected)
     def test_update_with_categorical_type(self):
+        # GH 25744
         t = CategoricalDtype(["a", "b", "c", "d"])
         s1 = Series(["a", "b", "c"], index=[1, 2, 3], dtype=t)
         s2 = Series(["b", "a"], index=[1, 2], dtype=t)
