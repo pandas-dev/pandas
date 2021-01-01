@@ -202,7 +202,7 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(
             ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
@@ -210,7 +210,7 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof: int = 1, engine=None, engine_kwargs=None, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(
             ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs

@@ -47,6 +47,7 @@ def win_types_special(request):
         "kurt",
         "skew",
         "count",
+        "sem",
     ]
 )
 def arithmetic_win_operators(request):

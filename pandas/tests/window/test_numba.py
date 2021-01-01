@@ -138,7 +138,7 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
-    def test_table_method_rolling(self, axis, nogil, parallel, nopython):
+    def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
@@ -173,7 +173,7 @@ class TestTableMethod:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_table_method_expanding(self, axis, nogil, parallel, nopython):
+    def test_table_method_expanding_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         def f(x):
