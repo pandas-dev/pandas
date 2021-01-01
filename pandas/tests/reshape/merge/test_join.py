@@ -820,14 +820,14 @@ def test_join_cross(input_col, output_cols):
 @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
 def test_join_multiindex_one_level(how):
     # GH#36909
-    left = pd.DataFrame(
+    left = DataFrame(
         data={"c": 3}, index=pd.MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
     )
-    right = pd.DataFrame(
+    right = DataFrame(
         data={"d": 4}, index=pd.MultiIndex.from_tuples([(2,)], names=("b",))
     )
     result = left.join(right, how=how)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"c": [3], "d": [4]},
         index=pd.MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
     )
