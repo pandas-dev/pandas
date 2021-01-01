@@ -842,10 +842,11 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_multiindex_blank_after_name(self, read_ext):
-        # GH34673: "both_name_blank_after_mi_name" sheet
+        # GH34673
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb (GH4679")
 
+        # Test one blank after MI name
         mi_file = "testmultiindex" + read_ext
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
         expected = DataFrame(
@@ -864,6 +865,19 @@ class TestReaders:
         result = pd.read_excel(
             mi_file,
             sheet_name="both_name_blank_after_mi_name",
+            index_col=[0, 1],
+            header=[0, 1],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Test all blank after name
+        expected.index = MultiIndex.from_arrays(
+            (["foo", "foo", "bar", "bar"], [np.nan] * 4),
+            names=["ilvl1", "ilvl2"],
+        )
+        result = pd.read_excel(
+            mi_file,
+            sheet_name="both_name_multiple_blanks",
             index_col=[0, 1],
             header=[0, 1],
         )

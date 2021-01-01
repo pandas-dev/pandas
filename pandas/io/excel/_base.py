@@ -516,7 +516,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     offset = 1 + max(header)
 
                 # GH34673: if MultiIndex names present and not defined in the header,
-                # don't forward fill the names
+                # offset needs to be incremented so that forward filling starts
+                # from the first MI value instead of the name
                 if has_index_names:
                     offset += 1
 
