@@ -20,6 +20,8 @@ _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])
 def test_usecols_with_parse_dates(all_parsers, usecols):

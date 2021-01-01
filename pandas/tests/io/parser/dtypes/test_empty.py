@@ -10,6 +10,8 @@ import pytest
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048

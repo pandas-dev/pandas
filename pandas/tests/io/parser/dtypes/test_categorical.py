@@ -14,7 +14,10 @@ import pandas as pd
 from pandas import Categorical, DataFrame, Timestamp
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
+
+@skip_pyarrow
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -41,6 +44,7 @@ def test_categorical_dtype(all_parsers, dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("dtype", [{"b": "category"}, {1: "category"}])
 def test_categorical_dtype_single(all_parsers, dtype):
     # see gh-10153
@@ -56,6 +60,7 @@ def test_categorical_dtype_single(all_parsers, dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 def test_categorical_dtype_unsorted(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -74,6 +79,7 @@ def test_categorical_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 def test_categorical_dtype_missing(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -92,6 +98,7 @@ def test_categorical_dtype_missing(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 @pytest.mark.slow
 def test_categorical_dtype_high_cardinality_numeric(all_parsers):
     # see gh-18186
@@ -106,6 +113,7 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     # see gh-10153
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
@@ -120,6 +128,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 def test_categorical_dtype_chunksize_infer_categories(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -139,6 +148,7 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
             tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow
 def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -242,6 +252,7 @@ def test_categorical_coerces_datetime(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_categorical_coerces_timestamp(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype([Timestamp("2014")])}
@@ -253,6 +264,7 @@ def test_categorical_coerces_timestamp(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_categorical_coerces_timedelta(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype(pd.to_timedelta(["1H", "2H", "3H"]))}

@@ -19,6 +19,8 @@ _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
