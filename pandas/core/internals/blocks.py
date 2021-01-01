@@ -1274,25 +1274,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def _maybe_reshape_where_args(self, values, other, cond, axis):
-        transpose = self.ndim == 2
-
-        cond = _extract_bool_array(cond)
-
-        # If the default broadcasting would go in the wrong direction, then
-        # explicitly reshape other instead
-        if getattr(other, "ndim", 0) >= 1:
-            if values.ndim - 1 == other.ndim and axis == 1:
-                other = other.reshape(tuple(other.shape + (1,)))
-            elif transpose and values.ndim == self.ndim - 1:
-                # TODO(EA2D): not neceesssary with 2D EAs
-                cond = cond.T
-
-        return other, cond
-
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1303,7 +1285,6 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-        try_cast: bool, default False
         axis : int, default 0
 
         Returns
@@ -1322,7 +1303,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        other, cond = self._maybe_reshape_where_args(values, other, cond, axis)
+        cond = _extract_bool_array(cond)
 
         if cond.ravel("K").all():
             result = values
@@ -1342,9 +1323,7 @@ class Block(PandasObject):
                 # we cannot coerce, return a compat dtype
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(
-                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
-                )
+                blocks = block.where(orig_other, cond, errors=errors, axis=axis)
                 return self._maybe_downcast(blocks, "infer")
 
             if not (
@@ -1825,9 +1804,7 @@ class ExtensionBlock(Block):
             )
         ]
 
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -2075,20 +2052,16 @@ class DatetimeLikeBlockMixin(Block):
         result = arr._format_native_types(na_rep=na_rep, **kwargs)
         return self.make_block(result)
 
-    def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
-    ) -> List["Block"]:
+    def where(self, other, cond, errors="raise", axis: int = 0) -> List["Block"]:
         # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.array_values().reshape(self.shape)
 
-        other, cond = self._maybe_reshape_where_args(arr, other, cond, axis)
+        cond = _extract_bool_array(cond)
 
         try:
             res_values = arr.T.where(cond, other).T
         except (ValueError, TypeError):
-            return super().where(
-                other, cond, errors=errors, try_cast=try_cast, axis=axis
-            )
+            return super().where(other, cond, errors=errors, axis=axis)
 
         # TODO(EA2D): reshape not needed with 2D EAs
         res_values = res_values.reshape(self.values.shape)
@@ -2583,23 +2556,20 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def safe_reshape(arr, new_shape: Shape):
+def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
     """
-    If possible, reshape `arr` to have shape `new_shape`,
-    with a couple of exceptions (see gh-13012):
-
-    1) If `arr` is a ExtensionArray or Index, `arr` will be
-       returned as is.
-    2) If `arr` is a Series, the `_values` attribute will
-       be reshaped and returned.
+    Reshape `arr` to have shape `new_shape`, unless it is an ExtensionArray,
+    in which case it will be returned unchanged (see gh-13012).
 
     Parameters
     ----------
-    arr : array-like, object to be reshaped
-    new_shape : int or tuple of ints, the new shape
+    arr : np.ndarray or ExtensionArray
+    new_shape : Tuple[int]
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
     """
-    if isinstance(arr, ABCSeries):
-        arr = arr._values
     if not is_extension_array_dtype(arr.dtype):
         # Note: this will include TimedeltaArray and tz-naive DatetimeArray
         # TODO(EA2D): special case will be unnecessary with 2D EAs

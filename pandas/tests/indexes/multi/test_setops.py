@@ -221,14 +221,12 @@ def test_difference_sort_incomparable():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_incomparable_true():
-    # TODO decide on True behaviour
-    # # sort=True, raises
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
     other = pd.MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
-    with pytest.raises(TypeError):
+    msg = "The 'sort' keyword only takes the values of None or False; True was passed."
+    with pytest.raises(ValueError, match=msg):
         idx.difference(other, sort=True)
 
 
