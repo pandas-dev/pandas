@@ -1,11 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -273,7 +273,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
@@ -282,7 +282,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], *, dtype=None, copy: bool = False
+        cls, strings: List[str], *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
