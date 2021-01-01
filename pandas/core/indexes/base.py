@@ -286,9 +286,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         # range
         if isinstance(data, RangeIndex):
-            return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
+            result = RangeIndex(start=data, copy=copy, name=name)
+            if dtype is not None:
+                return result.astype(dtype, copy=False)
+            return result
         elif isinstance(data, range):
-            return RangeIndex.from_range(data, dtype=dtype, name=name)
+            result = RangeIndex.from_range(data, name=name)
+            if dtype is not None:
+                return result.astype(dtype, copy=False)
+            return result
 
         if is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
