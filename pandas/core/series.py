@@ -2076,8 +2076,7 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(self._values, skipna=skipna)
+        i = self.argmin(None, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2147,8 +2146,7 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(self._values, skipna=skipna)
+        i = self.argmax(None, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
