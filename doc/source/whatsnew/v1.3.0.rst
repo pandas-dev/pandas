@@ -146,6 +146,11 @@ Other API changes
 -
 -
 
+Build
+=====
+
+- Documentation is no longer included in wheels or source distributions. (:issue:`30741`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_130.deprecations:
