@@ -504,6 +504,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
+            has_index_names = is_list_like(header) and len(header) > 1
+
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
                 if header is None:
@@ -512,6 +514,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
+
+                # GH34673: if MultiIndex names present and not defined in the header,
+                # offset needs to be incremented so that forward filling starts
+                # from the first MI value instead of the name
+                if has_index_names:
+                    offset += 1
 
                 # Check if we have an empty dataset
                 # before trying to collect data.
@@ -524,8 +532,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                                 data[row][col] = last
                             else:
                                 last = data[row][col]
-
-            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
