@@ -306,8 +306,9 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
--
+- Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 -
 
 Other
