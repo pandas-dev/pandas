@@ -331,7 +331,8 @@ class TestSetitemCoercion(CoercionBase):
         if exp_dtype is IndexError:
             # float + int -> int
             temp = obj.copy()
-            with pytest.raises(exp_dtype):
+            msg = "index 5 is out of bounds for axis 0 with size 4"
+            with pytest.raises(exp_dtype, match=msg):
                 temp[5] = 5
             mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
             request.node.add_marker(mark)
