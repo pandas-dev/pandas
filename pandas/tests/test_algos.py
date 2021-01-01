@@ -1733,7 +1733,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr)
+            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.int64))
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan

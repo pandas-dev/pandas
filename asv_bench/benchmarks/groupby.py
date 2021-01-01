@@ -29,7 +29,6 @@ method_blocklist = {
         "skew",
         "cumprod",
         "cummax",
-        "rank",
         "pct_change",
         "min",
         "var",
