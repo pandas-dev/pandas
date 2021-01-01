@@ -293,9 +293,10 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
 -
+
 
 Sparse
 ^^^^^^

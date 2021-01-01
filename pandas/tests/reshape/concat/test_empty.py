@@ -202,12 +202,15 @@ class TestEmptyConcat:
         expected = pd.SparseDtype("object")
         assert result.dtype == expected
 
-    def test_concat_empty_df_object_dtype(self):
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_concat_empty_df_object_dtype(self, dtype):
         # GH 9149
         df_1 = DataFrame({"Row": [0, 1, 1], "EmptyCol": np.nan, "NumberCol": [1, 2, 3]})
+        df_1["Row"] = df_1["Row"].astype(dtype)
         df_2 = DataFrame(columns=df_1.columns)
         result = pd.concat([df_1, df_2], axis=0)
-        expected = df_1.astype(object)
+        expected = df_1.copy()
+        expected["EmptyCol"] = expected["EmptyCol"].astype(object)  # TODO: why?
         tm.assert_frame_equal(result, expected)
 
     def test_concat_empty_dataframe_dtypes(self):
