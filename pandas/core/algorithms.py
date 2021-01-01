@@ -994,6 +994,7 @@ def rank(
         values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
+            labels=np.zeros(len(values), dtype=np.int64),
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
