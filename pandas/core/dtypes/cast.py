@@ -170,7 +170,7 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return value
 
 
-def _disallow_mismatched_datetimelike(value: DtypeObj, dtype: DtypeObj):
+def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
     """
     numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
     vice-versa, but we do not want to allow this, so we need to
@@ -725,7 +725,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         dtype = np.dtype(object)
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = Timestamp(val)
+        try:
+            val = Timestamp(val)
+        except OutOfBoundsDatetime:
+            return np.dtype(object), val
+
         if val is NaT or val.tz is None:
             dtype = np.dtype("M8[ns]")
         else:
@@ -1472,6 +1476,8 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
 
                 # we have an array of datetime or timedeltas & nulls
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                    _disallow_mismatched_datetimelike(value, dtype)
+
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors="raise")
