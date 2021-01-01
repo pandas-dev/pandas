@@ -391,11 +391,11 @@ class MultiIndex(Index):
                     f"Level values must be unique: {list(level)} on level {i}"
                 )
         if self.sortorder is not None:
-            if self.sortorder > self._lexsort_depth:
+            if self.sortorder > self._codes_lexsort_depth():
                 raise ValueError(
                     "Value for sortorder must be inferior or equal to actual "
                     f"lexsort_depth: sortorder {self.sortorder} "
-                    f"with lexsort_depth {self._lexsort_depth}"
+                    f"with lexsort_depth {self._codes_lexsort_depth()}"
                 )
 
         codes = [
@@ -1830,23 +1830,23 @@ class MultiIndex(Index):
         In the below examples, the first level of the MultiIndex is sorted because
         a<b<c, so there is no need to look at the next level.
 
-        >>> pd.MultiIndex.from_arrays([['a', 'b'], ['d', 'e']])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'e', 'f']]).is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays([['a', 'b'], ['d', 'f']])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['d', 'f', 'e']]).is_lexsorted()
         True
 
         In case there is a tie, the lexicographical sorting looks
         at the next level of the MultiIndex.
 
-        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']]).is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']]).is_lexsorted()
         False
         >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
-        ...                            ['aa', 'bb', 'aa', 'bb']])._is_lexsorted()
+        ...                            ['aa', 'bb', 'aa', 'bb']]).is_lexsorted()
         True
         >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
-        ...                            ['bb', 'aa', 'aa', 'bb']])._is_lexsorted()
+        ...                            ['bb', 'aa', 'aa', 'bb']]).is_lexsorted()
         False
         """
         return self._lexsort_depth == self.nlevels
@@ -1854,9 +1854,8 @@ class MultiIndex(Index):
     @cache_readonly
     def lexsort_depth(self):
         warnings.warn(
-            "MultiIndex.lexsort_depth is deprecated as a public function, "
-            "users should use MultiIndex.is_monotonic_increasing to check "
-            "if a MultiIndex is sorted.",
+            "MultiIndex.is_lexsorted is deprecated as a public function, "
+            "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1872,6 +1871,11 @@ class MultiIndex(Index):
         -------
         int
         """
+        if self.sortorder is not None:
+            return self.sortorder
+        return self._codes_lexsort_depth()
+
+    def _codes_lexsort_depth(self) -> int:
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
