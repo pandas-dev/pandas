@@ -841,6 +841,43 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize(
+        "sheet_name,idx_lvl2",
+        [
+            ("both_name_blank_after_mi_name", [np.nan, "b", "a", "b"]),
+            ("both_name_multiple_blanks", [np.nan] * 4),
+        ],
+    )
+    def test_read_excel_multiindex_blank_after_name(
+        self, read_ext, sheet_name, idx_lvl2
+    ):
+        # GH34673
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb (GH4679")
+
+        mi_file = "testmultiindex" + read_ext
+        mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
+        expected = DataFrame(
+            [
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=mi,
+            index=MultiIndex.from_arrays(
+                (["foo", "foo", "bar", "bar"], idx_lvl2),
+                names=["ilvl1", "ilvl2"],
+            ),
+        )
+        result = pd.read_excel(
+            mi_file,
+            sheet_name=sheet_name,
+            index_col=[0, 1],
+            header=[0, 1],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_read_excel_multiindex_header_only(self, read_ext):
         # see gh-11733.
         #
