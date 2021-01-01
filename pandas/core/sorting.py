@@ -54,7 +54,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional

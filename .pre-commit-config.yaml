@@ -1,4 +1,4 @@
-minimum_pre_commit_version: '2.9.2'
+minimum_pre_commit_version: 2.9.2
 repos:
 -   repo: https://github.com/python/black
     rev: 20.8b1
@@ -89,6 +89,9 @@ repos:
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
+
+            # Check for use of pandas.testing instead of tm
+            pd\.testing\.
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
@@ -159,9 +162,15 @@ repos:
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v3.4.0
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
     -   id: trailing-whitespace
         exclude: \.(html|svg)$
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.0.0
+    hooks:
+    -   id: codespell
+        types_or: [python, rst, markdown]
+        files: ^pandas/core/
