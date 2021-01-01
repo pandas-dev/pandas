@@ -3192,7 +3192,7 @@ class PythonParser(ParserBase):
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        # pandas\io\parsers.py:2366: error: Unsupported right
+                        # pandas\io\parsers.py:3198: error: Unsupported right
                         # operand type for in ("Optional[List[int]")  [operator]
                         or i - len(self.index_col)  # type: ignore[operator]
                         in self._col_indices
@@ -3200,7 +3200,7 @@ class PythonParser(ParserBase):
                 ]
             else:
                 zipped_content = [
-                    # pandas\io\parsers.py:3202: error: Unsupported right
+                    # pandas\io\parsers.py:3207: error: Unsupported right
                     # operand type for in ("Optional[List[int]")  [operator]
                     a
                     for i, a in enumerate(zipped_content)
