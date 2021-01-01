@@ -2178,8 +2178,8 @@ def test_groupby_series_with_tuple_name():
 
 def test_groupby_std_on_nullable_column():
     # GH 35516
-    df = pd.DataFrame(
-        {"A": [2, 1, 1, 1, 2, 2, 1], "B": pd.Series(np.full(7, np.nan), dtype="Int64")}
+    df = DataFrame(
+        {"A": [2, 1, 1, 1, 2, 2, 1], "B": Series(np.full(7, np.nan), dtype="Int64")}
     )
     result = df.groupby("A").std()
     expected = DataFrame([np.nan, np.nan], index=[1, 2], columns=["B"])
