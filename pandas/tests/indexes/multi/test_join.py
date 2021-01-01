@@ -118,8 +118,8 @@ def test_join_multi_return_indexers():
 
 
 def test_join_multi_and_index():
-    # GH: 34292
-    idx = pd.Index([1, 2], name="a")
+    # GH#34292
+    idx = Index([1, 2], name="a")
     midx = pd.MultiIndex.from_tuples([(1, 4), (3, 0), (1, 5)], names=["a", "b"])
     result = idx.join(midx, how="left")
     expected = pd.MultiIndex.from_tuples(
