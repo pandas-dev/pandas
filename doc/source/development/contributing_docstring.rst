@@ -63,14 +63,14 @@ The first conventions every Python docstring should follow are defined in
 `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`_.
 
 As PEP-257 is quite broad, other more specific standards also exist. In the
-case of pandas, the numpy docstring convention is followed. These conventions are
+case of pandas, the NumPy docstring convention is followed. These conventions are
 explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
   (which is based in the original `Guide to NumPy/SciPy documentation
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
-numpydoc is a Sphinx extension to support the numpy docstring convention.
+numpydoc is a Sphinx extension to support the NumPy docstring convention.
 
 The standard uses reStructuredText (reST). reStructuredText is a markup
 language that allows encoding styles in plain text files. Documentation
@@ -401,7 +401,7 @@ DataFrame:
 * pandas.Categorical
 * pandas.arrays.SparseArray
 
-If the exact type is not relevant, but must be compatible with a numpy
+If the exact type is not relevant, but must be compatible with a NumPy
 array, array-like can be specified. If Any type that can be iterated is
 accepted, iterable can be used:
 
@@ -819,7 +819,7 @@ positional arguments ``head(3)``.
         """
         A sample DataFrame method.
 
-        Do not import numpy and pandas.
+        Do not import NumPy and pandas.
 
         Try to use meaningful data, when it makes the example easier
         to understand.
@@ -854,7 +854,7 @@ Tips for getting your examples pass the doctests
 Getting the examples pass the doctests in the validation script can sometimes
 be tricky. Here are some attention points:
 
-* Import all needed libraries (except for pandas and numpy, those are already
+* Import all needed libraries (except for pandas and NumPy, those are already
   imported as ``import pandas as pd`` and ``import numpy as np``) and define
   all variables you use in the example.
 

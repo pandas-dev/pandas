@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -327,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -380,6 +380,8 @@ NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 
+.. ipython:: python
+
    mask = pd.array([True, False, True, False, pd.NA, False], dtype="boolean")
    mask
    df1[mask]
@@ -421,6 +423,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
+
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
 
 .. _indexing.integer:
 
@@ -498,11 +511,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -573,48 +586,20 @@ without using a temporary variable.
    (bb.groupby(['year', 'team']).sum()
       .loc[lambda df: df['r'] > 100])
 
-.. _indexing.deprecate_ix:
 
-IX indexer is deprecated
-------------------------
+.. _combining_positional_and_label_based_indexing:
 
-.. warning::
+Combining positional and label-based indexing
+---------------------------------------------
 
-   .. versionchanged:: 1.0.0
-
-   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
-
-``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
-to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
-bit of user confusion over the years.
-
-The recommended methods of indexing are:
-
-* ``.loc`` if you want to *label* index.
-* ``.iloc`` if you want to *positionally* index.
+If you wish to get the 0th and the 2nd elements from the index in the 'A' column, you can do:
 
 .. ipython:: python
 
   dfd = pd.DataFrame({'A': [1, 2, 3],
                       'B': [4, 5, 6]},
                      index=list('abc'))
-
   dfd
-
-Previous behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
-
-.. code-block:: ipython
-
-  In [3]: dfd.ix[[0, 2], 'A']
-  Out[3]:
-  a    1
-  c    3
-  Name: A, dtype: int64
-
-Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
-
-.. ipython:: python
-
   dfd.loc[dfd.index[[0, 2]], 'A']
 
 This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
@@ -1147,6 +1132,40 @@ Mask
    s.mask(s >= 0)
    df.mask(df >= 0)
 
+.. _indexing.np_where:
+
+Setting with enlargement conditionally using :func:`numpy`
+----------------------------------------------------------
+
+An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
+Combined with setting a new column, you can use it to enlarge a dataframe where the
+values are determined conditionally.
+
+Consider you have two choices to choose from in the following dataframe. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
+   df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
+   df
+
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
+
+.. ipython:: python
+
+   conditions = [
+       (df['col2'] == 'Z') & (df['col1'] == 'A'),
+       (df['col2'] == 'Z') & (df['col1'] == 'B'),
+       (df['col1'] == 'B')
+   ]
+   choices = ['yellow', 'blue', 'purple']
+   df['color'] = np.select(conditions, choices, default='black')
+   df
+
 .. _indexing.query:
 
 The :meth:`~pandas.DataFrame.query` Method
@@ -1594,19 +1613,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1616,7 +1632,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1631,7 +1646,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 

@@ -10,25 +10,41 @@ from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
 from pandas.tests.frame.common import zip_frames
 
+# tshift only works on time index and is deprecated
+# There is no DataFrame.cumcount
+frame_kernels = [
+    x for x in sorted(transformation_kernels) if x not in ["tshift", "cumcount"]
+]
 
-def test_transform_ufunc(axis, float_frame):
+
+def unpack_obj(obj, klass, axis):
+    """
+    Helper to ensure we have the right type of object for a test parametrized
+    over frame_or_series.
+    """
+    if klass is not DataFrame:
+        obj = obj["A"]
+        if axis != 0:
+            pytest.skip(f"Test is only for DataFrame with axis={axis}")
+    return obj
+
+
+def test_transform_ufunc(axis, float_frame, frame_or_series):
     # GH 35964
+    obj = unpack_obj(float_frame, frame_or_series, axis)
+
     with np.errstate(all="ignore"):
-        f_sqrt = np.sqrt(float_frame)
-    result = float_frame.transform(np.sqrt, axis=axis)
+        f_sqrt = np.sqrt(obj)
+
+    # ufunc
+    result = obj.transform(np.sqrt, axis=axis)
     expected = f_sqrt
-    tm.assert_frame_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", frame_kernels)
 def test_transform_groupby_kernel(axis, float_frame, op):
     # GH 35964
-    if op == "cumcount":
-        pytest.xfail("DataFrame.cumcount does not exist")
-    if op == "tshift":
-        pytest.xfail("Only works on time index and is deprecated")
-    if axis == 1 or axis == "columns":
-        pytest.xfail("GH 36308: groupby.transform with axis=1 is broken")
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":
@@ -63,9 +79,11 @@ def test_transform_listlike(axis, float_frame, ops, names):
 
 
 @pytest.mark.parametrize("ops", [[], np.array([])])
-def test_transform_empty_listlike(float_frame, ops):
+def test_transform_empty_listlike(float_frame, ops, frame_or_series):
+    obj = unpack_obj(float_frame, frame_or_series, 0)
+
     with pytest.raises(ValueError, match="No transform functions were provided"):
-        float_frame.transform(ops)
+        obj.transform(ops)
 
 
 @pytest.mark.parametrize("box", [dict, Series])
@@ -92,25 +110,29 @@ def test_transform_dictlike(axis, float_frame, box):
         {"A": ["cumsum"], "B": []},
     ],
 )
-def test_transform_empty_dictlike(float_frame, ops):
+def test_transform_empty_dictlike(float_frame, ops, frame_or_series):
+    obj = unpack_obj(float_frame, frame_or_series, 0)
+
     with pytest.raises(ValueError, match="No transform functions were provided"):
-        float_frame.transform(ops)
+        obj.transform(ops)
 
 
 @pytest.mark.parametrize("use_apply", [True, False])
-def test_transform_udf(axis, float_frame, use_apply):
+def test_transform_udf(axis, float_frame, use_apply, frame_or_series):
     # GH 35964
+    obj = unpack_obj(float_frame, frame_or_series, axis)
+
     # transform uses UDF either via apply or passing the entire DataFrame
     def func(x):
         # transform is using apply iff x is not a DataFrame
-        if use_apply == isinstance(x, DataFrame):
+        if use_apply == isinstance(x, frame_or_series):
             # Force transform to fallback
             raise ValueError
         return x + 1
 
-    result = float_frame.transform(func, axis=axis)
-    expected = float_frame + 1
-    tm.assert_frame_equal(result, expected)
+    result = obj.transform(func, axis=axis)
+    expected = obj + 1
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])
@@ -144,54 +166,56 @@ def test_agg_dict_nested_renaming_depr():
         df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
 
-def test_transform_reducer_raises(all_reductions):
+def test_transform_reducer_raises(all_reductions, frame_or_series):
     # GH 35964
     op = all_reductions
-    df = DataFrame({"A": [1, 2, 3]})
+
+    obj = DataFrame({"A": [1, 2, 3]})
+    if frame_or_series is not DataFrame:
+        obj = obj["A"]
+
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        df.transform(op)
+        obj.transform(op)
     with pytest.raises(ValueError, match=msg):
-        df.transform([op])
+        obj.transform([op])
     with pytest.raises(ValueError, match=msg):
-        df.transform({"A": op})
+        obj.transform({"A": op})
     with pytest.raises(ValueError, match=msg):
-        df.transform({"A": [op]})
+        obj.transform({"A": [op]})
+
+
+wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
+frame_kernels_raise = [x for x in frame_kernels if x not in wont_fail]
 
 
 # mypy doesn't allow adding lists of different types
 # https://github.com/python/mypy/issues/5492
-@pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
-def test_transform_bad_dtype(op):
+@pytest.mark.parametrize("op", [*frame_kernels_raise, lambda x: x + 1])
+def test_transform_bad_dtype(op, frame_or_series):
     # GH 35964
-    df = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
-    if op in ("backfill", "shift", "pad", "bfill", "ffill"):
-        pytest.xfail("Transform function works on any datatype")
+    obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
+    if frame_or_series is not DataFrame:
+        obj = obj["A"]
+
     msg = "Transform function failed"
 
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning
     with tm.assert_produces_warning(warn, check_stacklevel=False):
         with pytest.raises(ValueError, match=msg):
-            df.transform(op)
+            obj.transform(op)
         with pytest.raises(ValueError, match=msg):
-            df.transform([op])
+            obj.transform([op])
         with pytest.raises(ValueError, match=msg):
-            df.transform({"A": op})
+            obj.transform({"A": op})
         with pytest.raises(ValueError, match=msg):
-            df.transform({"A": [op]})
+            obj.transform({"A": [op]})
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", frame_kernels_raise)
 def test_transform_partial_failure(op):
     # GH 35964
-    wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
-    if op in wont_fail:
-        pytest.xfail("Transform kernel is successful on all dtypes")
-    if op == "cumcount":
-        pytest.xfail("transform('cumcount') not implemented")
-    if op == "tshift":
-        pytest.xfail("Only works on time index; deprecated")
 
     # Using object makes most transform kernels fail
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
@@ -210,7 +234,7 @@ def test_transform_partial_failure(op):
 
 
 @pytest.mark.parametrize("use_apply", [True, False])
-def test_transform_passes_args(use_apply):
+def test_transform_passes_args(use_apply, frame_or_series):
     # GH 35964
     # transform uses UDF either via apply or passing the entire DataFrame
     expected_args = [1, 2]
@@ -218,14 +242,14 @@ def test_transform_passes_args(use_apply):
 
     def f(x, a, b, c):
         # transform is using apply iff x is not a DataFrame
-        if use_apply == isinstance(x, DataFrame):
+        if use_apply == isinstance(x, frame_or_series):
             # Force transform to fallback
             raise ValueError
         assert [a, b] == expected_args
         assert c == expected_kwargs["c"]
         return x
 
-    DataFrame([1]).transform(f, 0, *expected_args, **expected_kwargs)
+    frame_or_series([1]).transform(f, 0, *expected_args, **expected_kwargs)
 
 
 def test_transform_missing_columns(axis):

@@ -126,7 +126,7 @@ def test_getitem_multiple():
 
 def test_groupby_resample_on_api_with_getitem():
     # GH 17813
-    df = pd.DataFrame(
+    df = DataFrame(
         {"id": list("aabbb"), "date": pd.date_range("1-1-2016", periods=5), "data": 1}
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
@@ -142,7 +142,7 @@ def test_groupby_with_origin():
     middle = "1/15/2000 00:00:00"
 
     rng = pd.date_range(start, end, freq="1231min")  # prime number
-    ts = pd.Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.randn(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
@@ -151,11 +151,11 @@ def test_groupby_with_origin():
     count_ts = ts.groupby(simple_grouper).agg("count")
     count_ts = count_ts[middle:end]
     count_ts2 = ts2.groupby(simple_grouper).agg("count")
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
     # test origin on 1970-01-01 00:00:00
-    origin = pd.Timestamp(0)
+    origin = Timestamp(0)
     adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
     adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
     adjusted_count_ts = adjusted_count_ts[middle:end]
@@ -163,7 +163,7 @@ def test_groupby_with_origin():
     tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2)
 
     # test origin on 2049-10-18 20:00:00
-    origin_future = pd.Timestamp(0) + pd.Timedelta("1399min") * 30_000
+    origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
     adjusted_grouper2 = pd.Grouper(freq=freq, origin=origin_future)
     adjusted2_count_ts = ts.groupby(adjusted_grouper2).agg("count")
     adjusted2_count_ts = adjusted2_count_ts[middle:end]
@@ -346,4 +346,55 @@ def test_median_duplicate_columns():
     expected = df2.resample("5s").median()
     result = df.resample("5s").median()
     expected.columns = result.columns
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_to_one_column_of_df():
+    # GH: 36951
+    df = DataFrame(
+        {"col": range(10), "col1": range(10, 20)},
+        index=pd.date_range("2012-01-01", periods=10, freq="20min"),
+    )
+    result = df.resample("H").apply(lambda group: group.col.sum())
+    expected = Series(
+        [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
+    )
+    tm.assert_series_equal(result, expected)
+    result = df.resample("H").apply(lambda group: group["col"].sum())
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_groupby_agg():
+    # GH: 33548
+    df = DataFrame(
+        {
+            "cat": [
+                "cat_1",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+                "cat_2",
+                "cat_1",
+            ],
+            "num": [5, 20, 22, 3, 4, 30, 10, 50],
+            "date": [
+                "2019-2-1",
+                "2018-02-03",
+                "2020-3-11",
+                "2019-2-2",
+                "2019-2-2",
+                "2018-12-4",
+                "2020-3-11",
+                "2020-12-12",
+            ],
+        }
+    )
+    df["date"] = pd.to_datetime(df["date"])
+
+    resampled = df.groupby("cat").resample("Y", on="date")
+    expected = resampled.sum()
+    result = resampled.agg({"num": "sum"})
+
     tm.assert_frame_equal(result, expected)

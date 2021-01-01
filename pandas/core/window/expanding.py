@@ -8,7 +8,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import _doc_template, _shared_docs
-from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
 from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
@@ -24,6 +24,14 @@ class Expanding(RollingAndExpandingMixin):
     center : bool, default False
         Set the labels at the center of the window.
     axis : int or str, default 0
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -59,20 +67,26 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis"]
+    _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
+    def __init__(
+        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
+    ):
+        super().__init__(
+            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
-    @property
-    def _constructor(self):
-        return Expanding
+    def _get_window_indexer(self) -> BaseIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExpandingIndexer()
 
-    def _get_window(
+    def _get_cov_corr_window(
         self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
     ) -> int:
         """
-        Get the window length over which to perform some operation.
+        Get the window length over which to perform cov and corr operations.
 
         Parameters
         ----------
@@ -133,8 +147,8 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
-    def count(self, **kwargs):
-        return super().count(**kwargs)
+    def count(self):
+        return super().count()
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
@@ -275,14 +289,13 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     Provide a expanding groupby implementation.
     """
 
-    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+    @property
+    def _constructor(self):
+        return Expanding
+
+    def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
-
-        Parameters
-        ----------
-        window : int
-            window size for FixedWindowIndexer (unused)
 
         Returns
         -------

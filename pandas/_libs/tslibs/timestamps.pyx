@@ -16,6 +16,7 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 cnp.import_array()
 
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+    PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
@@ -230,6 +231,8 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+    dayofweek = _Timestamp.day_of_week
+    dayofyear = _Timestamp.day_of_year
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -279,6 +282,20 @@ cdef class _Timestamp(ABCTimestamp):
                 return np.zeros(other.shape, dtype=np.bool_)
             return NotImplemented
 
+        elif PyDate_Check(other):
+            # returning NotImplemented defers to the `date` implementation
+            #  which incorrectly drops tz and normalizes to midnight
+            #  before comparing
+            # We follow the stdlib datetime behavior of never being equal
+            warnings.warn(
+                "Comparison of Timestamp with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable."
+                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return NotImplemented
         else:
             return NotImplemented
 
@@ -538,14 +555,14 @@ cdef class _Timestamp(ABCTimestamp):
         return bool(ccalendar.is_leapyear(self.year))
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Return day of the week.
         """
         return self.weekday()
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
         """
@@ -910,9 +927,25 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
+
+    def strftime(self, format):
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        """
+        return datetime.strftime(self, format)
 
     # Issue 25016.
     @classmethod
@@ -932,7 +965,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -1151,7 +1184,7 @@ timedelta}, default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -1190,7 +1223,7 @@ timedelta}, default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -1372,10 +1405,10 @@ default 'raise'
         microsecond=None,
         nanosecond=None,
         tzinfo=object,
-        fold=0,
+        fold=None,
     ):
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
@@ -1388,7 +1421,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------
@@ -1405,6 +1438,11 @@ default 'raise'
         # set to naive if needed
         tzobj = self.tzinfo
         value = self.value
+
+        # GH 37610. Preserve fold when replacing.
+        if fold is None:
+            fold = self.fold
+
         if tzobj is not None:
             value = tz_convert_from_utc_single(value, tzobj)
 
