@@ -129,7 +129,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         else:
             f = func
 
-        self.f = f
+        self.f: Any = f
 
     @property
     def res_columns(self) -> "Index":
