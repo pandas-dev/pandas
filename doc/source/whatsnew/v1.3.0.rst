@@ -167,7 +167,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
--
+- Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 -
 
 .. ---------------------------------------------------------------------------
