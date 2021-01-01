@@ -2293,6 +2293,7 @@ class PythonParser(ParserBase):
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
+        self._col_indices: Optional[List[int]] = None
         try:
             (
                 self.columns,
@@ -2334,7 +2335,7 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
-        if not hasattr(self, "_col_indices"):
+        if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
         self._validate_parse_dates_presence(self.columns)
@@ -2360,7 +2361,11 @@ class PythonParser(ParserBase):
             if is_integer(x):
                 noconvert_columns.add(x)
             else:
-                noconvert_columns.add(self._col_indices[self.columns.index(x)])
+                # pandas\io\parsers.py:2366: error: Unsupported right
+                # operand type for in ("Optional[List[int]")  [index]
+                noconvert_columns.add(
+                    self._col_indices[self.columns.index(x)]  # type: ignore[index]
+                )
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -3185,14 +3190,21 @@ class PythonParser(ParserBase):
                 zipped_content = [
                     a
                     for i, a in enumerate(zipped_content)
+                    # pandas\io\parsers.py:2366: error: Unsupported right
+                    # operand type for in ("Optional[List[int]")  [operator]
                     if (
                         i < len(self.index_col)
-                        or i - len(self.index_col) in self._col_indices
+                        or i - len(self.index_col)  # type: ignore[operator]
+                        in self._col_indices
                     )
                 ]
             else:
+                # pandas\io\parsers.py:3202: error: Unsupported right
+                # operand type for in ("Optional[List[int]")  [operator]
                 zipped_content = [
-                    a for i, a in enumerate(zipped_content) if i in self._col_indices
+                    a
+                    for i, a in enumerate(zipped_content)
+                    if i in self._col_indices  # type: ignore[operator]
                 ]
         return zipped_content
 
