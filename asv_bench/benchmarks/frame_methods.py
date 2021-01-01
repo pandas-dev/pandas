@@ -597,6 +597,19 @@ class Quantile:
         self.df.quantile([0.1, 0.5], axis=axis)
 
 
+class Rank:
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.df = DataFrame(np.random.randn(10000, 10), columns=range(10), dtype=dtype)
+
+    def time_rank(self, dtype):
+        self.df.rank()
+
+
 class GetDtypeCounts:
     # 2807
     def setup(self):
