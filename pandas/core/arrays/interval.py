@@ -228,6 +228,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
+            dtype = pandas_dtype(dtype)
             if is_interval_dtype(dtype):
                 dtype = cast(IntervalDtype, dtype)
                 if dtype.subtype is not None:
