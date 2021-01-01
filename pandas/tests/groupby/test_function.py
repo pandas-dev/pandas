@@ -1121,3 +1121,18 @@ def test_groupby_sum_below_mincount_nullable_integer():
     result = grouped.sum(min_count=2)
     expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("agg_func", ["std", "var"])
+def test_groupby_std_on_nullable_column(agg_func, any_numeric_dtype):
+    # GH 35516
+    df = DataFrame(
+        {
+            "A": [2, 1, 1, 1, 2, 2, 1],
+            "B": Series(np.full(7, np.nan), dtype=any_numeric_dtype),
+        }
+    )
+    result = df.groupby("A").agg(agg_func).astype("float64")
+    expected = DataFrame([np.nan, np.nan], index=[1, 2], columns=["B"])
+    expected.index.name = "A"
+    tm.assert_frame_equal(result, expected)

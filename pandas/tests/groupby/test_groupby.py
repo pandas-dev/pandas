@@ -2174,14 +2174,3 @@ def test_groupby_series_with_tuple_name():
     expected = Series([2, 4], index=[1, 2], name=("a", "a"))
     expected.index.name = ("b", "b")
     tm.assert_series_equal(result, expected)
-
-
-def test_groupby_std_on_nullable_column():
-    # GH 35516
-    df = DataFrame(
-        {"A": [2, 1, 1, 1, 2, 2, 1], "B": Series(np.full(7, np.nan), dtype="Int64")}
-    )
-    result = df.groupby("A").std()
-    expected = DataFrame([np.nan, np.nan], index=[1, 2], columns=["B"])
-    expected.index.name = "A"
-    tm.assert_frame_equal(result, expected)
