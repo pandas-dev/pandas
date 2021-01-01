@@ -1872,9 +1872,6 @@ class MultiIndex(Index):
         -------
         int
         """
-        if self.sortorder is not None:
-            return self.sortorder
-
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
