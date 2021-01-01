@@ -1128,6 +1128,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
