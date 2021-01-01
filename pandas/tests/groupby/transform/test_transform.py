@@ -158,10 +158,12 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res.xs(idx), agged[idx])
 
 
-def test_transform_axis_1(transformation_func):
+def test_transform_axis_1(request, transformation_func):
     # GH 36308
     if transformation_func == "tshift":
-        pytest.xfail("tshift is deprecated")
+        request.applymarker(pytest.mark.xfail(reason="tshift is deprecated"))
+    if transformation_func == "fillna":
+        request.applymarker(pytest.mark.xfail(reason="whoops, this works"))
     args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
