@@ -21,7 +21,7 @@ from pandas.arrays import (
     StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, integer_array, period_array
+from pandas.core.arrays import PandasArray, period_array
 from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
 
 
@@ -122,7 +122,7 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
-        ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
+        ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
         (["a", None], "string", StringArray._from_sequence(["a", None])),
@@ -278,7 +278,7 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
+@pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
         pd.array(data, dtype="int64")

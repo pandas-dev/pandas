@@ -487,11 +487,27 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
+    @pytest.mark.parametrize("day", ["1970/01/01 ", "2020-12-31 ", "1981/09/13 "])
+    @pytest.mark.parametrize("hour", ["00:00:00", "00:00:01", "23:59:59", "12:00:59"])
+    @pytest.mark.parametrize(
+        "sec_float, expected",
+        [
+            (".000000001", 1),
+            (".000000999", 999),
+            (".123456789", 789),
+            (".999999999", 999),
+        ],
+    )
+    def test_period_constructor_nanosecond(self, day, hour, sec_float, expected):
+        # GH 34621
+
+        assert Period(day + hour + sec_float).start_time.nanosecond == expected
+
     @pytest.mark.parametrize("hour", range(24))
     def test_period_large_ordinal(self, hour):
         # Issue #36430
         # Integer overflow for Period over the maximum timestamp
-        p = pd.Period(ordinal=2562048 + hour, freq="1H")
+        p = Period(ordinal=2562048 + hour, freq="1H")
         assert p.hour == hour
 
 
@@ -652,10 +668,10 @@ class TestPeriodMethods:
         assert result == expected
 
     def test_to_timestamp_business_end(self):
-        per = pd.Period("1990-01-05", "B")  # Friday
+        per = Period("1990-01-05", "B")  # Friday
         result = per.to_timestamp("B", how="E")
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -866,7 +882,7 @@ class TestPeriodProperties:
         per = Period("1990-01-05", "B")
         result = per.end_time
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     def test_anchor_week_end_time(self):
@@ -1554,3 +1570,9 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_invalid_frequency_error_message():
+    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="WOM-1MON")

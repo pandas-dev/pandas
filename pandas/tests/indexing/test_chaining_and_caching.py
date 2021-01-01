@@ -83,7 +83,7 @@ class TestCaching:
 
     def test_altering_series_clears_parent_cache(self):
         # GH #33675
-        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
         ser = df["A"]
 
         assert "A" in df._item_cache
@@ -121,13 +121,13 @@ class TestChaining:
         tm.assert_frame_equal(df, DataFrame({"response": mdata, "response1": data}))
 
         # GH 6056
-        expected = DataFrame(dict(A=[np.nan, "bar", "bah", "foo", "bar"]))
-        df = DataFrame(dict(A=np.array(["foo", "bar", "bah", "foo", "bar"])))
+        expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
+        df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         df["A"].iloc[0] = np.nan
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(dict(A=np.array(["foo", "bar", "bah", "foo", "bar"])))
+        df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         df.A.iloc[0] = np.nan
         result = df.head()
         tm.assert_frame_equal(result, expected)
@@ -299,12 +299,12 @@ class TestChaining:
 
         # Mixed type setting but same dtype & changing dtype
         df = DataFrame(
-            dict(
-                A=date_range("20130101", periods=5),
-                B=np.random.randn(5),
-                C=np.arange(5, dtype="int64"),
-                D=list("abcde"),
-            )
+            {
+                "A": date_range("20130101", periods=5),
+                "B": np.random.randn(5),
+                "C": np.arange(5, dtype="int64"),
+                "D": ["a", "b", "c", "d", "e"],
+            }
         )
 
         with pytest.raises(com.SettingWithCopyError, match=msg):
@@ -350,14 +350,12 @@ class TestChaining:
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
         # xref gh-13017.
         with option_context("chained_assignment", "warn"):
-            df = pd.DataFrame(
-                [[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"]
-            )
+            df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"])
 
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 df.c.loc[df.c > 0] = None
 
-            expected = pd.DataFrame(
+            expected = DataFrame(
                 [[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"]
             )
             tm.assert_frame_equal(df, expected)

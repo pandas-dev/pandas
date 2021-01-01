@@ -73,17 +73,6 @@ def test_indexer_accepts_rolling_args():
     tm.assert_frame_equal(result, expected)
 
 
-def test_win_type_not_implemented():
-    class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
-            return np.array([0, 1]), np.array([1, 2])
-
-    df = DataFrame({"values": range(2)})
-    indexer = CustomIndexer()
-    with pytest.raises(NotImplementedError, match="BaseIndexer subclasses not"):
-        df.rolling(indexer, win_type="boxcar")
-
-
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
@@ -262,4 +251,32 @@ def test_fixed_forward_indexer_count():
     indexer = FixedForwardWindowIndexer(window_size=2)
     result = df.rolling(window=indexer, min_periods=0).count()
     expected = DataFrame({"b": [0.0, 0.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("end_value", "values"), [(1, [0.0, 1, 1, 3, 2]), (-1, [0.0, 1, 0, 3, 1])]
+)
+@pytest.mark.parametrize(("func", "args"), [("median", []), ("quantile", [0.5])])
+def test_indexer_quantile_sum(end_value, values, func, args):
+    # GH 37153
+    class CustomIndexer(BaseIndexer):
+        def get_window_bounds(self, num_values, min_periods, center, closed):
+            start = np.empty(num_values, dtype=np.int64)
+            end = np.empty(num_values, dtype=np.int64)
+            for i in range(num_values):
+                if self.use_expanding[i]:
+                    start[i] = 0
+                    end[i] = max(i + end_value, 1)
+                else:
+                    start[i] = i
+                    end[i] = i + self.window_size
+            return start, end
+
+    use_expanding = [True, False, True, False, True]
+    df = DataFrame({"values": range(5)})
+
+    indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+    result = getattr(df.rolling(indexer), func)(*args)
+    expected = DataFrame({"values": values})
     tm.assert_frame_equal(result, expected)

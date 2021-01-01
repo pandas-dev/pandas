@@ -9,9 +9,12 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_float,
+    is_float_dtype,
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_number,
@@ -19,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -189,7 +192,7 @@ class MPLPlot:
             for kw, err in zip(["xerr", "yerr"], [xerr, yerr])
         }
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndexClass)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -383,6 +386,20 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
+    def _convert_to_ndarray(self, data):
+        # GH32073: cast to float if values contain nulled integers
+        if (
+            is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
+        ) and is_extension_array_dtype(data.dtype):
+            return data.to_numpy(dtype="float", na_value=np.nan)
+
+        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+        # np.ndarray before plot.
+        if len(data) > 0:
+            return np.asarray(data)
+
+        return data
+
     def _compute_plot_data(self):
         data = self.data
 
@@ -423,13 +440,7 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
-        # np.ndarray before plot.
-        numeric_data = numeric_data.copy()
-        for col in numeric_data:
-            numeric_data[col] = np.asarray(numeric_data[col])
-
-        self.data = numeric_data
+        self.data = numeric_data.apply(self._convert_to_ndarray)
 
     def _make_plot(self):
         raise AbstractMethodError(self)
@@ -577,8 +588,20 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    self.legend_handles = reversed(self.legend_handles)
-                    self.legend_labels = reversed(self.legend_labels)
+                    # pandas\plotting\_matplotlib\core.py:578: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Any]", variable has type "List[Any]")
+                    # [assignment]
+                    self.legend_handles = reversed(  # type: ignore[assignment]
+                        self.legend_handles
+                    )
+                    # pandas\plotting\_matplotlib\core.py:579: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Optional[Hashable]]", variable has type
+                    # "List[Optional[Hashable]]")  [assignment]
+                    self.legend_labels = reversed(  # type: ignore[assignment]
+                        self.legend_labels
+                    )
 
                 handles += self.legend_handles
                 labels += self.legend_labels
@@ -655,7 +678,7 @@ class MPLPlot:
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, ABCIndexClass):
+        if isinstance(x, ABCIndex):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -725,7 +748,7 @@ class MPLPlot:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndexClass)):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -1101,7 +1124,11 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            plotf = self._plot
+            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
+            # types in assignment (expression has type "Callable[[Any, Any,
+            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
+            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
@@ -1205,8 +1232,8 @@ class LinePlot(MPLPlot):
 
         raise ValueError(
             "When stacked is True, each column must be either "
-            "all positive or negative."
-            f"{label} contains both positive and negative values"
+            "all positive or all negative. "
+            f"Column '{label}' contains both positive and negative values"
         )
 
     @classmethod
@@ -1322,7 +1349,9 @@ class AreaPlot(LinePlot):
     def _post_plot_logic(self, ax: "Axes", data):
         LinePlot._post_plot_logic(self, ax, data)
 
-        if self.ylim is None:
+        is_shared_y = len(list(ax.get_shared_y_axes())) > 0
+        # do not override the default axis behaviour in case of shared y axes
+        if self.ylim is None and not is_shared_y:
             if (data >= 0).all().all():
                 ax.set_ylim(0, None)
             elif (data <= 0).all().all():
@@ -1341,7 +1370,6 @@ class BarPlot(MPLPlot):
         self.bar_width = kwargs.pop("width", 0.5)
         pos = kwargs.pop("position", 0.5)
         kwargs.setdefault("align", "center")
-        self.tick_pos = np.arange(len(data))
 
         self.bottom = kwargs.pop("bottom", 0)
         self.left = kwargs.pop("left", 0)
@@ -1364,7 +1392,16 @@ class BarPlot(MPLPlot):
                 self.tickoffset = self.bar_width * pos
                 self.lim_offset = 0
 
-        self.ax_pos = self.tick_pos - self.tickoffset
+        if isinstance(self.data.index, ABCMultiIndex):
+            if kwargs["ax"] is not None and kwargs["ax"].has_data():
+                warnings.warn(
+                    "Redrawing a bar plot with a MultiIndex is not supported "
+                    + "and may lead to inconsistent label positions.",
+                    UserWarning,
+                )
+            self.ax_index = np.arange(len(data))
+        else:
+            self.ax_index = self.data.index
 
     def _args_adjust(self):
         if is_list_like(self.bottom):
@@ -1391,6 +1428,15 @@ class BarPlot(MPLPlot):
 
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
+
+            if self.orientation == "vertical":
+                ax.xaxis.update_units(self.ax_index)
+                self.tick_pos = ax.convert_xunits(self.ax_index).astype(np.int)
+            elif self.orientation == "horizontal":
+                ax.yaxis.update_units(self.ax_index)
+                self.tick_pos = ax.convert_yunits(self.ax_index).astype(np.int)
+            self.ax_pos = self.tick_pos - self.tickoffset
+
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
@@ -1462,8 +1508,8 @@ class BarPlot(MPLPlot):
             str_index = [pprint_thing(key) for key in range(data.shape[0])]
         name = self._get_index_name()
 
-        s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
-        e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+        s_edge = self.ax_pos.min() - 0.25 + self.lim_offset
+        e_edge = self.ax_pos.max() + 0.25 + self.bar_width + self.lim_offset
 
         self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
 
@@ -1509,7 +1555,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError(f"{kind} doesn't allow negative values")
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):
@@ -1545,9 +1591,12 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
+                blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                blabels = None
+                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
+                # types in assignment (expression has type "None", variable has
+                # type "List[Any]")  [assignment]
+                blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:

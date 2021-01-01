@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
+from pandas.tests.io.excel import xlrd_version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -21,7 +22,6 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param(
@@ -35,7 +35,6 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
@@ -58,6 +57,13 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if engine == "pyxlsb" and read_ext != ".xlsb":
         return False
     if read_ext == ".xlsb" and engine != "pyxlsb":
+        return False
+    if (
+        engine == "xlrd"
+        and xlrd_version is not None
+        and xlrd_version >= "2"
+        and read_ext != ".xls"
+    ):
         return False
     return True
 
@@ -567,7 +573,7 @@ class TestReaders:
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [
                 [pd.Timestamp("2016-03-12"), "Marc Johnson"],
                 [pd.Timestamp("2016-03-16"), "Jack Black"],
@@ -578,6 +584,10 @@ class TestReaders:
 
         if pd.read_excel.keywords["engine"] == "openpyxl":
             pytest.xfail("Maybe not supported by openpyxl")
+
+        if pd.read_excel.keywords["engine"] is None:
+            # GH 35029
+            pytest.xfail("Defaults to openpyxl, maybe not supported")
 
         result = pd.read_excel("testdateoverflow" + read_ext)
         tm.assert_frame_equal(result, expected)
@@ -612,6 +622,19 @@ class TestReaders:
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
 
+    def test_missing_file_raises(self, read_ext):
+        bad_file = f"foo{read_ext}"
+        # CI tests with zh_CN.utf8, translates to "No such file or directory"
+        with pytest.raises(
+            FileNotFoundError, match=r"(No such file or directory|没有那个文件或目录)"
+        ):
+            pd.read_excel(bad_file)
+
+    def test_corrupt_bytes_raises(self, read_ext, engine):
+        bad_stream = b"foo"
+        with pytest.raises(ValueError, match="File is not a recognized excel file"):
+            pd.read_excel(bad_stream)
+
     @tm.network
     def test_read_from_http_url(self, read_ext):
         url = (
@@ -631,6 +654,22 @@ class TestReaders:
         url = "s3://pandas-test/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
+        local_table = pd.read_excel("test1" + read_ext)
+        tm.assert_frame_equal(url_table, local_table)
+
+    def test_read_from_s3_object(self, read_ext, s3_resource, s3so):
+        # GH 38788
+        # Bucket "pandas-test" created in tests/io/conftest.py
+        with open("test1" + read_ext, "rb") as f:
+            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
+
+        import s3fs
+
+        s3 = s3fs.S3FileSystem(**s3so)
+
+        with s3.open("s3://pandas-test/test1" + read_ext) as f:
+            url_table = pd.read_excel(f)
+
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
@@ -802,6 +841,43 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @pytest.mark.parametrize(
+        "sheet_name,idx_lvl2",
+        [
+            ("both_name_blank_after_mi_name", [np.nan, "b", "a", "b"]),
+            ("both_name_multiple_blanks", [np.nan] * 4),
+        ],
+    )
+    def test_read_excel_multiindex_blank_after_name(
+        self, read_ext, sheet_name, idx_lvl2
+    ):
+        # GH34673
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb (GH4679")
+
+        mi_file = "testmultiindex" + read_ext
+        mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
+        expected = DataFrame(
+            [
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=mi,
+            index=MultiIndex.from_arrays(
+                (["foo", "foo", "bar", "bar"], idx_lvl2),
+                names=["ilvl1", "ilvl2"],
+            ),
+        )
+        result = pd.read_excel(
+            mi_file,
+            sheet_name=sheet_name,
+            index_col=[0, 1],
+            header=[0, 1],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_read_excel_multiindex_header_only(self, read_ext):
         # see gh-11733.
         #
@@ -843,7 +919,7 @@ class TestReaders:
             ["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None
         )
 
-        expected = pd.DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -875,7 +951,7 @@ class TestReaders:
         )
         si = Index(["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None)
 
-        expected = pd.DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_no_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -970,16 +1046,16 @@ class TestReaders:
         f = "test_squeeze" + read_ext
 
         actual = pd.read_excel(f, sheet_name="two_columns", index_col=0, squeeze=True)
-        expected = pd.Series([2, 3, 4], [4, 5, 6], name="b")
+        expected = Series([2, 3, 4], [4, 5, 6], name="b")
         expected.index.name = "a"
         tm.assert_series_equal(actual, expected)
 
         actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-        expected = pd.DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
+        expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-        expected = pd.Series([1, 2, 3], name="a")
+        expected = Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
@@ -992,10 +1068,10 @@ class TestReaders:
         # GH 31783
         file_name = "testmultiindex" + read_ext
         data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
-        idx = pd.MultiIndex.from_tuples(
+        idx = MultiIndex.from_tuples(
             [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
         )
-        expected = pd.DataFrame(data, index=idx, columns=(2, 3))
+        expected = DataFrame(data, index=idx, columns=(2, 3))
         result = pd.read_excel(
             file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
         )
@@ -1156,22 +1232,33 @@ class TestExcelFileRead:
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
 
+    def test_excel_read_binary_via_read_excel(self, read_ext, engine):
+        # GH 38424
+        if read_ext == ".xlsb" and engine == "pyxlsb":
+            pytest.xfail("GH 38667 - should default to pyxlsb but doesn't")
+        with open("test1" + read_ext, "rb") as f:
+            result = pd.read_excel(f)
+        expected = pd.read_excel("test1" + read_ext, engine=engine)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(
+        xlrd_version is not None and xlrd_version >= "2",
+        reason="xlrd no longer supports xlsx",
+    )
     def test_excel_high_surrogate(self, engine):
         # GH 23809
-        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+        expected = DataFrame(["\udc88"], columns=["Column1"])
 
         # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx")
+        actual = pd.read_excel("high_surrogate.xlsx", engine="xlrd")
         tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
         # GH 33476
-        idx = pd.Index(["Z"], name="I2")
-        cols = pd.MultiIndex.from_tuples(
-            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
-        )
-        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        idx = Index(["Z"], name="I2")
+        cols = MultiIndex.from_tuples([("A", "B"), ("A", "B.1")], names=["I11", "I12"])
+        expected = DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
         result = pd.read_excel(
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
@@ -1185,13 +1272,13 @@ class TestExcelFileRead:
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
-        expected_column_index = pd.MultiIndex.from_tuples(
+        expected_column_index = MultiIndex.from_tuples(
             [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
             names=[
                 pd.to_datetime("02/29/2020").to_pydatetime(),
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = pd.DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)

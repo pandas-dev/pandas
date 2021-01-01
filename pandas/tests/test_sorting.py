@@ -270,12 +270,24 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(k + tuple([lv, rv]))
+                vals.append(
+                    k
+                    + (
+                        lv,
+                        rv,
+                    )
+                )
 
         for k, rval in rdict.items():
             if k not in ldict:
                 for rv in rval:
-                    vals.append(k + tuple([np.nan, rv]))
+                    vals.append(
+                        k
+                        + (
+                            np.nan,
+                            rv,
+                        )
+                    )
 
         def align(df):
             df = df.sort_values(df.columns.tolist())
@@ -453,3 +465,10 @@ class TestSafeSort:
         expected_codes = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(codes, expected_codes)
+
+
+def test_mixed_str_nan():
+    values = np.array(["b", np.nan, "a", "b"], dtype=object)
+    result = safe_sort(values)
+    expected = np.array([np.nan, "a", "b", "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)

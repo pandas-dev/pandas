@@ -5,13 +5,13 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Tuple
+from typing import Any
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Shape
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -41,8 +42,6 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # Note: these checks can be for ABCIndex and not ABCIndexClass
-        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -111,7 +110,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], y)
 
-    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
+    result = maybe_upcast_putmask(result, ~mask)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
@@ -177,8 +176,8 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
-    lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_datetimelike_array(right)
+    lvalues = ensure_wrapped_if_datetimelike(left)
+    rvalues = ensure_wrapped_if_datetimelike(right)
     rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
@@ -208,7 +207,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     ndarray or ExtensionArray
     """
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
+    lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
     rvalues = lib.item_from_zerodim(rvalues)
@@ -333,7 +332,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
-    lvalues = maybe_upcast_datetimelike_array(left)
+    lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
@@ -402,32 +401,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
-    """
-    If we have an ndarray that is either datetime64 or timedelta64, wrap in EA.
-
-    Parameters
-    ----------
-    obj : ndarray or ExtensionArray
-
-    Returns
-    -------
-    ndarray or ExtensionArray
-    """
-    if isinstance(obj, np.ndarray):
-        if obj.dtype.kind == "m":
-            from pandas.core.arrays import TimedeltaArray
-
-            return TimedeltaArray._from_sequence(obj)
-        if obj.dtype.kind == "M":
-            from pandas.core.arrays import DatetimeArray
-
-            return DatetimeArray._from_sequence(obj)
-
-    return obj
-
-
-def _maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
