@@ -43,7 +43,6 @@ def frame_apply(
     kwds=None,
 ):
     """ construct and return a row or column based frame apply object """
-    assert how in ("apply", "agg")
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
     if axis == 0:
@@ -129,7 +128,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         else:
             f = func
 
-        self.f: Any = f
+        self.f: AggFuncType = f
 
     @property
     def res_columns(self) -> "Index":
@@ -161,7 +160,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         else:
             return self.agg()
 
-    def agg(self):
+    def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
         """
         Provide an implementation for the aggregators.
 
@@ -189,7 +188,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             arg = cast(AggFuncTypeDict, arg)
             return agg_dict_like(obj, arg, _axis), True
         elif is_list_like(arg):
-            # we require a list, but not an 'str'
+            # we require a list, but not a 'str'
             arg = cast(List[AggFuncTypeBase], arg)
             return agg_list_like(obj, arg, _axis=_axis), None
         else:
@@ -203,7 +202,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         # caller can react
         return result, True
 
-    def apply(self):
+    def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
@@ -256,6 +255,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         we will try to apply the function to an empty
         series in order to see if this is a reduction function
         """
+        assert callable(self.f)
+
         # we are not asked to reduce or infer reduction
         # so just return a copy of the existing object
         if self.result_type not in ["reduce", None]:
@@ -311,6 +312,8 @@ class FrameApply(metaclass=abc.ABCMeta):
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
     def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        assert callable(self.f)
+
         result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
@@ -344,6 +347,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         return self.wrap_results(results, res_index)
 
     def apply_series_generator(self) -> Tuple[ResType, "Index"]:
+        assert callable(self.f)
+
         series_gen = self.series_generator
         res_index = self.result_index
 
