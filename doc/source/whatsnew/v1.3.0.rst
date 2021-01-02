@@ -167,7 +167,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
--
+- Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -184,8 +184,8 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :class:`CategoricalIndex` incorrectly failing to raise ``TypeError`` when scalar data is passed (:issue:`38614`)
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
-- Bug where construcing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
-
+- Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
+- Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -293,9 +293,10 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
 -
+
 
 Sparse
 ^^^^^^
@@ -306,13 +307,14 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
--
+- Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 -
 
 Other
 ^^^^^
-
+- Bug in :class:`Index` constructor sometimes silently ignorning a a specified ``dtype`` (:issue:`38879`)
 -
 -
 
