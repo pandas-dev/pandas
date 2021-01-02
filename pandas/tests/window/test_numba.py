@@ -138,6 +138,34 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
+    def test_table_method_rolling_methods(
+        self, axis, nogil, parallel, nopython, arithmetic_win_operators
+    ):
+        method = arithmetic_win_operators
+        if method in ("kurt", "skew", "count", "sem", "var", "std"):
+            pytest.skip(f"{method} does not support numba engine.")
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(np.eye(3))
+
+        with pytest.raises(
+            NotImplementedError, match="method='table' is not supported."
+        ):
+            getattr(df.rolling(2, method="table", axis=axis, min_periods=0), method)(
+                engine_kwargs=engine_kwargs, engine="numba"
+            )
+
+        #  Once method='table' is supported, uncomment test below.
+        #
+        # result = getattr(
+        #     df.rolling(2, method="table", axis=axis, min_periods=0), method
+        # )(engine_kwargs=engine_kwargs, engine="numba")
+        # expected = getattr(
+        #     df.rolling(2, method="single", axis=axis, min_periods=0), method
+        # )(engine_kwargs=engine_kwargs, engine="numba")
+        # tm.assert_frame_equal(result, expected)
+
     def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
@@ -187,3 +215,31 @@ class TestTableMethod:
             f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_table_method_expanding_methods(
+        self, axis, nogil, parallel, nopython, arithmetic_win_operators
+    ):
+        method = arithmetic_win_operators
+        if method in ("kurt", "skew", "count", "sem", "var", "std"):
+            pytest.skip(f"{method} does not support numba engine.")
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(np.eye(3))
+
+        with pytest.raises(
+            NotImplementedError, match="method='table' is not supported."
+        ):
+            getattr(df.expanding(method="table", axis=axis), method)(
+                engine_kwargs=engine_kwargs, engine="numba"
+            )
+
+        #  Once method='table' is supported, uncomment test below.
+        #
+        # result = getattr(
+        #     df.rolling(method="table", axis=axis), method
+        # )(engine_kwargs=engine_kwargs, engine="numba")
+        # expected = getattr(
+        #     df.rolling(method="single", axis=axis), method
+        # )(engine_kwargs=engine_kwargs, engine="numba")
+        # tm.assert_frame_equal(result, expected)

@@ -1355,8 +1355,17 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nansum with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
             return self.apply(
-                np.nansum, raw=True, engine=engine, engine_kwargs=engine_kwargs
+                np.nansum,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
             )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
@@ -1405,8 +1414,17 @@ class RollingAndExpandingMixin(BaseWindow):
     def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("max", args, kwargs)
         if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmax with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
             return self.apply(
-                np.nanmax, raw=True, engine=engine, engine_kwargs=engine_kwargs
+                np.nanmax,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
             )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
@@ -1468,8 +1486,17 @@ class RollingAndExpandingMixin(BaseWindow):
     def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("min", args, kwargs)
         if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmin with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
             return self.apply(
-                np.nanmin, raw=True, engine=engine, engine_kwargs=engine_kwargs
+                np.nanmin,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
             )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
@@ -1477,8 +1504,17 @@ class RollingAndExpandingMixin(BaseWindow):
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmean with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
             return self.apply(
-                np.nanmean, raw=True, engine=engine, engine_kwargs=engine_kwargs
+                np.nanmean,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
             )
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
@@ -1539,20 +1575,22 @@ class RollingAndExpandingMixin(BaseWindow):
     def median(self, engine=None, engine_kwargs=None, **kwargs):
         window_func = window_aggregations.roll_median_c
         if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmedian with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
             return self.apply(
-                np.nanmedian, raw=True, engine=engine, engine_kwargs=engine_kwargs
-            )
-        return self._apply(window_func, name="median", **kwargs)
-
-    def std(self, ddof: int = 1, *args, engine=None, engine_kwargs=None, **kwargs):
-        nv.validate_window_func("std", args, kwargs)
-        if maybe_use_numba(engine):
-            return self.apply(
-                partial(np.nanstd, ddof=ddof),
+                np.nanmedian,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
+                args=args,
             )
+        return self._apply(window_func, name="median", **kwargs)
+
+    def std(self, ddof: int = 1, *args, **kwargs):
+        nv.validate_window_func("std", args, kwargs)
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1564,15 +1602,8 @@ class RollingAndExpandingMixin(BaseWindow):
             **kwargs,
         )
 
-    def var(self, ddof: int = 1, *args, engine=None, engine_kwargs=None, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        if maybe_use_numba(engine):
-            return self.apply(
-                partial(np.nanvar, ddof=ddof),
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -2155,19 +2186,15 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, engine=None, engine_kwargs=None, **kwargs):
+    def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func("std", args, kwargs)
-        return super().std(
-            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
+        return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, engine=None, engine_kwargs=None, **kwargs):
+    def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func("var", args, kwargs)
-        return super().var(
-            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
+        return super().var(ddof=ddof, **kwargs)
 
     @Substitution(name="rolling", func_name="skew")
     @Appender(_doc_template)
