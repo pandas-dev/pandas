@@ -12,9 +12,9 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 @td.skip_if_no("numba", "0.46.0")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
-class TestRollingApply:
+class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
-    def test_numba_vs_cython(self, jit, nogil, parallel, nopython, center):
+    def test_numba_vs_cython_apply(self, jit, nogil, parallel, nopython, center):
         def f(x, *args):
             arg_sum = 0
             for arg in args:
@@ -38,8 +38,47 @@ class TestRollingApply:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_numba_vs_cython_rolling_methods(
+        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+    ):
+
+        method = arithmetic_numba_supported_operators
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(np.eye(5))
+        roll = df.rolling(2)
+        result = getattr(roll, method)(engine="numba", engine_kwargs=engine_kwargs)
+        expected = getattr(roll, method)(engine="cython")
+
+        # Check the cache
+        assert (getattr(np, f"nan{method}"), "Rolling_apply_single") in NUMBA_FUNC_CACHE
+
+        tm.assert_series_equal(result, expected)
+
+    def test_numba_vs_cython_expanding_methods(
+        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+    ):
+
+        method = arithmetic_numba_supported_operators
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(np.eye(5))
+        expand = df.expanding()
+        result = getattr(expand, method)(engine="numba", engine_kwargs=engine_kwargs)
+        expected = getattr(expand, method)(engine="cython")
+
+        # Check the cache
+        assert (
+            getattr(np, f"nan{method}"),
+            "Expanding_apply_single",
+        ) in NUMBA_FUNC_CACHE
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("jit", [True, False])
-    def test_cache(self, jit, nogil, parallel, nopython):
+    def test_cache_apply(self, jit, nogil, parallel, nopython):
         # Test that the functions are cached correctly if we switch functions
         def func_1(x):
             return np.mean(x) + 4
@@ -139,11 +178,9 @@ class TestTableMethod:
             )
 
     def test_table_method_rolling_methods(
-        self, axis, nogil, parallel, nopython, arithmetic_win_operators
+        self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_win_operators
-        if method in ("kurt", "skew", "count", "sem", "var", "std"):
-            pytest.skip(f"{method} does not support numba engine.")
+        method = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
@@ -217,11 +254,9 @@ class TestTableMethod:
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_expanding_methods(
-        self, axis, nogil, parallel, nopython, arithmetic_win_operators
+        self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_win_operators
-        if method in ("kurt", "skew", "count", "sem", "var", "std"):
-            pytest.skip(f"{method} does not support numba engine.")
+        method = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
