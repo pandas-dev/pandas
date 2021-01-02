@@ -161,6 +161,7 @@ Deprecations
 - Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
 - Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
+- Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -171,7 +172,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`IntervalIndex.isin` (:issue:`38353`)
--
+- Performance improvement in :meth:`Series.mean` for nullable data types (:issue:`34814`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -188,8 +189,8 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :class:`CategoricalIndex` incorrectly failing to raise ``TypeError`` when scalar data is passed (:issue:`38614`)
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
-- Bug where construcing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
-
+- Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
+- Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -272,6 +273,7 @@ I/O
 - Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
+- Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
 
 
 Period
@@ -291,13 +293,15 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical series were not tallied (:issue:`38672`)
+- Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
 -
 
 Reshaping
 ^^^^^^^^^
-
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
 -
+
 
 Sparse
 ^^^^^^
@@ -308,13 +312,14 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+
 - Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
--
+- Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 -
 
 Other
 ^^^^^
-
+- Bug in :class:`Index` constructor sometimes silently ignorning a a specified ``dtype`` (:issue:`38879`)
 -
 -
 
