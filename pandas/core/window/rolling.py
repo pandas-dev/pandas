@@ -1573,7 +1573,6 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def median(self, engine=None, engine_kwargs=None, **kwargs):
-        window_func = window_aggregations.roll_median_c
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("method='table' is not supported.")
@@ -1587,6 +1586,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 engine_kwargs=engine_kwargs,
                 args=args,
             )
+        window_func = window_aggregations.roll_median_c
         return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof: int = 1, *args, **kwargs):
