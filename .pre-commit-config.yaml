@@ -174,3 +174,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^pandas/core/
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.16.0
+    hooks:
+    -   id: setup-cfg-fmt
