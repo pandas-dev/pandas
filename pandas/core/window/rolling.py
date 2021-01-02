@@ -1801,17 +1801,8 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         quantile: float,
         interpolation: str = "linear",
-        engine=None,
-        engine_kwargs=None,
         **kwargs,
     ):
-        if maybe_use_numba(engine):
-            return self.apply(
-                partial(np.nanquantile, q=quantile, interpolation=interpolation),
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
         if quantile == 1.0:
             window_func = window_aggregations.roll_max
         elif quantile == 0.0:
