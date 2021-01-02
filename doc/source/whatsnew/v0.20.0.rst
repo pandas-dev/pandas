@@ -931,9 +931,9 @@ New behavior:
    Out[94]:
          value
    a aa      2
-   bb      1
+     bb      1
    b aa      4
-   bb      3
+     bb      3
 
    [4 rows x 1 columns]
 
