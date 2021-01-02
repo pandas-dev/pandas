@@ -31,6 +31,8 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
+from pandas._libs import iNaT
+from pandas._libs.algos import Infinity, NegInfinity
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
@@ -40,8 +42,7 @@ from pandas import DataFrame, Interval, Period, Series, Timedelta, Timestamp
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
+
 
 # ----------------------------------------------------------------
 # Configuration / Settings
@@ -592,7 +593,7 @@ def narrow_series(request):
     return _narrow_series[request.param].copy()
 
 
-dtype_map = {
+_dtype_nuisance_arr_map = {
     "float64": [
         -np.inf,
         -50,
@@ -636,7 +637,8 @@ dtype_map = {
     ],
     "object": [NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()],
 }
-dtype_na_map = {
+
+_dtype_na_map = {
     "float64": np.nan,
     "float32": np.nan,
     "int64": iNaT,
@@ -644,18 +646,28 @@ dtype_na_map = {
 }
 
 
-@pytest.fixture(params=dtype_map.keys())
-def rank_blub(request):
+@pytest.fixture(params=_dtype_nuisance_arr_map.keys())
+def nuisance_rank_series_and_expected(request):
+    """
+    Fixture for Series with troublesome values for rank
+    algorithms
+    """
     dtype = request.param
-    data = dtype_map[dtype]
+    if dtype == "int64":
+        mark = pytest.mark.xfail(
+            reason="iNaT is equivalent to minimum value of dtype"
+            "int64 pending issue GH#16674"
+        )
+        request.node.add_marker(mark)
+    data = _dtype_nuisance_arr_map[dtype]
     values = np.array(data, dtype=dtype)
     exp_order = np.array(range(len(values)), dtype="float64") + 1.0
     # Insert nans at random positions if underlying dtype has missing
     # value. Then adjust the expected order by adding nans accordingly
     # This is for testing whether rank calculation is affected
     # when values are interwined with nan values.
-    if dtype in dtype_na_map:
-        na_value = dtype_na_map[dtype]
+    if dtype in _dtype_na_map:
+        na_value = _dtype_na_map[dtype]
         nan_indices = np.random.choice(range(len(values)), 5)
         values = np.insert(values, nan_indices, na_value)
         exp_order = np.insert(exp_order, nan_indices, np.nan)

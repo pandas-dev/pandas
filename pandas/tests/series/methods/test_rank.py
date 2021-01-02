@@ -206,70 +206,10 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    # @pytest.mark.parametrize(
-    #     "contents,dtype",
-    #     [
-    #         (
-    #             [
-    #                 -np.inf,
-    #                 -50,
-    #                 -1,
-    #                 -1e-20,
-    #                 -1e-25,
-    #                 -1e-50,
-    #                 0,
-    #                 1e-40,
-    #                 1e-20,
-    #                 1e-10,
-    #                 2,
-    #                 40,
-    #                 np.inf,
-    #             ],
-    #             "float64",
-    #         ),
-    #         (
-    #             [
-    #                 -np.inf,
-    #                 -50,
-    #                 -1,
-    #                 -1e-20,
-    #                 -1e-25,
-    #                 -1e-45,
-    #                 0,
-    #                 1e-40,
-    #                 1e-20,
-    #                 1e-10,
-    #                 2,
-    #                 40,
-    #                 np.inf,
-    #             ],
-    #             "float32",
-    #         ),
-    #         ([np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max], "uint8"),
-    #         pytest.param(
-    #             [
-    #                 np.iinfo(np.int64).min,
-    #                 -100,
-    #                 0,
-    #                 1,
-    #                 9999,
-    #                 100000,
-    #                 1e10,
-    #                 np.iinfo(np.int64).max,
-    #             ],
-    #             "int64",
-    #             marks=pytest.mark.xfail(
-    #                 reason="iNaT is equivalent to minimum value of dtype"
-    #                 "int64 pending issue GH#16674"
-    #             ),
-    #         ),
-    #         ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
-    #     ],
-    # )
-    def test_rank_inf(self, rank_blub):
-        iseries, exp = rank_blub
-        iranks = iseries.rank()
-        tm.assert_series_equal(iranks, exp)
+    def test_rank_inf(self, nuisance_rank_series_and_expected):
+        series, expected = nuisance_rank_series_and_expected
+        result = series.rank()
+        tm.assert_series_equal(result, expected)
 
     def test_rank_tie_methods(self):
         s = self.s
