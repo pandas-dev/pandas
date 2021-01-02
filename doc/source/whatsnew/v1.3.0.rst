@@ -51,7 +51,7 @@ Other enhancements
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
-- Improve numerical stability for :meth:`DataFrameGroupBy.sum()` and :meth:`SeriesGroupBy.sum()` through using Kahan summation (:issue:`38778`)
+- Improve numerical stability for :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` through using Kahan summation (:issue:`38778`)
 
 .. ---------------------------------------------------------------------------
 
