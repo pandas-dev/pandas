@@ -308,8 +308,8 @@ Sorting in SAS is accomplished via ``PROC SORT``
 String processing
 -----------------
 
-Length
-~~~~~~
+Finding length of string
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS determines the length of a character string with the
 `LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
@@ -327,8 +327,8 @@ functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailin
 .. include:: includes/length.rst
 
 
-Find
-~~~~
+Finding position of substring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS determines the position of a character in a string with the
 `FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
@@ -353,8 +353,8 @@ the function will return -1 if it fails to find the substring.
    tips["sex"].str.find("ale").head()
 
 
-Substring
-~~~~~~~~~
+Extracting substring by position
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the
 `SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
@@ -375,8 +375,8 @@ indexes are zero-based.
    tips["sex"].str[0:1].head()
 
 
-Scan
-~~~~
+Extracting nth word
+~~~~~~~~~~~~~~~~~~~
 
 The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
 function returns the nth word from a string. The first argument is the string you want to parse and the
@@ -406,8 +406,8 @@ approaches, but this just shows a simple approach.
    firstlast
 
 
-Upcase, lowcase, and propcase
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Changing case
+~~~~~~~~~~~~~
 
 The SAS `UPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__
 `LOWCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and
