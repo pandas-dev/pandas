@@ -543,7 +543,7 @@ def test_idxmin_idxmax_axis1():
     df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
     df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
 
-    gb = df.groupby("A")
+    gb = df.groupby("A", group_keys=True)
 
     res = gb.idxmax(axis=1)
 
@@ -965,7 +965,9 @@ def test_frame_describe_multikey(tsframe):
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
 
-    groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    groupedT = tsframe.groupby(
+        {"A": 0, "B": 0, "C": 1, "D": 1}, axis=1, group_keys=True
+    )
     result = groupedT.describe()
     expected = tsframe.describe().T
     # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/

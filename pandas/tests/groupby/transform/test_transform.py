@@ -175,8 +175,14 @@ def test_transform_axis_1(transformation_func):
     args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
-    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    result = df.groupby([0, 0, 1], axis=1, group_keys=False).transform(
+        transformation_func, *args
+    )
+    expected = (
+        df.T.groupby([0, 0, 1], group_keys=False)
+        .transform(transformation_func, *args)
+        .T
+    )
 
     if transformation_func == "diff":
         # Result contains nans, so transpose coerces to float

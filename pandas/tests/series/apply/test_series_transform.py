@@ -19,7 +19,7 @@ def test_transform_groupby_kernel(string_series, op):
 
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
-    expected = string_series.groupby(ones).transform(op, *args)
+    expected = string_series.groupby(ones, group_keys=False).transform(op, *args)
     result = string_series.transform(op, 0, *args)
     tm.assert_series_equal(result, expected)
 

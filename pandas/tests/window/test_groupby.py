@@ -757,7 +757,7 @@ class TestEWM:
     def test_methods(self, method, expected_data):
         # GH 16037
         df = DataFrame({"A": ["a"] * 4, "B": range(4)})
-        result = getattr(df.groupby("A").ewm(com=1.0), method)()
+        result = getattr(df.groupby("A", group_keys=True).ewm(com=1.0), method)()
         expected = DataFrame(
             {"B": expected_data},
             index=MultiIndex.from_tuples(
@@ -772,9 +772,10 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
-        # There may be a bug in the above statement; not returning the correct index
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        expected = df.groupby("A", group_keys=True).apply(
+            lambda x: getattr(x.ewm(com=1.0), method)()
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "method, expected_data",

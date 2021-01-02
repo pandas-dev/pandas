@@ -51,7 +51,9 @@ def test_transform_groupby_kernel(axis, float_frame, op):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
-    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
+    expected = float_frame.groupby(ones, axis=axis, group_keys=False).transform(
+        op, *args
+    )
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
 

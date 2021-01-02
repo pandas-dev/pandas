@@ -4884,6 +4884,7 @@ Keep all original rows and also all original values
         level=None,
         origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
         offset: Optional["TimedeltaConvertibleTypes"] = None,
+        group_keys: bool = no_default,
     ) -> "Resampler":
         return super().resample(
             rule=rule,
@@ -4898,6 +4899,7 @@ Keep all original rows and also all original values
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     def to_timestamp(self, freq=None, how="start", copy=True) -> "Series":

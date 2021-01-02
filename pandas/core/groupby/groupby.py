@@ -11,7 +11,6 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import inspect
-import re
 from textwrap import dedent
 import types
 from typing import (
@@ -830,27 +829,10 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            # TODO: master has this as just a call to python_apply_general
             is_transform = name in base.transformation_kernels
-            try:
-                return self._python_apply_general(
-                    curried, self._obj_with_exclusions, is_transform=is_transform
-                )
-            except TypeError as err:
-                if not re.search(
-                    "reduction operation '.*' not allowed for this dtype", str(err)
-                ):
-                    # We don't have a cython implementation
-                    # TODO: is the above comment accurate?
-                    raise
-
-            if self.obj.ndim == 1:
-                # this can be called recursively, so need to raise ValueError
-                raise ValueError
-
-            # GH#3688 try to operate item-by-item
-            result = self._aggregate_item_by_item(name, *args, **kwargs)
-            return result
+            return self._python_apply_general(
+                curried, self._obj_with_exclusions, is_transform=is_transform
+            )
 
         wrapper.__name__ = name
         return wrapper
@@ -1266,28 +1248,23 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
 
-        # TODO: commented is from PR
-        # if len(output) == 0:
-        #     return self._python_apply_general(
-        #         f, self._selected_obj, is_empty_agg=True
-        #     )
-        if is_numeric_dtype(obj.dtype):
-            result = maybe_downcast_numeric(result, obj.dtype)
+            if is_numeric_dtype(obj.dtype):
+                result = maybe_downcast_numeric(result, obj.dtype)
 
-        if self.grouper._filter_empty_groups:
-            mask = counts.ravel() > 0
+            if self.grouper._filter_empty_groups:
+                mask = counts.ravel() > 0
 
-            # since we are masking, make sure that we have a float object
-            values = result
-            if is_numeric_dtype(values.dtype):
-                values = ensure_float(values)
+                # since we are masking, make sure that we have a float object
+                values = result
+                if is_numeric_dtype(values.dtype):
+                    values = ensure_float(values)
 
-                result = maybe_downcast_numeric(values[mask], result.dtype)
+                    result = maybe_downcast_numeric(values[mask], result.dtype)
 
-        output[key] = result
+            output[key] = result
 
         if not output:
-            return self._python_apply_general(f, self._selected_obj)
+            return self._python_apply_general(f, self._selected_obj, is_empty_agg=True)
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
@@ -1336,19 +1313,19 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         elif not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = self._selected_obj._get_axis(self.axis)
+            ax = self.filter(lambda x: True).axes[self.axis]
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            if ax.has_duplicates:
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 indexer, _ = result.index.get_indexer_non_unique(ax.values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
-                result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis, copy=False)
 
         else:
             values = reset_identity(values)

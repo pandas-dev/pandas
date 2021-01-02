@@ -1612,13 +1612,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj[key]
             return SeriesGroupBy(
                 subset,
-                selection=key,
-                grouper=self.grouper,
-                observed=self.observed,
-                group_keys=self.group_keys,
                 level=self.level,
+                grouper=self.grouper,
+                selection=key,
                 sort=self.sort,
+                group_keys=self.group_keys,
                 squeeze=self.squeeze,
+                observed=self.observed,
                 dropna=self.dropna,
             )
 
