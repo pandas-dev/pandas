@@ -2179,9 +2179,9 @@ def test_groupby_series_with_tuple_name():
 def test_groupby_numerical_stability_sum():
     # GH#38778
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
-    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
+    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data}, dtype="float64")
     result = df.groupby("group").sum()
     expected = DataFrame(
-        {"a": [97.0, 98.0], "b": [97.0, 98.0]}, index=Index([1, 2], name="group")
+        {"a": [97.0, 98.0], "b": [97.0, 98.0]}, index=Index([1.0, 2.0], name="group")
     )
     tm.assert_frame_equal(result, expected)
