@@ -1395,19 +1395,6 @@ class RollingAndExpandingMixin(BaseWindow):
     **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
-
-    Returns
-    -------
-    Series or DataFrame
-        Returned object type is determined by the caller of the %(name)s
-        calculation.
-
-    See Also
-    --------
-    pandas.Series.%(name)s : Calling object with a Series.
-    pandas.DataFrame.%(name)s : Calling object with a DataFrame.
-    pandas.Series.max : Similar method for Series.
-    pandas.DataFrame.max : Similar method for DataFrame.
     """
     )
 
