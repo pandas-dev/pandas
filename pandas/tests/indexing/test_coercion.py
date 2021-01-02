@@ -436,7 +436,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
         ids=["datetime64", "datetime64tz"],
     )
-    def test_insert_index_datetimes(self, request, fill_val, exp_dtype):
+    def test_insert_index_datetimes(self, fill_val, exp_dtype):
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
         )
