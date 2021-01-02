@@ -116,10 +116,14 @@ def _get_all_parser_float_precision_combinations():
     params = []
     ids = []
     for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+        if parser_id == "pyarrow":
+            # GH38370
+            continue
         for precision in parser.float_precision_choices:
             params.append((parser, precision))
             ids.append(f"{parser_id}-{precision}")
 
+    print(params)
     return {"params": params, "ids": ids}
 
 
