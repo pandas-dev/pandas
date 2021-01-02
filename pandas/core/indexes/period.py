@@ -14,10 +14,8 @@ from pandas.util._decorators import cache_readonly, doc
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_dtype_equal,
     is_float,
     is_integer,
-    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -634,16 +632,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _intersection(self, other, sort=False):
         return self._setop(other, sort, opname="intersection")
-
-    def _difference(self, other, sort):
-
-        if is_object_dtype(other):
-            return self.astype(object).difference(other).astype(self.dtype)
-
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            return self
-
-        return self._setop(other, sort, opname="difference")
 
     def _union(self, other, sort):
         return self._setop(other, sort, opname="_union")
