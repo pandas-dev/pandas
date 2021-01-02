@@ -176,7 +176,8 @@ def names_compat(meth):
     return new_meth
 
 
-def _lexsort_depth(codes, nlevels) -> int:
+def _lexsort_depth(codes: List[np.ndarray], nlevels: int) -> int:
+    """Count depth with which codes are lexsorted, up to nlevels."""
     int64_codes = [ensure_int64(level_codes) for level_codes in codes]
     for k in range(nlevels, 0, -1):
         if libalgos.is_lexsorted(int64_codes[:k]):
