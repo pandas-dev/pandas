@@ -326,13 +326,16 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3], dtype="int64")
         tm.assert_series_equal(result, expected)
 
+    def test_construct_from_categorical_with_dtype(self):
         # GH12574
         cat = Series(Categorical([1, 2, 3]), dtype="category")
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
-        s = Series([1, 2, 3], dtype="category")
-        assert is_categorical_dtype(s)
-        assert is_categorical_dtype(s.dtype)
+
+    def test_construct_intlist_values_category_dtype(self):
+        ser = Series([1, 2, 3], dtype="category")
+        assert is_categorical_dtype(ser)
+        assert is_categorical_dtype(ser.dtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])

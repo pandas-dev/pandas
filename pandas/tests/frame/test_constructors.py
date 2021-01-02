@@ -1890,6 +1890,16 @@ class TestDataFrameConstructors:
         assert d["a"].dtype == np.object_
         assert not d["a"][1]
 
+    def test_constructor_ndarray_categorical_dtype(self):
+        cat = Categorical(["A", "B", "C"])
+        arr = np.array(cat).reshape(-1, 1)
+        arr = np.broadcast_to(arr, (3, 4))
+
+        result = DataFrame(arr, dtype=cat.dtype)
+
+        expected = DataFrame({0: cat, 1: cat, 2: cat, 3: cat})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_categorical(self):
 
         # GH8626
@@ -1913,11 +1923,13 @@ class TestDataFrameConstructors:
         expected = Series(list("abc"), dtype="category", name=0)
         tm.assert_series_equal(df[0], expected)
 
+    def test_construct_from_1item_list_of_categorical(self):
         # ndim != 1
         df = DataFrame([Categorical(list("abc"))])
         expected = DataFrame({0: Series(list("abc"), dtype="category")})
         tm.assert_frame_equal(df, expected)
 
+    def test_construct_from_list_of_categoricals(self):
         df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
         expected = DataFrame(
             {
@@ -1928,6 +1940,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_from_nested_listlike_mixed_types(self):
         # mixed
         df = DataFrame([Categorical(list("abc")), list("def")])
         expected = DataFrame(
@@ -1935,11 +1948,14 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_construct_from_listlikes_mismatched_lengths(self):
         # invalid (shape)
         msg = r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
+    def test_categorical_1d_only(self):
+        # TODO: belongs in Categorical tests
         # ndim > 1
         msg = "> 1 ndim Categorical are not supported at this time"
         with pytest.raises(NotImplementedError, match=msg):
