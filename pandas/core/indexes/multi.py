@@ -176,6 +176,14 @@ def names_compat(meth):
     return new_meth
 
 
+def _lexsort_depth(codes, nlevels) -> int:
+    int64_codes = [ensure_int64(level_codes) for level_codes in codes]
+    for k in range(nlevels, 0, -1):
+        if libalgos.is_lexsorted(int64_codes[:k]):
+            return k
+    return 0
+
+
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects.
@@ -391,11 +399,11 @@ class MultiIndex(Index):
                     f"Level values must be unique: {list(level)} on level {i}"
                 )
         if self.sortorder is not None:
-            if self.sortorder > self._codes_lexsort_depth():
+            if self.sortorder > _lexsort_depth(self.codes, self.nlevels):
                 raise ValueError(
                     "Value for sortorder must be inferior or equal to actual "
                     f"lexsort_depth: sortorder {self.sortorder} "
-                    f"with lexsort_depth {self._codes_lexsort_depth()}"
+                    f"with lexsort_depth {_lexsort_depth(self.codes, self.nlevels)}"
                 )
 
         codes = [
@@ -1851,7 +1859,7 @@ class MultiIndex(Index):
         """
         return self._lexsort_depth == self.nlevels
 
-    @cache_readonly
+    @property
     def lexsort_depth(self):
         warnings.warn(
             "MultiIndex.is_lexsorted is deprecated as a public function, "
@@ -1873,14 +1881,7 @@ class MultiIndex(Index):
         """
         if self.sortorder is not None:
             return self.sortorder
-        return self._codes_lexsort_depth()
-
-    def _codes_lexsort_depth(self) -> int:
-        int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
-        for k in range(self.nlevels, 0, -1):
-            if libalgos.is_lexsorted(int64_codes[:k]):
-                return k
-        return 0
+        return _lexsort_depth(self.codes, self.nlevels)
 
     def _sort_levels_monotonic(self):
         """
