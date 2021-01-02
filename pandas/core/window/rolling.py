@@ -1797,12 +1797,7 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def quantile(
-        self,
-        quantile: float,
-        interpolation: str = "linear",
-        **kwargs,
-    ):
+    def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         if quantile == 1.0:
             window_func = window_aggregations.roll_max
         elif quantile == 0.0:
@@ -2231,19 +2226,10 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["quantile"])
-    def quantile(
-        self,
-        quantile,
-        interpolation="linear",
-        engine=None,
-        engine_kwargs=None,
-        **kwargs,
-    ):
+    def quantile(self, quantile, interpolation="linear", **kwargs):
         return super().quantile(
             quantile=quantile,
             interpolation=interpolation,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
             **kwargs,
         )
 
