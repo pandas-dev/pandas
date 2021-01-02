@@ -54,7 +54,7 @@ class TestEngine:
         # Check the cache
         assert (getattr(np, f"nan{method}"), "Rolling_apply_single") in NUMBA_FUNC_CACHE
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_numba_vs_cython_expanding_methods(
         self, nogil, parallel, nopython, arithmetic_numba_supported_operators
@@ -75,7 +75,7 @@ class TestEngine:
             "Expanding_apply_single",
         ) in NUMBA_FUNC_CACHE
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
     def test_cache_apply(self, jit, nogil, parallel, nopython):
