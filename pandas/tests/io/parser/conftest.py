@@ -13,7 +13,7 @@ class BaseParser:
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()
-        kwargs.update(dict(engine=self.engine, low_memory=self.low_memory))
+        kwargs.update({"engine": self.engine, "low_memory": self.low_memory})
 
         return kwargs
 
@@ -93,6 +93,33 @@ def c_parser_only(request):
 def python_parser_only(request):
     """
     Fixture all of the CSV parsers using the Python engine.
+    """
+    return request.param
+
+
+def _get_all_parser_float_precision_combinations():
+    """
+    Return all allowable parser and float precision
+    combinations and corresponding ids.
+    """
+    params = []
+    ids = []
+    for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+        for precision in parser.float_precision_choices:
+            params.append((parser, precision))
+            ids.append(f"{parser_id}-{precision}")
+
+    return {"params": params, "ids": ids}
+
+
+@pytest.fixture(
+    params=_get_all_parser_float_precision_combinations()["params"],
+    ids=_get_all_parser_float_precision_combinations()["ids"],
+)
+def all_parsers_all_precisions(request):
+    """
+    Fixture for all allowable combinations of parser
+    and float precision
     """
     return request.param
 

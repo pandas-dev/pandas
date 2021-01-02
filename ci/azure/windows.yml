@@ -16,7 +16,7 @@ jobs:
       py38_np18:
         ENV_FILE: ci/deps/azure-windows-38.yaml
         CONDA_PY: "38"
-        PATTERN: "not slow and not network"
+        PATTERN: "not slow and not network and not high_memory"
 
   steps:
     - powershell: |
@@ -34,7 +34,7 @@ jobs:
     - bash: |
         source activate pandas-dev
         conda list
-        python setup.py build_ext -q -i -j 4
+        python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
       displayName: 'Build'
 

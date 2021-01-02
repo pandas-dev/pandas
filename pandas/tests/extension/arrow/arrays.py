@@ -21,6 +21,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.core.arraylike import OpsMixin
 
 
 @register_extension_dtype
@@ -67,7 +68,9 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
+    _data: pa.ChunkedArray
+
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -107,7 +110,7 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
-    def _boolean_op(self, other, op):
+    def _logical_method(self, other, op):
         if not isinstance(other, type(self)):
             raise NotImplementedError()
 
@@ -120,16 +123,10 @@ class ArrowExtensionArray(ExtensionArray):
         if not isinstance(other, type(self)):
             return False
 
-        return self._boolean_op(other, operator.eq)
-
-    def __and__(self, other):
-        return self._boolean_op(other, operator.and_)
-
-    def __or__(self, other):
-        return self._boolean_op(other, operator.or_)
+        return self._logical_method(other, operator.eq)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sum(
             x.size
             for chunk in self._data.chunks
@@ -162,7 +159,7 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:

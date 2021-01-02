@@ -8,28 +8,28 @@ import pandas._testing as tm
 @pytest.fixture
 def df1():
     return DataFrame(
-        dict(
-            outer=[1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
-            inner=[1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
-            v1=np.linspace(0, 1, 11),
-        )
+        {
+            "outer": [1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4],
+            "inner": [1, 2, 3, 1, 2, 3, 4, 1, 2, 1, 2],
+            "v1": np.linspace(0, 1, 11),
+        }
     )
 
 
 @pytest.fixture
 def df2():
     return DataFrame(
-        dict(
-            outer=[1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
-            inner=[1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
-            v2=np.linspace(10, 11, 12),
-        )
+        {
+            "outer": [1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3],
+            "inner": [1, 2, 2, 3, 3, 4, 2, 3, 1, 1, 2, 3],
+            "v2": np.linspace(10, 11, 12),
+        }
     )
 
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def left_df(request, df1):
-    """ Construct left test DataFrame with specified levels
+    """Construct left test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v1')
     """
     levels = request.param
@@ -41,7 +41,7 @@ def left_df(request, df1):
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def right_df(request, df2):
-    """ Construct right test DataFrame with specified levels
+    """Construct right test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v2')
     """
     levels = request.param

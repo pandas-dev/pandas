@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_datetime64_any_dtype
 
 from pandas import (
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     NaT,
     Period,
@@ -440,7 +441,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
         DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
+        DatetimeArray._from_sequence(
+            ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
+        ),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -555,20 +558,28 @@ def test_nat_comparisons_numpy(other):
     assert not NaT >= other
 
 
-@pytest.mark.parametrize("other", ["foo", 2, 2.0])
-@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
-def test_nat_comparisons_invalid(other, op):
+@pytest.mark.parametrize("other_and_type", [("foo", "str"), (2, "int"), (2.0, "float")])
+@pytest.mark.parametrize(
+    "symbol_and_op",
+    [("<=", operator.le), ("<", operator.lt), (">=", operator.ge), (">", operator.gt)],
+)
+def test_nat_comparisons_invalid(other_and_type, symbol_and_op):
     # GH#35585
+    other, other_type = other_and_type
+    symbol, op = symbol_and_op
+
     assert not NaT == other
     assert not other == NaT
 
     assert NaT != other
     assert other != NaT
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of 'NaTType' and '{other_type}'"
+    with pytest.raises(TypeError, match=msg):
         op(NaT, other)
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of '{other_type}' and 'NaTType'"
+    with pytest.raises(TypeError, match=msg):
         op(other, NaT)
 
 

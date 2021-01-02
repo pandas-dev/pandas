@@ -1,5 +1,6 @@
 from cpython.datetime cimport datetime, timedelta, tzinfo
 
+
 cdef tzinfo utc_pytz
 
 cpdef bint is_utc(tzinfo tz)

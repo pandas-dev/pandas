@@ -7,8 +7,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, compat, offsets
+from pandas import NaT, Timedelta, Timestamp, compat, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -426,7 +428,7 @@ class TestTimedeltaMultiplicationDivision:
                 np.float64("NaN"),
                 marks=pytest.mark.xfail(
                     # Works on numpy dev only in python 3.9
-                    _is_numpy_dev and not compat.PY39,
+                    is_numpy_dev and not compat.PY39,
                     raises=RuntimeWarning,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
                 ),
@@ -925,7 +927,7 @@ class TestTimedeltaComparison:
     def test_compare_td64_ndarray(self):
         # GG#33441
         arr = np.arange(5).astype("timedelta64[ns]")
-        td = pd.Timedelta(arr[1])
+        td = Timedelta(arr[1])
 
         expected = np.array([False, True, False, False, False], dtype=bool)
 

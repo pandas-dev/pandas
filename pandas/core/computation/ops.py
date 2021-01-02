@@ -15,12 +15,12 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import _ensure_decoded, result_type_many
-from pandas.core.computation.scope import _DEFAULT_GLOBALS
+from pandas.core.computation.common import ensure_decoded, result_type_many
+from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
-_reductions = ("sum", "prod")
+REDUCTIONS = ("sum", "prod")
 
 _unary_math_ops = (
     "sin",
@@ -46,10 +46,10 @@ _unary_math_ops = (
 )
 _binary_math_ops = ("arctan2",)
 
-_mathops = _unary_math_ops + _binary_math_ops
+MATHOPS = _unary_math_ops + _binary_math_ops
 
 
-_LOCAL_TAG = "__pd_eval_local_"
+LOCAL_TAG = "__pd_eval_local_"
 
 
 class UndefinedVariableError(NameError):
@@ -69,7 +69,9 @@ class UndefinedVariableError(NameError):
 class Term:
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        supr_new = super(Term, klass).__new__
+        # pandas\core\computation\ops.py:72: error: Argument 2 for "super" not
+        # an instance of argument 1  [misc]
+        supr_new = super(Term, klass).__new__  # type: ignore[misc]
         return supr_new(klass)
 
     is_local: bool
@@ -80,13 +82,13 @@ class Term:
         self.env = env
         self.side = side
         tname = str(name)
-        self.is_local = tname.startswith(_LOCAL_TAG) or tname in _DEFAULT_GLOBALS
+        self.is_local = tname.startswith(LOCAL_TAG) or tname in DEFAULT_GLOBALS
         self._value = self._resolve_name()
         self.encoding = encoding
 
     @property
     def local_name(self) -> str:
-        return self.name.replace(_LOCAL_TAG, "")
+        return self.name.replace(LOCAL_TAG, "")
 
     def __repr__(self) -> str:
         return pprint_thing(self.name)
@@ -220,7 +222,7 @@ class Op:
     @property
     def return_type(self):
         # clobber types to bool if the op is a boolean operator
-        if self.op in (_cmp_ops_syms + _bool_ops_syms):
+        if self.op in (CMP_OPS_SYMS + BOOL_OPS_SYMS):
             return np.bool_
         return result_type_many(*(term.type for term in com.flatten(self)))
 
@@ -280,7 +282,7 @@ def _not_in(x, y):
         return x not in y
 
 
-_cmp_ops_syms = (">", "<", ">=", "<=", "==", "!=", "in", "not in")
+CMP_OPS_SYMS = (">", "<", ">=", "<=", "==", "!=", "in", "not in")
 _cmp_ops_funcs = (
     operator.gt,
     operator.lt,
@@ -291,13 +293,13 @@ _cmp_ops_funcs = (
     _in,
     _not_in,
 )
-_cmp_ops_dict = dict(zip(_cmp_ops_syms, _cmp_ops_funcs))
+_cmp_ops_dict = dict(zip(CMP_OPS_SYMS, _cmp_ops_funcs))
 
-_bool_ops_syms = ("&", "|", "and", "or")
+BOOL_OPS_SYMS = ("&", "|", "and", "or")
 _bool_ops_funcs = (operator.and_, operator.or_, operator.and_, operator.or_)
-_bool_ops_dict = dict(zip(_bool_ops_syms, _bool_ops_funcs))
+_bool_ops_dict = dict(zip(BOOL_OPS_SYMS, _bool_ops_funcs))
 
-_arith_ops_syms = ("+", "-", "*", "/", "**", "//", "%")
+ARITH_OPS_SYMS = ("+", "-", "*", "/", "**", "//", "%")
 _arith_ops_funcs = (
     operator.add,
     operator.sub,
@@ -307,12 +309,12 @@ _arith_ops_funcs = (
     operator.floordiv,
     operator.mod,
 )
-_arith_ops_dict = dict(zip(_arith_ops_syms, _arith_ops_funcs))
+_arith_ops_dict = dict(zip(ARITH_OPS_SYMS, _arith_ops_funcs))
 
-_special_case_arith_ops_syms = ("**", "//", "%")
+SPECIAL_CASE_ARITH_OPS_SYMS = ("**", "//", "%")
 _special_case_arith_ops_funcs = (operator.pow, operator.floordiv, operator.mod)
 _special_case_arith_ops_dict = dict(
-    zip(_special_case_arith_ops_syms, _special_case_arith_ops_funcs)
+    zip(SPECIAL_CASE_ARITH_OPS_SYMS, _special_case_arith_ops_funcs)
 )
 
 _binary_ops_dict = {}
@@ -466,7 +468,7 @@ class BinOp(Op):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.rhs.update(v)
@@ -475,7 +477,7 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
@@ -530,9 +532,9 @@ class Div(BinOp):
         _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
 
 
-_unary_ops_syms = ("+", "-", "~", "not")
+UNARY_OPS_SYMS = ("+", "-", "~", "not")
 _unary_ops_funcs = (operator.pos, operator.neg, operator.invert, operator.invert)
-_unary_ops_dict = dict(zip(_unary_ops_syms, _unary_ops_funcs))
+_unary_ops_dict = dict(zip(UNARY_OPS_SYMS, _unary_ops_funcs))
 
 
 class UnaryOp(Op):
@@ -561,7 +563,7 @@ class UnaryOp(Op):
         except KeyError as err:
             raise ValueError(
                 f"Invalid unary operator {repr(op)}, "
-                f"valid operators are {_unary_ops_syms}"
+                f"valid operators are {UNARY_OPS_SYMS}"
             ) from err
 
     def __call__(self, env):
@@ -589,7 +591,8 @@ class MathCall(Op):
         self.func = func
 
     def __call__(self, env):
-        operands = [op(env) for op in self.operands]
+        # pandas\core\computation\ops.py:592: error: "Op" not callable  [operator]
+        operands = [op(env) for op in self.operands]  # type: ignore[operator]
         with np.errstate(all="ignore"):
             return self.func.func(*operands)
 
@@ -600,11 +603,11 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import _NUMEXPR_INSTALLED, _NUMEXPR_VERSION
+        from pandas.core.computation.check import NUMEXPR_INSTALLED, NUMEXPR_VERSION
 
-        if name not in _mathops or (
-            _NUMEXPR_INSTALLED
-            and _NUMEXPR_VERSION < LooseVersion("2.6.9")
+        if name not in MATHOPS or (
+            NUMEXPR_INSTALLED
+            and NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
             raise ValueError(f'"{name}" is not a supported function')

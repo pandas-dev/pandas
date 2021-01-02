@@ -65,12 +65,13 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[-1\]$"):
             s.loc[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[-1\]$"):
             s.loc[[-1, 3]]
 
+    @pytest.mark.arm_slow
     def test_large_series(self):
         s = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
@@ -83,7 +84,7 @@ class TestIntervalIndex:
         tm.assert_series_equal(result1, result3)
 
     def test_loc_getitem_frame(self):
-
+        # CategoricalIndex with IntervalIndex categories
         df = DataFrame({"A": range(10)})
         s = pd.cut(df.A, 5)
         df["B"] = s
@@ -106,11 +107,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[10\]$"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match="^$"):
+        with pytest.raises(KeyError, match=r"^\[10\]$"):
             df.loc[[10, 4]]
 
 
@@ -130,9 +131,9 @@ class TestIntervalIndexInsideMultiIndex:
         )
 
         idx.names = ["Item", "RID", "MP"]
-        df = pd.DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
+        df = DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
         df.index = idx
-        query_df = pd.DataFrame(
+        query_df = DataFrame(
             {
                 "Item": ["FC", "OWNER", "FC", "OWNER", "OWNER"],
                 "RID": ["RID1", "RID1", "RID1", "RID2", "RID2"],
@@ -145,5 +146,5 @@ class TestIntervalIndexInsideMultiIndex:
         idx = pd.MultiIndex.from_arrays([query_df.Item, query_df.RID, query_df.MP])
         query_df.index = idx
         result = df.value.loc[query_df.index]
-        expected = pd.Series([1, 6, 2, 8, 7], index=idx, name="value")
+        expected = Series([1, 6, 2, 8, 7], index=idx, name="value")
         tm.assert_series_equal(result, expected)

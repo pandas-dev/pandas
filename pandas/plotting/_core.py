@@ -422,7 +422,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
@@ -542,12 +544,8 @@ def boxplot_frame_groupby(
         The layout of the plot: (rows, columns).
     sharex : bool, default False
         Whether x-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     sharey : bool, default True
         Whether y-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -682,14 +680,24 @@ class PlotAccessor(PandasObject):
     ylim : 2-tuple/list
         Set the y limits of the current axes.
     xlabel : label, optional
-        Name to use for the xlabel on x-axis. Default uses index name as xlabel.
+        Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+        x-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     ylabel : label, optional
-        Name to use for the ylabel on y-axis. Default will show no ylabel.
+        Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+        y-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal

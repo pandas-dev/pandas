@@ -15,9 +15,9 @@ def test_doc_string():
     df.ewm(com=0.5).mean()
 
 
-def test_constructor(which):
+def test_constructor(frame_or_series):
 
-    c = which.ewm
+    c = frame_or_series(range(5)).ewm
 
     # valid
     c(com=0.5)
@@ -127,3 +127,11 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture):
     result = df.ewm(halflife=halflife, times=times).mean()
     expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
     tm.assert_frame_equal(result, expected)
+
+
+def test_ewm_with_nat_raises(halflife_with_times):
+    # GH#38535
+    ser = Series(range(1))
+    times = DatetimeIndex(["NaT"])
+    with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
+        ser.ewm(com=0.1, halflife=halflife_with_times, times=times)

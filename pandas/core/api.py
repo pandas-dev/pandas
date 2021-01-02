@@ -14,6 +14,7 @@ from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -26,6 +27,7 @@ from pandas.core.arrays.integer import (
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array
+from pandas.core.flags import Flags
 from pandas.core.groupby import Grouper, NamedAgg
 from pandas.core.indexes.api import (
     CategoricalIndex,
