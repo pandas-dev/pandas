@@ -166,14 +166,23 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     elif isinstance(value, Timedelta):
         value = value.to_timedelta64()
 
-    if (isinstance(value, np.timedelta64) and dtype.kind == "M") or (
-        isinstance(value, np.datetime64) and dtype.kind == "m"
-    ):
-        # numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
-        #  vice-versa, but we do not want to allow this, so we need to
-        #  check explicitly
-        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
+    _disallow_mismatched_datetimelike(value, dtype)
     return value
+
+
+def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
+    """
+    numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
+    vice-versa, but we do not want to allow this, so we need to
+    check explicitly
+    """
+    vdtype = getattr(value, "dtype", None)
+    if vdtype is None:
+        return
+    elif (vdtype.kind == "m" and dtype.kind == "M") or (
+        vdtype.kind == "M" and dtype.kind == "m"
+    ):
+        raise TypeError(f"Cannot cast {repr(value)} to {dtype}")
 
 
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
@@ -716,7 +725,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         dtype = np.dtype(object)
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = Timestamp(val)
+        try:
+            val = Timestamp(val)
+        except OutOfBoundsDatetime:
+            return np.dtype(object), val
+
         if val is NaT or val.tz is None:
             dtype = np.dtype("M8[ns]")
         else:
@@ -1124,11 +1137,11 @@ def astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+    if copy or is_object_dtype(arr.dtype) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
-    return arr.view(dtype)
+    return arr.astype(dtype, copy=copy)
 
 
 def soft_convert_objects(
@@ -1463,6 +1476,8 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
 
                 # we have an array of datetime or timedeltas & nulls
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                    _disallow_mismatched_datetimelike(value, dtype)
+
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors="raise")
@@ -1512,13 +1527,7 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
         # catch a datetime/timedelta that is not of ns variety
         # and no coercion specified
         if is_array and value.dtype.kind in ["M", "m"]:
-            dtype = value.dtype
-
-            if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-                value = conversion.ensure_datetime64ns(value)
-
-            elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-                value = conversion.ensure_timedelta64ns(value)
+            value = sanitize_to_nanoseconds(value)
 
         # only do this if we have an array and the dtype of the array is not
         # setup already we are not an integer/object, so don't bother with this
@@ -1532,6 +1541,20 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
             value = maybe_infer_to_datetimelike(value)
 
     return value
+
+
+def sanitize_to_nanoseconds(values: np.ndarray) -> np.ndarray:
+    """
+    Safely convert non-nanosecond datetime64 or timedelta64 values to nanosecond.
+    """
+    dtype = values.dtype
+    if dtype.kind == "M" and dtype != DT64NS_DTYPE:
+        values = conversion.ensure_datetime64ns(values)
+
+    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
+        values = conversion.ensure_timedelta64ns(values)
+
+    return values
 
 
 def find_common_type(types: List[DtypeObj]) -> DtypeObj:
@@ -1715,6 +1738,8 @@ def construct_1d_ndarray_preserving_na(
     if dtype is not None and dtype.kind == "U":
         subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
     else:
+        if dtype is not None:
+            _disallow_mismatched_datetimelike(values, dtype)
         subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr
