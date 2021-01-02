@@ -237,9 +237,9 @@ class TestTableMethod:
         #  Once method='table' is supported, uncomment test below.
         #
         # result = getattr(
-        #     df.rolling(method="table", axis=axis), method
+        #     df.expanding(method="table", axis=axis), method
         # )(engine_kwargs=engine_kwargs, engine="numba")
         # expected = getattr(
-        #     df.rolling(method="single", axis=axis), method
+        #     df.expanding(method="single", axis=axis), method
         # )(engine_kwargs=engine_kwargs, engine="numba")
         # tm.assert_frame_equal(result, expected)
