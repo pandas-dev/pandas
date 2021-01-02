@@ -634,6 +634,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _ensure_array = Index._ensure_array
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self.name)
