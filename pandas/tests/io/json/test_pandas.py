@@ -112,7 +112,7 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
+                expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
         elif orient == "split":
             expected = df
 
@@ -254,7 +254,7 @@ class TestPandasContainer:
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
-            idx = expected.index.astype(np.int64) // 1000000
+            idx = expected.index.view(np.int64) // 1000000
             if orient != "split":  # TODO: handle consistently across orients
                 idx = idx.astype(str)
 
@@ -591,7 +591,7 @@ class TestPandasContainer:
 
         # the same with multiple columns threw segfaults
         df_mixed = DataFrame({"A": [binthing], "B": [1]}, columns=["A", "B"])
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
@@ -1259,19 +1259,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_read_json_large_numbers(self, bigNum):
         # GH20599
 
-        series = Series(bigNum, dtype=object, index=["articleId"])
-        json = '{"articleId":' + str(bigNum) + "}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_series_equal(series, result)
+        json = StringIO('{"articleId":' + str(bigNum) + "}")
+        msg = r"Value is too small|Value is too big"
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
-        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
-        json = '{"0":{"articleId":' + str(bigNum) + "}}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_frame_equal(df, result)
+        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
     def test_read_json_large_numbers2(self):
         # GH18842
