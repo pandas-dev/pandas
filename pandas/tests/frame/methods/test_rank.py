@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
