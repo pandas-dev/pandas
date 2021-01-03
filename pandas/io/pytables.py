@@ -4908,14 +4908,19 @@ def _maybe_convert_for_string_atom(
 
         # we cannot serialize this data, so report an exception on a column
         # by column basis
-        for i in range(len(block.shape[0])):
+
+        # expected behaviour:
+        # search block for a non-string object column by column
+        for i in range(block.shape[0]):
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                iloc = block.mgr_locs.indexer[i]
+                # it seems to be no approach for an ObjectBlock to get the
+                # column name for {col}, so the col number is given as a
+                # compromise.
                 raise TypeError(
-                    f"Cannot serialize the column [{iloc}] because\n"
-                    f"its data contents are [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{i}] because\n"
+                    f"its data contents are not string but [{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
