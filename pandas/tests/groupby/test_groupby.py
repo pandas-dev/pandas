@@ -2061,32 +2061,17 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
 
 @td.skip_if_no("lxml")
-def test_groupby_repr():
-    # GH 34926 - All groups and all rows in a group are shown in html output.
-    n_groups = 5
-    length = n_groups * 5
-    df = DataFrame(
-        {
-            "A": range(length),
-            "B": range(0, length * 2, 2),
-            "C": list(range(n_groups)) * (length // n_groups),
-        }
-    )
-
-    df_groupby = df.groupby("C")
-    html_groupby = df_groupby._repr_html_()
-
-    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
-
-    for k, (group_name, df_group) in enumerate(df_groupby):
-        tm.assert_frame_equal(dfs_from_html[k], df_group)
-
-
-@td.skip_if_no("lxml")
-@pytest.mark.parametrize("n_groups,n_rows,check_n_rows", [(4, 400, 7)])
-def test_groupby_repr_truncated_group(n_groups, n_rows, check_n_rows):
-    # GH 34926 - In the groups not all rows are shown in html output.
-
+@pytest.mark.parametrize(
+    "n_groups,n_rows,check_n_groups,check_n_rows",
+    [
+        (10, 60, 5, 3),  # All groups and all rows in the groups are shown
+        (25, 100, 5, 2),  # Not all groups are shown
+        (4, 400, 2, 7),  # Not all rows are shown in the groups
+        (20, 400, 5, 3),  # Not all groups and not all rows in the groups are shown
+    ],
+)
+def test_groupby_repr_not_all_groups(n_groups, n_rows, check_n_groups, check_n_rows):
+    # GH 34926
     df = DataFrame(
         {
             "A": range(n_rows),
@@ -2098,50 +2083,24 @@ def test_groupby_repr_truncated_group(n_groups, n_rows, check_n_rows):
     df_groupby = df.groupby("C")
     html_groupby = df_groupby._repr_html_()
 
-    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
-    # Filter out row with dots dots displaying hidden DataFrames
-    dfs_from_html = [
-        df_from_html[df_from_html.index != "..."] for df_from_html in dfs_from_html
-    ]
-    for k in range(len(dfs_from_html)):
-        # Convert to int (orginal dtype)
-        dfs_from_html[k] = dfs_from_html[k].astype(int)
-        dfs_from_html[k].index = dfs_from_html[k].index.astype(int)
+    df_from_html = pd.concat(pd.read_html(StringIO(html_groupby), index_col=0))
 
-    for k, (group_name, df_group) in enumerate(df_groupby):
-        tm.assert_frame_equal(
-            dfs_from_html[k].iloc[:check_n_rows], df_group.iloc[:check_n_rows],
-        )
-        tm.assert_frame_equal(
-            dfs_from_html[k].iloc[-check_n_rows:], df_group.iloc[-check_n_rows:],
-        )
+    # Drop "..." rows and convert index and data to int
+    df_from_html = df_from_html[df_from_html.index != "..."].astype(int)
+    df_from_html.index = df_from_html.index.astype(int)
 
-
-@td.skip_if_no("lxml")
-@pytest.mark.parametrize("n_groups,n_rows,check_n_groups", [(30, 150, 5)])
-def test_groupby_repr_not_all_groups(n_groups, n_rows, check_n_groups):
-    # GH 34926 - Not all groups are shown in html output.
-    df = DataFrame(
-        {
-            "A": range(n_rows),
-            "B": range(0, n_rows * 2, 2),
-            "C": list(range(n_groups)) * (n_rows // n_groups),
-        }
+    # Iterate over the first and last "check_n_groups" groups
+    df_group_iter = (
+        list(df_groupby)[:check_n_groups] + list(df_groupby)[-check_n_groups:]
     )
-
-    df_groupby = df.groupby("C")
-    html_groupby = df_groupby._repr_html_()
-
-    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
-
-    for k in range(check_n_groups):
-        tm.assert_frame_equal(
-            dfs_from_html[k], df_groupby.get_group(tuple(df_groupby.groups.keys())[k])
-        )
-        tm.assert_frame_equal(
-            dfs_from_html[-k - 1],
-            df_groupby.get_group(tuple(df_groupby.groups.keys())[-k - 1]),
-        )
+    for group_name, df_group in df_group_iter:
+        # Iterate over the first and last "check_n_rows" of every group
+        df_iter = pd.concat(
+            [df_group.iloc[:check_n_rows], df_group.iloc[-check_n_rows:]]
+        ).iterrows()
+        for index, row in df_iter:
+            print(group_name, index)
+            tm.assert_series_equal(row, df_from_html.loc[index])
 
 
 def test_group_on_two_row_multiindex_returns_one_tuple_key():
