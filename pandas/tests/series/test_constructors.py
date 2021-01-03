@@ -326,13 +326,16 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3], dtype="int64")
         tm.assert_series_equal(result, expected)
 
+    def test_construct_from_categorical_with_dtype(self):
         # GH12574
         cat = Series(Categorical([1, 2, 3]), dtype="category")
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
-        s = Series([1, 2, 3], dtype="category")
-        assert is_categorical_dtype(s)
-        assert is_categorical_dtype(s.dtype)
+
+    def test_construct_intlist_values_category_dtype(self):
+        ser = Series([1, 2, 3], dtype="category")
+        assert is_categorical_dtype(ser)
+        assert is_categorical_dtype(ser.dtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -573,7 +576,7 @@ class TestSeriesConstructors:
         # GH 19342
         # test that construction of a Series with an index of different length
         # raises an error
-        msg = "Length of passed values is 3, index implies 4"
+        msg = r"Length of values \(3\) does not match length of index \(4\)"
         with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
@@ -589,7 +592,7 @@ class TestSeriesConstructors:
         # GH 19342
         # construction with single-element container and index
         # should raise
-        msg = "Length of passed values is 1, index implies 3"
+        msg = r"Length of values \(1\) does not match length of index \(3\)"
         with pytest.raises(ValueError, match=msg):
             Series(["foo"], index=["a", "b", "c"])
 
