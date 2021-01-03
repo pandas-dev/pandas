@@ -467,12 +467,12 @@ def _group_add(complexfloating_t[:, :] out,
                const int64_t[:] labels,
                Py_ssize_t min_count=0):
     """
-    Only aggregates on axis=0
+    Only aggregates on axis=0 using Kahan summation
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        complexfloating_t val, count
-        complexfloating_t[:, :] sumx
+        complexfloating_t val, count, t, y
+        complexfloating_t[:, :] sumx, compensation
         int64_t[:, :] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -481,6 +481,7 @@ def _group_add(complexfloating_t[:, :] out,
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros_like(out)
+    compensation = np.zeros_like(out)
 
     N, K = (<object>values).shape
 
@@ -497,12 +498,10 @@ def _group_add(complexfloating_t[:, :] out,
                 # not nan
                 if val == val:
                     nobs[lab, j] += 1
-                    if (complexfloating_t is complex64_t or
-                            complexfloating_t is complex128_t):
-                        # clang errors if we use += with these dtypes
-                        sumx[lab, j] = sumx[lab, j] + val
-                    else:
-                        sumx[lab, j] += val
+                    y = val - compensation[lab, j]
+                    t = sumx[lab, j] + y
+                    compensation[lab, j] = t - sumx[lab, j] - y
+                    sumx[lab, j] = t
 
         for i in range(ncounts):
             for j in range(K):

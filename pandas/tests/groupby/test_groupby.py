@@ -5,6 +5,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -2174,3 +2175,15 @@ def test_groupby_series_with_tuple_name():
     expected = Series([2, 4], index=[1, 2], name=("a", "a"))
     expected.index.name = ("b", "b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
+def test_groupby_numerical_stability_sum():
+    # GH#38778
+    data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
+    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
+    result = df.groupby("group").sum()
+    expected = DataFrame(
+        {"a": [97.0, 98.0], "b": [97.0, 98.0]}, index=Index([1, 2], name="group")
+    )
+    tm.assert_frame_equal(result, expected)
