@@ -860,7 +860,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         elif isinstance(val, datetime.date):
             fmt = self.date_format
         elif isinstance(val, datetime.timedelta):
-            val = val.total_seconds() / float(86400)
+            val = val.total_seconds() / 86400
             fmt = "0"
         else:
             val = str(val)
