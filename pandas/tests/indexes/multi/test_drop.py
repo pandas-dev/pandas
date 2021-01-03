@@ -180,3 +180,11 @@ def test_single_level_drop_partially_missing_elements():
     msg = r"labels \['a'\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop([np.nan, 1, "a"], level=0)
+
+
+def test_droplevel_multiindex_one_level():
+    # GH#37208
+    index = pd.MultiIndex.from_tuples([(2,)], names=("b",))
+    result = index.droplevel([])
+    expected = pd.Int64Index([2], name="b")
+    tm.assert_index_equal(result, expected)
