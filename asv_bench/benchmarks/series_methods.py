@@ -284,7 +284,7 @@ class Dir:
 class SeriesGetattr:
     # https://github.com/pandas-dev/pandas/issues/19764
     def setup(self):
-        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=int(1e6)))
+        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=10 ** 6))
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, "a", None)
