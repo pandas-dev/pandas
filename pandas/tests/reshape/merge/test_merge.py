@@ -2377,7 +2377,7 @@ def test_merge_right_left_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_empty_right_index_left_on():
+def test_merge_result_empty_index_and_on():
     # GH#33814
     df1 = DataFrame({"a": [1], "b": [2]}).set_index(["a", "b"])
     df2 = DataFrame({"b": [1]}).set_index(["b"])
