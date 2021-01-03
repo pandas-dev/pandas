@@ -158,7 +158,7 @@ class JoinNonUnique:
         daily_dates = date_index.to_period("D").to_timestamp("S", "S")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
-        self.fracofday = self.fracofday.astype(np.float64) / 86400000000000.0
+        self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
         self.fracofday = Series(self.fracofday, daily_dates)
         index = date_range(date_index.min(), date_index.max(), freq="D")
         self.temp = Series(1.0, index)[self.fracofday.index]

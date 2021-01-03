@@ -61,7 +61,7 @@ def get_center_of_mass(
     elif span is not None:
         if span < 1:
             raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
+        comass = (span - 1) / 2
     elif halflife is not None:
         if halflife <= 0:
             raise ValueError("halflife must satisfy: halflife > 0")
@@ -70,7 +70,7 @@ def get_center_of_mass(
     elif alpha is not None:
         if alpha <= 0 or alpha > 1:
             raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
+        comass = (1 - alpha) / alpha
     else:
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 

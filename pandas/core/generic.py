@@ -5336,7 +5336,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif n is not None and frac is None and n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
         elif n is None and frac is not None:
-            n = int(round(frac * axis_length))
+            n = round(frac * axis_length)
         elif n is not None and frac is not None:
             raise ValueError("Please enter a value for `frac` OR `n`, not both")
 

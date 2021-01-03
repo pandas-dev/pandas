@@ -103,9 +103,9 @@ class Float64GroupIndex:
     # GH28303
     def setup(self):
         self.df = pd.date_range(
-            start="1/1/2018", end="1/2/2018", periods=1e6
+            start="1/1/2018", end="1/2/2018", periods=10 ** 6
         ).to_frame()
-        self.group_index = np.round(self.df.index.astype(int) / 1e9)
+        self.group_index = np.round(self.df.index.astype(int) / 10 ** 9)
 
     def time_groupby(self):
         self.df.groupby(self.group_index).last()

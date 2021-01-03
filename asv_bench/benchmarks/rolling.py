@@ -171,7 +171,7 @@ class PeakMemFixedWindowMinMax:
     params = ["min", "max"]
 
     def setup(self, operation):
-        N = int(1e6)
+        N = 10 ** 6
         arr = np.random.random(N)
         self.roll = pd.Series(arr).rolling(2)
 
@@ -233,7 +233,7 @@ class GroupbyLargeGroups:
 
     def setup(self):
         N = 100000
-        self.df = pd.DataFrame({"A": [1, 2] * int(N / 2), "B": np.random.randn(N)})
+        self.df = pd.DataFrame({"A": [1, 2] * (N // 2), "B": np.random.randn(N)})
 
     def time_rolling_multiindex_creation(self):
         self.df.groupby("A").rolling(3).mean()

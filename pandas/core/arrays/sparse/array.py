@@ -578,7 +578,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
-        return float(self.sp_index.npoints) / float(self.sp_index.length)
+        return self.sp_index.npoints / self.sp_index.length
 
     @property
     def npoints(self) -> int:

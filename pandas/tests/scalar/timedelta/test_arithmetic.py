@@ -393,9 +393,9 @@ class TestTimedeltaMultiplicationDivision:
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / float(86400 * 1e9)
+        assert result == td.value / (86400 * 10 ** 9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / float(1e9)
+        assert result == td.value / 10 ** 9
         result = td / np.timedelta64(1, "ns")
         assert result == td.value
 
@@ -416,7 +416,7 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=5)
 
-        result = td / 5.0
+        result = td / 5
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
