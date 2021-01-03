@@ -118,7 +118,7 @@ class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
 class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
-        # This should be the same, aside from concat([sparse, float])
+        # This should be the same, aside from pd.concat([sparse, float])
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ["a", "b", "c"]}).astype("category")

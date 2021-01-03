@@ -17,6 +17,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    date_range,
     isna,
     timedelta_range,
     to_timedelta,
@@ -88,7 +89,7 @@ class TestReductions:
             elif dtype == "Int64":
                 return res is pd.NA
             else:
-                return pd.isna(res)
+                return isna(res)
 
         obj = klass([None], dtype=dtype)
         assert check_missing(getattr(obj, opname)())
@@ -182,7 +183,7 @@ class TestReductions:
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
         df = DataFrame(
-            pd.date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
+            date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
         )
         df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
@@ -383,13 +384,13 @@ class TestIndexReductions:
     def test_minmax_nat_datetime64(self, op):
         # Return NaT
         obj = DatetimeIndex([])
-        assert pd.isna(getattr(obj, op)())
+        assert isna(getattr(obj, op)())
 
         obj = DatetimeIndex([pd.NaT])
-        assert pd.isna(getattr(obj, op)())
+        assert isna(getattr(obj, op)())
 
         obj = DatetimeIndex([pd.NaT, pd.NaT, pd.NaT])
-        assert pd.isna(getattr(obj, op)())
+        assert isna(getattr(obj, op)())
 
     def test_numpy_minmax_integer(self):
         # GH#26125
@@ -445,7 +446,7 @@ class TestIndexReductions:
         # is the same as basic integer index
 
     def test_numpy_minmax_datetime64(self):
-        dr = pd.date_range(start="2016-01-15", end="2016-01-20")
+        dr = date_range(start="2016-01-15", end="2016-01-20")
 
         assert np.min(dr) == Timestamp("2016-01-15 00:00:00", freq="D")
         assert np.max(dr) == Timestamp("2016-01-20 00:00:00", freq="D")
@@ -576,7 +577,7 @@ class TestSeriesReductions:
             assert result == unit
 
             result = getattr(s, method)(min_count=1)
-            assert pd.isna(result)
+            assert isna(result)
 
             # Skipna, default
             result = getattr(s, method)(skipna=True)
@@ -587,13 +588,13 @@ class TestSeriesReductions:
             assert result == unit
 
             result = getattr(s, method)(skipna=True, min_count=1)
-            assert pd.isna(result)
+            assert isna(result)
 
             result = getattr(s, method)(skipna=False, min_count=0)
             assert result == unit
 
             result = getattr(s, method)(skipna=False, min_count=1)
-            assert pd.isna(result)
+            assert isna(result)
 
             # All-NA
             s = Series([np.nan], dtype=dtype)
@@ -606,7 +607,7 @@ class TestSeriesReductions:
             assert result == unit
 
             result = getattr(s, method)(min_count=1)
-            assert pd.isna(result)
+            assert isna(result)
 
             # Skipna, default
             result = getattr(s, method)(skipna=True)
@@ -617,7 +618,7 @@ class TestSeriesReductions:
             assert result == unit
 
             result = getattr(s, method)(skipna=True, min_count=1)
-            assert pd.isna(result)
+            assert isna(result)
 
             # Mix of valid, empty
             s = Series([np.nan, 1], dtype=dtype)
@@ -645,18 +646,18 @@ class TestSeriesReductions:
 
             s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
-            assert pd.isna(result)
+            assert isna(result)
 
             result = getattr(s, method)(skipna=False, min_count=2)
-            assert pd.isna(result)
+            assert isna(result)
 
             s = Series([np.nan], dtype=dtype)
             result = getattr(s, method)(min_count=2)
-            assert pd.isna(result)
+            assert isna(result)
 
             s = Series([np.nan, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
-            assert pd.isna(result)
+            assert isna(result)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty_multi(self, method, unit):
@@ -687,7 +688,7 @@ class TestSeriesReductions:
 
         # float
         result = getattr(Series(dtype=float), method)()
-        assert pd.isna(result)
+        assert isna(result)
 
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
@@ -791,7 +792,7 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmin()] == string_series.min()
-        assert pd.isna(string_series.idxmin(skipna=False))
+        assert isna(string_series.idxmin(skipna=False))
 
         # no NaNs
         nona = string_series.dropna()
@@ -800,10 +801,10 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        assert pd.isna(allna.idxmin())
+        assert isna(allna.idxmin())
 
         # datetime64[ns]
-        s = Series(pd.date_range("20130102", periods=6))
+        s = Series(date_range("20130102", periods=6))
         result = s.idxmin()
         assert result == 0
 
@@ -821,7 +822,7 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmax()] == string_series.max()
-        assert pd.isna(string_series.idxmax(skipna=False))
+        assert isna(string_series.idxmax(skipna=False))
 
         # no NaNs
         nona = string_series.dropna()
@@ -830,9 +831,7 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        assert pd.isna(allna.idxmax())
-
-        from pandas import date_range
+        assert isna(allna.idxmax())
 
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
@@ -926,7 +925,7 @@ class TestSeriesReductions:
     def test_timedelta64_analytics(self):
 
         # index min/max
-        dti = pd.date_range("2012-1-1", periods=3, freq="D")
+        dti = date_range("2012-1-1", periods=3, freq="D")
         td = Series(dti) - Timestamp("20120101")
 
         result = td.idxmin()
@@ -946,8 +945,8 @@ class TestSeriesReductions:
         assert result == 2
 
         # abs
-        s1 = Series(pd.date_range("20120101", periods=3))
-        s2 = Series(pd.date_range("20120102", periods=3))
+        s1 = Series(date_range("20120101", periods=3))
+        s2 = Series(date_range("20120102", periods=3))
         expected = Series(s2 - s1)
 
         result = np.abs(s1 - s2)
@@ -1044,7 +1043,7 @@ class TestDatetime64SeriesReductions:
         assert nat_df.max(skipna=False)[0] is pd.NaT
 
     def test_min_max(self):
-        rng = pd.date_range("1/1/2000", "12/31/2000")
+        rng = date_range("1/1/2000", "12/31/2000")
         rng2 = rng.take(np.random.permutation(len(rng)))
 
         the_min = rng2.min()
@@ -1058,7 +1057,7 @@ class TestDatetime64SeriesReductions:
         assert rng.max() == rng[-1]
 
     def test_min_max_series(self):
-        rng = pd.date_range("1/1/2000", periods=10, freq="4h")
+        rng = date_range("1/1/2000", periods=10, freq="4h")
         lvls = ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C"]
         df = DataFrame({"TS": rng, "V": np.random.randn(len(rng)), "L": lvls})
 

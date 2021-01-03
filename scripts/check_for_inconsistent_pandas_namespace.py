@@ -16,18 +16,19 @@ from typing import Optional, Sequence
 
 PATTERN = r"""
     (
-        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
+        (?<![\.\w])    # check class_name doesn't start with . or character
         (\w+)\(        # match DataFrame but not pd.DataFrame or tm.makeDataFrame
-        .*                  # match anything
-        pd\.\2\(            # only match e.g. pd.DataFrame
+        .*             # match anything
+        pd\.\2\(       # only match e.g. pd.DataFrame
     )|
     (
         pd\.(\w+)\(    # only match e.g. pd.DataFrame
-        .*                  # match anything
-        (?<!pd\.)(?<!\w)    # check class_name doesn't start with pd. or character
-        \4\(                # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        .*             # match anything
+        (?<![\.\w])    # check class_name doesn't start with . or character
+        \4\(           # match DataFrame but not pd.DataFrame or tm.makeDataFrame
     )
     """
+BLOCK_LIST = {"eval"}
 ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
 
 
@@ -45,11 +46,11 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         match = pattern.search(contents)
         if match is None:
             continue
-        if match.group(2) is not None:
+        if match.group(2) is not None and match.group(2).decode() not in BLOCK_LIST:
             raise AssertionError(
                 ERROR_MESSAGE.format(class_name=match.group(2).decode(), path=str(path))
             )
-        if match.group(4) is not None:
+        if match.group(4) is not None and match.group(4).decode() not in BLOCK_LIST:
             raise AssertionError(
                 ERROR_MESSAGE.format(class_name=match.group(4).decode(), path=str(path))
             )

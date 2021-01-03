@@ -234,8 +234,8 @@ class TestComparison:
             period_range("2017-01-01", periods=4, freq="D"),
             Categorical(list("abab")),
             Categorical(date_range("2017-01-01", periods=4)),
-            pd.array(list("abcd")),
-            pd.array(["foo", 3.14, None, object()]),
+            array(list("abcd")),
+            array(["foo", 3.14, None, object()]),
         ],
         ids=lambda x: str(x.dtype),
     )

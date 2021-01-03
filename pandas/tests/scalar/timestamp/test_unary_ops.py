@@ -322,24 +322,24 @@ class TestTimestampUnaryOps:
         tzinfo = pytz.timezone("CET").localize(dt, is_dst=False).tzinfo
 
         result_dt = dt.replace(tzinfo=tzinfo)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
+        result_pandas = Timestamp(dt).replace(tzinfo=tzinfo)
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
-            assert result_dt.timestamp() == result_pd.timestamp()
+            assert result_dt.timestamp() == result_pandas.timestamp()
 
-        assert result_dt == result_pd
-        assert result_dt == result_pd.to_pydatetime()
+        assert result_dt == result_pandas
+        assert result_dt == result_pandas.to_pydatetime()
 
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
+        result_pandas = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
-            assert result_dt.timestamp() == result_pd.timestamp()
+            assert result_dt.timestamp() == result_pandas.timestamp()
 
-        assert result_dt == result_pd
-        assert result_dt == result_pd.to_pydatetime()
+        assert result_dt == result_pandas
+        assert result_dt == result_pandas.to_pydatetime()
 
     @pytest.mark.parametrize(
         "tz, normalize",

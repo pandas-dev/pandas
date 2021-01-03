@@ -7,6 +7,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.construction import array
 from pandas.tests.extension import base
 
 from .array import DecimalArray, DecimalDtype, make_data, to_decimal
@@ -514,7 +515,7 @@ def test_to_numpy_keyword():
     expected = np.array(
         [decimal.Decimal("1.11"), decimal.Decimal("2.22")], dtype="object"
     )
-    a = pd.array(values, dtype="decimal")
+    a = array(values, dtype="decimal")
     result = a.to_numpy(decimals=2)
     tm.assert_numpy_array_equal(result, expected)
 

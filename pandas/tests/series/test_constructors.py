@@ -272,8 +272,8 @@ class TestSeriesConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="H"))),
+            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -625,10 +625,10 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "index",
         [
-            pd.date_range("20170101", periods=3, tz="US/Eastern"),
-            pd.date_range("20170101", periods=3),
-            pd.timedelta_range("1 day", periods=3),
-            pd.period_range("2012Q1", periods=3, freq="Q"),
+            date_range("20170101", periods=3, tz="US/Eastern"),
+            date_range("20170101", periods=3),
+            timedelta_range("1 day", periods=3),
+            period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
             RangeIndex(0, 3),
@@ -1031,7 +1031,7 @@ class TestSeriesConstructors:
 
         # make sure that we are not re-localizing upon construction
         # GH 14928
-        s = Series(pd.date_range("20130101", periods=3, tz="US/Eastern"))
+        s = Series(date_range("20130101", periods=3, tz="US/Eastern"))
 
         result = Series(s, dtype=s.dtype)
         tm.assert_series_equal(result, s)
@@ -1364,7 +1364,7 @@ class TestSeriesConstructors:
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
         s = Series(arr)
-        expected = Series(pd.timedelta_range("00:00:01", periods=3, freq="s"))
+        expected = Series(timedelta_range("00:00:01", periods=3, freq="s"))
         tm.assert_series_equal(s, expected)
 
         # convert from a numpy array of non-ns datetime64

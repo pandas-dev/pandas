@@ -1975,7 +1975,7 @@ def test_iterator_value_labels():
     with tm.ensure_clean() as path:
         df.to_stata(path, write_index=False)
         expected = pd.Index(["a_label", "b_label", "c_label"], dtype="object")
-        with pd.read_stata(path, chunksize=100) as reader:
+        with read_stata(path, chunksize=100) as reader:
             for j, chunk in enumerate(reader):
                 for i in range(2):
                     tm.assert_index_equal(chunk.dtypes[i].categories, expected)

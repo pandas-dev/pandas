@@ -151,7 +151,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_nearest_tz(self, tz_aware_fixture):
         # GH26683
         tz = tz_aware_fixture
-        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        idx = date_range("2019-01-01", periods=5, tz=tz)
         df = DataFrame({"x": list(range(5))}, index=idx)
 
         expected = df.head(3)
