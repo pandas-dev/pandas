@@ -205,11 +205,6 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    def test_rank_inf(self, nuisance_rank_series_and_expected):
-        series, expected = nuisance_rank_series_and_expected
-        result = series.rank()
-        tm.assert_series_equal(result, expected)
-
     def test_rank_tie_methods(self):
         s = self.s
 

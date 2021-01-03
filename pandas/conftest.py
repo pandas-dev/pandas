@@ -31,8 +31,6 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-from pandas._libs import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype
@@ -591,91 +589,6 @@ def narrow_series(request):
     """
     # copy to avoid mutation, e.g. setting .name
     return _narrow_series[request.param].copy()
-
-
-# Used in tests in (series|frame)/methods/test_rank.py
-_nuisance_arr_for_rank_by_dtype = {
-    "float64": [
-        -np.inf,
-        -50,
-        -1,
-        -1e-20,
-        -1e-25,
-        -1e-50,
-        0,
-        1e-40,
-        1e-20,
-        1e-10,
-        2,
-        40,
-        np.inf,
-    ],
-    "float32": [
-        -np.inf,
-        -50,
-        -1,
-        -1e-20,
-        -1e-25,
-        -1e-45,
-        0,
-        1e-40,
-        1e-20,
-        1e-10,
-        2,
-        40,
-        np.inf,
-    ],
-    "uint8": [np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max],
-    "int64": [
-        np.iinfo(np.int64).min,
-        -100,
-        0,
-        1,
-        9999,
-        100000,
-        1e10,
-        np.iinfo(np.int64).max,
-    ],
-    "object": [NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()],
-}
-
-
-@pytest.fixture(params=_nuisance_arr_for_rank_by_dtype.keys())
-def nuisance_rank_series_and_expected(request):
-    """
-    Fixture for Series with troublesome values for rank
-    algorithms
-    """
-    _dtype_na_map = {
-        "float64": np.nan,
-        "float32": np.nan,
-        "int64": iNaT,
-        "object": None,
-    }
-    dtype = request.param
-    if dtype == "int64":
-        mark = pytest.mark.xfail(
-            reason="iNaT is equivalent to minimum value of dtype"
-            "int64 pending issue GH#16674"
-        )
-        request.node.add_marker(mark)
-    data = _nuisance_arr_for_rank_by_dtype[dtype]
-    values = np.array(data, dtype=dtype)
-    exp_order = np.array(range(len(values)), dtype="float64") + 1.0
-    # Insert nans at random positions if underlying dtype has missing
-    # value. Then adjust the expected order by adding nans accordingly
-    # This is for testing whether rank calculation is affected
-    # when values are interwined with nan values.
-    if dtype in _dtype_na_map:
-        na_value = _dtype_na_map[dtype]
-        nan_indices = np.random.choice(range(len(values)), 5)
-        values = np.insert(values, nan_indices, na_value)
-        exp_order = np.insert(exp_order, nan_indices, np.nan)
-    # shuffle the testing array and expected results in the same way
-    random_order = np.random.permutation(len(values))
-    iseries = Series(values[random_order])
-    exp = Series(exp_order[random_order], dtype="float64")
-    return iseries, exp
 
 
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
