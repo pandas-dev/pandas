@@ -2361,11 +2361,9 @@ class PythonParser(ParserBase):
             if is_integer(x):
                 noconvert_columns.add(x)
             else:
-                # pandas\io\parsers.py:2366: error: Unsupported right
-                # operand type for in ("Optional[List[int]")  [index]
-                noconvert_columns.add(
-                    self._col_indices[self.columns.index(x)]  # type: ignore[index]
-                )
+                assert self._col_indices is not None
+                col_indices = self._col_indices
+                noconvert_columns.add(col_indices[self.columns.index(x)])
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -3186,25 +3184,21 @@ class PythonParser(ParserBase):
         zipped_content = list(lib.to_object_array(content, min_width=col_len).T)
 
         if self.usecols:
+            assert self._col_indices is not None
+            col_indices = self._col_indices
+
             if self._implicit_index:
                 zipped_content = [
                     a
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        # pandas\io\parsers.py:3198: error: Unsupported right
-                        # operand type for in ("Optional[List[int]")  [operator]
-                        or i - len(self.index_col)  # type: ignore[operator]
-                        in self._col_indices
+                        or i - len(self.index_col) in col_indices
                     )
                 ]
             else:
                 zipped_content = [
-                    # pandas\io\parsers.py:3207: error: Unsupported right
-                    # operand type for in ("Optional[List[int]")  [operator]
-                    a
-                    for i, a in enumerate(zipped_content)
-                    if i in self._col_indices  # type: ignore[operator]
+                    a for i, a in enumerate(zipped_content) if i in col_indices
                 ]
         return zipped_content
 
