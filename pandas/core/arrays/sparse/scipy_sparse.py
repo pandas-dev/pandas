@@ -85,7 +85,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     return values, i_coord, j_coord, i_labels, j_labels
 
 
-def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
+def sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
     Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
@@ -113,7 +113,7 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index: bool = False):
+def coo_to_sparse_series(A, dense_index: bool = False):
     """
     Convert a scipy.sparse.coo_matrix to a SparseSeries.
 

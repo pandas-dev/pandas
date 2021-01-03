@@ -31,16 +31,16 @@ Highlights include:
 
    .. ipython:: python
 
-      df = pd.DataFrame({'A': np.array(['foo', 'bar', 'bah', 'foo', 'bar'])})
-      df['A'].iloc[0] = np.nan
+      df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
+      df["A"].iloc[0] = np.nan
       df
 
    The recommended way to do this type of assignment is:
 
    .. ipython:: python
 
-      df = pd.DataFrame({'A': np.array(['foo', 'bar', 'bah', 'foo', 'bar'])})
-      df.loc[0, 'A'] = np.nan
+      df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
+      df.loc[0, "A"] = np.nan
       df
 
 Output formatting enhancements
@@ -52,24 +52,27 @@ Output formatting enhancements
 
   .. ipython:: python
 
-     max_info_rows = pd.get_option('max_info_rows')
+     max_info_rows = pd.get_option("max_info_rows")
 
-     df = pd.DataFrame({'A': np.random.randn(10),
-                        'B': np.random.randn(10),
-                        'C': pd.date_range('20130101', periods=10)
-                        })
+     df = pd.DataFrame(
+         {
+             "A": np.random.randn(10),
+             "B": np.random.randn(10),
+             "C": pd.date_range("20130101", periods=10),
+         }
+     )
      df.iloc[3:6, [0, 2]] = np.nan
 
   .. ipython:: python
 
      # set to not display the null counts
-     pd.set_option('max_info_rows', 0)
+     pd.set_option("max_info_rows", 0)
      df.info()
 
   .. ipython:: python
 
      # this is the default (same as in 0.13.0)
-     pd.set_option('max_info_rows', max_info_rows)
+     pd.set_option("max_info_rows", max_info_rows)
      df.info()
 
 - Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
@@ -77,10 +80,10 @@ Output formatting enhancements
   .. ipython:: python
 
       df = pd.DataFrame([[1, 2], [3, 4]])
-      pd.set_option('show_dimensions', False)
+      pd.set_option("show_dimensions", False)
       df
 
-      pd.set_option('show_dimensions', True)
+      pd.set_option("show_dimensions", True)
       df
 
 - The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
@@ -98,10 +101,11 @@ Output formatting enhancements
 
   .. ipython:: python
 
-     df = pd.DataFrame([pd.Timestamp('20010101'),
-                        pd.Timestamp('20040601')], columns=['age'])
-     df['today'] = pd.Timestamp('20130419')
-     df['diff'] = df['today'] - df['age']
+     df = pd.DataFrame(
+         [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
+     )
+     df["today"] = pd.Timestamp("20130419")
+     df["diff"] = df["today"] - df["age"]
      df
 
 API changes
@@ -115,8 +119,8 @@ API changes
 
   .. ipython:: python
 
-      s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
-      s.str.get_dummies(sep='|')
+      s = pd.Series(["a", "a|b", np.nan, "a|c"])
+      s.str.get_dummies(sep="|")
 
 - Added the ``NDFrame.equals()`` method to compare if two NDFrames are
   equal have equal axes, dtypes, and values. Added the
@@ -126,8 +130,8 @@ API changes
 
   .. code-block:: python
 
-      df = pd.DataFrame({'col': ['foo', 0, np.nan]})
-      df2 = pd.DataFrame({'col': [np.nan, 0, 'foo']}, index=[2, 1, 0])
+      df = pd.DataFrame({"col": ["foo", 0, np.nan]})
+      df2 = pd.DataFrame({"col": [np.nan, 0, "foo"]}, index=[2, 1, 0])
       df.equals(df2)
       df.equals(df2.sort_index())
 
@@ -204,8 +208,9 @@ Enhancements
   .. code-block:: python
 
       # Try to infer the format for the index column
-      df = pd.read_csv('foo.csv', index_col=0, parse_dates=True,
-                       infer_datetime_format=True)
+      df = pd.read_csv(
+          "foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True
+      )
 
 - ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
   files (:issue:`4133`)
@@ -215,10 +220,10 @@ Enhancements
 
   .. ipython:: python
 
-      shades = ['light', 'dark']
-      colors = ['red', 'green', 'blue']
+      shades = ["light", "dark"]
+      colors = ["red", "green", "blue"]
 
-      pd.MultiIndex.from_product([shades, colors], names=['shade', 'color'])
+      pd.MultiIndex.from_product([shades, colors], names=["shade", "color"])
 
 - Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
 
@@ -379,7 +384,7 @@ Performance improvements for 0.13.1
 
 - Series datetime/timedelta binary operations (:issue:`5801`)
 - DataFrame ``count/dropna`` for ``axis=1``
-- Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
+- Series.str.contains now has a ``regex=False`` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
 - Series.str.extract (:issue:`5944`)
 - ``dtypes/ftypes`` methods (:issue:`5968`)
 - indexing with object dtypes (:issue:`5968`)
@@ -399,7 +404,7 @@ Bug fixes
 
 - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
 - Bug in Series replace with timestamp dict (:issue:`5797`)
-- read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
+- read_csv/read_table now respects the ``prefix`` kwarg (:issue:`5732`).
 - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
 - Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
 - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)

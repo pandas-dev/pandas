@@ -36,12 +36,14 @@ class TestDataFrameMask:
 
         rdf = df.copy()
 
-        rdf.where(cond, inplace=True)
+        return_value = rdf.where(cond, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(rdf, df.where(cond))
         tm.assert_frame_equal(rdf, df.mask(~cond))
 
         rdf = df.copy()
-        rdf.where(cond, -df, inplace=True)
+        return_value = rdf.where(cond, -df, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(rdf, df.where(cond, -df))
         tm.assert_frame_equal(rdf, df.mask(~cond, -df))
 
@@ -81,3 +83,16 @@ class TestDataFrameMask:
         expected = bools.astype(float).mask(mask)
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
+
+
+def test_mask_try_cast_deprecated(frame_or_series):
+
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.mask(mask, -1, try_cast=True)

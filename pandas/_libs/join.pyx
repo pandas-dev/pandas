@@ -1,7 +1,7 @@
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     float32_t,
@@ -16,6 +16,7 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 from pandas._libs.algos import (
@@ -267,7 +268,7 @@ ctypedef fused join_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique(join_t[:] left, join_t[:] right):
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
@@ -640,7 +641,11 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 # ----------------------------------------------------------------------
 
 from pandas._libs.hashtable cimport (
-    HashTable, PyObjectHashTable, UInt64HashTable, Int64HashTable)
+    HashTable,
+    Int64HashTable,
+    PyObjectHashTable,
+    UInt64HashTable,
+)
 
 ctypedef fused asof_t:
     uint8_t

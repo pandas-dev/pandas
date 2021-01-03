@@ -9,7 +9,7 @@ import numpy as np
 from pandas._typing import Dtype, DtypeObj
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -19,11 +19,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.sparse.array import SparseArray  # noqa: F401
+    from pandas.core.arrays.sparse.array import SparseArray
 
 
 @register_extension_dtype
@@ -181,7 +180,7 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.sparse.array import SparseArray  # noqa: F811
+        from pandas.core.arrays.sparse.array import SparseArray
 
         return SparseArray
 
@@ -372,7 +371,7 @@ class SparseDtype(ExtensionDtype):
         fill_value = fill_values[0]
 
         # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
+        # NaNs here, so we ignore the all NA case too.
         if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "

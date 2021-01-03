@@ -56,7 +56,9 @@ def test_take_preserve_name(idx):
 def test_copy_names():
     # Check that adding a "names" parameter to the copy is honored
     # GH14302
-    multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
+    with tm.assert_produces_warning(FutureWarning):
+        # subclass-specific kwargs to pd.Index
+        multi_idx = pd.Index([(1, 2), (3, 4)], names=["MyName1", "MyName2"])
     multi_idx1 = multi_idx.copy()
 
     assert multi_idx.equals(multi_idx1)
@@ -74,6 +76,13 @@ def test_copy_names():
     assert multi_idx.equals(multi_idx3)
     assert multi_idx.names == ["MyName1", "MyName2"]
     assert multi_idx3.names == ["NewName1", "NewName2"]
+
+    # gh-35592
+    with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
+        multi_idx.copy(names=["mario"])
+
+    with pytest.raises(TypeError, match="MultiIndex.name must be a hashable type"):
+        multi_idx.copy(names=[["mario"], ["luigi"]])
 
 
 def test_names(idx, index_names):
@@ -120,14 +129,14 @@ def test_duplicate_level_names_access_raises(idx):
 
 
 def test_get_names_from_levels():
-    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
 
     assert idx.levels[0].name == "a"
     assert idx.levels[1].name == "b"
 
 
 def test_setting_names_from_levels_raises():
-    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    idx = MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
     with pytest.raises(RuntimeError, match="set_names"):
         idx.levels[0].name = "foo"
 

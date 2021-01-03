@@ -64,6 +64,7 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)
 @example(n=2, m=3)
@@ -265,10 +266,15 @@ def test_tick_rdiv(cls):
     off = cls(10)
     delta = off.delta
     td64 = delta.to_timedelta64()
+    instance__type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "unsupported operand type\\(s\\) for \\/: 'int'|'float' and "
+        f"'{instance__type}'"
+    )
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2 / off
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2.0 / off
 
     assert (td64 * 2.5) / off == 2.5
@@ -329,14 +335,20 @@ def test_compare_ticks_to_strs(cls):
     assert not off == "infer"
     assert not "foo" == off
 
+    instance_type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "'<'|'<='|'>'|'>=' not supported between instances of "
+        f"'str' and '{instance_type}'|'{instance_type}' and 'str'"
+    )
+
     for left, right in [("infer", off), (off, "infer")]:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left < right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left <= right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left > right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left >= right
 
 

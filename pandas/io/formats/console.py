@@ -69,21 +69,25 @@ def in_interactive_session():
         return not hasattr(main, "__file__") or get_option("mode.sim_interactive")
 
     try:
-        return __IPYTHON__ or check_main()  # noqa
+        # pandas\io\formats\console.py:72: error: Name '__IPYTHON__' is not
+        # defined  [name-defined]
+        return __IPYTHON__ or check_main()  # type: ignore[name-defined]
     except NameError:
         return check_main()
 
 
 def in_ipython_frontend():
     """
-    Check if we're inside an an IPython zmq frontend.
+    Check if we're inside an IPython zmq frontend.
 
     Returns
     -------
     bool
     """
     try:
-        ip = get_ipython()  # noqa
+        # pandas\io\formats\console.py:86: error: Name 'get_ipython' is not
+        # defined  [name-defined]
+        ip = get_ipython()  # type: ignore[name-defined]
         return "zmq" in str(type(ip)).lower()
     except NameError:
         pass

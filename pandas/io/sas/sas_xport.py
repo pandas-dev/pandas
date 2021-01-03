@@ -10,6 +10,7 @@ https://support.sas.com/techsup/technote/ts140.pdf
 from collections import abc
 from datetime import datetime
 import struct
+from typing import IO, cast
 import warnings
 
 import numpy as np
@@ -18,7 +19,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
@@ -252,25 +253,19 @@ class XportReader(ReaderBase, abc.Iterator):
         self._index = index
         self._chunksize = chunksize
 
-        if isinstance(filepath_or_buffer, str):
-            (
-                filepath_or_buffer,
-                encoding,
-                compression,
-                should_close,
-            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
+        self.handles = get_handle(
+            filepath_or_buffer, "rb", encoding=encoding, is_text=False
+        )
+        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
 
-        if isinstance(filepath_or_buffer, (str, bytes)):
-            self.filepath_or_buffer = open(filepath_or_buffer, "rb")
-        else:
-            # Since xport files include non-text byte sequences, xport files
-            # should already be opened in binary mode in Python 3.
-            self.filepath_or_buffer = filepath_or_buffer
-
-        self._read_header()
+        try:
+            self._read_header()
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
-        self.filepath_or_buffer.close()
+        self.handles.close()
 
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()
@@ -281,14 +276,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
-            self.close()
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
         fif = [["prefix", 24], ["version", 8], ["OS", 8], ["_", 24], ["created", 16]]
         file_info = _split_line(line2, fif)
         if file_info["prefix"] != "SAS     SAS     SASLIB":
-            self.close()
             raise ValueError("Header record has invalid prefix.")
         file_info["created"] = _parse_date(file_info["created"])
         self.file_info = file_info
@@ -302,7 +295,6 @@ class XportReader(ReaderBase, abc.Iterator):
         headflag1 = header1.startswith(_correct_header1)
         headflag2 = header2 == _correct_header2
         if not (headflag1 and headflag2):
-            self.close()
             raise ValueError("Member header not found")
         # usually 140, could be 135
         fieldnamelength = int(header1[-5:-2])
@@ -336,22 +328,21 @@ class XportReader(ReaderBase, abc.Iterator):
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (
+            fieldbytes, fielddata = (
                 fielddata[:fieldnamelength],
                 fielddata[fieldnamelength:],
             )
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
-            field = field.ljust(140)
+            fieldbytes = fieldbytes.ljust(140)
 
-            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
+            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
             field = dict(zip(_fieldkeys, fieldstruct))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]
             if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
-                self.close()
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
 
@@ -366,7 +357,6 @@ class XportReader(ReaderBase, abc.Iterator):
 
         header = self._get_row()
         if not header == _correct_obs_header:
-            self.close()
             raise ValueError("Observation header not found.")
 
         self.fields = fields
@@ -407,8 +397,8 @@ class XportReader(ReaderBase, abc.Iterator):
             return total_records_length // self.record_length
 
         self.filepath_or_buffer.seek(-80, 2)
-        last_card = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card, dtype=np.uint64)
+        last_card_bytes = self.filepath_or_buffer.read(80)
+        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
         # 8 byte blank
         ix = np.flatnonzero(last_card == 2314885530818453536)
@@ -482,7 +472,7 @@ class XportReader(ReaderBase, abc.Iterator):
             df[x] = v
 
         if self._index is None:
-            df.index = range(self._lines_read, self._lines_read + read_lines)
+            df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
         else:
             df = df.set_index(self._index)
 

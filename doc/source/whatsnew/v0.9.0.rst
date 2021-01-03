@@ -8,7 +8,7 @@ Version 0.9.0 (October 7, 2012)
 
 This is a major release from 0.8.1 and includes several new features and
 enhancements along with a large number of bug fixes. New features include
-vectorized unicode encoding/decoding for `Series.str`, `to_latex` method to
+vectorized unicode encoding/decoding for ``Series.str``, ``to_latex`` method to
 DataFrame, more flexible parsing of boolean values, and enabling the download of
 options data from Yahoo! Finance.
 
@@ -41,9 +41,11 @@ API changes
 
    import io
 
-   data = ('0,0,1\n'
-           '1,1,0\n'
-           '0,1,0')
+   data = """
+   0,0,1
+   1,1,0
+   0,1,0
+   """
    df = pd.read_csv(io.StringIO(data), header=None)
    df
 
@@ -59,7 +61,7 @@ API changes
    s1 = pd.Series([1, 2, 3])
    s1
 
-   s2 = pd.Series(s1, index=['foo', 'bar', 'baz'])
+   s2 = pd.Series(s1, index=["foo", "bar", "baz"])
    s2
 
 - Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear``

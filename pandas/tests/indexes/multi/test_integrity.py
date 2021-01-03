@@ -24,7 +24,7 @@ def test_labels_dtypes():
     i = MultiIndex.from_product([["a"], range(40000)])
     assert i.codes[1].dtype == "int32"
 
-    i = pd.MultiIndex.from_product([["a"], range(1000)])
+    i = MultiIndex.from_product([["a"], range(1000)])
     assert (i.codes[0] >= 0).all()
     assert (i.codes[1] >= 0).all()
 
@@ -38,7 +38,7 @@ def test_values_boxed():
         (2, pd.Timestamp("2000-01-02")),
         (3, pd.Timestamp("2000-01-03")),
     ]
-    result = pd.MultiIndex.from_tuples(tuples)
+    result = MultiIndex.from_tuples(tuples)
     expected = construct_1d_object_array_from_listlike(tuples)
     tm.assert_numpy_array_equal(result.values, expected)
     # Check that code branches for boxed values produce identical results
@@ -52,7 +52,7 @@ def test_values_multiindex_datetimeindex():
 
     aware = pd.DatetimeIndex(ints, tz="US/Central")
 
-    idx = pd.MultiIndex.from_arrays([naive, aware])
+    idx = MultiIndex.from_arrays([naive, aware])
     result = idx.values
 
     outer = pd.DatetimeIndex([x[0] for x in result])
@@ -76,7 +76,7 @@ def test_values_multiindex_periodindex():
     ints = np.arange(2007, 2012)
     pidx = pd.PeriodIndex(ints, freq="D")
 
-    idx = pd.MultiIndex.from_arrays([ints, pidx])
+    idx = MultiIndex.from_arrays([ints, pidx])
     result = idx.values
 
     outer = pd.Int64Index([x[0] for x in result])
@@ -118,6 +118,7 @@ def test_consistency():
     assert index.is_unique is False
 
 
+@pytest.mark.arm_slow
 def test_hash_collisions():
     # non-smoke test that we don't get hash collisions
 
@@ -138,7 +139,7 @@ def test_dims():
 
 def take_invalid_kwargs():
     vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
-    idx = pd.MultiIndex.from_product(vals, names=["str", "dt"])
+    idx = MultiIndex.from_product(vals, names=["str", "dt"])
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -166,14 +167,14 @@ def test_isna_behavior(idx):
 def test_large_multiindex_error():
     # GH12527
     df_below_1000000 = pd.DataFrame(
-        1, index=pd.MultiIndex.from_product([[1, 2], range(499999)]), columns=["dest"]
+        1, index=MultiIndex.from_product([[1, 2], range(499999)]), columns=["dest"]
     )
     with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
         df_below_1000000.loc[(-1, 0), "dest"]
     with pytest.raises(KeyError, match=r"^\(3, 0\)$"):
         df_below_1000000.loc[(3, 0), "dest"]
     df_above_1000000 = pd.DataFrame(
-        1, index=pd.MultiIndex.from_product([[1, 2], range(500001)]), columns=["dest"]
+        1, index=MultiIndex.from_product([[1, 2], range(500001)]), columns=["dest"]
     )
     with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
         df_above_1000000.loc[(-1, 0), "dest"]
@@ -185,7 +186,7 @@ def test_million_record_attribute_error():
     # GH 18165
     r = list(range(1000000))
     df = pd.DataFrame(
-        {"a": r, "b": r}, index=pd.MultiIndex.from_tuples([(x, x) for x in r])
+        {"a": r, "b": r}, index=MultiIndex.from_tuples([(x, x) for x in r])
     )
 
     msg = "'Series' object has no attribute 'foo'"
@@ -218,9 +219,10 @@ def test_metadata_immutable(idx):
 
 
 def test_level_setting_resets_attributes():
-    ind = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
+    ind = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert ind.is_monotonic
-    ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
     # if this fails, probably didn't reset the cache correctly.
     assert not ind.is_monotonic
 
@@ -235,9 +237,7 @@ def test_rangeindex_fallback_coercion_bug():
     str(df)
     expected = pd.DataFrame(
         {"bar": np.arange(100), "foo": np.arange(100)},
-        index=pd.MultiIndex.from_product(
-            [range(10), range(10)], names=["fizz", "buzz"]
-        ),
+        index=MultiIndex.from_product([range(10), range(10)], names=["fizz", "buzz"]),
     )
     tm.assert_frame_equal(df, expected, check_like=True)
 

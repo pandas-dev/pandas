@@ -76,11 +76,20 @@ class ExpandingMethods:
 
     def setup(self, constructor, dtype, method):
         N = 10 ** 5
+        N_groupby = 100
         arr = (100 * np.random.random(N)).astype(dtype)
         self.expanding = getattr(pd, constructor)(arr).expanding()
+        self.expanding_groupby = (
+            pd.DataFrame({"A": arr[:N_groupby], "B": range(N_groupby)})
+            .groupby("B")
+            .expanding()
+        )
 
     def time_expanding(self, constructor, dtype, method):
         getattr(self.expanding, method)()
+
+    def time_expanding_groupby(self, constructor, dtype, method):
+        getattr(self.expanding_groupby, method)()
 
 
 class EWMMethods:
@@ -91,10 +100,17 @@ class EWMMethods:
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
         arr = (100 * np.random.random(N)).astype(dtype)
+        times = pd.date_range("1900", periods=N, freq="23s")
         self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
+        self.ewm_times = getattr(pd, constructor)(arr).ewm(
+            halflife="1 Day", times=times
+        )
 
     def time_ewm(self, constructor, window, dtype, method):
         getattr(self.ewm, method)()
+
+    def time_ewm_times(self, constructor, window, dtype, method):
+        self.ewm.mean()
 
 
 class VariableWindowMethods(Methods):
@@ -207,6 +223,51 @@ class Groupby:
 
     def time_rolling_offset(self, method):
         getattr(self.groupby_roll_offset, method)()
+
+
+class GroupbyLargeGroups:
+    # https://github.com/pandas-dev/pandas/issues/38038
+    # specific example where the rolling operation on a larger dataframe
+    # is relatively cheap (few but large groups), but creation of
+    # MultiIndex of result can be expensive
+
+    def setup(self):
+        N = 100000
+        self.df = pd.DataFrame({"A": [1, 2] * int(N / 2), "B": np.random.randn(N)})
+
+    def time_rolling_multiindex_creation(self):
+        self.df.groupby("A").rolling(3).mean()
+
+
+class GroupbyEWM:
+
+    params = ["cython", "numba"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
+        df = pd.DataFrame({"A": range(50), "B": range(50)})
+        self.gb_ewm = df.groupby("A").ewm(com=1.0)
+
+    def time_groupby_mean(self, engine):
+        self.gb_ewm.mean(engine=engine)
+
+
+def table_method_func(x):
+    return np.sum(x, axis=0) + 1
+
+
+class TableMethod:
+
+    params = ["single", "table"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
+
+    def time_apply(self, method):
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

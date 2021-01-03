@@ -13,18 +13,13 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
 
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(arrays, num_items: int):
     """
     Parameters
     ----------
@@ -86,7 +81,7 @@ def hash_pandas_object(
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    elif isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndex):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
@@ -108,7 +103,7 @@ def hash_pandas_object(
                 for _ in [None]
             )
             arrays = itertools.chain([h], index_iter)
-            h = _combine_hash_arrays(arrays, 2)
+            h = combine_hash_arrays(arrays, 2)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
@@ -131,7 +126,7 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
-        h = _combine_hash_arrays(hashes, num_items)
+        h = combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
@@ -175,7 +170,7 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     hashes = (
         _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
     )
-    h = _combine_hash_arrays(hashes, len(vals))
+    h = combine_hash_arrays(hashes, len(vals))
     if is_tuple:
         h = h[0]
 
@@ -264,7 +259,7 @@ def hash_array(
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif isinstance(dtype, np.bool):
+    elif isinstance(dtype, bool):
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
@@ -275,7 +270,7 @@ def hash_array(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import factorize, Categorical, Index
+            from pandas import Categorical, Index, factorize
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)

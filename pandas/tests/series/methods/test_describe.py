@@ -83,7 +83,7 @@ class TestSeriesDescribe:
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s = Series(date_range(start, end, tz=tz), name=name)
-        result = s.describe()
+        result = s.describe(datetime_is_numeric=True)
         expected = Series(
             [
                 5,
@@ -95,6 +95,46 @@ class TestSeriesDescribe:
                 end.tz_localize(tz),
             ],
             name=name,
+            index=["count", "mean", "min", "25%", "50%", "75%", "max"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_describe_with_tz_warns(self):
+        name = tz = "CET"
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s = Series(date_range(start, end, tz=tz), name=name)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.describe()
+
+        expected = Series(
+            [
+                5,
+                5,
+                s.value_counts().index[0],
+                1,
+                start.tz_localize(tz),
+                end.tz_localize(tz),
+            ],
+            name=name,
+            index=["count", "unique", "top", "freq", "first", "last"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_datetime_is_numeric_includes_datetime(self):
+        s = Series(date_range("2012", periods=3))
+        result = s.describe(datetime_is_numeric=True)
+        expected = Series(
+            [
+                3,
+                Timestamp("2012-01-02"),
+                Timestamp("2012-01-01"),
+                Timestamp("2012-01-01T12:00:00"),
+                Timestamp("2012-01-02"),
+                Timestamp("2012-01-02T12:00:00"),
+                Timestamp("2012-01-03"),
+            ],
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)

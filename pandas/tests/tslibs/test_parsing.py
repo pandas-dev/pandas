@@ -75,7 +75,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
     [
         (
             "2013Q5",
-            dict(),
+            {},
             (
                 "Incorrect quarterly string is given, "
                 "quarter must be between 1 and 4: 2013Q5"
@@ -84,7 +84,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
         # see gh-5418
         (
             "2013Q1",
-            dict(freq="INVLD-L-DEC-SAT"),
+            {"freq": "INVLD-L-DEC-SAT"},
             (
                 "Unable to retrieve month information "
                 "from given freq: INVLD-L-DEC-SAT"
@@ -148,14 +148,14 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    result = parsing._guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
 def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ambiguous_string = "01/01/2011"
-    result = parsing._guess_datetime_format(ambiguous_string, dayfirst=dayfirst)
+    result = parsing.guess_datetime_format(ambiguous_string, dayfirst=dayfirst)
     assert result == expected
 
 
@@ -169,7 +169,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
-    result = parsing._guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -189,7 +189,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
 def test_guess_datetime_format_invalid_inputs(invalid_dt):
     # A datetime string must include a year, month and a day for it to be
     # guessable, in addition to being a string that looks like a datetime.
-    assert parsing._guess_datetime_format(invalid_dt) is None
+    assert parsing.guess_datetime_format(invalid_dt) is None
 
 
 @pytest.mark.parametrize(
@@ -205,7 +205,7 @@ def test_guess_datetime_format_invalid_inputs(invalid_dt):
 )
 def test_guess_datetime_format_no_padding(string, fmt):
     # see gh-11142
-    result = parsing._guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 

@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -26,9 +28,11 @@ class TestXport:
         self.dirpath = datapath("io", "sas", "data")
         self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
-        self.file02b = open(os.path.join(self.dirpath, "SSHSV1_A.xpt"), "rb")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
+
+        with td.file_leak_context():
+            yield
 
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
@@ -43,29 +47,25 @@ class TestXport:
         num_rows = data.shape[0]
 
         # Test reading beyond end of file
-        reader = read_sas(self.file01, format="xport", iterator=True)
-        data = reader.read(num_rows + 100)
+        with read_sas(self.file01, format="xport", iterator=True) as reader:
+            data = reader.read(num_rows + 100)
         assert data.shape[0] == num_rows
-        reader.close()
 
         # Test incremental read with `read` method.
-        reader = read_sas(self.file01, format="xport", iterator=True)
-        data = reader.read(10)
-        reader.close()
+        with read_sas(self.file01, format="xport", iterator=True) as reader:
+            data = reader.read(10)
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
         # Test incremental read with `get_chunk` method.
-        reader = read_sas(self.file01, format="xport", chunksize=10)
-        data = reader.get_chunk()
-        reader.close()
+        with read_sas(self.file01, format="xport", chunksize=10) as reader:
+            data = reader.get_chunk()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :])
 
         # Test read in loop
         m = 0
-        reader = read_sas(self.file01, format="xport", chunksize=100)
-        for x in reader:
-            m += x.shape[0]
-        reader.close()
+        with read_sas(self.file01, format="xport", chunksize=100) as reader:
+            for x in reader:
+                m += x.shape[0]
         assert m == num_rows
 
         # Read full file with `read_sas` method
@@ -85,15 +85,17 @@ class TestXport:
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
         # Test incremental read with `read` method.
-        reader = read_sas(self.file01, index="SEQN", format="xport", iterator=True)
-        data = reader.read(10)
-        reader.close()
+        with read_sas(
+            self.file01, index="SEQN", format="xport", iterator=True
+        ) as reader:
+            data = reader.read(10)
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
 
         # Test incremental read with `get_chunk` method.
-        reader = read_sas(self.file01, index="SEQN", format="xport", chunksize=10)
-        data = reader.get_chunk()
-        reader.close()
+        with read_sas(
+            self.file01, index="SEQN", format="xport", chunksize=10
+        ) as reader:
+            data = reader.get_chunk()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
 
     def test1_incremental(self):
@@ -103,9 +105,8 @@ class TestXport:
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
 
-        reader = read_sas(self.file01, index="SEQN", chunksize=1000)
-
-        all_data = list(reader)
+        with read_sas(self.file01, index="SEQN", chunksize=1000) as reader:
+            all_data = list(reader)
         data = pd.concat(all_data, axis=0)
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
@@ -127,7 +128,12 @@ class TestXport:
         data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
-        data = read_sas(self.file02b, format="xport")
+        with open(self.file02, "rb") as fd:
+            with td.file_leak_context():
+                # GH#35693 ensure that if we pass an open file, we
+                #  dont incorrectly close it in read_sas
+                data = read_sas(fd, format="xport")
+
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
