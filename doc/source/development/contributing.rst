@@ -649,9 +649,13 @@ Thus, good style is a requirement for submitting code to pandas.
 There is a tool in pandas to help contributors verify their changes before
 contributing them to the project::
 
-   pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+   pre-commit run --all-files
+   
+or, to only check files which were modified::
 
-The script verifies the linting of code files, it looks for common mistake patterns
+   pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+  
+The command verifies the linting of code files, it looks for common mistake patterns
 (like missing spaces around sphinx directives that make the documentation not
 being rendered properly) and it also validates the doctests. It is possible to
 run the checks independently by using the parameters ``lint``, ``patterns`` and
