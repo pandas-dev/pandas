@@ -85,6 +85,13 @@ bar2,12,13,14,15
         result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
+    def test_stringify_file_and_path_like(self):
+        # GH 38125: do not stringify file objects that are also path-like
+        fsspec = pytest.importorskip("fsspec")
+        with tm.ensure_clean() as path:
+            with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
+                assert fsspec_obj == icom.stringify_path(fsspec_obj)
+
     @pytest.mark.parametrize(
         "extension,expected",
         [
@@ -399,7 +406,8 @@ class TestMMapWrapper:
                 df.to_csv(path, compression=compression_, encoding=encoding)
 
             # reading should fail (otherwise we wouldn't need the warning)
-            with pytest.raises(Exception):
+            msg = r"UTF-\d+ stream does not start with BOM"
+            with pytest.raises(UnicodeError, match=msg):
                 pd.read_csv(path, compression=compression_, encoding=encoding)
 
 

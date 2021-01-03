@@ -326,13 +326,16 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3], dtype="int64")
         tm.assert_series_equal(result, expected)
 
+    def test_construct_from_categorical_with_dtype(self):
         # GH12574
         cat = Series(Categorical([1, 2, 3]), dtype="category")
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
-        s = Series([1, 2, 3], dtype="category")
-        assert is_categorical_dtype(s)
-        assert is_categorical_dtype(s.dtype)
+
+    def test_construct_intlist_values_category_dtype(self):
+        ser = Series([1, 2, 3], dtype="category")
+        assert is_categorical_dtype(ser)
+        assert is_categorical_dtype(ser.dtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -785,7 +788,7 @@ class TestSeriesConstructors:
             dtype="datetime64[ns]",
         )
 
-        result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ns]")
@@ -800,7 +803,9 @@ class TestSeriesConstructors:
         dts = Series(dates, dtype="datetime64[ns]")
 
         # valid astype
-        dts.astype("int64")
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            dts.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
@@ -810,8 +815,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(dts, dtype=np.int64)
-        expected = Series(dts.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # astype(np.int64) deprecated
+            result = Series(dts, dtype=np.int64)
+            expected = Series(dts.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
         # invalid dates can be help as object
@@ -1287,13 +1294,16 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
+        # FIXME: dont leave commented-out
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
         #    with pytest.raises(TypeError):
         #        td.astype('m8[%s]' % t)
 
         # valid astype
-        td.astype("int64")
+        with tm.assert_produces_warning(FutureWarning):
+            # astype(int64) deprecated
+            td.astype("int64")
 
         # invalid casting
         msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
@@ -1410,8 +1420,10 @@ class TestSeriesConstructors:
         # ints are ok
         # we test with np.int64 to get similar results on
         # windows / 32-bit platforms
-        result = Series(index, dtype=np.int64)
-        expected = Series(index.astype(np.int64))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # asype(np.int64) deprecated, use .view(np.int64) instead
+            result = Series(index, dtype=np.int64)
+            expected = Series(index.astype(np.int64))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1614,8 +1626,7 @@ class TestSeriesConstructors:
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
-        with tm.assert_produces_warning(FutureWarning):
-            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        ser = Series(np.random.randn(len(idx)), idx.astype(object))
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)

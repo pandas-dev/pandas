@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._typing import Axis, FrameOrSeriesUnion
+from pandas._typing import AggFuncType, Axis, FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -27,7 +27,7 @@ ResType = Dict[int, Any]
 
 def frame_apply(
     obj: "DataFrame",
-    func,
+    func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
     result_type: Optional[str] = None,
@@ -360,7 +360,7 @@ class FrameRowApply(FrameApply):
         try:
             result = self.obj._constructor(data=results)
         except ValueError as err:
-            if "arrays must all be same length" in str(err):
+            if "All arrays must be of the same length" in str(err):
                 # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
                 #  see test_agg_listlike_result GH#29587
                 res = self.obj._constructor_sliced(results)

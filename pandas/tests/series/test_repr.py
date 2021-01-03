@@ -71,8 +71,8 @@ class TestSeriesRepr:
         str(string_series.astype(int))
         str(object_series)
 
-        str(Series(tm.randn(1000), index=np.arange(1000)))
-        str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
+        str(Series(np.random.randn(1000), index=np.arange(1000)))
+        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
         str(Series(dtype=object))
@@ -104,7 +104,7 @@ class TestSeriesRepr:
             repr(string_series)
 
         biggie = Series(
-            tm.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+            np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
         )
         repr(biggie)
 
@@ -184,9 +184,7 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        with tm.assert_produces_warning(FutureWarning):
-            # Index.is_all_dates deprecated
-            ts = Series(np.random.randn(len(index)), index)
+        ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)

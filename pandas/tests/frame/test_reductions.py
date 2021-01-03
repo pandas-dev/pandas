@@ -669,6 +669,12 @@ class TestDataFrameAnalytics:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_mode_empty_df(self):
+        df = DataFrame([], columns=["a", "b"])
+        result = df.mode()
+        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=int))
+        tm.assert_frame_equal(result, expected)
+
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
@@ -1091,9 +1097,13 @@ class TestDataFrameAnalytics:
             (np.all, {"A": Series([0, 1], dtype=int)}, False),
             (np.any, {"A": Series([0, 1], dtype=int)}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns]")}, False),
+            pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="m8[ns]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="m8[ns]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="m8[ns]")}, True),

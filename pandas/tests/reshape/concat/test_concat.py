@@ -429,7 +429,7 @@ class TestConcatenate:
         tm.assert_index_equal(result, expected)
 
     def test_concat_different_extension_dtypes_upcasts(self):
-        a = Series(pd.core.arrays.integer_array([1, 2]))
+        a = Series(pd.array([1, 2], dtype="Int64"))
         b = Series(to_decimal([1, 2]))
 
         result = concat([a, b], ignore_index=True)
@@ -474,11 +474,12 @@ def test_concat_will_upcast(dt, pdt):
         assert x.values.dtype == "float64"
 
 
-def test_concat_empty_and_non_empty_frame_regression():
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_concat_empty_and_non_empty_frame_regression(dtype):
     # GH 18178 regression test
-    df1 = DataFrame({"foo": [1]})
+    df1 = DataFrame({"foo": [1]}).astype(dtype)
     df2 = DataFrame({"foo": []})
-    expected = DataFrame({"foo": [1.0]})
+    expected = df1
     result = concat([df1, df2])
     tm.assert_frame_equal(result, expected)
 

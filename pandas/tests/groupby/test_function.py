@@ -1093,7 +1093,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
     idx = Index([1, 2, 3], dtype=object, name="a")
-    expected = DataFrame({"b": arr}, index=idx)
+    expected = DataFrame({"b": arr}, index=idx).astype("Float64")
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
 
