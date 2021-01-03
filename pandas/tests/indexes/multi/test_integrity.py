@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 from pandas import IntervalIndex, MultiIndex, RangeIndex
@@ -158,10 +159,10 @@ def take_invalid_kwargs():
 def test_isna_behavior(idx):
     # should not segfault GH5123
     # NOTE: if MI representation changes, may make sense to allow
-    # pd.isna(MI)
-    msg = "pd.isna is not defined for MultiIndex"
+    # isna(MI)
+    msg = "isna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
-        pd.isna(idx)
+        isna(idx)
 
 
 def test_large_multiindex_error():
