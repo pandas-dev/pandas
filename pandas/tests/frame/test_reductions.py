@@ -1229,13 +1229,15 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
-    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+    def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            pytest.xfail(
-                reason="GH#37659 OSError raised within tzlocal bc Windows "
-                "chokes in times before 1970-01-01"
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#37659 OSError raised within tzlocal bc Windows "
+                    "chokes in times before 1970-01-01"
+                )
             )
 
         df = DataFrame(

@@ -24,10 +24,14 @@ def test_unary_unary(dtype):
 
 
 @pytest.mark.parametrize("dtype", dtypes)
-def test_unary_binary(dtype):
+def test_unary_binary(request, dtype):
     # unary input, binary output
     if pd.api.types.is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        pytest.xfail(reason="Extension / mixed with multiple outuputs not implemented.")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple outputs not implemented."
+            )
+        )
 
     values = np.array([[-1, -1], [1, 1]], dtype="int64")
     df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=dtype)
@@ -55,14 +59,18 @@ def test_binary_input_dispatch_binop(dtype):
 
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
-def test_binary_input_aligns_columns(dtype_a, dtype_b):
+def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
     if (
         pd.api.types.is_extension_array_dtype(dtype_a)
         or isinstance(dtype_a, dict)
         or pd.api.types.is_extension_array_dtype(dtype_b)
         or isinstance(dtype_b, dict)
     ):
-        pytest.xfail(reason="Extension / mixed with multiple inputs not implemented.")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple inputs not implemented."
+            )
+        )
 
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}).astype(dtype_a)
 
@@ -80,9 +88,13 @@ def test_binary_input_aligns_columns(dtype_a, dtype_b):
 
 
 @pytest.mark.parametrize("dtype", dtypes)
-def test_binary_input_aligns_index(dtype):
+def test_binary_input_aligns_index(request, dtype):
     if pd.api.types.is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        pytest.xfail(reason="Extension / mixed with multiple inputs not implemented.")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple inputs not implemented."
+            )
+        )
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "b"]).astype(dtype)
     df2 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "c"]).astype(dtype)
     result = np.heaviside(df1, df2)
