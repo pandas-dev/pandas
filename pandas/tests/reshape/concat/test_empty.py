@@ -210,7 +210,6 @@ class TestEmptyConcat:
         df_2 = DataFrame(columns=df_1.columns)
         result = pd.concat([df_1, df_2], axis=0)
         expected = df_1.copy()
-        expected["EmptyCol"] = expected["EmptyCol"].astype(object)  # TODO: why?
         tm.assert_frame_equal(result, expected)
 
     def test_concat_empty_dataframe_dtypes(self):
