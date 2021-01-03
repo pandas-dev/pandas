@@ -2093,7 +2093,7 @@ def test_groups_repr_truncates(max_seq_items, expected):
         (20, 400, 5, 3),  # Not all groups and not all rows in the groups are shown
     ],
 )
-def test_groupby_repr_not_all_groups(n_groups, n_rows, check_n_groups, check_n_rows):
+def test_groupby_repr(n_groups, n_rows, check_n_groups, check_n_rows):
     # GH 34926
     df = DataFrame(
         {
