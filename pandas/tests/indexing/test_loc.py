@@ -57,9 +57,13 @@ class TestLoc(Base):
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
-        # TODO: test something here?
         # list of labels
-        pass
+        self.check_result(
+            "loc", [0, 1, 2], typs=["ints", "uints", "floats"], fails=KeyError
+        )
+        self.check_result(
+            "loc", [1, 3.0, "A"], typs=["ints", "uints", "floats"], fails=KeyError
+        )
 
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result("loc", [0, 1, 2], typs=["empty"], fails=KeyError)
@@ -1680,6 +1684,14 @@ class TestLabelSlicing:
         result = obj.loc[value:"third"]
         expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
         tm.assert_equal(result, expected)
+
+    def test_loc_getitem_slice_columns_mixed_dtype(self):
+        # GH: 20975
+        df = DataFrame({"test": 1, 1: 2, 2: 3}, index=[0])
+        expected = DataFrame(
+            data=[[2, 3]], index=[0], columns=pd.Index([1, 2], dtype=object)
+        )
+        tm.assert_frame_equal(df.loc[:, 1:], expected)
 
 
 class TestLocBooleanMask:

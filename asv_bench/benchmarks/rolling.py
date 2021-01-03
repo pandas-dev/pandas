@@ -171,7 +171,7 @@ class PeakMemFixedWindowMinMax:
     params = ["min", "max"]
 
     def setup(self, operation):
-        N = int(1e6)
+        N = 10 ** 6
         arr = np.random.random(N)
         self.roll = pd.Series(arr).rolling(2)
 
@@ -233,7 +233,7 @@ class GroupbyLargeGroups:
 
     def setup(self):
         N = 100000
-        self.df = pd.DataFrame({"A": [1, 2] * int(N / 2), "B": np.random.randn(N)})
+        self.df = pd.DataFrame({"A": [1, 2] * (N // 2), "B": np.random.randn(N)})
 
     def time_rolling_multiindex_creation(self):
         self.df.groupby("A").rolling(3).mean()
@@ -250,6 +250,24 @@ class GroupbyEWM:
 
     def time_groupby_mean(self, engine):
         self.gb_ewm.mean(engine=engine)
+
+
+def table_method_func(x):
+    return np.sum(x, axis=0) + 1
+
+
+class TableMethod:
+
+    params = ["single", "table"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        self.df = pd.DataFrame(np.random.randn(10, 1000))
+
+    def time_apply(self, method):
+        self.df.rolling(2, method=method).apply(
+            table_method_func, raw=True, engine="numba"
+        )
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -31,7 +31,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, StorageOptions, Union
+from pandas._typing import DtypeArg, FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -546,7 +546,7 @@ def read_csv(
     prefix=None,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -626,7 +626,7 @@ def read_table(
     prefix=None,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype=None,
+    dtype: Optional[DtypeArg] = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -2344,10 +2344,16 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
 
+        decimal = re.escape(self.decimal)
         if self.thousands is None:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.decimal}]+")
+            regex = fr"^\-?[0-9]*({decimal}[0-9]*)?([0-9](E|e)\-?[0-9]*)?$"
         else:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.thousands}^{self.decimal}]+")
+            thousands = re.escape(self.thousands)
+            regex = (
+                fr"^\-?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                fr"([0-9](E|e)\-?[0-9]*)?$"
+            )
+        self.num = re.compile(regex)
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -3039,7 +3045,7 @@ class PythonParser(ParserBase):
                     not isinstance(x, str)
                     or search not in x
                     or (self._no_thousands_columns and i in self._no_thousands_columns)
-                    or self.nonnum.search(x.strip())
+                    or not self.num.search(x.strip())
                 ):
                     rl.append(x)
                 else:
@@ -3502,25 +3508,22 @@ def _clean_index_names(columns, index_col, unnamed_cols):
     return index_names, columns, index_col
 
 
-def _get_empty_meta(columns, index_col, index_names, dtype=None):
+def _get_empty_meta(columns, index_col, index_names, dtype: Optional[DtypeArg] = None):
     columns = list(columns)
 
     # Convert `dtype` to a defaultdict of some kind.
     # This will enable us to write `dtype[col_name]`
     # without worrying about KeyError issues later on.
-    if not isinstance(dtype, dict):
+    if not is_dict_like(dtype):
         # if dtype == None, default will be object.
         default_dtype = dtype or object
         dtype = defaultdict(lambda: default_dtype)
     else:
-        # Save a copy of the dictionary.
-        _dtype = dtype.copy()
-        dtype = defaultdict(lambda: object)
-
-        # Convert column indexes to column names.
-        for k, v in _dtype.items():
-            col = columns[k] if is_integer(k) else k
-            dtype[col] = v
+        dtype = cast(dict, dtype)
+        dtype = defaultdict(
+            lambda: object,
+            {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
+        )
 
     # Even though we have no data, the "index" of the empty DataFrame
     # could for example still be an empty MultiIndex. Thus, we need to

@@ -5,11 +5,11 @@ import warnings
 import numpy as np
 
 from pandas._libs import iNaT, lib, missing as libmissing
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.base import register_extension_dtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -304,14 +304,14 @@ class IntegerArray(NumericArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "IntegerArray":
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype=None, copy: bool = False
+        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
@@ -390,24 +390,10 @@ class IntegerArray(NumericArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.masked import BaseMaskedDtype
-        from pandas.core.arrays.string_ import StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        # if the dtype is exactly the same, we can fastpath
-        if self.dtype == dtype:
-            # return the same object for copy=False
-            return self.copy() if copy else self
-        # if we are astyping to another nullable masked dtype, we can fastpath
-        if isinstance(dtype, BaseMaskedDtype):
-            data = self._data.astype(dtype.numpy_dtype, copy=copy)
-            # mask is copied depending on whether the data was copied, and
-            # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
 
         # coerce
         if is_float_dtype(dtype):

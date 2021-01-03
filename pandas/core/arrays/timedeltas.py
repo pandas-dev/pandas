@@ -324,12 +324,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
-            if copy:
-                return self.copy()
-            return self
-
-        elif dtype.kind == "m":
+        if dtype.kind == "m":
             return astype_td64_unit_conversion(self._data, dtype, copy=copy)
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
@@ -343,7 +338,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
