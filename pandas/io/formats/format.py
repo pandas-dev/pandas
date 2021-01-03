@@ -2073,7 +2073,10 @@ def repr_html_groupby(group_obj) -> str:
         group_names = group_names[:n_start] + group_names[-n_end:]
     repr_html_list = list()
     for group_name in group_names:
-        group = group_obj.get_group(group_name)
+        if not isinstance(group_name, tuple):
+            group = group_obj.get_group((group_name, ))
+        else:
+            group = group_obj.get_group(group_name)
         if not hasattr(group, "to_html"):
             group = group.to_frame()
         repr_html_list.append(
