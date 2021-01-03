@@ -38,7 +38,7 @@ SEC_PER_MIN = 60.0
 SEC_PER_HOUR = SEC_PER_MIN * MIN_PER_HOUR
 SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
-MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
+MUSEC_PER_DAY = 10 ** 6 * SEC_PER_DAY
 
 _mpl_units = {}  # Cache for units overwritten by us
 
@@ -116,7 +116,7 @@ def deregister():
 
 
 def _to_ordinalf(tm: pydt.time) -> float:
-    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + float(tm.microsecond / 1e6)
+    tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + tm.microsecond / 10 ** 6
     return tot_sec
 
 
@@ -182,7 +182,7 @@ class TimeFormatter(Formatter):
         """
         fmt = "%H:%M:%S.%f"
         s = int(x)
-        msus = int(round((x - s) * 1e6))
+        msus = round((x - s) * 10 ** 6)
         ms = msus // 1000
         us = msus % 1000
         m, s = divmod(s, 60)
@@ -429,7 +429,7 @@ def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
     hour, remainder = divmod(24 * remainder, 1)
     minute, remainder = divmod(60 * remainder, 1)
     second, remainder = divmod(60 * remainder, 1)
-    microsecond = int(1e6 * remainder)
+    microsecond = int(1_000_000 * remainder)
     if microsecond < 10:
         microsecond = 0  # compensate for rounding errors
     dt = datetime(
@@ -439,7 +439,7 @@ def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
         dt = dt.astimezone(tz)
 
     if microsecond > 999990:  # compensate for rounding errors
-        dt += timedelta(microseconds=1e6 - microsecond)
+        dt += timedelta(microseconds=1_000_000 - microsecond)
 
     return dt
 
@@ -611,27 +611,27 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             info_fmt[day_start] = "%H:%M:%S\n%d-%b"
             info_fmt[year_start] = "%H:%M:%S\n%d-%b\n%Y"
 
-        if span < periodsperday / 12000.0:
+        if span < periodsperday / 12000:
             _second_finder(1)
-        elif span < periodsperday / 6000.0:
+        elif span < periodsperday / 6000:
             _second_finder(2)
-        elif span < periodsperday / 2400.0:
+        elif span < periodsperday / 2400:
             _second_finder(5)
-        elif span < periodsperday / 1200.0:
+        elif span < periodsperday / 1200:
             _second_finder(10)
-        elif span < periodsperday / 800.0:
+        elif span < periodsperday / 800:
             _second_finder(15)
-        elif span < periodsperday / 400.0:
+        elif span < periodsperday / 400:
             _second_finder(30)
-        elif span < periodsperday / 150.0:
+        elif span < periodsperday / 150:
             _minute_finder(1)
-        elif span < periodsperday / 70.0:
+        elif span < periodsperday / 70:
             _minute_finder(2)
-        elif span < periodsperday / 24.0:
+        elif span < periodsperday / 24:
             _minute_finder(5)
-        elif span < periodsperday / 12.0:
+        elif span < periodsperday / 12:
             _minute_finder(15)
-        elif span < periodsperday / 6.0:
+        elif span < periodsperday / 6:
             _minute_finder(30)
         elif span < periodsperday / 2.5:
             _hour_finder(1, False)
@@ -1058,7 +1058,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
-        s, ns = divmod(x, 1e9)
+        s, ns = divmod(x, 10 ** 9)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         d, h = divmod(h, 24)
@@ -1072,7 +1072,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 1e9 / abs(vmax - vmin))))
+        n_decimals = int(np.ceil(np.log10(100 * 10 ** 9 / abs(vmax - vmin))))
         if n_decimals > 9:
             n_decimals = 9
         return self.format_timedelta_ticks(x, pos, n_decimals)
