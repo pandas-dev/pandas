@@ -14,7 +14,15 @@ from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    read_csv,
+    to_datetime,
+)
 import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
@@ -294,17 +302,18 @@ class TestReadHtml:
 
     @tm.network
     def test_bad_url_protocol(self):
-        with pytest.raises(URLError):
+        with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
     @tm.network
     @pytest.mark.slow
     def test_invalid_url(self):
-        try:
-            with pytest.raises(URLError):
-                self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
-        except ValueError as e:
-            assert "No tables found" in str(e)
+        msg = (
+            "Name or service not known|Temporary failure in name resolution|"
+            "No tables found"
+        )
+        with pytest.raises((URLError, ValueError), match=msg):
+            self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
 
     @pytest.mark.slow
     def test_file_url(self):
@@ -610,7 +619,7 @@ class TestReadHtml:
         gtnew = ground_truth.applymap(try_remove_ws)
         converted = dfnew._convert(datetime=True, numeric=True)
         date_cols = ["Closing Date", "Updated Date"]
-        converted[date_cols] = converted[date_cols]._convert(datetime=True, coerce=True)
+        converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
 
     @pytest.mark.slow
@@ -941,8 +950,13 @@ class TestReadHtml:
 
     def test_bool_header_arg(self):
         # GH 6114
+        msg = re.escape(
+            "Passing a bool to header is invalid. Use header=None for no header or "
+            "header=int or list-like of ints to specify the row(s) making up the "
+            "column names"
+        )
         for arg in [True, False]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 self.read_html(self.spam_data, header=arg)
 
     def test_converters(self):

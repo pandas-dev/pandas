@@ -55,38 +55,10 @@ cdef:
 
     float64_t NaN = <float64_t>np.NaN
 
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
-
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
 ):
     return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
-
-# Cython implementations of rolling sum, mean, variance, skewness,
-# other statistical moment functions
-#
-# Misc implementation notes
-# -------------------------
-#
-# - In Cython x * x is faster than x ** 2 for C types, this should be
-#   periodically revisited to see if it's still true.
-#
-
-# original C implementation by N. Devillard.
-# This code in public domain.
-# Function :   kth_smallest()
-# In       :   array of elements, # of elements in the array, rank k
-# Out      :   one element
-# Job      :   find the kth smallest element in the array
-
-#             Reference:
-
-#               Author: Wirth, Niklaus
-#                Title: Algorithms + data structures = programs
-#            Publisher: Englewood Cliffs: Prentice-Hall, 1976
-# Physical description: 366 p.
-#               Series: Prentice-Hall Series in Automatic Computation
 
 # ----------------------------------------------------------------------
 # Rolling sum
@@ -136,7 +108,7 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         sum_x[0] = t
 
 
-def roll_sum(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
@@ -240,7 +212,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, compensation_add = 0, compensation_remove = 0, sum_x = 0
@@ -361,7 +333,7 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_var(const float64_t[:] values, ndarray[int64_t] start,
              ndarray[int64_t] end, int64_t minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
@@ -772,9 +744,8 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 # Rolling median, min, max
 
 
-def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp):
-    # GH 32865. win argument kept for compatibility
     cdef:
         float64_t val, res, prev
         bint err = False
@@ -1032,7 +1003,7 @@ interpolation_types = {
 }
 
 
-def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
+def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp,
                   float64_t quantile, str interpolation):
     """
@@ -1167,9 +1138,8 @@ def roll_apply(object obj,
     arr = np.asarray(obj)
 
     # ndarray input
-    if raw:
-        if not arr.flags.c_contiguous:
-            arr = arr.copy('C')
+    if raw and not arr.flags.c_contiguous:
+        arr = arr.copy('C')
 
     counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
@@ -1195,17 +1165,17 @@ def roll_apply(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_weighted_sum(float64_t[:] values, float64_t[:] weights, int minp):
+def roll_weighted_sum(const float64_t[:] values, const float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_weighted_mean(float64_t[:] values, float64_t[:] weights, int minp):
+def roll_weighted_mean(const float64_t[:] values, const float64_t[:] weights, int minp):
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
-cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
-                                                float64_t[:] weights,
-                                                int minp, bint avg):
+cdef float64_t[:] _roll_weighted_sum_mean(const float64_t[:] values,
+                                          const float64_t[:] weights,
+                                          int minp, bint avg):
     """
     Assume len(weights) << len(values)
     """
@@ -1270,7 +1240,7 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
                 if c < minp:
                     output[in_i] = NaN
 
-    return np.asarray(output)
+    return output
 
 
 # ----------------------------------------------------------------------
@@ -1424,7 +1394,7 @@ cdef inline void remove_weighted_var(float64_t val,
             mean[0] = 0
 
 
-def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
+def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
                       int64_t minp, unsigned int ddof):
     """
     Calculates weighted rolling variance using West's online algorithm.
@@ -1496,8 +1466,8 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
-              int64_t halflife):
+def ewma_time(const float64_t[:] vals, int64_t[:] start, int64_t[:] end,
+              int minp, ndarray[int64_t] times, int64_t halflife):
     """
     Compute exponentially-weighted moving average using halflife and time
     distances.
@@ -1505,6 +1475,8 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     Parameters
     ----------
     vals : ndarray[float_64]
+    start: ndarray[int_64]
+    end: ndarray[int_64]
     minp : int
     times : ndarray[int64]
     halflife : int64
@@ -1552,17 +1524,20 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     return output
 
 
-def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
+def ewma(float64_t[:] vals, int64_t[:] start, int64_t[:] end, int minp,
+         float64_t com, bint adjust, bint ignore_na):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
     Parameters
     ----------
     vals : ndarray (float64 type)
+    start: ndarray (int64 type)
+    end: ndarray (int64 type)
+    minp : int
     com : float64
     adjust : int
     ignore_na : bool
-    minp : int
 
     Returns
     -------
@@ -1620,19 +1595,21 @@ def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp
 # Exponentially weighted moving covariance
 
 
-def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, bint adjust, bint ignore_na, int minp, bint bias):
+def ewmcov(float64_t[:] input_x, int64_t[:] start, int64_t[:] end, int minp,
+           float64_t[:] input_y, float64_t com, bint adjust, bint ignore_na, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
     Parameters
     ----------
     input_x : ndarray (float64 type)
+    start: ndarray (int64 type)
+    end: ndarray (int64 type)
+    minp : int
     input_y : ndarray (float64 type)
     com : float64
     adjust : int
     ignore_na : bool
-    minp : int
     bias : int
 
     Returns

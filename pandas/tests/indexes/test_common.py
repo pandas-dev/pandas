@@ -13,7 +13,16 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    Int64Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -30,7 +39,11 @@ class TestCommon:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
-            with pytest.raises(ValueError):
+            msg = (
+                "Cannot remove 1 levels from an index with 1 levels: at least one "
+                "level must be left."
+            )
+            with pytest.raises(ValueError, match=msg):
                 index.droplevel(level)
 
         for level in "wrong", ["wrong"]:
@@ -68,7 +81,11 @@ class TestCommon:
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, itm):
-        with pytest.raises(IndexError):
+        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
+            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+            "and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
             index[itm]
 
     def test_to_flat_index(self, index):
@@ -240,7 +257,8 @@ class TestCommon:
             assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
-            with pytest.raises(ValueError):
+            msg = "index must be monotonic increasing or decreasing"
+            with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
     def test_pickle(self, index):
@@ -332,9 +350,14 @@ class TestCommon:
         else:
             index.name = "idx"
 
+        warn = None
+        if dtype in ["int64", "uint64"]:
+            if needs_i8_conversion(index.dtype):
+                warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            result = index.astype(dtype)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+                result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -347,6 +370,19 @@ class TestCommon:
         # GH#19956 ravel returning ndarray is deprecated
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
+
+    @pytest.mark.xfail(reason="GH38630", strict=False)
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(
+            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
+        ):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])

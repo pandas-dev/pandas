@@ -153,7 +153,8 @@ class TestPartialSetting:
         # columns will align
         df = DataFrame(columns=["A", "B"])
         df.loc[0] = Series(1, index=range(4))
-        tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
+        expected = DataFrame(columns=["A", "B"], index=[0], dtype=int)
+        tm.assert_frame_equal(df, expected)
 
         # columns will align
         df = DataFrame(columns=["A", "B"])
@@ -169,11 +170,21 @@ class TestPartialSetting:
         with pytest.raises(ValueError, match=msg):
             df.loc[0] = [1, 2, 3]
 
-        # TODO: #15657, these are left as object and not coerced
+    @pytest.mark.parametrize("dtype", [None, "int64", "Int64"])
+    def test_loc_setitem_expanding_empty(self, dtype):
         df = DataFrame(columns=["A", "B"])
-        df.loc[3] = [6, 7]
 
-        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype="object")
+        value = [6, 7]
+        if dtype == "int64":
+            value = np.array(value, dtype=dtype)
+        elif dtype == "Int64":
+            value = pd.array(value, dtype=dtype)
+
+        df.loc[3] = value
+
+        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype=dtype)
+        if dtype is not None:
+            exp = exp.astype(dtype)
         tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):
@@ -207,7 +218,7 @@ class TestPartialSetting:
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64'\)\] are "
             r"in the \[index\]\""
@@ -288,7 +299,7 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match="with any missing labels"):
             ser.loc[[2, 2, "x", 1]]
 
-        # raises as nothing in in the index
+        # raises as nothing is in the index
         msg = (
             r"\"None of \[Int64Index\(\[3, 3, 3\], dtype='int64', "
             r"name='idx'\)\] are in the \[index\]\""
@@ -499,17 +510,17 @@ class TestPartialSetting:
         # consistency on empty frames
         df = DataFrame(columns=["x", "y"])
         df["x"] = [1, 2]
-        expected = DataFrame(dict(x=[1, 2], y=[np.nan, np.nan]))
+        expected = DataFrame({"x": [1, 2], "y": [np.nan, np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = ["1", "2"]
-        expected = DataFrame(dict(x=["1", "2"], y=[np.nan, np.nan]), dtype=object)
+        expected = DataFrame({"x": ["1", "2"], "y": [np.nan, np.nan]}, dtype=object)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["x", "y"])
         df.loc[0, "x"] = 1
-        expected = DataFrame(dict(x=[1], y=[np.nan]))
+        expected = DataFrame({"x": [1], "y": [np.nan]})
         tm.assert_frame_equal(df, expected, check_dtype=False)
 
     @pytest.mark.parametrize(

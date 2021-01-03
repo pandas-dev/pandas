@@ -74,7 +74,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert isinstance(result._mgr.blocks[0], ExtensionBlock)
 
     def test_series_given_mismatched_index_raises(self, data):
-        msg = "Length of passed values is 3, index implies 5"
+        msg = r"Length of values \(3\) does not match length of index \(5\)"
         with pytest.raises(ValueError, match=msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
 

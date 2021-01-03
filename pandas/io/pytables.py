@@ -12,6 +12,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -28,7 +29,14 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -44,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_string_dtype,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -1645,8 +1654,10 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
-                _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                pt = _TYPE_MAP[type(value)]
+                if isinstance(value, Series):
+                    pt = "series"
+                else:
+                    pt = "frame"
 
                 # we are actually a table
                 if format == "table":
@@ -2036,21 +2047,25 @@ class IndexCol:
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
 
-        kwargs = dict()
+        kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
+        factory: Union[Type[Index], Type[DatetimeIndex]] = Index
+        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+            factory = DatetimeIndex
+
         # making an Index instance could throw a number of different errors
         try:
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
 
         new_pd_index = _set_tz(new_pd_index, self.tz)
         return new_pd_index, new_pd_index
@@ -2251,7 +2266,7 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         data=None,
     ):
         super().__init__(
@@ -2733,8 +2748,14 @@ class GenericFixed(Fixed):
             return alias
         return self._reverse_index_map.get(alias, Index)
 
-    def _get_index_factory(self, klass):
-        if klass == DatetimeIndex:
+    def _get_index_factory(self, attrs):
+        index_class = self._alias_to_class(
+            _ensure_decoded(getattr(attrs, "index_class", ""))
+        )
+
+        factory: Callable
+
+        if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
@@ -2744,16 +2765,34 @@ class GenericFixed(Fixed):
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
 
-            return f
-        elif klass == PeriodIndex:
+            factory = f
+        elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
                 parr = PeriodArray._simple_new(values, freq=freq)
                 return PeriodIndex._simple_new(parr, name=None)
 
-            return f
+            factory = f
+        else:
+            factory = index_class
 
-        return klass
+        kwargs = {}
+        if "freq" in attrs:
+            kwargs["freq"] = attrs["freq"]
+            if index_class is Index:
+                # DTI/PI would be gotten by _alias_to_class
+                factory = TimedeltaIndex
+
+        if "tz" in attrs:
+            if isinstance(attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = attrs["tz"]
+            assert index_class is DatetimeIndex  # just checking
+
+        return factory, kwargs
 
     def validate_read(self, columns, where):
         """
@@ -2925,22 +2964,8 @@ class GenericFixed(Fixed):
             name = _ensure_str(node._v_attrs.name)
             name = _ensure_decoded(name)
 
-        index_class = self._alias_to_class(
-            _ensure_decoded(getattr(node._v_attrs, "index_class", ""))
-        )
-        factory = self._get_index_factory(index_class)
-
-        kwargs = {}
-        if "freq" in node._v_attrs:
-            kwargs["freq"] = node._v_attrs["freq"]
-
-        if "tz" in node._v_attrs:
-            if isinstance(node._v_attrs["tz"], bytes):
-                # created by python2
-                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
-            else:
-                # created by python3
-                kwargs["tz"] = node._v_attrs["tz"]
+        attrs = node._v_attrs
+        factory, kwargs = self._get_index_factory(attrs)
 
         if kind == "date":
             index = factory(
@@ -3236,7 +3261,7 @@ class Table(Fixed):
         self.non_index_axes = non_index_axes or []
         self.values_axes = values_axes or []
         self.data_columns = data_columns or []
-        self.info = info or dict()
+        self.info = info or {}
         self.nan_rep = nan_rep
 
     @property
@@ -3445,7 +3470,7 @@ class Table(Fixed):
         """ retrieve our attributes """
         self.non_index_axes = getattr(self.attrs, "non_index_axes", None) or []
         self.data_columns = getattr(self.attrs, "data_columns", None) or []
-        self.info = getattr(self.attrs, "info", None) or dict()
+        self.info = getattr(self.attrs, "info", None) or {}
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
@@ -3595,7 +3620,7 @@ class Table(Fixed):
         if not isinstance(columns, (tuple, list)):
             columns = [columns]
 
-        kw = dict()
+        kw = {}
         if optlevel is not None:
             kw["optlevel"] = optlevel
         if kind is not None:
@@ -3688,7 +3713,7 @@ class Table(Fixed):
             return []
 
         axis, axis_labels = non_index_axes[0]
-        info = self.info.get(axis, dict())
+        info = self.info.get(axis, {})
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
                 f"cannot use a multi-index on axis [{axis}] with "
@@ -4070,7 +4095,7 @@ class Table(Fixed):
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
 
-        d = dict(name="table", expectedrows=expectedrows)
+        d = {"name": "table", "expectedrows": expectedrows}
 
         # description from the axes & values
         d["description"] = {a.cname: a.typ for a in self.axes}
@@ -4457,9 +4482,9 @@ class AppendableFrameTable(AppendableTable):
         result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
-            self.info.get(self.non_index_axes[0][0], dict())
+            self.info.get(self.non_index_axes[0][0], {})
             if len(self.non_index_axes)
-            else dict()
+            else {}
         )
 
         inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
@@ -4689,7 +4714,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
 
         # remove names for 'level_%d'
         df.index = df.index.set_names(
-            [None if self._re_levels.search(l) else l for l in df.index.names]
+            [None if self._re_levels.search(name) else name for name in df.index.names]
         )
 
         return df
@@ -4771,7 +4796,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, Int64Index):
+    if isinstance(index, Int64Index) or needs_i8_conversion(index.dtype):
         # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
         #  in which case "kind" is "integer", "integer", "datetime64",
         #  "timedelta64", and "integer", respectively.

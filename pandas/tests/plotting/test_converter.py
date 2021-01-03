@@ -31,6 +31,9 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
+pytestmark = pytest.mark.slow
+
+
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -51,13 +54,13 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
-    def test_register_by_default(self):
+    def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
-            "'import matplotlib.units; "
+            "import matplotlib.units; "
             "import pandas as pd; "
             "units = dict(matplotlib.units.registry); "
-            "assert pd.Timestamp in units)'"
+            "assert pd.Timestamp not in units"
         )
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
@@ -372,3 +375,14 @@ class TestTimeDeltaConverter:
         tdc = converter.TimeSeries_TimedeltaFormatter
         result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
         assert result == format_expected
+
+    @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])
+    def test_call_w_different_view_intervals(self, view_interval, monkeypatch):
+        # previously broke on reversed xlmits; see GH37454
+        class mock_axis:
+            def get_view_interval(self):
+                return view_interval
+
+        tdc = converter.TimeSeries_TimedeltaFormatter()
+        monkeypatch.setattr(tdc, "axis", mock_axis())
+        tdc(0.0, 0)
