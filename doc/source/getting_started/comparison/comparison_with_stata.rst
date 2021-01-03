@@ -311,15 +311,7 @@ first position of the substring you supply as the second argument.
 
    generate str_position = strpos(sex, "ale")
 
-Python determines the position of a character in a string with the
-:func:`find` function.  ``find`` searches for the first position of the
-substring.  If the substring is found, the function returns its
-position.  Keep in mind that Python indexes are zero-based and
-the function will return -1 if it fails to find the substring.
-
-.. ipython:: python
-
-   tips["sex"].str.find("ale").head()
+.. include:: includes/find_substring.rst
 
 
 Extracting substring by position
@@ -331,13 +323,7 @@ Stata extracts a substring from a string based on its position with the :func:`s
 
    generate short_sex = substr(sex, 1, 1)
 
-With pandas you can use ``[]`` notation to extract a substring
-from a string by position locations.  Keep in mind that Python
-indexes are zero-based.
-
-.. ipython:: python
-
-   tips["sex"].str[0:1].head()
+.. include:: includes/extract_substring.rst
 
 
 Extracting nth word
@@ -358,16 +344,7 @@ second argument specifies which word you want to extract.
    generate first_name = word(name, 1)
    generate last_name = word(name, -1)
 
-Python extracts a substring from a string based on its text
-by using regular expressions. There are much more powerful
-approaches, but this just shows a simple approach.
-
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
-   firstlast["First_Name"] = firstlast["string"].str.split(" ", expand=True)[0]
-   firstlast["Last_Name"] = firstlast["string"].str.rsplit(" ", expand=True)[0]
-   firstlast
+.. include:: includes/nth_word.rst
 
 
 Changing case
@@ -390,27 +367,13 @@ change the case of ASCII and Unicode strings, respectively.
    generate title = strproper(string)
    list
 
-The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+.. include:: includes/case.rst
 
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
-   firstlast["upper"] = firstlast["string"].str.upper()
-   firstlast["lower"] = firstlast["string"].str.lower()
-   firstlast["title"] = firstlast["string"].str.title()
-   firstlast
 
 Merging
 -------
 
-The following tables will be used in the merge examples
-
-.. ipython:: python
-
-   df1 = pd.DataFrame({"key": ["A", "B", "C", "D"], "value": np.random.randn(4)})
-   df1
-   df2 = pd.DataFrame({"key": ["B", "D", "D", "E"], "value": np.random.randn(4)})
-   df2
+.. include:: includes/merge_setup.rst
 
 In Stata, to perform a merge, one data set must be in memory
 and the other must be referenced as a file name on disk. In
@@ -465,38 +428,13 @@ or the intersection of the two by using the values created in the
    restore
    merge 1:n key using df2.dta
 
-pandas DataFrames have a :meth:`DataFrame.merge` method, which provides
-similar functionality. Note that different join
-types are accomplished via the ``how`` keyword.
-
-.. ipython:: python
-
-   inner_join = df1.merge(df2, on=["key"], how="inner")
-   inner_join
-
-   left_join = df1.merge(df2, on=["key"], how="left")
-   left_join
-
-   right_join = df1.merge(df2, on=["key"], how="right")
-   right_join
-
-   outer_join = df1.merge(df2, on=["key"], how="outer")
-   outer_join
+.. include:: includes/merge_setup.rst
 
 
 Missing data
 ------------
 
-Like Stata, pandas has a representation for missing data -- the
-special float value ``NaN`` (not a number).  Many of the semantics
-are the same; for example missing data propagates through numeric
-operations, and is ignored by default for aggregations.
-
-.. ipython:: python
-
-   outer_join
-   outer_join["value_x"] + outer_join["value_y"]
-   outer_join["value_x"].sum()
+.. include:: includes/missing_intro.rst
 
 One difference is that missing data cannot be compared to its sentinel value.
 For example, in Stata you could do this to filter missing values.
@@ -508,30 +446,7 @@ For example, in Stata you could do this to filter missing values.
    * Keep non-missing values
    list if value_x != .
 
-This doesn't work in pandas.  Instead, the :func:`pd.isna` or :func:`pd.notna` functions
-should be used for comparisons.
-
-.. ipython:: python
-
-   outer_join[pd.isna(outer_join["value_x"])]
-   outer_join[pd.notna(outer_join["value_x"])]
-
-pandas also provides a variety of methods to work with missing data -- some of
-which would be challenging to express in Stata. For example, there are methods to
-drop all rows with any missing values, replacing missing values with a specified
-value, like the mean, or forward filling from previous rows. See the
-:ref:`missing data documentation<missing_data>` for more.
-
-.. ipython:: python
-
-   # Drop rows with any missing value
-   outer_join.dropna()
-
-   # Fill forwards
-   outer_join.fillna(method="ffill")
-
-   # Impute missing values with the mean
-   outer_join["value_x"].fillna(outer_join["value_x"].mean())
+.. include:: includes/missing.rst
 
 
 GroupBy
@@ -548,14 +463,7 @@ numeric columns.
 
    collapse (sum) total_bill tip, by(sex smoker)
 
-pandas provides a flexible ``groupby`` mechanism that
-allows similar aggregations.  See the :ref:`groupby documentation<groupby>`
-for more details and examples.
-
-.. ipython:: python
-
-   tips_summed = tips.groupby(["sex", "smoker"])[["total_bill", "tip"]].sum()
-   tips_summed.head()
+.. include:: includes/groupby.rst
 
 
 Transformation
@@ -570,16 +478,7 @@ For example, to subtract the mean for each observation by smoker group.
    bysort sex smoker: egen group_bill = mean(total_bill)
    generate adj_total_bill = total_bill - group_bill
 
-
-pandas ``groupby`` provides a ``transform`` mechanism that allows
-these type of operations to be succinctly expressed in one
-operation.
-
-.. ipython:: python
-
-   gb = tips.groupby("smoker")["total_bill"]
-   tips["adj_total_bill"] = tips["total_bill"] - gb.transform("mean")
-   tips.head()
+.. include:: includes/transform.rst
 
 
 By group processing
