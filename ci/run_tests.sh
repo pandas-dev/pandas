@@ -20,6 +20,10 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
+# With --dist=no, pytest distributs one test at a time.
+# If using other options, running the test suite would be extremely slow on arm64 machine.
+# See https://pypi.org/project/pytest-xdist/ for details.
+# GH 36719
 PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=no -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
