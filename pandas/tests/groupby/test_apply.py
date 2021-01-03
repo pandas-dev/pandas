@@ -1029,23 +1029,26 @@ def test_apply_result_type(group_keys, udf, is_transform):
 
 def test_groupby_apply_group_keys_warns():
     df = DataFrame({"A": [0, 1, 1], "B": [1, 2, 3]})
-    with tm.assert_produces_warning(FutureWarning):
+    msg = "Not prepending group keys to the result index"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").apply(lambda x: x)
 
     tm.assert_frame_equal(result, df)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A")["B"].apply(lambda x: x)
 
     tm.assert_series_equal(result, df["B"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df["B"].groupby(df["A"]).apply(lambda x: x)
 
     tm.assert_series_equal(result, df["B"])
 
 
-@pytest.mark.xfail("BinGrouper and Grouper aren't consistent with NA key handling")
+@pytest.mark.xfail(
+    reason="BinGrouper and Grouper aren't consistent with NA key handling"
+)
 def test_resample_with_only_nat(self):
     # https://github.com/pandas-dev/pandas/issues/35251
     pi = pd.PeriodIndex([pd.NaT] * 3, freq="S")

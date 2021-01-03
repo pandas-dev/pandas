@@ -2553,7 +2553,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            return self.apply(lambda x: x.cumprod(axis=axis, **kwargs))
+            f = lambda x: x.cumprod(axis=axis, **kwargs)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cumprod", **kwargs)
 
@@ -2570,7 +2571,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
         if axis != 0:
-            return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))
+            f = lambda x: x.cumsum(axis=axis, **kwargs)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cumsum", **kwargs)
 
@@ -2586,7 +2588,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
         """
         if axis != 0:
-            return self.apply(lambda x: np.minimum.accumulate(x, axis))
+            f = lambda x: np.minimum.accumulate(x, axis)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cummin", numeric_only=False)
 
@@ -2602,7 +2605,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
         """
         if axis != 0:
-            return self.apply(lambda x: np.maximum.accumulate(x, axis))
+            f = lambda x: np.maximum.accumulate(x, axis)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform("cummax", numeric_only=False)
 
@@ -2798,7 +2802,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if available.
         """
         if freq is not None or axis != 0 or not isna(fill_value):
-            return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
+            f = lambda x: x.shift(periods, freq, axis, fill_value)
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._get_cythonized_result(
             "group_shift_indexer",
@@ -2822,15 +2827,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Percentage changes within each group.
         """
         if freq is not None or axis != 0:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods,
-                    fill_method=fill_method,
-                    limit=limit,
-                    freq=freq,
-                    axis=axis,
-                )
+            f = lambda x: x.pct_change(
+                periods=periods,
+                fill_method=fill_method,
+                limit=limit,
+                freq=freq,
+                axis=axis,
             )
+            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+
         if fill_method is None:  # GH30463
             fill_method = "pad"
             limit = 0
