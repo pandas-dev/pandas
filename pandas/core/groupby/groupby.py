@@ -993,7 +993,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             keys,
             values,
             not_indexed_same=not_indexed_same,
-            override_group_keys=override_group_keys,
+            override_group_keys=is_transform or override_group_keys,
         )
 
     def _iterate_slices(self) -> Iterable[Series]:

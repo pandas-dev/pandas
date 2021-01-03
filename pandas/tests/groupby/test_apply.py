@@ -1045,11 +1045,9 @@ def test_groupby_apply_group_keys_warns():
     tm.assert_series_equal(result, df["B"])
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail("BinGrouper and Grouper aren't consistent with NA key handling")
 def test_resample_with_only_nat(self):
     # https://github.com/pandas-dev/pandas/issues/35251
-    # BinGrouper and Grouper aren't consistent with NA key handling.
-    # Causes a false positive here.
     pi = pd.PeriodIndex([pd.NaT] * 3, freq="S")
     frame = DataFrame([2, 3, 5], index=pi)
 

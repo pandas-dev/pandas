@@ -62,18 +62,8 @@ def test_transform():
         index=["Joe", "Steve", "Wes", "Jim", "Travis"],
     )
     key = ["one", "two", "one", "two", "one"]
-    result = (
-        people.groupby(key, group_keys=False)
-        .transform(demean)
-        .groupby(key, group_keys=False)
-        .mean()
-    )
-    expected = (
-        people.groupby(key, group_keys=False)
-        .apply(demean)
-        .groupby(key, group_keys=False)
-        .mean()
-    )
+    result = people.groupby(key).transform(demean).groupby(key).mean()
+    expected = people.groupby(key, group_keys=False).apply(demean).groupby(key).mean()
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -175,14 +165,8 @@ def test_transform_axis_1(transformation_func):
     args = ("ffill",) if transformation_func == "fillna" else ()
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1, group_keys=False).transform(
-        transformation_func, *args
-    )
-    expected = (
-        df.T.groupby([0, 0, 1], group_keys=False)
-        .transform(transformation_func, *args)
-        .T
-    )
+    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func == "diff":
         # Result contains nans, so transpose coerces to float
@@ -341,7 +325,7 @@ def test_transform_multiple(ts):
 def test_dispatch_transform(tsframe):
     df = tsframe[::5].reindex(tsframe.index)
 
-    grouped = df.groupby(lambda x: x.month, group_keys=False)
+    grouped = df.groupby(lambda x: x.month)
 
     filled = grouped.fillna(method="pad")
     fillit = lambda x: x.fillna(method="pad")
@@ -375,7 +359,7 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A", group_keys=False))
+    result = test_op(df.groupby("A"))
     groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
     expected = concat([mock_op(g) for g in groups])
 

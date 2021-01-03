@@ -403,10 +403,10 @@ def test_cython_api2():
     tm.assert_frame_equal(result, expected)
 
     # GH 13994
-    result = df.groupby("A", group_keys=False).cumsum(axis=1)
+    result = df.groupby("A").cumsum(axis=1)
     expected = df.cumsum(axis=1)
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A", group_keys=False).cumprod(axis=1)
+    result = df.groupby("A").cumprod(axis=1)
     expected = df.cumprod(axis=1)
     tm.assert_frame_equal(result, expected)
 
@@ -543,7 +543,7 @@ def test_idxmin_idxmax_axis1():
     df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
     df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
 
-    gb = df.groupby("A", group_keys=True)
+    gb = df.groupby("A")
 
     res = gb.idxmax(axis=1)
 
