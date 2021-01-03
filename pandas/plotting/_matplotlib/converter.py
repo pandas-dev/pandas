@@ -182,7 +182,7 @@ class TimeFormatter(Formatter):
         """
         fmt = "%H:%M:%S.%f"
         s = int(x)
-        msus = int(round((x - s) * 1e6))
+        msus = round((x - s) * 1e6)
         ms = msus // 1000
         us = msus % 1000
         m, s = divmod(s, 60)
