@@ -339,26 +339,33 @@ class TestSetitemCoercion(CoercionBase):
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_series_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_complex128(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_bool(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_datetime64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_datetime64tz(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_timedelta64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_setitem_index_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
 
 class TestInsertIndexCoercion(CoercionBase):
@@ -511,11 +518,13 @@ class TestInsertIndexCoercion(CoercionBase):
                     # passing keywords to pd.Index
                     pd.Index(data, freq="M")
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_insert_index_complex128(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_insert_index_bool(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
 
 class TestWhereCoercion(CoercionBase):
@@ -760,17 +769,21 @@ class TestWhereCoercion(CoercionBase):
 
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_where_index_complex128(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_where_index_bool(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_where_series_timedelta64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_where_series_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
     @pytest.mark.parametrize(
         "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
@@ -822,8 +835,9 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
     method = "fillna"
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_has_comprehensive_tests(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """ test coercion triggered by fillna """
@@ -942,29 +956,37 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_int64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_index_int64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_bool(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_index_bool(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_timedelta64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_index_timedelta64(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_index_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
@@ -1120,5 +1142,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
+    @pytest.mark.xfail(reason="Test not implemented")
     def test_replace_series_period(self):
-        pytest.xfail("Test not implemented")
+        raise NotImplementedError
