@@ -1,4 +1,5 @@
-The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+The equivalent pandas methods are :meth:`Series.str.upper`, :meth:`Series.str.lower`, and
+:meth:`Series.str.title`.
 
 .. ipython:: python
 

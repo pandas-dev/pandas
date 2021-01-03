@@ -1,6 +1,5 @@
-Python extracts a substring from a string based on its text
-by using regular expressions. There are much more powerful
-approaches, but this just shows a simple approach.
+The simplest way to extract words in pandas is to split the strings by spaces, then reference the
+word by index. Note there are more powerful approaches should you need them.
 
 .. ipython:: python
 

@@ -1,4 +1,4 @@
-pandas ``groupby`` provides a ``transform`` mechanism that allows these type of operations to be
+pandas provides a :ref:`groupby.transform` mechanism that allows these type of operations to be
 succinctly expressed in one operation.
 
 .. ipython:: python
