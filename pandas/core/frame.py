@@ -121,12 +121,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
-    aggregate,
-    reconstruct_func,
-    relabel_result,
-    transform,
-)
+from pandas.core.aggregation import reconstruct_func, relabel_result, transform
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -7623,13 +7618,24 @@ NaN 12.3   33.0
         return result
 
     def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(
+            self if axis == 0 else self.T,
+            how="agg",
+            func=arg,
+            axis=0,
+            args=args,
+            kwds=kwargs,
+        )
+        result, how = op.get_result()
+
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
-            return result, how
-        return aggregate(self, arg, *args, **kwargs)
+
+        return result, how
 
     agg = aggregate
 
@@ -7789,6 +7795,7 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self,
+            how="apply",
             func=func,
             axis=axis,
             raw=raw,
