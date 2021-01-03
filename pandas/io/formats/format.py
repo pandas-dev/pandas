@@ -1637,7 +1637,7 @@ def is_dates_only(
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1741,7 +1741,7 @@ def get_format_timedelta64(
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )

@@ -14,7 +14,7 @@ terminology and link to documentation for Excel, but much will be the same/simil
 `Apple Numbers <https://www.apple.com/mac/numbers/compatibility/functions.html>`_, and other
 Excel-compatible spreadsheet software.
 
-.. include:: comparison_boilerplate.rst
+.. include:: includes/introduction.rst
 
 Data structures
 ---------------

@@ -52,6 +52,7 @@ Other enhancements
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - Added HTML representation for grouped DataFrame and Series (:issue:`34926`)
+- :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
 
 .. ---------------------------------------------------------------------------
 
@@ -271,7 +272,7 @@ I/O
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
-
+- :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
 
 Period
 ^^^^^^
@@ -296,7 +297,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
-- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`, :issue:`38907`)
 -
 
 

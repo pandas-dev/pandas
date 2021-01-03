@@ -533,7 +533,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=str,
+        validator=is_one_of_factory(_xls_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -541,7 +541,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsm_options + ["auto"]),
     )
 
 
@@ -550,7 +550,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsx_options + ["auto"]),
     )
 
 
@@ -559,7 +559,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=str,
+        validator=is_one_of_factory(_ods_options + ["auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -567,7 +567,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=str,
+        validator=is_one_of_factory(_xlsb_options + ["auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
