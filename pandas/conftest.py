@@ -266,7 +266,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -1444,5 +1444,21 @@ def fsspectest():
 def names(request):
     """
     A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc, tm.iloc])
+def indexer_sli(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.iloc])
+def indexer_si(request):
+    """
+    Parametrize over __setitem__, iloc.__setitem__
     """
     return request.param

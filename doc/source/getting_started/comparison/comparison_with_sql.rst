@@ -8,15 +8,7 @@ Since many potential pandas users have some familiarity with
 `SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows:
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
+.. include:: includes/introduction.rst
 
 Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read
 the data into a DataFrame called ``tips`` and assume we have a database table of the same name and
@@ -73,24 +65,9 @@ Filtering in SQL is done via a WHERE clause.
 
     SELECT *
     FROM tips
-    WHERE time = 'Dinner'
-    LIMIT 5;
+    WHERE time = 'Dinner';
 
-DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`
-
-.. ipython:: python
-
-    tips[tips["time"] == "Dinner"].head(5)
-
-The above statement is simply passing a ``Series`` of True/False objects to the DataFrame,
-returning all rows with True.
-
-.. ipython:: python
-
-    is_dinner = tips["time"] == "Dinner"
-    is_dinner.value_counts()
-    tips[is_dinner].head(5)
+.. include:: includes/filtering.rst
 
 Just like SQL's OR and AND, multiple conditions can be passed to a DataFrame using | (OR) and &
 (AND).

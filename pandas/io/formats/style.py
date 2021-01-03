@@ -389,7 +389,7 @@ class Styler:
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
                     es["attributes"] = [
-                        format_attr({"key": "rowspan", "value": rowspan})
+                        format_attr({"key": "rowspan", "value": f'"{rowspan}"'})
                     ]
                 row_es.append(es)
 

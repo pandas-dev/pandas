@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
@@ -156,7 +156,7 @@ def _isna(obj, inf_as_na: bool = False):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
         return _isna_ndarraylike(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -358,8 +358,8 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
     -------
     True if we can fill using this fill_value
     """
-    dtype = arr.dtype
     if isna(fill_value):
+        dtype = arr.dtype
         return not (is_bool_dtype(dtype) or is_integer_dtype(dtype))
     return True
 
@@ -447,9 +447,10 @@ def array_equivalent(
         right = right.view("i8")
 
     # if we have structured dtypes, compare first
-    if left.dtype.type is np.void or right.dtype.type is np.void:
-        if left.dtype != right.dtype:
-            return False
+    if (
+        left.dtype.type is np.void or right.dtype.type is np.void
+    ) and left.dtype != right.dtype:
+        return False
 
     return np.array_equal(left, right)
 
@@ -637,8 +638,6 @@ def isna_all(arr: ArrayLike) -> bool:
     else:
         checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)
 
-    for i in range(0, total_len, chunk_len):
-        if not checker(arr[i : i + chunk_len]).all():
-            return False
-
-    return True
+    return all(
+        checker(arr[i : i + chunk_len]).all() for i in range(0, total_len, chunk_len)
+    )

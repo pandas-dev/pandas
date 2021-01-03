@@ -51,8 +51,8 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         data.view()
 
     @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
-    def test_contains(self, data, data_missing, nulls_fixture):
-        super().test_contains(data, data_missing, nulls_fixture)
+    def test_contains(self, data, data_missing):
+        super().test_contains(data, data_missing)
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):

@@ -444,6 +444,7 @@ def test_rank_avg_even_vals():
     tm.assert_frame_equal(result, exp_df)
 
 
+@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])

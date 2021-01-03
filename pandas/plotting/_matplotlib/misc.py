@@ -55,7 +55,7 @@ def scatter_matrix(
     for a in df.columns:
         values = df[a].values[mask[a].values]
         rmin_, rmax_ = np.min(values), np.max(values)
-        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.0
+        rdelta_ext = (rmax_ - rmin_) * range_padding / 2
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
     for i, a in enumerate(df.columns):
@@ -144,7 +144,9 @@ def radviz(
     df = frame.drop(class_column, axis=1).apply(normalize)
 
     if ax is None:
-        ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
+        ax = plt.gca()
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
 
     to_plot: Dict[Label, List[List]] = {}
     colors = get_standard_colors(
@@ -156,10 +158,7 @@ def radviz(
 
     m = len(frame.columns) - 1
     s = np.array(
-        [
-            (np.cos(t), np.sin(t))
-            for t in [2.0 * np.pi * (i / float(m)) for i in range(m)]
-        ]
+        [(np.cos(t), np.sin(t)) for t in [2 * np.pi * (i / m) for i in range(m)]]
     )
 
     for i in range(n):
@@ -260,7 +259,8 @@ def andrews_curves(
     )
     colors = dict(zip(classes, color_values))
     if ax is None:
-        ax = plt.gca(xlim=(-np.pi, np.pi))
+        ax = plt.gca()
+        ax.set_xlim(-np.pi, np.pi)
     for i in range(n):
         row = df.iloc[i].values
         f = function(row)
@@ -440,12 +440,14 @@ def autocorrelation_plot(
     n = len(series)
     data = np.asarray(series)
     if ax is None:
-        ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
+        ax = plt.gca()
+        ax.set_xlim(1, n)
+        ax.set_ylim(-1.0, 1.0)
     mean = np.mean(data)
-    c0 = np.sum((data - mean) ** 2) / float(n)
+    c0 = np.sum((data - mean) ** 2) / n
 
     def r(h):
-        return ((data[: n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
+        return ((data[: n - h] - mean) * (data[h:] - mean)).sum() / n / c0
 
     x = np.arange(n) + 1
     y = [r(loc) for loc in x]
