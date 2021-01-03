@@ -2103,26 +2103,22 @@ def test_groupby_repr(n_groups, n_rows, check_n_groups, check_n_rows):
         }
     )
 
-    df_groupby = df.groupby("C")
-    html_groupby = df_groupby._repr_html_()
+    gb = df.groupby("C")
 
-    df_from_html = pd.concat(pd.read_html(StringIO(html_groupby), index_col=0))
+    df_from_html = pd.concat(pd.read_html(StringIO(gb._repr_html_()), index_col=0))
 
     # Drop "..." rows and convert index and data to int
     df_from_html = df_from_html[df_from_html.index != "..."].astype(int)
     df_from_html.index = df_from_html.index.astype(int)
 
     # Iterate over the first and last "check_n_groups" groups
-    df_group_iter = (
-        list(df_groupby)[:check_n_groups] + list(df_groupby)[-check_n_groups:]
-    )
-    for group_name, df_group in df_group_iter:
+    gb_iter = list(gb)[:check_n_groups] + list(gb)[-check_n_groups:]
+    for group_name, df_group in gb_iter:
         # Iterate over the first and last "check_n_rows" of every group
         df_iter = pd.concat(
             [df_group.iloc[:check_n_rows], df_group.iloc[-check_n_rows:]]
         ).iterrows()
         for index, row in df_iter:
-            print(group_name, index)
             tm.assert_series_equal(row, df_from_html.loc[index])
 
 
