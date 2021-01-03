@@ -1112,7 +1112,6 @@ def rank_2d(
         int tiebreak = 0
         int64_t idx
         bint check_mask, condition, keep_na
-        const int64_t[:] labels
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1158,34 +1157,14 @@ def rank_2d(
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
-    # For compatibility when calling rank_1d
-    labels = np.zeros(k, dtype=np.int64)
 
-    if rank_t is object:
-        try:
-            _as = values.argsort(1)
-        except TypeError:
-            values = in_arr
-            for i in range(len(values)):
-                ranks[i] = rank_1d(
-                    in_arr[i],
-                    labels=labels,
-                    ties_method=ties_method,
-                    ascending=ascending,
-                    pct=pct
-                )
-            if axis == 0:
-                return ranks.T
-            else:
-                return ranks
+    if tiebreak == TIEBREAK_FIRST:
+        # need to use a stable sort here
+        _as = values.argsort(axis=1, kind='mergesort')
+        if not ascending:
+            tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        if tiebreak == TIEBREAK_FIRST:
-            # need to use a stable sort here
-            _as = values.argsort(axis=1, kind='mergesort')
-            if not ascending:
-                tiebreak = TIEBREAK_FIRST_DESCENDING
-        else:
-            _as = values.argsort(1)
+        _as = values.argsort(1)
 
     if not ascending:
         _as = _as[:, ::-1]
