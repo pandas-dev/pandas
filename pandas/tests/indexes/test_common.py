@@ -16,12 +16,10 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Int64Index,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
 
@@ -371,12 +369,9 @@ class TestCommon:
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
 
-    @pytest.mark.xfail(reason="GH38630", strict=False)
     def test_asi8_deprecation(self, index):
         # GH#37877
-        if isinstance(
-            index, (Int64Index, UInt64Index, DatetimeIndex, TimedeltaIndex, PeriodIndex)
-        ):
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
             warn = None
         else:
             warn = FutureWarning
