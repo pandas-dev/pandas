@@ -126,6 +126,9 @@ class Groups:
     def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
 
+    def time_series_indices(self, data, key):
+        self.ser.groupby(self.ser).indices
+
 
 class GroupManyLabels:
 
