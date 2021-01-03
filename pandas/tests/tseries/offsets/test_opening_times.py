@@ -9,8 +9,6 @@ from pandas._libs.tslibs.offsets import BusinessHour
 
 
 class TestOpeningTimes:
-    _offset = BusinessHour
-
     # opening time should be affected by sign of n, not by n's value and end
     opening_time_cases = [
         (
