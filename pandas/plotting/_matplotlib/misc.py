@@ -55,7 +55,7 @@ def scatter_matrix(
     for a in df.columns:
         values = df[a].values[mask[a].values]
         rmin_, rmax_ = np.min(values), np.max(values)
-        rdelta_ext = (rmax_ - rmin_) * range_padding / 2.0
+        rdelta_ext = (rmax_ - rmin_) * range_padding / 2
         boundaries_list.append((rmin_ - rdelta_ext, rmax_ + rdelta_ext))
 
     for i, a in enumerate(df.columns):
