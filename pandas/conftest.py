@@ -593,7 +593,8 @@ def narrow_series(request):
     return _narrow_series[request.param].copy()
 
 
-_dtype_nuisance_arr_map = {
+# Used in tests in (series|frame)/methods/test_rank.py
+_nuisance_arr_for_rank_by_dtype = {
     "float64": [
         -np.inf,
         -50,
@@ -638,20 +639,19 @@ _dtype_nuisance_arr_map = {
     "object": [NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()],
 }
 
-_dtype_na_map = {
-    "float64": np.nan,
-    "float32": np.nan,
-    "int64": iNaT,
-    "object": None,
-}
 
-
-@pytest.fixture(params=_dtype_nuisance_arr_map.keys())
+@pytest.fixture(params=_nuisance_arr_for_rank_by_dtype.keys())
 def nuisance_rank_series_and_expected(request):
     """
     Fixture for Series with troublesome values for rank
     algorithms
     """
+    _dtype_na_map = {
+        "float64": np.nan,
+        "float32": np.nan,
+        "int64": iNaT,
+        "object": None,
+    }
     dtype = request.param
     if dtype == "int64":
         mark = pytest.mark.xfail(
@@ -659,7 +659,7 @@ def nuisance_rank_series_and_expected(request):
             "int64 pending issue GH#16674"
         )
         request.node.add_marker(mark)
-    data = _dtype_nuisance_arr_map[dtype]
+    data = _nuisance_arr_for_rank_by_dtype[dtype]
     values = np.array(data, dtype=dtype)
     exp_order = np.array(range(len(values)), dtype="float64") + 1.0
     # Insert nans at random positions if underlying dtype has missing
