@@ -439,7 +439,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                      f'between 1 and 4: {date_string}')
 
             try:
-                # TODO: hack attack, GH#1228
+                # GH#1228
                 year, month = quarter_to_myear(year, quarter, freq)
             except KeyError:
                 raise DateParseError("Unable to retrieve month "
