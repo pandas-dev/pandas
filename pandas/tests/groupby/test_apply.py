@@ -1161,7 +1161,7 @@ def test_apply_dropna_with_indexed_same():
         },
         index=list("xxyxz"),
     )
-    result = df.groupby("group").apply(lambda x: x)
+    result = df.groupby("group", group_keys=False).apply(lambda x: x)
     expected = DataFrame(
         {
             "col": [1, 4, 5],

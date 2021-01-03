@@ -233,7 +233,6 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            # if not _is_indexed_like(res, group_axes, axis):
             if not _is_indexed_like(res, group_axes):
                 mutated = True
             result_values.append(res)

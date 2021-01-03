@@ -7451,87 +7451,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    _shared_docs[
-        "groupby"
-    ] = """
-        Group %(klass)s using a mapper or by a Series of columns.
-
-        A groupby operation involves some combination of splitting the
-        object, applying a function, and combining the results. This can be
-        used to group large amounts of data and compute operations on these
-        groups.
-
-        Parameters
-        ----------
-        by : mapping, function, label, or list of labels
-            Used to determine the groups for the groupby.
-            If ``by`` is a function, it's called on each value of the object's
-            index. If a dict or Series is passed, the Series or dict VALUES
-            will be used to determine the groups (the Series' values are first
-            aligned; see ``.align()`` method). If an ndarray is passed, the
-            values are used as-is determine the groups. A label or list of
-            labels may be passed to group by the columns in ``self``. Notice
-            that a tuple is interpreted as a (single) key.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Split along rows (0) or columns (1).
-        level : int, level name, or sequence of such, default None
-            If the axis is a MultiIndex (hierarchical), group by a particular
-            level or levels.
-        as_index : bool, default True
-            For aggregated output, return object with group labels as the
-            index. Only relevant for DataFrame input. as_index=False is
-            effectively "SQL-style" grouped output.
-        sort : bool, default True
-            Sort group keys. Get better performance by turning this off.
-            Note this does not influence the order of observations within each
-            group. Groupby preserves the order of rows within each group.
-        group_keys : bool, optional
-            When calling apply, add group keys to index to identify pieces.
-            By default group keys are not included when the result's index
-            (and column) labels match the inputs, and are included otherwise.
-
-            .. versionchanged:: 1.2.0
-
-               Warns that `group_keys` will no longer be ignored when the
-               result from ``apply`` is a like-indexed Series or DataFrame.
-               Specify ``group_keys`` explicitly to include the group keys or
-               not.
-
-        squeeze : bool, default False
-            Reduce the dimensionality of the return type if possible,
-            otherwise return a consistent type.
-
-            .. deprecated:: 1.1.0
-
-        observed : bool, default False
-            This only applies if any of the groupers are Categoricals.
-            If True: only show observed values for categorical groupers.
-            If False: show all values for categorical groupers.
-
-            .. versionadded:: 0.23.0
-        dropna : bool, default True
-            If True, and if group keys contain NA values, NA values together
-            with row/column will be dropped.
-            If False, NA values will also be treated as the key in groups
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        %(klass)sGroupBy
-            Returns a groupby object that contains information about the groups.
-
-        See Also
-        --------
-        resample : Convenience method for frequency conversion and resampling
-            of time series.
-
-        Notes
-        -----
-        See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
-        """
-
     @doc(**_shared_doc_kwargs)
     def asfreq(
         self: FrameOrSeries,
@@ -7896,7 +7815,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether to include the group keys in the result index when performing
             a ``.groupby().apply()`` to the resampled object.
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: 1.3.0
 
         Returns
         -------

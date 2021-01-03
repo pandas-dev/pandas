@@ -152,6 +152,57 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~DataFrame.groupby` will no longer ignore the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`, :issue:`31612`, :issue:`14927`, :issue:`13056`).
+Previous versions of pandas would add the group keys only when the result from the applied function had a different index to the input.
+
+*Previous behavior*:
+
+.. code-block:: python
+
+   >>> # pandas 1.2
+   >>> df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   >>> df
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+   >>> df.groupby("A").apply(lambda x: x.rename(np.exp))  # Different index
+               A  B
+   A
+   1 1.000000  1  1
+   2 2.718282  2  2
+     7.389056  2  3
+
+   >>> df.groupby("A").apply(lambda x: x)  # Same index
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+
+In this future this behavior will change to always respect ``group_keys``, which defaults to True.
+
+*New behavior*:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   df.groupby("A", group_keys=True).apply(lambda x: x)
+   df.groupby("A", group_keys=True).apply(lambda x: x.rename(np.exp))
+
+A warning will be issued if the result would change from pandas 1.2
+
+.. ipython:: python
+   :okwarning:
+
+   df.groupby("A").apply(lambda x: x)
+
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 - Deprecating allowing scalars passed to the :class:`Categorical` constructor (:issue:`38433`)
 - Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)

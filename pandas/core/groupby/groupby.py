@@ -2835,7 +2835,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             fill_method = "pad"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
+        fill_grp = filled.groupby(
+            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
+        )
         shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
         return (filled / shifted) - 1
 

@@ -107,8 +107,18 @@ sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
-group_keys : bool, default True
-    When calling ``groupby().apply()``, add group keys to index to identify pieces.
+group_keys : bool, optional
+    When calling apply, add group keys to index to identify pieces.
+    By default group keys are not included when the result's index
+    (and column) labels match the inputs, and are included otherwise.
+
+    .. versionchanged:: 1.3.0
+
+       Warns that `group_keys` will no longer be ignored when the
+       result from ``apply`` is a like-indexed Series or DataFrame.
+       Specify ``group_keys`` explicitly to include the group keys or
+       not.
+
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.
@@ -119,6 +129,8 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
