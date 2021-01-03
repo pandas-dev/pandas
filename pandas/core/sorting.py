@@ -54,7 +54,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -540,8 +540,7 @@ def get_indexer_dict(
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
-        # When all keys are nan and dropna=True, indices_fast can't handle this
-        # and the return is empty anyway
+        # Short-circuit, lib.indices_fast will return the same
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)

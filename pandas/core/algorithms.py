@@ -921,6 +921,7 @@ def mode(values, dropna: bool = True) -> Series:
     mode : Series
     """
     from pandas import Series
+    import pandas.core.indexes.base as ibase
 
     values = _ensure_arraylike(values)
     original = values
@@ -947,7 +948,8 @@ def mode(values, dropna: bool = True) -> Series:
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
-    return Series(result)
+    # Ensure index is type stable (should always use int index)
+    return Series(result, index=ibase.default_index(len(result)))
 
 
 def rank(
@@ -985,6 +987,7 @@ def rank(
         values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
+            labels=np.zeros(len(values), dtype=np.int64),
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
