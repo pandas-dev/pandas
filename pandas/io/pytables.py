@@ -4919,8 +4919,8 @@ def _maybe_convert_for_string_atom(
                 # column name for {col}, so the col number is given as a
                 # compromise.
                 raise TypeError(
-                    f"Cannot serialize the column [{i}] because\n"
-                    f"its data contents are not string but [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{i}] because its data contents \n"
+                    f"are not string but [{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
