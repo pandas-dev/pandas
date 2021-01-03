@@ -51,6 +51,7 @@ Other enhancements
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
+- :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
 
 .. ---------------------------------------------------------------------------
 
@@ -259,6 +260,7 @@ I/O
 ^^^
 
 - Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
+- Bug in :func:`read_csv` not recognizing scientific notation if decimal is set for ``engine="python"`` (:issue:`31920`)
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
@@ -269,7 +271,7 @@ I/O
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
-
+- :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
 
 Period
 ^^^^^^
@@ -294,7 +296,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
-- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`, :issue:`38907`)
 -
 
 

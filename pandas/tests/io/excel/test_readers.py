@@ -1299,14 +1299,8 @@ class TestExcelFileRead:
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
 
-    def test_excel_read_binary_via_read_excel(self, request, read_ext, engine):
+    def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
-        if read_ext == ".xlsb" and engine == "pyxlsb":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="GH 38667 - should default to pyxlsb but doesn't"
-                )
-            )
         with open("test1" + read_ext, "rb") as f:
             result = pd.read_excel(f)
         expected = pd.read_excel("test1" + read_ext, engine=engine)
@@ -1357,3 +1351,9 @@ class TestExcelFileRead:
         expected = DataFrame([], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
+
+    def test_engine_invalid_option(self, read_ext):
+        # read_ext includes the '.' hence the weird formatting
+        with pytest.raises(ValueError, match="Value must be one of *"):
+            with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
+                pass
