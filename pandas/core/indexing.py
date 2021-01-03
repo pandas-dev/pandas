@@ -672,8 +672,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
+            # GH#38148
             keys = self.obj.columns.union(key, sort=False)
-            self.obj._mgr = self.obj._mgr.reindex_axis(keys, 0)
+
+            self.obj._mgr = self.obj._mgr.reindex_axis(
+                keys, axis=0, copy=False, consolidate=False, only_slice=True
+            )
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -838,8 +842,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            with suppress(IndexingError):
-                return self._handle_lowerdim_multi_index_axis0(tup)
+            if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
+                # GH#10521 Series should reduce MultiIndex dimensions instead of
+                #  DataFrame, IndexingError is not raised when slice(None,None,None)
+                #  with one row.
+                with suppress(IndexingError):
+                    return self._handle_lowerdim_multi_index_axis0(tup)
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1645,8 +1653,10 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
             raise ValueError(r"Cannot set values with ndim > 2")
 
-        if isinstance(value, ABCSeries) and name != "iloc":
-            value = self._align_series(indexer, value)
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            from pandas import Series
+
+            value = self._align_series(indexer, Series(value))
 
         # Ensure we have something we can iterate over
         info_axis = indexer[1]

@@ -1644,6 +1644,14 @@ class TestLabelSlicing:
         expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
         tm.assert_equal(result, expected)
 
+    def test_loc_getitem_slice_columns_mixed_dtype(self):
+        # GH: 20975
+        df = DataFrame({"test": 1, 1: 2, 2: 3}, index=[0])
+        expected = DataFrame(
+            data=[[2, 3]], index=[0], columns=pd.Index([1, 2], dtype=object)
+        )
+        tm.assert_frame_equal(df.loc[:, 1:], expected)
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
@@ -1782,21 +1790,23 @@ def test_series_getitem_label_list_missing_integer_values():
 
 
 @pytest.mark.parametrize(
-    "columns, column_key, expected_columns, check_column_type",
+    "columns, column_key, expected_columns",
     [
-        ([2011, 2012, 2013], [2011, 2012], [0, 1], True),
-        ([2011, 2012, "All"], [2011, 2012], [0, 1], False),
-        ([2011, 2012, "All"], [2011, "All"], [0, 2], True),
+        ([2011, 2012, 2013], [2011, 2012], [0, 1]),
+        ([2011, 2012, "All"], [2011, 2012], [0, 1]),
+        ([2011, 2012, "All"], [2011, "All"], [0, 2]),
     ],
 )
-def test_loc_getitem_label_list_integer_labels(
-    columns, column_key, expected_columns, check_column_type
-):
+def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_columns):
     # gh-14836
     df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
-    tm.assert_frame_equal(result, expected, check_column_type=check_column_type)
+
+    if df.columns.is_object() and all(isinstance(x, int) for x in column_key):
+        expected.columns = expected.columns.astype(int)
+
+    tm.assert_frame_equal(result, expected, check_column_type=True)
 
 
 def test_loc_setitem_float_intindex():
@@ -2070,3 +2080,21 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
+
+    @pytest.mark.parametrize("array_fn", [np.array, pd.array, list, tuple])
+    @pytest.mark.parametrize("size", [0, 4, 5, 6])
+    def test_loc_iloc_setitem_with_listlike(self, size, array_fn):
+        # GH37748
+        # testing insertion, in a Series of size N (here 5), of a listlike object
+        # of size  0, N-1, N, N+1
+
+        arr = array_fn([0] * size)
+        expected = Series([arr, 0, 0, 0, 0], index=list("abcde"), dtype=object)
+
+        ser = Series(0, index=list("abcde"), dtype=object)
+        ser.loc["a"] = arr
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series(0, index=list("abcde"), dtype=object)
+        ser.iloc[0] = arr
+        tm.assert_series_equal(ser, expected)

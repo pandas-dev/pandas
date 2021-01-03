@@ -18,6 +18,7 @@ import numpy as np
 
 from pandas._libs import internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label, Shape
+from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -442,7 +443,6 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
-        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -471,9 +471,6 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
-
-        if consolidate:
-            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
@@ -545,9 +542,7 @@ class BlockManager(PandasObject):
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(
-        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
-    ) -> "BlockManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> "BlockManager":
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -560,7 +555,6 @@ class BlockManager(PandasObject):
             other=other,
             cond=cond,
             errors=errors,
-            try_cast=try_cast,
             axis=axis,
         )
 
@@ -568,7 +562,6 @@ class BlockManager(PandasObject):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -581,9 +574,7 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
@@ -1226,7 +1217,14 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
 
         if len(self.blocks) > 100:
-            self._consolidate_inplace()
+            warnings.warn(
+                "DataFrame is highly fragmented.  This is usually the result "
+                "of calling `frame.insert` many times, which has poor performance.  "
+                "Consider using pd.concat instead.  To get a de-fragmented frame, "
+                "use `newframe = frame.copy()`",
+                PerformanceWarning,
+                stacklevel=5,
+            )
 
     def reindex_axis(
         self,
@@ -1236,6 +1234,8 @@ class BlockManager(PandasObject):
         limit=None,
         fill_value=None,
         copy: bool = True,
+        consolidate: bool = True,
+        only_slice: bool = False,
     ):
         """
         Conform block manager to new index.
@@ -1246,7 +1246,13 @@ class BlockManager(PandasObject):
         )
 
         return self.reindex_indexer(
-            new_index, indexer, axis=axis, fill_value=fill_value, copy=copy
+            new_index,
+            indexer,
+            axis=axis,
+            fill_value=fill_value,
+            copy=copy,
+            consolidate=consolidate,
+            only_slice=only_slice,
         )
 
     def reindex_indexer(
@@ -1258,6 +1264,7 @@ class BlockManager(PandasObject):
         allow_dups: bool = False,
         copy: bool = True,
         consolidate: bool = True,
+        only_slice: bool = False,
     ) -> T:
         """
         Parameters
@@ -1270,6 +1277,8 @@ class BlockManager(PandasObject):
         copy : bool, default True
         consolidate: bool, default True
             Whether to consolidate inplace before reindexing.
+        only_slice : bool, default False
+            Whether to take views, not copies, along columns.
 
         pandas-indexer with -1's only.
         """
@@ -1293,7 +1302,9 @@ class BlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(indexer, fill_value=fill_value)
+            new_blocks = self._slice_take_blocks_ax0(
+                indexer, fill_value=fill_value, only_slice=only_slice
+            )
         else:
             new_blocks = [
                 blk.take_nd(
@@ -1341,7 +1352,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
-                # GH#32959 EABlock would fail since we cant make 0-width
+                # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
@@ -1442,7 +1453,6 @@ class BlockManager(PandasObject):
         """
         Take items along any axis.
         """
-        self._consolidate_inplace()
         indexer = (
             np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
             if isinstance(indexer, slice)
@@ -1459,7 +1469,11 @@ class BlockManager(PandasObject):
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
-            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+            new_axis=new_labels,
+            indexer=indexer,
+            axis=axis,
+            allow_dups=True,
+            consolidate=False,
         )
 
     def equals(self, other: object) -> bool:
