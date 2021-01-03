@@ -15,12 +15,12 @@ including other versions of pandas.
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_121.api_breaking.testing.assert_frame_equal:
+.. _whatsnew_121.api_breaking.testing.check_freq:
 
-Added ``check_freq`` argument to ``testing.assert_frame_equal``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Added ``check_freq`` argument to ``testing.assert_frame_equal`` and ``testing.assert_series_equal``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``check_freq`` argument was added to :func:`testing.assert_frame_equal` in pandas 1.1.0 and defaults to ``True``. :func:`testing.assert_frame_equal` now raises ``AssertionError`` if the indexes do not have the same frequency. Before pandas 1.1.0, the index frequency was not checked by :func:`testing.assert_frame_equal`.
+The ``check_freq`` argument was added to :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in pandas 1.1.0 and defaults to ``True``. :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` now raise ``AssertionError`` if the indexes do not have the same frequency. Before pandas 1.1.0, the index frequency was not checked.
 
 .. ---------------------------------------------------------------------------
 
