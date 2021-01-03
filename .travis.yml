@@ -62,7 +62,6 @@ script:
   - echo "script start"
   - echo "$JOB"
   - source activate pandas-dev
-  - python -c "import platform; print(platform.machine());"
   - ci/run_tests.sh
 
 after_script:
