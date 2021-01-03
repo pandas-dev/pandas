@@ -349,4 +349,18 @@ class NanOps:
         self.func()
 
 
+class Rank:
+
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=dtype)
+
+    def time_rank(self, dtype):
+        self.s.rank()
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -17,6 +17,8 @@ primitive_types = [('int64', 'int64_t'),
                    ('uint16', 'uint16_t'),
                    ('int8', 'int8_t'),
                    ('uint8', 'uint8_t'),
+                   ('complex64', 'khcomplex64_t'),
+                   ('complex128', 'khcomplex128_t'),
                   ]
 }}
 

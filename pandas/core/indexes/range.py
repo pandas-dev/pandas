@@ -10,7 +10,7 @@ from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -28,7 +28,7 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -354,10 +354,9 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    @Appender(_index_shared_docs["get_indexer"])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
         if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
-            return super().get_indexer(
+            return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
 
@@ -371,7 +370,7 @@ class RangeIndex(Int64Index):
         target_array = np.asarray(target)
         if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
@@ -577,9 +576,6 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self.start, self.step
             end_s = self.start + self.step * (len(self) - 1)
@@ -647,7 +643,7 @@ class RangeIndex(Int64Index):
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
-            # We wont end up with RangeIndex, so fall back
+            # We won't end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,
