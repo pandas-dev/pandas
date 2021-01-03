@@ -2214,7 +2214,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A dataframe with frequency and counts by category.
         """
         counts = self.value_counts(dropna=False)
-        freqs = counts / float(counts.sum())
+        freqs = counts / counts.sum()
 
         from pandas.core.reshape.concat import concat
 
