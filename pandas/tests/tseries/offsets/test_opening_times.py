@@ -7,10 +7,8 @@ import pytest
 
 from pandas._libs.tslibs.offsets import BusinessHour
 
-from pandas.tests.tseries.offsets.common import Base
 
-
-class TestOpeningTimes(Base):
+class TestOpeningTimes:
     _offset = BusinessHour
 
     # opening time should be affected by sign of n, not by n's value and end
