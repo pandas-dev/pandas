@@ -727,7 +727,7 @@ class TestExcelWriter:
 
         df["new"] = df["A"].apply(lambda x: timedelta(seconds=x))
         expected["new"] = expected["A"].apply(
-            lambda x: timedelta(seconds=x).total_seconds() / float(86400)
+            lambda x: timedelta(seconds=x).total_seconds() / 86400
         )
 
         df.to_excel(path, "test1")
