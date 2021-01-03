@@ -287,7 +287,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ):
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -347,7 +349,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_breaks(
-        cls, breaks, closed="right", copy=False, dtype: Optional[Dtype] = None
+        cls, breaks, closed="right", copy: bool = False, dtype: Optional[Dtype] = None
     ):
         breaks = maybe_convert_platform_interval(breaks)
 
