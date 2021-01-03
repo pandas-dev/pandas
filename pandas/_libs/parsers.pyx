@@ -741,16 +741,8 @@ cdef class TextReader:
                     raise ValueError('Number of passed names did not match number of '
                                      'header fields in the file')
             # oh boy, #2442, #2981
-            if passed_count < field_count:
-                if self.allow_leading_cols:
-                    self.leading_cols = field_count - passed_count
-                else:
-                    warnings.warn(
-                        "Length of header or names does not match length of data. This "
-                        "leads to a loss of data with index_col=False.",
-                        ParserWarning,
-                        stacklevel=6,
-                    )
+            elif self.allow_leading_cols and passed_count < field_count:
+                self.leading_cols = field_count - passed_count
 
         return header, field_count, unnamed_cols
 
