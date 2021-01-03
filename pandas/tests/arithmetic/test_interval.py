@@ -50,7 +50,7 @@ def left_right_dtypes(request):
 
 
 @pytest.fixture
-def array(left_right_dtypes):
+def arr(left_right_dtypes):
     """
     Fixture to generate an IntervalArray of various dtypes containing NA if possible
     """
@@ -98,27 +98,27 @@ class TestComparison:
         """
         return request.param
 
-    def elementwise_comparison(self, op, array, other):
+    def elementwise_comparison(self, op, arr, other):
         """
-        Helper that performs elementwise comparisons between `array` and `other`
+        Helper that performs elementwise comparisons between `arr` and `other`
         """
-        other = other if is_list_like(other) else [other] * len(array)
-        expected = np.array([op(x, y) for x, y in zip(array, other)])
+        other = other if is_list_like(other) else [other] * len(arr)
+        expected = np.array([op(x, y) for x, y in zip(arr, other)])
         if isinstance(other, Series):
             return Series(expected, index=other.index)
         return expected
 
-    def test_compare_scalar_interval(self, op, array):
+    def test_compare_scalar_interval(self, op, arr):
         # matches first interval
-        other = array[0]
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        other = arr[0]
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_numpy_array_equal(result, expected)
 
         # matches on a single endpoint but not both
-        other = Interval(array.left[0], array.right[1])
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        other = Interval(arr.left[0], arr.right[1])
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_scalar_interval_mixed_closed(self, op, closed, other_closed):
@@ -129,11 +129,11 @@ class TestComparison:
         expected = self.elementwise_comparison(op, array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(self, op, array, nulls_fixture, request):
-        result = op(array, nulls_fixture)
-        expected = self.elementwise_comparison(op, array, nulls_fixture)
+    def test_compare_scalar_na(self, op, arr, nulls_fixture, request):
+        result = op(arr, nulls_fixture)
+        expected = self.elementwise_comparison(op, arr, nulls_fixture)
 
-        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int64"):
+        if nulls_fixture is pd.NA and arr.dtype != pd.IntervalDtype("int64"):
             mark = pytest.mark.xfail(
                 reason="broken for non-integer IntervalArray; see GH 31882"
             )
@@ -154,28 +154,28 @@ class TestComparison:
             Period("2017-01-01", "D"),
         ],
     )
-    def test_compare_scalar_other(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+    def test_compare_scalar_other(self, op, arr, other):
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_interval(self, op, array, interval_constructor):
+    def test_compare_list_like_interval(self, op, arr, interval_constructor):
         # same endpoints
-        other = interval_constructor(array.left, array.right)
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        other = interval_constructor(arr.left, arr.right)
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_equal(result, expected)
 
         # different endpoints
-        other = interval_constructor(array.left[::-1], array.right[::-1])
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        other = interval_constructor(arr.left[::-1], arr.right[::-1])
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_equal(result, expected)
 
         # all nan endpoints
         other = interval_constructor([np.nan] * 4, [np.nan] * 4)
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_equal(result, expected)
 
     def test_compare_list_like_interval_mixed_closed(
@@ -206,17 +206,17 @@ class TestComparison:
             ),
         ],
     )
-    def test_compare_list_like_object(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+    def test_compare_list_like_object(self, op, arr, other):
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_nan(self, op, array, nulls_fixture, request):
+    def test_compare_list_like_nan(self, op, arr, nulls_fixture, request):
         other = [nulls_fixture] * 4
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
 
-        if nulls_fixture is pd.NA and array.dtype.subtype != "i8":
+        if nulls_fixture is pd.NA and arr.dtype.subtype != "i8":
             reason = "broken for non-integer IntervalArray; see GH 31882"
             mark = pytest.mark.xfail(reason=reason)
             request.node.add_marker(mark)
@@ -234,14 +234,14 @@ class TestComparison:
             period_range("2017-01-01", periods=4, freq="D"),
             Categorical(list("abab")),
             Categorical(date_range("2017-01-01", periods=4)),
-            array(list("abcd")),
-            array(["foo", 3.14, None, object()]),
+            pd.array(list("abcd")),
+            pd.array(["foo", 3.14, None, object()]),
         ],
         ids=lambda x: str(x.dtype),
     )
-    def test_compare_list_like_other(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
+    def test_compare_list_like_other(self, op, arr, other):
+        result = op(arr, other)
+        expected = self.elementwise_comparison(op, arr, other)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("length", [1, 3, 5])
