@@ -163,7 +163,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
-            arr = self[~self.isna_()]
+            arr = self[~self.isna()]
         else:
             arr = self
 
