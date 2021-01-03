@@ -33,6 +33,7 @@ Methods
    :toctree: api/
 
     DateOffset.apply
+    DateOffset.apply_index
     DateOffset.copy
     DateOffset.isAnchored
     DateOffset.onOffset
@@ -42,10 +43,19 @@ Methods
 
 BusinessDay
 -----------
+
 .. autosummary::
    :toctree: api/
 
     BusinessDay
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BDay
 
 Properties
 ~~~~~~~~~~
@@ -59,6 +69,9 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.weekmask
+    BusinessDay.holidays
+    BusinessDay.calendar
 
 Methods
 ~~~~~~~
@@ -93,6 +106,11 @@ Properties
     BusinessHour.normalize
     BusinessHour.rule_code
     BusinessHour.n
+    BusinessHour.start
+    BusinessHour.end
+    BusinessHour.weekmask
+    BusinessHour.holidays
+    BusinessHour.calendar
 
 Methods
 ~~~~~~~
@@ -100,6 +118,7 @@ Methods
    :toctree: api/
 
     BusinessHour.apply
+    BusinessHour.apply_index
     BusinessHour.copy
     BusinessHour.isAnchored
     BusinessHour.onOffset
@@ -109,10 +128,19 @@ Methods
 
 CustomBusinessDay
 -----------------
+
 .. autosummary::
    :toctree: api/
 
     CustomBusinessDay
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   CDay
 
 Properties
 ~~~~~~~~~~
@@ -126,12 +154,16 @@ Properties
     CustomBusinessDay.normalize
     CustomBusinessDay.rule_code
     CustomBusinessDay.n
+    CustomBusinessDay.weekmask
+    CustomBusinessDay.calendar
+    CustomBusinessDay.holidays
 
 Methods
 ~~~~~~~
 .. autosummary::
    :toctree: api/
 
+    CustomBusinessDay.apply_index
     CustomBusinessDay.apply
     CustomBusinessDay.copy
     CustomBusinessDay.isAnchored
@@ -159,6 +191,11 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.weekmask
+    CustomBusinessHour.calendar
+    CustomBusinessHour.holidays
+    CustomBusinessHour.start
+    CustomBusinessHour.end
 
 Methods
 ~~~~~~~
@@ -166,46 +203,13 @@ Methods
    :toctree: api/
 
     CustomBusinessHour.apply
+    CustomBusinessHour.apply_index
     CustomBusinessHour.copy
     CustomBusinessHour.isAnchored
     CustomBusinessHour.onOffset
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.__call__
-
-MonthOffset
------------
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.freqstr
-    MonthOffset.kwds
-    MonthOffset.name
-    MonthOffset.nanos
-    MonthOffset.normalize
-    MonthOffset.rule_code
-    MonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.apply
-    MonthOffset.apply_index
-    MonthOffset.copy
-    MonthOffset.isAnchored
-    MonthOffset.onOffset
-    MonthOffset.is_anchored
-    MonthOffset.is_on_offset
-    MonthOffset.__call__
 
 MonthEnd
 --------
@@ -277,10 +281,19 @@ Methods
 
 BusinessMonthEnd
 ----------------
+
 .. autosummary::
    :toctree: api/
 
     BusinessMonthEnd
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BMonthEnd
 
 Properties
 ~~~~~~~~~~
@@ -311,10 +324,19 @@ Methods
 
 BusinessMonthBegin
 ------------------
+
 .. autosummary::
    :toctree: api/
 
     BusinessMonthBegin
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BMonthBegin
 
 Properties
 ~~~~~~~~~~
@@ -345,10 +367,19 @@ Methods
 
 CustomBusinessMonthEnd
 ----------------------
+
 .. autosummary::
    :toctree: api/
 
     CustomBusinessMonthEnd
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   CBMonthEnd
 
 Properties
 ~~~~~~~~~~
@@ -363,6 +394,9 @@ Properties
     CustomBusinessMonthEnd.normalize
     CustomBusinessMonthEnd.rule_code
     CustomBusinessMonthEnd.n
+    CustomBusinessMonthEnd.weekmask
+    CustomBusinessMonthEnd.calendar
+    CustomBusinessMonthEnd.holidays
 
 Methods
 ~~~~~~~
@@ -370,6 +404,7 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthEnd.apply
+    CustomBusinessMonthEnd.apply_index
     CustomBusinessMonthEnd.copy
     CustomBusinessMonthEnd.isAnchored
     CustomBusinessMonthEnd.onOffset
@@ -379,10 +414,19 @@ Methods
 
 CustomBusinessMonthBegin
 ------------------------
+
 .. autosummary::
    :toctree: api/
 
     CustomBusinessMonthBegin
+
+Alias:
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   CBMonthBegin
 
 Properties
 ~~~~~~~~~~
@@ -397,6 +441,9 @@ Properties
     CustomBusinessMonthBegin.normalize
     CustomBusinessMonthBegin.rule_code
     CustomBusinessMonthBegin.n
+    CustomBusinessMonthBegin.weekmask
+    CustomBusinessMonthBegin.calendar
+    CustomBusinessMonthBegin.holidays
 
 Methods
 ~~~~~~~
@@ -404,46 +451,13 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthBegin.apply
+    CustomBusinessMonthBegin.apply_index
     CustomBusinessMonthBegin.copy
     CustomBusinessMonthBegin.isAnchored
     CustomBusinessMonthBegin.onOffset
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.__call__
-
-SemiMonthOffset
----------------
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.freqstr
-    SemiMonthOffset.kwds
-    SemiMonthOffset.name
-    SemiMonthOffset.nanos
-    SemiMonthOffset.normalize
-    SemiMonthOffset.rule_code
-    SemiMonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.apply
-    SemiMonthOffset.apply_index
-    SemiMonthOffset.copy
-    SemiMonthOffset.isAnchored
-    SemiMonthOffset.onOffset
-    SemiMonthOffset.is_anchored
-    SemiMonthOffset.is_on_offset
-    SemiMonthOffset.__call__
 
 SemiMonthEnd
 ------------
@@ -464,6 +478,7 @@ Properties
     SemiMonthEnd.normalize
     SemiMonthEnd.rule_code
     SemiMonthEnd.n
+    SemiMonthEnd.day_of_month
 
 Methods
 ~~~~~~~
@@ -498,6 +513,7 @@ Properties
     SemiMonthBegin.normalize
     SemiMonthBegin.rule_code
     SemiMonthBegin.n
+    SemiMonthBegin.day_of_month
 
 Methods
 ~~~~~~~
@@ -532,6 +548,7 @@ Properties
     Week.normalize
     Week.rule_code
     Week.n
+    Week.weekday
 
 Methods
 ~~~~~~~
@@ -566,6 +583,7 @@ Properties
     WeekOfMonth.normalize
     WeekOfMonth.rule_code
     WeekOfMonth.n
+    WeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -573,12 +591,14 @@ Methods
    :toctree: api/
 
     WeekOfMonth.apply
+    WeekOfMonth.apply_index
     WeekOfMonth.copy
     WeekOfMonth.isAnchored
     WeekOfMonth.onOffset
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
+    WeekOfMonth.weekday
 
 LastWeekOfMonth
 ---------------
@@ -599,6 +619,8 @@ Properties
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
+    LastWeekOfMonth.weekday
+    LastWeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -606,46 +628,13 @@ Methods
    :toctree: api/
 
     LastWeekOfMonth.apply
+    LastWeekOfMonth.apply_index
     LastWeekOfMonth.copy
     LastWeekOfMonth.isAnchored
     LastWeekOfMonth.onOffset
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.__call__
-
-QuarterOffset
--------------
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.freqstr
-    QuarterOffset.kwds
-    QuarterOffset.name
-    QuarterOffset.nanos
-    QuarterOffset.normalize
-    QuarterOffset.rule_code
-    QuarterOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.apply
-    QuarterOffset.apply_index
-    QuarterOffset.copy
-    QuarterOffset.isAnchored
-    QuarterOffset.onOffset
-    QuarterOffset.is_anchored
-    QuarterOffset.is_on_offset
-    QuarterOffset.__call__
 
 BQuarterEnd
 -----------
@@ -666,6 +655,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
+    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -700,6 +690,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
+    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -734,6 +725,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
+    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -768,6 +760,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
+    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -942,6 +935,9 @@ Properties
     FY5253.normalize
     FY5253.rule_code
     FY5253.n
+    FY5253.startingMonth
+    FY5253.variation
+    FY5253.weekday
 
 Methods
 ~~~~~~~
@@ -949,6 +945,7 @@ Methods
    :toctree: api/
 
     FY5253.apply
+    FY5253.apply_index
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
@@ -977,6 +974,10 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.qtr_with_extra_week
+    FY5253Quarter.startingMonth
+    FY5253Quarter.variation
+    FY5253Quarter.weekday
 
 Methods
 ~~~~~~~
@@ -984,6 +985,7 @@ Methods
    :toctree: api/
 
     FY5253Quarter.apply
+    FY5253Quarter.apply_index
     FY5253Quarter.copy
     FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
@@ -1020,6 +1022,7 @@ Methods
    :toctree: api/
 
     Easter.apply
+    Easter.apply_index
     Easter.copy
     Easter.isAnchored
     Easter.onOffset
@@ -1060,6 +1063,7 @@ Methods
     Tick.is_on_offset
     Tick.__call__
     Tick.apply
+    Tick.apply_index
 
 Day
 ---
@@ -1094,6 +1098,7 @@ Methods
     Day.is_on_offset
     Day.__call__
     Day.apply
+    Day.apply_index
 
 Hour
 ----
@@ -1128,6 +1133,7 @@ Methods
     Hour.is_on_offset
     Hour.__call__
     Hour.apply
+    Hour.apply_index
 
 Minute
 ------
@@ -1162,6 +1168,7 @@ Methods
     Minute.is_on_offset
     Minute.__call__
     Minute.apply
+    Minute.apply_index
 
 Second
 ------
@@ -1196,6 +1203,7 @@ Methods
     Second.is_on_offset
     Second.__call__
     Second.apply
+    Second.apply_index
 
 Milli
 -----
@@ -1230,6 +1238,7 @@ Methods
     Milli.is_on_offset
     Milli.__call__
     Milli.apply
+    Milli.apply_index
 
 Micro
 -----
@@ -1264,6 +1273,7 @@ Methods
     Micro.is_on_offset
     Micro.__call__
     Micro.apply
+    Micro.apply_index
 
 Nano
 ----
@@ -1298,238 +1308,7 @@ Methods
     Nano.is_on_offset
     Nano.__call__
     Nano.apply
-
-BDay
-----
-.. autosummary::
-   :toctree: api/
-
-    BDay
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BDay.base
-    BDay.freqstr
-    BDay.kwds
-    BDay.name
-    BDay.nanos
-    BDay.normalize
-    BDay.offset
-    BDay.rule_code
-    BDay.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BDay.apply
-    BDay.apply_index
-    BDay.copy
-    BDay.isAnchored
-    BDay.onOffset
-    BDay.is_anchored
-    BDay.is_on_offset
-    BDay.rollback
-    BDay.rollforward
-    BDay.__call__
-
-BMonthEnd
----------
-.. autosummary::
-   :toctree: api/
-
-    BMonthEnd
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BMonthEnd.base
-    BMonthEnd.freqstr
-    BMonthEnd.kwds
-    BMonthEnd.name
-    BMonthEnd.nanos
-    BMonthEnd.normalize
-    BMonthEnd.rule_code
-    BMonthEnd.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BMonthEnd.apply
-    BMonthEnd.apply_index
-    BMonthEnd.copy
-    BMonthEnd.isAnchored
-    BMonthEnd.onOffset
-    BMonthEnd.is_anchored
-    BMonthEnd.is_on_offset
-    BMonthEnd.rollback
-    BMonthEnd.rollforward
-    BMonthEnd.__call__
-
-BMonthBegin
------------
-.. autosummary::
-   :toctree: api/
-
-    BMonthBegin
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BMonthBegin.base
-    BMonthBegin.freqstr
-    BMonthBegin.kwds
-    BMonthBegin.name
-    BMonthBegin.nanos
-    BMonthBegin.normalize
-    BMonthBegin.rule_code
-    BMonthBegin.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    BMonthBegin.apply
-    BMonthBegin.apply_index
-    BMonthBegin.copy
-    BMonthBegin.isAnchored
-    BMonthBegin.onOffset
-    BMonthBegin.is_anchored
-    BMonthBegin.is_on_offset
-    BMonthBegin.rollback
-    BMonthBegin.rollforward
-    BMonthBegin.__call__
-
-CBMonthEnd
-----------
-.. autosummary::
-   :toctree: api/
-
-    CBMonthEnd
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CBMonthEnd.base
-    CBMonthEnd.cbday_roll
-    CBMonthEnd.freqstr
-    CBMonthEnd.kwds
-    CBMonthEnd.m_offset
-    CBMonthEnd.month_roll
-    CBMonthEnd.name
-    CBMonthEnd.nanos
-    CBMonthEnd.normalize
-    CBMonthEnd.offset
-    CBMonthEnd.rule_code
-    CBMonthEnd.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CBMonthEnd.apply
-    CBMonthEnd.apply_index
-    CBMonthEnd.copy
-    CBMonthEnd.isAnchored
-    CBMonthEnd.onOffset
-    CBMonthEnd.is_anchored
-    CBMonthEnd.is_on_offset
-    CBMonthEnd.rollback
-    CBMonthEnd.rollforward
-    CBMonthEnd.__call__
-
-CBMonthBegin
-------------
-.. autosummary::
-   :toctree: api/
-
-    CBMonthBegin
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CBMonthBegin.base
-    CBMonthBegin.cbday_roll
-    CBMonthBegin.freqstr
-    CBMonthBegin.kwds
-    CBMonthBegin.m_offset
-    CBMonthBegin.month_roll
-    CBMonthBegin.name
-    CBMonthBegin.nanos
-    CBMonthBegin.normalize
-    CBMonthBegin.offset
-    CBMonthBegin.rule_code
-    CBMonthBegin.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CBMonthBegin.apply
-    CBMonthBegin.apply_index
-    CBMonthBegin.copy
-    CBMonthBegin.isAnchored
-    CBMonthBegin.onOffset
-    CBMonthBegin.is_anchored
-    CBMonthBegin.is_on_offset
-    CBMonthBegin.rollback
-    CBMonthBegin.rollforward
-    CBMonthBegin.__call__
-
-CDay
-----
-.. autosummary::
-   :toctree: api/
-
-    CDay
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CDay.base
-    CDay.freqstr
-    CDay.kwds
-    CDay.name
-    CDay.nanos
-    CDay.normalize
-    CDay.offset
-    CDay.rule_code
-    CDay.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    CDay.apply
-    CDay.apply_index
-    CDay.copy
-    CDay.isAnchored
-    CDay.onOffset
-    CDay.is_anchored
-    CDay.is_on_offset
-    CDay.rollback
-    CDay.rollforward
-    CDay.__call__
+    Nano.apply_index
 
 .. _api.frequencies:
 

@@ -6,9 +6,14 @@ from typing import Dict, Optional, Union, no_type_check
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
-from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -16,12 +21,18 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas.core.aggregation import aggregate
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError, ShallowMixin
+from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
+from pandas.core.groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
@@ -29,13 +40,13 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs: Dict[str, str] = dict()
+_shared_docs_kwargs: Dict[str, str] = {}
 
 
-class Resampler(_GroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -83,7 +94,10 @@ class Resampler(_GroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        self.grouper = None
+        # pandas\core\resample.py:96: error: Incompatible types in assignment
+        # (expression has type "None", variable has type "BaseGrouper")
+        # [assignment]
+        self.grouper = None  # type: ignore[assignment]
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
@@ -120,7 +134,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        GroupBy.__iter__
+        GroupBy.__iter__ : Generator yielding sequence for each group.
         """
         self._set_binner()
         return super().__iter__()
@@ -198,7 +212,6 @@ class Resampler(_GroupBy, ShallowMixin):
 
     @Substitution(
         klass="Resampler",
-        versionadded=".. versionadded:: 0.23.0",
         examples="""
     >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
     ...                   index=pd.date_range('2012-08-02', periods=4))
@@ -225,9 +238,12 @@ class Resampler(_GroupBy, ShallowMixin):
         """
     See Also
     --------
-    DataFrame.groupby.aggregate
-    DataFrame.resample.transform
-    DataFrame.aggregate
+    DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
+        or list of string/callables.
+    DataFrame.resample.transform : Transforms the Series on each group
+        based on the given function.
+    DataFrame.aggregate: Aggregate using one or more
+        operations over the specified axis.
     """
     )
 
@@ -269,18 +285,17 @@ class Resampler(_GroupBy, ShallowMixin):
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="DataFrame",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
             how = func
             grouper = None
@@ -360,8 +375,9 @@ class Resampler(_GroupBy, ShallowMixin):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except DataError:
+        except (DataError, AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
+            # alternatively we want to evaluate only a column of the input
             result = grouped.apply(how, *args, **kwargs)
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -397,14 +413,21 @@ class Resampler(_GroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
+        # pandas\core\resample.py:409: error: Cannot determine type of
+        # 'loffset'  [has-type]
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta, np.timedelta64))
+            isinstance(
+                self.loffset,  # type: ignore[has-type]
+                (DateOffset, timedelta, np.timedelta64),
+            )
             and isinstance(result.index, DatetimeIndex)
             and len(result.index) > 0
         )
 
         if needs_offset:
-            result.index = result.index + self.loffset
+            # pandas\core\resample.py:415: error: Cannot determine type of
+            # 'loffset'  [has-type]
+            result.index = result.index + self.loffset  # type: ignore[has-type]
 
         self.loffset = None
         return result
@@ -444,8 +467,8 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna: Fill NA/NaN values using the specified method.
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("pad", limit=limit)
 
@@ -790,7 +813,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         Interpolate values according to different methods.
         """
-        result = self._upsample(None)
+        result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
             axis=axis,
@@ -819,8 +842,8 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.asfreq
-        DataFrame.asfreq
+        Series.asfreq: Convert TimeSeries to specified frequency.
+        DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -839,7 +862,9 @@ class Resampler(_GroupBy, ShallowMixin):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        return self._downsample("std", ddof=ddof)
+        # pandas\core\resample.py:850: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
 
     def var(self, ddof=1, *args, **kwargs):
         """
@@ -856,7 +881,9 @@ class Resampler(_GroupBy, ShallowMixin):
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        return self._downsample("var", ddof=ddof)
+        # pandas\core\resample.py:867: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
 
     @doc(GroupBy.size)
     def size(self):
@@ -906,14 +933,24 @@ class Resampler(_GroupBy, ShallowMixin):
         See Also
         --------
         Series.quantile
+            Return a series, where the index is q and the values are the quantiles.
         DataFrame.quantile
+            Return a DataFrame, where the columns are the columns of self,
+            and the values are the quantiles.
         DataFrameGroupBy.quantile
+            Return a DataFrame, where the coulmns are groupby columns,
+            and the values are its quantiles.
         """
-        return self._downsample("quantile", q=q, **kwargs)
+        # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
+        # for "_downsample"  [call-arg]
+
+        # pandas\core\resample.py:920: error: Too many arguments for
+        # "_downsample"  [call-arg]
+        return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
 
 
 # downsample methods
-for method in ["sum", "prod"]:
+for method in ["sum", "prod", "min", "max", "first", "last"]:
 
     def f(self, _method=method, min_count=0, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -924,7 +961,7 @@ for method in ["sum", "prod"]:
 
 
 # downsample methods
-for method in ["min", "max", "first", "last", "mean", "sem", "median", "ohlc"]:
+for method in ["mean", "sem", "median", "ohlc"]:
 
     def g(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -944,7 +981,7 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GroupByMixin):
+class _GroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -961,7 +998,9 @@ class _GroupByMixin(GroupByMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        super().__init__(None)
+        # pandas\core\resample.py:972: error: Too many arguments for "__init__"
+        # of "object"  [call-arg]
+        super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1026,7 +1065,12 @@ class DatetimeIndexResampler(Resampler):
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
 
-            if len(self.grouper.binlabels) > len(ax) and how is None:
+            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+            # attribute "binlabels"  [attr-defined]
+            if (
+                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+                and how is None
+            ):
 
                 # let's do an asfreq
                 return self.asfreq()
@@ -1063,7 +1107,7 @@ class DatetimeIndexResampler(Resampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         self._set_binner()
@@ -1082,7 +1126,11 @@ class DatetimeIndexResampler(Resampler):
         res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
-        if limit is None and to_offset(ax.inferred_freq) == self.freq:
+        if (
+            limit is None
+            and to_offset(ax.inferred_freq) == self.freq
+            and len(obj) == len(res_index)
+        ):
             result = obj.copy()
             result.index = res_index
         else:
@@ -1195,7 +1243,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         # we may need to actually resample as if we are timestamps
@@ -1340,10 +1388,22 @@ class TimeGrouper(Grouper):
             if label is None:
                 label = "right"
         else:
-            if closed is None:
-                closed = "left"
-            if label is None:
-                label = "left"
+            # The backward resample sets ``closed`` to ``'right'`` by default
+            # since the last value should be considered as the edge point for
+            # the last bin. When origin in "end" or "end_day", the value for a
+            # specific ``Timestamp`` index stands for the resample result from
+            # the current ``Timestamp`` minus ``freq`` to the current
+            # ``Timestamp`` with a right close.
+            if origin in ["end", "end_day"]:
+                if closed is None:
+                    closed = "right"
+                if label is None:
+                    label = "right"
+            else:
+                if closed is None:
+                    closed = "left"
+                if label is None:
+                    label = "left"
 
         self.closed = closed
         self.label = label
@@ -1356,14 +1416,15 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
 
-        if origin in ("epoch", "start", "start_day"):
+        if origin in ("epoch", "start", "start_day", "end", "end_day"):
             self.origin = origin
         else:
             try:
                 self.origin = Timestamp(origin)
             except Exception as e:
                 raise ValueError(
-                    "'origin' should be equal to 'epoch', 'start', 'start_day' or "
+                    "'origin' should be equal to 'epoch', 'start', 'start_day', "
+                    "'end', 'end_day' or "
                     f"should be a Timestamp convertible type. Got '{origin}' instead."
                 ) from e
 
@@ -1548,7 +1609,7 @@ class TimeGrouper(Grouper):
 
         return binner, bins, labels
 
-    def _get_time_period_bins(self, ax):
+    def _get_time_period_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
@@ -1564,13 +1625,13 @@ class TimeGrouper(Grouper):
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
 
         end_stamps = (labels + freq).asfreq(freq, "s").to_timestamp()
-        if ax.tzinfo:
-            end_stamps = end_stamps.tz_localize(ax.tzinfo)
+        if ax.tz:
+            end_stamps = end_stamps.tz_localize(ax.tz)
         bins = ax.searchsorted(end_stamps, side="left")
 
         return binner, bins, labels
 
-    def _get_period_bins(self, ax):
+    def _get_period_bins(self, ax: PeriodIndex):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
@@ -1694,11 +1755,15 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    index_tz = first.tz
-    if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
-        raise ValueError("The origin must have the same timezone as the index.")
-
     if isinstance(freq, Tick):
+        index_tz = first.tz
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+            raise ValueError("The origin must have the same timezone as the index.")
+        elif origin == "epoch":
+            # set the epoch based on the timezone to have similar bins results when
+            # resampling on the same kind of indexes on different timezones
+            origin = Timestamp("1970-01-01", tz=index_tz)
+
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
@@ -1709,7 +1774,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset,
+            first, last, freq, closed=closed, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1771,7 +1836,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, offset=offset,
+        first, last, freq, closed=closed, origin=origin, offset=offset
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
@@ -1794,6 +1859,13 @@ def _adjust_dates_anchored(
         origin_nanos = first.value
     elif isinstance(origin, Timestamp):
         origin_nanos = origin.value
+    elif origin in ["end", "end_day"]:
+        origin = last if origin == "end" else last.ceil("D")
+        sub_freq_times = (origin.value - first.value) // freq.nanos
+        if closed == "left":
+            sub_freq_times += 1
+        first = origin - sub_freq_times * freq
+        origin_nanos = first.value
     origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
@@ -1846,6 +1918,8 @@ def _adjust_dates_anchored(
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame.
+
+    See :meth:`pandas.NDFrame.asfreq` for full documentation.
     """
     if isinstance(obj.index, PeriodIndex):
         if method is not None:
@@ -1889,8 +1963,13 @@ def _asfreq_compat(index, freq):
         raise ValueError(
             "Can only set arbitrary freq for empty DatetimeIndex or TimedeltaIndex"
         )
+    new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
-    else:
-        new_index = Index([], dtype=index.dtype, freq=freq, name=index.name)
+    elif isinstance(index, DatetimeIndex):
+        new_index = DatetimeIndex([], dtype=index.dtype, freq=freq, name=index.name)
+    elif isinstance(index, TimedeltaIndex):
+        new_index = TimedeltaIndex([], dtype=index.dtype, freq=freq, name=index.name)
+    else:  # pragma: no cover
+        raise TypeError(type(index))
     return new_index

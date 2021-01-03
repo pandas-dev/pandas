@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -204,16 +203,19 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
-        msg = (
-            "cannot set using a multi-index selection indexer "
-            "with a different length than the value"
-        )
+        msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0, 1, 2, 3]
 
         with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0]
 
+        # But with a length-1 listlike column indexer this behaves like
+        #  `df.loc[4, "c"] = 0
+        df.loc[4, ["c"]] = [0]
+        assert (df.loc[4, "c"] == 0).all()
+
+    def test_groupby_example(self):
         # groupby example
         NUM_ROWS = 100
         NUM_COLS = 10
@@ -311,7 +313,9 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, result)
 
     def test_frame_setitem_multi_column(self):
-        df = DataFrame(randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]])
+        df = DataFrame(
+            np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]
+        )
 
         cp = df.copy()
         cp["a"] = cp["b"]
@@ -426,12 +430,12 @@ class TestMultiIndexSetItem:
 
     def test_setitem_nonmonotonic(self):
         # https://github.com/pandas-dev/pandas/issues/31449
-        index = pd.MultiIndex.from_tuples(
+        index = MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
-        df = pd.DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
-        expected = pd.DataFrame({"e": [99, 1, 100]}, index=index)
+        expected = DataFrame({"e": [99, 1, 100]}, index=index)
         tm.assert_frame_equal(df, expected)
 
 

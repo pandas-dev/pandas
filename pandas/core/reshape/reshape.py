@@ -41,8 +41,7 @@ class _Unstacker:
 
     Parameters
     ----------
-    index : object
-        Pandas ``Index``
+    index : MultiIndex
     level : int or str, default last level
         Level to "unstack". Accepts a name for the level.
     fill_value : scalar, optional
@@ -82,9 +81,7 @@ class _Unstacker:
     unstacked : DataFrame
     """
 
-    def __init__(
-        self, index, level=-1, constructor=None,
-    ):
+    def __init__(self, index: MultiIndex, level=-1, constructor=None):
 
         if constructor is None:
             constructor = DataFrame
@@ -140,7 +137,7 @@ class _Unstacker:
     @cache_readonly
     def sorted_labels(self):
         indexer, to_sort = self._indexer_and_to_sort
-        return [l.take(indexer) for l in to_sort]
+        return [line.take(indexer) for line in to_sort]
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
@@ -402,6 +399,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj, level, fill_value=None):
+
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -415,15 +413,22 @@ def unstack(obj, level, fill_value=None):
         level = obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
-        if isinstance(obj.index, MultiIndex) or not obj._can_fast_transpose:
+        if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)
+    elif not isinstance(obj.index, MultiIndex):
+        # GH 36113
+        # Give nicer error messages when unstack a  Series whose
+        # Index is not a MultiIndex.
+        raise ValueError(
+            f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
+        )
     else:
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(
-            obj.index, level=level, constructor=obj._constructor_expanddim,
+            obj.index, level=level, constructor=obj._constructor_expanddim
         )
         return unstacker.get_result(
             obj.values, value_columns=None, fill_value=fill_value
@@ -437,7 +442,7 @@ def _unstack_frame(obj, level, fill_value=None):
         return obj._constructor(mgr)
     else:
         return _Unstacker(
-            obj.index, level=level, constructor=obj._constructor,
+            obj.index, level=level, constructor=obj._constructor
         ).get_result(obj._values, value_columns=obj.columns, fill_value=fill_value)
 
 
@@ -516,7 +521,7 @@ def stack(frame, level=-1, dropna=True):
             verify_integrity=False,
         )
 
-    if frame._is_homogeneous_type:
+    if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
@@ -589,19 +594,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
         Logic for converting the level number to something we can safely pass
-        to swaplevel:
+        to swaplevel.
 
-        We generally want to convert the level number into a level name, except
-        when columns do not have names, in which case we must leave as a level
-        number
+        If `level_num` matches a column name return the name from
+        position `level_num`, otherwise return `level_num`.
         """
         if level_num in columns.names:
             return columns.names[level_num]
-        else:
-            if columns.names[level_num] is None:
-                return level_num
-            else:
-                return columns.names[level_num]
+
+        return level_num
 
     this = frame.copy()
 
@@ -766,8 +767,6 @@ def get_dummies(
         first level.
     dtype : dtype, default np.uint8
         Data type for new columns. Only a single dtype is allowed.
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------

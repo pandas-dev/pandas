@@ -132,17 +132,35 @@ respond or self-close their issue if it's determined that the behavior is not a 
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
 
+.. _maintaining.reviewing:
+
 Reviewing pull requests
 -----------------------
 
 Anybody can review a pull request: regular contributors, triagers, or core-team
-members. Here are some guidelines to check.
+members. But only core-team members can merge pull requets when they're ready.
 
-* Tests should be in a sensible location.
+Here are some things to check when reviewing a pull request.
+
+* Tests should be in a sensible location: in the same file as closely related tests.
 * New public APIs should be included somewhere in ``doc/source/reference/``.
 * New / changed API should use the ``versionadded`` or ``versionchanged`` directives in the docstring.
 * User-facing changes should have a whatsnew in the appropriate file.
 * Regression tests should reference the original GitHub issue number like ``# GH-1234``.
+* The pull request should be labeled and assigned the appropriate milestone (the next patch release
+  for regression fixes and small bug fixes, the next minor milestone otherwise)
+* Changes should comply with our :ref:`policies.version`.
+
+Backporting
+-----------
+
+In the case you want to apply changes to a stable branch from a newer branch then you
+can comment::
+
+    @meeseeksdev backport version-branch
+
+This will trigger a workflow which will backport a given change to a branch
+(e.g. @meeseeksdev backport 1.2.x)
 
 Cleaning up old issues
 ----------------------
@@ -188,6 +206,35 @@ being helpful on the issue tracker.
 
 The current list of core-team members is at
 https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+
+
+.. _maintaining.merging:
+
+Merging pull requests
+---------------------
+
+Only core team members can merge pull requests. We have a few guidelines.
+
+1. You should typically not self-merge your own pull requests. Exceptions include
+   things like small changes to fix CI (e.g. pinning a package version).
+2. You should not merge pull requests that have an active discussion, or pull
+   requests that has any ``-1`` votes from a core maintainer. pandas operates
+   by consensus.
+3. For larger changes, it's good to have a +1 from at least two core team members.
+
+In addition to the items listed in :ref:`maintaining.closing`, you should verify
+that the pull request is assigned the correct milestone.
+
+Pull requests merged with a patch-release milestone will typically be backported
+by our bot. Verify that the bot noticed the merge (it will leave a comment within
+a minute typically). If a manual backport is needed please do that, and remove
+the "Needs backport" label once you've done it manually. If you forget to assign
+a milestone before tagging, you can request the bot to backport it with:
+
+.. code-block:: console
+
+   @Meeseeksdev backport <branch>
+
 
 .. _governance documents: https://github.com/pandas-dev/pandas-governance
 .. _list of permissions: https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/repository-permission-levels-for-an-organization

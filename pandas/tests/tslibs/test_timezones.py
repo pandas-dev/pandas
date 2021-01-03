@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import dateutil.tz
 import pytest
@@ -106,3 +106,37 @@ def test_infer_tz_mismatch(infer_setup, ordered):
 
     with pytest.raises(AssertionError, match=msg):
         timezones.infer_tzinfo(*args)
+
+
+def test_maybe_get_tz_invalid_types():
+    with pytest.raises(TypeError, match="<class 'float'>"):
+        timezones.maybe_get_tz(44.0)
+
+    with pytest.raises(TypeError, match="<class 'module'>"):
+        timezones.maybe_get_tz(pytz)
+
+    msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
+    with pytest.raises(TypeError, match=msg):
+        timezones.maybe_get_tz(Timestamp.now("UTC"))
+
+
+def test_maybe_get_tz_offset_only():
+    # see gh-36004
+
+    # timezone.utc
+    tz = timezones.maybe_get_tz(timezone.utc)
+    assert tz == timezone(timedelta(hours=0, minutes=0))
+
+    # without UTC+- prefix
+    tz = timezones.maybe_get_tz("+01:15")
+    assert tz == timezone(timedelta(hours=1, minutes=15))
+
+    tz = timezones.maybe_get_tz("-01:15")
+    assert tz == timezone(-timedelta(hours=1, minutes=15))
+
+    # with UTC+- prefix
+    tz = timezones.maybe_get_tz("UTC+02:45")
+    assert tz == timezone(timedelta(hours=2, minutes=45))
+
+    tz = timezones.maybe_get_tz("UTC-02:45")
+    assert tz == timezone(-timedelta(hours=2, minutes=45))

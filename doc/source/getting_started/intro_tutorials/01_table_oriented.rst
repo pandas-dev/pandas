@@ -41,17 +41,21 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
 
 .. ipython:: python
 
-    df = pd.DataFrame({
-        "Name": ["Braund, Mr. Owen Harris",
-                 "Allen, Mr. William Henry",
-                 "Bonnell, Miss. Elizabeth"],
-        "Age": [22, 35, 58],
-        "Sex": ["male", "male", "female"]}
+    df = pd.DataFrame(
+        {
+            "Name": [
+                "Braund, Mr. Owen Harris",
+                "Allen, Mr. William Henry",
+                "Bonnell, Miss. Elizabeth",
+            ],
+            "Age": [22, 35, 58],
+            "Sex": ["male", "male", "female"],
+        }
     )
     df
 
 To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
-the values in each list as rows of the ``DataFrame``.
+the values in each list as columns of the ``DataFrame``.
 
 .. raw:: html
 

@@ -4,7 +4,9 @@ on:
   push:
     branches: master
   pull_request:
-    branches: master
+    branches:
+      - master
+      - 1.2.x
 
 env:
   ENV_FILE: environment.yml
@@ -16,7 +18,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::add-path::${HOME}/miniconda3/bin"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1
@@ -33,12 +35,6 @@ jobs:
       run: |
         source activate pandas-dev
         ci/code_checks.sh lint
-      if: always()
-
-    - name: Dependencies consistency
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh dependencies
       if: always()
 
     - name: Checks on imported code
@@ -68,7 +64,7 @@ jobs:
     - name: Testing docstring validation script
       run: |
         source activate pandas-dev
-        pytest --capture=no --strict scripts
+        pytest --capture=no --strict-markers scripts
       if: always()
 
     - name: Running benchmarks
@@ -78,14 +74,10 @@ jobs:
         asv check -E existing
         git remote add upstream https://github.com/pandas-dev/pandas.git
         git fetch upstream
-        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-            asv machine --yes
-            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-            if grep "failed" benchmarks.log > /dev/null ; then
-                exit 1
-            fi
-        else
-            echo "Benchmarks did not run, no changes detected"
+        asv machine --yes
+        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+        if grep "failed" benchmarks.log > /dev/null ; then
+            exit 1
         fi
       if: always()
 
@@ -102,7 +94,7 @@ jobs:
     steps:
 
     - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
 
     - name: Checkout
       uses: actions/checkout@v1
@@ -123,7 +115,7 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
     - name: Install ssh key
       run: |

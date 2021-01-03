@@ -84,8 +84,6 @@ def cut(
         Whether the first interval should be left-inclusive or not.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
-
-        .. versionadded:: 0.23.0
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
         Categorical and Series (with Categorical dtype). If True,
@@ -150,16 +148,16 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
     ...        3, labels=["bad", "medium", "good"])
-    [bad, good, medium, medium, good, bad]
-    Categories (3, object): [bad < medium < good]
+    ['bad', 'good', 'medium', 'medium', 'good', 'bad']
+    Categories (3, object): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
     ...        labels=["B", "A", "B"], ordered=False)
-    [B, B, A, A, B, B]
-    Categories (2, object): [A, B]
+    ['B', 'B', 'A', 'A', 'B', 'B']
+    Categories (2, object): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -381,7 +379,7 @@ def _bins_to_cuts(
     duplicates: str = "raise",
     ordered: bool = True,
 ):
-    if not ordered and not labels:
+    if not ordered and labels is None:
         raise ValueError("'labels' must be provided if 'ordered = False'")
 
     if duplicates not in ["raise", "drop"]:

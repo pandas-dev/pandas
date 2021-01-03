@@ -105,6 +105,10 @@ class TestSetitem:
         left, right = left_right_dtypes
         result = IntervalArray.from_arrays(left, right)
 
+        if result.dtype.subtype.kind not in ["m", "M"]:
+            msg = "'value' should be an interval type, got <.*NaTType'> instead."
+            with pytest.raises(TypeError, match=msg):
+                result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
             with pytest.raises(ValueError, match=msg):
@@ -142,6 +146,7 @@ pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
 @pyarrow_skip
 def test_arrow_extension_type():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     p1 = ArrowIntervalType(pa.int64(), "left")
@@ -158,6 +163,7 @@ def test_arrow_extension_type():
 @pyarrow_skip
 def test_arrow_array():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
@@ -187,6 +193,7 @@ def test_arrow_array():
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
@@ -221,6 +228,7 @@ def test_arrow_array_missing():
 )
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks(breaks)
@@ -237,3 +245,26 @@ def test_arrow_table_roundtrip(breaks):
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+@pytest.mark.parametrize(
+    "breaks",
+    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    ids=["float", "datetime64[ns]"],
+)
+def test_arrow_table_roundtrip_without_metadata(breaks):
+    import pyarrow as pa
+
+    arr = IntervalArray.from_breaks(breaks)
+    arr[1] = None
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    # remove the metadata
+    table = table.replace_schema_metadata()
+    assert table.schema.metadata is None
+
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.IntervalDtype)
+    tm.assert_frame_equal(result, df)

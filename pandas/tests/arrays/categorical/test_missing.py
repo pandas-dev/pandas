@@ -11,6 +11,13 @@ import pandas._testing as tm
 
 
 class TestCategoricalMissing:
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        cat = Categorical(["a", "b", np.nan])
+        res = cat.isna()
+
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_na_flags_int_categories(self):
         # #1457
 
@@ -55,12 +62,15 @@ class TestCategoricalMissing:
         "fillna_kwargs, msg",
         [
             (
-                dict(value=1, method="ffill"),
+                {"value": 1, "method": "ffill"},
                 "Cannot specify both 'value' and 'method'.",
             ),
-            (dict(), "Must specify a fill 'value' or 'method'."),
-            (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
-            (dict(value=Series([1, 2, 3, 4, "a"])), "fill value must be in categories"),
+            ({}, "Must specify a fill 'value' or 'method'."),
+            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
+            (
+                {"value": Series([1, 2, 3, 4, "a"])},
+                "Cannot setitem on a Categorical with a new category",
+            ),
         ],
     )
     def test_fillna_raises(self, fillna_kwargs, msg):
@@ -148,3 +158,24 @@ class TestCategoricalMissing:
             result = pd.isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a1, a2, categories",
+        [
+            (["a", "b", "c"], [np.nan, "a", "b"], ["a", "b", "c"]),
+            ([1, 2, 3], [np.nan, 1, 2], [1, 2, 3]),
+        ],
+    )
+    def test_compare_categorical_with_missing(self, a1, a2, categories):
+        # GH 28384
+        cat_type = CategoricalDtype(categories)
+
+        # !=
+        result = Series(a1, dtype=cat_type) != Series(a2, dtype=cat_type)
+        expected = Series(a1) != Series(a2)
+        tm.assert_series_equal(result, expected)
+
+        # ==
+        result = Series(a1, dtype=cat_type) == Series(a2, dtype=cat_type)
+        expected = Series(a1) == Series(a2)
+        tm.assert_series_equal(result, expected)

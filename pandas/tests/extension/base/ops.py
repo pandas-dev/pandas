@@ -1,9 +1,9 @@
-import operator
 from typing import Optional, Type
 
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core import ops
 
 from .base import BaseExtensionTests
@@ -11,15 +11,7 @@ from .base import BaseExtensionTests
 
 class BaseOpsUtil(BaseExtensionTests):
     def get_op_from_name(self, op_name):
-        short_opname = op_name.strip("_")
-        try:
-            op = getattr(operator, short_opname)
-        except AttributeError:
-            # Assume it is the reverse operator
-            rop = getattr(operator, short_opname[1:])
-            op = lambda x, y: rop(y, x)
-
-        return op
+        return tm.get_op_from_name(op_name)
 
     def check_opname(self, s, op_name, other, exc=Exception):
         op = self.get_op_from_name(op_name)
@@ -122,10 +114,13 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         with pytest.raises(AttributeError):
             getattr(data, op_name)
 
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # EAs should return NotImplemented for ops with Series.
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+        # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
+        if box is pd.DataFrame:
+            other = other.to_frame()
         if hasattr(data, "__add__"):
             result = data.__add__(other)
             assert result is NotImplemented
@@ -164,10 +159,14 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)
 
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # EAs should return NotImplemented for ops with Series.
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+        # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
+        if box is pd.DataFrame:
+            other = other.to_frame()
+
         if hasattr(data, "__eq__"):
             result = data.__eq__(other)
             assert result is NotImplemented

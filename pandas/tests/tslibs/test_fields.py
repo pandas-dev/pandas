@@ -12,9 +12,7 @@ def test_fields_readonly():
     dtindex.flags.writeable = False
 
     result = fields.get_date_name_field(dtindex, "month_name")
-    expected = np.array(
-        ["January", "February", "March", "April", "May"], dtype=np.object
-    )
+    expected = np.array(["January", "February", "March", "April", "May"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
     result = fields.get_date_field(dtindex, "Y")

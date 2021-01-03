@@ -6,10 +6,11 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 import pandas as pd
-from pandas import Series, Timestamp
+from pandas import Series
+import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
 
@@ -20,7 +21,7 @@ def test_get_callable_name():
     def fn(x):
         return x
 
-    lambda_ = lambda x: x  # noqa: E731
+    lambda_ = lambda x: x
     part1 = partial(fn)
     part2 = partial(part1)
 
@@ -71,7 +72,7 @@ def test_random_state():
 
     # Check BitGenerators
     # GH32503
-    if not _np_version_under1p17:
+    if not np_version_under1p17:
         assert (
             com.random_state(npr.MT19937(3)).uniform()
             == npr.RandomState(npr.MT19937(3)).uniform()
@@ -105,16 +106,7 @@ def test_random_state():
     ],
 )
 def test_maybe_match_name(left, right, expected):
-    assert ops._maybe_match_name(left, right) == expected
-
-
-def test_dict_compat():
-    data_datetime64 = {np.datetime64("1990-03-15"): 1, np.datetime64("2015-03-15"): 2}
-    data_unchanged = {1: 2, 3: 4, 5: 6}
-    expected = {Timestamp("1990-3-15"): 1, Timestamp("2015-03-15"): 2}
-    assert com.dict_compat(data_datetime64) == expected
-    assert com.dict_compat(expected) == expected
-    assert com.dict_compat(data_unchanged) == data_unchanged
+    assert ops.common._maybe_match_name(left, right) == expected
 
 
 def test_standardize_mapping():
@@ -157,3 +149,20 @@ def test_version_tag():
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
         )
+
+
+@pytest.mark.parametrize(
+    "obj", [(obj,) for obj in pd.__dict__.values() if callable(obj)]
+)
+def test_serializable(obj):
+    # GH 35611
+    unpickled = tm.round_trip_pickle(obj)
+    assert type(obj) == type(unpickled)
+
+
+class TestIsBoolIndexer:
+    def test_non_bool_array_with_na(self):
+        # in particular, this should not raise
+        arr = np.array(["A", "B", np.nan])
+
+        assert not com.is_bool_indexer(arr)

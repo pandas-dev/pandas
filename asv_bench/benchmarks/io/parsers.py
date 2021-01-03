@@ -2,8 +2,8 @@ import numpy as np
 
 try:
     from pandas._libs.tslibs.parsing import (
-        concat_date_cols,
         _does_string_look_like_datetime,
+        concat_date_cols,
     )
 except ImportError:
     # Avoid whole benchmark suite import failure on asv (currently 0.4)

@@ -1,0 +1,56 @@
+.. _whatsnew_111:
+
+What's new in 1.1.1 (August 20, 2020)
+-------------------------------------
+
+These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)
+- Fixed regression in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)
+- Fixed regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)
+- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`)
+- Fixed regression where :func:`pandas.testing.assert_series_equal` would raise an error when non-numeric dtypes were passed with ``check_exact=True`` (:issue:`35446`)
+- Fixed regression in ``.groupby(..).rolling(..)`` where column selection was ignored (:issue:`35486`)
+- Fixed regression where :meth:`DataFrame.interpolate` would raise a ``TypeError`` when the :class:`DataFrame` was empty (:issue:`35598`)
+- Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
+- Fixed regression in :meth:`DataFrame.diff` with read-only data (:issue:`35559`)
+- Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)
+- Fixed regression in :meth:`DataFrame.apply` where functions that altered the input in-place only operated on a single row (:issue:`35462`)
+- Fixed regression in :meth:`DataFrame.reset_index` would raise a ``ValueError`` on empty :class:`DataFrame` with a :class:`MultiIndex` with a ``datetime64`` dtype level (:issue:`35606`, :issue:`35657`)
+- Fixed regression where :func:`pandas.merge_asof` would raise a ``UnboundLocalError`` when ``left_index``, ``right_index`` and ``tolerance`` were set (:issue:`35558`)
+- Fixed regression in ``.groupby(..).rolling(..)`` where a custom ``BaseIndexer`` would be ignored (:issue:`35557`)
+- Fixed regression in :meth:`DataFrame.replace` and :meth:`Series.replace` where compiled regular expressions would be ignored during replacement (:issue:`35680`)
+- Fixed regression in :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` where a list of functions would produce the wrong results if at least one of the functions did not aggregate (:issue:`35490`)
+- Fixed memory usage issue when instantiating large :class:`pandas.arrays.StringArray` (:issue:`35499`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in :class:`~pandas.io.formats.style.Styler` whereby ``cell_ids`` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`)
+- Bug in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` where extension dtypes were not ignored when ``check_dtypes`` was set to ``False`` (:issue:`35715`)
+- Bug in :meth:`to_timedelta` fails when ``arg`` is a :class:`Series` with ``Int64`` dtype containing null values (:issue:`35574`)
+- Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
+- Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when ``data`` and ``index`` have mismatched lengths (:issue:`33437`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.0..v1.1.1
