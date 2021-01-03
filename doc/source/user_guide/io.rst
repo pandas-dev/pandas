@@ -1024,9 +1024,10 @@ Writing CSVs to binary file objects
 
 .. versionadded:: 1.2.0
 
-``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
-opened binary mode. For this to work, it is necessary that ``mode``
-contains a "b":
+``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
+opened binary mode. In most cases, it is not necessary to specify
+``mode`` as Pandas will auto-detect whether the file object is
+opened in text or binary mode.
 
 .. ipython:: python
 
@@ -1034,7 +1035,7 @@ contains a "b":
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1576,19 +1577,21 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", chunksize=4)
-   reader
+   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
+       reader
+       for chunk in reader:
+           print(chunk)
 
-   for chunk in reader:
-       print(chunk)
+.. versionchanged:: 1.2
 
+  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", iterator=True)
-   reader.get_chunk(5)
+   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
+       reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
@@ -1623,6 +1626,20 @@ functions - the following example shows reading a CSV file:
 .. code-block:: python
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
+
+.. versionadded:: 1.3.0
+
+A custom header can be sent alongside HTTP(s) requests by passing a dictionary
+of header key value mappings to the ``storage_options`` keyword argument as shown below:
+
+.. code-block:: python
+
+   headers = {"User-Agent": "pandas"}
+   df = pd.read_csv(
+       "https://download.bls.gov/pub/time.series/cu/cu.item",
+       sep="\t",
+       storage_options=headers
+   )
 
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
@@ -2237,10 +2254,10 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df.to_json(orient="records", lines=True)
 
   # reader is an iterator that returns ``chunksize`` lines each iteration
-  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
-  reader
-  for chunk in reader:
-      print(chunk)
+  with pd.read_json(StringIO(jsonl), lines=True, chunksize=1) as reader:
+      reader
+      for chunk in reader:
+          print(chunk)
 
 .. _io.table_schema:
 
@@ -2442,7 +2459,9 @@ as a string:
 .. ipython:: python
    :suppress:
 
-   file_path = os.path.abspath(os.path.join("source", "_static", "banklist.html"))
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
+                           "banklist.html")
+   file_path = os.path.abspath(rel_path)
 
 .. ipython:: python
 
@@ -2817,14 +2836,39 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
-files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
+can be read using ``xlrd``. Binary Excel (``.xlsb``)
 files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
+
+.. warning::
+
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
+   old-style ``.xls`` files.
+
+   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files.
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details.
+
+   Thus, it is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. _io.excel_reader:
 
@@ -3196,6 +3240,13 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 Excel writer engines
 ''''''''''''''''''''
+
+.. deprecated:: 1.2.0
+
+   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+   maintained, the ``xlwt`` engine will be removed from a future version
+   of pandas. This is the only engine in pandas that supports writing to
+   ``.xls`` files.
 
 pandas chooses an Excel writer via two methods:
 
@@ -5470,9 +5521,9 @@ object can be used as an iterator.
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", chunksize=3)
-  for df in reader:
-      print(df.shape)
+  with pd.read_stata("stata.dta", chunksize=3) as reader:
+      for df in reader:
+          print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -5480,9 +5531,9 @@ For more fine-grained control, use ``iterator=True`` and specify
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", iterator=True)
-  chunk1 = reader.read(5)
-  chunk2 = reader.read(5)
+  with pd.read_stata("stata.dta", iterator=True) as reader:
+      chunk1 = reader.read(5)
+      chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -5594,9 +5645,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    rdr = pd.read_sas("sas_xport.xpt", chunk=100000)
-    for chunk in rdr:
-        do_something(chunk)
+    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+        for chunk in rdr:
+            do_something(chunk)
 
 The specification_ for the xport file format is available from the SAS
 web site.

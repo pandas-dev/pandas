@@ -352,10 +352,10 @@ class TestDataFrameIndexingCategorical:
         df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
-    def test_setitem_single_row_categorical(self):
+    def test_loc_setitem_single_row_categorical(self):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
-        categories = pd.Categorical(df["Alpha"], categories=["a", "b", "c"])
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
         df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]

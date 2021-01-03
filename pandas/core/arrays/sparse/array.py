@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Union
+from typing import Any, Callable, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -21,7 +21,7 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
-    infer_dtype_from_scalar,
+    maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -35,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -55,8 +55,9 @@ import pandas.io.formats.printing as printing
 # ----------------------------------------------------------------------------
 # Array
 
+SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
-_sparray_doc_kwargs = dict(klass="SparseArray")
+_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: "SparseArray") -> np.ndarray:
@@ -316,9 +317,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
-            if index is not None:
-                if data is None:
-                    data = np.nan
+            if index is not None and data is None:
+                data = np.nan
 
             if index is not None:
                 npoints = len(index)
@@ -327,8 +327,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 npoints = sparse_index.length
 
-            dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype)
+            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
+            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -397,8 +397,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> "SparseArray":
+        cls: Type[SparseArrayT],
+        sparse_array: np.ndarray,
+        sparse_index: SparseIndex,
+        dtype: SparseDtype,
+    ) -> SparseArrayT:
         new = object.__new__(cls)
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -484,7 +487,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -575,8 +578,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return float(self.sp_index.npoints) / float(self.sp_index.length)
 
     @property
     def npoints(self) -> int:
@@ -736,25 +738,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
-        if fcounts > 0:
-            if self._null_fill_value and dropna:
-                pass
+        if fcounts > 0 and (not self._null_fill_value or not dropna):
+            mask = isna(keys) if self._null_fill_value else keys == self.fill_value
+            if mask.any():
+                counts[mask] += fcounts
             else:
-                if self._null_fill_value:
-                    mask = isna(keys)
-                else:
-                    mask = keys == self.fill_value
+                keys = np.insert(keys, 0, self.fill_value)
+                counts = np.insert(counts, 0, fcounts)
 
-                if mask.any():
-                    counts[mask] += fcounts
-                else:
-                    keys = np.insert(keys, 0, self.fill_value)
-                    counts = np.insert(counts, 0, fcounts)
-
-        if not isinstance(keys, ABCIndexClass):
+        if not isinstance(keys, ABCIndex):
             keys = Index(keys)
-        result = Series(counts, index=keys)
-        return result
+        return Series(counts, index=keys)
 
     # --------
     # Indexing
@@ -815,10 +809,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, allow_fill=False, fill_value=None) -> "SparseArray":
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> "SparseArray":
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -946,12 +940,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
-    def copy(self):
+    def copy(self: SparseArrayT) -> SparseArrayT:
         values = self.sp_values.copy()
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat):
+    def _concat_same_type(
+        cls: Type[SparseArrayT], to_concat: Sequence[SparseArrayT]
+    ) -> SparseArrayT:
         fill_value = to_concat[0].fill_value
 
         values = []
@@ -979,7 +975,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             # when concatenating block indices, we don't claim that you'll
-            # get an identical index as concating the values and then
+            # get an identical index as concatenating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
             # BlockIndex may have more blocks.
@@ -1062,10 +1058,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        subtype = dtype._subtype_with_str
+        subtype = pandas_dtype(dtype._subtype_with_str)
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
@@ -1165,7 +1161,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:

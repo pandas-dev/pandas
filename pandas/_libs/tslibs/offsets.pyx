@@ -1388,7 +1388,11 @@ cdef class BusinessDay(BusinessMixin):
     @apply_array_wraps
     def _apply_array(self, dtarr):
         i8other = dtarr.view("i8")
-        return shift_bdays(i8other, self.n)
+        res = _shift_bdays(i8other, self.n)
+        if self.offset:
+            res = res.view("M8[ns]") + Timedelta(self.offset)
+            res = res.view("i8")
+        return res
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -1399,6 +1403,19 @@ cdef class BusinessDay(BusinessMixin):
 cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "BH"
@@ -3247,6 +3264,19 @@ cdef class CustomBusinessDay(BusinessDay):
 cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "CBH"
@@ -3778,7 +3808,7 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
         out[i] = dtstruct_to_dt64(&dts)
 
 
-cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
+cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     """
     Implementation of BusinessDay.apply_offset.
 

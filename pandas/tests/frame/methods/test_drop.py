@@ -19,7 +19,7 @@ import pandas._testing as tm
 )
 def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
     # GH 8594
-    mi = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
+    mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
     s = pd.Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
@@ -32,7 +32,7 @@ def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
 @pytest.mark.parametrize("labels,level", [(4, "a"), (7, "b")])
 def test_drop_errors_ignore(labels, level):
     # GH 8594
-    mi = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
+    mi = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]], names=["a", "b"])
     s = pd.Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
@@ -313,7 +313,7 @@ class TestDataFrameDrop:
         expected = DataFrame(
             [2, 1],
             columns=["D"],
-            index=pd.MultiIndex.from_tuples(
+            index=MultiIndex.from_tuples(
                 [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
             ),
         )
@@ -441,3 +441,11 @@ class TestDataFrameDrop:
             # Perform operation and check result
             getattr(y, operation)(1)
             tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)

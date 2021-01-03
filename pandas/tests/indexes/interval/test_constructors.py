@@ -29,13 +29,14 @@ def name(request):
     return request.param
 
 
-class Base:
+class ConstructorTests:
     """
     Common tests for all variations of IntervalIndex construction. Input data
     to be supplied in breaks format, then converted by the subclass method
     get_kwargs_from_breaks to the expected format.
     """
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "breaks",
         [
@@ -71,15 +72,24 @@ class Base:
     )
     def test_constructor_dtype(self, constructor, breaks, subtype):
         # GH 19262: conversion via dtype parameter
-        expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
+        warn = None
+        if subtype == "int64" and breaks.dtype.kind in ["M", "m"]:
+            # astype(int64) deprecated
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            expected_kwargs = self.get_kwargs_from_breaks(breaks.astype(subtype))
         expected = constructor(**expected_kwargs)
 
         result_kwargs = self.get_kwargs_from_breaks(breaks)
         iv_dtype = IntervalDtype(subtype)
         for dtype in (iv_dtype, str(iv_dtype)):
-            result = constructor(dtype=dtype, **result_kwargs)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+
+                result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])
     def test_constructor_nan(self, constructor, breaks, closed):
         # GH 18421
@@ -93,6 +103,7 @@ class Base:
         assert result.dtype.subtype == expected_subtype
         tm.assert_numpy_array_equal(np.array(result), expected_values)
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "breaks",
         [
@@ -182,7 +193,7 @@ class Base:
             constructor(**decreasing_kwargs)
 
 
-class TestFromArrays(Base):
+class TestFromArrays(ConstructorTests):
     """Tests specific to IntervalIndex.from_arrays"""
 
     @pytest.fixture
@@ -231,7 +242,7 @@ class TestFromArrays(Base):
         assert result.dtype.subtype == expected_subtype
 
 
-class TestFromBreaks(Base):
+class TestFromBreaks(ConstructorTests):
     """Tests specific to IntervalIndex.from_breaks"""
 
     @pytest.fixture
@@ -266,14 +277,10 @@ class TestFromBreaks(Base):
         # GH#36310
         breaks = np.arange(5)
         result = IntervalIndex.from_breaks(breaks)._data
-        left = result._left
-        right = result._right
-
-        left[:] = 10000
-        assert not (right == 10000).any()
+        assert result._left.base is None or result._left.base is not result._right.base
 
 
-class TestFromTuples(Base):
+class TestFromTuples(ConstructorTests):
     """Tests specific to IntervalIndex.from_tuples"""
 
     @pytest.fixture
@@ -320,7 +327,7 @@ class TestFromTuples(Base):
         tm.assert_index_equal(idx_na_tuple, idx_na_element)
 
 
-class TestClassConstructors(Base):
+class TestClassConstructors(ConstructorTests):
     """Tests specific to the IntervalIndex/Index constructors"""
 
     @pytest.fixture(
@@ -339,8 +346,8 @@ class TestClassConstructors(Base):
             return {"data": breaks}
 
         ivs = [
-            Interval(l, r, closed) if notna(l) else l
-            for l, r in zip(breaks[:-1], breaks[1:])
+            Interval(left, right, closed) if notna(left) else left
+            for left, right in zip(breaks[:-1], breaks[1:])
         ]
 
         if isinstance(breaks, list):
@@ -382,6 +389,7 @@ class TestClassConstructors(Base):
         with pytest.raises(TypeError, match=msg):
             constructor([0, 1])
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize(
         "data, closed",
         [

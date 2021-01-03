@@ -1,7 +1,6 @@
 from textwrap import dedent
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
 import pandas as pd
@@ -54,7 +53,7 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -95,7 +94,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -200,7 +199,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """
@@ -239,10 +238,11 @@ class TestClipboard:
         tm.assert_frame_equal(res, exp)
 
     def test_invalid_encoding(self, df):
+        msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             pd.read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])

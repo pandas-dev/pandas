@@ -2,7 +2,7 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional, Tuple, Type, Union
+from typing import Iterator, List, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 
@@ -74,9 +74,7 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows: List[List[str]] = list(
-            zip(*self.strcols)  # type: ignore[arg-type]
-        )
+        self.strrows = list(zip(*self.strcols))
 
     def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
@@ -155,11 +153,11 @@ class RowStringConverter(ABC):
                         break
                 return [x[0]] + [i if i else " " * len(pad) for i in x[1:]]
 
-            out = (pad_empties(i) for i in out)
+            gen = (pad_empties(i) for i in out)
 
             # Add empty spaces for each column level
             clevels = self.frame.columns.nlevels
-            out = [[" " * len(i[-1])] * clevels + i for i in out]
+            out = [[" " * len(i[-1])] * clevels + i for i in gen]
 
             # Add the column names to the last index column
             cnames = self.frame.columns.names
@@ -179,7 +177,7 @@ class RowStringConverter(ABC):
             f"Index: {self.frame.index}"
         )
 
-    def _preprocess_row(self, row: List[str]) -> List[str]:
+    def _preprocess_row(self, row: Sequence[str]) -> List[str]:
         """Preprocess elements of the row."""
         if self.fmt.escape:
             crow = _escape_symbols(row)
@@ -781,7 +779,7 @@ class LatexFormatter:
         return "l" * self.frame.index.nlevels if self.fmt.index else ""
 
 
-def _escape_symbols(row: List[str]) -> List[str]:
+def _escape_symbols(row: Sequence[str]) -> List[str]:
     """Carry out string replacements for special symbols.
 
     Parameters
@@ -813,7 +811,7 @@ def _escape_symbols(row: List[str]) -> List[str]:
     ]
 
 
-def _convert_to_bold(crow: List[str], ilevels: int) -> List[str]:
+def _convert_to_bold(crow: Sequence[str], ilevels: int) -> List[str]:
     """Convert elements in ``crow`` to bold."""
     return [
         f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x

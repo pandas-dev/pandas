@@ -990,7 +990,7 @@ class TestStata:
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
         # Error for labels too long
-        original = pd.DataFrame.from_records(
+        original = DataFrame.from_records(
             [["a" * 10000], ["b" * 10000], ["c" * 10000], ["d" * 10000]],
             columns=["Too_long"],
         )
@@ -1006,7 +1006,7 @@ class TestStata:
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path)
 
-        original = pd.DataFrame.from_records(
+        original = DataFrame.from_records(
             [["a"], ["b"], ["c"], ["d"], [1]], columns=["Too_long"]
         )
         original = pd.concat(
@@ -1021,7 +1021,7 @@ class TestStata:
     def test_categorical_with_stata_missing_values(self, version):
         values = [["a" + str(i)] for i in range(120)]
         values.append([np.nan])
-        original = pd.DataFrame.from_records(values, columns=["many_labels"])
+        original = DataFrame.from_records(values, columns=["many_labels"])
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
@@ -1974,12 +1974,12 @@ def test_iterator_value_labels():
     df = DataFrame({f"col{k}": pd.Categorical(values, ordered=True) for k in range(2)})
     with tm.ensure_clean() as path:
         df.to_stata(path, write_index=False)
-        reader = pd.read_stata(path, chunksize=100)
         expected = pd.Index(["a_label", "b_label", "c_label"], dtype="object")
-        for j, chunk in enumerate(reader):
-            for i in range(2):
-                tm.assert_index_equal(chunk.dtypes[i].categories, expected)
-            tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
+        with pd.read_stata(path, chunksize=100) as reader:
+            for j, chunk in enumerate(reader):
+                for i in range(2):
+                    tm.assert_index_equal(chunk.dtypes[i].categories, expected)
+                tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
 
 
 def test_precision_loss():

@@ -588,10 +588,12 @@ would include matching times on an included date:
 
 .. warning::
 
-   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+   Indexing ``DataFrame`` rows with a *single* string with getitem (e.g. ``frame[dtstring]``)
+   is deprecated starting with pandas 1.2.0 (given the ambiguity whether it is indexing
+   the rows or selecting a column) and will be removed in a future version. The equivalent
+   with ``.loc`` (e.g. ``frame.loc[dtstring]``) is still supported.
 
 .. ipython:: python
-   :okwarning:
 
    dft = pd.DataFrame(
        np.random.randn(100000, 1),
@@ -599,34 +601,30 @@ would include matching times on an included date:
        index=pd.date_range("20130101", periods=100000, freq="T"),
    )
    dft
-   dft["2013"]
+   dft.loc["2013"]
 
 This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2"]
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28"]
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28 00:00:00"]
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1-15":"2013-1-15 12:30:00"]
 
@@ -652,7 +650,6 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(["2019-01-01"], tz="US/Pacific"))
     df
@@ -704,15 +701,14 @@ If index resolution is second, then the minute-accurate timestamp gives a
     series_second.index.resolution
     series_second["2011-12-31 23:59"]
 
-If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
+If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``.loc[]`` as well.
 
 .. ipython:: python
-    :okwarning:
 
     dft_minute = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index
     )
-    dft_minute["2011-12-31 23"]
+    dft_minute.loc["2011-12-31 23"]
 
 
 .. warning::
@@ -803,9 +799,11 @@ There are several time/date properties that one can access from ``Timestamp`` or
     time,"Returns datetime.time (does not contain timezone information)"
     timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
+    day_of_year,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
+    day_of_week,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
@@ -877,7 +875,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
@@ -1578,11 +1576,6 @@ some advanced strategies.
 The ``resample()`` method can be used directly from ``DataFrameGroupBy`` objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
-.. note::
-
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
-   a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
-
 Basics
 ~~~~~~
 
@@ -1728,7 +1721,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
@@ -1894,6 +1887,34 @@ Those two examples are equivalent for this time series:
 
 
 Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
+
+Backward resample
+~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.3.0
+
+Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
+
+We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index stands for the resample result from the current ``Timestamp`` minus ``freq`` to the current ``Timestamp`` with a right close.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end').sum()
+
+Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end_day').sum()
+
+The above result uses ``2000-10-02 00:29:00`` as the last bin's right edge since the following computation.
+
+.. ipython:: python
+
+   ceil_mid = rng.max().ceil('D')
+   freq = pd.offsets.Minute(17)
+   bin_res = ceil_mid - freq * ((ceil_mid - rng.max()) // freq)
+   bin_res
 
 .. _timeseries.periods:
 
@@ -2083,7 +2104,6 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
-   :okwarning:
 
    ps["2011"]
 
@@ -2093,7 +2113,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
        index=pd.period_range("2013-01-01 9:00", periods=600, freq="T"),
    )
    dfp
-   dfp["2013-01-01 10H"]
+   dfp.loc["2013-01-01 10H"]
 
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 

@@ -177,7 +177,7 @@ class TestSeriesFillNA:
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
-    def test_timedelta_fillna(self):
+    def test_timedelta_fillna(self, frame_or_series):
         # GH#3371
         ser = Series(
             [
@@ -188,9 +188,10 @@ class TestSeriesFillNA:
             ]
         )
         td = ser.diff()
+        obj = frame_or_series(td)
 
         # reg fillna
-        result = td.fillna(Timedelta(seconds=0))
+        result = obj.fillna(Timedelta(seconds=0))
         expected = Series(
             [
                 timedelta(0),
@@ -199,13 +200,14 @@ class TestSeriesFillNA:
                 timedelta(days=1, seconds=9 * 3600 + 60 + 1),
             ]
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
         # interpreted as seconds, deprecated
         with pytest.raises(TypeError, match="Passing integers to fillna"):
-            td.fillna(1)
+            obj.fillna(1)
 
-        result = td.fillna(Timedelta(seconds=1))
+        result = obj.fillna(Timedelta(seconds=1))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -214,9 +216,10 @@ class TestSeriesFillNA:
                 timedelta(days=1, seconds=9 * 3600 + 60 + 1),
             ]
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
-        result = td.fillna(timedelta(days=1, seconds=1))
+        result = obj.fillna(timedelta(days=1, seconds=1))
         expected = Series(
             [
                 timedelta(days=1, seconds=1),
@@ -225,9 +228,10 @@ class TestSeriesFillNA:
                 timedelta(days=1, seconds=9 * 3600 + 60 + 1),
             ]
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
-        result = td.fillna(np.timedelta64(int(1e9)))
+        result = obj.fillna(np.timedelta64(int(1e9)))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -236,9 +240,10 @@ class TestSeriesFillNA:
                 timedelta(days=1, seconds=9 * 3600 + 60 + 1),
             ]
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
-        result = td.fillna(NaT)
+        result = obj.fillna(NaT)
         expected = Series(
             [
                 NaT,
@@ -248,21 +253,27 @@ class TestSeriesFillNA:
             ],
             dtype="m8[ns]",
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
         # ffill
         td[2] = np.nan
-        result = td.ffill()
+        obj = frame_or_series(td)
+        result = obj.ffill()
         expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+
+        tm.assert_equal(result, expected)
 
         # bfill
         td[2] = np.nan
-        result = td.bfill()
+        obj = frame_or_series(td)
+        result = obj.bfill()
         expected = td.fillna(Timedelta(seconds=0))
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
     def test_datetime64_fillna(self):
 
@@ -553,7 +564,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(res, exp)
         assert res.dtype == "Period[M]"
 
-    def test_fillna_dt64_timestamp(self):
+    def test_fillna_dt64_timestamp(self, frame_or_series):
         ser = Series(
             [
                 Timestamp("20130101"),
@@ -563,9 +574,10 @@ class TestSeriesFillNA:
             ]
         )
         ser[2] = np.nan
+        obj = frame_or_series(ser)
 
         # reg fillna
-        result = ser.fillna(Timestamp("20130104"))
+        result = obj.fillna(Timestamp("20130104"))
         expected = Series(
             [
                 Timestamp("20130101"),
@@ -574,11 +586,12 @@ class TestSeriesFillNA:
                 Timestamp("20130103 9:01:01"),
             ]
         )
-        tm.assert_series_equal(result, expected)
+        expected = frame_or_series(expected)
+        tm.assert_equal(result, expected)
 
-        result = ser.fillna(NaT)
-        expected = ser
-        tm.assert_series_equal(result, expected)
+        result = obj.fillna(NaT)
+        expected = obj
+        tm.assert_equal(result, expected)
 
     def test_fillna_dt64_non_nao(self):
         # GH#27419
@@ -653,14 +666,14 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
 
-        msg = "'fill_value=d' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna(Series("d"))
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'

@@ -3,7 +3,6 @@ Module for formatting output data into CSV files.
 """
 
 import csv as csvlib
-from io import StringIO, TextIOWrapper
 import os
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 
@@ -21,7 +20,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
 )
@@ -29,7 +28,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.common import get_filepath_or_buffer, get_handle
+from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas.io.formats.format import DataFrameFormatter
@@ -39,7 +38,7 @@ class CSVFormatter:
     def __init__(
         self,
         formatter: "DataFrameFormatter",
-        path_or_buf: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buf: FilePathOrBuffer[str] = "",
         sep: str = ",",
         cols: Optional[Sequence[Label]] = None,
         index_label: Optional[IndexLabel] = None,
@@ -60,24 +59,11 @@ class CSVFormatter:
 
         self.obj = self.fmt.frame
 
-        self.encoding = encoding or "utf-8"
-
-        if path_or_buf is None:
-            path_or_buf = StringIO()
-
-        ioargs = get_filepath_or_buffer(
-            path_or_buf,
-            encoding=self.encoding,
-            compression=compression,
-            mode=mode,
-            storage_options=storage_options,
-        )
-
-        self.compression = ioargs.compression.pop("method")
-        self.compression_args = ioargs.compression
-        self.path_or_buf = ioargs.filepath_or_buffer
-        self.should_close = ioargs.should_close
-        self.mode = ioargs.mode
+        self.filepath_or_buffer = path_or_buf
+        self.encoding = encoding
+        self.compression = compression
+        self.mode = mode
+        self.storage_options = storage_options
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
@@ -115,7 +101,7 @@ class CSVFormatter:
         if index_label is not False:
             if index_label is None:
                 return self._get_index_label_from_obj()
-            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndex)):
                 # given a string for a DF with Index
                 return [index_label]
         return index_label
@@ -151,16 +137,16 @@ class CSVFormatter:
                 raise TypeError(msg)
 
         if cols is not None:
-            if isinstance(cols, ABCIndexClass):
+            if isinstance(cols, ABCIndex):
                 cols = cols._format_native_types(**self._number_format)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
 
         # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
+        # and make sure cols is just a list of labels
         new_cols = self.obj.columns
-        if isinstance(new_cols, ABCIndexClass):
+        if isinstance(new_cols, ABCIndex):
             return new_cols._format_native_types(**self._number_format)
         else:
             return list(new_cols)
@@ -173,13 +159,13 @@ class CSVFormatter:
     @property
     def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
-        return dict(
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            date_format=self.date_format,
-            quoting=self.quoting,
-            decimal=self.decimal,
-        )
+        return {
+            "na_rep": self.na_rep,
+            "float_format": self.float_format,
+            "date_format": self.date_format,
+            "quoting": self.quoting,
+            "decimal": self.decimal,
+        }
 
     @property
     def data_index(self) -> Index:
@@ -202,7 +188,7 @@ class CSVFormatter:
 
     @property
     def _has_aliases(self) -> bool:
-        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
+        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
 
     @property
     def _need_to_save_header(self) -> bool:
@@ -238,20 +224,19 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
-        # get a handle or wrap an existing handle to take care of 1) compression and
-        # 2) text -> byte conversion
-        f, handles = get_handle(
-            self.path_or_buf,
+        # apply compression and byte/text conversion
+        with get_handle(
+            self.filepath_or_buffer,
             self.mode,
             encoding=self.encoding,
             errors=self.errors,
-            compression=dict(self.compression_args, method=self.compression),
-        )
+            compression=self.compression,
+            storage_options=self.storage_options,
+        ) as handles:
 
-        try:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
-                f,
+                handles.handle,  # type: ignore[arg-type]
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -261,25 +246,6 @@ class CSVFormatter:
             )
 
             self._save()
-
-        finally:
-            if self.should_close:
-                f.close()
-            elif (
-                isinstance(f, TextIOWrapper)
-                and not f.closed
-                and f != self.path_or_buf
-                and hasattr(self.path_or_buf, "write")
-            ):
-                # get_handle uses TextIOWrapper for non-binary handles. TextIOWrapper
-                # closes the wrapped handle if it is not detached.
-                f.flush()  # make sure everything is written
-                f.detach()  # makes f unusable
-                del f
-            elif f != self.path_or_buf:
-                f.close()
-            for _fh in handles:
-                _fh.close()
 
     def _save(self) -> None:
         if self._need_to_save_header:

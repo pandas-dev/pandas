@@ -3,9 +3,18 @@ from datetime import date
 import numpy as np
 import pytest
 
-from pandas import MultiIndex, NaT, Series, Timestamp, date_range, period_range
+from pandas import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -53,6 +62,16 @@ class TestSetitemDT64Values:
         )
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_tuple_with_datetimetz_values(self):
+        # GH#20441
+        arr = date_range("2017", periods=4, tz="US/Eastern")
+        index = [(0, 1), (0, 2), (0, 3), (0, 4)]
+        result = Series(arr, index=index)
+        expected = result.copy()
+        result[(0, 1)] = np.nan
+        expected.iloc[0] = np.nan
+        tm.assert_series_equal(result, expected)
+
 
 class TestSetitemPeriodDtype:
     @pytest.mark.parametrize("na_val", [None, np.nan])
@@ -64,6 +83,28 @@ class TestSetitemPeriodDtype:
 
         ser[3:5] = na_val
         assert ser[4] is NaT
+
+
+class TestSetitemScalarIndexer:
+    def test_setitem_negative_out_of_bounds(self):
+        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+
+        msg = "index -11 is out of bounds for axis 0 with size 10"
+        with pytest.raises(IndexError, match=msg):
+            ser[-11] = "foo"
+
+
+class TestSetitemSlices:
+    def test_setitem_slice_float_raises(self, datetime_series):
+        msg = (
+            "cannot do slice indexing on DatetimeIndex with these indexers "
+            r"\[{key}\] of type float"
+        )
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
+            datetime_series[4.0:10.0] = 0
+
+        with pytest.raises(TypeError, match=msg.format(key=r"4\.5")):
+            datetime_series[4.5:10.0] = 0
 
 
 class TestSetitemBooleanMask:
@@ -108,6 +149,40 @@ class TestSetitemBooleanMask:
 
         tm.assert_series_equal(copy, expected)
 
+    @pytest.mark.parametrize("func", [list, np.array, Series])
+    def test_setitem_boolean_python_list(self, func):
+        # GH19406
+        ser = Series([None, "b", None])
+        mask = func([True, False, True])
+        ser[mask] = ["a", "c"]
+        expected = Series(["a", "b", "c"])
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("value", [None, NaT, np.nan])
+    def test_setitem_boolean_td64_values_cast_na(self, value):
+        # GH#18586
+        series = Series([0, 1, 2], dtype="timedelta64[ns]")
+        mask = series == series[0]
+        series[mask] = value
+        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
+        tm.assert_series_equal(series, expected)
+
+    def test_setitem_boolean_nullable_int_types(self, any_numeric_dtype):
+        # GH: 26468
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        tm.assert_series_equal(ser, expected)
+
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
+        loc_ser = Series(range(4), dtype=any_numeric_dtype)
+        ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
@@ -142,3 +217,180 @@ class TestSetitemViewCopySemantics:
         ser[::3] = NaT
         assert ser[0] is NaT
         assert dti[0] == ts
+
+
+class TestSetitemCallable:
+    def test_setitem_callable_key(self):
+        # GH#12533
+        ser = Series([1, 2, 3, 4], index=list("ABCD"))
+        ser[lambda x: "A"] = -1
+
+        expected = Series([-1, 2, 3, 4], index=list("ABCD"))
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_callable_other(self):
+        # GH#13299
+        inc = lambda x: x + 1
+
+        ser = Series([1, 2, -1, 4])
+        ser[ser < 0] = inc
+
+        expected = Series([1, 2, inc, 4])
+        tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "obj,expected,key",
+    [
+        (
+            # these induce dtype changes
+            Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
+            slice(None, None, 2),
+        ),
+        (
+            # gets coerced to float, right?
+            Series([True, True, False, False]),
+            Series([np.nan, 1, np.nan, 0]),
+            slice(None, None, 2),
+        ),
+        (
+            # these induce dtype changes
+            Series(np.arange(10)),
+            Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9]),
+            slice(None, 5),
+        ),
+        (
+            # changes dtype GH#4463
+            Series([1, 2, 3]),
+            Series([np.nan, 2, 3]),
+            0,
+        ),
+        (
+            # changes dtype GH#4463
+            Series([False]),
+            Series([np.nan]),
+            0,
+        ),
+        (
+            # changes dtype GH#4463
+            Series([False, True]),
+            Series([np.nan, 1.0]),
+            0,
+        ),
+    ],
+)
+class TestSetitemCastingEquivalents:
+    """
+    Check each of several methods that _should_ be equivalent to `obj[key] = np.nan`
+
+    We assume that
+        - obj.index is the default Index(range(len(obj)))
+        - the setitem does not expand the obj
+    """
+
+    def test_int_key(self, obj, key, expected, indexer_sli):
+        if not isinstance(key, int):
+            return
+
+        obj = obj.copy()
+        indexer_sli(obj)[key] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_slice_key(self, obj, key, expected, indexer_si):
+        # Note: no .loc because that handles slice edges differently
+        obj = obj.copy()
+        indexer_si(obj)[key] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_intlist_key(self, obj, key, expected, indexer_sli):
+        ilkey = list(range(len(obj)))[key]
+
+        obj = obj.copy()
+        indexer_sli(obj)[ilkey] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_mask_key(self, obj, key, expected, indexer_sli):
+        # setitem with boolean mask
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        indexer_sli(obj)[mask] = np.nan
+        tm.assert_series_equal(obj, expected)
+
+    def test_series_where(self, obj, key, expected):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        obj = obj.copy()
+        res = obj.where(~mask, np.nan)
+        tm.assert_series_equal(res, expected)
+
+    def test_index_where(self, obj, key, expected, request):
+        if obj.dtype == bool:
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.xfail(reason=msg)
+            request.node.add_marker(mark)
+
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).where(~mask, np.nan)
+        tm.assert_index_equal(res, Index(expected))
+
+    @pytest.mark.xfail(reason="Index/Series casting behavior inconsistent GH#38692")
+    def test_index_putmask(self, obj, key, expected):
+        mask = np.zeros(obj.shape, dtype=bool)
+        mask[key] = True
+
+        res = Index(obj).putmask(mask, np.nan)
+        tm.assert_index_equal(res, Index(expected))
+
+
+class TestSetitemWithExpansion:
+    def test_setitem_empty_series(self):
+        # GH#10193
+        key = Timestamp("2012-01-01")
+        series = Series(dtype=object)
+        series[key] = 47
+        expected = Series(47, [key])
+        tm.assert_series_equal(series, expected)
+
+    def test_setitem_empty_series_datetimeindex_preserves_freq(self):
+        # GH#33573 our index should retain its freq
+        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        key = Timestamp("2012-01-01")
+        series[key] = 47
+        expected = Series(47, DatetimeIndex([key], freq="D"))
+        tm.assert_series_equal(series, expected)
+        assert series.index.freq == expected.index.freq
+
+
+def test_setitem_scalar_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    for n in range(len(series)):
+        msg = "assignment destination is read-only"
+        with pytest.raises(ValueError, match=msg):
+            series[n] = 1
+
+        assert array[n] == 0
+
+
+def test_setitem_slice_into_readonly_backing_data():
+    # GH#14359: test that you cannot mutate a read only buffer
+
+    array = np.zeros(5)
+    array.flags.writeable = False  # make the array immutable
+    series = Series(array)
+
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError, match=msg):
+        series[1:3] = 1
+
+    assert not array.any()

@@ -94,11 +94,31 @@ def test_nth_with_na_object(index, nulls_fixture):
 def test_first_last_with_None(method):
     # https://github.com/pandas-dev/pandas/issues/32800
     # None should be preserved as object dtype
-    df = pd.DataFrame.from_dict({"id": ["a"], "value": [None]})
+    df = DataFrame.from_dict({"id": ["a"], "value": [None]})
     groups = df.groupby("id", as_index=False)
     result = getattr(groups, method)()
 
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):
@@ -152,8 +172,8 @@ def test_first_strings_timestamps():
     # GH 11244
     test = DataFrame(
         {
-            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
-            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            Timestamp("2012-01-02 00:00:00"): ["c", "d"],
             "name": ["e", "e"],
             "aaaa": ["f", "g"],
         }
@@ -487,53 +507,54 @@ def test_nth_multi_index_as_expected():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_head_tail():
+@pytest.mark.parametrize(
+    "op, n, expected_rows",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+@pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
+@pytest.mark.parametrize("as_index", [True, False])
+def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    g_as = df.groupby("A", as_index=True)
-    g_not_as = df.groupby("A", as_index=False)
+    g = df.groupby("A", as_index=as_index)
+    expected = df.iloc[expected_rows]
+    if columns is not None:
+        g = g[columns]
+        expected = expected[columns]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
 
-    # as_index= False, much easier
-    tm.assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
-    tm.assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-    empty_not_as = DataFrame(columns=df.columns, index=Index([], dtype=df.index.dtype))
-    empty_not_as["A"] = empty_not_as["A"].astype(df.A.dtype)
-    empty_not_as["B"] = empty_not_as["B"].astype(df.B.dtype)
-    tm.assert_frame_equal(empty_not_as, g_not_as.head(0))
-    tm.assert_frame_equal(empty_not_as, g_not_as.tail(0))
-    tm.assert_frame_equal(empty_not_as, g_not_as.head(-1))
-    tm.assert_frame_equal(empty_not_as, g_not_as.tail(-1))
-
-    tm.assert_frame_equal(df, g_not_as.head(7))  # contains all
-    tm.assert_frame_equal(df, g_not_as.tail(7))
-
-    # as_index=True, (used to be different)
-    df_as = df
-
-    tm.assert_frame_equal(df_as.loc[[0, 2]], g_as.head(1))
-    tm.assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
-
-    empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
-    empty_as["A"] = empty_not_as["A"].astype(df.A.dtype)
-    empty_as["B"] = empty_not_as["B"].astype(df.B.dtype)
-    tm.assert_frame_equal(empty_as, g_as.head(0))
-    tm.assert_frame_equal(empty_as, g_as.tail(0))
-    tm.assert_frame_equal(empty_as, g_as.head(-1))
-    tm.assert_frame_equal(empty_as, g_as.tail(-1))
-
-    tm.assert_frame_equal(df_as, g_as.head(7))  # contains all
-    tm.assert_frame_equal(df_as, g_as.tail(7))
-
-    # test with selection
-    tm.assert_frame_equal(g_as[[]].head(1), df_as.loc[[0, 2], []])
-    tm.assert_frame_equal(g_as[["A"]].head(1), df_as.loc[[0, 2], ["A"]])
-    tm.assert_frame_equal(g_as[["B"]].head(1), df_as.loc[[0, 2], ["B"]])
-    tm.assert_frame_equal(g_as[["A", "B"]].head(1), df_as.loc[[0, 2]])
-
-    tm.assert_frame_equal(g_not_as[[]].head(1), df_as.loc[[0, 2], []])
-    tm.assert_frame_equal(g_not_as[["A"]].head(1), df_as.loc[[0, 2], ["A"]])
-    tm.assert_frame_equal(g_not_as[["B"]].head(1), df_as.loc[[0, 2], ["B"]])
-    tm.assert_frame_equal(g_not_as[["A", "B"]].head(1), df_as.loc[[0, 2]])
+@pytest.mark.parametrize(
+    "op, n, expected_cols",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+def test_groupby_head_tail_axis_1(op, n, expected_cols):
+    # GH 9772
+    df = DataFrame(
+        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
+    )
+    g = df.groupby([0, 0, 1], axis=1)
+    expected = df.iloc[:, expected_cols]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_group_selection_cache():

@@ -49,7 +49,7 @@ def test_invalid_skipfooter_negative(python_parser_only):
         parser.read_csv(StringIO(data), skipfooter=-1)
 
 
-@pytest.mark.parametrize("kwargs", [dict(sep=None), dict(delimiter="|")])
+@pytest.mark.parametrize("kwargs", [{"sep": None}, {"delimiter": "|"}])
 def test_sniff_delimiter(python_parser_only, kwargs):
     data = """index|A|B|C
 foo|1|2|3
@@ -122,7 +122,7 @@ def test_single_line(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(skipfooter=2), dict(nrows=3)])
+@pytest.mark.parametrize("kwargs", [{"skipfooter": 2}, {"nrows": 3}])
 def test_skipfooter(python_parser_only, kwargs):
     # see gh-6607
     data = """A,B,C
@@ -213,10 +213,10 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     if add_footer:
         # The stray footer line should not mess with the
         # casting of the first two lines if we skip it.
-        kwargs = dict(skipfooter=1)
+        kwargs = {"skipfooter": 1}
         data += "\nFooter"
     else:
-        kwargs = dict()
+        kwargs = {}
 
     result = parser.read_csv(StringIO(data), names=["a"], decimal="#", **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -245,23 +245,19 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 def test_multi_char_sep_quotes(python_parser_only, quoting):
     # see gh-13374
-    kwargs = dict(sep=",,")
+    kwargs = {"sep": ",,"}
     parser = python_parser_only
 
     data = 'a,,b\n1,,a\n2,,"2,,b"'
-    msg = "ignored when a multi-char delimiter is used"
-
-    def fail_read():
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
     if quoting == csv.QUOTE_NONE:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "Expected 2 fields in line 3, saw 3"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
     else:
-        fail_read()
+        msg = "ignored when a multi-char delimiter is used"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
 
 def test_none_delimiter(python_parser_only, capsys):
@@ -286,20 +282,15 @@ def test_none_delimiter(python_parser_only, capsys):
 @pytest.mark.parametrize("skipfooter", [0, 1])
 def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     # see gh-13879 and gh-15910
-    msg = "parsing errors in the skipped footer rows"
     parser = python_parser_only
-
-    def fail_read():
+    if skipfooter:
+        msg = "parsing errors in the skipped footer rows"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
-
-    if skipfooter:
-        fail_read()
     else:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "unexpected end of data|expected after"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), skipfooter=skipfooter)
 
 
 def test_malformed_skipfooter(python_parser_only):
@@ -314,3 +305,49 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+@pytest.mark.parametrize("thousands", [None, "."])
+@pytest.mark.parametrize(
+    "value, result_value",
+    [
+        ("1,2", 1.2),
+        ("1,2e-1", 0.12),
+        ("1,2E-1", 0.12),
+        ("1,2e-10", 0.0000000012),
+        ("1,2e1", 12.0),
+        ("1,2E1", 12.0),
+        ("-1,2e-1", -0.12),
+        ("0,2", 0.2),
+        (",2", 0.2),
+    ],
+)
+def test_decimal_and_exponential(python_parser_only, thousands, value, result_value):
+    # GH#31920
+    data = StringIO(
+        f"""a	b
+    1,1	{value}
+    """
+    )
+    result = python_parser_only.read_csv(
+        data, "\t", decimal=",", engine="python", thousands=thousands
+    )
+    expected = DataFrame({"a": [1.1], "b": [result_value]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("thousands", [None, "."])
+@pytest.mark.parametrize(
+    "value",
+    ["e11,2", "1e11,2", "1,2,2", "1,2.1", "1,2e-10e1", "--1,2", "1a.2,1", "1..2,3"],
+)
+def test_decimal_and_exponential_erroneous(python_parser_only, thousands, value):
+    # GH#31920
+    data = StringIO(
+        f"""a	b
+    1,1	{value}
+    """
+    )
+    result = python_parser_only.read_csv(data, "\t", decimal=",", thousands=thousands)
+    expected = DataFrame({"a": [1.1], "b": [value]})
+    tm.assert_frame_equal(result, expected)

@@ -1,18 +1,22 @@
-from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import Scalar
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_dtype_equal,
     is_integer,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -56,7 +60,7 @@ class BaseMaskedDtype(ExtensionDtype):
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+    def construct_array_type(cls) -> Type[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -84,9 +88,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if not values.ndim == 1:
+        if values.ndim != 1:
             raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
+        if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
 
         if copy:
@@ -100,7 +104,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item):
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[BaseMaskedArray, Any]:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -209,7 +215,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             dtype = object
         if self._hasna:
             if (
-                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                not is_object_dtype(dtype)
+                and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
                 raise ValueError(
@@ -223,6 +230,30 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             data = self._data.astype(dtype, copy=copy)
         return data
+
+    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        # if we are astyping to another nullable masked dtype, we can fastpath
+        if isinstance(dtype, BaseMaskedDtype):
+            # TODO deal with NaNs for FloatingArray case
+            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            # mask is copied depending on whether the data was copied, and
+            # not directly depending on the `copy` keyword
+            mask = self._mask if data is self._data else self._mask.copy()
+            cls = dtype.construct_array_type()
+            return cls(data, mask, copy=False)
+
+        if isinstance(dtype, ExtensionDtype):
+            eacls = dtype.construct_array_type()
+            return eacls._from_sequence(self, dtype=dtype, copy=copy)
+
+        raise NotImplementedError("subclass must implement astype to np.dtype")
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
@@ -260,7 +291,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.nbytes + self._mask.nbytes
 
     @classmethod
-    def _concat_same_type(cls: Type[BaseMaskedArrayT], to_concat) -> BaseMaskedArrayT:
+    def _concat_same_type(
+        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+    ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask)
@@ -268,6 +301,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def take(
         self: BaseMaskedArrayT,
         indexer,
+        *,
         allow_fill: bool = False,
         fill_value: Optional[Scalar] = None,
     ) -> BaseMaskedArrayT:
@@ -356,11 +390,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "prod", "min", "max"}:
+        if name in {"sum", "prod", "min", "max", "mean"}:
             op = getattr(masked_reductions, name)
             return op(data, mask, skipna=skipna, **kwargs)
 

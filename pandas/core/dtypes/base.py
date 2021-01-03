@@ -9,7 +9,7 @@ import numpy as np
 from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
@@ -21,8 +21,9 @@ class ExtensionDtype:
 
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    extensions.register_extension_dtype: Register an ExtensionType
+        with pandas as class decorator.
+    extensions.ExtensionArray: Abstract base class for custom 1-D array types.
 
     Notes
     -----
@@ -98,9 +99,8 @@ class ExtensionDtype:
         By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type and all of the
-          the attributes in ``self._metadata`` are equal between
-          `self` and `other`.
+        * it's an instance of this type and all of the attributes
+          in ``self._metadata`` are equal between `self` and `other`.
 
         Parameters
         ----------
@@ -277,7 +277,7 @@ class ExtensionDtype:
         """
         dtype = getattr(dtype, "dtype", dtype)
 
-        if isinstance(dtype, (ABCSeries, ABCIndexClass, ABCDataFrame, np.dtype)):
+        if isinstance(dtype, (ABCSeries, ABCIndex, ABCDataFrame, np.dtype)):
             # https://github.com/pandas-dev/pandas/issues/22960
             # avoid passing data to `construct_from_string`. This could
             # cause a FutureWarning from numpy about failing elementwise

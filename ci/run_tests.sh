@@ -20,7 +20,13 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+
+if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
+    # GH#37455 windows py38 build appears to be running out of memory
+    #  skip collection of window tests
+    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/ --ignore=pandas/tests/plotting/"
+fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"

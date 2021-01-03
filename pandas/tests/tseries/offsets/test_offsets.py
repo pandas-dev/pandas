@@ -1,6 +1,7 @@
 from datetime import date, datetime, time as dt_time, timedelta
 from typing import Dict, List, Optional, Tuple, Type
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -14,14 +15,13 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
+from pandas import DatetimeIndex, Series, Timedelta, date_range, read_pickle
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.series import Series
 
-from pandas.io.pickle import read_pickle
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -129,6 +129,8 @@ class Base:
         tz = tz_naive_fixture
         if self._offset is None:
             return
+        if isinstance(tz, tzlocal) and not IS64:
+            pytest.xfail(reason="OverflowError inside tzlocal past 2038")
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -749,6 +751,13 @@ class TestBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
@@ -2315,6 +2324,36 @@ class TestBusinessHour(Base):
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
+    def test_bday_ignores_timedeltas(self):
+        idx = date_range("2010/02/01", "2010/02/10", freq="12H")
+        t1 = idx + BDay(offset=Timedelta(3, unit="H"))
+
+        expected = DatetimeIndex(
+            [
+                "2010-02-02 03:00:00",
+                "2010-02-02 15:00:00",
+                "2010-02-03 03:00:00",
+                "2010-02-03 15:00:00",
+                "2010-02-04 03:00:00",
+                "2010-02-04 15:00:00",
+                "2010-02-05 03:00:00",
+                "2010-02-05 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-08 03:00:00",
+                "2010-02-08 15:00:00",
+                "2010-02-09 03:00:00",
+                "2010-02-09 15:00:00",
+                "2010-02-10 03:00:00",
+                "2010-02-10 15:00:00",
+                "2010-02-11 03:00:00",
+            ],
+            freq=None,
+        )
+        tm.assert_index_equal(t1, expected)
+
 
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
@@ -2641,6 +2680,13 @@ class TestCustomBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
@@ -4173,8 +4219,8 @@ class TestDST:
 
     # test both basic names and dateutil timezones
     timezone_utc_offsets = {
-        "US/Eastern": dict(utc_offset_daylight=-4, utc_offset_standard=-5),
-        "dateutil/US/Pacific": dict(utc_offset_daylight=-7, utc_offset_standard=-8),
+        "US/Eastern": {"utc_offset_daylight": -4, "utc_offset_standard": -5},
+        "dateutil/US/Pacific": {"utc_offset_daylight": -7, "utc_offset_standard": -8},
     }
     valid_date_offsets_singular = [
         "weekday",

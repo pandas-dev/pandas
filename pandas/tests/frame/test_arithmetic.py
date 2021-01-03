@@ -14,6 +14,32 @@ import pandas.core.common as com
 from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
+
+class DummyElement:
+    def __init__(self, value, dtype):
+        self.value = value
+        self.dtype = np.dtype(dtype)
+
+    def __array__(self):
+        return np.array(self.value, dtype=self.dtype)
+
+    def __str__(self) -> str:
+        return f"DummyElement({self.value}, {self.dtype})"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def astype(self, dtype, copy=False):
+        self.dtype = dtype
+        return self
+
+    def view(self, dtype):
+        return type(self)(self.value.view(dtype), dtype)
+
+    def any(self, axis=None):
+        return bool(self.value)
+
+
 # -------------------------------------------------------------------
 # Comparisons
 
@@ -447,7 +473,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
     @pytest.mark.parametrize("op", ["__add__", "__sub__", "__mul__"])
     def test_arith_flex_frame_mixed(
@@ -462,9 +488,9 @@ class TestFrameFlexArithmetic:
         # no overflow in the uint
         dtype = None
         if op in ["__sub__"]:
-            dtype = dict(B="uint64", C=None)
+            dtype = {"B": "uint64", "C": None}
         elif op in ["__add__", "__mul__"]:
-            dtype = dict(C=None)
+            dtype = {"C": None}
         tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
@@ -472,7 +498,7 @@ class TestFrameFlexArithmetic:
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
         expected = f(mixed_float_frame, 2 * mixed_float_frame)
         tm.assert_frame_equal(result, expected)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         # vs plain int
         result = getattr(int_frame, op)(2 * int_frame)
@@ -782,6 +808,91 @@ class TestFrameArithmetic:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "value, dtype",
+        [
+            (1, "i8"),
+            (1.0, "f8"),
+            (2 ** 63, "f8"),
+            (1j, "complex128"),
+            (2 ** 63, "complex128"),
+            (True, "bool"),
+            (np.timedelta64(20, "ns"), "<m8[ns]"),
+            (np.datetime64(20, "ns"), "<M8[ns]"),
+        ],
+    )
+    @pytest.mark.xfail(reason="GH38630", strict=False)
+    @pytest.mark.parametrize(
+        "op",
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.mod,
+            operator.pow,
+        ],
+        ids=lambda x: x.__name__,
+    )
+    def test_binop_other(self, op, value, dtype):
+        skip = {
+            (operator.truediv, "bool"),
+            (operator.pow, "bool"),
+        }
+
+        e = DummyElement(value, dtype)
+        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        invalid = {
+            (operator.pow, "<M8[ns]"),
+            (operator.mod, "<M8[ns]"),
+            (operator.truediv, "<M8[ns]"),
+            (operator.mul, "<M8[ns]"),
+            (operator.add, "<M8[ns]"),
+            (operator.pow, "<m8[ns]"),
+            (operator.mul, "<m8[ns]"),
+            (operator.sub, "bool"),
+            (operator.mod, "complex128"),
+        }
+
+        if (op, dtype) in invalid:
+            warn = None
+            if (dtype == "<M8[ns]" and op == operator.add) or (
+                dtype == "<m8[ns]" and op == operator.mul
+            ):
+                msg = None
+            elif dtype == "complex128":
+                msg = "ufunc 'remainder' not supported for the input types"
+                warn = UserWarning  # "evaluating in Python space because ..."
+            elif op is operator.sub:
+                msg = "numpy boolean subtract, the `-` operator, is "
+                warn = UserWarning  # "evaluating in Python space because ..."
+            else:
+                msg = (
+                    f"cannot perform __{op.__name__}__ with this "
+                    "index type: (DatetimeArray|TimedeltaArray)"
+                )
+
+            with pytest.raises(TypeError, match=msg):
+                with tm.assert_produces_warning(warn):
+                    op(s, e.value)
+
+        elif (op, dtype) in skip:
+
+            msg = "operator '.*' not implemented for .* dtypes"
+            with pytest.raises(NotImplementedError, match=msg):
+                with tm.assert_produces_warning(UserWarning):
+                    # "evaluating in Python space because ..."
+                    op(s, e.value)
+
+        else:
+            # FIXME: Since dispatching to Series, this test no longer
+            # asserts anything meaningful
+            with tm.assert_produces_warning(None):
+                result = op(s, e.value).dtypes
+                expected = op(s, value).dtypes
+            tm.assert_series_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
@@ -1029,7 +1140,7 @@ class TestFrameArithmeticUnsorted:
 
         # mix vs mix
         added = mixed_float_frame + mixed_float_frame
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # with int
         added = float_frame + mixed_int_frame
@@ -1063,20 +1174,20 @@ class TestFrameArithmeticUnsorted:
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
         added = mixed_float_frame + series.astype("float16")
-        _check_mixed_float(added, dtype=dict(C=None))
+        _check_mixed_float(added, dtype={"C": None})
 
         # FIXME: don't leave commented-out
         # these raise with numexpr.....as we are adding an int64 to an
         # uint64....weird vs int
 
         # added = mixed_int_frame + (100*series).astype('int64')
-        # _check_mixed_int(added, dtype = dict(A = 'int64', B = 'float64', C =
-        # 'int64', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int64', "B": 'float64', "C":
+        # 'int64', "D": 'int64'})
         # added = mixed_int_frame + (100*series).astype('int32')
-        # _check_mixed_int(added, dtype = dict(A = 'int32', B = 'float64', C =
-        # 'int32', D = 'int64'))
+        # _check_mixed_int(added, dtype = {"A": 'int32', "B": 'float64', "C":
+        # 'int32', "D": 'int64'})
 
         # TimeSeries
         ts = datetime_frame["A"]
@@ -1131,7 +1242,7 @@ class TestFrameArithmeticUnsorted:
         result = mixed_float_frame * 2
         for c, s in result.items():
             tm.assert_numpy_array_equal(s.values, mixed_float_frame[c].values * 2)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         result = DataFrame() * 2
         assert result.index.equals(DataFrame().index)
@@ -1601,3 +1712,16 @@ def test_arith_list_of_arraylike_raise(to_add):
         df + to_add
     with pytest.raises(ValueError, match=msg):
         to_add + df
+
+
+def test_inplace_arithmetic_series_update():
+    # https://github.com/pandas-dev/pandas/issues/36373
+    df = DataFrame({"A": [1, 2, 3]})
+    series = df["A"]
+    vals = series._values
+
+    series += 1
+    assert series._values is vals
+
+    expected = DataFrame({"A": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)
