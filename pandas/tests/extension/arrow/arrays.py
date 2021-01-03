@@ -14,6 +14,8 @@ from typing import Type
 import numpy as np
 import pyarrow as pa
 
+from pandas.core.dtypes.missing import isna
+
 import pandas as pd
 from pandas.api.extensions import (
     ExtensionArray,
@@ -116,7 +118,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         result = op(np.array(self._data), np.array(other._data))
         return ArrowBoolArray(
-            pa.chunked_array([pa.array(result, mask=pd.isna(self._data.to_pandas()))])
+            pa.chunked_array([pa.array(result, mask=isna(self._data.to_pandas()))])
         )
 
     def __eq__(self, other):
@@ -134,8 +136,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if x is not None
         )
 
-    def isna_(self):
-        nas = pd.isna(self._data.to_pandas())
+    def isna(self):
+        nas = isna(self._data.to_pandas())
         return type(self).from_scalars(nas)
 
     def take(self, indices, allow_fill=False, fill_value=None):

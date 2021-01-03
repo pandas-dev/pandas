@@ -9,15 +9,16 @@ from pandas import Series
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
+from pandas.io.parsers import read_csv
 
 
 class TestSeriesToCSV:
-    def read_csv_(self, path, **kwargs):
+    def read_csv(self, path, **kwargs):
         params = {"squeeze": True, "index_col": 0, "header": None, "parse_dates": True}
         params.update(**kwargs)
 
         header = params.get("header")
-        out = pd.read_csv(path, **params)
+        out = read_csv(path, **params)
 
         if header is None:
             out.name = out.index.name = None
@@ -30,7 +31,7 @@ class TestSeriesToCSV:
 
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
-            ts = self.read_csv_(path)
+            ts = self.read_csv(path)
             tm.assert_series_equal(datetime_series, ts, check_names=False)
 
             assert ts.name is None
@@ -38,30 +39,30 @@ class TestSeriesToCSV:
 
             # see gh-10483
             datetime_series.to_csv(path, header=True)
-            ts_h = self.read_csv_(path, header=0)
+            ts_h = self.read_csv(path, header=0)
             assert ts_h.name == "ts"
 
             string_series.to_csv(path, header=False)
-            series = self.read_csv_(path)
+            series = self.read_csv(path)
             tm.assert_series_equal(string_series, series, check_names=False)
 
             assert series.name is None
             assert series.index.name is None
 
             string_series.to_csv(path, header=True)
-            series_h = self.read_csv_(path, header=0)
+            series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
             with open(path, "w") as outfile:
                 outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
-            series = self.read_csv_(path, sep="|")
+            series = self.read_csv(path, sep="|")
             check_series = Series(
                 {datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0}
             )
             tm.assert_series_equal(check_series, series)
 
-            series = self.read_csv_(path, sep="|", parse_dates=False)
+            series = self.read_csv(path, sep="|", parse_dates=False)
             check_series = Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
             tm.assert_series_equal(check_series, series)
 
@@ -85,7 +86,7 @@ class TestSeriesToCSV:
         s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)
 
-        s2 = self.read_csv_(buf, index_col=0, encoding="UTF-8")
+        s2 = self.read_csv(buf, index_col=0, encoding="UTF-8")
         tm.assert_series_equal(s, s2)
 
     def test_to_csv_float_format(self):
@@ -94,7 +95,7 @@ class TestSeriesToCSV:
             ser = Series([0.123456, 0.234567, 0.567567])
             ser.to_csv(filename, float_format="%.2f", header=False)
 
-            rs = self.read_csv_(filename)
+            rs = self.read_csv(filename)
             xp = Series([0.12, 0.23, 0.57])
             tm.assert_series_equal(rs, xp)
 
@@ -133,7 +134,7 @@ class TestSeriesToCSV:
 
             s.to_csv(filename, compression=compression, encoding=encoding, header=True)
             # test the round trip - to_csv -> read_csv
-            result = pd.read_csv(
+            result = read_csv(
                 filename,
                 compression=compression,
                 encoding=encoding,
@@ -148,7 +149,7 @@ class TestSeriesToCSV:
             ) as handles:
                 s.to_csv(handles.handle, encoding=encoding, header=True)
 
-            result = pd.read_csv(
+            result = read_csv(
                 filename,
                 compression=compression,
                 encoding=encoding,
@@ -164,7 +165,7 @@ class TestSeriesToCSV:
 
             with tm.decompress_file(filename, compression) as fh:
                 tm.assert_series_equal(
-                    s, pd.read_csv(fh, index_col=0, squeeze=True, encoding=encoding)
+                    s, read_csv(fh, index_col=0, squeeze=True, encoding=encoding)
                 )
 
     def test_to_csv_interval_index(self):
@@ -173,7 +174,7 @@ class TestSeriesToCSV:
 
         with tm.ensure_clean("__tmp_to_csv_interval_index__.csv") as path:
             s.to_csv(path, header=False)
-            result = self.read_csv_(path, index_col=0, squeeze=True)
+            result = self.read_csv(path, index_col=0, squeeze=True)
 
             # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
             expected = s.copy()

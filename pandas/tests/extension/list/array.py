@@ -11,6 +11,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
@@ -41,7 +42,7 @@ class ListArray(ExtensionArray):
         if not isinstance(values, np.ndarray):
             raise TypeError("Need to pass a numpy array as values")
         for val in values:
-            if not isinstance(val, self.dtype.type) and not pd.isna(val):
+            if not isinstance(val, self.dtype.type) and not isna(val):
                 raise TypeError("All values must be of type " + str(self.dtype.type))
         self.data = values
 
@@ -61,7 +62,7 @@ class ListArray(ExtensionArray):
     def __len__(self) -> int:
         return len(self.data)
 
-    def isna_(self):
+    def isna(self):
         return np.array(
             [not isinstance(x, list) and np.isnan(x) for x in self.data], dtype=bool
         )
