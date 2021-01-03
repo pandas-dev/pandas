@@ -58,6 +58,7 @@ from pandas.core.window.common import (
     flex_binary_moment,
     zsqrt,
 )
+from pandas.core.window.doc import doc_template, numpy_args_kwargs
 from pandas.core.window.indexers import (
     BaseIndexer,
     FixedWindowIndexer,
@@ -477,83 +478,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return result
 
     agg = aggregate
-
-    _shared_docs["sum"] = dedent(
-        """
-    Calculate %(name)s sum of given DataFrame or Series.
-
-    Parameters
-    ----------
-    *args, **kwargs
-        For compatibility with other %(name)s methods. Has no effect
-        on the computed value.
-
-    Returns
-    -------
-    Series or DataFrame
-        Same type as the input, with the same index, containing the
-        %(name)s sum.
-
-    See Also
-    --------
-    pandas.Series.sum : Reducing sum for Series.
-    pandas.DataFrame.sum : Reducing sum for DataFrame.
-
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4, 5])
-    >>> s
-    0    1
-    1    2
-    2    3
-    3    4
-    4    5
-    dtype: int64
-
-    >>> s.rolling(3).sum()
-    0     NaN
-    1     NaN
-    2     6.0
-    3     9.0
-    4    12.0
-    dtype: float64
-
-    >>> s.expanding(3).sum()
-    0     NaN
-    1     NaN
-    2     6.0
-    3    10.0
-    4    15.0
-    dtype: float64
-
-    >>> s.rolling(3, center=True).sum()
-    0     NaN
-    1     6.0
-    2     9.0
-    3    12.0
-    4     NaN
-    dtype: float64
-
-    For DataFrame, each %(name)s sum is computed column-wise.
-
-    >>> df = pd.DataFrame({"A": s, "B": s ** 2})
-    >>> df
-       A   B
-    0  1   1
-    1  2   4
-    2  3   9
-    3  4  16
-    4  5  25
-
-    >>> df.rolling(3).sum()
-          A     B
-    0   NaN   NaN
-    1   NaN   NaN
-    2   6.0  14.0
-    3   9.0  29.0
-    4  12.0  50.0
-    """
-    )
 
     _shared_docs["mean"] = dedent(
         """
@@ -1146,8 +1070,8 @@ class Window(BaseWindow):
 
     agg = aggregate
 
-    @Substitution(name="window")
-    @Appender(_shared_docs["sum"])
+    # @Substitution(name="window")
+    # @Appender(_shared_docs["sum"])
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
@@ -1176,57 +1100,12 @@ class Window(BaseWindow):
 
 
 class RollingAndExpandingMixin(BaseWindow):
-
-    _shared_docs["count"] = dedent(
-        r"""
-    The %(name)s count of any non-NaN observations inside the window.
-
-    Returns
-    -------
-    Series or DataFrame
-        Returned object type is determined by the caller of the %(name)s
-        calculation.
-
-    See Also
-    --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrames.
-    pandas.DataFrame.count : Count of the full DataFrame.
-
-    Examples
-    --------
-    >>> s = pd.Series([2, 3, np.nan, 10])
-    >>> s.rolling(2).count()
-    0    1.0
-    1    2.0
-    2    1.0
-    3    1.0
-    dtype: float64
-    >>> s.rolling(3).count()
-    0    1.0
-    1    2.0
-    2    2.0
-    3    2.0
-    dtype: float64
-    >>> s.rolling(4).count()
-    0    1.0
-    1    2.0
-    2    2.0
-    3    3.0
-    dtype: float64
-    """
-    )
-
     def count(self):
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="count")
 
-    _shared_docs["apply"] = dedent(
-        r"""
-    Apply an arbitrary function to each %(name)s window.
-
-    Parameters
-    ----------
+    _shared_docs["window_apply_parameters"] = dedent(
+        """
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
         or a single value from a Series if ``raw=False``. Can also accept a
@@ -1263,19 +1142,11 @@ class RollingAndExpandingMixin(BaseWindow):
         Positional arguments to be passed into func.
     kwargs : dict, default None
         Keyword arguments to be passed into func.
+    """
+    )
 
-    Returns
-    -------
-    Series or DataFrame
-        Return type is determined by the caller.
-
-    See Also
-    --------
-    pandas.Series.%(name)s : Calling object with Series data.
-    pandas.DataFrame.%(name)s : Calling object with DataFrame data.
-    pandas.Series.apply : Similar method for Series.
-    pandas.DataFrame.apply : Similar method for DataFrame.
-
+    _shared_docs["window_apply_notes"] = dedent(
+        """
     Notes
     -----
     See :ref:`window.numba_engine` for extended documentation and performance
@@ -1964,8 +1835,42 @@ class Rolling(RollingAndExpandingMixin):
 
     agg = aggregate
 
-    @Substitution(name="rolling")
-    @Appender(_shared_docs["count"])
+    _count_example_doc = dedent(
+        """
+    Examples
+    --------
+    >>> s = pd.Series([2, 3, np.nan, 10])
+    >>> s.rolling(2).count()
+    0    1.0
+    1    2.0
+    2    1.0
+    3    1.0
+    dtype: float64
+    >>> s.rolling(3).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    2.0
+    dtype: float64
+    >>> s.rolling(4).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    dtype: float64
+    """
+    )
+
+    @doc(
+        doc_template,
+        _count_example_doc,
+        window_method="rolling",
+        aggregation_description="count of any non-NaN observations",
+        parameters="",
+        numpy_args_kwargs="",
+        agg_method="count",
+        other_see_also="",
+    )
     def count(self):
         if self.min_periods is None:
             warnings.warn(
@@ -1979,8 +1884,16 @@ class Rolling(RollingAndExpandingMixin):
             self.min_periods = 0
         return super().count()
 
-    @Substitution(name="rolling")
-    @Appender(_shared_docs["apply"])
+    @doc(
+        doc_template,
+        _shared_docs["window_apply_notes"],
+        window_method="rolling",
+        aggregation_description="sum",
+        parameters=_shared_docs["window_apply_parameters"],
+        numpy_args_kwargs="",
+        agg_method="apply",
+        other_see_also="",
+    )
     def apply(
         self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None
     ):
@@ -1993,8 +1906,66 @@ class Rolling(RollingAndExpandingMixin):
             kwargs=kwargs,
         )
 
-    @Substitution(name="rolling")
-    @Appender(_shared_docs["sum"])
+    _sum_example_doc = dedent(
+        """
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    4    5
+    dtype: int64
+
+    >>> s.rolling(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3     9.0
+    4    12.0
+    dtype: float64
+
+    >>> s.rolling(3, center=True).sum()
+    0     NaN
+    1     6.0
+    2     9.0
+    3    12.0
+    4     NaN
+    dtype: float64
+
+    For DataFrame, each sum is computed column-wise.
+
+    >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+    >>> df
+       A   B
+    0  1   1
+    1  2   4
+    2  3   9
+    3  4  16
+    4  5  25
+
+    >>> df.rolling(3).sum()
+          A     B
+    0   NaN   NaN
+    1   NaN   NaN
+    2   6.0  14.0
+    3   9.0  29.0
+    4  12.0  50.0
+    """
+    )
+
+    @doc(
+        doc_template,
+        _sum_example_doc,
+        window_method="rolling",
+        aggregation_description="sum",
+        parameters="",
+        numpy_args_kwargs=numpy_args_kwargs,
+        agg_method="sum",
+        other_see_also="",
+    )
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func("sum", args, kwargs)
         return super().sum(*args, **kwargs)

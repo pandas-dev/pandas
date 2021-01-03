@@ -15,7 +15,7 @@ _doc_template = """
         Returns
         -------
         Series or DataFrame
-            Return type is determined by the caller.
+            Return type is the same as the original object.
 
         See Also
         --------
