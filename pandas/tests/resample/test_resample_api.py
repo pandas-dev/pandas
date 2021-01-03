@@ -305,7 +305,7 @@ def test_apply_without_aggregation():
         result = t.apply(lambda x: x)
         tm.assert_series_equal(result, test_series)
 
-    grouped = test_series.to_frame(name="foo").resample("20min", group_keys=False)
+    grouped = test_series.to_frame(name="foo").resample("20min")
     result = grouped["foo"].apply(lambda x: x)
     tm.assert_series_equal(result, test_series.rename("foo"))
 

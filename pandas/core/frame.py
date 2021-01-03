@@ -9398,7 +9398,6 @@ Parrot 2  Parrot       24.0
         level=None,
         origin: Union[str, "TimestampConvertibleTypes"] = "start_day",
         offset: Optional["TimedeltaConvertibleTypes"] = None,
-        group_keys: bool = no_default,
     ) -> "Resampler":
         return super().resample(
             rule=rule,
@@ -9413,7 +9412,6 @@ Parrot 2  Parrot       24.0
             level=level,
             origin=origin,
             offset=offset,
-            group_keys=group_keys,
         )
 
     def to_timestamp(

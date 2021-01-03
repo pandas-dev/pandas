@@ -130,7 +130,7 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
     df = empty_frame_dti
     # count retains dimensions too
-    result = getattr(df.resample(freq, group_keys=False), resample_method)()
+    result = getattr(df.resample(freq), resample_method)()
     if resample_method != "size":
         expected = df.copy()
     else:

@@ -79,7 +79,10 @@ def test_apply_trivial2():
     tm.assert_frame_equal(result, expected)
 
 
-def test_fast_apply():
+@pytest.mark.parametrize(
+    "f, expected_mutated", [(lambda _: 1, True), (lambda g: g, False)]
+)
+def test_fast_apply(f, expected_mutated):
     # make sure that fast apply is correctly called
     # rather than raising any kind of error
     # otherwise the python path will be called
@@ -96,23 +99,15 @@ def test_fast_apply():
         }
     )
 
-    def f1(g):
-        return 1
-
-    def f2(g):
-        return g
-
     g = df.groupby(["key", "key2"])
-
     grouper = g.grouper
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
     sdata = splitter._get_sorted_data()
 
-    for f, expected_mutated in [(f1, True), (f2, False)]:
-        values, mutated = splitter.fast_apply(f, sdata, group_keys)
-        assert mutated is expected_mutated
+    values, mutated = splitter.fast_apply(f, sdata, group_keys)
+    assert mutated is expected_mutated
 
 
 @pytest.mark.parametrize(

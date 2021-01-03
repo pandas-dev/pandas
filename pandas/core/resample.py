@@ -83,14 +83,14 @@ class Resampler(BaseGroupBy, ShallowMixin):
         "offset",
     ]
 
-    def __init__(self, obj, groupby=None, axis=0, kind=None, group_keys=True, **kwargs):
+    def __init__(self, obj, groupby=None, axis=0, kind=None, **kwargs):
         self.groupby = groupby
         self.keys = None
         self.sort = True
         self.axis = axis
         self.kind = kind
         self.squeeze = False
-        self.group_keys = group_keys
+        self.group_keys = False
         self.as_index = True
         self.exclusions = set()
         self.binner = None
