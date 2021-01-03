@@ -122,7 +122,7 @@ def should_cache(
             return False
 
         if len(arg) <= 5000:
-            check_count = int(len(arg) * 0.1)
+            check_count = len(arg) // 10
         else:
             check_count = 500
     else:
