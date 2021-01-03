@@ -421,14 +421,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             categories = list(categories)  # breaks if a np.array of categories
             cat_array = hash_tuples(categories)
         else:
-            if categories.dtype == "O":
-                if len({type(x) for x in categories}) != 1:
-                    # TODO: hash_array doesn't handle mixed types. It casts
-                    # everything to a str first, which means we treat
-                    # {'1', '2'} the same as {'1', 2}
-                    # find a better solution
-                    hashed = hash((tuple(categories), ordered))
-                    return hashed
+            if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
+                # TODO: hash_array doesn't handle mixed types. It casts
+                # everything to a str first, which means we treat
+                # {'1', '2'} the same as {'1', 2}
+                # find a better solution
+                hashed = hash((tuple(categories), ordered))
+                return hashed
 
             if DatetimeTZDtype.is_dtype(categories.dtype):
                 # Avoid future warning.
@@ -905,7 +904,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
-            return other == self.name or other == self.name.title()
+            return other in [self.name, self.name.title()]
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 

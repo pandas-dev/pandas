@@ -91,10 +91,9 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # are not coming from Index/Series._values), eg in BlockManager.quantile
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    if is_extension_array_dtype(dtype):
-        if isinstance(arr, np.ndarray):
-            # numpy's astype cannot handle ExtensionDtypes
-            return array(arr, dtype=dtype, copy=False)
+    if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
+        # numpy's astype cannot handle ExtensionDtypes
+        return array(arr, dtype=dtype, copy=False)
     return arr.astype(dtype, copy=False)
 
 
