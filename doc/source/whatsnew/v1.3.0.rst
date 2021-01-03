@@ -259,6 +259,7 @@ I/O
 ^^^
 
 - Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
+- Bug in :func:`read_csv` not recognizing scientific notation if decimal is set for ``engine="python"`` (:issue:`31920`)
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
