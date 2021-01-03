@@ -13,7 +13,7 @@ VERSIONS = {
     "fsspec": "0.7.4",
     "fastparquet": "0.3.2",
     "gcsfs": "0.6.0",
-    "lxml": "4.3.0",
+    "lxml.etree": "4.3.0",
     "matplotlib": "2.2.3",
     "numexpr": "2.6.8",
     "odfpy": "1.3.0",
@@ -40,6 +40,7 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
+    "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
     "sqlalchemy": "SQLAlchemy",
@@ -89,7 +90,7 @@ def import_optional_dependency(
         * ignore: Return the module, even if the version is too old.
           It's expected that users validate the version locally when
           using ``on_version="ignore"`` (see. ``io/html.py``)
-    min_version : Optional[str]
+    min_version : str, default None
         Specify a minimum version that is different from the global pandas
         minimum version required.
     Returns

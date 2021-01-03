@@ -60,7 +60,7 @@ def test_submodule(monkeypatch):
 
     match = "Pandas requires .*1.0.0.* of .fakemodule.*'0.9.0'"
     with pytest.raises(ImportError, match=match):
-        print(import_optional_dependency("fakemodule.submodule"))
+        import_optional_dependency("fakemodule.submodule")
 
     with tm.assert_produces_warning(UserWarning):
         result = import_optional_dependency("fakemodule.submodule", on_version="warn")
