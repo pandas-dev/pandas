@@ -440,6 +440,7 @@ class MPLPlot:
         # no non-numeric frames or series allowed
         if is_empty:
             raise TypeError("no numeric data to plot")
+
         self.data = numeric_data.apply(
             lambda x: self._convert_to_ndarray(x) if not is_categorical_dtype(x) else x
         )
