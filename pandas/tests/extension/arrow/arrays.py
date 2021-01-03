@@ -134,7 +134,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if x is not None
         )
 
-    def isna(self):
+    def isna_(self):
         nas = pd.isna(self._data.to_pandas())
         return type(self).from_scalars(nas)
 
@@ -161,7 +161,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
-            arr = self[~self.isna()]
+            arr = self[~self.isna_()]
         else:
             arr = self
 
