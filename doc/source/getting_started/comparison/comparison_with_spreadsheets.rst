@@ -52,9 +52,12 @@ pandas, if no index is specified, a :class:`~pandas.RangeIndex` is used by defau
 second row = 1, and so on), analogous to row headings/numbers in spreadsheets.
 
 In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that
-use use as the row identifier in a worksheet. Unlike spreadsheets, these ``Index`` values can actually be
-used to reference the rows. For example, in spreadsheets, you would reference the first row as ``A1:Z1``,
-while in pandas you could use ``populations.loc['Chicago']``.
+is used as the row identifier in a worksheet. Unlike most spreadsheets, these ``Index`` values can
+actually be used to reference the rows. (Note that `this can be done in Excel with structured
+references
+<https://support.microsoft.com/en-us/office/using-structured-references-with-excel-tables-f5ed2452-2337-4f71-bed3-c8ae6d2b276e>`_.)
+For example, in spreadsheets, you would reference the first row as ``A1:Z1``, while in pandas you
+could use ``populations.loc['Chicago']``.
 
 Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a
 particular row don't change.
@@ -247,10 +250,80 @@ Sorting by values
 Sorting in spreadsheets is accomplished via `the sort dialog <https://support.microsoft.com/en-us/office/sort-data-in-a-range-or-table-62d0b95d-2a90-4610-a6ae-2e545c4a4654>`_.
 
 .. image:: ../../_static/excel_sort.png
-   :alt: Screenshot dialog from Excel showing sorting by the sex then total_bill columns
+   :alt: Screenshot of dialog from Excel showing sorting by the sex then total_bill columns
    :align: center
 
 .. include:: includes/sorting.rst
+
+String processing
+-----------------
+
+Finding length of string
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+In spreadsheets, the number of characters in text can be found with the `LEN
+<https://support.microsoft.com/en-us/office/len-lenb-functions-29236f94-cedc-429d-affd-b5e33d2c67cb>`_
+function. This can be used with the `TRIM
+<https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9>`_
+function to remove extra whitespace.
+
+.. code-block::
+
+   =LEN(TRIM(A2))
+
+.. include:: includes/length.rst
+
+Note this will still include multiple spaces within the string, so isn't 100% equivalent.
+
+
+Finding position of substring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `FIND
+<https://support.microsoft.com/en-us/office/find-findb-functions-c7912941-af2a-4bdf-a553-d0d89b0a0628>`_
+spreadsheet function returns the position of a substring, with the first character being ``1``.
+
+.. image:: ../../_static/excel_sort.png
+   :alt: Screenshot of FIND formula being used in Excel
+   :align: center
+
+.. include:: includes/find_substring.rst
+
+
+Extracting substring by position
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Spreadsheets have a `MID
+<https://support.microsoft.com/en-us/office/mid-midb-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028>`_
+formula for extracting a substring from a given position. To get the first character:
+
+.. code-block::
+
+   =MID(A2,1,1)
+
+.. include:: includes/extract_substring.rst
+
+
+Extracting nth word
+~~~~~~~~~~~~~~~~~~~
+
+In Excel, you might use the `Text to Columns Wizard
+<https://support.microsoft.com/en-us/office/split-text-into-different-columns-with-the-convert-text-to-columns-wizard-30b14928-5550-41f5-97ca-7a3e9c363ed7>`_
+for splitting text and retrieving a specific column. (Note `it's possible to do so through a formula
+as well <https://exceljet.net/formula/extract-nth-word-from-text-string>`_.)
+
+.. include:: includes/nth_word.rst
+
+
+Changing case
+~~~~~~~~~~~~~
+
+Spreadsheets provide `UPPER, LOWER, and PROPER functions
+<https://support.microsoft.com/en-us/office/change-the-case-of-text-01481046-0fa7-4f3b-a693-496795a7a44d>`_
+for converting text to upper, lower, and title case, respectively.
+
+.. include:: includes/case.rst
+
 
 Other considerations
 --------------------
