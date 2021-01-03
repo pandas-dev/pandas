@@ -36,15 +36,10 @@ def test_invalid_numexpr_version(engine, parser):
 
     if engine == "numexpr":
         try:
-            import numexpr as ne
+            import numexpr as ne  # noqa F401
         except ImportError:
             pytest.skip("no numexpr")
         else:
-            if LooseVersion(ne.__version__) < LooseVersion(VERSIONS["numexpr"]):
-                # TODO comment this back in once we know the exception message
-                # with pytest.raises(ImportError):
-                testit()
-            else:
-                testit()
+            testit()
     else:
         testit()
