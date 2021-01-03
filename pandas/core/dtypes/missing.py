@@ -485,10 +485,10 @@ def _array_equivalent_object(left, right, strict_nan):
                 if np.any(np.asarray(left_value != right_value)):
                     return False
             except TypeError as err:
-                if "Cannot compare tz-naive" in str(
-                    err
-                ) or "boolean value of NA is ambiguous" in str(err):
+                if "Cannot compare tz-naive" in str(err):
                     # tzawareness compat failure, see GH#28507
+                    return False
+                elif "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
     return True
