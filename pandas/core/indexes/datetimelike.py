@@ -623,7 +623,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return com.asarray_tuplesafe(keyarr)
 
 
-class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
+class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
@@ -633,8 +633,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
-
-    _ensure_array = Index._ensure_array
 
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
@@ -818,11 +816,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
-            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
-            result = type(self)(
-                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
-            )
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
