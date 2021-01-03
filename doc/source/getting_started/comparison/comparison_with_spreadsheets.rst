@@ -325,6 +325,28 @@ for converting text to upper, lower, and title case, respectively.
 .. include:: includes/case.rst
 
 
+Merging
+-------
+
+.. include:: includes/merge_setup.rst
+
+In Excel, there are `merging of tables can be done through a VLOOKUP
+<https://support.microsoft.com/en-us/office/how-can-i-merge-two-or-more-tables-c80a9fce-c1ab-4425-bb96-497dd906d656>`_.
+
+.. image:: ../../_static/spreadsheets/vlookup.png
+   :alt: Screenshot showing a VLOOKUP formula between two tables in Excel, with some values being filled in and others with "#N/A"
+   :align: center
+
+.. include:: includes/merge.rst
+
+``merge`` has a number of advantages over ``VLOOKUP``:
+
+* The lookup value doesn't need to be the first column of the lookup table
+* If multiple rows are matched, there will be one row for each match, instead of just the first
+* It will include all columns from the lookup table, instead of just a single specified column
+* It supports :ref:`more complex join operations <merging.join>`
+
+
 Other considerations
 --------------------
 
@@ -390,44 +412,6 @@ The equivalent in pandas:
         tips, values="tip", index=["size"], columns=["sex"], aggfunc=np.average
     )
 
-VLOOKUP
-~~~~~~~
-
-.. ipython:: python
-
-    import random
-
-    first_names = [
-        "harry",
-        "ron",
-        "hermione",
-        "rubius",
-        "albus",
-        "severus",
-        "luna",
-    ]
-    keys = [1, 2, 3, 4, 5, 6, 7]
-    df1 = pd.DataFrame({"keys": keys, "first_names": first_names})
-    df1
-
-    surnames = [
-        "hadrid",
-        "malfoy",
-        "lovegood",
-        "dumbledore",
-        "grindelwald",
-        "granger",
-        "weasly",
-        "riddle",
-        "longbottom",
-        "snape",
-    ]
-    keys = [random.randint(1, 7) for x in range(0, 10)]
-    random_names = pd.DataFrame({"surnames": surnames, "keys": keys})
-
-    random_names
-
-    random_names.merge(df1, on="keys", how="left")
 
 Adding a row
 ~~~~~~~~~~~~
