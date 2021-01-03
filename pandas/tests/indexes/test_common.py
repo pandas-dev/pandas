@@ -388,7 +388,7 @@ class TestCommon:
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+        pytest.skip("missing value sorting order not defined for index type")
 
     if na_position not in ["first", "last"]:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
@@ -401,7 +401,7 @@ def test_sort_values_with_missing(index_with_missing, na_position):
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+        pytest.skip("missing value sorting order not defined for index type")
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
