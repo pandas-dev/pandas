@@ -1,4 +1,4 @@
-- [ ] closes [#38696](https://github.com/pandas-dev/pandas/issues/38694)
+- [ ] closes #xxxx
 - [ ] tests added / passed
 - [ ] passes `git diff upstream/master -u -- "*.py" | flake8 --diff`
 - [ ] Ensure all linting tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing.html#code-standards) for how to run them
