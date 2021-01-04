@@ -190,9 +190,16 @@ def test_name_mi_with_dict_like(func, rename_dict, exp_names):
     tm.assert_index_equal(result, expected)
 
 
-def test_name_with_dict_like_raising():
+def test_index_name_with_dict_like_raising():
     # GH#20421
     ix = pd.Index([1, 2])
     msg = "Can only pass dict-like as `names` for MultiIndex."
     with pytest.raises(TypeError, match=msg):
         ix.set_names({"x": "z"})
+
+
+def test_multiindex_name_and_level_raising():
+    # GH#20421
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
+    with pytest.raises(TypeError, match="Can not pass level for dictlike `names`."):
+        mi.set_names(names={"x": "z"}, level={"x": "z"})

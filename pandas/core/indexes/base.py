@@ -1455,6 +1455,9 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_dict_like(names) and not isinstance(self, ABCMultiIndex):
             raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
 
+        elif is_dict_like(names) and level is not None:
+            raise TypeError("Can not pass level for dictlike `names`.")
+
         if isinstance(self, ABCMultiIndex) and is_dict_like(names) and level is None:
             # Transform dict to list of new names and corresponding levels
             level, names_adjusted = [], []
