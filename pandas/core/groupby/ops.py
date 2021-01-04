@@ -928,6 +928,7 @@ class BinGrouper(BaseGrouper):
 
 
 def _is_indexed_like(obj, axes) -> bool:
+    """Returns True when all axes of obj equal that of axes."""
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
@@ -936,7 +937,7 @@ def _is_indexed_like(obj, axes) -> bool:
     is_frame = isinstance(obj, DataFrame)
     if is_frame and len(axes) == 1:
         # The UDF was DataFrame -> Series
-        return True
+        return False
     elif is_frame:
         # The UDF was DataFrame -> DataFrame
         return obj.index.equals(axes[0]) and obj.columns.equals(axes[1])

@@ -90,32 +90,6 @@ def test_groupby_resample_on_api():
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_group_keys():
-    df = DataFrame({"A": 1, "B": 2}, index=pd.date_range("2000", periods=10))
-    g = df.resample("5D")
-    expected = df.copy()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        # stacklevel is set for groupby, not resample
-        result = g.apply(lambda x: x)
-    tm.assert_frame_equal(result, expected)
-
-    # no warning
-    g = df.resample("5D", group_keys=False)
-    with tm.assert_produces_warning(None):
-        result = g.apply(lambda x: x)
-    tm.assert_frame_equal(result, expected)
-
-    # no warning, group keys
-    expected.index = pd.MultiIndex.from_arrays(
-        [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
-    )
-
-    g = df.resample("5D", group_keys=True)
-    with tm.assert_produces_warning(None):
-        result = g.apply(lambda x: x)
-    tm.assert_frame_equal(result, expected)
-
-
 def test_pipe(test_frame):
     # GH17905
 
@@ -298,7 +272,7 @@ def test_fillna():
 def test_apply_without_aggregation():
 
     # both resample and groupby should work w/o aggregation
-    r = test_series.resample("20min", group_keys=False)
+    r = test_series.resample("20min")
     g = test_series.groupby(pd.Grouper(freq="20min"), group_keys=False)
 
     for t in [g, r]:

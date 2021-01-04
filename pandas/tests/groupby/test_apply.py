@@ -340,6 +340,17 @@ def test_apply_concat_preserve_names(three_group):
     assert result3.index.names == ("A", "B", None)
 
 
+def test_apply_series_to_series_new_index():
+    # GH 34988
+    df = DataFrame({"A": list("xy"), "B": [1, 2]})
+
+    mi = MultiIndex.from_arrays([list("xy"), [0, 0]], names=("A", None))
+    expected = DataFrame({"index": [0, 1]}, index=mi)
+
+    result = df.groupby("A")["B"].apply(lambda x: x.reset_index(drop=False)[["index"]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_series_to_frame():
     def f(piece):
         with np.errstate(invalid="ignore"):

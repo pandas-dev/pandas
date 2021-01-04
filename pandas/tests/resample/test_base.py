@@ -186,7 +186,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     # them to ensure they no longer do.  (GH #10228)
     empty_series_dti = Series([], index, dtype)
     try:
-        getattr(empty_series_dti.resample("d", group_keys=False), resample_method)()
+        getattr(empty_series_dti.resample("d"), resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object)
