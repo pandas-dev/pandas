@@ -144,9 +144,9 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # not lexsorted
-        assert df.index.lexsort_depth == 2
+        assert df.index._lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
-        assert df.index.lexsort_depth == 0
+        assert df.index._lexsort_depth == 0
 
         msg = (
             "MultiIndex slicing requires the index to be "

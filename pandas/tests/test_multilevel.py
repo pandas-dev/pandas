@@ -401,11 +401,9 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_lexsorted() is False
         assert df.index.is_monotonic is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_lexsorted() is True
         assert sorted.index.is_monotonic is True
 
         expected = DataFrame(

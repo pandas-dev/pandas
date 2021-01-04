@@ -132,27 +132,25 @@ def test_unsortedindex_doc_examples():
     with pytest.raises(UnsortedIndexError, match=msg):
         dfm.loc[(0, "y"):(1, "z")]
 
-    assert not dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 1
+    assert not dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 1
 
     # sort it
     dfm = dfm.sort_index()
     dfm.loc[(1, "z")]
     dfm.loc[(0, "y"):(1, "z")]
 
-    assert dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 2
+    assert dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 2
 
 
 def test_reconstruct_sort():
 
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
-    assert mi.is_lexsorted()
     assert mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert recons.is_lexsorted()
     assert recons.is_monotonic
     assert mi is recons
 
@@ -164,11 +162,9 @@ def test_reconstruct_sort():
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)
@@ -180,11 +176,9 @@ def test_reconstruct_sort():
         codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
         names=["col1", "col2"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)

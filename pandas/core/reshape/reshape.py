@@ -617,7 +617,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = roll_columns
 
-    if not this.columns.is_lexsorted():
+    if not this.columns._is_lexsorted():
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
