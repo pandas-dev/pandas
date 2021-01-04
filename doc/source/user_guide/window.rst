@@ -321,6 +321,10 @@ Numba will be applied in potentially two routines:
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
+.. versionadded:: 1.3
+
+``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
+
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)

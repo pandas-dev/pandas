@@ -47,9 +47,23 @@ def win_types_special(request):
         "kurt",
         "skew",
         "count",
+        "sem",
     ]
 )
 def arithmetic_win_operators(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "sum",
+        "mean",
+        "median",
+        "max",
+        "min",
+    ]
+)
+def arithmetic_numba_supported_operators(request):
     return request.param
 
 

@@ -50,19 +50,23 @@ class Engine:
         ["int", "float"],
         [np.sum, lambda x: np.sum(x) + 5],
         ["cython", "numba"],
+        ["sum", "max", "min", "median", "mean"],
     )
-    param_names = ["constructor", "dtype", "function", "engine"]
+    param_names = ["constructor", "dtype", "function", "engine", "method"]
 
-    def setup(self, constructor, dtype, function, engine):
+    def setup(self, constructor, dtype, function, engine, method):
         N = 10 ** 3
         arr = (100 * np.random.random(N)).astype(dtype)
         self.data = getattr(pd, constructor)(arr)
 
-    def time_rolling_apply(self, constructor, dtype, function, engine):
+    def time_rolling_apply(self, constructor, dtype, function, engine, method):
         self.data.rolling(10).apply(function, raw=True, engine=engine)
 
-    def time_expanding_apply(self, constructor, dtype, function, engine):
+    def time_expanding_apply(self, constructor, dtype, function, engine, method):
         self.data.expanding().apply(function, raw=True, engine=engine)
+
+    def time_rolling_methods(self, constructor, dtype, function, engine, method):
+        getattr(self.data.rolling(10), method)(engine=engine)
 
 
 class ExpandingMethods:
