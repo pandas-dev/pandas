@@ -130,3 +130,14 @@ class NumericArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
+
+    def _apply(self, func, **kwargs):
+        values = self._data[~self._mask]
+        values = np.round(values, **kwargs)
+
+        data = np.zeros(self._data.shape)
+        data[~self._mask] = values
+        return type(self)(data, self._mask)
+
+    def round(self, decimals=0):
+        return self._apply(np.round, decimals=decimals)
