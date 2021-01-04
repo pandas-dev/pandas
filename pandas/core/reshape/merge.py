@@ -1708,6 +1708,7 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None and self.right_by is None:
             raise MergeError("missing right_by")
 
+        # GH#29130 Check that merge keys do not have dtype object
         lo_dtype = (
             self.left[self.left_on[0]].dtype
             if not self.left_index
