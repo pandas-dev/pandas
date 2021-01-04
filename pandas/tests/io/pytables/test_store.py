@@ -3166,7 +3166,7 @@ because its data contents are not [string] but [date] object dtype""")
         # GH 8014
         # using iterator and where clause can return many empty
         # frames.
-        chunksize = int(1e4)
+        chunksize = 10_000
 
         # with iterator, range limited to the first chunk
         with ensure_clean_store(setup_path) as store:
