@@ -1376,18 +1376,21 @@ class TestAsOfMerge:
 
 
 @pytest.mark.parametrize(
+    "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
+)
+@pytest.mark.parametrize(
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
-def test_merge_asof_non_numerical_dtype(data):
-    # GH 29130
-    left = pd.DataFrame({"x": data})
-    right = pd.DataFrame({"x": data})
+def test_merge_asof_non_numerical_dtype(kwargs, data):
+    # GH#29130
+    left = pd.DataFrame({"x": data}, index=data)
+    right = pd.DataFrame({"x": data}, index=data)
     with pytest.raises(
         ValueError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
-        pd.merge_asof(left, right, on="x")
+        pd.merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():
