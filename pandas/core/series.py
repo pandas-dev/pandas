@@ -97,6 +97,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.internals.construction import sanitize_index
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
@@ -319,17 +320,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = [data]
                 index = ibase.default_index(len(data))
             elif is_list_like(data):
-
-                # a scalar numpy array is list-like but doesn't
-                # have a proper length
-                try:
-                    if len(index) != len(data):
-                        raise ValueError(
-                            f"Length of passed values is {len(data)}, "
-                            f"index implies {len(index)}."
-                        )
-                except TypeError:
-                    pass
+                sanitize_index(data, index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -2076,7 +2067,7 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(skipna=False)
         nan
         """
-        i = self.argmin(None, skipna=skipna)
+        i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2146,7 +2137,7 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(skipna=False)
         nan
         """
-        i = self.argmax(None, skipna=skipna)
+        i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]

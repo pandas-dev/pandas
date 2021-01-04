@@ -576,7 +576,7 @@ class TestSeriesConstructors:
         # GH 19342
         # test that construction of a Series with an index of different length
         # raises an error
-        msg = "Length of passed values is 3, index implies 4"
+        msg = r"Length of values \(3\) does not match length of index \(4\)"
         with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
@@ -592,7 +592,7 @@ class TestSeriesConstructors:
         # GH 19342
         # construction with single-element container and index
         # should raise
-        msg = "Length of passed values is 1, index implies 3"
+        msg = r"Length of values \(1\) does not match length of index \(3\)"
         with pytest.raises(ValueError, match=msg):
             Series(["foo"], index=["a", "b", "c"])
 

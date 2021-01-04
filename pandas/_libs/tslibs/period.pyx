@@ -74,8 +74,7 @@ from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
     attrname_to_abbrevs,
 )
-from pandas._libs.tslibs.parsing cimport get_rule_month
-
+from pandas._libs.tslibs.parsing cimport quarter_to_myear
 from pandas._libs.tslibs.parsing import parse_time_string
 
 from pandas._libs.tslibs.nattype cimport (
@@ -2459,40 +2458,6 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
 
     return period_ordinal(year, month, day, hour,
                           minute, second, 0, 0, base)
-
-
-def quarter_to_myear(year: int, quarter: int, freqstr: str):
-    """
-    A quarterly frequency defines a "year" which may not coincide with
-    the calendar-year.  Find the calendar-year and calendar-month associated
-    with the given year and quarter under the `freq`-derived calendar.
-
-    Parameters
-    ----------
-    year : int
-    quarter : int
-    freqstr : str
-        Equivalent to freq.freqstr
-
-    Returns
-    -------
-    year : int
-    month : int
-
-    See Also
-    --------
-    Period.qyear
-    """
-    if quarter <= 0 or quarter > 4:
-        raise ValueError('Quarter must be 1 <= q <= 4')
-
-    mnum = c_MONTH_NUMBERS[get_rule_month(freqstr)] + 1
-    month = (mnum + (quarter - 1) * 3) % 12 + 1
-    if month > mnum:
-        year -= 1
-
-    return year, month
-    # TODO: This whole func is really similar to parsing.pyx L434-L450
 
 
 def validate_end_alias(how):
