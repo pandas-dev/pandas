@@ -442,6 +442,8 @@ input frames.
 Missing data
 ------------
 
+Both pandas and SAS have a representation for missing data.
+
 .. include:: includes/missing_intro.rst
 
 One difference is that missing data cannot be compared to its sentinel value.

@@ -434,6 +434,8 @@ or the intersection of the two by using the values created in the
 Missing data
 ------------
 
+Both pandas and Stata have a representation for missing data.
+
 .. include:: includes/missing_intro.rst
 
 One difference is that missing data cannot be compared to its sentinel value.
