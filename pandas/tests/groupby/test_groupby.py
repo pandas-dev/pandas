@@ -2178,12 +2178,26 @@ def test_groupby_series_with_tuple_name():
 
 
 @pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
-def test_groupby_numerical_stability_sum():
+@pytest.mark.parametrize(
+    "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
+)
+def test_groupby_numerical_stability_sum_mean(func, values):
     # GH#38778
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
     df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
-    result = df.groupby("group").sum()
-    expected = DataFrame(
-        {"a": [97.0, 98.0], "b": [97.0, 98.0]}, index=Index([1, 2], name="group")
-    )
+    result = getattr(df.groupby("group"), func)()
+    expected = DataFrame({"a": values, "b": values}, index=Index([1, 2], name="group"))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
+def test_groupby_numerical_stability_cumsum():
+    # GH#38934
+    data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
+    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
+    result = df.groupby("group").cumsum()
+    exp_data = (
+        [1e16] * 2 + [1e16 + 96, 1e16 + 98] + [5e15 + 97, 5e15 + 98] + [97.0, 98.0]
+    )
+    expected = DataFrame({"a": exp_data, "b": exp_data})
+    tm.assert_frame_equal(result, expected, check_exact=True)
