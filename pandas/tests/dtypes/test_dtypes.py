@@ -218,6 +218,12 @@ class TestCategoricalDtype(Base):
         expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
         assert result == expected
 
+    def test_update_dtype(self):
+        # GH 27338
+        result = CategoricalDtype(["a"]).update_dtype(Categorical(["b"], ordered=True))
+        expected = CategoricalDtype(["b"], ordered=True)
+        assert result == expected
+
 
 class TestDatetimeTZDtype(Base):
     @pytest.fixture
