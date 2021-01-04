@@ -7,8 +7,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime_or_timedelta_dtype,
     is_decimal,
-    is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -19,7 +17,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 import pandas as pd
 from pandas.core.arrays.numeric import NumericArray
-from pandas.core.construction import extract_array
 
 
 def to_numeric(arg, errors="raise", downcast=None):
@@ -113,6 +110,21 @@ def to_numeric(arg, errors="raise", downcast=None):
     2    2.0
     3   -3.0
     dtype: float64
+
+    Downcasting of nullable integer and floating dtypes is supported:
+
+    >>> s = pd.Series([1, 2, 3], dtype="Int64")
+    >>> pd.to_numeric(s, downcast="integer")
+    0    1
+    1    2
+    2    3
+    dtype: Int8
+    >>> s = pd.Series([1.0, 2.1, 3.0], dtype="Float64")
+    >>> pd.to_numeric(s, downcast="float")
+    0    1.0
+    1    2.1
+    2    3.0
+    dtype: Float32
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -123,14 +135,10 @@ def to_numeric(arg, errors="raise", downcast=None):
     is_series = False
     is_index = False
     is_scalars = False
-    is_numeric_extension_dtype = False
 
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg.values
-        if is_extension_array_dtype(arg) and isinstance(values, NumericArray):
-            is_numeric_extension_dtype = True
-            values = extract_array(arg)
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):
@@ -151,19 +159,19 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    if is_numeric_extension_dtype or (
-        is_extension_array_dtype(arg) and isinstance(values, NumericArray)
-    ):
-        is_numeric_extension_dtype = True
+    # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
+    # save mask to reconstruct the full array after casting
+    if isinstance(values, NumericArray):
         mask = values._mask
-        values = values.to_numpy()
-        values[mask] = 0
+        values = values._data[~mask]
+    else:
+        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
-        values = values.astype(np.int64)
+        values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
@@ -205,15 +213,15 @@ def to_numeric(arg, errors="raise", downcast=None):
                     if values.dtype == dtype:
                         break
 
-    if is_numeric_extension_dtype:
-        if is_integer_dtype(values):
-            from pandas.core.arrays import IntegerArray
+    # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
+    if mask is not None:
+        data = np.zeros(mask.shape, dtype=values.dtype)
+        data[~mask] = values
 
-            values = IntegerArray(values, mask)
-        elif is_float_dtype(values):
-            from pandas.core.arrays import FloatingArray
+        from pandas.core.arrays import FloatingArray, IntegerArray
 
-            values = FloatingArray(values, mask)
+        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
+        values = klass(data, mask)
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
