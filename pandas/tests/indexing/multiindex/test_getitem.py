@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
@@ -282,30 +281,23 @@ def test_loc_empty_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("nan", [np.nan, pd.NA, None])
-def test_loc_nan_multiindex(nan):
+@pytest.mark.parametrize("idx1,idx2", [(0, 1), (1, 4), (1, 3)])
+def test_loc_nan_multiindex(nulls_fixture, idx1, idx2):
     # GH#29751
-    # tests to check loc on a multiindex containing nan values
+    # loc on a multiindex containing nan values
     arr = [
-        [11, nan, 13],
-        [21, nan, 23],
-        [31, nan, 33],
-        [41, nan, 43],
-        [51, nan, 53],
+        [11, nulls_fixture, 13],
+        [21, nulls_fixture, 23],
+        [31, nulls_fixture, 33],
+        [41, nulls_fixture, 43],
+        [51, nulls_fixture, 53],
     ]
     cols = ["a", "b", "c"]
-    df = DataFrame(arr, columns=cols, dtype="int").set_index(["a", "b"])
-    idx = df.index[1]
-    result = df.loc[:idx, :]
-    expected = DataFrame(arr[:2], columns=cols, dtype="int").set_index(["a", "b"])
-    tm.assert_frame_equal(result, expected)
-
-    result = df.loc[idx:, :]
-    expected = DataFrame(arr[1:], columns=cols).set_index(["a", "b"])
-    tm.assert_frame_equal(result, expected)
-
-    idx1 = df.index[1]
-    idx2 = df.index[3]
-    result = df.loc[idx1:idx2, :]
-    expected = DataFrame(arr[1:4], columns=cols).set_index(["a", "b"])
+    df = DataFrame(arr, columns=cols, dtype="int64").set_index(["a", "b"])
+    start = df.index[idx1]
+    end = df.index[idx2]
+    result = df.loc[start:end, :]
+    expected = DataFrame(arr[idx1 : (idx2 + 1)], columns=cols, dtype="int64").set_index(
+        ["a", "b"]
+    )
     tm.assert_frame_equal(result, expected)
