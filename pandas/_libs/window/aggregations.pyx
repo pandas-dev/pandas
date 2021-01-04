@@ -495,7 +495,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0
         int64_t s, e
-        ndarray[float64_t] output, mean_array
+        ndarray[float64_t] output, mean_array, values_copy
         bint is_monotonic_increasing_bounds
 
     minp = max(minp, 3)
@@ -504,10 +504,11 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
     )
     output = np.empty(N, dtype=float)
     min_val = np.nanmin(values)
+    values_copy = np.copy(values)
 
     with nogil:
         for i in range(0, N):
-            val = values[i]
+            val = values_copy[i]
             if notnan(val):
                 nobs_mean += 1
                 sum_val += val
@@ -516,7 +517,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         if min_val - mean_val > -1e5:
             mean_val = round(mean_val)
             for i in range(0, N):
-                values[i] = values[i] - mean_val
+                values_copy[i] = values_copy[i] - mean_val
 
         for i in range(0, N):
 
@@ -528,7 +529,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
 
                 for j in range(s, e):
-                    val = values[j]
+                    val = values_copy[j]
                     add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
                              &compensation_xx_add, &compensation_xxx_add)
 
@@ -538,13 +539,13 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                 # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    val = values[j]
+                    val = values_copy[j]
                     remove_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_remove,
                                 &compensation_xx_remove, &compensation_xxx_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    val = values[j]
+                    val = values_copy[j]
                     add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
                              &compensation_xx_add, &compensation_xxx_add)
 
@@ -675,7 +676,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t compensation_x_remove = 0, compensation_x_add = 0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
-        ndarray[float64_t] output
+        ndarray[float64_t] output, values_copy
         bint is_monotonic_increasing_bounds
 
     minp = max(minp, 4)
@@ -683,11 +684,12 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         start, end
     )
     output = np.empty(N, dtype=float)
+    values_copy = np.copy(values)
     min_val = np.nanmin(values)
 
     with nogil:
         for i in range(0, N):
-            val = values[i]
+            val = values_copy[i]
             if notnan(val):
                 nobs_mean += 1
                 sum_val += val
@@ -696,7 +698,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         if min_val - mean_val > -1e4:
             mean_val = round(mean_val)
             for i in range(0, N):
-                values[i] = values[i] - mean_val
+                values_copy[i] = values_copy[i] - mean_val
 
         for i in range(0, N):
 
@@ -708,7 +710,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
 
                 for j in range(s, e):
-                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                    add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
                              &compensation_x_add, &compensation_xx_add,
                              &compensation_xxx_add, &compensation_xxxx_add)
 
@@ -718,13 +720,13 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
                 # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                    remove_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
                                 &compensation_x_remove, &compensation_xx_remove,
                                 &compensation_xxx_remove, &compensation_xxxx_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                    add_kurt(values_copy[j], &nobs, &x, &xx, &xxx, &xxxx,
                              &compensation_x_add, &compensation_xx_add,
                              &compensation_xxx_add, &compensation_xxxx_add)
 
