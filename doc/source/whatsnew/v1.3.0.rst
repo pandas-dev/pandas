@@ -156,6 +156,7 @@ Deprecations
 - Deprecating allowing scalars passed to the :class:`Categorical` constructor (:issue:`38433`)
 - Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
+- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` as a public methods, users should use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
 - Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 -
@@ -264,6 +265,7 @@ I/O
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
+- Bug in :meth:`read_csv` returning object dtype when ``delimiter=","`` with ``usecols`` and ``parse_dates`` specified for ``engine="python"`` (:issue:`35873`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 - Bug in :func:`read_clipboard`, :func:`DataFrame.to_clipboard` not working in WSL (:issue:`38527`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
@@ -291,11 +293,13 @@ Groupby/resample/rolling
 
 - Bug in :meth:`SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical series were not tallied (:issue:`38672`)
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
--
+- Fixed bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` causing loss of precision through using Kahan summation (:issue:`38778`)
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`merge` raising error when performing an inner join with partial index and ``right_index`` when no overlap between indices (:issue:`33814`)
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
+- Bug in :func:`join` over :class:`MultiIndex` returned wrong result, when one of both indexes had only one level (:issue:`36909`)
 - Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`, :issue:`38907`)
 -
 
