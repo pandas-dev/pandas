@@ -2157,7 +2157,8 @@ class TestDataFrameConstructors:
     def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
-        if b.dtype.kind in ["u", "s", "U", "S"]:
+        if b.dtype.kind in ["S", "U"]:
+            # These get cast, making the checks below more cumbersome
             return
 
         c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
