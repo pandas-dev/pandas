@@ -466,8 +466,6 @@ class TestInsertIndexCoercion(CoercionBase):
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
-        pytest.xfail("ToDo: must coerce to object")
-
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
         assert obj.dtype == "timedelta64[ns]"
