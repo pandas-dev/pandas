@@ -2191,7 +2191,7 @@ def test_groupby_numerical_stability_sum_mean(func, values):
 
 
 def test_groupby_numerical_stability_cumsum():
-    # GH#38778
+    # GH#38934
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
     df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
     result = df.groupby("group").cumsum()
