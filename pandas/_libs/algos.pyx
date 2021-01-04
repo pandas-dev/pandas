@@ -1160,17 +1160,16 @@ def rank_2d(
 
     if tiebreak == TIEBREAK_FIRST:
         # need to use a stable sort here
-        argsort_indexer = values.argsort(axis=1, kind='mergesort')
+        argsort_indexer = values.argsort(axis=1, kind='mergesort').astype('i8')
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        argsort_indexer = values.argsort(1)
+        argsort_indexer = values.argsort(1).astype('i8')
 
     if not ascending:
         argsort_indexer = argsort_indexer[:, ::-1]
 
     values = _take_2d(values, argsort_indexer)
-    argsort_indexer = argsort_indexer.astype('i8')
 
     for i in range(n):
         dups = sum_ranks = infs = 0
