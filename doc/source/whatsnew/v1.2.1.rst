@@ -10,20 +10,6 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_121.api_breaking:
-
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _whatsnew_121.api_breaking.testing.check_freq:
-
-Added ``check_freq`` argument to ``testing.assert_frame_equal`` and ``testing.assert_series_equal``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``check_freq`` argument was added to :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in pandas 1.1.0 and defaults to ``True``. :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` now raise ``AssertionError`` if the indexes do not have the same frequency. Before pandas 1.1.0, the index frequency was not checked.
-
-.. ---------------------------------------------------------------------------
-
 .. _whatsnew_121.regressions:
 
 Fixed regressions
@@ -62,7 +48,7 @@ I/O
 Other
 ~~~~~
 - Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
--
+- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 whats new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
 
 .. ---------------------------------------------------------------------------
 
