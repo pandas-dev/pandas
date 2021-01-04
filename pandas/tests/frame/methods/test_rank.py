@@ -392,7 +392,7 @@ class TestRank:
             ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
         ],
     )
-    def test_rank_inf_and_nan(self, contents, dtype):
+    def test_rank_inf_and_nan(self, contents, dtype, frame_or_series):
         dtype_na_map = {
             "float64": np.nan,
             "float32": np.nan,
@@ -410,12 +410,13 @@ class TestRank:
             nan_indices = np.random.choice(range(len(values)), 5)
             values = np.insert(values, nan_indices, na_value)
             exp_order = np.insert(exp_order, nan_indices, np.nan)
-        # shuffle the testing array and expected results in the same way
+
+        # Shuffle the testing array and expected results in the same way
         random_order = np.random.permutation(len(values))
-        df = DataFrame({"a": values[random_order]})
-        expected = DataFrame({"a": exp_order[random_order]}, dtype="float64")
-        result = df.rank()
-        tm.assert_frame_equal(result, expected)
+        obj = frame_or_series(values[random_order])
+        expected = frame_or_series(exp_order[random_order], dtype="float64")
+        result = obj.rank()
+        tm.assert_equal(result, expected)
 
     def test_df_series_inf_nan_consistency(self):
         # GH#32593
