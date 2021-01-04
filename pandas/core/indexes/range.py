@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Label
+from pandas._typing import Dtype, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, doc
 
@@ -83,7 +83,13 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
+        cls,
+        start=None,
+        stop=None,
+        step=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
 
         cls._validate_dtype(dtype)
@@ -113,7 +119,9 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, name=name)
 
     @classmethod
-    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
+    def from_range(
+        cls, data: range, name=None, dtype: Optional[Dtype] = None
+    ) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -405,7 +413,7 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, names=None):
+    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._shallow_copy(name=name)
 

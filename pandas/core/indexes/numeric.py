@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -45,7 +45,7 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
     _can_hold_strings = False
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None):
+    def __new__(cls, data=None, dtype: Optional[Dtype] = None, copy=False, name=None):
         name = maybe_extract_name(name, data, cls)
 
         subarr = cls._ensure_array(data, dtype, copy)

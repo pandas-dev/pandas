@@ -14,7 +14,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import DtypeObj
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -289,7 +289,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ambiguous="raise",
         dayfirst=False,
         yearfirst=False,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
         name=None,
     ):

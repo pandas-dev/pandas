@@ -11,7 +11,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -192,7 +192,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         cls,
         data,
         closed=None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
@@ -249,7 +249,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         }
     )
     def from_breaks(
-        cls, breaks, closed: str = "right", name=None, copy: bool = False, dtype=None
+        cls,
+        breaks,
+        closed: str = "right",
+        name=None,
+        copy: bool = False,
+        dtype: Optional[Dtype] = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
@@ -281,7 +286,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         closed: str = "right",
         name=None,
         copy: bool = False,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
@@ -307,7 +312,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         }
     )
     def from_tuples(
-        cls, data, closed: str = "right", name=None, copy: bool = False, dtype=None
+        cls,
+        data,
+        closed: str = "right",
+        name=None,
+        copy: bool = False,
+        dtype: Optional[Dtype] = None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
