@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, internals as libinternals, lib
+from pandas._libs import internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label, Shape
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
@@ -40,7 +40,7 @@ from pandas.core.dtypes.missing import array_equals, isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
-from pandas.core.construction import extract_array
+from pandas.core.construction import ensure_wrapped_if_datetimelike, extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.blocks import (
@@ -952,19 +952,13 @@ class BlockManager(PandasObject):
         else:
             result = np.empty(n, dtype=dtype)
 
+        result = ensure_wrapped_if_datetimelike(result)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                out = blk.iget((i, loc))
-                if is_dtype_equal(blk.dtype, dtype) and dtype == "m8[ns]":
-                    # FIXME: kludge for NaT -> tdnat
-                    # TODO: need a test like test_sum_nanops_timedelta
-                    #  where initial DataFrame is not consolidated
-                    if out is NaT:
-                        result[rl] = np.timedelta64("NaT", "ns")
-                        continue
-                result[rl] = out
+                result[rl] = blk.iget((i, loc))
 
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
