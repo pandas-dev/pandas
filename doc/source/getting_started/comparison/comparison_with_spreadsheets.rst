@@ -160,7 +160,7 @@ Filtering
 
 `In Excel, filtering is done through a graphical menu. <https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e>`_
 
-.. image:: ../../_static/excel_filter.png
+.. image:: ../../_static/spreadsheets/filter.png
    :alt: Screenshot showing filtering of the total_bill column to values greater than 10
    :align: center
 
@@ -177,7 +177,7 @@ In spreadsheets, logical comparison can be done with `conditional formulas
 We'd use a formula of ``=IF(A2 < 10, "low", "high")``, dragged to all cells in a new ``bucket``
 column.
 
-.. image:: ../../_static/excel_conditional.png
+.. image:: ../../_static/spreadsheets/conditional.png
    :alt: Screenshot showing the formula from above in a bucket column of the tips spreadsheet
    :align: center
 
@@ -249,7 +249,7 @@ Sorting by values
 
 Sorting in spreadsheets is accomplished via `the sort dialog <https://support.microsoft.com/en-us/office/sort-data-in-a-range-or-table-62d0b95d-2a90-4610-a6ae-2e545c4a4654>`_.
 
-.. image:: ../../_static/excel_sort.png
+.. image:: ../../_static/spreadsheets/sort.png
    :alt: Screenshot of dialog from Excel showing sorting by the sex then total_bill columns
    :align: center
 
@@ -283,7 +283,7 @@ The `FIND
 <https://support.microsoft.com/en-us/office/find-findb-functions-c7912941-af2a-4bdf-a553-d0d89b0a0628>`_
 spreadsheet function returns the position of a substring, with the first character being ``1``.
 
-.. image:: ../../_static/excel_sort.png
+.. image:: ../../_static/spreadsheets/sort.png
    :alt: Screenshot of FIND formula being used in Excel
    :align: center
 
@@ -378,7 +378,7 @@ let's find the average gratuity by size of the party and sex of the server.
 
 In Excel, we use the following configuration for the PivotTable:
 
-.. image:: ../../_static/excel_pivot.png
+.. image:: ../../_static/spreadsheets/pivot.png
    :alt: Screenshot showing a PivotTable in Excel, using sex as the column, size as the rows, then average tip as the values
    :align: center
 
