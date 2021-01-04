@@ -1142,6 +1142,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
+    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
+    # overlap with incompatible return types  [misc]
     @overload
     def dot(self, other: Series) -> Series:  # type: ignore[misc]
         ...
