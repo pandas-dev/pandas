@@ -4883,9 +4883,27 @@ def _maybe_convert_for_string_atom(
     nan_rep,
     encoding,
     errors,
-    block_columns: List[str] = [],
+    block_columns: List[str],
 ):
-    # block_columns(list[str]): the label of columns for debug info use.
+    """
+    Ensure all elements in the given block are "string".
+
+    Parameter
+    ------
+    name(str):
+    block:
+    existing_col:
+    min_itemsize:
+    nan_rep:
+    encoding:
+    errors:
+    block_columns(list[str]): the label of columns for debug info use.
+
+    Return
+    ------
+    Value of a block, if its dtype is object and constructed by "string"
+    elements.
+    """
     if not block.is_object:
         return block.values
 
