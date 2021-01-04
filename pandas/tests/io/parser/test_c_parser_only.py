@@ -653,25 +653,6 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
-def test_1000_sep_decimal_float_precision(
-    c_parser_only, numeric_decimal_thousands, float_precision
-):
-    # test decimal and thousand sep handling in across 'float_precision'
-    # parsers
-    parser = c_parser_only
-    df = parser.read_csv(
-        StringIO(numeric_decimal_thousands[0]),
-        sep="|",
-        thousands="_",
-        decimal=",",
-        header=None,
-        float_precision=float_precision,
-    )
-    val = df.iloc[0, 0]
-    assert val == numeric_decimal_thousands[1]
-
-
 def test_float_precision_options(c_parser_only):
     # GH 17154, 36228
     parser = c_parser_only

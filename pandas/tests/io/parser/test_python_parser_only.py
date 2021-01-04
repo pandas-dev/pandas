@@ -305,23 +305,3 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
-
-
-@pytest.mark.parametrize("thousands", ["_", None])
-def test_decimal_and_exponential(
-    python_parser_only, numeric_decimal_thousands, thousands
-):
-    # GH#31920
-    parser = python_parser_only
-    value = numeric_decimal_thousands[0]
-    if thousands is None and "_" in value:
-        pytest.skip("Skip test if no thousands sep is defined and sep is in value")
-    df = parser.read_csv(
-        StringIO(value),
-        sep="|",
-        thousands=thousands,
-        decimal=",",
-        header=None,
-    )
-    val = df.iloc[0, 0]
-    assert val == numeric_decimal_thousands[1]

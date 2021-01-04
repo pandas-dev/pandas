@@ -197,7 +197,7 @@ def encoding_fmt(request):
         ("1,2E1", 12.0),
     ]
 )
-def numeric_decimal_thousands(request):
+def numeric_decimal(request):
     """
     Fixture for all numeric formats which should get recognized
     """
