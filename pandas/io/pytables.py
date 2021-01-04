@@ -3916,6 +3916,7 @@ class Table(Fixed):
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
+                block_columns=b_items
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -4875,8 +4876,10 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors,
+    block_columns: List[str] = []
 ):
+    # block_columns(list[str]): the label of columns for debug info use.
     if not block.is_object:
         return block.values
 
@@ -4915,12 +4918,13 @@ def _maybe_convert_for_string_atom(
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                # it seems to be no approach for an ObjectBlock to get the
-                # column name for {col}, so the col number is given as a
-                # compromise.
+                error_column_label = block_columns[i] \
+                    if len(block_columns) > i \
+                    else f"No.{i}"
                 raise TypeError(
-                    f"Cannot serialize the column [{i}] because its data contents \n"
-                    f"are not string but [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{error_column_label}]\n"
+                    f"because its data contents are not [string] but "
+                    f"[{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
