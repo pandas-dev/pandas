@@ -47,7 +47,7 @@ A,B,C
         ",", sep
     )
     path = f"__{tm.rands(10)}__.csv"
-    kwargs = dict(sep=sep, skiprows=2)
+    kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
 
     with tm.ensure_clean(path) as path:
@@ -91,17 +91,17 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     "data,kwargs,expected",
     [
         # Basic test
-        ("a\n1", dict(), DataFrame({"a": [1]})),
+        ("a\n1", {}, DataFrame({"a": [1]})),
         # "Regular" quoting
-        ('"a"\n1', dict(quotechar='"'), DataFrame({"a": [1]})),
+        ('"a"\n1', {"quotechar": '"'}, DataFrame({"a": [1]})),
         # Test in a data row instead of header
-        ("b\n1", dict(names=["a"]), DataFrame({"a": ["b", "1"]})),
+        ("b\n1", {"names": ["a"]}, DataFrame({"a": ["b", "1"]})),
         # Test in empty data row with skipping
-        ("\n1", dict(names=["a"], skip_blank_lines=True), DataFrame({"a": [1]})),
+        ("\n1", {"names": ["a"], "skip_blank_lines": True}, DataFrame({"a": [1]})),
         # Test in empty data row without skipping
         (
             "\n1",
-            dict(names=["a"], skip_blank_lines=False),
+            {"names": ["a"], "skip_blank_lines": False},
             DataFrame({"a": [np.nan, 1]}),
         ),
     ],
@@ -152,14 +152,17 @@ def test_binary_mode_file_buffers(
 
     with open(fpath, mode="r", encoding=encoding) as fa:
         result = parser.read_csv(fa)
+        assert not fa.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb") as fb:
         result = parser.read_csv(fb, encoding=encoding)
+        assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb", buffering=0) as fb:
         result = parser.read_csv(fb, encoding=encoding)
+        assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
 
@@ -199,6 +202,7 @@ def test_encoding_named_temp_file(all_parsers):
 
         result = parser.read_csv(f, encoding=encoding)
         tm.assert_frame_equal(result, expected)
+        assert not f.closed
 
 
 @pytest.mark.parametrize(

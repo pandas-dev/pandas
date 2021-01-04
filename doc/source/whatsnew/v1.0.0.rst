@@ -46,7 +46,7 @@ We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` 
 that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
 Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
+:ref:`rolling apply documentation <window.numba_engine>` (:issue:`28987`, :issue:`30936`)
 
 .. _whatsnew_100.custom_window:
 
@@ -57,7 +57,7 @@ We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to
 window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
 method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
 indices used for each window during the rolling aggregation. For more details and example usage, see
-the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
+the :ref:`custom window rolling documentation <window.custom_rolling_window>`
 
 .. _whatsnew_100.to_markdown:
 

@@ -14,7 +14,7 @@ class TestFillNA:
         tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
-        msg = "'fill_value=2.0' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             idx.fillna(2.0)
 
@@ -36,7 +36,7 @@ class TestFillNA:
         ci = CategoricalIndex([2, 3, 3])
         cat = ci._data
 
-        msg = "'fill_value=False' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ci.fillna(False)
 

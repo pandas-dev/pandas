@@ -6,13 +6,15 @@ from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
 
 
+def check(result, expected=None):
+    if expected is not None:
+        tm.assert_frame_equal(result, expected)
+    result.dtypes
+    str(result)
+
+
 class TestDataFrameNonuniqueIndexes:
     def test_column_dups_operations(self):
-        def check(result, expected=None):
-            if expected is not None:
-                tm.assert_frame_equal(result, expected)
-            result.dtypes
-            str(result)
 
         # assignment
         # GH 3687
@@ -248,7 +250,7 @@ class TestDataFrameNonuniqueIndexes:
 
         # operations
         for op in ["__add__", "__mul__", "__sub__", "__truediv__"]:
-            df = DataFrame(dict(A=np.arange(10), B=np.random.rand(10)))
+            df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
             expected = getattr(df, op)(df)
             expected.columns = ["A", "A"]
             df.columns = ["A", "A"]
@@ -308,13 +310,7 @@ class TestDataFrameNonuniqueIndexes:
         result = df.dropna(subset=["A", "C"], how="all")
         tm.assert_frame_equal(result, expected)
 
-    def test_column_dups_indexing(self):
-        def check(result, expected=None):
-            if expected is not None:
-                tm.assert_frame_equal(result, expected)
-            result.dtypes
-            str(result)
-
+    def test_getitem_boolean_series_with_duplicate_columns(self):
         # boolean indexing
         # GH 4879
         dups = ["A", "A", "C", "D"]
@@ -327,21 +323,31 @@ class TestDataFrameNonuniqueIndexes:
         result = df[df.C > 6]
         check(result, expected)
 
+    def test_getitem_boolean_frame_with_duplicate_columns(self):
+        dups = ["A", "A", "C", "D"]
+
         # where
         df = DataFrame(
             np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"
         )
+        # `df > 6` is a DataFrame with the same shape+alignment as df
         expected = df[df > 6]
         expected.columns = dups
         df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
         result = df[df > 6]
         check(result, expected)
 
+    def test_getitem_boolean_frame_unaligned_with_duplicate_columns(self):
+        # `df.A > 6` is a DataFrame with a different shape from df
+        dups = ["A", "A", "C", "D"]
+
         # boolean with the duplicate raises
         df = DataFrame(np.arange(12).reshape(3, 4), columns=dups, dtype="float64")
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
             df[df.A > 6]
+
+    def test_column_dups_indexing(self):
 
         # dup aligning operations should work
         # GH 5185
@@ -399,29 +405,6 @@ class TestDataFrameNonuniqueIndexes:
         z = df[["A", "C", "A"]]
         result = z.loc[["a", "c", "a"]]
         check(result, expected)
-
-    def test_column_dups_indexing2(self):
-
-        # GH 8363
-        # datetime ops with a non-unique index
-        df = DataFrame(
-            {"A": np.arange(5, dtype="int64"), "B": np.arange(1, 6, dtype="int64")},
-            index=[2, 2, 3, 3, 4],
-        )
-        result = df.B - df.A
-        expected = Series(1, index=[2, 2, 3, 3, 4])
-        tm.assert_series_equal(result, expected)
-
-        df = DataFrame(
-            {
-                "A": date_range("20130101", periods=5),
-                "B": date_range("20130101 09:00:00", periods=5),
-            },
-            index=[2, 2, 3, 3, 4],
-        )
-        result = df.B - df.A
-        expected = Series(pd.Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
-        tm.assert_series_equal(result, expected)
 
     def test_columns_with_dups(self):
         # GH 3468 related
@@ -503,3 +486,36 @@ class TestDataFrameNonuniqueIndexes:
 
         df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 1], expected)
+
+    @pytest.mark.parametrize(
+        "data1,data2,expected_data",
+        (
+            (
+                [[1, 2], [3, 4]],
+                [[0.5, 6], [7, 8]],
+                [[np.nan, 3.0], [np.nan, 4.0], [np.nan, 7.0], [6.0, 8.0]],
+            ),
+            (
+                [[1, 2], [3, 4]],
+                [[5, 6], [7, 8]],
+                [[np.nan, 3.0], [np.nan, 4.0], [5, 7], [6, 8]],
+            ),
+        ),
+    )
+    def test_masking_duplicate_columns_mixed_dtypes(
+        self,
+        data1,
+        data2,
+        expected_data,
+    ):
+        # GH31954
+
+        df1 = DataFrame(np.array(data1))
+        df2 = DataFrame(np.array(data2))
+        df = pd.concat([df1, df2], axis=1)
+
+        result = df[df > 2]
+        expected = DataFrame(
+            {i: np.array(col) for i, col in enumerate(expected_data)}
+        ).rename(columns={2: 0, 3: 1})
+        tm.assert_frame_equal(result, expected)

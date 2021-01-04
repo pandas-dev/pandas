@@ -4,12 +4,48 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import CategoricalIndex, DataFrame, Interval, Series, isnull
 import pandas._testing as tm
 
 
 class TestDataFrameLogicalOperators:
     # &, |, ^
+
+    @pytest.mark.parametrize(
+        "left, right, op, expected",
+        [
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.or_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.or_,
+                [True, False, True],
+            ),
+        ],
+    )
+    def test_logical_operators_nans(self, left, right, op, expected, frame_or_series):
+        # GH#13896
+        result = op(frame_or_series(left), frame_or_series(right))
+        expected = frame_or_series(expected)
+
+        tm.assert_equal(result, expected)
 
     def test_logical_ops_empty_frame(self):
         # GH#5808
@@ -126,3 +162,24 @@ class TestDataFrameLogicalOperators:
         result = d["a"].fillna(False, downcast=False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
+
+    def test_logical_ops_categorical_columns(self):
+        # GH#38367
+        intervals = [Interval(1, 2), Interval(3, 4)]
+        data = DataFrame(
+            [[1, np.nan], [2, np.nan]],
+            columns=CategoricalIndex(
+                intervals, categories=intervals + [Interval(5, 6)]
+            ),
+        )
+        mask = DataFrame(
+            [[False, False], [False, False]], columns=data.columns, dtype=bool
+        )
+        result = mask | isnull(data)
+        expected = DataFrame(
+            [[False, True], [False, True]],
+            columns=CategoricalIndex(
+                intervals, categories=intervals + [Interval(5, 6)]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

@@ -15,11 +15,8 @@ Simplified, condensed, new-user friendly, in-line examples have been inserted wh
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
 above what the in-line examples offer.
 
-pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
+pandas (pd) and NumPy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
-
-These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
-versions.
 
 Idioms
 ------
@@ -71,7 +68,7 @@ Or use pandas where after you've set up a mask
    )
    df.where(df_mask, -1000)
 
-`if-then-else using numpy's where()
+`if-then-else using NumPy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
@@ -1013,7 +1010,7 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
-`Plotting multiple charts in an ipython notebook
+`Plotting multiple charts in an IPython Jupyter notebook
 <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot

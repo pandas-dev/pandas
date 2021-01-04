@@ -16,6 +16,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    offsets,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -70,7 +71,12 @@ class TestTimedelta64ArrayLikeComparisons:
 
     @pytest.mark.parametrize(
         "td_scalar",
-        [timedelta(days=1), Timedelta(days=1), Timedelta(days=1).to_timedelta64()],
+        [
+            timedelta(days=1),
+            Timedelta(days=1),
+            Timedelta(days=1).to_timedelta64(),
+            offsets.Hour(24),
+        ],
     )
     def test_compare_timedeltalike_scalar(self, box_with_array, td_scalar):
         # regression test for GH#5963
@@ -84,7 +90,18 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
-    @pytest.mark.parametrize("invalid", [345600000000000, "a"])
+    @pytest.mark.parametrize(
+        "invalid",
+        [
+            345600000000000,
+            "a",
+            Timestamp.now(),
+            Timestamp.now("UTC"),
+            Timestamp.now().to_datetime64(),
+            Timestamp.now().to_pydatetime(),
+            Timestamp.now().date(),
+        ],
+    )
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
         # GH#13624 for str
         box = box_with_array
@@ -119,7 +136,7 @@ class TestTimedelta64ArrayLikeComparisons:
     def test_td64arr_cmp_mixed_invalid(self):
         rng = timedelta_range("1 days", periods=5)._data
 
-        other = np.array([0, 1, 2, rng[3], pd.Timestamp.now()])
+        other = np.array([0, 1, 2, rng[3], Timestamp.now()])
         result = rng == other
         expected = np.array([False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -143,10 +160,8 @@ class TestTimedelta64ArrayComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_comp_nat(self, dtype):
-        left = pd.TimedeltaIndex(
-            [pd.Timedelta("1 days"), pd.NaT, pd.Timedelta("3 days")]
-        )
-        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta("3 days")])
+        left = TimedeltaIndex([Timedelta("1 days"), pd.NaT, Timedelta("3 days")])
+        right = TimedeltaIndex([pd.NaT, pd.NaT, Timedelta("3 days")])
 
         lhs, rhs = left, right
         if dtype is object:
@@ -173,7 +188,7 @@ class TestTimedelta64ArrayComparisons:
         tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_comparisons_nat(self):
-        tdidx1 = pd.TimedeltaIndex(
+        tdidx1 = TimedeltaIndex(
             [
                 "1 day",
                 pd.NaT,
@@ -183,7 +198,7 @@ class TestTimedelta64ArrayComparisons:
                 "5 day 00:00:03",
             ]
         )
-        tdidx2 = pd.TimedeltaIndex(
+        tdidx2 = TimedeltaIndex(
             ["2 day", "2 day", pd.NaT, pd.NaT, "1 day 00:00:02", "5 days 00:00:03"]
         )
         tdarr = np.array(
@@ -263,7 +278,6 @@ class TestTimedelta64ArithmeticUnsorted:
             tm.assert_index_equal(result, exp)
             assert result.freq == "H"
 
-        idx = TimedeltaIndex(["2H", "4H", "6H", "8H", "10H"], freq="2H", name="x")
         for result in [-idx, np.negative(idx)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(
@@ -415,10 +429,6 @@ class TestTimedelta64ArithmeticUnsorted:
         tdi = TimedeltaIndex(["1 days", pd.NaT, "2 days"], name="foo")
         dti = pd.date_range("20130101", periods=3, name="bar")
 
-        # TODO(wesm): unused?
-        # td = Timedelta('1 days')
-        # dt = Timestamp('20130101')
-
         result = tdi - tdi
         expected = TimedeltaIndex(["0 days", pd.NaT, "0 days"], name="foo")
         tm.assert_index_equal(result, expected)
@@ -467,7 +477,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
-        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+        # pytest.raises(TypeError, lambda : pd.Int64Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(["20130102", pd.NaT, "20130105"])
@@ -556,10 +566,7 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        warn = None
-        if box is not pd.DataFrame or tz_naive_fixture is None:
-            warn = PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
 
@@ -824,7 +831,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_series_equal(rs, xp)
         assert rs.dtype == "timedelta64[ns]"
 
-        df = DataFrame(dict(A=v1))
+        df = DataFrame({"A": v1})
         td = Series([timedelta(days=i) for i in range(3)])
         assert td.dtype == "timedelta64[ns]"
 
@@ -1030,7 +1037,7 @@ class TestTimedeltaArraylikeAddSubOps:
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
-        expected = pd.DatetimeIndex(dtarr) - tdi
+        expected = DatetimeIndex(dtarr) - tdi
 
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1047,7 +1054,7 @@ class TestTimedeltaArraylikeAddSubOps:
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
-        expected = pd.DatetimeIndex(dtarr) + tdi
+        expected = DatetimeIndex(dtarr) + tdi
 
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1062,7 +1069,7 @@ class TestTimedeltaArraylikeAddSubOps:
         other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
+        expected = DatetimeIndex(["NaT", "NaT", "NaT"])
 
         tdser = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1246,9 +1253,9 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_add_sub_td64_nat(self, box_with_array):
         # GH#23320 special handling for timedelta64("NaT")
         box = box_with_array
-        tdi = pd.TimedeltaIndex([NaT, Timedelta("1s")])
+        tdi = TimedeltaIndex([NaT, Timedelta("1s")])
         other = np.timedelta64("NaT")
-        expected = pd.TimedeltaIndex(["NaT"] * 2)
+        expected = TimedeltaIndex(["NaT"] * 2)
 
         obj = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1472,14 +1479,14 @@ class TestTimedeltaArraylikeAddSubOps:
         tdarr = tm.box_expected(tdi, box)
 
         other = np.array(
-            [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
+            [Timedelta(days=1), pd.offsets.Day(2), Timestamp("2000-01-04")]
         )
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = tdarr + other
 
         expected = pd.Index(
-            [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
+            [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
@@ -1492,9 +1499,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr
 
-        expected = pd.Index(
-            [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
-        )
+        expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
@@ -2188,9 +2193,9 @@ class TestTimedelta64ArrayLikeArithmetic:
 
 def test_add_timestamp_to_timedelta():
     # GH: 35897
-    timestamp = pd.Timestamp.now()
+    timestamp = Timestamp.now()
     result = timestamp + pd.timedelta_range("0s", "1s", periods=31)
-    expected = pd.DatetimeIndex(
+    expected = DatetimeIndex(
         [
             timestamp
             + (

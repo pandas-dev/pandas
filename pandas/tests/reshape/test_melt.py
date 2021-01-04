@@ -1049,7 +1049,7 @@ class TestWideToLong:
             "PA1": {0: 0.77, 1: 0.64, 2: 0.52, 3: 0.98, 4: 0.67},
             "PA3": {0: 0.34, 1: 0.70, 2: 0.52, 3: 0.98, 4: 0.67},
         }
-        wide_df = pd.DataFrame.from_dict(wide_data)
+        wide_df = DataFrame.from_dict(wide_data)
         expected = pd.wide_to_long(
             wide_df, stubnames=["PA"], i=["node_id", "A"], j="time"
         )

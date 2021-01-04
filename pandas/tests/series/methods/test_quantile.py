@@ -121,27 +121,27 @@ class TestSeriesQuantile:
         "case",
         [
             [
-                pd.Timestamp("2011-01-01"),
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-03"),
+                Timestamp("2011-01-01"),
+                Timestamp("2011-01-02"),
+                Timestamp("2011-01-03"),
             ],
             [
-                pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-02", tz="US/Eastern"),
+                Timestamp("2011-01-03", tz="US/Eastern"),
             ],
             [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.Timedelta("3 days")],
             # NaT
             [
-                pd.Timestamp("2011-01-01"),
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-03"),
+                Timestamp("2011-01-01"),
+                Timestamp("2011-01-02"),
+                Timestamp("2011-01-03"),
                 pd.NaT,
             ],
             [
-                pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-02", tz="US/Eastern"),
+                Timestamp("2011-01-03", tz="US/Eastern"),
                 pd.NaT,
             ],
             [

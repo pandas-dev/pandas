@@ -74,8 +74,7 @@ from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
     attrname_to_abbrevs,
 )
-from pandas._libs.tslibs.parsing cimport get_rule_month
-
+from pandas._libs.tslibs.parsing cimport quarter_to_myear
 from pandas._libs.tslibs.parsing import parse_time_string
 
 from pandas._libs.tslibs.nattype cimport (
@@ -1373,7 +1372,7 @@ cdef accessor _get_accessor_func(str field):
         return <accessor>pweek
     elif field == "day_of_year":
         return <accessor>pday_of_year
-    elif field == "weekday":
+    elif field == "weekday" or field == "day_of_week":
         return <accessor>pweekday
     elif field == "days_in_month":
         return <accessor>pdays_in_month
@@ -1474,6 +1473,9 @@ cdef class _Period(PeriodMixin):
         int64_t ordinal
         PeriodDtypeBase _dtype
         BaseOffset freq
+
+    dayofweek = _Period.day_of_week
+    dayofyear = _Period.day_of_year
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
@@ -1882,7 +1884,7 @@ cdef class _Period(PeriodMixin):
         return self.weekofyear
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
@@ -1900,33 +1902,33 @@ cdef class _Period(PeriodMixin):
 
         See Also
         --------
-        Period.dayofweek : Day of the week the period lies in.
-        Period.weekday : Alias of Period.dayofweek.
+        Period.day_of_week : Day of the week the period lies in.
+        Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
         Period.dayofyear : Day of the year.
 
         Examples
         --------
         >>> per = pd.Period('2017-12-31 22:00', 'H')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
         >>> per = pd.Period('2017-12-31 22:00', '4H')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
-        >>> per.start_time.dayofweek
+        >>> per.start_time.day_of_week
         6
 
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
-        >>> per.dayofweek
+        >>> per.day_of_week
         2
-        >>> per.end_time.dayofweek
+        >>> per.end_time.day_of_week
         2
         """
         base = self._dtype._dtype_code
@@ -1986,7 +1988,7 @@ cdef class _Period(PeriodMixin):
         return self.dayofweek
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
 
@@ -2002,19 +2004,19 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.day : Return the day of the month.
-        Period.dayofweek : Return the day of week.
-        PeriodIndex.dayofyear : Return the day of year of all indexes.
+        Period.day_of_week : Return the day of week.
+        PeriodIndex.day_of_year : Return the day of year of all indexes.
 
         Examples
         --------
         >>> period = pd.Period("2015-10-23", freq='H')
-        >>> period.dayofyear
+        >>> period.day_of_year
         296
         >>> period = pd.Period("2012-12-31", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         366
         >>> period = pd.Period("2013-01-01", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         1
         """
         base = self._dtype._dtype_code
@@ -2313,7 +2315,7 @@ class Period(_Period):
     freq : str, default None
         One of pandas period strings or corresponding objects.
     ordinal : int, default None
-        The period offset from the gregorian proleptic epoch.
+        The period offset from the proleptic Gregorian epoch.
     year : int, default None
         Year value of the period.
     month : int, default 1
@@ -2342,6 +2344,7 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
+        nanosecond = 0
 
         if ordinal is not None and value is not None:
             raise ValueError("Only value or ordinal but not both should be "
@@ -2391,6 +2394,14 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)
+            try:
+                ts = Timestamp(value)
+            except ValueError:
+                nanosecond = 0
+            else:
+                nanosecond = ts.nanosecond
+                if nanosecond != 0:
+                    reso = 'nanosecond'
             if dt is NaT:
                 ordinal = NPY_NAT
 
@@ -2422,7 +2433,7 @@ class Period(_Period):
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
-                                     dt.microsecond, 0, base)
+                                     dt.microsecond, 1000*nanosecond, base)
 
         return cls._from_ordinal(ordinal, freq)
 
@@ -2435,7 +2446,7 @@ cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
     try:
         return freq._period_dtype_code
     except AttributeError as err:
-        raise ValueError(INVALID_FREQ_ERR_MSG) from err
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
 
 
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
@@ -2447,40 +2458,6 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
 
     return period_ordinal(year, month, day, hour,
                           minute, second, 0, 0, base)
-
-
-def quarter_to_myear(year: int, quarter: int, freqstr: str):
-    """
-    A quarterly frequency defines a "year" which may not coincide with
-    the calendar-year.  Find the calendar-year and calendar-month associated
-    with the given year and quarter under the `freq`-derived calendar.
-
-    Parameters
-    ----------
-    year : int
-    quarter : int
-    freqstr : str
-        Equivalent to freq.freqstr
-
-    Returns
-    -------
-    year : int
-    month : int
-
-    See Also
-    --------
-    Period.qyear
-    """
-    if quarter <= 0 or quarter > 4:
-        raise ValueError('Quarter must be 1 <= q <= 4')
-
-    mnum = c_MONTH_NUMBERS[get_rule_month(freqstr)] + 1
-    month = (mnum + (quarter - 1) * 3) % 12 + 1
-    if month > mnum:
-        year -= 1
-
-    return year, month
-    # TODO: This whole func is really similar to parsing.pyx L434-L450
 
 
 def validate_end_alias(how):
