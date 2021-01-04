@@ -1,27 +1,13 @@
-import bz2
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-import gzip
 import operator
 import os
 import re
 import string
-from typing import (
-    Any,
-    Callable,
-    ContextManager,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import Callable, ContextManager, List, Optional, Sequence, Type, Union, cast
 import warnings
-import zipfile
 
 import numpy as np
 
@@ -31,8 +17,7 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
-from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
-from pandas.compat import get_lzma_file, import_lzma
+from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -55,7 +40,21 @@ from pandas import (
     Series,
     bdate_range,
 )
-from pandas._testing._network import network, with_connectivity_check  # noqa:F401
+from pandas._testing._io import (  # noqa:F401
+    close,
+    network,
+    round_trip_localpath,
+    round_trip_pathlib,
+    round_trip_pickle,
+    with_connectivity_check,
+    write_to_compressed,
+)
+from pandas._testing._random import (  # noqa:F401
+    randbool,
+    rands,
+    rands_array,
+    randu_array,
+)
 from pandas._testing.asserters import (  # noqa:F401
     assert_almost_equal,
     assert_attr_equal,
@@ -80,6 +79,7 @@ from pandas._testing.asserters import (  # noqa:F401
     raise_assert_detail,
 )
 from pandas._testing.contexts import (  # noqa:F401
+    RNGContext,
     decompress_file,
     ensure_clean,
     ensure_clean_dir,
@@ -89,8 +89,6 @@ from pandas._testing.contexts import (  # noqa:F401
     with_csv_dialect,
 )
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
-
-lzma = import_lzma()
 
 _N = 30
 _K = 4
@@ -166,187 +164,6 @@ def reset_display_options():
     Reset the display options for printing and representing objects.
     """
     pd.reset_option("^display.", silent=True)
-
-
-def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
-    """
-    Pickle an object and then read it again.
-
-    Parameters
-    ----------
-    obj : any object
-        The object to pickle and then re-read.
-    path : str, path object or file-like object, default None
-        The path where the pickled object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was pickled and then re-read.
-    """
-    _path = path
-    if _path is None:
-        _path = f"__{rands(10)}__.pickle"
-    with ensure_clean(_path) as temp_path:
-        pd.to_pickle(obj, temp_path)
-        return pd.read_pickle(temp_path)
-
-
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
-    """
-    Write an object to file specified by a pathlib.Path and read it back
-
-    Parameters
-    ----------
-    writer : callable bound to pandas object
-        IO writing function (e.g. DataFrame.to_csv )
-    reader : callable
-        IO reading function (e.g. pd.read_csv )
-    path : str, default None
-        The path where the object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was serialized and then re-read.
-    """
-    import pytest
-
-    Path = pytest.importorskip("pathlib").Path
-    if path is None:
-        path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
-    return obj
-
-
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
-    """
-    Write an object to file specified by a py.path LocalPath and read it back.
-
-    Parameters
-    ----------
-    writer : callable bound to pandas object
-        IO writing function (e.g. DataFrame.to_csv )
-    reader : callable
-        IO reading function (e.g. pd.read_csv )
-    path : str, default None
-        The path where the object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was serialized and then re-read.
-    """
-    import pytest
-
-    LocalPath = pytest.importorskip("py.path").local
-    if path is None:
-        path = "___localpath___"
-    with ensure_clean(path) as path:
-        writer(LocalPath(path))
-        obj = reader(LocalPath(path))
-    return obj
-
-
-def write_to_compressed(compression, path, data, dest="test"):
-    """
-    Write data to a compressed file.
-
-    Parameters
-    ----------
-    compression : {'gzip', 'bz2', 'zip', 'xz'}
-        The compression type to use.
-    path : str
-        The file path to write the data.
-    data : str
-        The data to write.
-    dest : str, default "test"
-        The destination file (for ZIP only)
-
-    Raises
-    ------
-    ValueError : An invalid compression value was passed in.
-    """
-    args: Tuple[Any, ...] = (data,)
-    mode = "wb"
-    method = "write"
-    compress_method: Callable
-
-    if compression == "zip":
-        compress_method = zipfile.ZipFile
-        mode = "w"
-        args = (dest, data)
-        method = "writestr"
-    elif compression == "gzip":
-        compress_method = gzip.GzipFile
-    elif compression == "bz2":
-        compress_method = bz2.BZ2File
-    elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
-    else:
-        raise ValueError(f"Unrecognized compression type: {compression}")
-
-    with compress_method(path, mode=mode) as f:
-        getattr(f, method)(*args)
-
-
-def randbool(size=(), p: float = 0.5):
-    return np.random.rand(*size) <= p
-
-
-RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
-RANDU_CHARS = np.array(
-    list("".join(map(chr, range(1488, 1488 + 26))) + string.digits),
-    dtype=(np.unicode_, 1),
-)
-
-
-def rands_array(nchars, size, dtype="O"):
-    """
-    Generate an array of byte strings.
-    """
-    retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
-        .view((np.str_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
-def randu_array(nchars, size, dtype="O"):
-    """
-    Generate an array of unicode strings.
-    """
-    retval = (
-        np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
-        .view((np.unicode_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
-def rands(nchars):
-    """
-    Generate one random byte string.
-
-    See `rands_array` if you want to create an array of random strings.
-
-    """
-    return "".join(np.random.choice(RANDS_CHARS, nchars))
-
-
-def close(fignum=None):
-    from matplotlib.pyplot import close as _close, get_fignums
-
-    if fignum is None:
-        for fignum in get_fignums():
-            _close(fignum)
-    else:
-        _close(fignum)
 
 
 # -----------------------------------------------------------------------------
@@ -1101,35 +918,6 @@ def _assert_raised_with_correct_stacklevel(
         f"{caller.filename}. Warning message: {actual_warning.message}"
     )
     assert actual_warning.filename == caller.filename, msg
-
-
-class RNGContext:
-    """
-    Context manager to set the numpy random number generator speed. Returns
-    to the original value upon exiting the context manager.
-
-    Parameters
-    ----------
-    seed : int
-        Seed for numpy.random.seed
-
-    Examples
-    --------
-    with RNGContext(42):
-        np.random.randn()
-    """
-
-    def __init__(self, seed):
-        self.seed = seed
-
-    def __enter__(self):
-
-        self.start_state = np.random.get_state()
-        np.random.seed(self.seed)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-
-        np.random.set_state(self.start_state)
 
 
 def test_parallel(num_threads=2, kwargs_list=None):
