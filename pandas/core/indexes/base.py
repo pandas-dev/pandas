@@ -1389,7 +1389,7 @@ class Index(IndexOpsMixin, PandasObject):
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
 
-            .. versionchanged:: 1.2.0
+            .. versionchanged:: 1.3.0
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -1434,7 +1434,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
 
-        When renaming levels through a dictionary no level can't be passed.
+        When renaming levels with a dict, levels can not be passed.
 
         >>> idx.set_names({'kind': 'snake'})
         MultiIndex([('python', 2018),
