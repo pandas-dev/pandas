@@ -1293,8 +1293,8 @@ Full numpy-like syntax:
    df.query('(a < b) & (b < c)')
    df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
-Slightly nicer by removing the parentheses (by binding making comparison
-operators bind tighter than ``&`` and ``|``).
+Slightly nicer by removing the parentheses (comparison operators bind tighter
+than ``&`` and ``|``):
 
 .. ipython:: python
 
