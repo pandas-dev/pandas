@@ -386,9 +386,13 @@ class TestCommon:
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+def test_sort_values_invalid_na_position(request, index_with_missing, na_position):
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not defined for index type"
+            )
+        )
 
     if na_position not in ["first", "last"]:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
@@ -396,12 +400,16 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(request, index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="missing value sorting order not implemented")
+        )
+    elif isinstance(index_with_missing, CategoricalIndex):
+        pytest.skip("missing value sorting order not well-defined")
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

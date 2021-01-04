@@ -49,7 +49,7 @@ def test_union_different_types(request, index, index_fixture2):
         )
 
     if any(isinstance(idx, pd.MultiIndex) for idx in (idx1, idx2)):
-        pytest.xfail("This test doesn't consider multiindixes.")
+        pytest.skip("This test doesn't consider multiindixes.")
 
     if is_dtype_equal(idx1.dtype, idx2.dtype):
         pytest.skip("This test only considers non matching dtypes.")
