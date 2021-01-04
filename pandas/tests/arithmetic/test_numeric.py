@@ -536,9 +536,7 @@ class TestDivisionByZero:
         # GH#3590, modulo as ints
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
 
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = Series([0, 0, 0, 0], dtype="float64")
+        first = Series([0, 0, 0, 0], dtype="int64")
         second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
         result = df % df

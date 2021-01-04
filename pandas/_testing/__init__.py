@@ -650,7 +650,7 @@ def getPeriodData(nper=None):
 # make frame
 def makeTimeDataFrame(nper=None, freq="B"):
     data = getTimeSeriesData(nper, freq)
-    return DataFrame(data)
+    return DataFrame(data)._consolidate()
 
 
 def makeDataFrame():

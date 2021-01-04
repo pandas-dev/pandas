@@ -135,9 +135,7 @@ def masked_rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(
-        arrays, arr_columns, index, columns, dtype, consolidate=True
-    )  # FIXME: dont hardcode
+    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
 
     if copy:
         mgr = mgr.copy()
@@ -154,7 +152,6 @@ def init_ndarray(
     columns,
     dtype: Optional[DtypeObj],
     copy: bool,
-    consolidate: bool = True,
 ):
     # input must be a ndarray, list, Series, index
 
@@ -184,9 +181,7 @@ def init_ndarray(
         if columns is None:
             columns = Index(range(len(values)))
 
-        return arrays_to_mgr(
-            values, columns, index, columns, dtype=dtype, consolidate=consolidate
-        )
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
@@ -236,17 +231,16 @@ def init_ndarray(
     else:
         block_values = [values]
 
-    return create_block_manager_from_blocks(
-        block_values, [columns, index], consolidate=consolidate
-    )
+    return create_block_manager_from_blocks(block_values, [columns, index])
 
 
 def init_dict(
     data: Dict,
     index,
     columns,
+    *,
     dtype: Optional[DtypeObj] = None,
-    consolidate: bool = True,
+    copy: bool = True,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -281,6 +275,8 @@ def init_dict(
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
+        arrays = list(arrays)
+
     else:
         keys = list(data.keys())
         columns = data_names = Index(keys)
@@ -291,8 +287,14 @@ def init_dict(
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
+
+    if copy:
+        # arrays_to_mgr (via form_blocks) won't make copies for EAs
+        arrays = [x if not is_extension_array_dtype(x) else x.copy() for x in arrays]
+        # TODO: can we get rid of the dt64tz special case above?
+
     return arrays_to_mgr(
-        arrays, data_names, index, columns, dtype=dtype, consolidate=consolidate
+        arrays, data_names, index, columns, dtype=dtype, consolidate=copy
     )
 
 

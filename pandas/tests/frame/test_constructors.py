@@ -1840,7 +1840,7 @@ class TestDataFrameConstructors:
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
-        df = DataFrame({"A": series["A"]})
+        df = DataFrame({"A": series["A"]}, copy=True)
         df["A"][:] = 5
 
         assert not (series["A"] == 5).all()
@@ -2152,6 +2152,63 @@ class TestDataFrameConstructors:
         result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
         expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("copy", [False, True])
+    def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
+        a = np.array([1, 2], dtype=any_numpy_dtype)
+        b = np.array([3, 4], dtype=any_numpy_dtype)
+        if b.dtype.kind in ["u", "s", "U", "S"]:
+            return
+
+        c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
+        df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
+
+        def check_views():
+            assert sum(x.values is c for x in df._mgr.blocks) == 1
+            assert (
+                sum(x.values.base is a for x in df._mgr.blocks if not x.is_extension)
+                == 1
+            )
+            assert (
+                sum(x.values.base is b for x in df._mgr.blocks if not x.is_extension)
+                == 1
+            )
+
+        if not copy:
+            # constructor preserves views
+            check_views()
+
+        df.iloc[0, 0] = 0
+        df.iloc[0, 1] = 0
+        if not copy:
+            # setitem on non-EA values preserves views
+            assert sum(x.values is c for x in df._mgr.blocks) == 1
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+
+        # FIXME: until GH#35417, iloc.setitem into EA values does not preserve
+        #  view, so we have to check in the other direction
+        # df.iloc[0, 2] = 0
+        # if not copy:
+        #     check_views()
+        c[0] = 0
+
+        if copy:
+            if a.dtype.kind == "M":
+                assert a[0] == a.dtype.type(1, "ns")
+                assert b[0] == b.dtype.type(3, "ns")
+            else:
+                assert a[0] == a.dtype.type(1)
+                assert b[0] == b.dtype.type(3)
+            # FIXME: enable after GH#35417
+            # assert c[0] == 1
+            assert df.iloc[0, 2] == 1
+        else:
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+            # FIXME: enable after GH#35417
+            # assert b[0] == 0
+            assert df.iloc[0, 2] == 0
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

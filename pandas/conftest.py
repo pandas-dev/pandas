@@ -695,7 +695,7 @@ def float_frame():
 
     [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData())
+    return DataFrame(tm.getSeriesData())._consolidate()
 
 
 # ----------------------------------------------------------------
@@ -1189,7 +1189,7 @@ def any_nullable_int_dtype(request):
 
 
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_numeric_dtype(request):
+def any_nullable_numeric_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
