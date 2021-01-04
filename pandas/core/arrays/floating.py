@@ -410,17 +410,6 @@ class FloatingArray(NumericArray):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna)
 
-    def _apply(self, func, **kwargs):
-        values = self._data[~self._mask]
-        values = np.round(values, **kwargs)
-
-        data = np.zeros(self._data.shape)
-        data[~self._mask] = values
-        return type(self)(data, self._mask)
-
-    def round(self, decimals=0):
-        return self._apply(np.round, decimals=decimals)
-
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
