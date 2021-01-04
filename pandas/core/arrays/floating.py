@@ -416,7 +416,7 @@ class FloatingArray(NumericArray):
 
         data = np.zeros(self._data.shape)
         data[~self._mask] = values
-        return FloatingArray(data, self._mask)
+        return type(self)(data, self._mask)
 
     def round(self, decimals=0):
         return self._apply(np.round, decimals=decimals)
