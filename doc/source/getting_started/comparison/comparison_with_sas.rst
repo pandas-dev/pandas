@@ -4,23 +4,13 @@
 
 Comparison with SAS
 ********************
+
 For potential users coming from `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__
 this page is meant to demonstrate how different SAS operations would be
 performed in pandas.
 
 .. include:: includes/introduction.rst
 
-.. note::
-
-   Throughout this tutorial, the pandas ``DataFrame`` will be displayed by calling
-   ``df.head()``, which displays the first N (default 5) rows of the ``DataFrame``.
-   This is often used in interactive work (e.g. `Jupyter notebook
-   <https://jupyter.org/>`_ or terminal) - the equivalent in SAS would be:
-
-   .. code-block:: sas
-
-      proc print data=df(obs=5);
-      run;
 
 Data structures
 ---------------
@@ -120,7 +110,7 @@ The pandas method is :func:`read_csv`, which works similarly.
        "pandas/master/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
-   tips.head()
+   tips
 
 
 Like ``PROC IMPORT``, ``read_csv`` can take a number of parameters to specify
@@ -137,6 +127,19 @@ and did not have column names, the pandas command would be:
 In addition to text/csv, pandas supports a variety of other data formats
 such as Excel, HDF5, and SQL databases.  These are all read via a ``pd.read_*``
 function.  See the :ref:`IO documentation<io>` for more details.
+
+Limiting output
+~~~~~~~~~~~~~~~
+
+.. include:: includes/limit.rst
+
+The equivalent in SAS would be:
+
+.. code-block:: sas
+
+   proc print data=df(obs=5);
+   run;
+
 
 Exporting data
 ~~~~~~~~~~~~~~
@@ -173,20 +176,8 @@ be used on new or existing columns.
        new_bill = total_bill / 2;
    run;
 
-pandas provides similar vectorized operations by
-specifying the individual ``Series`` in the ``DataFrame``.
-New columns can be assigned in the same way.
+.. include:: includes/column_operations.rst
 
-.. ipython:: python
-
-   tips["total_bill"] = tips["total_bill"] - 2
-   tips["new_bill"] = tips["total_bill"] / 2.0
-   tips.head()
-
-.. ipython:: python
-   :suppress:
-
-   tips = tips.drop("new_bill", axis=1)
 
 Filtering
 ~~~~~~~~~
@@ -278,18 +269,7 @@ drop, and rename columns.
        rename total_bill=total_bill_2;
    run;
 
-The same operations are expressed in pandas below.
-
-.. ipython:: python
-
-   # keep
-   tips[["sex", "total_bill", "tip"]].head()
-
-   # drop
-   tips.drop("sex", axis=1).head()
-
-   # rename
-   tips.rename(columns={"total_bill": "total_bill_2"}).head()
+.. include:: includes/column_selection.rst
 
 
 Sorting by values
@@ -308,8 +288,8 @@ Sorting in SAS is accomplished via ``PROC SORT``
 String processing
 -----------------
 
-Length
-~~~~~~
+Finding length of string
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS determines the length of a character string with the
 `LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
@@ -327,8 +307,8 @@ functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailin
 .. include:: includes/length.rst
 
 
-Find
-~~~~
+Finding position of substring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS determines the position of a character in a string with the
 `FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
@@ -342,19 +322,11 @@ you supply as the second argument.
    put(FINDW(sex,'ale'));
    run;
 
-Python determines the position of a character in a string with the
-``find`` function.  ``find`` searches for the first position of the
-substring.  If the substring is found, the function returns its
-position.  Keep in mind that Python indexes are zero-based and
-the function will return -1 if it fails to find the substring.
-
-.. ipython:: python
-
-   tips["sex"].str.find("ale").head()
+.. include:: includes/find_substring.rst
 
 
-Substring
-~~~~~~~~~
+Extracting substring by position
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the
 `SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
@@ -366,17 +338,11 @@ SAS extracts a substring from a string based on its position with the
    put(substr(sex,1,1));
    run;
 
-With pandas you can use ``[]`` notation to extract a substring
-from a string by position locations.  Keep in mind that Python
-indexes are zero-based.
-
-.. ipython:: python
-
-   tips["sex"].str[0:1].head()
+.. include:: includes/extract_substring.rst
 
 
-Scan
-~~~~
+Extracting nth word
+~~~~~~~~~~~~~~~~~~~
 
 The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
 function returns the nth word from a string. The first argument is the string you want to parse and the
@@ -394,20 +360,11 @@ second argument specifies which word you want to extract.
    ;;;
    run;
 
-Python extracts a substring from a string based on its text
-by using regular expressions. There are much more powerful
-approaches, but this just shows a simple approach.
-
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"String": ["John Smith", "Jane Cook"]})
-   firstlast["First_Name"] = firstlast["String"].str.split(" ", expand=True)[0]
-   firstlast["Last_Name"] = firstlast["String"].str.rsplit(" ", expand=True)[0]
-   firstlast
+.. include:: includes/nth_word.rst
 
 
-Upcase, lowcase, and propcase
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Changing case
+~~~~~~~~~~~~~
 
 The SAS `UPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__
 `LOWCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and
@@ -427,27 +384,13 @@ functions change the case of the argument.
    ;;;
    run;
 
-The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+.. include:: includes/case.rst
 
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"String": ["John Smith", "Jane Cook"]})
-   firstlast["string_up"] = firstlast["String"].str.upper()
-   firstlast["string_low"] = firstlast["String"].str.lower()
-   firstlast["string_prop"] = firstlast["String"].str.title()
-   firstlast
 
 Merging
 -------
 
-The following tables will be used in the merge examples
-
-.. ipython:: python
-
-   df1 = pd.DataFrame({"key": ["A", "B", "C", "D"], "value": np.random.randn(4)})
-   df1
-   df2 = pd.DataFrame({"key": ["B", "D", "D", "E"], "value": np.random.randn(4)})
-   df2
+.. include:: includes/merge_setup.rst
 
 In SAS, data must be explicitly sorted before merging.  Different
 types of joins are accomplished using the ``in=`` dummy
@@ -473,39 +416,15 @@ input frames.
        if a or b then output outer_join;
    run;
 
-pandas DataFrames have a :meth:`~DataFrame.merge` method, which provides
-similar functionality.  Note that the data does not have
-to be sorted ahead of time, and different join
-types are accomplished via the ``how`` keyword.
-
-.. ipython:: python
-
-   inner_join = df1.merge(df2, on=["key"], how="inner")
-   inner_join
-
-   left_join = df1.merge(df2, on=["key"], how="left")
-   left_join
-
-   right_join = df1.merge(df2, on=["key"], how="right")
-   right_join
-
-   outer_join = df1.merge(df2, on=["key"], how="outer")
-   outer_join
+.. include:: includes/merge.rst
 
 
 Missing data
 ------------
 
-Like SAS, pandas has a representation for missing data - which is the
-special float value ``NaN`` (not a number).  Many of the semantics
-are the same, for example missing data propagates through numeric
-operations, and is ignored by default for aggregations.
+Both pandas and SAS have a representation for missing data.
 
-.. ipython:: python
-
-   outer_join
-   outer_join["value_x"] + outer_join["value_y"]
-   outer_join["value_x"].sum()
+.. include:: includes/missing_intro.rst
 
 One difference is that missing data cannot be compared to its sentinel value.
 For example, in SAS you could do this to filter missing values.
@@ -522,25 +441,7 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
-should be used for comparisons.
-
-.. ipython:: python
-
-   outer_join[pd.isna(outer_join["value_x"])]
-   outer_join[pd.notna(outer_join["value_x"])]
-
-pandas also provides a variety of methods to work with missing data - some of
-which would be challenging to express in SAS. For example, there are methods to
-drop all rows with any missing values, replacing missing values with a specified
-value, like the mean, or forward filling from previous rows. See the
-:ref:`missing data documentation<missing_data>` for more.
-
-.. ipython:: python
-
-   outer_join.dropna()
-   outer_join.fillna(method="ffill")
-   outer_join["value_x"].fillna(outer_join["value_x"].mean())
+.. include:: includes/missing.rst
 
 
 GroupBy
@@ -549,7 +450,7 @@ GroupBy
 Aggregation
 ~~~~~~~~~~~
 
-SAS's PROC SUMMARY can be used to group by one or
+SAS's ``PROC SUMMARY`` can be used to group by one or
 more key variables and compute aggregations on
 numeric columns.
 
@@ -561,14 +462,7 @@ numeric columns.
        output out=tips_summed sum=;
    run;
 
-pandas provides a flexible ``groupby`` mechanism that
-allows similar aggregations.  See the :ref:`groupby documentation<groupby>`
-for more details and examples.
-
-.. ipython:: python
-
-   tips_summed = tips.groupby(["sex", "smoker"])[["total_bill", "tip"]].sum()
-   tips_summed.head()
+.. include:: includes/groupby.rst
 
 
 Transformation
@@ -597,16 +491,7 @@ example, to subtract the mean for each observation by smoker group.
        if a and b;
    run;
 
-
-pandas ``groupby`` provides a ``transform`` mechanism that allows
-these type of operations to be succinctly expressed in one
-operation.
-
-.. ipython:: python
-
-   gb = tips.groupby("smoker")["total_bill"]
-   tips["adj_total_bill"] = tips["total_bill"] - gb.transform("mean")
-   tips.head()
+.. include:: includes/transform.rst
 
 
 By group processing

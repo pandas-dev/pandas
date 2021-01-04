@@ -864,9 +864,9 @@ class _MergeOperation:
                 mask_left = left_indexer == -1
                 mask_right = right_indexer == -1
                 if mask_left.all():
-                    key_col = rvals
+                    key_col = Index(rvals)
                 elif right_indexer is not None and mask_right.all():
-                    key_col = lvals
+                    key_col = Index(lvals)
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
 
