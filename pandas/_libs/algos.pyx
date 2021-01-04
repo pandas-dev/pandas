@@ -1170,6 +1170,7 @@ def rank_2d(
         argsort_indexer = argsort_indexer[:, ::-1]
 
     values = _take_2d(values, argsort_indexer)
+    argsort_indexer = argsort_indexer.astype('i8')
 
     for i in range(n):
         dups = sum_ranks = infs = 0
