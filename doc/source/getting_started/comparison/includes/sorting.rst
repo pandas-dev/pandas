@@ -1,5 +1,4 @@
-pandas objects have a :meth:`DataFrame.sort_values` method, which
-takes a list of columns to sort by.
+pandas has a :meth:`DataFrame.sort_values` method, which takes a list of columns to sort by.
 
 .. ipython:: python
 
