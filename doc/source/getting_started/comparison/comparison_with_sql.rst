@@ -21,7 +21,7 @@ structure.
         "/pandas/master/pandas/tests/io/data/csv/tips.csv"
     )
     tips = pd.read_csv(url)
-    tips.head()
+    tips
 
 SELECT
 ------
@@ -31,14 +31,13 @@ to select all columns):
 .. code-block:: sql
 
     SELECT total_bill, tip, smoker, time
-    FROM tips
-    LIMIT 5;
+    FROM tips;
 
 With pandas, column selection is done by passing a list of column names to your DataFrame:
 
 .. ipython:: python
 
-    tips[["total_bill", "tip", "smoker", "time"]].head(5)
+    tips[["total_bill", "tip", "smoker", "time"]]
 
 Calling the DataFrame without the list of column names would display all columns (akin to SQL's
 ``*``).
@@ -48,14 +47,13 @@ In SQL, you can add a calculated column:
 .. code-block:: sql
 
     SELECT *, tip/total_bill as tip_rate
-    FROM tips
-    LIMIT 5;
+    FROM tips;
 
 With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to append a new column:
 
 .. ipython:: python
 
-    tips.assign(tip_rate=tips["tip"] / tips["total_bill"]).head(5)
+    tips.assign(tip_rate=tips["tip"] / tips["total_bill"])
 
 WHERE
 -----
@@ -367,6 +365,20 @@ In pandas, you can use :meth:`~pandas.concat` in conjunction with
 .. ipython:: python
 
     pd.concat([df1, df2]).drop_duplicates()
+
+
+LIMIT
+-----
+
+.. code-block:: sql
+
+    SELECT * FROM tips
+    LIMIT 10;
+
+.. ipython:: python
+
+    tips.head(10)
+
 
 pandas equivalents for some SQL analytic and aggregate functions
 ----------------------------------------------------------------

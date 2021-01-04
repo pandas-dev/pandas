@@ -5,4 +5,4 @@ succinctly expressed in one operation.
 
    gb = tips.groupby("smoker")["total_bill"]
    tips["adj_total_bill"] = tips["total_bill"] - gb.transform("mean")
-   tips.head()
+   tips
