@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
+    parsing,
     period as libperiod,
     to_offset,
 )
@@ -1074,7 +1075,7 @@ def _range_from_fields(
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = libperiod.quarter_to_myear(y, q, freqstr)
+            y, m = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

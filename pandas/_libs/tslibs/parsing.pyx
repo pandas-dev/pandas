@@ -378,7 +378,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
 
 
 cdef inline object _parse_dateabbr_string(object date_string, datetime default,
-                                          object freq):
+                                          str freq=None):
     cdef:
         object ret
         # year initialized to prevent compiler warnings
@@ -438,21 +438,13 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                      f'quarter must be '
                                      f'between 1 and 4: {date_string}')
 
-            if freq is not None:
-                # TODO: hack attack, #1228
-                freq = getattr(freq, "freqstr", freq)
-                try:
-                    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
-                except (KeyError, ValueError):
-                    raise DateParseError(f'Unable to retrieve month '
-                                         f'information from given '
-                                         f'freq: {freq}')
-
-                month = (mnum + (quarter - 1) * 3) % 12 + 1
-                if month > mnum:
-                    year -= 1
-            else:
-                month = (quarter - 1) * 3 + 1
+            try:
+                # GH#1228
+                year, month = quarter_to_myear(year, quarter, freq)
+            except KeyError:
+                raise DateParseError("Unable to retrieve month "
+                                     "information from given "
+                                     f"freq: {freq}")
 
             ret = default.replace(year=year, month=month)
             return ret, 'quarter'
@@ -480,6 +472,41 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
             pass
 
     raise ValueError(f'Unable to parse {date_string}')
+
+
+cpdef quarter_to_myear(int year, int quarter, str freq):
+    """
+    A quarterly frequency defines a "year" which may not coincide with
+    the calendar-year.  Find the calendar-year and calendar-month associated
+    with the given year and quarter under the `freq`-derived calendar.
+
+    Parameters
+    ----------
+    year : int
+    quarter : int
+    freq : str or None
+
+    Returns
+    -------
+    year : int
+    month : int
+
+    See Also
+    --------
+    Period.qyear
+    """
+    if quarter <= 0 or quarter > 4:
+        raise ValueError("Quarter must be 1 <= q <= 4")
+
+    if freq is not None:
+        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        month = (mnum + (quarter - 1) * 3) % 12 + 1
+        if month > mnum:
+            year -= 1
+    else:
+        month = (quarter - 1) * 3 + 1
+
+    return year, month
 
 
 cdef dateutil_parse(
