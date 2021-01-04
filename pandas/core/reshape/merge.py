@@ -1708,6 +1708,22 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None and self.right_by is None:
             raise MergeError("missing right_by")
 
+        lo_dtype = (
+            self.left[self.left_on[0]].dtype
+            if not self.left_index
+            else self.left.index.dtype
+        )
+        ro_dtype = (
+            self.right[self.right_on[0]].dtype
+            if not self.right_index
+            else self.right.index.dtype
+        )
+        if is_object_dtype(lo_dtype) or is_object_dtype(ro_dtype):
+            raise ValueError(
+                f"Incompatible merge dtype, {repr(ro_dtype)} and "
+                f"{repr(lo_dtype)}, both sides must have numeric dtype"
+            )
+
         # add 'by' to our key-list so we can have it in the
         # output as a key
         if self.left_by is not None:
@@ -1798,24 +1814,6 @@ class _AsOfMerge(_OrderedMerge):
             raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
-
-    def _maybe_coerce_merge_keys(self):
-        """Check if the merge keys are not object and call super method."""
-        len_by_cols = 0 if self.left_by is None else len(self.left_by)
-        for i, (lk, rk) in enumerate(
-            zip(
-                self.left_join_keys,
-                self.right_join_keys,
-            )
-        ):
-            if i >= len_by_cols:
-                if is_object_dtype(rk.dtype) or is_object_dtype(lk.dtype):
-                    raise ValueError(
-                        f"Incompatible merge [{i}] dtype, {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, both sides must have numeric dtype"
-                    )
-
-        super()._maybe_coerce_merge_keys()
 
     def _get_join_indexers(self):
         """ return the join indexers """
