@@ -193,11 +193,12 @@ class TestPandasContainer:
         # JSON objects. JSON keys are by definition strings, so there's no way
         # to disambiguate whether those keys actually were strings or numeric
         # beforehand and numeric wins out.
-        # TODO: Split should be able to support this
-        if convert_axes and (orient in ("split", "index", "columns")):
+        if convert_axes and (orient in ("index", "columns")):
             expected.columns = expected.columns.astype(np.int64)
             expected.index = expected.index.astype(np.int64)
         elif orient == "records" and convert_axes:
+            expected.columns = expected.columns.astype(np.int64)
+        elif convert_axes and orient == "split":
             expected.columns = expected.columns.astype(np.int64)
 
         assert_json_roundtrip_equal(result, expected, orient)
