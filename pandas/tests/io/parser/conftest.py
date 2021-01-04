@@ -150,7 +150,8 @@ def encoding_fmt(request):
     return request.param
 
 
-@pytest.fixture(params=[
+@pytest.fixture(
+    params=[
         ("-1,0", -1.0),
         ("-1,2e0", -1.2),
         ("-1e0", -1.0),
@@ -185,11 +186,19 @@ def encoding_fmt(request):
         ("-,1e", "-,1e"),
         ("1_000,000_000", "1_000,000_000"),
         ("1,e1_2", "1,e1_2"),
-    ])
+        ("e11,2", "e11,2"),
+        ("1e11,2", "1e11,2"),
+        ("1,2,2", "1,2,2"),
+        ("1,2_1", "1,2_1"),
+        ("1,2e-10e1", "1,2e-10e1"),
+        ("--1,2", "--1,2"),
+        ("1a_2,1", "1a_2,1"),
+        ("1,2E-1", 0.12),
+        ("1,2E1", 12.0),
+    ]
+)
 def numeric_decimal_thousands(request):
     """
     Fixture for all numeric formats which should get recognized
     """
     return request.param
-
-

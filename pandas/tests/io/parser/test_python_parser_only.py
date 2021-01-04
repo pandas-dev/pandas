@@ -308,7 +308,9 @@ footer
 
 
 @pytest.mark.parametrize("thousands", ["_", None])
-def test_decimal_and_exponential(python_parser_only, numeric_decimal_thousands, thousands):
+def test_decimal_and_exponential(
+    python_parser_only, numeric_decimal_thousands, thousands
+):
     # GH#31920
     parser = python_parser_only
     value = numeric_decimal_thousands[0]
