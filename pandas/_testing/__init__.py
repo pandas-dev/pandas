@@ -130,6 +130,7 @@ ALL_NUMPY_DTYPES = (
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
 
+EMPTY_STRING_PATTERN = re.compile("^$")
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
@@ -900,7 +901,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
         random_state = np.random.RandomState(random_state)
 
     # below is cribbed from scipy.sparse
-    size = int(np.round((1 - density) * nrows * ncols))
+    size = round((1 - density) * nrows * ncols)
     # generate a few more to ensure unique values
     min_rows = 5
     fac = 1.02

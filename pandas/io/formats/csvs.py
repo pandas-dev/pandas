@@ -282,7 +282,7 @@ class CSVFormatter:
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
-        chunks = int(nrows / self.chunksize) + 1
+        chunks = (nrows // self.chunksize) + 1
         for i in range(chunks):
             start_i = i * self.chunksize
             end_i = min(start_i + self.chunksize, nrows)

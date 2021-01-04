@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     FrozenSet,
     Hashable,
     List,
@@ -44,8 +45,8 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_any_dtype,
     is_dtype_equal,
+    is_ea_or_datetimelike_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -56,16 +57,21 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
     validate_all_hashable,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCMultiIndex,
@@ -81,6 +87,7 @@ from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -123,6 +130,11 @@ _o_dtype = np.dtype(object)
 
 
 _Identity = NewType("_Identity", object)
+
+
+def disallow_kwargs(kwargs: Dict[str, Any]):
+    if kwargs:
+        raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
 
 def _new_Index(cls, d):
@@ -280,63 +292,42 @@ class Index(IndexOpsMixin, PandasObject):
 
         # range
         if isinstance(data, RangeIndex):
-            return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
+            result = RangeIndex(start=data, copy=copy, name=name)
+            if dtype is not None:
+                return result.astype(dtype, copy=False)
+            return result
         elif isinstance(data, range):
-            return RangeIndex.from_range(data, dtype=dtype, name=name)
+            result = RangeIndex.from_range(data, name=name)
+            if dtype is not None:
+                return result.astype(dtype, copy=False)
+            return result
 
-        # categorical
-        elif is_categorical_dtype(data_dtype) or is_categorical_dtype(dtype):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas.core.indexes.category import CategoricalIndex
+        elif is_ea_or_datetimelike_dtype(dtype):
+            # non-EA dtype indexes have special casting logic, so we punt here
+            klass = cls._dtype_to_subclass(dtype)
+            if klass is not Index:
+                return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
-            return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
+            ea_cls = dtype.construct_array_type()
+            data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
+            data = np.asarray(data, dtype=object)
+            disallow_kwargs(kwargs)
+            return Index._simple_new(data, name=name)
 
-        # interval
-        elif is_interval_dtype(data_dtype) or is_interval_dtype(dtype):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas.core.indexes.interval import IntervalIndex
+        elif is_ea_or_datetimelike_dtype(data_dtype):
+            klass = cls._dtype_to_subclass(data_dtype)
+            if klass is not Index:
+                result = klass(data, copy=copy, name=name, **kwargs)
+                if dtype is not None:
+                    return result.astype(dtype, copy=False)
+                return result
 
-            return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
-
-        elif is_datetime64_any_dtype(data_dtype) or is_datetime64_any_dtype(dtype):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas import DatetimeIndex
-
-            return _maybe_asobject(dtype, DatetimeIndex, data, copy, name, **kwargs)
-
-        elif is_timedelta64_dtype(data_dtype) or is_timedelta64_dtype(dtype):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas import TimedeltaIndex
-
-            return _maybe_asobject(dtype, TimedeltaIndex, data, copy, name, **kwargs)
-
-        elif is_period_dtype(data_dtype) or is_period_dtype(dtype):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas import PeriodIndex
-
-            return _maybe_asobject(dtype, PeriodIndex, data, copy, name, **kwargs)
-
-        # extension dtype
-        elif is_extension_array_dtype(data_dtype) or is_extension_array_dtype(dtype):
-            if not (dtype is None or is_object_dtype(dtype)):
-                # coerce to the provided dtype
-                ea_cls = dtype.construct_array_type()
-                data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
-            else:
-                data = np.asarray(data, dtype=object)
-
-            # coerce to the object dtype
-            data = data.astype(object)
-            return Index(data, dtype=object, copy=copy, name=name, **kwargs)
+            data = np.array(data, dtype=object, copy=copy)
+            disallow_kwargs(kwargs)
+            return Index._simple_new(data, name=name)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
-            from pandas.core.indexes.numeric import (
-                Float64Index,
-                Int64Index,
-                UInt64Index,
-            )
 
             if dtype is not None:
                 # we need to avoid having numpy coerce
@@ -345,44 +336,32 @@ class Index(IndexOpsMixin, PandasObject):
                 # should not be coerced
                 # GH 11836
                 data = _maybe_cast_with_dtype(data, dtype, copy)
-                dtype = data.dtype  # TODO: maybe not for object?
+                dtype = data.dtype
 
-            # maybe coerce to a sub-class
-            if is_signed_integer_dtype(data.dtype):
-                return Int64Index(data, copy=copy, dtype=dtype, name=name)
-            elif is_unsigned_integer_dtype(data.dtype):
-                return UInt64Index(data, copy=copy, dtype=dtype, name=name)
-            elif is_float_dtype(data.dtype):
-                return Float64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, bool) or is_bool_dtype(data):
-                subarr = data.astype("object")
+            if data.dtype.kind in ["i", "u", "f"]:
+                # maybe coerce to a sub-class
+                arr = data
             else:
-                subarr = com.asarray_tuplesafe(data, dtype=object)
+                arr = com.asarray_tuplesafe(data, dtype=object)
 
-            # asarray_tuplesafe does not always copy underlying data,
-            # so need to make sure that this happens
-            if copy:
-                subarr = subarr.copy()
+                if dtype is None:
+                    arr = _maybe_cast_data_without_dtype(arr)
+                    dtype = arr.dtype
 
-            if dtype is None:
-                new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)
-                if new_dtype is not None:
-                    return cls(
-                        new_data, dtype=new_dtype, copy=False, name=name, **kwargs
-                    )
+                    if kwargs:
+                        return cls(arr, dtype, copy=copy, name=name, **kwargs)
 
-            if kwargs:
-                raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
-            if subarr.ndim > 1:
-                # GH#13601, GH#20285, GH#27125
-                raise ValueError("Index data must be 1-dimensional")
-            return cls._simple_new(subarr, name)
+            klass = cls._dtype_to_subclass(arr.dtype)
+            arr = klass._ensure_array(arr, dtype, copy)
+            disallow_kwargs(kwargs)
+            return klass._simple_new(arr, name)
 
-        elif data is None or is_scalar(data):
+        elif is_scalar(data):
             raise cls._scalar_data_error(data)
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
         else:
+
             if tupleize_cols and is_list_like(data):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
@@ -399,6 +378,79 @@ class Index(IndexOpsMixin, PandasObject):
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
+
+    @classmethod
+    def _ensure_array(cls, data, dtype, copy: bool):
+        """
+        Ensure we have a valid array to pass to _simple_new.
+        """
+        if data.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+        if copy:
+            # asarray_tuplesafe does not always copy underlying data,
+            #  so need to make sure that this happens
+            data = data.copy()
+        return data
+
+    @classmethod
+    def _dtype_to_subclass(cls, dtype: DtypeObj):
+        # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+
+        if isinstance(dtype, ExtensionDtype):
+            if isinstance(dtype, DatetimeTZDtype):
+                from pandas import DatetimeIndex
+
+                return DatetimeIndex
+            elif isinstance(dtype, CategoricalDtype):
+                from pandas import CategoricalIndex
+
+                return CategoricalIndex
+            elif isinstance(dtype, IntervalDtype):
+                from pandas import IntervalIndex
+
+                return IntervalIndex
+            elif isinstance(dtype, PeriodDtype):
+                from pandas import PeriodIndex
+
+                return PeriodIndex
+
+            elif isinstance(dtype, SparseDtype):
+                return cls._dtype_to_subclass(dtype.subtype)
+
+            return Index
+
+        if dtype.kind == "M":
+            from pandas import DatetimeIndex
+
+            return DatetimeIndex
+
+        elif dtype.kind == "m":
+            from pandas import TimedeltaIndex
+
+            return TimedeltaIndex
+
+        elif is_float_dtype(dtype):
+            from pandas import Float64Index
+
+            return Float64Index
+        elif is_unsigned_integer_dtype(dtype):
+            from pandas import UInt64Index
+
+            return UInt64Index
+        elif is_signed_integer_dtype(dtype):
+            from pandas import Int64Index
+
+            return Int64Index
+
+        elif dtype == object:
+            # NB: assuming away MultiIndex
+            return Index
+
+        elif issubclass(dtype.type, (str, bool, np.bool_)):
+            return Index
+
+        raise NotImplementedError(dtype)
 
     """
     NOTE for new Index creation:
@@ -1622,7 +1674,7 @@ class Index(IndexOpsMixin, PandasObject):
         Drop MultiIndex levels by level _number_, not name.
         """
 
-        if not levnums:
+        if not levnums and not isinstance(self, ABCMultiIndex):
             return self
         if len(levnums) >= self.nlevels:
             raise ValueError(
@@ -2606,6 +2658,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"None or False; {sort} was passed."
             )
 
+    @final
     def union(self, other, sort=None):
         """
         Form the union of two Index objects.
@@ -2818,6 +2871,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(result, name=name)
 
     # TODO: standardize return type of non-union setops type(self vs other)
+    @final
     def intersection(self, other, sort=False):
         """
         Form the intersection of two Index objects.
@@ -3035,9 +3089,17 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
+        if not self._should_compare(other):
+            return self.union(other).rename(result_name)
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            dtype = find_common_type([self.dtype, other.dtype])
+            this = self.astype(dtype, copy=False)
+            that = other.astype(dtype, copy=False)
+            return this.symmetric_difference(that, sort=sort).rename(result_name)
+
         this = self._get_unique_index()
         other = other._get_unique_index()
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer_for(other)
 
         # {this} minus {other}
         common_indexer = indexer.take((indexer != -1).nonzero()[0])
@@ -3057,7 +3119,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 pass
 
-        return Index(the_diff, dtype=self.dtype, name=result_name)
+        return Index(the_diff, name=result_name)
 
     def _assert_can_do_setop(self, other):
         if not is_list_like(other):
@@ -4832,7 +4894,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx[order]
         Index(['a', 'b', 'c', 'd'], dtype='object')
         """
-        # This works for either ndarray or EA, is overriden
+        # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
 
@@ -4964,7 +5026,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
         if not is_dtype_equal(self.dtype, target.dtype):
-            # TODO: if object, could use infer_dtype to pre-empt costly
+            # TODO: if object, could use infer_dtype to preempt costly
             #  conversion if still non-comparable?
             dtype = find_common_type([self.dtype, target.dtype])
             if (
@@ -6102,25 +6164,27 @@ def _maybe_cast_data_without_dtype(subarr):
         TimedeltaArray,
     )
 
+    assert subarr.dtype == object, subarr.dtype
     inferred = lib.infer_dtype(subarr, skipna=False)
 
     if inferred == "integer":
         try:
             data = _try_convert_to_int_array(subarr, False, None)
-            return data, data.dtype
+            return data
         except ValueError:
             pass
 
-        return subarr, object
+        return subarr
 
     elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
         # TODO: Returns IntegerArray for integer-na case in the future
-        return subarr, np.float64
+        data = np.asarray(subarr).astype(np.float64, copy=False)
+        return data
 
     elif inferred == "interval":
         try:
             data = IntervalArray._from_sequence(subarr, copy=False)
-            return data, data.dtype
+            return data
         except ValueError:
             # GH27172: mixed closed Intervals --> object dtype
             pass
@@ -6131,7 +6195,7 @@ def _maybe_cast_data_without_dtype(subarr):
         if inferred.startswith("datetime"):
             try:
                 data = DatetimeArray._from_sequence(subarr, copy=False)
-                return data, data.dtype
+                return data
             except (ValueError, OutOfBoundsDatetime):
                 # GH 27011
                 # If we have mixed timezones, just send it
@@ -6140,15 +6204,15 @@ def _maybe_cast_data_without_dtype(subarr):
 
         elif inferred.startswith("timedelta"):
             data = TimedeltaArray._from_sequence(subarr, copy=False)
-            return data, data.dtype
+            return data
         elif inferred == "period":
             try:
                 data = PeriodArray._from_sequence(subarr)
-                return data, data.dtype
+                return data
             except IncompatibleFrequency:
                 pass
 
-    return subarr, subarr.dtype
+    return subarr
 
 
 def _try_convert_to_int_array(
@@ -6192,43 +6256,6 @@ def _try_convert_to_int_array(
         pass
 
     raise ValueError
-
-
-def _maybe_asobject(dtype, klass, data, copy: bool, name: Label, **kwargs):
-    """
-    If an object dtype was specified, create the non-object Index
-    and then convert it to object.
-
-    Parameters
-    ----------
-    dtype : np.dtype, ExtensionDtype, str
-    klass : Index subclass
-    data : list-like
-    copy : bool
-    name : hashable
-    **kwargs
-
-    Returns
-    -------
-    Index
-
-    Notes
-    -----
-    We assume that calling .astype(object) on this klass will make a copy.
-    """
-
-    # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
-    #  will raise in the where `data` is already tz-aware.  So
-    #  we leave it out of this step and cast to object-dtype after
-    #  the DatetimeIndex construction.
-
-    if is_dtype_equal(_o_dtype, dtype):
-        # Note we can pass copy=False because the .astype below
-        #  will always make a copy
-        index = klass(data, copy=False, name=name, **kwargs)
-        return index.astype(object)
-
-    return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
 
 def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
