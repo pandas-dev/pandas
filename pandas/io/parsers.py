@@ -1856,7 +1856,7 @@ class ParserBase:
         """
         if not self.index_col and len(columns) != len(data) and columns:
             if len(columns) == len(data) - 1 and np.all(
-                (np.isin(data[-1], [""])) | isna(data[-1])
+                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
             ):
                 return
             warnings.warn(
