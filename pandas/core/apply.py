@@ -43,7 +43,7 @@ def frame_apply(
     result_type: Optional[str] = None,
     args=None,
     kwds=None,
-):
+) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
@@ -63,34 +63,8 @@ def frame_apply(
     )
 
 
-class FrameApply(metaclass=abc.ABCMeta):
-
-    # ---------------------------------------------------------------
-    # Abstract Methods
+class Apply(metaclass=abc.ABCMeta):
     axis: int
-
-    @property
-    @abc.abstractmethod
-    def result_index(self) -> Index:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def result_columns(self) -> Index:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def series_generator(self) -> Iterator[Series]:
-        pass
-
-    @abc.abstractmethod
-    def wrap_results_for_axis(
-        self, results: ResType, res_index: Index
-    ) -> FrameOrSeriesUnion:
-        pass
-
-    # ---------------------------------------------------------------
 
     def __init__(
         self,
@@ -133,16 +107,48 @@ class FrameApply(metaclass=abc.ABCMeta):
         self.f: AggFuncType = f
 
     @property
+    def index(self) -> Index:
+        return self.obj.index
+
+    @abc.abstractmethod
+    def get_result(self):
+        pass
+
+
+class FrameApply(Apply):
+    # ---------------------------------------------------------------
+    # Abstract Methods
+
+    @property
+    @abc.abstractmethod
+    def result_index(self) -> Index:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def result_columns(self) -> Index:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def series_generator(self) -> Iterator[Series]:
+        pass
+
+    @abc.abstractmethod
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: Index
+    ) -> FrameOrSeriesUnion:
+        pass
+
+    # ---------------------------------------------------------------
+
+    @property
     def res_columns(self) -> Index:
         return self.result_columns
 
     @property
     def columns(self) -> Index:
         return self.obj.columns
-
-    @property
-    def index(self) -> Index:
-        return self.obj.index
 
     @cache_readonly
     def values(self):
