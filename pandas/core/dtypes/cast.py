@@ -168,6 +168,8 @@ def maybe_box_native(value: "Union[Series, Scalar]") -> "Union[Series, Scalar]":
     elif is_integer_dtype(value):
         with suppress(ValueError):
             value = int(value)
+    elif is_bool_dtype(value):
+        value = bool(value)
     return value
 
 
