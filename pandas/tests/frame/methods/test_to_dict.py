@@ -281,7 +281,7 @@ class TestDataFrameToDict:
         assert all(type(record["a"]) is dtype for record in d)
 
     @pytest.mark.parametrize(
-        "data,dtype",
+        "data,expected_dtype",
         (
             [np.uint64(2), int],
             [np.int64(-9), int],
@@ -290,9 +290,10 @@ class TestDataFrameToDict:
             [np.datetime64("2005-02-25"), Timestamp],
         ),
     )
-    def test_to_dict_scalar_constructor_orient_dtype(self, data, dtype):
+    def test_to_dict_scalar_constructor_orient_dtype(self, data, expected_dtype):
         # GH22620 & GH21256
 
         df = DataFrame({"a": data}, index=[0])
         d = df.to_dict(orient="records")
-        assert type(d[0]["a"]) is dtype
+        result = type(d[0]["a"])
+        assert result is expected_dtype
