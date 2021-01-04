@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
@@ -199,7 +199,7 @@ class SelectionMixin:
     @property
     def _selection_list(self):
         if not isinstance(
-            self._selection, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)
+            self._selection, (list, tuple, ABCSeries, ABCIndex, np.ndarray)
         ):
             return [self._selection]
         return self._selection
@@ -254,7 +254,7 @@ class SelectionMixin:
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
-        if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
+        if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
             # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
             # "obj"  [attr-defined]
             if len(
@@ -715,9 +715,17 @@ class IndexOpsMixin(OpsMixin):
         the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmax()
+        else:
+            return nanops.nanargmax(delegate, skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -765,9 +773,17 @@ class IndexOpsMixin(OpsMixin):
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmin()
+        else:
+            return nanops.nanargmin(delegate, skipna=skipna)
 
     def tolist(self):
         """

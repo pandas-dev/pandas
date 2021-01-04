@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import isna, maybe_fill
 
 import pandas.core.algorithms as algorithms
@@ -198,13 +199,10 @@ class BaseGrouper:
             try:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
-            except libreduction.InvalidApply as err:
-                # This Exception is raised if `f` triggers an exception
-                # but it is preferable to raise the exception in Python.
-                if "Let this error raise above us" not in str(err):
-                    # TODO: can we infer anything about whether this is
-                    #  worth-retrying in pure-python?
-                    raise
+            except IndexError:
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
+                pass
 
             else:
                 # If the fast apply path could be used we can return here.
@@ -240,6 +238,11 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
+        if len(self.groupings) == 1 and isinstance(
+            self.result_index, ABCCategoricalIndex
+        ):
+            # This shows unused categories in indices GH#38642
+            return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
@@ -494,7 +497,7 @@ class BaseGrouper:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        # TODO: general case implementation overrideable by EAs.
+        # TODO: general case implementation overridable by EAs.
         orig_values = values
 
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):

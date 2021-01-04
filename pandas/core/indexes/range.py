@@ -8,9 +8,9 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Label
+from pandas._typing import Dtype, Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -28,7 +28,7 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -83,7 +83,13 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
+        cls,
+        start=None,
+        stop=None,
+        step=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
 
         cls._validate_dtype(dtype)
@@ -113,7 +119,9 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, name=name)
 
     @classmethod
-    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
+    def from_range(
+        cls, data: range, name=None, dtype: Optional[Dtype] = None
+    ) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -354,7 +362,6 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    @Appender(_index_shared_docs["get_indexer"])
     def _get_indexer(self, target, method=None, limit=None, tolerance=None):
         if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
             return super()._get_indexer(
@@ -406,7 +413,7 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, names=None):
+    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._shallow_copy(name=name)
 
@@ -577,9 +584,6 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self.start, self.step
             end_s = self.start + self.step * (len(self) - 1)
@@ -647,7 +651,7 @@ class RangeIndex(Int64Index):
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
-            # We wont end up with RangeIndex, so fall back
+            # We won't end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,

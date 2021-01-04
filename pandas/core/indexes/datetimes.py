@@ -14,7 +14,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import DtypeObj
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -289,7 +289,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ambiguous="raise",
         dayfirst=False,
         yearfirst=False,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
         name=None,
     ):
@@ -408,10 +408,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         this = self
 
         if isinstance(other, DatetimeIndex):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
+            if (self.tz is None) ^ (other.tz is None):
                 raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
@@ -745,8 +742,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
         reso = Resolution.from_attrname(reso)
-        loc = self._partial_date_slice(reso, parsed)
-        return loc
+        return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
@@ -929,6 +925,15 @@ def date_range(
 ) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex.
+
+    Returns the range of equally spaced time points (where the difference between any
+    two adjacent points is specified by the given frequency) such that they all
+    satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp.,
+    the first and last time points in that range that fall on the boundary of ``freq``
+    (if given as a frequency string) or that are valid for ``freq`` (if given as a
+    :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``,
+    ``end``, or ``freq`` is *not* specified, this missing parameter can be computed
+    given ``periods``, the number of timesteps in the range. See the note below.)
 
     Parameters
     ----------

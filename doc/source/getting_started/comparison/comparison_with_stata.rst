@@ -8,17 +8,7 @@ For potential users coming from `Stata <https://en.wikipedia.org/wiki/Stata>`__
 this page is meant to demonstrate how different Stata operations would be
 performed in pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows. This means that we can refer to the
-libraries as ``pd`` and ``np``, respectively, for the rest of the document.
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
-
+.. include:: includes/introduction.rst
 
 .. note::
 
@@ -48,13 +38,16 @@ General terminology translation
     ``NaN``, ``.``
 
 
-``DataFrame`` / ``Series``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+``DataFrame``
+~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to a Stata data set -- a two-dimensional
 data source with labeled columns that can be of different types. As will be
 shown in this document, almost any operation that can be applied to a data set
 in Stata can also be accomplished in pandas.
+
+``Series``
+~~~~~~~~~~
 
 A ``Series`` is the data structure that represents one column of a
 ``DataFrame``. Stata doesn't have a separate data structure for a single column,
@@ -96,16 +89,7 @@ specifying the column names.
    5 6
    end
 
-A pandas ``DataFrame`` can be constructed in many different ways,
-but for a small number of values, it is often convenient to specify it as
-a Python dictionary, where the keys are the column names
-and the values are the data.
-
-.. ipython:: python
-
-   df = pd.DataFrame({"x": [1, 3, 5], "y": [2, 4, 6]})
-   df
-
+.. include:: includes/construct_dataframe.rst
 
 Reading external data
 ~~~~~~~~~~~~~~~~~~~~~
@@ -217,12 +201,7 @@ Filtering in Stata is done with an ``if`` clause on one or more columns.
 
    list if total_bill > 10
 
-DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`.
-
-.. ipython:: python
-
-   tips[tips["total_bill"] > 10].head()
+.. include:: includes/filtering.rst
 
 If/then logic
 ~~~~~~~~~~~~~
@@ -234,18 +213,7 @@ In Stata, an ``if`` clause can also be used to create new columns.
    generate bucket = "low" if total_bill < 10
    replace bucket = "high" if total_bill >= 10
 
-The same operation in pandas can be accomplished using
-the ``where`` method from ``numpy``.
-
-.. ipython:: python
-
-   tips["bucket"] = np.where(tips["total_bill"] < 10, "low", "high")
-   tips.head()
-
-.. ipython:: python
-   :suppress:
-
-   tips = tips.drop("bucket", axis=1)
+.. include:: includes/if_then.rst
 
 Date functionality
 ~~~~~~~~~~~~~~~~~~
@@ -273,28 +241,7 @@ functions, pandas supports other Time Series features
 not available in Stata (such as time zone handling and custom offsets) --
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
-.. ipython:: python
-
-   tips["date1"] = pd.Timestamp("2013-01-15")
-   tips["date2"] = pd.Timestamp("2015-02-15")
-   tips["date1_year"] = tips["date1"].dt.year
-   tips["date2_month"] = tips["date2"].dt.month
-   tips["date1_next"] = tips["date1"] + pd.offsets.MonthBegin()
-   tips["months_between"] = tips["date2"].dt.to_period("M") - tips[
-       "date1"
-   ].dt.to_period("M")
-
-   tips[
-       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
-   ].head()
-
-.. ipython:: python
-   :suppress:
-
-   tips = tips.drop(
-       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
-       axis=1,
-   )
+.. include:: includes/time_date.rst
 
 Selection of columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -334,14 +281,7 @@ Sorting in Stata is accomplished via ``sort``
 
    sort sex total_bill
 
-pandas objects have a :meth:`DataFrame.sort_values` method, which
-takes a list of columns to sort by.
-
-.. ipython:: python
-
-   tips = tips.sort_values(["sex", "total_bill"])
-   tips.head()
-
+.. include:: includes/sorting.rst
 
 String processing
 -----------------
@@ -357,14 +297,7 @@ Stata determines the length of a character string with the :func:`strlen` and
    generate strlen_time = strlen(time)
    generate ustrlen_time = ustrlen(time)
 
-Python determines the length of a character string with the ``len`` function.
-In Python 3, all strings are Unicode strings. ``len`` includes trailing blanks.
-Use ``len`` and ``rstrip`` to exclude trailing blanks.
-
-.. ipython:: python
-
-   tips["time"].str.len().head()
-   tips["time"].str.rstrip().str.len().head()
+.. include:: includes/length.rst
 
 
 Finding position of substring

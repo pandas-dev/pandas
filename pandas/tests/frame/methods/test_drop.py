@@ -162,7 +162,7 @@ class TestDataFrameDrop:
             [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
         )
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        assert lexsorted_df.columns.is_lexsorted()
+        assert lexsorted_df.columns._is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(
@@ -172,7 +172,7 @@ class TestDataFrameDrop:
             index="a", columns=["b", "c"], values="d"
         )
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        assert not not_lexsorted_df.columns.is_lexsorted()
+        assert not not_lexsorted_df.columns._is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -441,3 +441,11 @@ class TestDataFrameDrop:
             # Perform operation and check result
             getattr(y, operation)(1)
             tm.assert_frame_equal(df, expected)
+
+    def test_drop_with_non_unique_multiindex(self):
+        # GH#36293
+        mi = MultiIndex.from_arrays([["x", "y", "x"], ["i", "j", "i"]])
+        df = DataFrame([1, 2, 3], index=mi)
+        result = df.drop(index="x")
+        expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
+        tm.assert_frame_equal(result, expected)
