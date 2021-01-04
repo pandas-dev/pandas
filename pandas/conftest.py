@@ -1002,14 +1002,6 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(scope="module")
-def datetime_tz_utc():
-    """
-    Yields the UTC timezone object from the datetime module.
-    """
-    return timezone.utc
-
-
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
