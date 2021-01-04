@@ -115,6 +115,17 @@ would be:
    # alternatively, read_table is an alias to read_csv with tab delimiter
    tips = pd.read_table("tips.csv", header=None)
 
+
+Limiting output
+~~~~~~~~~~~~~~~
+
+Spreadsheet programs will only show one screenful of data at a time and then allow you to scroll, so
+there isn't really a need to limit output. In pandas, you'll need to put a little more thought into
+controlling how your ``DataFrame``\s are displayed.
+
+.. include:: includes/limit.rst
+
+
 Exporting data
 ~~~~~~~~~~~~~~
 
