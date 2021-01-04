@@ -14,10 +14,9 @@ from pandas.errors import EmptyDataError, ParserError
 from pandas import DataFrame
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 def test_empty_decimal_marker(all_parsers):
     data = """A|B|C
 1|2,334|5
@@ -31,7 +30,6 @@ def test_empty_decimal_marker(all_parsers):
         parser.read_csv(StringIO(data), decimal="")
 
 
-@skip_pyarrow
 def test_bad_stream_exception(all_parsers, csv_dir_path):
     # see gh-13652
     #
@@ -53,7 +51,6 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
-@skip_pyarrow
 def test_malformed(all_parsers):
     # see gh-6607
     parser = all_parsers
@@ -68,7 +65,6 @@ A,B,C
         parser.read_csv(StringIO(data), header=1, comment="#")
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("nrows", [5, 3, None])
 def test_malformed_chunks(all_parsers, nrows):
     data = """ignore
@@ -88,7 +84,6 @@ skip
             reader.read(nrows)
 
 
-@skip_pyarrow
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\
@@ -108,7 +103,6 @@ def test_catch_too_many_names(all_parsers):
         parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -141,7 +135,6 @@ def test_unexpected_keyword_parameter_exception(all_parsers):
         parser.read_table("foo.tsv", foo=1)
 
 
-@skip_pyarrow
 def test_suppress_error_output(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
@@ -157,7 +150,6 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [{}, {"error_bad_lines": True}],  # Default is True.  # Explicitly pass in.
@@ -176,7 +168,6 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
-@skip_pyarrow
 def test_warn_bad_lines(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
@@ -191,7 +182,6 @@ def test_warn_bad_lines(all_parsers, capsys):
     assert "Skipping line 5" in captured.err
 
 
-@skip_pyarrow
 def test_read_csv_wrong_num_columns(all_parsers):
     # Too few columns.
     data = """A,B,C,D,E,F
@@ -206,7 +196,6 @@ def test_read_csv_wrong_num_columns(all_parsers):
         parser.read_csv(StringIO(data))
 
 
-@skip_pyarrow
 def test_null_byte_char(all_parsers):
     # see gh-2741
     data = "\x00,foo"

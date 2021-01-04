@@ -12,10 +12,9 @@ from pandas.errors import DtypeWarning
 from pandas import DataFrame, concat
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("index_col", [0, "index"])
 def test_read_chunksize_with_index(all_parsers, index_col):
     parser = all_parsers
@@ -48,7 +47,6 @@ bar2,12,13,14,15
     tm.assert_frame_equal(chunks[2], expected[4:])
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("chunksize", [1.3, "foo", 0])
 def test_read_chunksize_bad(all_parsers, chunksize):
     data = """index,A,B,C,D
@@ -67,7 +65,6 @@ bar2,12,13,14,15
             pass
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("chunksize", [2, 8])
 def test_read_chunksize_and_nrows(all_parsers, chunksize):
     # see gh-15755
@@ -87,7 +84,6 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), expected)
 
 
-@skip_pyarrow
 def test_read_chunksize_and_nrows_changing_size(all_parsers):
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -109,7 +105,6 @@ bar2,12,13,14,15
             reader.get_chunk(size=3)
 
 
-@skip_pyarrow
 def test_get_chunk_passed_chunksize(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -125,7 +120,6 @@ def test_get_chunk_passed_chunksize(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": 0}])
 def test_read_chunksize_compat(all_parsers, kwargs):
     # see gh-12185
@@ -143,7 +137,6 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), result)
 
 
-@skip_pyarrow
 def test_read_chunksize_jagged_names(all_parsers):
     # see gh-23509
     parser = all_parsers
@@ -195,7 +188,6 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     assert df.a.dtype == object
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("iterator", [True, False])
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
@@ -214,7 +206,6 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_read_csv_memory_growth_chunksize(all_parsers):
     # see gh-24805
     #

@@ -25,7 +25,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import IOHandles, get_handle, stringify_path, validate_header_arg
 from pandas.io.excel._util import (
     fill_mi_header,
-    get_default_writer,
+    get_default_engine,
     get_writer,
     maybe_convert_usecols,
     pop_header_name,
@@ -123,6 +123,10 @@ engine : str, default None
          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
        - Otherwise if ``path_or_buffer`` is an xls format,
          ``xlrd`` will be used.
+       - Otherwise if ``path_or_buffer`` is in xlsb format,
+         ``pyxlsb`` will be used.
+
+         .. versionadded:: 1.3.0
        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
          then ``openpyxl`` will be used.
        - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -504,6 +508,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                         header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
+            has_index_names = is_list_like(header) and len(header) > 1
+
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
                 if header is None:
@@ -512,6 +518,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
+
+                # GH34673: if MultiIndex names present and not defined in the header,
+                # offset needs to be incremented so that forward filling starts
+                # from the first MI value instead of the name
+                if has_index_names:
+                    offset += 1
 
                 # Check if we have an empty dataset
                 # before trying to collect data.
@@ -524,8 +536,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                                 data[row][col] = last
                             else:
                                 last = data[row][col]
-
-            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
@@ -701,7 +711,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer", silent=True)
                     if engine == "auto":
-                        engine = get_default_writer(ext)
+                        engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
 
@@ -850,7 +860,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         elif isinstance(val, datetime.date):
             fmt = self.date_format
         elif isinstance(val, datetime.timedelta):
-            val = val.total_seconds() / float(86400)
+            val = val.total_seconds() / 86400
             fmt = "0"
         else:
             val = str(val)
@@ -1003,6 +1013,10 @@ class ExcelFile:
              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
            - Otherwise if ``path_or_buffer`` is an xls format,
              ``xlrd`` will be used.
+           - Otherwise if ``path_or_buffer`` is in xlsb format,
+             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+
+           .. versionadded:: 1.3.0
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
@@ -1059,21 +1073,10 @@ class ExcelFile:
             )
 
         if engine is None:
-            if ext == "ods":
-                engine = "odf"
-            elif ext == "xls":
-                engine = "xlrd"
-            else:
-                # GH 35029 - Prefer openpyxl except for xls files
-                if (
-                    import_optional_dependency(
-                        "openpyxl", raise_on_missing=False, on_version="ignore"
-                    )
-                    is not None
-                ):
-                    engine = "openpyxl"
-                else:
-                    engine = "xlrd"
+            # ext will always be valid, otherwise inspect_excel_format would raise
+            engine = config.get_option(f"io.excel.{ext}.reader", silent=True)
+            if engine == "auto":
+                engine = get_default_engine(ext, mode="reader")
 
         if engine == "xlrd" and ext != "xls" and xlrd_version is not None:
             if xlrd_version >= "2":
@@ -1101,7 +1104,6 @@ class ExcelFile:
                     FutureWarning,
                     stacklevel=stacklevel,
                 )
-        assert engine in self._engines, f"Engine {engine} not recognized"
 
         self.engine = engine
         self.storage_options = storage_options

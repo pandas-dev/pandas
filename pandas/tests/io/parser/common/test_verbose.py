@@ -6,10 +6,9 @@ from io import StringIO
 
 import pytest
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -33,7 +32,6 @@ two,1,2,3"""
         assert captured.out == "Filled 3 NA values in column a\n"
 
 
-@skip_pyarrow
 def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d

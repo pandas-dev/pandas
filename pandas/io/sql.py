@@ -905,7 +905,7 @@ class SQLTable(PandasObject):
         elif chunksize == 0:
             raise ValueError("chunksize argument should be non-zero")
 
-        chunks = int(nrows / chunksize) + 1
+        chunks = (nrows // chunksize) + 1
 
         with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):

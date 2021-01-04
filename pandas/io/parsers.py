@@ -2482,7 +2482,7 @@ class PythonParser(ParserBase):
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
-        self._col_indices = None
+        self._col_indices: Optional[List[int]] = None
         try:
             (
                 self.columns,
@@ -2524,6 +2524,9 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        if self._col_indices is None:
+            self._col_indices = list(range(len(self.columns)))
+
         self._validate_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
@@ -2533,10 +2536,16 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
 
+        decimal = re.escape(self.decimal)
         if self.thousands is None:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.decimal}]+")
+            regex = fr"^\-?[0-9]*({decimal}[0-9]*)?([0-9](E|e)\-?[0-9]*)?$"
         else:
-            self.nonnum = re.compile(fr"[^-^0-9^{self.thousands}^{self.decimal}]+")
+            thousands = re.escape(self.thousands)
+            regex = (
+                fr"^\-?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                fr"([0-9](E|e)\-?[0-9]*)?$"
+            )
+        self.num = re.compile(regex)
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -2547,7 +2556,9 @@ class PythonParser(ParserBase):
             if is_integer(x):
                 noconvert_columns.add(x)
             else:
-                noconvert_columns.add(self.columns.index(x))
+                assert self._col_indices is not None
+                col_indices = self._col_indices
+                noconvert_columns.add(col_indices[self.columns.index(x)])
 
         if isinstance(self.parse_dates, list):
             for val in self.parse_dates:
@@ -2889,7 +2900,6 @@ class PythonParser(ParserBase):
                     # overwritten.
                     self._handle_usecols(columns, names)
                 else:
-                    self._col_indices = None
                     num_original_columns = len(names)
                 columns = [names]
             else:
@@ -2971,7 +2981,7 @@ class PythonParser(ParserBase):
                 [n for i, n in enumerate(column) if i in col_indices]
                 for column in columns
             ]
-            self._col_indices = col_indices
+            self._col_indices = sorted(col_indices)
         return columns
 
     def _buffered_line(self):
@@ -3228,7 +3238,7 @@ class PythonParser(ParserBase):
                     not isinstance(x, str)
                     or search not in x
                     or (self._no_thousands_columns and i in self._no_thousands_columns)
-                    or self.nonnum.search(x.strip())
+                    or not self.num.search(x.strip())
                 ):
                     rl.append(x)
                 else:
@@ -3369,25 +3379,21 @@ class PythonParser(ParserBase):
         zipped_content = list(lib.to_object_array(content, min_width=col_len).T)
 
         if self.usecols:
+            assert self._col_indices is not None
+            col_indices = self._col_indices
+
             if self._implicit_index:
                 zipped_content = [
                     a
                     for i, a in enumerate(zipped_content)
                     if (
                         i < len(self.index_col)
-                        # pandas\io\parsers.py:3159: error: Unsupported right
-                        # operand type for in ("Optional[Any]")  [operator]
-                        or i - len(self.index_col)  # type: ignore[operator]
-                        in self._col_indices
+                        or i - len(self.index_col) in col_indices
                     )
                 ]
             else:
                 zipped_content = [
-                    # pandas\io\parsers.py:3164: error: Unsupported right
-                    # operand type for in ("Optional[Any]")  [operator]
-                    a
-                    for i, a in enumerate(zipped_content)
-                    if i in self._col_indices  # type: ignore[operator]
+                    a for i, a in enumerate(zipped_content) if i in col_indices
                 ]
         return zipped_content
 

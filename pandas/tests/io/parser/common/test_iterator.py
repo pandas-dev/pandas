@@ -9,10 +9,9 @@ import pytest
 from pandas import DataFrame, Series, concat
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 def test_iterator(all_parsers):
     # see gh-6607
     data = """index,A,B,C,D
@@ -36,7 +35,6 @@ bar2,12,13,14,15
     tm.assert_frame_equal(last_chunk, expected[3:])
 
 
-@skip_pyarrow
 def test_iterator2(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -56,7 +54,6 @@ baz,7,8,9
     tm.assert_frame_equal(result[0], expected)
 
 
-@skip_pyarrow
 def test_iterator_stop_on_chunksize(all_parsers):
     # gh-3967: stopping iteration when chunksize is specified
     parser = all_parsers
@@ -78,7 +75,6 @@ baz,7,8,9
     tm.assert_frame_equal(concat(result), expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs", [{"iterator": True, "chunksize": 1}, {"iterator": True}, {"chunksize": 1}]
 )

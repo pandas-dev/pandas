@@ -9,10 +9,9 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "data,thousands,decimal",
     [
@@ -44,7 +43,6 @@ def test_1000_sep_with_decimal(all_parsers, data, thousands, decimal):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_euro_decimal_format(all_parsers):
     parser = all_parsers
     data = """Id;Number1;Number2;Text1;Text2;Number3
