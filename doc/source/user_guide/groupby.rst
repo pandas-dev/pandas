@@ -1087,7 +1087,7 @@ Control grouped column(s) placement with ``group_keys``
    group keys added to the result index. Previous versions of pandas would add
    the group keys only when the result from the applied function had a different
    index than the input. If ``group_keys`` is not specified, the group keys will
-   not be added for like-indexed outputs. In this future this behavior
+   not be added for like-indexed outputs. In the future this behavior
    will change to always respect ``group_keys``, which defaults to ``True``.
 
    .. versionchanged:: 1.3.0
