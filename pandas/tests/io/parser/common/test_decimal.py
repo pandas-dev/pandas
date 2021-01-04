@@ -58,3 +58,21 @@ def test_euro_decimal_format(all_parsers):
         columns=["Id", "Number1", "Number2", "Text1", "Text2", "Number3"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("thousands", [None, "."])
+@pytest.mark.parametrize(
+    "value",
+    ["e11,2", "1e11,2", "1,2,2", "1,2.1", "1,2e-10e1", "--1,2", "1a.2,1", "1..2,3"],
+)
+def test_decimal_and_exponential_erroneous(all_parsers, thousands, value):
+    # GH#31920
+    data = StringIO(
+        f"""a	b
+    1,1	{value}
+    """
+    )
+    parser = all_parsers
+    result = parser.read_csv(data, "\t", decimal=",", thousands=thousands)
+    expected = DataFrame({"a": [1.1], "b": [value]})
+    tm.assert_frame_equal(result, expected)
