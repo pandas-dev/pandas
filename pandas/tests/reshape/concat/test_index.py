@@ -259,17 +259,3 @@ class TestMultiIndexConcat:
         tm.assert_frame_equal(result_copy, expected)
         result_no_copy = pd.concat(example_dict, names=["testname"])
         tm.assert_frame_equal(result_no_copy, expected)
-
-    @pytest.mark.parametrize(
-        "idx, values", [([1, 0, 0], ["y", "z", "x"]), ([0, 0, 1], ["x", "y", "z"])]
-    )
-    def test_concat_duplicates_in_index(self, idx, values):
-        # GH#31308
-        right = DataFrame({"right": ["x", "y", "z"]}, index=idx)
-        left = DataFrame({"left": ["a", "b"]})
-        result = concat([left, right], axis=1)
-
-        expected = DataFrame(
-            {"left": ["a", "a", "b"], "right": values}, index=sorted(idx)
-        )
-        tm.assert_frame_equal(result, expected)
