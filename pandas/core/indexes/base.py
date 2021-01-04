@@ -1383,7 +1383,7 @@ class Index(IndexOpsMixin, PandasObject):
         names : label or list of label or dict-like for MultiIndex
             Name(s) to set.
 
-            .. versionchanged:: 1.2.0
+            .. versionchanged:: 1.3.0
 
         level : int, label or list of int or label, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
