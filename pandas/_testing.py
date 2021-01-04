@@ -1334,6 +1334,8 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
 
