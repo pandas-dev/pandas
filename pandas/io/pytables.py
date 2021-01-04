@@ -12,6 +12,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -28,7 +29,14 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -2045,15 +2053,19 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
+        factory: Union[Type[Index], Type[DatetimeIndex]] = Index
+        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+            factory = DatetimeIndex
+
         # making an Index instance could throw a number of different errors
         try:
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
 
         new_pd_index = _set_tz(new_pd_index, self.tz)
         return new_pd_index, new_pd_index
@@ -2254,7 +2266,7 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         data=None,
     ):
         super().__init__(
@@ -2736,8 +2748,14 @@ class GenericFixed(Fixed):
             return alias
         return self._reverse_index_map.get(alias, Index)
 
-    def _get_index_factory(self, klass):
-        if klass == DatetimeIndex:
+    def _get_index_factory(self, attrs):
+        index_class = self._alias_to_class(
+            _ensure_decoded(getattr(attrs, "index_class", ""))
+        )
+
+        factory: Callable
+
+        if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
@@ -2747,16 +2765,34 @@ class GenericFixed(Fixed):
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
 
-            return f
-        elif klass == PeriodIndex:
+            factory = f
+        elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
                 parr = PeriodArray._simple_new(values, freq=freq)
                 return PeriodIndex._simple_new(parr, name=None)
 
-            return f
+            factory = f
+        else:
+            factory = index_class
 
-        return klass
+        kwargs = {}
+        if "freq" in attrs:
+            kwargs["freq"] = attrs["freq"]
+            if index_class is Index:
+                # DTI/PI would be gotten by _alias_to_class
+                factory = TimedeltaIndex
+
+        if "tz" in attrs:
+            if isinstance(attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = attrs["tz"]
+            assert index_class is DatetimeIndex  # just checking
+
+        return factory, kwargs
 
     def validate_read(self, columns, where):
         """
@@ -2928,22 +2964,8 @@ class GenericFixed(Fixed):
             name = _ensure_str(node._v_attrs.name)
             name = _ensure_decoded(name)
 
-        index_class = self._alias_to_class(
-            _ensure_decoded(getattr(node._v_attrs, "index_class", ""))
-        )
-        factory = self._get_index_factory(index_class)
-
-        kwargs = {}
-        if "freq" in node._v_attrs:
-            kwargs["freq"] = node._v_attrs["freq"]
-
-        if "tz" in node._v_attrs:
-            if isinstance(node._v_attrs["tz"], bytes):
-                # created by python2
-                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
-            else:
-                # created by python3
-                kwargs["tz"] = node._v_attrs["tz"]
+        attrs = node._v_attrs
+        factory, kwargs = self._get_index_factory(attrs)
 
         if kind == "date":
             index = factory(

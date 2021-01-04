@@ -300,5 +300,5 @@ def test_outer():
     s = pd.Series([1, 2, 3])
     o = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
         np.subtract.outer(s, o)

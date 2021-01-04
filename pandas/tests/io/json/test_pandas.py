@@ -165,7 +165,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, request, orient, convert_axes, numpy, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
@@ -175,7 +175,9 @@ class TestPandasContainer:
 
         # TODO: do we even need to support U3 dtypes?
         if numpy and dtype == "U3" and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         data = df.to_json(orient=orient)
         result = pd.read_json(
@@ -202,14 +204,20 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, orient, convert_axes, numpy):
+    def test_roundtrip_categorical(self, request, orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            pytest.xfail(f"Can't have duplicate index values for orient '{orient}')")
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Can't have duplicate index values for orient '{orient}')"
+                )
+            )
 
         data = self.categorical.to_json(orient=orient)
         if numpy and orient in ("records", "values"):
-            pytest.xfail(f"Orient {orient} is broken with numpy=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"Orient {orient} is broken with numpy=True")
+            )
 
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
@@ -264,9 +272,11 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, orient, convert_axes, numpy):
+    def test_roundtrip_mixed(self, request, orient, convert_axes, numpy):
         if numpy and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {
@@ -591,7 +601,7 @@ class TestPandasContainer:
 
         # the same with multiple columns threw segfaults
         df_mixed = DataFrame({"A": [binthing], "B": [1]}, columns=["A", "B"])
-        with pytest.raises(OverflowError):
+        with pytest.raises(OverflowError, match=msg):
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
@@ -1259,19 +1269,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_read_json_large_numbers(self, bigNum):
         # GH20599
 
-        series = Series(bigNum, dtype=object, index=["articleId"])
-        json = '{"articleId":' + str(bigNum) + "}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_series_equal(series, result)
+        json = StringIO('{"articleId":' + str(bigNum) + "}")
+        msg = r"Value is too small|Value is too big"
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
-        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
-        json = '{"0":{"articleId":' + str(bigNum) + "}}"
-        with pytest.raises(ValueError):
-            json = StringIO(json)
-            result = read_json(json)
-            tm.assert_frame_equal(df, result)
+        json = StringIO('{"0":{"articleId":' + str(bigNum) + "}}")
+        with pytest.raises(ValueError, match=msg):
+            read_json(json)
 
     def test_read_json_large_numbers2(self):
         # GH18842

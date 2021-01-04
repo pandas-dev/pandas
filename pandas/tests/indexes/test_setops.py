@@ -39,19 +39,21 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index, index_fixture2):
+def test_union_different_types(request, index, index_fixture2):
     # This test only considers combinations of indices
     # GH 23525
     idx1, idx2 = index, index_fixture2
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
     if type_pair in COMPATIBLE_INCONSISTENT_PAIRS:
-        pytest.xfail("This test only considers non compatible indexes.")
+        request.node.add_marker(
+            pytest.mark.xfail(reason="This test only considers non compatible indexes.")
+        )
 
     if any(isinstance(idx, pd.MultiIndex) for idx in (idx1, idx2)):
-        pytest.xfail("This test doesn't consider multiindixes.")
+        pytest.skip("This test doesn't consider multiindixes.")
 
     if is_dtype_equal(idx1.dtype, idx2.dtype):
-        pytest.xfail("This test only considers non matching dtypes.")
+        pytest.skip("This test only considers non matching dtypes.")
 
     # A union with a CategoricalIndex (even as dtype('O')) and a
     # non-CategoricalIndex can only be made if both indices are monotonic.
@@ -249,13 +251,14 @@ class TestSetOps:
         # GH#10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            if is_datetime64tz_dtype(first):
-                with pytest.raises(ValueError, match="Tz-aware"):
-                    # `second.values` casts to tznaive
-                    # TODO: should the symmetric_difference then be the union?
-                    first.symmetric_difference(case)
-                continue
             result = first.symmetric_difference(case)
+
+            if is_datetime64tz_dtype(first):
+                # second.values casts to tznaive
+                expected = first.union(case)
+                tm.assert_index_equal(result, expected)
+                continue
+
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
@@ -447,6 +450,41 @@ class TestSetOps:
         inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
         tm.assert_index_equal(inter, diff, exact=True)
+
+
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+def test_setop_with_categorical(index, sort, method):
+    if isinstance(index, MultiIndex):
+        # tested separately in tests.indexes.multi.test_setops
+        return
+
+    other = index.astype("category")
+
+    result = getattr(index, method)(other, sort=sort)
+    expected = getattr(index, method)(index, sort=sort)
+    tm.assert_index_equal(result, expected)
+
+    result = getattr(index, method)(other[:5], sort=sort)
+    expected = getattr(index, method)(index[:5], sort=sort)
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_duplicates_all_indexes(index):
+    # GH#38743
+    if index.empty:
+        # No duplicates in empty indexes
+        return
+
+    def check_intersection_commutative(left, right):
+        assert left.intersection(right).equals(right.intersection(left))
+
+    idx = index
+    idx_non_unique = idx[[0, 0, 1, 2]]
+
+    check_intersection_commutative(idx, idx_non_unique)
+    assert idx.intersection(idx_non_unique).is_unique
 
 
 @pytest.mark.parametrize(

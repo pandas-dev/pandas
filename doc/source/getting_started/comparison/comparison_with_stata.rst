@@ -8,17 +8,7 @@ For potential users coming from `Stata <https://en.wikipedia.org/wiki/Stata>`__
 this page is meant to demonstrate how different Stata operations would be
 performed in pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
-to familiarize yourself with the library.
-
-As is customary, we import pandas and NumPy as follows. This means that we can refer to the
-libraries as ``pd`` and ``np``, respectively, for the rest of the document.
-
-.. ipython:: python
-
-    import pandas as pd
-    import numpy as np
-
+.. include:: includes/introduction.rst
 
 .. note::
 
@@ -48,13 +38,16 @@ General terminology translation
     ``NaN``, ``.``
 
 
-``DataFrame`` / ``Series``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+``DataFrame``
+~~~~~~~~~~~~~
 
 A ``DataFrame`` in pandas is analogous to a Stata data set -- a two-dimensional
 data source with labeled columns that can be of different types. As will be
 shown in this document, almost any operation that can be applied to a data set
 in Stata can also be accomplished in pandas.
+
+``Series``
+~~~~~~~~~~
 
 A ``Series`` is the data structure that represents one column of a
 ``DataFrame``. Stata doesn't have a separate data structure for a single column,
@@ -96,16 +89,7 @@ specifying the column names.
    5 6
    end
 
-A pandas ``DataFrame`` can be constructed in many different ways,
-but for a small number of values, it is often convenient to specify it as
-a Python dictionary, where the keys are the column names
-and the values are the data.
-
-.. ipython:: python
-
-   df = pd.DataFrame({"x": [1, 3, 5], "y": [2, 4, 6]})
-   df
-
+.. include:: includes/construct_dataframe.rst
 
 Reading external data
 ~~~~~~~~~~~~~~~~~~~~~
@@ -217,12 +201,7 @@ Filtering in Stata is done with an ``if`` clause on one or more columns.
 
    list if total_bill > 10
 
-DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`.
-
-.. ipython:: python
-
-   tips[tips["total_bill"] > 10].head()
+.. include:: includes/filtering.rst
 
 If/then logic
 ~~~~~~~~~~~~~
@@ -234,18 +213,7 @@ In Stata, an ``if`` clause can also be used to create new columns.
    generate bucket = "low" if total_bill < 10
    replace bucket = "high" if total_bill >= 10
 
-The same operation in pandas can be accomplished using
-the ``where`` method from ``numpy``.
-
-.. ipython:: python
-
-   tips["bucket"] = np.where(tips["total_bill"] < 10, "low", "high")
-   tips.head()
-
-.. ipython:: python
-   :suppress:
-
-   tips = tips.drop("bucket", axis=1)
+.. include:: includes/if_then.rst
 
 Date functionality
 ~~~~~~~~~~~~~~~~~~
@@ -273,28 +241,7 @@ functions, pandas supports other Time Series features
 not available in Stata (such as time zone handling and custom offsets) --
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
-.. ipython:: python
-
-   tips["date1"] = pd.Timestamp("2013-01-15")
-   tips["date2"] = pd.Timestamp("2015-02-15")
-   tips["date1_year"] = tips["date1"].dt.year
-   tips["date2_month"] = tips["date2"].dt.month
-   tips["date1_next"] = tips["date1"] + pd.offsets.MonthBegin()
-   tips["months_between"] = tips["date2"].dt.to_period("M") - tips[
-       "date1"
-   ].dt.to_period("M")
-
-   tips[
-       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
-   ].head()
-
-.. ipython:: python
-   :suppress:
-
-   tips = tips.drop(
-       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
-       axis=1,
-   )
+.. include:: includes/time_date.rst
 
 Selection of columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -334,14 +281,7 @@ Sorting in Stata is accomplished via ``sort``
 
    sort sex total_bill
 
-pandas objects have a :meth:`DataFrame.sort_values` method, which
-takes a list of columns to sort by.
-
-.. ipython:: python
-
-   tips = tips.sort_values(["sex", "total_bill"])
-   tips.head()
-
+.. include:: includes/sorting.rst
 
 String processing
 -----------------
@@ -357,14 +297,7 @@ Stata determines the length of a character string with the :func:`strlen` and
    generate strlen_time = strlen(time)
    generate ustrlen_time = ustrlen(time)
 
-Python determines the length of a character string with the ``len`` function.
-In Python 3, all strings are Unicode strings. ``len`` includes trailing blanks.
-Use ``len`` and ``rstrip`` to exclude trailing blanks.
-
-.. ipython:: python
-
-   tips["time"].str.len().head()
-   tips["time"].str.rstrip().str.len().head()
+.. include:: includes/length.rst
 
 
 Finding position of substring
@@ -378,15 +311,7 @@ first position of the substring you supply as the second argument.
 
    generate str_position = strpos(sex, "ale")
 
-Python determines the position of a character in a string with the
-:func:`find` function.  ``find`` searches for the first position of the
-substring.  If the substring is found, the function returns its
-position.  Keep in mind that Python indexes are zero-based and
-the function will return -1 if it fails to find the substring.
-
-.. ipython:: python
-
-   tips["sex"].str.find("ale").head()
+.. include:: includes/find_substring.rst
 
 
 Extracting substring by position
@@ -398,13 +323,7 @@ Stata extracts a substring from a string based on its position with the :func:`s
 
    generate short_sex = substr(sex, 1, 1)
 
-With pandas you can use ``[]`` notation to extract a substring
-from a string by position locations.  Keep in mind that Python
-indexes are zero-based.
-
-.. ipython:: python
-
-   tips["sex"].str[0:1].head()
+.. include:: includes/extract_substring.rst
 
 
 Extracting nth word
@@ -425,16 +344,7 @@ second argument specifies which word you want to extract.
    generate first_name = word(name, 1)
    generate last_name = word(name, -1)
 
-Python extracts a substring from a string based on its text
-by using regular expressions. There are much more powerful
-approaches, but this just shows a simple approach.
-
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
-   firstlast["First_Name"] = firstlast["string"].str.split(" ", expand=True)[0]
-   firstlast["Last_Name"] = firstlast["string"].str.rsplit(" ", expand=True)[0]
-   firstlast
+.. include:: includes/nth_word.rst
 
 
 Changing case
@@ -457,27 +367,13 @@ change the case of ASCII and Unicode strings, respectively.
    generate title = strproper(string)
    list
 
-The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+.. include:: includes/case.rst
 
-.. ipython:: python
-
-   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
-   firstlast["upper"] = firstlast["string"].str.upper()
-   firstlast["lower"] = firstlast["string"].str.lower()
-   firstlast["title"] = firstlast["string"].str.title()
-   firstlast
 
 Merging
 -------
 
-The following tables will be used in the merge examples
-
-.. ipython:: python
-
-   df1 = pd.DataFrame({"key": ["A", "B", "C", "D"], "value": np.random.randn(4)})
-   df1
-   df2 = pd.DataFrame({"key": ["B", "D", "D", "E"], "value": np.random.randn(4)})
-   df2
+.. include:: includes/merge_setup.rst
 
 In Stata, to perform a merge, one data set must be in memory
 and the other must be referenced as a file name on disk. In
@@ -532,38 +428,13 @@ or the intersection of the two by using the values created in the
    restore
    merge 1:n key using df2.dta
 
-pandas DataFrames have a :meth:`DataFrame.merge` method, which provides
-similar functionality. Note that different join
-types are accomplished via the ``how`` keyword.
-
-.. ipython:: python
-
-   inner_join = df1.merge(df2, on=["key"], how="inner")
-   inner_join
-
-   left_join = df1.merge(df2, on=["key"], how="left")
-   left_join
-
-   right_join = df1.merge(df2, on=["key"], how="right")
-   right_join
-
-   outer_join = df1.merge(df2, on=["key"], how="outer")
-   outer_join
+.. include:: includes/merge_setup.rst
 
 
 Missing data
 ------------
 
-Like Stata, pandas has a representation for missing data -- the
-special float value ``NaN`` (not a number).  Many of the semantics
-are the same; for example missing data propagates through numeric
-operations, and is ignored by default for aggregations.
-
-.. ipython:: python
-
-   outer_join
-   outer_join["value_x"] + outer_join["value_y"]
-   outer_join["value_x"].sum()
+.. include:: includes/missing_intro.rst
 
 One difference is that missing data cannot be compared to its sentinel value.
 For example, in Stata you could do this to filter missing values.
@@ -575,30 +446,7 @@ For example, in Stata you could do this to filter missing values.
    * Keep non-missing values
    list if value_x != .
 
-This doesn't work in pandas.  Instead, the :func:`pd.isna` or :func:`pd.notna` functions
-should be used for comparisons.
-
-.. ipython:: python
-
-   outer_join[pd.isna(outer_join["value_x"])]
-   outer_join[pd.notna(outer_join["value_x"])]
-
-pandas also provides a variety of methods to work with missing data -- some of
-which would be challenging to express in Stata. For example, there are methods to
-drop all rows with any missing values, replacing missing values with a specified
-value, like the mean, or forward filling from previous rows. See the
-:ref:`missing data documentation<missing_data>` for more.
-
-.. ipython:: python
-
-   # Drop rows with any missing value
-   outer_join.dropna()
-
-   # Fill forwards
-   outer_join.fillna(method="ffill")
-
-   # Impute missing values with the mean
-   outer_join["value_x"].fillna(outer_join["value_x"].mean())
+.. include:: includes/missing.rst
 
 
 GroupBy
@@ -615,14 +463,7 @@ numeric columns.
 
    collapse (sum) total_bill tip, by(sex smoker)
 
-pandas provides a flexible ``groupby`` mechanism that
-allows similar aggregations.  See the :ref:`groupby documentation<groupby>`
-for more details and examples.
-
-.. ipython:: python
-
-   tips_summed = tips.groupby(["sex", "smoker"])[["total_bill", "tip"]].sum()
-   tips_summed.head()
+.. include:: includes/groupby.rst
 
 
 Transformation
@@ -637,16 +478,7 @@ For example, to subtract the mean for each observation by smoker group.
    bysort sex smoker: egen group_bill = mean(total_bill)
    generate adj_total_bill = total_bill - group_bill
 
-
-pandas ``groupby`` provides a ``transform`` mechanism that allows
-these type of operations to be succinctly expressed in one
-operation.
-
-.. ipython:: python
-
-   gb = tips.groupby("smoker")["total_bill"]
-   tips["adj_total_bill"] = tips["total_bill"] - gb.transform("mean")
-   tips.head()
+.. include:: includes/transform.rst
 
 
 By group processing
