@@ -1787,6 +1787,10 @@ class MultiIndex(Index):
         pd.Index
             Index with the MultiIndex data represented in Tuples.
 
+        See Also
+        --------
+        MultiIndex.from_tuples : Convert flat index back to MultiIndex.
+
         Notes
         -----
         This method will simply return the caller if called by anything other
