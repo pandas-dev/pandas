@@ -51,6 +51,7 @@ Other enhancements
 - :func:`pandas.read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
+- :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
 
 .. ---------------------------------------------------------------------------
 
@@ -155,6 +156,7 @@ Deprecations
 - Deprecating allowing scalars passed to the :class:`Categorical` constructor (:issue:`38433`)
 - Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
+- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` as a public methods, users should use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
 - Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 -
@@ -184,8 +186,8 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :class:`CategoricalIndex` incorrectly failing to raise ``TypeError`` when scalar data is passed (:issue:`38614`)
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
-- Bug where construcing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
-
+- Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
+- Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -259,9 +261,11 @@ I/O
 ^^^
 
 - Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
+- Bug in :func:`read_csv` not recognizing scientific notation if decimal is set for ``engine="python"`` (:issue:`31920`)
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
 - Bug in :func:`read_csv` raising ``IndexError`` with multiple header columns and ``index_col`` specified when file has no data rows (:issue:`38292`)
 - Bug in :func:`read_csv` not accepting ``usecols`` with different length than ``names`` for ``engine="python"`` (:issue:`16469`)
+- Bug in :meth:`read_csv` returning object dtype when ``delimiter=","`` with ``usecols`` and ``parse_dates`` specified for ``engine="python"`` (:issue:`35873`)
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 - Bug in :func:`read_clipboard`, :func:`DataFrame.to_clipboard` not working in WSL (:issue:`38527`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
@@ -269,7 +273,7 @@ I/O
   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
-
+- :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
 
 Period
 ^^^^^^
@@ -289,12 +293,15 @@ Groupby/resample/rolling
 
 - Bug in :meth:`SeriesGroupBy.value_counts` where unobserved categories in a grouped categorical series were not tallied (:issue:`38672`)
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
--
+- Fixed bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` causing loss of precision through using Kahan summation (:issue:`38778`)
+- Fixed bug in :meth:`DataFrameGroupBy.cumsum`, :meth:`SeriesGroupBy.cumsum`, :meth:`DataFrameGroupBy.mean` and :meth:`SeriesGroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`merge` raising error when performing an inner join with partial index and ``right_index`` when no overlap between indices (:issue:`33814`)
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
-- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`)
+- Bug in :func:`join` over :class:`MultiIndex` returned wrong result, when one of both indexes had only one level (:issue:`36909`)
+- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`, :issue:`38907`)
 - :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
 
 Sparse

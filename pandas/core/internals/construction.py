@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -160,21 +159,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
-    # we could have a categorical type passed or coerced to 'category'
-    # recast this to an arrays_to_mgr
-    if is_categorical_dtype(getattr(values, "dtype", None)) or is_categorical_dtype(
-        dtype
-    ):
-
-        if not hasattr(values, "dtype"):
-            values = _prep_ndarray(values, copy=copy)
-            values = values.ravel()
-        elif copy:
-            values = values.copy()
-
-        index, columns = _get_axes(len(values), 1, index, columns)
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
-    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
+    if is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
 
         if isinstance(values, np.ndarray) and values.ndim > 1:
@@ -308,6 +293,7 @@ def nested_data_to_arrays(
         if isinstance(data[0], ABCSeries):
             index = _get_names_from_index(data)
         elif isinstance(data[0], Categorical):
+            # GH#38845 hit in test_constructor_categorical
             index = ibase.default_index(len(data[0]))
         else:
             index = ibase.default_index(len(data))
@@ -486,7 +472,9 @@ def _get_names_from_index(data):
     return index
 
 
-def _get_axes(N, K, index, columns) -> Tuple[Index, Index]:
+def _get_axes(
+    N: int, K: int, index: Optional[Index], columns: Optional[Index]
+) -> Tuple[Index, Index]:
     # helper to create the axes as indexes
     # return axes or defaults
 
