@@ -66,7 +66,7 @@ class Engine:
         self.data.expanding().apply(function, raw=True, engine=engine)
 
     def time_rolling_methods(self, constructor, dtype, function, engine, method):
-        getattr(self.data.rolling(10), method)()
+        getattr(self.data.rolling(10), method)(engine=engine)
 
 
 class ExpandingMethods:
