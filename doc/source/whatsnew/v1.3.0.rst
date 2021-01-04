@@ -322,7 +322,7 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :class:`Index` constructor sometimes silently ignorning a a specified ``dtype`` (:issue:`38879`)
--
+- Fixed Pandas not being able to compile on z/OS when using xlc (:issue:`35826`)
 -
 
 .. ---------------------------------------------------------------------------
