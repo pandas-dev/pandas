@@ -2178,15 +2178,15 @@ def test_groupby_series_with_tuple_name():
 
 
 @pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
-@pytest.mark.parametrize("func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])])
+@pytest.mark.parametrize(
+    "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
+)
 def test_groupby_numerical_stability_sum_mean(func, values):
     # GH#38778
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
     df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
     result = getattr(df.groupby("group"), func)()
-    expected = DataFrame(
-        {"a": values, "b": values}, index=Index([1, 2], name="group")
-    )
+    expected = DataFrame({"a": values, "b": values}, index=Index([1, 2], name="group"))
     tm.assert_frame_equal(result, expected)
 
 
