@@ -10,16 +10,6 @@ performed in pandas.
 
 .. include:: includes/introduction.rst
 
-.. note::
-
-   Throughout this tutorial, the pandas ``DataFrame`` will be displayed by calling
-   ``df.head()``, which displays the first N (default 5) rows of the ``DataFrame``.
-   This is often used in interactive work (e.g. `Jupyter notebook
-   <https://jupyter.org/>`_ or terminal) -- the equivalent in Stata would be:
-
-   .. code-block:: stata
-
-      list in 1/5
 
 Data structures
 ---------------
@@ -116,7 +106,7 @@ the data set if presented with a url.
        "/pandas/master/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
-   tips.head()
+   tips
 
 Like ``import delimited``, :func:`read_csv` can take a number of parameters to specify
 how the data should be parsed.  For example, if the data were instead tab delimited,
@@ -139,6 +129,18 @@ pandas can also read Stata data sets in ``.dta`` format with the :func:`read_sta
 In addition to text/csv and Stata files, pandas supports a variety of other data formats
 such as Excel, SAS, HDF5, Parquet, and SQL databases.  These are all read via a ``pd.read_*``
 function.  See the :ref:`IO documentation<io>` for more details.
+
+
+Limiting output
+~~~~~~~~~~~~~~~
+
+.. include:: includes/limit.rst
+
+The equivalent in Stata would be:
+
+.. code-block:: stata
+
+   list in 1/5
 
 
 Exporting data

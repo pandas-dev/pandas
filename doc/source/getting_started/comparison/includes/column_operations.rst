@@ -6,6 +6,6 @@ a column from the ``DataFrame``.
 
    tips["total_bill"] = tips["total_bill"] - 2
    tips["new_bill"] = tips["total_bill"] / 2
-   tips.head()
+   tips
 
    tips = tips.drop("new_bill", axis=1)

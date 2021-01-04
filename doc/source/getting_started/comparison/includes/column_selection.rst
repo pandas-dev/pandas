@@ -4,10 +4,10 @@ place. To make these changes persist, assign the operation back to a variable.
 .. ipython:: python
 
    # keep
-   tips[["sex", "total_bill", "tip"]].head()
+   tips[["sex", "total_bill", "tip"]]
 
    # drop
-   tips.drop("sex", axis=1).head()
+   tips.drop("sex", axis=1)
 
    # rename
-   tips.rename(columns={"total_bill": "total_bill_2"}).head()
+   tips.rename(columns={"total_bill": "total_bill_2"})

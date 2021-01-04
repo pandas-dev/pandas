@@ -4,4 +4,4 @@ indexes are zero-based.
 
 .. ipython:: python
 
-   tips["sex"].str[0:1].head()
+   tips["sex"].str[0:1]

@@ -4,23 +4,13 @@
 
 Comparison with SAS
 ********************
+
 For potential users coming from `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__
 this page is meant to demonstrate how different SAS operations would be
 performed in pandas.
 
 .. include:: includes/introduction.rst
 
-.. note::
-
-   Throughout this tutorial, the pandas ``DataFrame`` will be displayed by calling
-   ``df.head()``, which displays the first N (default 5) rows of the ``DataFrame``.
-   This is often used in interactive work (e.g. `Jupyter notebook
-   <https://jupyter.org/>`_ or terminal) - the equivalent in SAS would be:
-
-   .. code-block:: sas
-
-      proc print data=df(obs=5);
-      run;
 
 Data structures
 ---------------
@@ -120,7 +110,7 @@ The pandas method is :func:`read_csv`, which works similarly.
        "pandas/master/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
-   tips.head()
+   tips
 
 
 Like ``PROC IMPORT``, ``read_csv`` can take a number of parameters to specify
@@ -137,6 +127,19 @@ and did not have column names, the pandas command would be:
 In addition to text/csv, pandas supports a variety of other data formats
 such as Excel, HDF5, and SQL databases.  These are all read via a ``pd.read_*``
 function.  See the :ref:`IO documentation<io>` for more details.
+
+Limiting output
+~~~~~~~~~~~~~~~
+
+.. include:: includes/limit.rst
+
+The equivalent in SAS would be:
+
+.. code-block:: sas
+
+   proc print data=df(obs=5);
+   run;
+
 
 Exporting data
 ~~~~~~~~~~~~~~
