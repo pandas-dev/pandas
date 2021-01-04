@@ -997,7 +997,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
-        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
         msg = "Must have equal len keys and value when setting with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[0:2, "x"] = data
