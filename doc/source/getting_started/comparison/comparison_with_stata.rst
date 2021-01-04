@@ -407,7 +407,7 @@ or the intersection of the two by using the values created in the
    restore
    merge 1:n key using df2.dta
 
-.. include:: includes/merge_setup.rst
+.. include:: includes/merge.rst
 
 
 Missing data
