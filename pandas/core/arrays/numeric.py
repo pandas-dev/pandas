@@ -1,10 +1,12 @@
 import datetime
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Callable, Union
 
 import numpy as np
 
 from pandas._libs import Timedelta, missing as libmissing
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -54,6 +56,32 @@ class NumericDtype(BaseMaskedDtype):
             return results[0]
         else:
             return array_class._concat_same_type(results)
+
+
+_round_doc = """
+Round each value in NumericArray a to the given number of decimals.
+
+Parameters
+----------
+decimals : int, default 0
+    Number of decimal places to round to. If decimals is negative,
+    it specifies the number of positions to the left of the decimal point.
+*args, **kwargs
+    Additional arguments and keywords have no effect but might be
+    accepted for compatibility with NumPy.
+
+Returns
+-------
+NumericArray
+    Rounded values of the NumericArray.
+
+See Also
+--------
+numpy.around : Round values of an np.array.
+DataFrame.round : Round values of a DataFrame.
+Series.round : Round values of a Series.
+
+"""
 
 
 class NumericArray(BaseMaskedArray):
@@ -131,7 +159,7 @@ class NumericArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _apply(self, func, **kwargs):
+    def _apply(self, func: Callable, **kwargs) -> "NumericArray":
         values = self._data[~self._mask]
         values = np.round(values, **kwargs)
 
@@ -139,5 +167,7 @@ class NumericArray(BaseMaskedArray):
         data[~self._mask] = values
         return type(self)(data, self._mask)
 
-    def round(self, decimals=0):
-        return self._apply(np.round, decimals=decimals)
+    @doc(_round_doc)
+    def round(self, decimals: int = 0, *args, **kwargs) -> "NumericArray":
+        nv.validate_round(args, kwargs)
+        return self._apply(np.round, decimals=decimals, **kwargs)
