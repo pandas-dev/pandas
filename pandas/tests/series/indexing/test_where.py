@@ -489,10 +489,6 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_series_equal(res, Series(dr))
 
     # DataFrame.where
-    if tz is None:
-        res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
-    else:
-        with pytest.xfail(reason="frame._values loses tz"):
-            res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
+    res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
