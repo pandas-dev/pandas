@@ -37,7 +37,7 @@ Fixed regressions
 - Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
 - Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
--
+- Fixed regression in :meth:`Rolling.skew` and :meth:`Rolling.kurt` modifying the object inplace (:issue:`38908`)
 
 .. ---------------------------------------------------------------------------
 
