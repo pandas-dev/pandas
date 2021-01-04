@@ -179,18 +179,8 @@ the column from the data set.
    generate new_bill = total_bill / 2
    drop new_bill
 
-pandas provides similar vectorized operations by
-specifying the individual ``Series`` in the ``DataFrame``.
-New columns can be assigned in the same way. The :meth:`DataFrame.drop` method
-drops a column from the ``DataFrame``.
+.. include:: includes/column_operations.rst
 
-.. ipython:: python
-
-   tips["total_bill"] = tips["total_bill"] - 2
-   tips["new_bill"] = tips["total_bill"] / 2
-   tips.head()
-
-   tips = tips.drop("new_bill", axis=1)
 
 Filtering
 ~~~~~~~~~
@@ -256,20 +246,7 @@ Stata provides keywords to select, drop, and rename columns.
 
    rename total_bill total_bill_2
 
-The same operations are expressed in pandas below. Note that in contrast to Stata, these
-operations do not happen in place. To make these changes persist, assign the operation back
-to a variable.
-
-.. ipython:: python
-
-   # keep
-   tips[["sex", "total_bill", "tip"]].head()
-
-   # drop
-   tips.drop("sex", axis=1).head()
-
-   # rename
-   tips.rename(columns={"total_bill": "total_bill_2"}).head()
+.. include:: includes/column_selection.rst
 
 
 Sorting by values
