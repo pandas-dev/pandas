@@ -1,5 +1,5 @@
 DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`
+:ref:`boolean indexing <indexing.boolean>`.
 
 .. ipython:: python
 
