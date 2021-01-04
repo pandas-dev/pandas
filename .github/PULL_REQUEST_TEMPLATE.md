@@ -1,5 +1,4 @@
 - [ ] closes #xxxx
 - [ ] tests added / passed
-- [ ] passes `black pandas`
-- [ ] passes `git diff upstream/master -u -- "*.py" | flake8 --diff`
+- [ ] Ensure all linting tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing.html#code-standards) for how to run them
 - [ ] whatsnew entry
