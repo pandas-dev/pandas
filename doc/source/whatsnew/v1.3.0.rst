@@ -39,6 +39,21 @@ For example:
 ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
 See ref:`window.overview` for performance and functional benefits. (:issue:`15095`)
 
+.. _whatsnew_130.dataframe_honors_copy_with_dict:
+
+DataFrame constructor honors ``copy=False`` With Dict
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When passing a dictionary to :class:`DataFrame` with (the default) ``copy=False``,
+a copy will no longer be made (:issue:`32960`)
+
+.. ipython:: python
+
+    arr = np.array([1, 2, 3])
+    df = pd.DataFrame({"A": arr, "B": arr.copy()})
+    arr[0] = 0
+    assert df.iloc[0, 0] == 0
+
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
@@ -52,7 +67,6 @@ Other enhancements
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
-- The :class:`DataFrame` constructor now uses ``copy`` for dict-inputs to control whether copies of the arrays are made, rather than ignoring it (:issue:`32960`)
 
 .. ---------------------------------------------------------------------------
 
