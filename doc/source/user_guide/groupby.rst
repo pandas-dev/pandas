@@ -1037,7 +1037,13 @@ Some operations on the grouped data might not fit into either the aggregate or
 transform categories. Or, you may simply want GroupBy to infer how to combine
 the results. For these, use the ``apply`` function, which can be substituted
 for both ``aggregate`` and ``transform`` in many standard use cases. However,
-``apply`` can handle some exceptional use cases, for example:
+``apply`` can handle some exceptional use cases.
+
+.. note::
+
+   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
+   So depending on the path taken, and exactly what you are grouping. Thus the grouped column(s) may be included in
+   the output as well as set the indices.
 
 .. ipython:: python
 
@@ -1051,7 +1057,7 @@ The dimension of the returned result can also change:
 
 .. ipython:: python
 
-    grouped = df.groupby('A', group_keys=False)['C']
+    grouped = df.groupby('A')['C']
 
     def f(group):
         return pd.DataFrame({'original': group,
@@ -1071,13 +1077,33 @@ that is itself a series, and possibly upcast the result to a DataFrame:
     s
     s.apply(f)
 
+Control grouped column(s) placement with ``group_keys``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
 
-   ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
-   So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
-   the output as well as set the indices.
+   If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
+   functions passed to ``apply`` that return like-indexed outputs will have the
+   group keys added to the result index. Previous versions of pandas would add
+   the group keys only when the result from the applied function had a different
+   index than the input. If ``group_keys`` is not specified, the group keys will
+   not be added for like-indexed outputs. In this future this behavior
+   will change to always respect ``group_keys``, which defaults to ``True``.
 
+   .. versionchanged:: 1.3.0
+
+To control whether the grouped column(s) are included in the indices, you can use
+the argument ``group_keys``. Compare
+
+.. ipython:: python
+
+    df.groupby("A", group_keys=True).apply(lambda x: x)
+
+with
+
+.. ipython:: python
+
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 Numba Accelerated Routines
 --------------------------
