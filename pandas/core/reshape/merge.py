@@ -1749,7 +1749,6 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-
             if not is_dtype_equal(lk.dtype, rk.dtype):
                 if is_categorical_dtype(lk.dtype) and is_categorical_dtype(rk.dtype):
                     # The generic error message is confusing for categoricals.
