@@ -26,6 +26,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -1105,7 +1106,7 @@ def rank_2d(
         Py_ssize_t infs
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-        ndarray[int64_t, ndim=2] argsort_indexer
+        ndarray[intp_t, ndim=2] argsort_indexer
         ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_value
         float64_t count, sum_ranks = 0.0
@@ -1160,11 +1161,11 @@ def rank_2d(
 
     if tiebreak == TIEBREAK_FIRST:
         # need to use a stable sort here
-        argsort_indexer = values.argsort(axis=1, kind='mergesort').astype('i8')
+        argsort_indexer = values.argsort(axis=1, kind='mergesort')
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        argsort_indexer = values.argsort(1).astype('i8')
+        argsort_indexer = values.argsort(1)
 
     if not ascending:
         argsort_indexer = argsort_indexer[:, ::-1]
