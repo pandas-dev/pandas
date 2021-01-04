@@ -2055,8 +2055,10 @@ class TestHDFStore:
             df = tm.makeDataFrame()
             df["invalid"] = [["a"]] * len(df)
             assert df.dtypes["invalid"] == np.object_
-            msg = re.escape("""Cannot serialize the column [invalid]
-because its data contents are not [string] but [mixed] object dtype""")
+            msg = re.escape(
+                """Cannot serialize the column [invalid]
+because its data contents are not [string] but [mixed] object dtype"""
+            )
             with pytest.raises(TypeError, match=msg):
                 store.append("df", df)
 
@@ -2222,8 +2224,10 @@ because its data contents are not [string] but [mixed] object dtype""")
 
         with ensure_clean_store(setup_path) as store:
             # this fails because we have a date in the object block......
-            msg = re.escape("""Cannot serialize the column [datetime1]
-because its data contents are not [string] but [date] object dtype""")
+            msg = re.escape(
+                """Cannot serialize the column [datetime1]
+because its data contents are not [string] but [date] object dtype"""
+            )
             with pytest.raises(TypeError, match=msg):
                 store.append("df_unimplemented", df)
 

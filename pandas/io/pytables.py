@@ -3916,7 +3916,7 @@ class Table(Fixed):
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                block_columns=b_items
+                block_columns=b_items,
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -4876,8 +4876,14 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors,
-    block_columns: List[str] = []
+    name: str,
+    block,
+    existing_col,
+    min_itemsize,
+    nan_rep,
+    encoding,
+    errors,
+    block_columns: List[str] = [],
 ):
     # block_columns(list[str]): the label of columns for debug info use.
     if not block.is_object:
@@ -4918,9 +4924,9 @@ def _maybe_convert_for_string_atom(
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                error_column_label = block_columns[i] \
-                    if len(block_columns) > i \
-                    else f"No.{i}"
+                error_column_label = (
+                    block_columns[i] if len(block_columns) > i else f"No.{i}"
+                )
                 raise TypeError(
                     f"Cannot serialize the column [{error_column_label}]\n"
                     f"because its data contents are not [string] but "
