@@ -52,6 +52,7 @@ Other enhancements
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
+- The :class:`DataFrame` constructor now uses ``copy`` for dict-inputs to control whether copies of the arrays are made, rather than ignoring it (:issue:`32960`)
 
 .. ---------------------------------------------------------------------------
 
