@@ -158,8 +158,12 @@ Deprecations
 :meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`~DataFrame.groupby` will no longer ignore the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`, :issue:`31612`, :issue:`14927`, :issue:`13056`).
-Previous versions of pandas would add the group keys only when the result from the applied function had a different index to the input.
+If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
+functions passed to ``apply`` that return like-indexed outputs will have the
+group keys added to the result index. Previous versions of pandas would add
+the group keys only when the result from the applied function had a different
+index than the input. If ``group_keys`` is not specified, the group keys will
+not be added for like-indexed outputs.
 
 *Previous behavior*:
 
