@@ -17,7 +17,7 @@ pandas documentation
 `Source Repository <https://github.com/pandas-dev/pandas>`__ |
 `Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
 `Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
-`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
+`Mailing List <https://groups.google.com/g/pydata>`__
 
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__

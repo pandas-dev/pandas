@@ -36,6 +36,7 @@ Style application
    Styler.where
    Styler.format
    Styler.set_precision
+   Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
    Styler.set_caption

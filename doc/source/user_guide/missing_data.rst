@@ -400,7 +400,10 @@ You can also interpolate with a DataFrame:
 .. ipython:: python
 
    df = pd.DataFrame(
-       {"A": [1, 2.1, np.nan, 4.7, 5.6, 6.8], "B": [0.25, np.nan, np.nan, 4, 12.2, 14.4]}
+       {
+           "A": [1, 2.1, np.nan, 4.7, 5.6, 6.8],
+           "B": [0.25, np.nan, np.nan, 4, 12.2, 14.4],
+       }
    )
    df
    df.interpolate()
@@ -463,7 +466,7 @@ at the new values.
    ser = pd.Series(np.sort(np.random.uniform(size=100)))
 
    # interpolate at new_index
-   new_index = ser.index | pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75])
+   new_index = ser.index.union(pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75]))
    interp_s = ser.reindex(new_index).interpolate(method="pchip")
    interp_s[49:51]
 

@@ -23,7 +23,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
@@ -986,7 +986,12 @@ Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
 .. ipython:: python
 
    # Try to infer the format for the index column
-   df = pd.read_csv("foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True)
+   df = pd.read_csv(
+       "foo.csv",
+       index_col=0,
+       parse_dates=True,
+       infer_datetime_format=True,
+   )
    df
 
 .. ipython:: python
@@ -1019,9 +1024,10 @@ Writing CSVs to binary file objects
 
 .. versionadded:: 1.2.0
 
-``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
-opened binary mode. For this to work, it is necessary that ``mode``
-contains a "b":
+``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
+opened binary mode. In most cases, it is not necessary to specify
+``mode`` as Pandas will auto-detect whether the file object is
+opened in text or binary mode.
 
 .. ipython:: python
 
@@ -1029,7 +1035,7 @@ contains a "b":
 
    data = pd.DataFrame([0, 1, 2])
    buffer = io.BytesIO()
-   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+   data.to_csv(buffer, encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1046,9 +1052,19 @@ writing to a file). For example:
 
    val = "0.3066101993807095471566981359501369297504425048828125"
    data = "a,b,c\n1,2,{0}".format(val)
-   abs(pd.read_csv(StringIO(data), engine="c", float_precision=None)["c"][0] - float(val))
    abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="high")["c"][0] - float(val)
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision=None,
+       )["c"][0] - float(val)
+   )
+   abs(
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision="high",
+       )["c"][0] - float(val)
    )
    abs(
        pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
@@ -1561,19 +1577,21 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", chunksize=4)
-   reader
+   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
+       reader
+       for chunk in reader:
+           print(chunk)
 
-   for chunk in reader:
-       print(chunk)
+.. versionchanged:: 1.2
 
+  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", iterator=True)
-   reader.get_chunk(5)
+   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
+       reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
@@ -1608,6 +1626,20 @@ functions - the following example shows reading a CSV file:
 .. code-block:: python
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
+
+.. versionadded:: 1.3.0
+
+A custom header can be sent alongside HTTP(s) requests by passing a dictionary
+of header key value mappings to the ``storage_options`` keyword argument as shown below:
+
+.. code-block:: python
+
+   headers = {"User-Agent": "pandas"}
+   df = pd.read_csv(
+       "https://download.bls.gov/pub/time.series/cu/cu.item",
+       sep="\t",
+       storage_options=headers
+   )
 
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
@@ -2222,10 +2254,10 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df.to_json(orient="records", lines=True)
 
   # reader is an iterator that returns ``chunksize`` lines each iteration
-  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
-  reader
-  for chunk in reader:
-      print(chunk)
+  with pd.read_json(StringIO(jsonl), lines=True, chunksize=1) as reader:
+      reader
+      for chunk in reader:
+          print(chunk)
 
 .. _io.table_schema:
 
@@ -2427,7 +2459,9 @@ as a string:
 .. ipython:: python
    :suppress:
 
-   file_path = os.path.abspath(os.path.join("source", "_static", "banklist.html"))
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
+                           "banklist.html")
+   file_path = os.path.abspath(rel_path)
 
 .. ipython:: python
 
@@ -2517,7 +2551,12 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
-   dfs = pd.read_html(url_mcc, match="Telekom Albania", header=0, converters={"MNC": str})
+   dfs = pd.read_html(
+       url_mcc,
+       match="Telekom Albania",
+       header=0,
+       converters={"MNC": str},
+   )
 
 Use some combination of the above:
 
@@ -2797,14 +2836,39 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
-files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
+can be read using ``xlrd``. Binary Excel (``.xlsb``)
 files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
+
+.. warning::
+
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
+   old-style ``.xls`` files.
+
+   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files.
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details.
+
+   Thus, it is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. _io.excel_reader:
 
@@ -3176,6 +3240,13 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 Excel writer engines
 ''''''''''''''''''''
+
+.. deprecated:: 1.2.0
+
+   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+   maintained, the ``xlwt`` engine will be removed from a future version
+   of pandas. This is the only engine in pandas that supports writing to
+   ``.xls`` files.
 
 pandas chooses an Excel writer via two methods:
 
@@ -3570,7 +3641,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame(
+       {
+           "col1": [0, np.nan, 2],
+           "col2": [1, np.nan, np.nan],
+       }
+   )
    df_with_missing
 
    df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
@@ -3944,7 +4020,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
        {
            "A": pd.Timestamp("20130101"),
            "B": [
-               pd.Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
+               pd.Timestamp("20130101") + timedelta(days=i, seconds=10)
+               for i in range(10)
            ],
        }
    )
@@ -4241,7 +4318,11 @@ results.
    store.select("df2_mt")
 
    # as a multiple
-   store.select_as_multiple(["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt")
+   store.select_as_multiple(
+       ["df1_mt", "df2_mt"],
+       where=["A>0", "B>0"],
+       selector="df1_mt",
+   )
 
 
 Delete from a table
@@ -4797,8 +4878,16 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_fp.parquet", engine="fastparquet", columns=["a", "b"])
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", columns=["a", "b"])
+   result = pd.read_parquet(
+       "example_fp.parquet",
+       engine="fastparquet",
+       columns=["a", "b"],
+   )
+   result = pd.read_parquet(
+       "example_pa.parquet",
+       engine="pyarrow",
+       columns=["a", "b"],
+   )
    result.dtypes
 
 
@@ -5176,7 +5265,11 @@ to pass to :func:`pandas.to_datetime`:
 .. code-block:: python
 
    pd.read_sql_table("data", engine, parse_dates={"Date": "%Y-%m-%d"})
-   pd.read_sql_table("data", engine, parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}})
+   pd.read_sql_table(
+       "data",
+       engine,
+       parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}},
+   )
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -5428,9 +5521,9 @@ object can be used as an iterator.
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", chunksize=3)
-  for df in reader:
-      print(df.shape)
+  with pd.read_stata("stata.dta", chunksize=3) as reader:
+      for df in reader:
+          print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -5438,9 +5531,9 @@ For more fine-grained control, use ``iterator=True`` and specify
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", iterator=True)
-  chunk1 = reader.read(5)
-  chunk2 = reader.read(5)
+  with pd.read_stata("stata.dta", iterator=True) as reader:
+      chunk1 = reader.read(5)
+      chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -5552,9 +5645,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    rdr = pd.read_sas("sas_xport.xpt", chunk=100000)
-    for chunk in rdr:
-        do_something(chunk)
+    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+        for chunk in rdr:
+            do_something(chunk)
 
 The specification_ for the xport file format is available from the SAS
 web site.
@@ -5593,7 +5686,11 @@ avoid converting categorical columns into ``pd.Categorical``:
 
 .. code-block:: python
 
-    df = pd.read_spss("spss_data.sav", usecols=["foo", "bar"], convert_categoricals=False)
+    df = pd.read_spss(
+        "spss_data.sav",
+        usecols=["foo", "bar"],
+        convert_categoricals=False,
+    )
 
 More information about the SAV and ZSAV file formats is available here_.
 
@@ -5640,7 +5737,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-Given the next test set:
+The following test functions will be used below to compare the performance of several IO methods:
 
 .. code-block:: python
 
@@ -5745,7 +5842,7 @@ Given the next test set:
    def test_parquet_read():
        pd.read_parquet("test.parquet")
 
-When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
+When writing, the top three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
@@ -5779,7 +5876,7 @@ When writing, the top-three functions in terms of speed are ``test_feather_write
    In [13]: %timeit test_parquet_write(df)
    67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
+When reading, the top three functions in terms of speed are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
 
@@ -5816,8 +5913,7 @@ When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
    24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 
-For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
-Space on disk (in bytes)
+The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk (in bytes).
 
 .. code-block:: none
 

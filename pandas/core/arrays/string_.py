@@ -1,23 +1,26 @@
-import operator
-from typing import TYPE_CHECKING, Type, Union
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Dtype, Scalar
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
 
-from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.array_algos import masked_reductions
+from pandas.core.arrays import FloatingArray, IntegerArray, PandasArray
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -185,7 +188,10 @@ class StringArray(PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        self._dtype = StringDtype()
+        # pandas\core\arrays\string_.py:188: error: Incompatible types in
+        # assignment (expression has type "StringDtype", variable has type
+        # "PandasDtype")  [assignment]
+        self._dtype = StringDtype()  # type: ignore[assignment]
         if not isinstance(values, type(self)):
             self._validate()
 
@@ -200,7 +206,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         if dtype:
             assert dtype == "string"
 
@@ -228,7 +234,9 @@ class StringArray(PandasArray):
         return new_string_array
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     def __arrow_array__(self, type=None):
@@ -278,30 +286,55 @@ class StringArray(PandasArray):
 
         super().__setitem__(key, value)
 
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO: validate dtype
-        return super().fillna(value, method, limit)
-
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, StringDtype):
+
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
         elif isinstance(dtype, _IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
             arr[mask] = 0
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
+        elif isinstance(dtype, FloatingDtype):
+            arr = self.copy()
+            mask = self.isna()
+            arr[mask] = "0"
+            values = arr.astype(dtype.numpy_dtype)
+            return FloatingArray(values, mask, copy=False)
+        elif np.issubdtype(dtype, np.floating):
+            arr = self._ndarray.copy()
+            mask = self.isna()
+            arr[mask] = 0
+            values = arr.astype(dtype)
+            values[mask] = np.nan
+            return values
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_min((), kwargs)
+        result = masked_reductions.min(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_max((), kwargs)
+        result = masked_reductions.max(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
@@ -314,60 +347,43 @@ class StringArray(PandasArray):
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
-    # Override parent because we have different return types.
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        # Note: this handles both arithmetic and comparison methods.
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
 
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def method(self, other):
-            from pandas.arrays import BooleanArray
+        if isinstance(other, StringArray):
+            other = other._ndarray
 
-            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+        mask = isna(self) | isna(other)
+        valid = ~mask
 
-            if isinstance(other, cls):
-                other = other._ndarray
+        if not lib.is_scalar(other):
+            if len(other) != len(self):
+                # prevent improper broadcasting when other is 2D
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
 
-            mask = isna(self) | isna(other)
-            valid = ~mask
+            other = np.asarray(other)
+            other = other[valid]
 
-            if not lib.is_scalar(other):
-                if len(other) != len(self):
-                    # prevent improper broadcasting when other is 2D
-                    raise ValueError(
-                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
-                    )
+        if op.__name__ in ops.ARITHMETIC_BINOPS:
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = StringDtype.na_value
+            result[valid] = op(self._ndarray[valid], other)
+            return StringArray(result)
+        else:
+            # logical
+            result = np.zeros(len(self._ndarray), dtype="bool")
+            result[valid] = op(self._ndarray[valid], other)
+            return BooleanArray(result, mask)
 
-                other = np.asarray(other)
-                other = other[valid]
+    _arith_method = _cmp_method
 
-            if op.__name__ in ops.ARITHMETIC_BINOPS:
-                result = np.empty_like(self._ndarray, dtype="object")
-                result[mask] = StringDtype.na_value
-                result[valid] = op(self._ndarray[valid], other)
-                return StringArray(result)
-            else:
-                # logical
-                result = np.zeros(len(self._ndarray), dtype="bool")
-                result[valid] = op(self._ndarray[valid], other)
-                return BooleanArray(result, mask)
-
-        return compat.set_function_name(method, f"__{op.__name__}__", cls)
-
-    @classmethod
-    def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
-
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
-
-    _create_comparison_method = _create_arithmetic_method
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = StringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype=None):
+    def _str_map(self, f, na_value=None, dtype: Optional[Dtype] = None):
         from pandas.arrays import BooleanArray, IntegerArray, StringArray
         from pandas.core.arrays.string_ import StringDtype
 
@@ -415,7 +431,3 @@ class StringArray(PandasArray):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
-
-StringArray._add_arithmetic_ops()
-StringArray._add_comparison_ops()

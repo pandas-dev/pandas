@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.io.formats.printing import pprint_thing
@@ -414,14 +414,19 @@ def hist_frame(
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
+        if not isinstance(column, (list, np.ndarray, ABCIndex)):
             column = [column]
         data = data[column]
-    data = data._get_numeric_data()
+    # GH32590
+    data = data.select_dtypes(
+        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+    )
     naxes = len(data.columns)
 
     if naxes == 0:
-        raise ValueError("hist method requires numerical columns, nothing to plot.")
+        raise ValueError(
+            "hist method requires numerical or datetime columns, nothing to plot."
+        )
 
     fig, axes = create_subplots(
         naxes=naxes,

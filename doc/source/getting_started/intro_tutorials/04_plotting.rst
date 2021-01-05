@@ -17,26 +17,8 @@
         </div>
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
 
-For this tutorial, air quality data about :math:`NO_2` is used, made
-available by `openaq <https://openaq.org>`__ and using the
-`py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
-The ``air_quality_no2.csv`` data set provides :math:`NO_2` values for
-the measurement stations *FR04014*, *BETR801* and *London Westminster*
-in respectively Paris, Antwerp and London.
-
-.. raw:: html
-
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_no2.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
+.. include:: includes/air_quality_no2.rst
 
 .. ipython:: python
 
@@ -131,8 +113,8 @@ standard Python to get an overview of the available plot methods:
     ]
 
 .. note::
-    In many development environments as well as ipython and
-    jupyter notebook, use the TAB button to get an overview of the available
+    In many development environments as well as IPython and
+    Jupyter Notebook, use the TAB button to get an overview of the available
     methods, for example ``air_quality.plot.`` + TAB.
 
 One of the options is :meth:`DataFrame.plot.box`, which refers to a
@@ -167,7 +149,7 @@ I want each of the columns in a separate subplot.
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
 
-Separate subplots for each of the data columns is supported by the ``subplots`` argument
+Separate subplots for each of the data columns are supported by the ``subplots`` argument
 of the ``plot`` functions. The builtin options available in each of the pandas plot
 functions that are worthwhile to have a look.
 
@@ -214,7 +196,7 @@ I want to further customize, extend or save the resulting plot.
         </li>
     </ul>
 
-Each of the plot objects created by pandas are a
+Each of the plot objects created by pandas is a
 `matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
 Matplotlib explicit enables all the power of matplotlib to the plot.

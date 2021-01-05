@@ -6,13 +6,26 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+from __future__ import annotations
+
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Dtype, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -24,10 +37,11 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -35,7 +49,9 @@ from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = dict()
+_extension_array_shared_docs: Dict[str, str] = {}
+
+ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
 
 class ExtensionArray:
@@ -173,7 +189,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -195,7 +211,9 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -232,8 +250,8 @@ class ExtensionArray:
 
         See Also
         --------
-        factorize
-        ExtensionArray.factorize
+        factorize : Top-level factorize method that dispatches here.
+        ExtensionArray.factorize : Encode the extension array as an enumerated type.
         """
         raise AbstractMethodError(cls)
 
@@ -241,8 +259,9 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
 
-    def __getitem__(self, item):
-        # type (Any) -> Any
+    def __getitem__(
+        self, item: Union[int, slice, np.ndarray]
+    ) -> Union[ExtensionArray, Any]:
         """
         Select a subset of self.
 
@@ -338,6 +357,23 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
+    def __contains__(self, item) -> bool:
+        """
+        Return for `item in self`.
+        """
+        # GH37867
+        # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
+        # would raise a TypeError. The implementation below works around that.
+        if is_scalar(item) and isna(item):
+            if not self._can_hold_na:
+                return False
+            elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
+                return self.isna().any()
+            else:
+                return False
+        else:
+            return (item == self).any()
+
     def __eq__(self, other: Any) -> ArrayLike:
         """
         Return for `self == other` (element-wise equality).
@@ -357,7 +393,10 @@ class ExtensionArray:
         return ~(self == other)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -403,7 +442,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
         """
@@ -455,14 +494,19 @@ class ExtensionArray:
             NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
-        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+
+        # FIXME: Really hard-code here?
+        if isinstance(
+            dtype, (ArrowStringDtype, StringDtype)
+        ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
@@ -501,13 +545,18 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
     def argsort(
-        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
     ) -> np.ndarray:
         """
         Return the indices that would sort this array.
@@ -517,7 +566,7 @@ class ExtensionArray:
         ascending : bool, default True
             Whether the indices should result in an ascending
             or descending sort.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
@@ -538,8 +587,14 @@ class ExtensionArray:
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
-        result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
-        return result
+        values = self._values_for_argsort()
+        return nargsort(
+            values,
+            kind=kind,
+            ascending=ascending,
+            na_position=na_position,
+            mask=np.asarray(self.isna()),
+        )
 
     def argmin(self):
         """
@@ -637,7 +692,7 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
+    def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
         Shift values by desired number.
 
@@ -768,12 +823,12 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
         """
-        if not type(self) == type(other):
+        if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
         if not is_dtype_equal(self.dtype, other.dtype):
             return False
-        elif not len(self) == len(other):
+        elif len(self) != len(other):
             return False
         else:
             equal_values = self == other
@@ -807,7 +862,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
         """
         Encode the extension array as an enumerated type.
 
@@ -902,7 +957,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
@@ -911,8 +966,12 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> "ExtensionArray":
+        self,
+        indices: Sequence[int],
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+    ) -> ExtensionArray:
         """
         Take elements from an array.
 
@@ -956,8 +1015,8 @@ class ExtensionArray:
 
         See Also
         --------
-        numpy.take
-        api.extensions.take
+        numpy.take : Take elements from an array along an axis.
+        api.extensions.take : Take elements from an array.
 
         Notes
         -----
@@ -1001,7 +1060,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self) -> "ExtensionArray":
+    def copy(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Return a copy of the array.
 
@@ -1011,7 +1070,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> ArrayLike:
+    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1081,7 +1140,20 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def ravel(self, order="C") -> "ExtensionArray":
+    def transpose(self, *axes) -> ExtensionArray:
+        """
+        Return a transposed view on this array.
+
+        Because ExtensionArrays are always 1D, this is a no-op.  It is included
+        for compatibility with np.ndarray.
+        """
+        return self[:]
+
+    @property
+    def T(self) -> ExtensionArray:
+        return self.transpose()
+
+    def ravel(self, order="C") -> ExtensionArray:
         """
         Return a flattened view on this array.
 
@@ -1102,8 +1174,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence["ExtensionArray"]
-    ) -> "ExtensionArray":
+        cls: Type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
+    ) -> ExtensionArrayT:
         """
         Concatenate multiple array of this dtype.
 
@@ -1129,7 +1201,7 @@ class ExtensionArray:
     # of objects
     _can_hold_na = True
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1294,7 +1366,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
+            if isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

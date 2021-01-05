@@ -513,7 +513,11 @@ The ordering of the categorical is determined by the ``categories`` of that colu
 
    dfs = pd.DataFrame(
        {
-           "A": pd.Categorical(list("bbeebbaa"), categories=["e", "a", "b"], ordered=True),
+           "A": pd.Categorical(
+               list("bbeebbaa"),
+               categories=["e", "a", "b"],
+               ordered=True,
+           ),
            "B": [1, 2, 1, 2, 2, 1, 2, 1],
        }
    )
@@ -642,7 +646,13 @@ Groupby will also show "unused" categories:
     df.groupby("cats").mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
-    df2 = pd.DataFrame({"cats": cats2, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
+    df2 = pd.DataFrame(
+        {
+            "cats": cats2,
+            "B": ["c", "d", "c", "d"],
+            "values": [1, 2, 3, 4],
+        }
+    )
     df2.groupby(["cats", "B"]).mean()
 
 
@@ -1115,7 +1125,11 @@ You can use ``fillna`` to handle missing values before applying a function.
 .. ipython:: python
 
     df = pd.DataFrame(
-        {"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"], "cats": pd.Categorical([1, 2, 3, 2])}
+        {
+            "a": [1, 2, 3, 4],
+            "b": ["a", "b", "c", "d"],
+            "cats": pd.Categorical([1, 2, 3, 2]),
+        }
     )
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
