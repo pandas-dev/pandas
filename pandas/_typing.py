@@ -84,6 +84,7 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
+Frequency = Optional[str]
 Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]

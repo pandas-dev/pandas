@@ -29,7 +29,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Mapping,
     Optional,
     Sequence,
     Set,
@@ -60,6 +59,7 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     FrameOrSeriesUnion,
+    Frequency,
     IndexKeyFunc,
     IndexLabel,
     Label,
@@ -1435,7 +1435,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result
 
-    def to_dict(self, orient: str = "dict", into=dict) -> Union[List, Mapping]:
+    def to_dict(self, orient: str = "dict", into=dict):
         """
         Convert the DataFrame to a dictionary.
 
@@ -4581,7 +4581,11 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
-        self, periods=1, freq=None, axis: Axis = 0, fill_value=lib.no_default
+        self,
+        periods=1,
+        freq: Frequency = None,
+        axis: Axis = 0,
+        fill_value=lib.no_default,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -9378,7 +9382,7 @@ NaN 12.3   33.0
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
         self,
-        freq,
+        freq: Frequency,
         method=None,
         how: Optional[str] = None,
         normalize: bool = False,
@@ -9425,7 +9429,7 @@ NaN 12.3   33.0
 
     def to_timestamp(
         self,
-        freq: Optional[str] = None,
+        freq: Frequency = None,
         how: str = "start",
         axis: Axis = 0,
         copy: bool = True,
@@ -9462,7 +9466,7 @@ NaN 12.3   33.0
         return new_obj
 
     def to_period(
-        self, freq: Optional[str] = None, axis: Axis = 0, copy: bool = True
+        self, freq: Frequency = None, axis: Axis = 0, copy: bool = True
     ) -> DataFrame:
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
@@ -9497,9 +9501,7 @@ NaN 12.3   33.0
 
     def isin(
         self,
-        values: Union[
-            FrameOrSeriesUnion, Dict[Label, Iterable[Scalar]], Iterable[Scalar]
-        ],
+        values,
     ) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
