@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series
+from pandas import Index, MultiIndex, Series, IntervalIndex, CategoricalIndex
 import pandas._testing as tm
 
 
@@ -483,3 +483,24 @@ def test_intersection_different_names():
     mi2 = MultiIndex.from_arrays([[1], [3]])
     result = mi.intersection(mi2)
     tm.assert_index_equal(result, mi2)
+
+
+def test_union_nan_got_duplicated():
+    # GH
+    mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
+    mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2)
+
+
+def test_union_duplicates(index):
+    # GH
+    # Index has to be sorted as of now.
+    if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
+        # No duplicates in empty indexes
+        return
+    values = index.unique().sort_values().values.tolist()
+    mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
+    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2.sort_values())
