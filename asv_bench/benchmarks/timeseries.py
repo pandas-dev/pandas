@@ -346,7 +346,7 @@ class ToDatetimeISO8601:
 class ToDatetimeNONISO8601:
     def setup(self):
         N = 10000
-        half = int(N / 2)
+        half = N // 2
         ts_string_1 = "March 1, 2018 12:00:00+0400"
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         self.same_offset = [ts_string_1] * N
@@ -376,7 +376,7 @@ class ToDatetimeFormat:
         self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
         self.diff_offset = [
             f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
-        ] * int(N / 10)
+        ] * (N // 10)
 
     def time_exact(self):
         to_datetime(self.s2, format="%d%b%y")

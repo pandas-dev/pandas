@@ -5,6 +5,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -842,6 +843,14 @@ def test_omit_nuisance(df):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
 
+def test_omit_nuisance_sem(df):
+    # GH 38774 - sem should work with nuisance columns
+    grouped = df.groupby("A")
+    result = grouped.sem()
+    expected = df.loc[:, ["A", "C", "D"]].groupby("A").sem()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_omit_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
 
@@ -1571,7 +1580,7 @@ def test_groupby_multiindex_not_lexsorted():
         [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
     )
     lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-    assert lexsorted_df.columns.is_lexsorted()
+    assert lexsorted_df.columns._is_lexsorted()
 
     # define the non-lexsorted version
     not_lexsorted_df = DataFrame(
@@ -1581,7 +1590,7 @@ def test_groupby_multiindex_not_lexsorted():
         index="a", columns=["b", "c"], values="d"
     )
     not_lexsorted_df = not_lexsorted_df.reset_index()
-    assert not not_lexsorted_df.columns.is_lexsorted()
+    assert not not_lexsorted_df.columns._is_lexsorted()
 
     # compare the results
     tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -1596,7 +1605,7 @@ def test_groupby_multiindex_not_lexsorted():
     df = DataFrame(
         {"x": ["a", "a", "b", "a"], "y": [1, 1, 2, 2], "z": [1, 2, 3, 4]}
     ).set_index(["x", "y"])
-    assert not df.index.is_lexsorted()
+    assert not df.index._is_lexsorted()
 
     for level in [0, 1, [0, 1]]:
         for sort in [False, True]:
@@ -2166,3 +2175,29 @@ def test_groupby_series_with_tuple_name():
     expected = Series([2, 4], index=[1, 2], name=("a", "a"))
     expected.index.name = ("b", "b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
+@pytest.mark.parametrize(
+    "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
+)
+def test_groupby_numerical_stability_sum_mean(func, values):
+    # GH#38778
+    data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
+    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
+    result = getattr(df.groupby("group"), func)()
+    expected = DataFrame({"a": values, "b": values}, index=Index([1, 2], name="group"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
+def test_groupby_numerical_stability_cumsum():
+    # GH#38934
+    data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
+    df = DataFrame({"group": [1, 2] * 4, "a": data, "b": data})
+    result = df.groupby("group").cumsum()
+    exp_data = (
+        [1e16] * 2 + [1e16 + 96, 1e16 + 98] + [5e15 + 97, 5e15 + 98] + [97.0, 98.0]
+    )
+    expected = DataFrame({"a": exp_data, "b": exp_data})
+    tm.assert_frame_equal(result, expected, check_exact=True)
