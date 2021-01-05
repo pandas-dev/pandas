@@ -16,13 +16,13 @@ services:
 # travis cache --delete inside the project directory from the travis command line client
 # The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
+  apt: true
   ccache: true
   directories:
     - $HOME/.cache # cython cache
 
 env:
   global:
-    - PYTEST_WORKERS="auto"
     # create a github personal access token
     # cd pandas-dev/pandas
     # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
@@ -35,24 +35,9 @@ matrix:
   fast_finish: true
 
   include:
-    - env:
-        - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
-      services:
-        - mysql
-        - postgresql
-
     - arch: arm64
       env:
         - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
-
-    - env:
-        # Enabling Deprecations when running tests
-        # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
-        # See pandas/_testing.py for more details.
-        - JOB="3.7, coverage" ENV_FILE="ci/deps/travis-37-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
-      services:
-        - mysql
-        - postgresql
 
   allow_failures:
     # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719

@@ -12,6 +12,7 @@ from pandas._libs.tslibs import (
     delta_to_nanoseconds,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
+    parsing,
     period as libperiod,
     to_offset,
 )
@@ -26,7 +27,7 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import AnyArrayLike
+from pandas._typing import AnyArrayLike, Dtype
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -198,10 +199,10 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         cls: Type["PeriodArray"],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
         *,
-        dtype: Optional[PeriodDtype] = None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
-        if dtype:
+        if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
             freq = None
@@ -1074,7 +1075,7 @@ def _range_from_fields(
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = libperiod.quarter_to_myear(y, q, freqstr)
+            y, m = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

@@ -7,7 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Label
+from pandas._typing import ArrayLike, Dtype, Label
 from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
@@ -180,7 +180,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
+        cls,
+        data=None,
+        categories=None,
+        ordered=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
 
         name = maybe_extract_name(name, data, cls)

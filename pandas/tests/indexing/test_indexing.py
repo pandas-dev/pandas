@@ -17,23 +17,6 @@ from pandas.tests.indexing.common import _mklbl
 
 from .test_floats import gen_obj
 
-
-def getitem(x):
-    return x
-
-
-def setitem(x):
-    return x
-
-
-def loc(x):
-    return x.loc
-
-
-def iloc(x):
-    return x.iloc
-
-
 # ------------------------------------------------------------------------
 # Indexing test cases
 
@@ -72,7 +55,7 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize("idxr", [getitem, loc, iloc])
+    @pytest.mark.parametrize("idxr", [tm.getitem, tm.loc, tm.iloc])
     def test_getitem_ndarray_3d(self, index, frame_or_series, idxr):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
@@ -95,7 +78,7 @@ class TestFancy:
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
@@ -297,7 +280,7 @@ class TestFancy:
         result = df.loc[[1, 2], ["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("case", [getitem, loc])
+    @pytest.mark.parametrize("case", [tm.getitem, tm.loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
         s = Series(range(3), index=[1, 1, 3])
@@ -592,7 +575,7 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [getitem, loc])
+    @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
 
         # GH 11836
@@ -965,7 +948,7 @@ class TestDataframeNoneCoercion:
 
 
 class TestDatetimelikeCoercion:
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
     def test_setitem_dt64_string_scalar(self, tz_naive_fixture, indexer):
         # dispatching _can_hold_element to underling DatetimeArray
         tz = tz_naive_fixture
@@ -991,12 +974,12 @@ class TestDatetimelikeCoercion:
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
     def test_setitem_dt64_string_values(self, tz_naive_fixture, indexer, key, box):
         # dispatching _can_hold_element to underling DatetimeArray
         tz = tz_naive_fixture
 
-        if isinstance(key, slice) and indexer is loc:
+        if isinstance(key, slice) and indexer is tm.loc:
             key = slice(0, 1)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
@@ -1017,7 +1000,7 @@ class TestDatetimelikeCoercion:
             assert ser._values is values
 
     @pytest.mark.parametrize("scalar", ["3 Days", offsets.Hour(4)])
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
     def test_setitem_td64_scalar(self, indexer, scalar):
         # dispatching _can_hold_element to underling TimedeltaArray
         tdi = timedelta_range("1 Day", periods=3)
@@ -1033,10 +1016,10 @@ class TestDatetimelikeCoercion:
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
-    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc, tm.iloc])
     def test_setitem_td64_string_values(self, indexer, key, box):
         # dispatching _can_hold_element to underling TimedeltaArray
-        if isinstance(key, slice) and indexer is loc:
+        if isinstance(key, slice) and indexer is tm.loc:
             key = slice(0, 1)
 
         tdi = timedelta_range("1 Day", periods=3)
