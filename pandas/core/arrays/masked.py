@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar,
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, Scalar
+from pandas._typing import ArrayLike, Dtype, NpDtype, Scalar
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -147,7 +147,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -257,7 +260,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values

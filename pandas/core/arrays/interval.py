@@ -1,7 +1,7 @@
 import operator
 from operator import le, lt
 import textwrap
-from typing import Sequence, Type, TypeVar
+from typing import Optional, Sequence, Type, TypeVar, cast
 
 import numpy as np
 
@@ -14,7 +14,7 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds,
 )
 from pandas._libs.missing import NA
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Dtype, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -170,7 +170,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls,
         data,
         closed=None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
@@ -212,7 +212,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, left, right, closed=None, copy=False, dtype=None, verify_integrity=True
+        cls,
+        left,
+        right,
+        closed=None,
+        copy=False,
+        dtype: Optional[Dtype] = None,
+        verify_integrity=True,
     ):
         result = IntervalMixin.__new__(cls)
 
@@ -223,12 +229,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
-            if not is_interval_dtype(dtype):
+            if is_interval_dtype(dtype):
+                dtype = cast(IntervalDtype, dtype)
+                if dtype.subtype is not None:
+                    left = left.astype(dtype.subtype)
+                    right = right.astype(dtype.subtype)
+            else:
                 msg = f"dtype must be an IntervalDtype, got {dtype}"
                 raise TypeError(msg)
-            elif dtype.subtype is not None:
-                left = left.astype(dtype.subtype)
-                right = right.astype(dtype.subtype)
 
         # coerce dtypes to match if needed
         if is_float_dtype(left) and is_integer_dtype(right):
@@ -279,7 +287,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ):
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -338,7 +348,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def from_breaks(cls, breaks, closed="right", copy=False, dtype=None):
+    def from_breaks(
+        cls, breaks, closed="right", copy: bool = False, dtype: Optional[Dtype] = None
+    ):
         breaks = maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(breaks[:-1], breaks[1:], closed, copy=copy, dtype=dtype)
@@ -407,7 +419,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def from_arrays(cls, left, right, closed="right", copy=False, dtype=None):
+    def from_arrays(
+        cls, left, right, closed="right", copy=False, dtype: Optional[Dtype] = None
+    ):
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
 
@@ -464,7 +478,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def from_tuples(cls, data, closed="right", copy=False, dtype=None):
+    def from_tuples(
+        cls, data, closed="right", copy=False, dtype: Optional[Dtype] = None
+    ):
         if len(data):
             left, right = [], []
         else:
@@ -1277,7 +1293,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')

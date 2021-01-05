@@ -1,11 +1,11 @@
 import numbers
-from typing import Tuple, Type, Union
+from typing import Optional, Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._typing import Scalar
+from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -38,7 +38,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: object):
+    def __init__(self, dtype: Optional[NpDtype]):
         self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
@@ -173,7 +173,7 @@ class PandasArray(
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
@@ -200,7 +200,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
@@ -311,7 +311,15 @@ class PandasArray(
         )
         return self._wrap_reduction_result(axis, result)
 
-    def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def mean(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
@@ -326,7 +334,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def std(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
@@ -335,7 +350,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def var(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
@@ -344,7 +366,14 @@ class PandasArray(
         return self._wrap_reduction_result(axis, result)
 
     def sem(
-        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        ddof=1,
+        keepdims=False,
+        skipna=True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
@@ -352,14 +381,30 @@ class PandasArray(
         result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
         return self._wrap_reduction_result(axis, result)
 
-    def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def kurt(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
         )
         result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def skew(
+        self,
+        *,
+        axis=None,
+        dtype: Optional[NpDtype] = None,
+        out=None,
+        keepdims=False,
+        skipna=True,
+    ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
         )
@@ -370,7 +415,10 @@ class PandasArray(
     # Additional Methods
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[NpDtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 

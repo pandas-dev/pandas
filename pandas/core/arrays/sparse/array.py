@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
-from pandas._typing import Scalar
+from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -174,7 +174,7 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
-def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
+def _wrap_result(name, data, sparse_index, fill_value, dtype: Optional[Dtype] = None):
     """
     wrap op result to have correct dtype
     """
@@ -281,7 +281,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         index=None,
         fill_value=None,
         kind="integer",
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
     ):
 
@@ -454,7 +454,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -487,7 +487,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -998,7 +998,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype=None, copy=True):
+    def astype(self, dtype: Optional[Dtype] = None, copy=True):
         """
         Change the dtype of a SparseArray.
 
@@ -1461,7 +1461,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return None
 
 
-def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
+def make_sparse(
+    arr: np.ndarray, kind="block", fill_value=None, dtype: Optional[NpDtype] = None
+):
     """
     Convert ndarray to sparse format
 
