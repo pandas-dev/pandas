@@ -127,8 +127,6 @@ class Base:
             assert isinstance(result, datetime)
             assert t.tzinfo == result.tzinfo
 
-        except OutOfBoundsDatetime:
-            pass
         except (ValueError, KeyError):
             # we are creating an invalid offset
             # so ignore
