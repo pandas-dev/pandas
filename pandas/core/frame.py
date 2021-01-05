@@ -5069,6 +5069,28 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> DataFrame:
         return ~self.isna()
+    
+    # Overload function signature to prevent union of conflicting types
+    # As Optional[DataFrame] is really Union[DataFrame, None]
+    @overload
+    def dropna(
+        self,
+        axis: Axis = ...,
+        how: str = ...,
+        thresh: Optional[int] = ...,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        inplace: Literal[False] = False,
+    ) -> DataFrame: ...
+
+    @overload
+    def dropna(
+        self,
+        axis: Axis = ...,
+        how: str = ...,
+        thresh: Optional[int] = ...,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        inplace: Literal[True] = True,
+    ) -> None: ...
 
     def dropna(
         self,
