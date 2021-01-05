@@ -5074,10 +5074,10 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         how: str = "any",
-        thresh=None,
-        subset=None,
+        thresh Optional[int] = None,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         inplace: bool = False,
-    ):
+    ) -> Optional[DataFrame]:
         """
         Remove missing values.
 
