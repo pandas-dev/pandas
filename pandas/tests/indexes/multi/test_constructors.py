@@ -193,16 +193,16 @@ def test_from_arrays_tuples(idx):
     ("idx1", "idx2"),
     [
         (
-            period_range("2011-01-01", freq="D", periods=3),
-            period_range("2015-01-01", freq="H", periods=3),
+            pd.period_range("2011-01-01", freq="D", periods=3),
+            pd.period_range("2015-01-01", freq="H", periods=3),
         ),
         (
             date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
             date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo"),
         ),
         (
-            timedelta_range("1 days", freq="D", periods=3),
-            timedelta_range("2 hours", freq="H", periods=3),
+            pd.timedelta_range("1 days", freq="D", periods=3),
+            pd.timedelta_range("2 hours", freq="H", periods=3),
         ),
     ],
 )
