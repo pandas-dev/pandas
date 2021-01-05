@@ -3915,6 +3915,7 @@ class Table(Fixed):
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
+                block_columns=b_items,
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -4878,7 +4879,14 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block: "Block", existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str,
+    block: "Block",
+    existing_col,
+    min_itemsize,
+    nan_rep,
+    encoding,
+    errors,
+    block_columns: List[str],
 ):
     if not block.is_object:
         return block.values
@@ -4912,14 +4920,20 @@ def _maybe_convert_for_string_atom(
 
         # we cannot serialize this data, so report an exception on a column
         # by column basis
-        for i in range(len(block.shape[0])):
+
+        # expected behaviour:
+        # search block for a non-string object column by column
+        for i in range(block.shape[0]):
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                iloc = block.mgr_locs.indexer[i]
+                error_column_label = (
+                    block_columns[i] if len(block_columns) > i else f"No.{i}"
+                )
                 raise TypeError(
-                    f"Cannot serialize the column [{iloc}] because\n"
-                    f"its data contents are [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{error_column_label}]\n"
+                    f"because its data contents are not [string] but "
+                    f"[{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
