@@ -5074,7 +5074,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         axis: Axis = 0,
         how: str = "any",
-        thresh Optional[int] = None,
+        thresh: Optional[int] = None,
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         inplace: bool = False,
     ) -> Optional[DataFrame]:
@@ -5216,6 +5216,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if inplace:
             self._update_inplace(result)
+            return None
         else:
             return result
 
