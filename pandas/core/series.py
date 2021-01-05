@@ -4485,7 +4485,7 @@ Keep all original rows and also all original values
             method=method,
         )
 
-    def _replace_single(self, to_replace, method, inplace, limit):
+    def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
         replacement value is given in the replace method

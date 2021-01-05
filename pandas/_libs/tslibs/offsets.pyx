@@ -3565,7 +3565,7 @@ cpdef to_offset(freq):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    elif isinstance(freq, timedelta):
+    elif PyDelta_Check(freq):
         return delta_to_tick(freq)
 
     elif isinstance(freq, str):
