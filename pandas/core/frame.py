@@ -5070,8 +5070,6 @@ class DataFrame(NDFrame, OpsMixin):
     def notnull(self) -> DataFrame:
         return ~self.isna()
 
-    # Overload function signature to prevent union of conflicting types
-    # As Optional[DataFrame] is really Union[DataFrame, None]
     @overload
     def dropna(
         self,
