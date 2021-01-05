@@ -573,7 +573,7 @@ KORD2,19990127, 20:00:00""",
 ID,date,nominalTime
 KORD,19990127, 19:00:00
 KORD,19990127, 20:00:00""",
-            dict(ID=[1, 2]),
+            {"ID": [1, 2]},
             "Date column ID already in dict",
         ),
     ],
@@ -641,7 +641,7 @@ def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
-        dict({"A": np.arange(10, dtype="float64"), "B": pd.Timestamp("20010101")})
+        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
     )
     df.iloc[3:6, :] = np.nan
 
@@ -784,7 +784,7 @@ def test_multi_index_parse_dates(all_parsers, index_col):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(dayfirst=True), dict(day_first=True)])
+@pytest.mark.parametrize("kwargs", [{"dayfirst": True}, {"day_first": True}])
 def test_parse_dates_custom_euro_format(all_parsers, kwargs):
     parser = all_parsers
     data = """foo,bar,baz
@@ -1020,13 +1020,13 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     )
     expected = expected.set_index("nominal")
 
-    reader = parser.read_csv(
+    with parser.read_csv(
         StringIO(data),
         parse_dates={"nominal": [1, 2]},
         index_col="nominal",
         chunksize=2,
-    )
-    chunks = list(reader)
+    ) as reader:
+        chunks = list(reader)
 
     tm.assert_frame_equal(chunks[0], expected[:2])
     tm.assert_frame_equal(chunks[1], expected[2:4])
@@ -1076,7 +1076,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col="C")])
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": "C"}])
 def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
     # see gh-5636
     parser = all_parsers
@@ -1140,24 +1140,24 @@ def test_parse_dates_empty_string(all_parsers):
     [
         (
             "a\n04.15.2016",
-            dict(parse_dates=["a"]),
+            {"parse_dates": ["a"]},
             DataFrame([datetime(2016, 4, 15)], columns=["a"]),
         ),
         (
             "a\n04.15.2016",
-            dict(parse_dates=True, index_col=0),
+            {"parse_dates": True, "index_col": 0},
             DataFrame(index=DatetimeIndex(["2016-04-15"], name="a")),
         ),
         (
             "a,b\n04.15.2016,09.16.2013",
-            dict(parse_dates=["a", "b"]),
+            {"parse_dates": ["a", "b"]},
             DataFrame(
                 [[datetime(2016, 4, 15), datetime(2013, 9, 16)]], columns=["a", "b"]
             ),
         ),
         (
             "a,b\n04.15.2016,09.16.2013",
-            dict(parse_dates=True, index_col=[0, 1]),
+            {"parse_dates": True, "index_col": [0, 1]},
             DataFrame(
                 index=MultiIndex.from_tuples(
                     [(datetime(2016, 4, 15), datetime(2013, 9, 16))], names=["a", "b"]
@@ -1215,7 +1215,7 @@ date,time,a,b
 2001-01-05, 10:00:00, 0.0, 10.
 2001-01-05, 00:00:00, 1., 11.
 """,
-            dict(header=0, parse_dates={"date_time": [0, 1]}),
+            {"header": 0, "parse_dates": {"date_time": [0, 1]}},
             DataFrame(
                 [
                     [datetime(2001, 1, 5, 10, 0, 0), 0.0, 10],
@@ -1233,7 +1233,7 @@ date,time,a,b
                 "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
                 "KORD,19990127, 23:00:00, 22:56:00, -0.5900"
             ),
-            dict(header=None, parse_dates={"actual": [1, 2], "nominal": [1, 3]}),
+            {"header": None, "parse_dates": {"actual": [1, 2], "nominal": [1, 3]}},
             DataFrame(
                 [
                     [
@@ -1472,7 +1472,7 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = pd.DatetimeIndex(
+    dti = DatetimeIndex(
         list(
             pd.date_range(
                 start="2018-01-04 09:01:00",
@@ -1595,3 +1595,12 @@ def test_missing_parse_dates_column_raises(
         parser.read_csv(
             content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
         )
+
+
+def test_date_parser_and_names(all_parsers):
+    # GH#33699
+    parser = all_parsers
+    data = StringIO("""x,y\n1,2""")
+    result = parser.read_csv(data, parse_dates=["B"], names=["B"])
+    expected = DataFrame({"B": ["y", "2"]}, index=["x", "1"])
+    tm.assert_frame_equal(result, expected)

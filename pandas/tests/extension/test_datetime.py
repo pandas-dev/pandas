@@ -181,8 +181,10 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
     @pytest.mark.parametrize("obj", ["series", "frame"])
     def test_unstack(self, obj):
         # GH-13287: can't use base test, since building the expected fails.
+        dtype = DatetimeTZDtype(tz="US/Central")
         data = DatetimeArray._from_sequence(
-            ["2000", "2001", "2002", "2003"], tz="US/Central"
+            ["2000", "2001", "2002", "2003"],
+            dtype=dtype,
         )
         index = pd.MultiIndex.from_product(([["A", "B"], ["a", "b"]]), names=["a", "b"])
 

@@ -6,7 +6,7 @@
 Package overview
 ****************
 
-**pandas** is a `Python <https://www.python.org>`__ package providing fast,
+pandas is a `Python <https://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
 fundamental high-level building block for doing practical, **real-world** data
@@ -147,7 +147,7 @@ pandas possible. Thanks to `all of our contributors <https://github.com/pandas-d
 
 If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
-pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
+pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
 This will help ensure the success of the development of pandas as a world-class open-source
 project and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project.
 
@@ -174,4 +174,3 @@ License
 -------
 
 .. literalinclude:: ../../../LICENSE
-

@@ -4,11 +4,12 @@ timedelta support tools
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import NaT
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
@@ -25,10 +26,12 @@ def to_timedelta(arg, unit=None, errors="raise"):
     Parameters
     ----------
     arg : str, timedelta, list-like or Series
-        The data to be converted to timedelta.  The character M by itself,
-        e.g. '1M', is treated as minute, not month. The characters Y and y
-        are treated as the mean length of the Gregorian calendar year -
-        365.2425 days or 365 days 5 hours 49 minutes 12 seconds.
+        The data to be converted to timedelta.
+
+        .. deprecated:: 1.2
+            Strings with units 'M', 'Y' and 'y' do not represent
+            unambiguous timedelta values and will be removed in a future version
+
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
@@ -63,6 +66,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
     convert_dtypes : Convert dtypes.
+
+    Notes
+    -----
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds for string inputs.
 
     Examples
     --------
@@ -106,11 +114,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
-        arg = arg.item()
+        arg = lib.item_from_zerodim(arg)
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:

@@ -1,8 +1,8 @@
 from datetime import datetime
-import inspect
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -11,7 +11,6 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import (
-    Categorical,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -20,28 +19,16 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:
-    def test_set_index_directly(self, float_string_frame):
-        df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
-
-        df.index = idx
-        tm.assert_index_equal(df.index, idx)
-        with pytest.raises(ValueError, match="Length mismatch"):
-            df.index = idx[::2]
-
-    def test_convert_dti_to_series(self):
-        # don't cast a DatetimeIndex WITH a tz, leave as object
-        # GH 6032
-        idx = DatetimeIndex(
-            to_datetime(["2013-1-1 13:00", "2013-1-2 14:00"]), name="B"
-        ).tz_localize("US/Pacific")
-        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+    @pytest.fixture
+    def idx_expected(self):
+        idx = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B").tz_localize(
+            "US/Pacific"
+        )
 
         expected = Series(
             np.array(
@@ -53,34 +40,22 @@ class TestDataFrameAlterAxes:
             ),
             name="B",
         )
+        assert expected.dtype == idx.dtype
+        return idx, expected
 
-        # convert index to series
-        result = Series(idx)
-        tm.assert_series_equal(result, expected)
-
-        # assign to frame
-        df["B"] = idx
-        result = df["B"]
-        tm.assert_series_equal(result, expected)
-
+    def test_to_series_keep_tz_deprecated_true(self, idx_expected):
         # convert to series while keeping the timezone
+        idx, expected = idx_expected
+
         msg = "stop passing 'keep_tz'"
         with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(keep_tz=True, index=[0, 1])
-        tm.assert_series_equal(result, expected)
         assert msg in str(m[0].message)
 
-        # convert to utc
-        with tm.assert_produces_warning(FutureWarning) as m:
-            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
-        result = df["B"]
-        comp = Series(DatetimeIndex(expected.values).tz_localize(None), name="B")
-        tm.assert_series_equal(result, comp)
-        msg = "do 'idx.tz_convert(None)' before calling"
-        assert msg in str(m[0].message)
-
-        result = idx.to_series(index=[0, 1])
         tm.assert_series_equal(result, expected)
+
+    def test_to_series_keep_tz_deprecated_false(self, idx_expected):
+        idx, expected = idx_expected
 
         with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(keep_tz=False, index=[0, 1])
@@ -88,26 +63,59 @@ class TestDataFrameAlterAxes:
         msg = "do 'idx.tz_convert(None)' before calling"
         assert msg in str(m[0].message)
 
-        # list of datetimes with a tz
+    def test_setitem_dt64series(self, idx_expected):
+        # convert to utc
+        idx, expected = idx_expected
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+        df["B"] = idx
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
+        msg = "do 'idx.tz_convert(None)' before calling"
+        assert msg in str(m[0].message)
+
+        result = df["B"]
+        comp = Series(idx.tz_convert("UTC").tz_localize(None), name="B")
+        tm.assert_series_equal(result, comp)
+
+    def test_setitem_datetimeindex(self, idx_expected):
+        # setting a DataFrame column with a tzaware DTI retains the dtype
+        idx, expected = idx_expected
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+
+        # assign to frame
+        df["B"] = idx
+        result = df["B"]
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_object_array_of_tzaware_datetimes(self, idx_expected):
+        # setting a DataFrame column with a tzaware DTI retains the dtype
+        idx, expected = idx_expected
+        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+
+        # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
         result = df["B"]
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_from_tzaware_datetimeindex(self, idx_expected):
+        # don't cast a DatetimeIndex WITH a tz, leave as object
+        # GH 6032
+        idx, expected = idx_expected
+
+        # convert index to series
+        result = Series(idx)
+        tm.assert_series_equal(result, expected)
+
+    def test_set_axis_setattr_index(self):
         # GH 6785
         # set the index manually
-        import pytz
 
         df = DataFrame([{"ts": datetime(2014, 4, 1, tzinfo=pytz.utc), "foo": 1}])
         expected = df.set_index("ts")
         df.index = df["ts"]
         df.pop("ts")
         tm.assert_frame_equal(df, expected)
-
-    def test_set_columns(self, float_string_frame):
-        cols = Index(np.arange(len(float_string_frame.columns)))
-        float_string_frame.columns = cols
-        with pytest.raises(ValueError, match="Length mismatch"):
-            float_string_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):
         # GH 6631
@@ -120,6 +128,7 @@ class TestDataFrameAlterAxes:
         df = df.reindex(idx2)
         tm.assert_index_equal(df.index, idx2)
 
+    def test_dti_set_index_reindex_with_tz(self):
         # GH 11314
         # with tz
         index = date_range(
@@ -135,34 +144,6 @@ class TestDataFrameAlterAxes:
 
     # Renaming
 
-    def test_reindex_api_equivalence(self):
-        # equivalence of the labels/axis and index/columns API's
-        df = DataFrame(
-            [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
-            index=["a", "b", "c"],
-            columns=["d", "e", "f"],
-        )
-
-        res1 = df.reindex(["b", "a"])
-        res2 = df.reindex(index=["b", "a"])
-        res3 = df.reindex(labels=["b", "a"])
-        res4 = df.reindex(labels=["b", "a"], axis=0)
-        res5 = df.reindex(["b", "a"], axis=0)
-        for res in [res2, res3, res4, res5]:
-            tm.assert_frame_equal(res1, res)
-
-        res1 = df.reindex(columns=["e", "d"])
-        res2 = df.reindex(["e", "d"], axis=1)
-        res3 = df.reindex(labels=["e", "d"], axis=1)
-        for res in [res2, res3]:
-            tm.assert_frame_equal(res1, res)
-
-        res1 = df.reindex(index=["b", "a"], columns=["e", "d"])
-        res2 = df.reindex(columns=["e", "d"], index=["b", "a"])
-        res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
-        for res in [res2, res3]:
-            tm.assert_frame_equal(res1, res)
-
     def test_assign_columns(self, float_frame):
         float_frame["hi"] = "there"
 
@@ -171,68 +152,21 @@ class TestDataFrameAlterAxes:
         tm.assert_series_equal(float_frame["C"], df["baz"], check_names=False)
         tm.assert_series_equal(float_frame["hi"], df["foo2"], check_names=False)
 
-    def test_set_index_preserve_categorical_dtype(self):
-        # GH13743, GH13854
-        df = DataFrame(
-            {
-                "A": [1, 2, 1, 1, 2],
-                "B": [10, 16, 22, 28, 34],
-                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
-                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
-            }
-        )
-        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
-            result = df.set_index(cols).reset_index()
-            result = result.reindex(columns=df.columns)
-            tm.assert_frame_equal(result, df)
-
-    def test_rename_signature(self):
-        sig = inspect.signature(DataFrame.rename)
-        parameters = set(sig.parameters)
-        assert parameters == {
-            "self",
-            "mapper",
-            "index",
-            "columns",
-            "axis",
-            "inplace",
-            "copy",
-            "level",
-            "errors",
-        }
-
-    def test_reindex_signature(self):
-        sig = inspect.signature(DataFrame.reindex)
-        parameters = set(sig.parameters)
-        assert parameters == {
-            "self",
-            "labels",
-            "index",
-            "columns",
-            "axis",
-            "limit",
-            "copy",
-            "level",
-            "method",
-            "fill_value",
-            "tolerance",
-        }
-
 
 class TestIntervalIndex:
     def test_setitem(self):
 
         df = DataFrame({"A": range(10)})
-        s = cut(df.A, 5)
-        assert isinstance(s.cat.categories, IntervalIndex)
+        ser = cut(df["A"], 5)
+        assert isinstance(ser.cat.categories, IntervalIndex)
 
         # B & D end up as Categoricals
         # the remainer are converted to in-line objects
         # contining an IntervalIndex.values
-        df["B"] = s
-        df["C"] = np.array(s)
-        df["D"] = s.values
-        df["E"] = np.array(s.values)
+        df["B"] = ser
+        df["C"] = np.array(ser)
+        df["D"] = ser.values
+        df["E"] = np.array(ser.values)
 
         assert is_categorical_dtype(df["B"].dtype)
         assert is_interval_dtype(df["B"].cat.categories)
@@ -245,17 +179,17 @@ class TestIntervalIndex:
         # they compare equal as Index
         # when converted to numpy objects
         c = lambda x: Index(np.array(x))
-        tm.assert_index_equal(c(df.B), c(df.B), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.B))
         tm.assert_index_equal(c(df.B), c(df.C), check_names=False)
         tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
-        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+        tm.assert_index_equal(c(df.C), c(df.D), check_names=False)
 
         # B & D are the same Series
-        tm.assert_series_equal(df["B"], df["B"], check_names=False)
+        tm.assert_series_equal(df["B"], df["B"])
         tm.assert_series_equal(df["B"], df["D"], check_names=False)
 
         # C & E are the same Series
-        tm.assert_series_equal(df["C"], df["C"], check_names=False)
+        tm.assert_series_equal(df["C"], df["C"])
         tm.assert_series_equal(df["C"], df["E"], check_names=False)
 
     def test_set_reset_index(self):

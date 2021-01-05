@@ -68,7 +68,12 @@ extensions = [
     "contributors",  # custom pandas extension
 ]
 
-exclude_patterns = ["**.ipynb_checkpoints"]
+exclude_patterns = [
+    "**.ipynb_checkpoints",
+    # to ensure that include files (partial pages) aren't built, exclude them
+    # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
+    "**/includes/**",
+]
 try:
     import nbconvert
 except ImportError:
@@ -146,7 +151,7 @@ copyright = f"2008-{datetime.now().year}, the pandas development team"
 # built documents.
 #
 # The short X.Y version.
-import pandas  # noqa: E402 isort:skip
+import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
@@ -441,14 +446,14 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx  # noqa: E402 isort:skip
-from sphinx.util import rpartition  # noqa: E402 isort:skip
-from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+import sphinx  # isort:skip
+from sphinx.util import rpartition  # isort:skip
+from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
     MethodDocumenter,
 )
-from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
+from sphinx.ext.autosummary import Autosummary  # isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):
@@ -687,6 +692,30 @@ def process_class_docstrings(app, what, name, obj, options, lines):
         lines[:] = joined.split("\n")
 
 
+_BUSINED_ALIASES = [
+    "pandas.tseries.offsets." + name
+    for name in [
+        "BDay",
+        "CDay",
+        "BMonthEnd",
+        "BMonthBegin",
+        "CBMonthEnd",
+        "CBMonthBegin",
+    ]
+]
+
+
+def process_business_alias_docstrings(app, what, name, obj, options, lines):
+    """
+    Starting with sphinx 3.4, the "autodoc-process-docstring" event also
+    gets called for alias classes. This results in numpydoc adding the
+    methods/attributes to the docstring, which we don't want (+ this
+    causes warnings with sphinx).
+    """
+    if name in _BUSINED_ALIASES:
+        lines[:] = []
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -716,6 +745,7 @@ def setup(app):
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
+    app.connect("autodoc-process-docstring", process_business_alias_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

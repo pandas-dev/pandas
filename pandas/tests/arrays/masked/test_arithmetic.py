@@ -1,3 +1,5 @@
+from typing import Any, List
+
 import numpy as np
 import pytest
 
@@ -5,8 +7,13 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
+# integer dtypes
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
-scalars = [2] * len(arrays)
+scalars: List[Any] = [2] * len(arrays)
+# floating dtypes
+arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
+scalars += [0.2, 0.2]
+# boolean
 arrays += [pd.array([True, False, True, None], dtype="boolean")]
 scalars += [False]
 
@@ -36,11 +43,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
     for scalar in [scalar, data.dtype.type(scalar)]:
         result = op(data, scalar)
         expected = op(data, scalar_array)
-        if isinstance(expected, ExtensionArray):
-            tm.assert_extension_array_equal(result, expected)
-        else:
-            # TODO div still gives float ndarray -> remove this once we have Float EA
-            tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 def test_array_NA(data, all_arithmetic_operators):
