@@ -15,6 +15,7 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -1556,6 +1557,42 @@ class TestPartialStringSlicing:
         sliced = df.loc["0 days"]
         tm.assert_series_equal(sliced, expected)
 
+    @pytest.mark.parametrize("indexer_end", [None, "2020-01-02 23:59:59.999999999"])
+    def test_loc_getitem_partial_slice_non_monotonicity(
+        self, tz_aware_fixture, indexer_end, frame_or_series
+    ):
+        # GH#33146
+        obj = frame_or_series(
+            [1] * 5,
+            index=DatetimeIndex(
+                [
+                    Timestamp("2019-12-30"),
+                    Timestamp("2020-01-01"),
+                    Timestamp("2019-12-25"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                    Timestamp("2019-12-19"),
+                ],
+                tz=tz_aware_fixture,
+            ),
+        )
+        expected = frame_or_series(
+            [1] * 2,
+            index=DatetimeIndex(
+                [
+                    Timestamp("2020-01-01"),
+                    Timestamp("2020-01-02 23:59:59.999999999"),
+                ],
+                tz=tz_aware_fixture,
+            ),
+        )
+        indexer = slice("2020-01-01", indexer_end)
+
+        result = obj[indexer]
+        tm.assert_equal(result, expected)
+
+        result = obj.loc[indexer]
+        tm.assert_equal(result, expected)
+
 
 class TestLabelSlicing:
     def test_loc_getitem_label_slice_across_dst(self):
@@ -1652,7 +1689,7 @@ class TestLabelSlicing:
         # GH: 20975
         df = DataFrame({"test": 1, 1: 2, 2: 3}, index=[0])
         expected = DataFrame(
-            data=[[2, 3]], index=[0], columns=pd.Index([1, 2], dtype=object)
+            data=[[2, 3]], index=[0], columns=Index([1, 2], dtype=object)
         )
         tm.assert_frame_equal(df.loc[:, 1:], expected)
 
@@ -1858,7 +1895,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
