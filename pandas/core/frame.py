@@ -5071,13 +5071,15 @@ class DataFrame(NDFrame, OpsMixin):
         return ~self.isna()
 
     @overload
-    def dropna(
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def dropna(  # type: ignore[misc]
         self,
         axis: Axis = ...,
         how: str = ...,
         thresh: Optional[int] = ...,
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
-        inplace: Literal[False] = False,
+        inplace: Literal[False] = ...,
     ) -> DataFrame:
         ...
 
@@ -5088,7 +5090,7 @@ class DataFrame(NDFrame, OpsMixin):
         how: str = ...,
         thresh: Optional[int] = ...,
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
-        inplace: Literal[True] = True,
+        inplace: Literal[True] = ...,
     ) -> None:
         ...
 
