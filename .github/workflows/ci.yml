@@ -132,3 +132,50 @@ jobs:
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'
+
+  build-sdist:
+    name: Build from source distribution
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update for build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        sudo apt-get clean
+    - name: Setting conda path
+      run: echo "$CONDA/bin" >> $GITHUB_PATH
+    - name: Update conda
+      run: |
+        conda config --set quiet true --set always_yes true
+        conda update -n base -c defaults conda
+        conda list
+    - name: Checkout pandas
+      uses: actions/checkout@v2
+    - name: Fetch git tags
+      run: |
+        git remote -v
+        git fetch --all --tags
+    - name: Setup conda environment for build
+      run: |
+        conda create --name build-sdist python=3.8 numpy
+    - name: Build the sdist
+      run: |
+        source activate build-sdist
+        conda list
+        rm -rf dist
+        git clean -xfd
+        python setup.py clean --quiet
+        python setup.py sdist --formats=gztar --quiet
+    - name: Setup conda environment for test
+      run: |
+        conda create --name pip-test python=3.8 pytest pytest-xdist pytest-mock hypothesis
+    - name: Install pandas and test
+      run: |
+        pwd
+        cd ..
+        pwd
+        source activate pip-test
+        conda list
+        pip install pandas/dist/*.gz
+        conda list
+        python3 -c "import pandas; pandas.test(extra_args=['-m not clipboard', '--skip-slow', '--skip-network', '--skip-db', '-n=2'])"
