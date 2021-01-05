@@ -126,7 +126,7 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
         types: [python]
         files: ^pandas/tests/
-        exclude: ^pandas/tests/(computation|extension|io)/
+        exclude: ^pandas/tests/extension/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
