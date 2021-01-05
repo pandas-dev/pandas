@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs import Timestamp, lib, writers as libwriters
+from pandas._libs import lib, writers as libwriters
 
 from pandas import Index
 import pandas._testing as tm
