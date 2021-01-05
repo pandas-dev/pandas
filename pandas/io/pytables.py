@@ -80,6 +80,8 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 if TYPE_CHECKING:
     from tables import Col, File, Node
 
+    from pandas.core.internals import Block
+
 
 # versioning attribute
 _version = "0.15.2"
@@ -3860,9 +3862,6 @@ class Table(Fixed):
         for a in new_non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
-        def get_blk_items(mgr, blocks):
-            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
-
         transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
@@ -3870,10 +3869,10 @@ class Table(Fixed):
             data_columns, min_itemsize, new_non_index_axes
         )
 
-        block_obj = self.get_object(obj, transposed)._consolidate()
+        frame = self.get_object(obj, transposed)._consolidate()
 
         blocks, blk_items = self._get_blocks_and_items(
-            block_obj, table_exists, new_non_index_axes, self.values_axes, data_columns
+            frame, table_exists, new_non_index_axes, self.values_axes, data_columns
         )
 
         # add my values
@@ -3978,27 +3977,31 @@ class Table(Fixed):
 
     @staticmethod
     def _get_blocks_and_items(
-        block_obj, table_exists, new_non_index_axes, values_axes, data_columns
+        frame: DataFrame,
+        table_exists: bool,
+        new_non_index_axes,
+        values_axes,
+        data_columns,
     ):
         # Helper to clarify non-state-altering parts of _create_axes
 
-        def get_blk_items(mgr, blocks):
-            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
+        def get_blk_items(mgr):
+            return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks = block_obj._mgr.blocks
-        blk_items = get_blk_items(block_obj._mgr, blocks)
+        blocks: List["Block"] = list(frame._mgr.blocks)
+        blk_items: List[Index] = get_blk_items(frame._mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
+            mgr = frame.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
-            blk_items = get_blk_items(mgr, blocks)
+            blk_items = get_blk_items(mgr)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._mgr
+                mgr = frame.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
-                blk_items.extend(get_blk_items(mgr, mgr.blocks))
+                blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
         if table_exists:
@@ -4006,7 +4009,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks = []
+            new_blocks: List["Block"] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)
@@ -4875,7 +4878,7 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str, block: "Block", existing_col, min_itemsize, nan_rep, encoding, errors
 ):
     if not block.is_object:
         return block.values
@@ -4895,11 +4898,12 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return block.values
 
-    block = block.fillna(nan_rep, downcast=False)
-    if isinstance(block, list):
-        # Note: because block is always object dtype, fillna goes
-        #  through a path such that the result is always a 1-element list
-        block = block[0]
+    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    # Note: because block is always object dtype, fillna goes
+    #  through a path such that the result is always a 1-element list
+    assert len(blocks) == 1
+    block = blocks[0]
+
     data = block.values
 
     # see if we have a valid string type
