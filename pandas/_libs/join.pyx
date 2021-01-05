@@ -537,7 +537,7 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 
             lval = left[i]
             rval = right[j]
-            if lval == rval:
+            if lval == rval or np.isnan(lval) and np.isnan(rval):
                 count += 1
                 if i < nleft - 1:
                     if j < nright - 1 and right[j + 1] == rval:
@@ -601,7 +601,7 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
             lval = left[i]
             rval = right[j]
 
-            if lval == rval:
+            if lval == rval or np.isnan(lval) and np.isnan(rval):
                 lindexer[count] = i
                 rindexer[count] = j
                 result[count] = lval
