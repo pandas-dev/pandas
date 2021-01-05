@@ -98,14 +98,15 @@ class Base:
             klass = klass(value, normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, request, tz_naive_fixture):
+    def test_apply_out_of_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
         if self._offset is None:
             return
         if isinstance(tz, tzlocal) and not IS64:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
-            )
+            # request.node.add_marker(
+            #     pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+            # )
+            pass
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -127,6 +128,8 @@ class Base:
             assert isinstance(result, datetime)
             assert t.tzinfo == result.tzinfo
 
+        except OutOfBoundsDatetime:
+            pass
         except (ValueError, KeyError):
             # we are creating an invalid offset
             # so ignore
