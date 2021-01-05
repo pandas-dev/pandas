@@ -64,7 +64,10 @@ from pandas.core.window.indexers import (
     GroupbyIndexer,
     VariableWindowIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_apply_func
+from pandas.core.window.numba_ import (
+    generate_numba_apply_func,
+    generate_numba_table_func,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
@@ -82,6 +85,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         "axis",
         "on",
         "closed",
+        "method",
     ]
     exclusions: Set[str] = set()
 
@@ -95,6 +99,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
         closed: Optional[str] = None,
+        method: str = "single",
         **kwargs,
     ):
 
@@ -107,6 +112,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.center = center
         self.win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
+        self.method = method
         self._win_freq_i8 = None
         if self.on is None:
             if self.axis == 0:
@@ -160,15 +166,16 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                     f"{type(self.window).__name__} does not implement "
                     f"the correct signature for get_window_bounds"
                 )
+        if self.method not in ["table", "single"]:
+            raise ValueError("method must be 'table' or 'single")
 
     def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
         Split data into blocks & return conformed data.
         """
         # filter out the on from the object
-        if self.on is not None and not isinstance(self.on, Index):
-            if obj.ndim == 2:
-                obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
+        if self.on is not None and not isinstance(self.on, Index) and obj.ndim == 2:
+            obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         if self.axis == 1:
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
@@ -230,10 +237,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         return self.window
 
-    @property
-    def _window_type(self) -> str:
-        return type(self).__name__
-
     def __repr__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -244,7 +247,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if getattr(self, attr_name, None) is not None
         )
         attrs = ",".join(attrs_list)
-        return f"{self._window_type} [{attrs}]"
+        return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
@@ -270,7 +273,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         if needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                f"ops for {self._window_type} for this "
+                f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} are not implemented"
             )
         else:
@@ -384,6 +387,26 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self._insert_on_column(out, obj)
         return out
 
+    def _apply_tablewise(
+        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+    ) -> FrameOrSeriesUnion:
+        if self._selected_obj.ndim == 1:
+            raise ValueError("method='table' not applicable for Series objects.")
+        obj = self._create_data(self._selected_obj)
+        values = self._prep_values(obj.to_numpy())
+        values = values.T if self.axis == 1 else values
+        result = homogeneous_func(values)
+        result = result.T if self.axis == 1 else result
+        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+
+        if out.shape[1] == 0 and obj.shape[1] > 0:
+            raise DataError("No numeric types to aggregate")
+        elif out.shape[1] == 0:
+            return obj.astype("float64")
+
+        self._insert_on_column(out, obj)
+        return out
+
     def _apply(
         self,
         func: Callable[..., Any],
@@ -432,18 +455,20 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return func(x, start, end, min_periods)
 
             with np.errstate(all="ignore"):
-                if values.ndim > 1:
+                if values.ndim > 1 and self.method == "single":
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
                     result = calc(values)
-                    result = np.asarray(result)
 
             if numba_cache_key is not None:
                 NUMBA_FUNC_CACHE[numba_cache_key] = func
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name)
+        if self.method == "single":
+            return self._apply_blockwise(homogeneous_func, name)
+        else:
+            return self._apply_tablewise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = aggregate(self, func, *args, **kwargs)
@@ -744,28 +769,22 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             numba_cache_key,
             **kwargs,
         )
-        # Reconstruct the resulting MultiIndex from tuples
+        # Reconstruct the resulting MultiIndex
         # 1st set of levels = group by labels
-        # 2nd set of levels = original index
-        # Ignore 2nd set of levels if a group by label include an index level
-        result_index_names = [
-            grouping.name for grouping in self._groupby.grouper._groupings
-        ]
-        grouped_object_index = None
+        # 2nd set of levels = original DataFrame/Series index
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
 
-        column_keys = [
+        drop_columns = [
             key
-            for key in result_index_names
+            for key in groupby_keys
             if key not in self.obj.index.names or key is None
         ]
-
-        if len(column_keys) == len(result_index_names):
-            grouped_object_index = self.obj.index
-            grouped_index_name = [*grouped_object_index.names]
-            result_index_names += grouped_index_name
-        else:
-            # Our result will have still kept the column in the result
-            result = result.drop(columns=column_keys, errors="ignore")
+        if len(drop_columns) != len(groupby_keys):
+            # Our result will have kept groupby columns which should be dropped
+            result = result.drop(columns=drop_columns, errors="ignore")
 
         codes = self._groupby.grouper.codes
         levels = self._groupby.grouper.levels
@@ -863,6 +882,14 @@ class Window(BaseWindow):
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -1004,6 +1031,9 @@ class Window(BaseWindow):
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
+        if self.method != "single":
+            raise NotImplementedError("'single' is the only supported method type.")
+
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
         Center the result in the window for weighted rolling aggregations.
@@ -1060,8 +1090,8 @@ class Window(BaseWindow):
                 if values.ndim > 1:
                     result = np.apply_along_axis(calc, self.axis, values)
                 else:
-                    result = calc(values)
-                    result = np.asarray(result)
+                    # Our weighted aggregations return memoryviews
+                    result = np.asarray(calc(values))
 
             if self.center:
                 result = self._center_window(result, offset)
@@ -1211,6 +1241,7 @@ class RollingAndExpandingMixin(BaseWindow):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
+
     engine : str, default None
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
@@ -1274,8 +1305,17 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
-            numba_cache_key = (func, "rolling_apply")
+            caller_name = type(self).__name__
+            if self.method == "single":
+                apply_func = generate_numba_apply_func(
+                    args, kwargs, func, engine_kwargs, caller_name
+                )
+                numba_cache_key = (func, f"{caller_name}_apply_single")
+            else:
+                apply_func = generate_numba_table_func(
+                    args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                )
+                numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
@@ -1312,8 +1352,21 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nansum with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nansum,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1323,13 +1376,43 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+    engine : str, default None
+        * ``'cython'`` : Runs rolling max through C-extensions from cython.
+        * ``'numba'`` : Runs rolling max through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
     """
     )
 
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("max", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmax with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmax,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1339,8 +1422,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling min through C-extensions from cython.
+        * ``'numba'`` : Runs rolling min through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1370,13 +1470,39 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("min", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmin with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmin,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmean with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmean,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1386,9 +1512,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling median through C-extensions from cython.
+        * ``'numba'`` : Runs rolling median through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect
-        on the computed median.
+        on the computed result.
 
     Returns
     -------
@@ -1417,10 +1559,21 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def median(self, **kwargs):
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmedian with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmedian,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_median_c
-        # GH 32865. Move max window size calculation to
-        # the median function implementation
         return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof: int = 1, *args, **kwargs):
@@ -1453,7 +1606,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Keyword arguments to be passed into func.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
     """
 
     def skew(self, **kwargs):
@@ -1473,7 +1627,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1565,6 +1720,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ----------
     quantile : float
         Quantile to compute. 0 <= quantile <= 1.
+
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
@@ -1575,6 +1731,23 @@ class RollingAndExpandingMixin(BaseWindow):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+
+    engine : str, default None
+        * ``'cython'`` : Runs rolling quantile through C-extensions from cython.
+        * ``'numba'`` : Runs rolling quantile through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
@@ -1813,7 +1986,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 window=window, min_periods=self.min_periods, center=self.center
             )
             # GH 31286: Through using var instead of std we can avoid numerical
-            # issues when the result of var is withing floating proint precision
+            # issues when the result of var is within floating proint precision
             # while std is not.
             return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 
@@ -1956,33 +2129,33 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["std"])
@@ -2042,7 +2215,9 @@ class Rolling(RollingAndExpandingMixin):
     @Appender(_shared_docs["quantile"])
     def quantile(self, quantile, interpolation="linear", **kwargs):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @Substitution(name="rolling", func_name="cov")
@@ -2107,7 +2282,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         """
         Validate that on is monotonic;
         in this case we have to check only for nans, because
-        monotonicy was already validated at a higher level.
+        monotonicity was already validated at a higher level.
         """
         if self._on.hasnans:
             self._raise_monotonic_error()

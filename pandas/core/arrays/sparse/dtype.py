@@ -371,7 +371,7 @@ class SparseDtype(ExtensionDtype):
         fill_value = fill_values[0]
 
         # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
+        # NaNs here, so we ignore the all NA case too.
         if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
