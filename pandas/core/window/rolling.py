@@ -144,6 +144,15 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             return "freq"
         return self._win_type
 
+    @property
+    def is_datetimelike(self):
+        warnings.warn(
+            "is_datetimelike is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._win_freq_i8 is not None
+
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
