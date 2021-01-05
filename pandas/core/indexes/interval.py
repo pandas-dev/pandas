@@ -40,7 +40,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas.core.algorithms import take_1d
+from pandas.core.algorithms import take_1d, unique
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
@@ -964,6 +964,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         match = (lindexer == rindexer) & (lindexer != -1)
         indexer = lindexer.take(match.nonzero()[0])
+        indexer = unique(indexer)
 
         return self.take(indexer)
 
