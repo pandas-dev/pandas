@@ -1004,9 +1004,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
+        1.0    1
         2.0    1
         4.0    1
-        1.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -1015,9 +1015,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
+        1.0    0.2
         2.0    0.2
         4.0    0.2
-        1.0    0.2
         dtype: float64
 
         **bins**
@@ -1039,10 +1039,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        2.0    1
-        NaN    1
-        4.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
         return value_counts(
