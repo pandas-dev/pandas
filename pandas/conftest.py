@@ -1002,14 +1002,6 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(scope="module")
-def datetime_tz_utc():
-    """
-    Yields the UTC timezone object from the datetime module.
-    """
-    return timezone.utc
-
-
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
@@ -1189,7 +1181,7 @@ def any_nullable_int_dtype(request):
 
 
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_numeric_dtype(request):
+def any_nullable_numeric_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
