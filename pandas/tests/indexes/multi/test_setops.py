@@ -486,7 +486,7 @@ def test_intersection_different_names():
 
 
 def test_union_nan_got_duplicated():
-    # GH
+    # GH#38977
     mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
     mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
     result = mi1.union(mi2)
@@ -494,7 +494,7 @@ def test_union_nan_got_duplicated():
 
 
 def test_union_duplicates(index):
-    # GH
+    # GH#38977
     # Index has to be sorted as of now.
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         # No duplicates in empty indexes
