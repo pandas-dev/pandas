@@ -48,6 +48,7 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axes,
     Axis,
@@ -121,12 +122,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
-    aggregate,
-    reconstruct_func,
-    relabel_result,
-    transform,
-)
+from pandas.core.aggregation import reconstruct_func, relabel_result, transform
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -1146,7 +1142,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    def dot(self, other):
+    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
+    # overlap with incompatible return types  [misc]
+    @overload
+    def dot(self, other: Series) -> Series:  # type: ignore[misc]
+        ...
+
+    @overload
+    def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
+        ...
+
+    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1256,7 +1262,19 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-    def __matmul__(self, other):
+    @overload
+    def __matmul__(self, other: Series) -> Series:
+        ...
+
+    @overload
+    def __matmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
+        ...
+
+    def __matmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
@@ -7623,13 +7641,24 @@ NaN 12.3   33.0
         return result
 
     def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(
+            self if axis == 0 else self.T,
+            how="agg",
+            func=arg,
+            axis=0,
+            args=args,
+            kwds=kwargs,
+        )
+        result, how = op.get_result()
+
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
-            return result, how
-        return aggregate(self, arg, *args, **kwargs)
+
+        return result, how
 
     agg = aggregate
 
@@ -7789,6 +7818,7 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self,
+            how="apply",
             func=func,
             axis=axis,
             raw=raw,

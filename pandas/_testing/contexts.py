@@ -3,6 +3,8 @@ import os
 from shutil import rmtree
 import tempfile
 
+import numpy as np
+
 from pandas.io.common import get_handle
 
 
@@ -214,3 +216,32 @@ def use_numexpr(use, min_elements=None):
     yield
     expr._MIN_ELEMENTS = oldmin
     expr.set_use_numexpr(olduse)
+
+
+class RNGContext:
+    """
+    Context manager to set the numpy random number generator speed. Returns
+    to the original value upon exiting the context manager.
+
+    Parameters
+    ----------
+    seed : int
+        Seed for numpy.random.seed
+
+    Examples
+    --------
+    with RNGContext(42):
+        np.random.randn()
+    """
+
+    def __init__(self, seed):
+        self.seed = seed
+
+    def __enter__(self):
+
+        self.start_state = np.random.get_state()
+        np.random.seed(self.seed)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+
+        np.random.set_state(self.start_state)
