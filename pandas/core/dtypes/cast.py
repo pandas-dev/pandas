@@ -1314,13 +1314,7 @@ def maybe_infer_to_datetimelike(
 
     """
     if isinstance(
-        value,
-        (
-            ABCDatetimeArray,
-            ABCDatetimeIndex,
-            ABCPeriodArray,
-            ABCPeriodIndex,
-        ),
+        value, (ABCDatetimeArray, ABCDatetimeIndex, ABCPeriodArray, ABCPeriodIndex)
     ):
         return value
     elif isinstance(value, ABCSeries) and isinstance(value._values, ABCDatetimeArray):
