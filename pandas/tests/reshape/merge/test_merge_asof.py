@@ -1173,7 +1173,7 @@ class TestAsOfMerge:
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(left, right, on="a")
 
     def test_merge_datatype_categorical_error_raises(self):
@@ -1387,7 +1387,7 @@ def test_merge_asof_non_numerical_dtype(kwargs, data):
     left = pd.DataFrame({"x": data}, index=data)
     right = pd.DataFrame({"x": data}, index=data)
     with pytest.raises(
-        ValueError,
+        MergeError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
         pd.merge_asof(left, right, **kwargs)
@@ -1398,7 +1398,7 @@ def test_merge_asof_non_numerical_dtype_object():
     left = pd.DataFrame({"a": ["12", "13", "15"], "left_val1": ["a", "b", "c"]})
     right = pd.DataFrame({"a": ["a", "b", "c"], "left_val": ["d", "e", "f"]})
     with pytest.raises(
-        ValueError,
+        MergeError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
         pd.merge_asof(

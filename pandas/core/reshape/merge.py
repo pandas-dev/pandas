@@ -1720,7 +1720,7 @@ class _AsOfMerge(_OrderedMerge):
             else self.right.index.dtype
         )
         if is_object_dtype(lo_dtype) or is_object_dtype(ro_dtype):
-            raise ValueError(
+            raise MergeError(
                 f"Incompatible merge dtype, {repr(ro_dtype)} and "
                 f"{repr(lo_dtype)}, both sides must have numeric dtype"
             )
