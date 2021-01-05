@@ -24,7 +24,7 @@ PyDateTime_IMPORT
 
 cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.base cimport ABCTimestamp
-from pandas._libs.tslibs.conversion cimport cast_from_unit
+from pandas._libs.tslibs.conversion cimport cast_from_unit, precision_from_unit
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -198,6 +198,7 @@ cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
         raise NotImplementedError(unit)
 
 
+@cython.overflowcheck(True)
 cdef object ensure_td64ns(object ts):
     """
     Overflow-safe implementation of td64.astype("m8[ns]")
@@ -212,7 +213,7 @@ cdef object ensure_td64ns(object ts):
     """
     cdef:
         NPY_DATETIMEUNIT td64_unit
-        int64_t td64_value
+        int64_t td64_value, mult
         str unitstr
 
     td64_unit = get_datetime64_unit(ts)
@@ -224,8 +225,10 @@ cdef object ensure_td64ns(object ts):
 
         td64_value = get_timedelta64_value(ts)
 
+        mult = precision_from_unit(unitstr)[0]
         try:
-            td64_value = cast_from_unit(td64_value, unitstr)
+            # NB: cython#1381 this cannot be *=
+            td64_value = td64_value * mult
         except OverflowError as err:
             from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta
             raise OutOfBoundsTimedelta(ts)
