@@ -77,54 +77,79 @@ cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+cpdef stable_value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
-cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+cpdef stable_value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
+        Py_ssize_t n = len(values)
+        size_t unique_key_index = 0
+        size_t unique_key_count = 0
         kh_{{ttype}}_t *table
-
-        {{if dtype != 'object'}}
-        {{dtype}}_t[:] result_keys
-        int64_t[:] result_counts
-        {{endif}}
 
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
 
-    table = kh_init_{{ttype}}()
-    {{if dtype == 'object'}}
-    build_count_table_{{dtype}}(values, table, 1)
+        {{c_type}} val
+
+        int ret = 0
+
+    {{if dtype[0]!='u'}}
+    result_keys = {{dtype.title()}}Vector()
     {{else}}
-    build_count_table_{{dtype}}(values, table, dropna)
+    result_keys = {{'U'+dtype[1::].title()}}Vector()
     {{endif}}
-
-    result_keys = np.empty(table.n_occupied, '{{dtype}}')
-    result_counts = np.zeros(table.n_occupied, dtype=np.int64)
+    result_counts = Int64Vector()
+    table = kh_init_{{ttype}}()
 
     {{if dtype == 'object'}}
-    for k in range(table.n_buckets):
-        if kh_exist_{{ttype}}(table, k):
-            result_keys[i] = <{{dtype}}>table.keys[k]
-            result_counts[i] = table.vals[k]
-            i += 1
+    kh_resize_{{ttype}}(table, n // 10)
+
+    for i in range(n):
+        val = values[i]
+        if not checknull(val) or not dropna:
+            k = kh_get_{{ttype}}(table, <PyObject*>val)
+            if k != table.n_buckets:
+                unique_key_index = table.vals[k]
+                result_counts.data.data[unique_key_index] += 1
+            else:
+                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
+                table.vals[k] = unique_key_count
+                result_keys.append(val)
+                result_counts.append(1)
+                unique_key_count+=1
     {{else}}
-    with nogil:
-        for k in range(table.n_buckets):
-            if kh_exist_{{ttype}}(table, k):
-                result_keys[i] = {{to_dtype}}(table.keys[k])
-                result_counts[i] = table.vals[k]
-                i += 1
+    kh_resize_{{ttype}}(table, n)
+
+    for i in range(n):
+        val = {{to_c_type}}(values[i])
+
+        if not is_nan_{{c_type}}(val) or not dropna:
+            k = kh_get_{{ttype}}(table, val)
+            if k != table.n_buckets:
+                unique_key_index = table.vals[k]
+                result_counts.data.data[unique_key_index] += 1
+            else:
+                k = kh_put_{{ttype}}(table, val, &ret)
+                table.vals[k] = unique_key_count
+                result_keys.append(val)
+                result_counts.append(1)
+                unique_key_count+=1
     {{endif}}
 
     kh_destroy_{{ttype}}(table)
 
-    {{if dtype == 'object'}}
-    return result_keys, result_counts
-    {{else}}
-    return np.asarray(result_keys), np.asarray(result_counts)
-    {{endif}}
+    return result_keys.to_array(), result_counts.to_array()
+
+
+{{if dtype == 'object'}}
+cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+    return stable_value_count_{{dtype}}(values, 1)
+{{else}}
+cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+    return stable_value_count_{{dtype}}(values, dropna)
+{{endif}}
 
 
 @cython.wraparound(False)
