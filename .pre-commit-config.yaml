@@ -23,8 +23,6 @@ repos:
     rev: 5.7.0
     hooks:
     -   id: isort
-        types: [text] # overwrite upstream `types: [python]`
-        types_or: [python, cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.4
     hooks:
