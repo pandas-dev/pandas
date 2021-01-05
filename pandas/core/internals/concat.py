@@ -318,6 +318,12 @@ def _concatenate_join_units(
         # Concatenating join units along ax0 is handled in _merge_blocks.
         raise AssertionError("Concatenating join units along axis0")
 
+    nonempties = [
+        x for x in join_units if x.block is None or x.block.shape[concat_axis] > 0
+    ]
+    if nonempties:
+        join_units = nonempties
+
     empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)
 
     to_concat = [
@@ -413,7 +419,7 @@ def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, A
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
-    else:  # pragma
+    else:
         try:
             common_dtype = np.find_common_type(upcast_classes, [])
         except TypeError:
