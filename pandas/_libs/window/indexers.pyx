@@ -80,11 +80,11 @@ def calculate_variable_window_bounds(
         end[0] = 0
     if center_window:
         for j in range(0, num_values+1):
-            if (index[j] == index[0] + index_growth_sign*window_size/2 and
+            if (index[j] == index[0] + index_growth_sign * window_size / 2 and
                right_closed):
-                end[0] = j+1
+                end[0] = j + 1
                 break
-            elif index[j] >= index[0] + index_growth_sign * window_size/2:
+            elif index[j] >= index[0] + index_growth_sign * window_size / 2:
                 end[0] = j
                 break
 
@@ -94,8 +94,8 @@ def calculate_variable_window_bounds(
         # end is end of slice interval (not including)
         for i in range(1, num_values):
             if center_window:
-                end_bound = index[i] + index_growth_sign * window_size/2
-                start_bound = index[i] - index_growth_sign * window_size/2
+                end_bound = index[i] + index_growth_sign * window_size / 2
+                start_bound = index[i] - index_growth_sign * window_size / 2
             else:
                 end_bound = index[i]
                 start_bound = index[i] - index_growth_sign * window_size
@@ -115,12 +115,12 @@ def calculate_variable_window_bounds(
             # for centered window advance the end bound until we are
             # outside the constraint
             if center_window:
-                for j in range(end[i - 1], num_values+1):
+                for j in range(end[i - 1], num_values + 1):
                     if j == num_values:
                         end[i] = j
                     elif ((index[j] - end_bound) * index_growth_sign == 0 and
                           right_closed):
-                        end[i] = j+1
+                        end[i] = j + 1
                         break
                     elif (index[j] - end_bound) * index_growth_sign >= 0:
                         end[i] = j
