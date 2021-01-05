@@ -50,7 +50,6 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
-    AnyArrayLike,
     ArrayLike,
     Axes,
     Axis,
@@ -1073,7 +1072,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def itertuples(
         self, index: bool = True, name: Optional[str] = "Pandas"
-    ) -> Iterable[Tuple]:
+    ) -> Iterable[Tuple[Any, ...]]:
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -1163,7 +1162,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
+    def dot(self, other):
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1273,17 +1272,13 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-    def __matmul__(
-        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
-    ) -> FrameOrSeriesUnion:
+    def __matmul__(self, other):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
         return self.dot(other)
 
-    def __rmatmul__(
-        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
-    ) -> FrameOrSeriesUnion:
+    def __rmatmul__(self, other):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
