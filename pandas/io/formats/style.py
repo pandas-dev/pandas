@@ -181,7 +181,7 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.tooltips = _Tooltips()
+        self.tooltips: Optional[_Tooltips] = None
 
         self.cell_context: Dict[str, Any] = {}
 
@@ -205,6 +205,19 @@ class Styler:
         Hooks into Jupyter notebook rich display system.
         """
         return self.render()
+
+    def _init_tooltips(self):
+        """
+        Checks parameters compatible with tooltips and creates instance if necessary
+        """
+        if not self.cell_ids:
+            # tooltips not optimised for individual cell check. requires reasonable
+            # redesign and more extensive code for a feature that might be rarely used.
+            raise NotImplementedError(
+                "Tooltips can only render with 'cell_ids' is True."
+            )
+        if self.tooltips is None:
+            self.tooltips = _Tooltips()
 
     def set_tooltips(self, ttips: DataFrame) -> "Styler":
         """
@@ -241,11 +254,8 @@ class Styler:
         ... )
         >>> s = df.style.set_tooltips(ttips).render()
         """
-        if not self.cell_ids:
-            # tooltips not optimised for individual cell check.
-            raise NotImplementedError(
-                "Tooltips can only render with 'cell_ids' is True."
-            )
+        self._init_tooltips()
+        assert self.tooltips is not None  # mypy requiremen
         self.tooltips.tt_data = ttips
         return self
 
@@ -295,6 +305,8 @@ class Styler:
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])
         """
+        self._init_tooltips()
+        assert self.tooltips is not None  # mypy requirement
         if properties:
             self.tooltips.class_properties = properties
         if name:
@@ -530,7 +542,7 @@ class Styler:
             else:
                 table_attr += ' class="tex2jax_ignore"'
 
-        return {
+        d = {
             "head": head,
             "cellstyle": cellstyle,
             "body": body,
@@ -540,6 +552,10 @@ class Styler:
             "caption": caption,
             "table_attributes": table_attr,
         }
+        if self.tooltips:
+            d = self.tooltips._translate(self.data, self.uuid, d)
+
+        return d
 
     def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
         """
@@ -716,7 +732,6 @@ class Styler:
         self._compute()
         # TODO: namespace all the pandas keys
         d = self._translate()
-        d = self.tooltips._translate_tooltips(self.data, self.uuid, d)
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
         # so we have the nested anys below
@@ -786,7 +801,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
-        self.tooltips = _Tooltips()
+        self.tooltips = None
         self.cell_context = {}
         self._todo = []
 
@@ -1817,7 +1832,61 @@ class _Tooltips:
         """
         return [{"selector": f".{self.class_name}", "props": self.class_properties}]
 
-    def _translate_tooltips(self, styler_data, uuid, d):
+    def _pseudo_css(self, uuid: str, name: str, row: int, col: int, text: str):
+        """
+        For every table data-cell that has a valid tooltip (not None, NaN or
+        empty string) must create two pseudo CSS entries for the specific
+        <td> element id which are added to overall table styles:
+        an on hover visibility change and a content change
+        dependent upon the user's chosen display string.
+
+        For example:
+            [{"selector": "T__row1_col1:hover .pd-t",
+             "props": [("visibility", "visible")]},
+            {"selector": "T__row1_col1 .pd-t::after",
+             "props": [("content", "Some Valid Text String")]}]
+
+        Parameters
+        ----------
+        uuid: str
+            The uuid of the Styler instance
+        name: str
+            The css-name of the class used for styling tooltips
+        row : int
+            The row index of the specified tooltip string data
+        col : int
+            The col index of the specified tooltip string data
+        text : str
+            The textual content of the tooltip to be displayed in HTML.
+
+        Returns
+        -------
+        pseudo_css : List
+        """
+        return [
+            {
+                "selector": "#T_"
+                + uuid
+                + "row"
+                + str(row)
+                + "_col"
+                + str(col)
+                + f":hover .{name}",
+                "props": [("visibility", "visible")],
+            },
+            {
+                "selector": "#T_"
+                + uuid
+                + "row"
+                + str(row)
+                + "_col"
+                + str(col)
+                + f" .{name}::after",
+                "props": [("content", f'"{text}"')],
+            },
+        ]
+
+    def _translate(self, styler_data, uuid, d):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -1844,61 +1913,11 @@ class _Tooltips:
 
         name = self.class_name
 
-        def _pseudo_css(row: int, col: int, text: str):
-            """
-            For every table data-cell that has a valid tooltip (not None, NaN or
-            empty string) must create two pseudo CSS entries for the specific
-            <td> element id which are added to overall table styles:
-            an on hover visibility change and a content change
-            dependent upon the user's chosen display string.
-
-            For example:
-                [{"selector": "T__row1_col1:hover .pd-t",
-                 "props": [("visibility", "visible")]},
-                {"selector": "T__row1_col1 .pd-t::after",
-                 "props": [("content", "Some Valid Text String")]}]
-
-            Parameters
-            ----------
-            row : int
-                The row index of the specified tooltip string data
-            col : int
-                The col index of the specified tooltip string data
-            text : str
-                The textual content of the tooltip to be displayed in HTML.
-
-            Returns
-            -------
-            pseudo_css : List
-            """
-            return [
-                {
-                    "selector": "#T_"
-                    + uuid
-                    + "row"
-                    + str(row)
-                    + "_col"
-                    + str(col)
-                    + f":hover .{name}",
-                    "props": [("visibility", "visible")],
-                },
-                {
-                    "selector": "#T_"
-                    + uuid
-                    + "row"
-                    + str(row)
-                    + "_col"
-                    + str(col)
-                    + f" .{name}::after",
-                    "props": [("content", f'"{text}"')],
-                },
-            ]
-
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
         self.table_styles = [
             style
             for sublist in [
-                _pseudo_css(i, j, str(self.tt_data.iloc[i, j]))
+                self._pseudo_css(uuid, name, i, j, str(self.tt_data.iloc[i, j]))
                 for i in range(len(self.tt_data.index))
                 for j in range(len(self.tt_data.columns))
                 if not mask.iloc[i, j]
