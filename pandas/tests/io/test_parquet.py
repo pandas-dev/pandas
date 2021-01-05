@@ -880,7 +880,7 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow", min_version="0.17")
+    @td.skip_if_no("pyarrow", min_version="1.0.0")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         df = pd.DataFrame({"a": list(range(0, 3))})
