@@ -2815,35 +2815,44 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        try:
-            # If one or both is not monotonic, we resort it afterwards
-            result = self._outer_indexer(np.sort(lvals), np.sort(rvals))[0]
-        except TypeError:
-            # incomparable objects
-            result = list(lvals)
-
-            # worth making this faster? a very unusual case
-            value_set = set(lvals)
-            result.extend([x for x in rvals if x not in value_set])
-            result = Index(result)._values  # do type inference here
-        else:
-            if (
-                sort is False
-                or not self.is_monotonic
-                or not other.is_monotonic
-                or is_categorical_dtype(self)
-            ):
-                result = algos.re_sort_union_after_inputs(result, lvals, rvals)
-
-        if sort is None and (not self.is_monotonic or not other.is_monotonic):
+        if sort is None and self.is_monotonic and other.is_monotonic and (self.is_unique or other.is_unique):
             try:
-                result = algos.safe_sort(result)
-            except TypeError as err:
-                warnings.warn(
-                    f"{err}, sort order is undefined for incomparable objects",
-                    RuntimeWarning,
-                    stacklevel=3,
-                )
+                result = self._outer_indexer(lvals, rvals)[0]
+            except TypeError:
+                # incomparable objects
+                result = list(lvals)
+
+                # worth making this faster? a very unusual case
+                value_set = set(lvals)
+                result.extend([x for x in rvals if x not in value_set])
+                result = Index(result)._values  # do type inference here
+        else:
+            # find indexes of things in "other" that are not in "self"
+            if other.is_unique:
+                if self.is_unique:
+                    indexer = self.get_indexer(other)
+                    missing = (indexer == -1).nonzero()[0]
+                else:
+                    missing = algos.unique1d(self.get_indexer_non_unique(other)[1])
+
+                if len(missing) > 0:
+                    other_diff = algos.take_nd(rvals, missing, allow_fill=False)
+                    result = concat_compat((lvals, other_diff))
+                else:
+                    result = lvals
+            else:
+                result = algos.re_sort_union_after_inputs(lvals, lvals, rvals)
+
+
+            if sort is None and (not self.is_monotonic or not other.is_monotonic):
+                try:
+                    result = algos.safe_sort(result)
+                except TypeError as err:
+                    warnings.warn(
+                        f"{err}, sort order is undefined for incomparable objects",
+                        RuntimeWarning,
+                        stacklevel=3,
+                    )
 
         return result
 

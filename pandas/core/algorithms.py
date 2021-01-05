@@ -2227,8 +2227,9 @@ def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
     indexer = []
     x = value_counts(lvals, dropna=False)
     y = value_counts(rvals, dropna=False)
+    z = x._align_series(y, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
     # Create indexer to resort result
     for i, value in enumerate(unique_array):
-        indexer += [i] * max(x[value] if value in x.index else 0, y[value] if value in y.index else 0)
+        indexer += [i] * int(max(z[0][value], z[1][value]))
     return unique_array.take(indexer)
