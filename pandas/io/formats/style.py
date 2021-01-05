@@ -224,6 +224,8 @@ class Styler:
         Add string based tooltips that will appear in the `Styler` HTML result. These
         tooltips are applicable only to`<td>` elements.
 
+        .. versionadded:: 1.3.0
+
         Parameters
         ----------
         ttips : DataFrame
@@ -267,6 +269,8 @@ class Styler:
         """
         Manually configure the name and/or properties of the class for
         creating tooltips on hover.
+
+        .. versionadded:: 1.3.0
 
         Parameters
         ----------
