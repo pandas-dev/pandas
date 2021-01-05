@@ -1785,7 +1785,7 @@ class TestStyler:
     )
     def test_tooltip_render(self, ttips):
         # GH 21266
-        df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
+        df = DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
         s = Styler(df, uuid_len=0).set_tooltips(ttips).render()
 
         # test tooltip table level class
@@ -1817,14 +1817,14 @@ class TestStyler:
 
     def test_tooltip_ignored(self):
         # GH 21266
-        df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        df = DataFrame(data=[[0, 1], [2, 3]])
         s = Styler(df).set_tooltips_class("pd-t").render()  # no set_tooltips()
         assert '<style  type="text/css" >\n</style>' in s
         assert '<span class="pd-t"></span>' not in s
 
     def test_tooltip_class(self):
         # GH 21266
-        df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        df = DataFrame(data=[[0, 1], [2, 3]])
         s = (
             Styler(df, uuid_len=0)
             .set_tooltips(DataFrame([["tooltip"]]))
