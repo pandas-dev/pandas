@@ -32,7 +32,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import ArrayLike, Label, Timezone
+from pandas._typing import AnyArrayLike, ArrayLike, Label, Timezone
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -68,7 +68,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, AnyArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -122,7 +122,7 @@ def should_cache(
             return False
 
         if len(arg) <= 5000:
-            check_count = int(len(arg) * 0.1)
+            check_count = len(arg) // 10
         else:
             check_count = 500
     else:

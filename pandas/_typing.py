@@ -71,13 +71,6 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# other
-
-Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
-]
-DtypeObj = Union[np.dtype, "ExtensionDtype"]
-
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
 # is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
@@ -95,9 +88,19 @@ Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
+
+# dtypes
+NpDtype = Union[str, np.dtype]
+Dtype = Union[
+    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+]
+# DtypeArg specifies all allowable dtypes in a functions its dtype argument
+DtypeArg = Union[Dtype, Dict[Label, Dtype]]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
@@ -131,6 +134,8 @@ AggObjType = Union[
     "BaseWindow",
     "Resampler",
 ]
+
+PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
