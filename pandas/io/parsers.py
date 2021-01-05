@@ -2349,12 +2349,12 @@ class PythonParser(ParserBase):
 
         decimal = re.escape(self.decimal)
         if self.thousands is None:
-            regex = fr"^\-?[0-9]*({decimal}[0-9]*)?([0-9](E|e)\-?[0-9]*)?$"
+            regex = fr"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
             regex = (
-                fr"^\-?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                fr"([0-9](E|e)\-?[0-9]*)?$"
+                fr"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
+                fr"([0-9]?(E|e)\-?[0-9]+)?$"
             )
         self.num = re.compile(regex)
 

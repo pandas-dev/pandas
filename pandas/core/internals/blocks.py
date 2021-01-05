@@ -658,7 +658,7 @@ class Block(PandasObject):
             values = values.astype(dtype, copy=copy)
 
         else:
-            values = astype_nansafe(values, dtype, copy=True)
+            values = astype_nansafe(values, dtype, copy=copy)
 
         return values
 
