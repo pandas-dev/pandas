@@ -64,6 +64,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Level,
+    NpDtype,
     PythonFuncType,
     Renamer,
     Scalar,
@@ -1365,7 +1366,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Optional[Dtype] = None,
+        dtype: Optional[NpDtype] = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
@@ -1723,7 +1724,7 @@ class DataFrame(NDFrame, OpsMixin):
         exclude=None,
         columns=None,
         coerce_float: bool = False,
-        nrows: Optional[bool] = None,
+        nrows: Optional[int] = None,
     ) -> DataFrame:
         """
         Convert structured or record ndarray to DataFrame.
@@ -2706,7 +2707,7 @@ class DataFrame(NDFrame, OpsMixin):
             show_counts=show_counts,
         )
 
-    def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
+    def memory_usage(self, index: bool = True, deep: bool = False):
         """
         Return the memory usage of each column in bytes.
 
@@ -2929,7 +2930,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: Axis = 0):
+    def _ixs(self, i: int, axis: int = 0):
         """
         Parameters
         ----------
@@ -3286,17 +3287,20 @@ class DataFrame(NDFrame, OpsMixin):
         self._set_item_mgr(key, value)
 
     def _set_value(
-        self, index: int, col, value: Scalar, takeable: bool = False
+        self, index: Label, col, value: Scalar, takeable: bool = False
     ) -> None:
         """
         Put single value at passed column and index.
 
         Parameters
         ----------
-        index : row label
-        col : column label
+        index : Label
+            row label
+        col : Label
+            column label
         value : scalar
-        takeable : interpret the index/col as indexers, default False
+        takeable : bool, default False
+            Sets whether or not index/col interpreted as indexers
         """
         try:
             if takeable is True:
@@ -3945,7 +3949,7 @@ class DataFrame(NDFrame, OpsMixin):
         return value
 
     @property
-    def _series(self) -> Dict[int, Series]:
+    def _series(self) -> Dict[Label, Series]:
         return {
             item: Series(
                 self._mgr.iget(idx), index=self.index, name=item, fastpath=True
@@ -6097,7 +6101,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
 
-    def _construct_result(self, result):
+    def _construct_result(self, result) -> DataFrame:
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
 
@@ -8284,7 +8288,7 @@ NaN 12.3   33.0
         )
 
     def round(
-        self, decimals: Union[int, Dict, Series] = 0, *args, **kwargs
+        self, decimals: Union[int, Dict[Label, int], Series] = 0, *args, **kwargs
     ) -> DataFrame:
         """
         Round a DataFrame to a variable number of decimal places.
@@ -8400,7 +8404,9 @@ NaN 12.3   33.0
     # Statistical methods, etc.
 
     def corr(
-        self, method: Union[str, Callable] = "pearson", min_periods: int = 1
+        self,
+        method: Union[str, Callable[[np.ndarray, np.ndarray], float]] = "pearson",
+        min_periods: int = 1,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9489,7 +9495,12 @@ NaN 12.3   33.0
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values: Union[FrameOrSeriesUnion, Dict, Iterable]) -> DataFrame:
+    def isin(
+        self,
+        values: Union[
+            FrameOrSeriesUnion, Dict[Label, Iterable[Scalar]], Iterable[Scalar]
+        ],
+    ) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 
