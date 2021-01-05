@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -7,17 +7,15 @@ import numpy as np
 from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import DtypeObj
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_dtype_equal,
     is_float,
     is_integer,
-    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -192,7 +190,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
         name=None,
         **fields,
@@ -634,16 +632,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _intersection(self, other, sort=False):
         return self._setop(other, sort, opname="intersection")
-
-    def _difference(self, other, sort):
-
-        if is_object_dtype(other):
-            return self.astype(object).difference(other).astype(self.dtype)
-
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            return self
-
-        return self._setop(other, sort, opname="difference")
 
     def _union(self, other, sort):
         return self._setop(other, sort, opname="_union")
