@@ -1890,7 +1890,7 @@ class _Tooltips:
             },
         ]
 
-    def _translate(self, styler_data, uuid, d):
+    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: Dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -1906,6 +1906,10 @@ class _Tooltips:
             The underlying ``Styler`` uuid for CSS id.
         d : dict
             The dictionary prior to final render
+
+        Returns
+        -------
+        render_dict : Dict
         """
         self.tt_data = (
             self.tt_data.reindex_like(styler_data)
