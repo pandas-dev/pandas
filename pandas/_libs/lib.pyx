@@ -252,54 +252,6 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool = True):
-    """
-    Generate a list of unique values from a list of arrays.
-
-    Parameters
-    ----------
-    list : array-like
-        List of array-like objects.
-    sort : bool
-        Whether or not to sort the resulting unique list.
-
-    Returns
-    -------
-    list of unique values
-    """
-    cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
-
-    if sort is None:
-        try:
-            uniques.sort()
-        except TypeError:
-            warnings.warn(
-                "The values in the array are unorderable. "
-                "Pass `sort=False` to suppress this warning.",
-                RuntimeWarning,
-            )
-            pass
-
-    return uniques
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
     cdef:
         list buf

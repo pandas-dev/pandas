@@ -39,11 +39,6 @@ class TestMisc:
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
 
-    def test_fast_unique_multiple_unsortable_runtimewarning(self):
-        arr = [np.array(["foo", Timestamp("2000")])]
-        with tm.assert_produces_warning(RuntimeWarning):
-            lib.fast_unique_multiple(arr, sort=None)
-
 
 class TestIndexing:
     def test_maybe_indices_to_slice_left_edge(self):
