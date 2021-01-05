@@ -207,7 +207,8 @@ def test_construction_out_of_bounds_td64():
     td64 = np.timedelta64(106752, "D")
     assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta):
+    msg = "106752 days"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK
@@ -216,7 +217,7 @@ def test_construction_out_of_bounds_td64():
     td64 *= -1
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta):
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK
