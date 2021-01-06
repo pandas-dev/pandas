@@ -68,7 +68,12 @@ extensions = [
     "contributors",  # custom pandas extension
 ]
 
-exclude_patterns = ["**.ipynb_checkpoints"]
+exclude_patterns = [
+    "**.ipynb_checkpoints",
+    # to ensure that include files (partial pages) aren't built, exclude them
+    # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
+    "**/includes/**",
+]
 try:
     import nbconvert
 except ImportError:
@@ -427,7 +432,7 @@ extlinks = {
 
 
 ipython_warning_is_error = False
-ipython_exec_lines = [
+ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",
     # This ensures correct rendering on system with console encoding != utf8

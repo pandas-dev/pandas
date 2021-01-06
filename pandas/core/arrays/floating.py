@@ -175,7 +175,7 @@ class FloatingArray(NumericArray):
     .. warning::
 
        FloatingArray is currently experimental, and its API or internal
-       implementation may change without warning. Expecially the behaviour
+       implementation may change without warning. Especially the behaviour
        regarding NaN (distinct from NA missing values) is subject to change.
 
     We represent a FloatingArray with 2 numpy arrays:

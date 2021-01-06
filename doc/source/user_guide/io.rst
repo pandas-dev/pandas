@@ -232,6 +232,8 @@ verbose : boolean, default ``False``
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
 
+.. _io.read_csv_table.datetime:
+
 Datetime handling
 +++++++++++++++++
 
@@ -2444,22 +2446,22 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
+   url = (
+       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+       "pandas/tests/io/data/html/spam.html"
+   )
    dfs = pd.read_html(url)
    dfs
 
-.. note::
-
-   The data from the above URL changes every Monday so the resulting data above
-   and the data below may be slightly different.
-
-Read in the content of the file from the above URL and pass it to ``read_html``
+Read in the content of the "banklist.html" file and pass it to ``read_html``
 as a string:
 
 .. ipython:: python
    :suppress:
 
-   file_path = os.path.abspath(os.path.join("source", "_static", "banklist.html"))
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
+                           "banklist.html")
+   file_path = os.path.abspath(rel_path)
 
 .. ipython:: python
 
