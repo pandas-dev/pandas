@@ -710,12 +710,12 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
     return unix_date
 
 
-cdef int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
+cdef inline int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
     # AKA: use npy_datetimestruct_to_datetime(NPY_FR_M, &dts)
     return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
 
 
-cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
+cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
     cdef:
         int64_t result
 
@@ -726,7 +726,7 @@ cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
         return result
 
 
-cdef int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
+cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
     cdef:
         int quarter
 
@@ -735,7 +735,7 @@ cdef int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
     return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
 
 
-cdef int get_anchor_month(int freq, int freq_group) nogil:
+cdef inline int get_anchor_month(int freq, int freq_group) nogil:
     cdef:
         int fmonth
     fmonth = freq - freq_group
