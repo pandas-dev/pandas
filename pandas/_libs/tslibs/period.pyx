@@ -357,18 +357,15 @@ cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     return upsample_daytime(unix_date, af_info)
 
 
-cdef void MtoD_ym(int64_t ordinal, int *year, int *month) nogil:
-    year[0] = ordinal // 12 + 1970
-    month[0] = ordinal % 12 + 1
-
-
 cdef int64_t asfreq_MtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
         int year, month
 
     ordinal += af_info.is_end
-    MtoD_ym(ordinal, &year, &month)
+
+    year = ordinal // 12 + 1970
+    month = ordinal % 12 + 1
 
     unix_date = unix_date_from_ymd(year, month, 1)
     unix_date -= af_info.is_end
@@ -449,10 +446,7 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info) nogil:
 
     ordinal = downsample_daytime(ordinal, af_info)
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
-    if dts.month > af_info.to_end:
-        return <int64_t>(dts.year + 1 - 1970)
-    else:
-        return <int64_t>(dts.year - 1970)
+    return dts_to_year_ordinal(&dts, af_info.to_end)
 
 
 cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts) nogil:
@@ -483,7 +477,7 @@ cdef int64_t asfreq_DTtoM(int64_t ordinal, asfreq_info *af_info) nogil:
 
     ordinal = downsample_daytime(ordinal, af_info)
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
-    return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
+    return dts_to_month_ordinal(&dts)
 
 
 cdef int64_t asfreq_DTtoW(int64_t ordinal, asfreq_info *af_info) nogil:
@@ -716,6 +710,40 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
     return unix_date
 
 
+cdef inline int64_t dts_to_month_ordinal(npy_datetimestruct* dts) nogil:
+    # AKA: use npy_datetimestruct_to_datetime(NPY_FR_M, &dts)
+    return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
+
+
+cdef inline int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) nogil:
+    cdef:
+        int64_t result
+
+    result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
+    if dts.month > to_end:
+        return result + 1
+    else:
+        return result
+
+
+cdef inline int64_t dts_to_qtr_ordinal(npy_datetimestruct* dts, int to_end) nogil:
+    cdef:
+        int quarter
+
+    adjust_dts_for_qtr(dts, to_end)
+    quarter = month_to_quarter(dts.month)
+    return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
+
+
+cdef inline int get_anchor_month(int freq, int freq_group) nogil:
+    cdef:
+        int fmonth
+    fmonth = freq - freq_group
+    if fmonth == 0:
+        fmonth = 12
+    return fmonth
+
+
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
 # incorrect dates GH#19643
 @cython.cdivision(False)
@@ -740,23 +768,12 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     freq_group = get_freq_group(freq)
 
     if freq_group == FR_ANN:
-        fmonth = freq - FR_ANN
-        if fmonth == 0:
-            fmonth = 12
-
-        mdiff = dts.month - fmonth
-        if mdiff <= 0:
-            return dts.year - 1970
-        else:
-            return dts.year - 1970 + 1
+        fmonth = get_anchor_month(freq, freq_group)
+        return dts_to_year_ordinal(dts, fmonth)
 
     elif freq_group == FR_QTR:
-        fmonth = freq - FR_QTR
-        if fmonth == 0:
-            fmonth = 12
-
-        mdiff = dts.month - fmonth + 12
-        return (dts.year - 1970) * 4 + (mdiff - 1) // 3
+        fmonth = get_anchor_month(freq, freq_group)
+        return dts_to_qtr_ordinal(dts, fmonth)
 
     elif freq_group == FR_WK:
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
