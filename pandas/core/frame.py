@@ -1240,7 +1240,7 @@ class DataFrame(NDFrame):
             If 'tight', assume a dict with keys ['index', 'columns', 'data',
             'index_names', 'column_names'].
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
                'tight' as an allowed value for the ``orient`` argument
 
         dtype : dtype, default None
@@ -1431,7 +1431,7 @@ class DataFrame(NDFrame):
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
                 'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
