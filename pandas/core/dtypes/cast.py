@@ -28,6 +28,7 @@ from pandas._libs import lib, missing as libmissing, tslib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Period,
     Timedelta,
     Timestamp,
@@ -743,8 +744,12 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = Timedelta(val).value
-        dtype = np.dtype("m8[ns]")
+        try:
+            val = Timedelta(val).value
+        except (OutOfBoundsTimedelta, OverflowError):
+            dtype = np.dtype(object)
+        else:
+            dtype = np.dtype("m8[ns]")
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
@@ -1386,7 +1391,7 @@ def maybe_infer_to_datetimelike(
 
         try:
             td_values = to_timedelta(v)
-        except ValueError:
+        except (ValueError, OverflowError):
             return v.reshape(shape)
         else:
             return np.asarray(td_values).reshape(shape)
@@ -1618,8 +1623,16 @@ def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
 
+    shape = (length, width)
+
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike(value, dtype)
+    elif dtype == object:
+        if isinstance(value, (np.timedelta64, np.datetime64)):
+            # calling np.array below would cast to pytimedelta/pydatetime
+            out = np.empty(shape, dtype=object)
+            out.fill(value)
+            return out
 
     # Attempt to coerce to a numpy array
     try:
@@ -1632,7 +1645,6 @@ def construct_2d_arraylike_from_scalar(
     if arr.ndim != 0:
         raise ValueError("DataFrame constructor not properly called!")
 
-    shape = (length, width)
     return np.full(shape, arr)
 
 

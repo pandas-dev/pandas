@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat.numpy import _np_version_under1p19, _np_version_under1p20
+from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
@@ -2371,16 +2371,10 @@ class TestFromScalar:
     def test_from_timestamp_scalar_preserves_nanos(self, constructor):
         ts = Timestamp.now() + Timedelta(1)
 
-        obj = Series(ts, index=range(1), dtype="M8[ns]")
+        obj = constructor(ts, dtype="M8[ns]")
         assert get1(obj) == ts
 
-    def test_from_timedelta64_scalar_object(self, constructor, request):
-        if getattr(constructor, "func", None) is DataFrame and _np_version_under1p20:
-            # getattr check means we only xfail when box is None
-            mark = pytest.mark.xfail(
-                reason="np.array(td64, dtype=object) converts to int"
-            )
-            request.node.add_marker(mark)
+    def test_from_timedelta64_scalar_object(self, constructor):
 
         td = Timedelta(1)
         td64 = td.to_timedelta64()
@@ -2407,8 +2401,20 @@ class TestFromScalar:
         with pytest.raises(TypeError, match="Cannot cast"):
             constructor(scalar, dtype=dtype)
 
-    def test_from_out_of_bounds_datetime(self, constructor):
+    @pytest.mark.parametrize("cls", [datetime, np.datetime64])
+    def test_from_out_of_bounds_datetime(self, constructor, cls):
         scalar = datetime(9999, 1, 1)
+        if cls is np.datetime64:
+            scalar = np.datetime64(scalar, "D")
         result = constructor(scalar)
 
-        assert type(get1(result)) is datetime
+        assert type(get1(result)) is cls
+
+    @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
+    def test_from_out_of_bounds_timedelta(self, constructor, cls):
+        scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
+        if cls is np.timedelta64:
+            scalar = np.timedelta64(scalar, "D")
+        result = constructor(scalar)
+
+        assert type(get1(result)) is cls
