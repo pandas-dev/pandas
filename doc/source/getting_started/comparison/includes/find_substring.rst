@@ -5,4 +5,4 @@ zero-based.
 
 .. ipython:: python
 
-   tips["sex"].str.find("ale").head()
+   tips["sex"].str.find("ale")

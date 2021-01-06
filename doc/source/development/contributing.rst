@@ -698,6 +698,12 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
+If you want to run checks on all recently commited files on upstream/master you can use::
+
+    pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+
+without needing to have done ``pre-commit install`` beforehand.
+
 .. note::
 
     If you have conflicting installations of ``virtualenv``, then you may get an

@@ -445,3 +445,15 @@ class TestRank:
         expected = DataFrame({"a": [1.0, 2.0, 3.0]})
         result = df.rank()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+        ],
+    )
+    def test_rank_mixed_axis_zero(self, data, expected):
+        df = DataFrame(data)
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)

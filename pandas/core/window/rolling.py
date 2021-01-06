@@ -110,7 +110,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        self.win_type = win_type
+        # TODO: Change this back to self.win_type once deprecation is enforced
+        self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8 = None
@@ -130,6 +131,27 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 "must be a column (of DataFrame), an Index or None"
             )
         self.validate()
+
+    @property
+    def win_type(self):
+        if self._win_freq_i8 is not None:
+            warnings.warn(
+                "win_type will no longer return 'freq' in a future version. "
+                "Check the type of self.window instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            return "freq"
+        return self._win_type
+
+    @property
+    def is_datetimelike(self):
+        warnings.warn(
+            "is_datetimelike is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._win_freq_i8 is not None
 
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
@@ -1241,6 +1263,7 @@ class RollingAndExpandingMixin(BaseWindow):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
+
     engine : str, default None
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
@@ -1351,8 +1374,21 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return apply_func
 
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nansum with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nansum,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1362,13 +1398,43 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+    engine : str, default None
+        * ``'cython'`` : Runs rolling max through C-extensions from cython.
+        * ``'numba'`` : Runs rolling max through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
     """
     )
 
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("max", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmax with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmax,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
 
@@ -1378,8 +1444,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling min through C-extensions from cython.
+        * ``'numba'`` : Runs rolling min through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1409,13 +1492,39 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("min", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmin with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmin,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
 
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmean with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmean,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1425,9 +1534,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Parameters
     ----------
+    engine : str, default None
+        * ``'cython'`` : Runs rolling median through C-extensions from cython.
+        * ``'numba'`` : Runs rolling median through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect
-        on the computed median.
+        on the computed result.
 
     Returns
     -------
@@ -1456,10 +1581,21 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def median(self, **kwargs):
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("method='table' is not supported.")
+            # Once numba supports np.nanmedian with axis, args will be relevant.
+            # https://github.com/numba/numba/issues/6610
+            args = () if self.method == "single" else (0,)
+            return self.apply(
+                np.nanmedian,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+                args=args,
+            )
         window_func = window_aggregations.roll_median_c
-        # GH 32865. Move max window size calculation to
-        # the median function implementation
         return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof: int = 1, *args, **kwargs):
@@ -1492,7 +1628,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Keyword arguments to be passed into func.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
     """
 
     def skew(self, **kwargs):
@@ -1512,7 +1649,8 @@ class RollingAndExpandingMixin(BaseWindow):
     Parameters
     ----------
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1604,6 +1742,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ----------
     quantile : float
         Quantile to compute. 0 <= quantile <= 1.
+
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
@@ -1614,6 +1753,23 @@ class RollingAndExpandingMixin(BaseWindow):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+
+    engine : str, default None
+        * ``'cython'`` : Runs rolling quantile through C-extensions from cython.
+        * ``'numba'`` : Runs rolling quantile through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+
     **kwargs
         For compatibility with other %(name)s methods. Has no effect on
         the result.
@@ -1995,33 +2151,33 @@ class Rolling(RollingAndExpandingMixin):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_rolling_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="rolling", versionadded="")
     @Appender(_shared_docs["std"])
@@ -2081,7 +2237,9 @@ class Rolling(RollingAndExpandingMixin):
     @Appender(_shared_docs["quantile"])
     def quantile(self, quantile, interpolation="linear", **kwargs):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @Substitution(name="rolling", func_name="cov")
