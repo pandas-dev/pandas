@@ -3334,13 +3334,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         # GH5632, make sure that we are a Series convertible
         if not len(self.index) and is_list_like(value) and len(value):
-            try:
-                value = Series(value)
-            except (ValueError, NotImplementedError, TypeError) as err:
-                raise ValueError(
-                    "Cannot set a frame with no defined index "
-                    "and a value that cannot be converted to a Series"
-                ) from err
+            if not isinstance(value, DataFrame):
+                try:
+                    value = Series(value)
+                except (ValueError, NotImplementedError, TypeError) as err:
+                    raise ValueError(
+                        "Cannot set a frame with no defined index "
+                        "and a value that cannot be converted to a Series"
+                    ) from err
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
