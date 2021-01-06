@@ -2445,8 +2445,8 @@ Read a URL with no options:
 .. ipython:: python
 
    url = (
-      "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-      "pandas/tests/io/data/html/spam.html"
+       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+       "pandas/tests/io/data/html/spam.html"
    )
    dfs = pd.read_html(url)
    dfs
