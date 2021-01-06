@@ -1863,7 +1863,7 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
 
 
 cdef _try_switch_true_false_values(ndarray[object] values, list true_values,
-                                    list false_values):
+                                   list false_values):
     cdef:
         int i, n = len(values)
         object word
