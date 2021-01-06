@@ -3600,12 +3600,6 @@ class MultiIndex(Index):
                 zip(*uniq_tuples), sortorder=0, names=result_names
             )
 
-    def _get_level_indexer_intersection(self, lvals, rvals):
-        try:
-            return Index(rvals).get_indexer(lvals)
-        except (InvalidIndexError, IncompatibleFrequency):
-            return Index(rvals).get_indexer_non_unique(lvals)[0]
-
     def _difference(self, other, sort):
         other, result_names = self._convert_can_do_setop(other)
 
