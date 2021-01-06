@@ -354,7 +354,11 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            arr = astype_nansafe(self._values, dtype=dtype)
+
+            # pandas/core/indexes/numeric.py:357: error: Argument 1 to "astype_nansafe"
+            # has incompatible type "Union[ExtensionArray, ndarray]"; expected "ndarray"
+            # [arg-type]
+            arr = astype_nansafe(self._values, dtype=dtype)  # type: ignore[arg-type]
             return Int64Index(arr, name=self.name)
         return super().astype(dtype, copy=copy)
 

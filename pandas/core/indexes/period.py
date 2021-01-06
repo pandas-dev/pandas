@@ -248,7 +248,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # Data
 
     @property
-    def values(self) -> np.ndarray:
+    # pandas/core/indexes/period.py:251: error: Return type "ndarray" of "values"
+    # incompatible with return type "ArrayLike" in supertype "Index"  [override]
+    def values(self) -> np.ndarray:  # type: ignore[override]
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other):

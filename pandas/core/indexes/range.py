@@ -92,7 +92,12 @@ class RangeIndex(Int64Index):
         name=None,
     ):
 
-        cls._validate_dtype(dtype)
+        # pandas/core/indexes/range.py:95: error: Argument 1 to "_validate_dtype" of
+        # "NumericIndex" has incompatible type "Union[ExtensionDtype, str, dtype[Any],
+        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
+        # None]"; expected "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object]]"  [arg-type]
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
@@ -135,7 +140,12 @@ class RangeIndex(Int64Index):
                 f"range, {repr(data)} was passed"
             )
 
-        cls._validate_dtype(dtype)
+        # pandas/core/indexes/range.py:138: error: Argument 1 to "_validate_dtype" of
+        # "NumericIndex" has incompatible type "Union[ExtensionDtype, str, dtype[Any],
+        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
+        # None]"; expected "Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object]]"  [arg-type]
+        cls._validate_dtype(dtype)  # type: ignore[arg-type]
         return cls._simple_new(data, name=name)
 
     @classmethod

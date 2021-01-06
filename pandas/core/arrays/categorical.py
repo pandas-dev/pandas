@@ -369,7 +369,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = sanitize_array(values, None, dtype=sanitize_dtype)
 
             else:
-                values = sanitize_to_nanoseconds(values)
+                # pandas/core/arrays/categorical.py:372: error: Argument 1 to
+                # "sanitize_to_nanoseconds" has incompatible type "Union[ndarray,
+                # ExtensionArray]"; expected "ndarray"  [arg-type]
+                values = sanitize_to_nanoseconds(values)  # type: ignore[arg-type]
 
         if dtype.categories is None:
             try:
@@ -395,7 +398,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = extract_array(values)._codes
+            # pandas/core/arrays/categorical.py:398: error: Item "ExtensionArray" of
+            # "Union[Any, ExtensionArray]" has no attribute "_codes"  [union-attr]
+            old_codes = extract_array(values)._codes  # type: ignore[union-attr]
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
             )
@@ -2576,7 +2581,9 @@ def _get_codes_for_values(values, categories: "Index") -> np.ndarray:
     # Only hit here when we've already coerced to object dtypee.
 
     hash_klass, vals = get_data_algo(values)
-    _, cats = get_data_algo(categories)
+    # pandas/core/arrays/categorical.py:2579: error: Value of type variable "ArrayLike"
+    # of "get_data_algo" cannot be "Index"  [type-var]
+    _, cats = get_data_algo(categories)  # type: ignore[type-var]
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)

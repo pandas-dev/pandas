@@ -146,7 +146,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask)
 
-    def to_numpy(
+    # pandas/core/arrays/masked.py:149: error: Argument 1 of "to_numpy" is incompatible
+    # with supertype "ExtensionArray"; supertype defines the argument type as
+    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+    # Type[complex], Type[bool], Type[object], None]"  [override]
+
+    # pandas/core/arrays/masked.py:149: note: This violates the Liskov substitution
+    # principle
+
+    # pandas/core/arrays/masked.py:149: note: See
+    # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -215,7 +225,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            # pandas/core/arrays/masked.py:218: error: Incompatible types in assignment
+            # (expression has type "Type[object]", variable has type "Union[str,
+            # dtype[Any], None]")  [assignment]
+            dtype = object  # type: ignore[assignment]
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -239,8 +252,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if is_dtype_equal(dtype, self.dtype):
             if copy:
-                return self.copy()
-            return self
+                # pandas/core/arrays/masked.py:242: error: Incompatible return value
+                # type (got "BaseMaskedArray", expected "ndarray")  [return-value]
+                return self.copy()  # type: ignore[return-value]
+            # pandas/core/arrays/masked.py:243: error: Incompatible return value type
+            # (got "BaseMaskedArray", expected "ndarray")  [return-value]
+            return self  # type: ignore[return-value]
 
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
@@ -250,7 +267,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
             cls = dtype.construct_array_type()
-            return cls(data, mask, copy=False)
+            # pandas/core/arrays/masked.py:253: error: Incompatible return value type
+            # (got "BaseMaskedArray", expected "ndarray")  [return-value]
+            return cls(data, mask, copy=False)  # type: ignore[return-value]
 
         if isinstance(dtype, ExtensionDtype):
             eacls = dtype.construct_array_type()

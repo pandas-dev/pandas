@@ -230,7 +230,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    def to_numpy(
+    # pandas/core/arrays/string_arrow.py:233: error: Argument 1 of "to_numpy" is
+    # incompatible with supertype "ExtensionArray"; supertype defines the
+    # argument type as "Union[ExtensionDtype, str, dtype[Any], Type[str],
+    # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    # [override]
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,
@@ -379,7 +384,15 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = get_fill_func(method)
-                new_values = func(self.to_numpy(object), limit=limit, mask=mask)
+                # pandas/core/arrays/string_arrow.py:382: error: Argument 1 to
+                # "to_numpy" of "ArrowStringArray" has incompatible type
+                # "Type[object]"; expected "Union[str, dtype[Any], None]"
+                # [arg-type]
+                new_values = func(
+                    self.to_numpy(object),  # type: ignore[arg-type]
+                    limit=limit,
+                    mask=mask,
+                )
                 new_values = self._from_sequence(new_values)
             else:
                 # fill with value

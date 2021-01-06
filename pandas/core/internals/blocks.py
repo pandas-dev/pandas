@@ -632,7 +632,10 @@ class Block(PandasObject):
             # e.g. astype_nansafe can fail on object-dtype of strings
             #  trying to convert to float
             if errors == "ignore":
-                new_values = self.values
+                # pandas/core/internals/blocks.py:635: error: Incompatible types in
+                # assignment (expression has type "Union[ndarray, ExtensionArray]",
+                # variable has type "ExtensionArray")  [assignment]
+                new_values = self.values  # type: ignore[assignment]
             else:
                 raise
 
@@ -650,12 +653,33 @@ class Block(PandasObject):
         values = self.values
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+            # pandas/core/internals/blocks.py:653: error: Value of type variable
+            # "ArrayLike" of "astype_dt64_to_dt64tz" cannot be "Union[ndarray,
+            # ExtensionArray]"  [type-var]
+
+            # pandas/core/internals/blocks.py:653: error: Incompatible return value type
+            # (got "DatetimeArray", expected "ndarray")  [return-value]
+            return astype_dt64_to_dt64tz(  # type: ignore[type-var,return-value]
+                values, dtype, copy, via_utc=True
+            )
 
         if is_dtype_equal(values.dtype, dtype):
             if copy:
-                return values.copy()
-            return values
+                # pandas/core/internals/blocks.py:657: error: Incompatible return value
+                # type (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
+                # [return-value]
+
+                # pandas/core/internals/blocks.py:657: error: Incompatible return value
+                # type (got "Union[ndarray, ExtensionArray]", expected "ndarray")
+                # [return-value]
+                return values.copy()  # type: ignore[return-value]
+            # pandas/core/internals/blocks.py:658: error: Incompatible return value type
+            # (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
+            # [return-value]
+
+            # pandas/core/internals/blocks.py:658: error: Incompatible return value type
+            # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+            return values  # type: ignore[return-value]
 
         if isinstance(values, ExtensionArray):
             values = values.astype(dtype, copy=copy)
@@ -663,7 +687,13 @@ class Block(PandasObject):
         else:
             values = astype_nansafe(values, dtype, copy=copy)
 
-        return values
+        # pandas/core/internals/blocks.py:666: error: Incompatible return value type
+        # (got "Union[ndarray, ExtensionArray]", expected "ExtensionArray")
+        # [return-value]
+
+        # pandas/core/internals/blocks.py:666: error: Incompatible return value type
+        # (got "Union[ndarray, ExtensionArray]", expected "ndarray")  [return-value]
+        return values  # type: ignore[return-value]
 
     def convert(
         self,
@@ -849,7 +879,15 @@ class Block(PandasObject):
             if isna(s):
                 return ~mask
 
-            return compare_or_regex_search(self.values, s, regex, mask)
+            # pandas/core/internals/blocks.py:852: error: Incompatible return value type
+            # (got "Union[ndarray, bool]", expected "ndarray")  [return-value]
+
+            # pandas/core/internals/blocks.py:852: error: Argument 1 to
+            # "compare_or_regex_search" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            return compare_or_regex_search(  # type: ignore[return-value]
+                self.values, s, regex, mask  # type: ignore[arg-type]
+            )
 
         if self.is_object:
             # Calculate the mask once, prior to the call of comp
@@ -1049,7 +1087,10 @@ class Block(PandasObject):
             if transpose:
                 new_values = new_values.T
 
-            putmask_without_repeat(new_values, mask, new)
+            # pandas/core/internals/blocks.py:1052: error: Argument 1 to
+            # "putmask_without_repeat" has incompatible type "Union[ndarray,
+            # ExtensionArray]"; expected "ndarray"  [arg-type]
+            putmask_without_repeat(new_values, mask, new)  # type: ignore[arg-type]
 
         # maybe upcast me
         elif mask.any():
@@ -1284,19 +1325,14 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
-        # pandas\core\internals\blocks.py:1376: error: Value of type variable
-        # "ArrayLike" of "maybe_upcast" cannot be "Union[ndarray,
-        # ExtensionArray]"  [type-var]
+        # pandas/core/internals/blocks.py:1286: error: Argument 1 to "maybe_upcast" has
+        # incompatible type "Union[ndarray, ExtensionArray]"; expected "ndarray"
+        # [arg-type]
         new_values, fill_value = maybe_upcast(
-            self.values, fill_value  # type: ignore[type-var]
+            self.values, fill_value  # type: ignore[arg-type]
         )
 
-        # pandas\core\internals\blocks.py:1378: error: Argument 1 to "shift"
-        # has incompatible type "Union[ndarray, ExtensionArray]"; expected
-        # "ndarray"  [arg-type]
-        new_values = shift(
-            new_values, periods, axis, fill_value  # type: ignore[arg-type]
-        )
+        new_values = shift(new_values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
@@ -2612,7 +2648,11 @@ def safe_reshape(arr: ArrayLike, new_shape: Shape) -> ArrayLike:
     if not is_extension_array_dtype(arr.dtype):
         # Note: this will include TimedeltaArray and tz-naive DatetimeArray
         # TODO(EA2D): special case will be unnecessary with 2D EAs
-        arr = np.asarray(arr).reshape(new_shape)
+
+        # pandas/core/internals/blocks.py:2615: error: Incompatible types in assignment
+        # (expression has type "ndarray", variable has type "ExtensionArray")
+        # [assignment]
+        arr = np.asarray(arr).reshape(new_shape)  # type: ignore[assignment]
     return arr
 
 

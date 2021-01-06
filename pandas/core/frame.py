@@ -555,7 +555,17 @@ class DataFrame(NDFrame, OpsMixin):
             # a masked array
             else:
                 data = sanitize_masked_array(data)
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                # pandas/core/frame.py:558: error: Argument "dtype" to "init_ndarray"
+                # has incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                # Type[object], None]"; expected "Union[dtype[Any], ExtensionDtype,
+                # None]"  [arg-type]
+                mgr = init_ndarray(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,  # type: ignore[arg-type]
+                    copy=copy,
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -605,9 +615,34 @@ class DataFrame(NDFrame, OpsMixin):
                     data = dataclasses_to_dicts(data)
                 if treat_as_nested(data):
                     arrays, columns, index = nested_data_to_arrays(
-                        data, columns, index, dtype
+                        # pandas/core/frame.py:608: error: Argument 2 to
+                        # "nested_data_to_arrays" has incompatible type
+                        # "Optional[Collection[Any]]"; expected "Optional[Index]"
+                        # [arg-type]
+                        # pandas/core/frame.py:608: error: Argument 3 to
+                        # "nested_data_to_arrays" has incompatible type
+                        # "Optional[Collection[Any]]"; expected "Optional[Index]"
+                        # [arg-type]
+                        # pandas/core/frame.py:608: error: Argument 4 to
+                        # "nested_data_to_arrays" has incompatible type
+                        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]";
+                        # expected "Union[dtype[Any], ExtensionDtype, None]"  [arg-type]
+                        data,
+                        columns,  # type: ignore[arg-type]
+                        index,  # type: ignore[arg-type]
+                        dtype,  # type: ignore[arg-type]
                     )
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    # pandas/core/frame.py:610: error: Argument "dtype" to
+                    # "arrays_to_mgr" has incompatible type "Union[ExtensionDtype, str,
+                    # dtype[Any], Type[object], None]"; expected "Union[dtype[Any],
+                    # ExtensionDtype, None]"  [arg-type]
+                    mgr = arrays_to_mgr(
+                        arrays,
+                        columns,
+                        index,
+                        columns,
+                        dtype=dtype,  # type: ignore[arg-type]
+                    )
                 else:
                     # error: Argument "dtype" to "init_ndarray" has
                     # incompatible type "Union[ExtensionDtype, str, dtype,
@@ -650,8 +685,19 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
-                values = construct_2d_arraylike_from_scalar(
-                    data, len(index), len(columns), dtype, copy
+                # pandas/core/frame.py:653: error: Incompatible types in assignment
+                # (expression has type "ndarray", variable has type
+                # "List[ExtensionArray]")  [assignment]
+                values = construct_2d_arraylike_from_scalar(  # type: ignore[assignment]
+                    # pandas/core/frame.py:654: error: Argument 4 to
+                    # "construct_2d_arraylike_from_scalar" has incompatible type
+                    # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                    # "dtype[Any]"  [arg-type]
+                    data,
+                    len(index),
+                    len(columns),
+                    dtype,  # type: ignore[arg-type]
+                    copy,
                 )
 
                 mgr = init_ndarray(
@@ -1203,17 +1249,19 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
-    # overlap with incompatible return types  [misc]
     @overload
-    def dot(self, other: Series) -> Series:  # type: ignore[misc]
+    def dot(self, other: Series) -> Series:
         ...
 
     @overload
     def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
         ...
 
-    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
+    # pandas/core/frame.py:1216: error: Overloaded function implementation cannot
+    # satisfy signature 2 due to inconsistencies in how they use type variables  [misc]
+    def dot(  # type: ignore[misc]
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -2056,7 +2104,9 @@ class DataFrame(NDFrame, OpsMixin):
                 # array of tuples to numpy cols. copy copy copy
                 ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
-                ix_vals = [self.index.values]
+                # pandas/core/frame.py:2059: error: List item 0 has incompatible type
+                # "ArrayLike"; expected "ndarray"  [list-item]
+                ix_vals = [self.index.values]  # type: ignore[list-item]
 
             arrays = ix_vals + [
                 np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
@@ -3305,7 +3355,10 @@ class DataFrame(NDFrame, OpsMixin):
                     value = value.reindex(cols, axis=1)
 
         # now align rows
-        value = _reindex_for_setitem(value, self.index)
+
+        # pandas/core/frame.py:3308: error: Incompatible types in assignment (expression
+        # has type "ExtensionArray", variable has type "DataFrame")  [assignment]
+        value = _reindex_for_setitem(value, self.index)  # type: ignore[assignment]
         value = value.T
         self._set_item_mgr(key, value)
 
@@ -9715,7 +9768,9 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        return value._values.copy()
+        # pandas/core/frame.py:9718: error: Incompatible return value type (got
+        # "Union[ndarray, Any]", expected "ExtensionArray")  [return-value]
+        return value._values.copy()  # type: ignore[return-value]
 
     # GH#4107
     try:

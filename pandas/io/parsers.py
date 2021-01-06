@@ -3524,7 +3524,21 @@ def _get_empty_meta(columns, index_col, index_names, dtype: Optional[DtypeArg] =
     if not is_dict_like(dtype):
         # if dtype == None, default will be object.
         default_dtype = dtype or object
-        dtype = defaultdict(lambda: default_dtype)
+        # pandas/io/parsers.py:3527: error: Argument 1 to "defaultdict" has incompatible
+        # type "Callable[[], Union[ExtensionDtype, str, dtype[Any], Type[object],
+        # Dict[Optional[Hashable], Union[ExtensionDtype, Union[str, dtype[Any]],
+        # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+        # Type[object]]]]]"; expected "Optional[Callable[[], Union[ExtensionDtype, str,
+        # dtype[Any], Type[object]]]]"  [arg-type]
+
+        # pandas/io/parsers.py:3527: error: Incompatible return value type (got
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object], Dict[Optional[Hashable],
+        # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
+        # Type[int], Type[complex], Type[bool], Type[object]]]]", expected
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]")  [return-value]
+        dtype = defaultdict(
+            lambda: default_dtype  # type: ignore[arg-type,return-value]
+        )
     else:
         dtype = cast(dict, dtype)
         dtype = defaultdict(

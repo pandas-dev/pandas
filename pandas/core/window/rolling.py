@@ -297,9 +297,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 self._selected_obj, extract_numpy=True
             )
 
-        if needs_i8_conversion(values.dtype):
+        # pandas/core/window/rolling.py:300: error: Item "None" of "Optional[ndarray]"
+        # has no attribute "dtype"  [union-attr]
+        if needs_i8_conversion(values.dtype):  # type: ignore[union-attr]
             raise NotImplementedError(
-                f"ops for {type(self).__name__} for this "
+                # pandas/core/window/rolling.py:302: error: Item "None" of
+                # "Optional[ndarray]" has no attribute "dtype"  [union-attr]
+                f"ops for {type(self).__name__} for this "  # type: ignore[union-attr]
                 f"dtype {values.dtype} are not implemented"
             )
         else:

@@ -258,7 +258,12 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             if isna(times).any():
                 raise ValueError("Cannot convert NaT values to integer")
-            self.times = np.asarray(times.view(np.int64))
+            # pandas/core/window/ewm.py:261: error: Item "str" of "Union[str, ndarray,
+            # FrameOrSeries, None]" has no attribute "view"  [union-attr]
+
+            # pandas/core/window/ewm.py:261: error: Item "None" of "Union[str, ndarray,
+            # FrameOrSeries, None]" has no attribute "view"  [union-attr]
+            self.times = np.asarray(times.view(np.int64))  # type: ignore[union-attr]
             self.halflife = Timedelta(halflife).value
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args

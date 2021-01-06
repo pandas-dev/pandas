@@ -403,7 +403,9 @@ class IntegerArray(NumericArray):
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            # pandas/core/arrays/integer.py:406: error: Incompatible return value type
+            # (got "ExtensionArray", expected "ndarray")  [return-value]
+            return super().astype(dtype, copy=copy)  # type: ignore[return-value]
 
         # coerce
         if is_float_dtype(dtype):
