@@ -154,7 +154,8 @@ class TestPartialSetting:
         # columns will align
         df = DataFrame(columns=["A", "B"])
         df.loc[0] = Series(1, index=range(4))
-        tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
+        expected = DataFrame(columns=["A", "B"], index=[0], dtype=int)
+        tm.assert_frame_equal(df, expected)
 
         # columns will align
         df = DataFrame(columns=["A", "B"])
@@ -170,11 +171,21 @@ class TestPartialSetting:
         with pytest.raises(ValueError, match=msg):
             df.loc[0] = [1, 2, 3]
 
-        # TODO: #15657, these are left as object and not coerced
+    @pytest.mark.parametrize("dtype", [None, "int64", "Int64"])
+    def test_loc_setitem_expanding_empty(self, dtype):
         df = DataFrame(columns=["A", "B"])
-        df.loc[3] = [6, 7]
 
-        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype="object")
+        value = [6, 7]
+        if dtype == "int64":
+            value = np.array(value, dtype=dtype)
+        elif dtype == "Int64":
+            value = pd.array(value, dtype=dtype)
+
+        df.loc[3] = value
+
+        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype=dtype)
+        if dtype is not None:
+            exp = exp.astype(dtype)
         tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):

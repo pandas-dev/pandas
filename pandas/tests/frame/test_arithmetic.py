@@ -834,9 +834,12 @@ class TestFrameArithmetic:
         ids=lambda x: x.__name__,
     )
     def test_binop_other(self, op, value, dtype):
+
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
+            (operator.add, "bool"),
+            (operator.mul, "bool"),
         }
 
         e = DummyElement(value, dtype)
@@ -878,11 +881,17 @@ class TestFrameArithmetic:
 
         elif (op, dtype) in skip:
 
-            msg = "operator '.*' not implemented for .* dtypes"
-            with pytest.raises(NotImplementedError, match=msg):
+            if op in [operator.add, operator.mul]:
                 with tm.assert_produces_warning(UserWarning):
                     # "evaluating in Python space because ..."
                     op(s, e.value)
+
+            else:
+                msg = "operator '.*' not implemented for .* dtypes"
+                with pytest.raises(NotImplementedError, match=msg):
+                    with tm.assert_produces_warning(UserWarning):
+                        # "evaluating in Python space because ..."
+                        op(s, e.value)
 
         else:
             # FIXME: Since dispatching to Series, this test no longer

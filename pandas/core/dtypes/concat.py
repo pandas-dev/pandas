@@ -93,17 +93,12 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # wrap datetime-likes in EA to ensure astype(object) gives Timestamp/Timedelta
         # this can happen when concat_compat is called directly on arrays (when arrays
         # are not coming from Index/Series._values), eg in BlockManager.quantile
-        arr = array(arr)
+        arr = ensure_wrapped_if_datetimelike(arr)
 
-    if is_extension_array_dtype(dtype):
-        if isinstance(arr, np.ndarray):
-            # numpy's astype cannot handle ExtensionDtypes
-            return array(arr, dtype=dtype, copy=False)
-    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible
-    # type "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
-    # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
-    # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
-    return arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+    if is_extension_array_dtype(dtype) and isinstance(arr, np.ndarray):
+        # numpy's astype cannot handle ExtensionDtypes
+        return array(arr, dtype=dtype, copy=False)
+    return arr.astype(dtype, copy=False)
 
 
 def concat_compat(to_concat, axis: int = 0):
@@ -136,7 +131,7 @@ def concat_compat(to_concat, axis: int = 0):
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
     non_empties = [x for x in to_concat if is_nonempty(x)]
-    if non_empties and axis == 0:
+    if non_empties:
         to_concat = non_empties
 
     typs = _get_dtype_kinds(to_concat)

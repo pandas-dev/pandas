@@ -16,12 +16,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
@@ -260,7 +255,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndexClass):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -293,7 +288,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
             if is_bool_dtype(result):
@@ -351,14 +346,14 @@ class StringMethods(NoNewAttributesMixin):
         from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
-        idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
+        idx = self._orig if isinstance(self._orig, ABCIndex) else self._orig.index
 
         # Generally speaking, all objects without an index inherit the index
         # `idx` of the calling Series/Index - i.e. must have matching length.
         # Objects with an index (i.e. Series/Index/DataFrame) keep their own.
         if isinstance(others, ABCSeries):
             return [others]
-        elif isinstance(others, ABCIndexClass):
+        elif isinstance(others, ABCIndex):
             return [Series(others._values, index=idx)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
@@ -371,7 +366,7 @@ class StringMethods(NoNewAttributesMixin):
             # in case of list-like `others`, all elements must be
             # either Series/Index/np.ndarray (1-dim)...
             if all(
-                isinstance(x, (ABCSeries, ABCIndexClass))
+                isinstance(x, (ABCSeries, ABCIndex))
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
@@ -532,7 +527,7 @@ class StringMethods(NoNewAttributesMixin):
         if sep is None:
             sep = ""
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             data = Series(self._orig, index=self._orig)
         else:  # Series
             data = self._orig
@@ -593,7 +588,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
 
             # error: Incompatible types in assignment (expression has type
@@ -1565,40 +1560,40 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["koala", "fox", "chameleon"])
+        >>> s = pd.Series(["koala", "dog", "chameleon"])
         >>> s
         0        koala
-        1          fox
+        1          dog
         2    chameleon
         dtype: object
 
         >>> s.str.slice(start=1)
         0        oala
-        1          ox
+        1          og
         2    hameleon
         dtype: object
 
         >>> s.str.slice(start=-1)
         0           a
-        1           x
+        1           g
         2           n
         dtype: object
 
         >>> s.str.slice(stop=2)
         0    ko
-        1    fo
+        1    do
         2    ch
         dtype: object
 
         >>> s.str.slice(step=2)
         0      kaa
-        1       fx
+        1       dg
         2    caeen
         dtype: object
 
         >>> s.str.slice(start=0, stop=5, step=3)
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
 
@@ -1606,7 +1601,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str[0:5:3]
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
         """
@@ -3025,7 +3020,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         # not dispatching, so we have to reconstruct here.
         result = array(result, dtype=result_dtype)
     else:
-        if isinstance(arr, ABCIndexClass):
+        if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
         name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -3095,7 +3090,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, ABCIndexClass):
+    if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))

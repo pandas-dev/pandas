@@ -12,6 +12,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -28,7 +29,14 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
+from pandas._typing import (
+    ArrayLike,
+    DtypeArg,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -71,6 +79,8 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
     from tables import Col, File, Node
+
+    from pandas.core.internals import Block
 
 
 # versioning attribute
@@ -1646,8 +1656,10 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
-                _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                pt = _TYPE_MAP[type(value)]
+                if isinstance(value, Series):
+                    pt = "series"
+                else:
+                    pt = "frame"
 
                 # we are actually a table
                 if format == "table":
@@ -2043,15 +2055,19 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
+        factory: Union[Type[Index], Type[DatetimeIndex]] = Index
+        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+            factory = DatetimeIndex
+
         # making an Index instance could throw a number of different errors
         try:
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            new_pd_index = Index(values, **kwargs)
+            new_pd_index = factory(values, **kwargs)
 
         # error: Incompatible types in assignment (expression has type
         # "Union[ndarray, DatetimeIndex]", variable has type "Index")
@@ -2256,7 +2272,7 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         data=None,
     ):
         super().__init__(
@@ -2738,8 +2754,14 @@ class GenericFixed(Fixed):
             return alias
         return self._reverse_index_map.get(alias, Index)
 
-    def _get_index_factory(self, klass):
-        if klass == DatetimeIndex:
+    def _get_index_factory(self, attrs):
+        index_class = self._alias_to_class(
+            _ensure_decoded(getattr(attrs, "index_class", ""))
+        )
+
+        factory: Callable
+
+        if index_class == DatetimeIndex:
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
@@ -2749,16 +2771,34 @@ class GenericFixed(Fixed):
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
 
-            return f
-        elif klass == PeriodIndex:
+            factory = f
+        elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
                 parr = PeriodArray._simple_new(values, freq=freq)
                 return PeriodIndex._simple_new(parr, name=None)
 
-            return f
+            factory = f
+        else:
+            factory = index_class
 
-        return klass
+        kwargs = {}
+        if "freq" in attrs:
+            kwargs["freq"] = attrs["freq"]
+            if index_class is Index:
+                # DTI/PI would be gotten by _alias_to_class
+                factory = TimedeltaIndex
+
+        if "tz" in attrs:
+            if isinstance(attrs["tz"], bytes):
+                # created by python2
+                kwargs["tz"] = attrs["tz"].decode("utf-8")
+            else:
+                # created by python3
+                kwargs["tz"] = attrs["tz"]
+            assert index_class is DatetimeIndex  # just checking
+
+        return factory, kwargs
 
     def validate_read(self, columns, where):
         """
@@ -2930,22 +2970,8 @@ class GenericFixed(Fixed):
             name = _ensure_str(node._v_attrs.name)
             name = _ensure_decoded(name)
 
-        index_class = self._alias_to_class(
-            _ensure_decoded(getattr(node._v_attrs, "index_class", ""))
-        )
-        factory = self._get_index_factory(index_class)
-
-        kwargs = {}
-        if "freq" in node._v_attrs:
-            kwargs["freq"] = node._v_attrs["freq"]
-
-        if "tz" in node._v_attrs:
-            if isinstance(node._v_attrs["tz"], bytes):
-                # created by python2
-                kwargs["tz"] = node._v_attrs["tz"].decode("utf-8")
-            else:
-                # created by python3
-                kwargs["tz"] = node._v_attrs["tz"]
+        attrs = node._v_attrs
+        factory, kwargs = self._get_index_factory(attrs)
 
         if kind == "date":
             index = factory(
@@ -3854,9 +3880,6 @@ class Table(Fixed):
         for a in new_non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
-        def get_blk_items(mgr, blocks):
-            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
-
         transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
@@ -3864,10 +3887,10 @@ class Table(Fixed):
             data_columns, min_itemsize, new_non_index_axes
         )
 
-        block_obj = self.get_object(obj, transposed)._consolidate()
+        frame = self.get_object(obj, transposed)._consolidate()
 
         blocks, blk_items = self._get_blocks_and_items(
-            block_obj, table_exists, new_non_index_axes, self.values_axes, data_columns
+            frame, table_exists, new_non_index_axes, self.values_axes, data_columns
         )
 
         # add my values
@@ -3910,6 +3933,7 @@ class Table(Fixed):
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
+                block_columns=b_items,
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
@@ -3972,27 +3996,31 @@ class Table(Fixed):
 
     @staticmethod
     def _get_blocks_and_items(
-        block_obj, table_exists, new_non_index_axes, values_axes, data_columns
+        frame: DataFrame,
+        table_exists: bool,
+        new_non_index_axes,
+        values_axes,
+        data_columns,
     ):
         # Helper to clarify non-state-altering parts of _create_axes
 
-        def get_blk_items(mgr, blocks):
-            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
+        def get_blk_items(mgr):
+            return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks = block_obj._mgr.blocks
-        blk_items = get_blk_items(block_obj._mgr, blocks)
+        blocks: List["Block"] = list(frame._mgr.blocks)
+        blk_items: List[Index] = get_blk_items(frame._mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._mgr
+            mgr = frame.reindex(new_labels, axis=axis)._mgr
 
             blocks = list(mgr.blocks)
-            blk_items = get_blk_items(mgr, blocks)
+            blk_items = get_blk_items(mgr)
             for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._mgr
+                mgr = frame.reindex([c], axis=axis)._mgr
                 blocks.extend(mgr.blocks)
-                blk_items.extend(get_blk_items(mgr, mgr.blocks))
+                blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
         if table_exists:
@@ -4000,7 +4028,7 @@ class Table(Fixed):
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
-            new_blocks = []
+            new_blocks: List["Block"] = []
             new_blk_items = []
             for ea in values_axes:
                 items = tuple(ea.values)
@@ -4873,7 +4901,14 @@ def _unconvert_index(
 
 
 def _maybe_convert_for_string_atom(
-    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str,
+    block: "Block",
+    existing_col,
+    min_itemsize,
+    nan_rep,
+    encoding,
+    errors,
+    block_columns: List[str],
 ):
     if not block.is_object:
         return block.values
@@ -4893,11 +4928,12 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return block.values
 
-    block = block.fillna(nan_rep, downcast=False)
-    if isinstance(block, list):
-        # Note: because block is always object dtype, fillna goes
-        #  through a path such that the result is always a 1-element list
-        block = block[0]
+    blocks: List["Block"] = block.fillna(nan_rep, downcast=False)
+    # Note: because block is always object dtype, fillna goes
+    #  through a path such that the result is always a 1-element list
+    assert len(blocks) == 1
+    block = blocks[0]
+
     data = block.values
 
     # see if we have a valid string type
@@ -4906,14 +4942,20 @@ def _maybe_convert_for_string_atom(
 
         # we cannot serialize this data, so report an exception on a column
         # by column basis
-        for i in range(len(block.shape[0])):
+
+        # expected behaviour:
+        # search block for a non-string object column by column
+        for i in range(block.shape[0]):
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
-                iloc = block.mgr_locs.indexer[i]
+                error_column_label = (
+                    block_columns[i] if len(block_columns) > i else f"No.{i}"
+                )
                 raise TypeError(
-                    f"Cannot serialize the column [{iloc}] because\n"
-                    f"its data contents are [{inferred_type}] object dtype"
+                    f"Cannot serialize the column [{error_column_label}]\n"
+                    f"because its data contents are not [string] but "
+                    f"[{inferred_type}] object dtype"
                 )
 
     # itemsize is the maximum length of a string (along any dimension)

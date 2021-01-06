@@ -39,9 +39,12 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
+    ColspaceArgType,
+    ColspaceType,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
+    FormattersType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -80,14 +83,6 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
-
-FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
-]
-ColspaceType = Mapping[Label, Union[str, int]]
-ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
-]
 
 common_docstring = """
         Parameters
@@ -1305,7 +1300,7 @@ class GenericArrayFormatter:
             if not is_float_type[i] and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(float_format(v))
+                fmt_values.append(_trim_zeros_single_float(float_format(v)))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
@@ -1314,8 +1309,6 @@ class GenericArrayFormatter:
                 else:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
-
-        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
 
         return fmt_values
 
@@ -1689,7 +1682,7 @@ def is_dates_only(
 
     values_int = values.asi8
     consider_values = values_int != iNaT
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % int(one_day_nanos) != 0).sum() == 0
     )
@@ -1789,11 +1782,11 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.astype(np.int64)
+    values_int = values.view(np.int64)
 
     consider_values = values_int != iNaT
 
-    one_day_nanos = 86400 * 1e9
+    one_day_nanos = 86400 * 10 ** 9
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )
@@ -1877,11 +1870,25 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
     return padded
 
 
+def _trim_zeros_single_float(str_float: str) -> str:
+    """
+    Trims trailing zeros after a decimal point,
+    leaving just one if necessary.
+    """
+    str_float = str_float.rstrip("0")
+    if str_float.endswith("."):
+        str_float += "0"
+
+    return str_float
+
+
 def _trim_zeros_float(
     str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
-    Trims zeros, leaving just one before the decimal points if need be.
+    Trims the maximum number of trailing zeros equally from
+    all numbers containing decimals, leaving just one if
+    necessary.
     """
     trimmed = str_floats
     number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")

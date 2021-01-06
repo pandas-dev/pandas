@@ -10,7 +10,7 @@ from pandas._libs import algos, lib
 from pandas._typing import ArrayLike, Axis, DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     ensure_float64,
     is_integer_dtype,
@@ -40,12 +40,8 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     # When called from Block.replace/replace_list, values_to_mask is a scalar
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
-    dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
-    # pandas/core/missing.py:44: error: Argument "dtype" to "array" has incompatible
-    # type "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
-    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-    # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
-    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
+    dtype, values_to_mask = infer_dtype_from(values_to_mask)
+    values_to_mask = np.array(values_to_mask, dtype=dtype)
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]

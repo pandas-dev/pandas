@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -56,27 +55,27 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return integer_array(make_data(), dtype=dtype)
+    return pd.array(make_data(), dtype=dtype)
 
 
 @pytest.fixture
 def data_for_twos(dtype):
-    return integer_array(np.ones(100) * 2, dtype=dtype)
+    return pd.array(np.ones(100) * 2, dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return integer_array([pd.NA, 1], dtype=dtype)
+    return pd.array([pd.NA, 1], dtype=dtype)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return integer_array([1, 2, 0], dtype=dtype)
+    return pd.array([1, 2, 0], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return integer_array([1, pd.NA, 0], dtype=dtype)
+    return pd.array([1, pd.NA, 0], dtype=dtype)
 
 
 @pytest.fixture
@@ -96,7 +95,7 @@ def data_for_grouping(dtype):
     a = 0
     c = 2
     na = pd.NA
-    return integer_array([b, b, na, na, a, a, b, c], dtype=dtype)
+    return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
 class TestDtype(base.BaseDtypeTests):

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -7,17 +7,15 @@ import numpy as np
 from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
-from pandas._typing import DtypeObj
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_dtype_equal,
     is_float,
     is_integer,
-    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -31,11 +29,7 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    _index_shared_docs,
-    ensure_index,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import ensure_index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
@@ -44,6 +38,9 @@ from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
+_shared_doc_kwargs = {
+    "klass": "PeriodArray",
+}
 
 # --- Period index sketch
 
@@ -87,8 +84,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     hour : int, array, or Series, default None
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
-    tz : object, default None
-        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -154,7 +149,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
-    @doc(PeriodArray.asfreq)
+    @doc(
+        PeriodArray.asfreq,
+        other="pandas.arrays.PeriodArray",
+        other_name="PeriodArray",
+        **_shared_doc_kwargs,
+    )
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
@@ -190,8 +190,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         ordinal=None,
         freq=None,
-        tz=None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
         name=None,
         **fields,
@@ -448,7 +447,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # ------------------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def _get_indexer(self, target: Index, method=None, limit=None, tolerance=None):
 
         if not self._should_compare(target):
@@ -632,64 +630,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         result = type(self)._simple_new(parr, name=res_name)
         return result
 
-    def intersection(self, other, sort=False):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, _ = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            if self.has_duplicates:
-                return self.unique()._get_reconciled_name_object(other)
-            return self._get_reconciled_name_object(other)
-
-        return self._intersection(other, sort=sort)
-
     def _intersection(self, other, sort=False):
-
-        if is_object_dtype(other.dtype):
-            return self.astype("O").intersection(other, sort=sort)
-
-        elif not self._is_comparable_dtype(other.dtype):
-            # We can infer that the intersection is empty.
-            # assert_can_do_setop ensures that this is not just a mismatched freq
-            this = self[:0].astype("O")
-            other = other[:0].astype("O")
-            return this.intersection(other, sort=sort)
-
         return self._setop(other, sort, opname="intersection")
 
-    def difference(self, other, sort=None):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
-
-        if self.equals(other):
-            return self[:0].rename(result_name)
-
-        return self._difference(other, sort=sort)
-
-    def _difference(self, other, sort):
-
-        if is_object_dtype(other):
-            return self.astype(object).difference(other).astype(self.dtype)
-
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            return self
-
-        return self._setop(other, sort, opname="difference")
-
     def _union(self, other, sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, type(self))
-
-        if not is_dtype_equal(self.dtype, other.dtype):
-            this = self.astype("O")
-            other = other.astype("O")
-            return this._union(other, sort=sort)
-
         return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
