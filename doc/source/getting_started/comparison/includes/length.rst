@@ -4,5 +4,5 @@ Use ``len`` and ``rstrip`` to exclude trailing blanks.
 
 .. ipython:: python
 
-   tips["time"].str.len().head()
-   tips["time"].str.rstrip().str.len().head()
+   tips["time"].str.len()
+   tips["time"].str.rstrip().str.len()

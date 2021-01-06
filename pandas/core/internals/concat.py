@@ -419,7 +419,7 @@ def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, A
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
-    else:  # pragma
+    else:
         try:
             common_dtype = np.find_common_type(upcast_classes, [])
         except TypeError:
