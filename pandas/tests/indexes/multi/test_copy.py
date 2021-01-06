@@ -79,10 +79,7 @@ def test_copy_method_kwargs(deep, kwarg, value):
         names=["first", "second"],
     )
     idx_copy = idx.copy(**{kwarg: value, "deep": deep})
-    if kwarg == "names":
-        assert getattr(idx_copy, kwarg) == value
-    else:
-        assert [list(i) for i in getattr(idx_copy, kwarg)] == value
+    assert getattr(idx_copy, kwarg) == value
 
 
 @pytest.mark.parametrize("deep", [True, False])
