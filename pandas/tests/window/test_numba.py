@@ -177,9 +177,6 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="method='table' is not supported."
-    )
     def test_table_method_rolling_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
@@ -247,9 +244,6 @@ class TestTableMethod:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="method='table' is not supported."
-    )
     def test_table_method_expanding_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
