@@ -134,8 +134,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
     # TODO: Remove once win_type deprecation is enforced
     def _shallow_copy(self, obj, **kwargs):
-        warnings.simplefilter("ignore", FutureWarning)
-        super()._shallow_copy(obj, **kwargs)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            super()._shallow_copy(obj, **kwargs)
 
     @property
     def win_type(self):
