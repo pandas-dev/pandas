@@ -81,7 +81,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
     _data: np.ndarray
-    _mask: np.ndarray[Any, bool]
+    _mask: np.ndarray
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         # values is supposed to already be validated in the subclass
