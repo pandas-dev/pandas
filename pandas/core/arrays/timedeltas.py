@@ -22,6 +22,7 @@ from pandas._libs.tslibs.timedeltas import (
     ints_to_pytimedelta,
     parse_timedelta_unit,
 )
+from pandas._typing import NpDtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
@@ -338,7 +339,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -352,7 +353,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
         initial=None,
@@ -372,7 +373,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         ddof: int = 1,
         keepdims: bool = False,

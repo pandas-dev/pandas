@@ -715,9 +715,17 @@ class IndexOpsMixin(OpsMixin):
         the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmax()
+        else:
+            return nanops.nanargmax(delegate, skipna=skipna)
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -765,9 +773,17 @@ class IndexOpsMixin(OpsMixin):
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
+        delegate = self._values
         nv.validate_minmax_axis(axis)
-        nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
+
+        if isinstance(delegate, ExtensionArray):
+            if not skipna and delegate.isna().any():
+                return -1
+            else:
+                return delegate.argmin()
+        else:
+            return nanops.nanargmin(delegate, skipna=skipna)
 
     def tolist(self):
         """
