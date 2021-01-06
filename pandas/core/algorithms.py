@@ -2219,7 +2219,7 @@ def union_with_duplicates(lvals, rvals) -> np.ndarray:
 
     Returns
     -------
-    np.ndarray containing the unsorted union of noth arrays
+    np.ndarray containing the unsorted union of both arrays
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)

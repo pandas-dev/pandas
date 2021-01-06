@@ -2815,7 +2815,12 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic and not (self.has_duplicates and other.has_duplicates):
+        if (
+            sort is None
+            and self.is_monotonic
+            and other.is_monotonic
+            and not (self.has_duplicates and other.has_duplicates)
+        ):
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
@@ -2842,7 +2847,6 @@ class Index(IndexOpsMixin, PandasObject):
                     result = lvals
             else:
                 result = algos.union_with_duplicates(lvals, rvals)
-
 
             if sort is None and (not self.is_monotonic or not other.is_monotonic):
                 try:
