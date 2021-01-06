@@ -415,19 +415,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self._insert_on_column(out, obj)
         return out
 
-    def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
-        """
-        Center the result in the window for weighted rolling aggregations.
-        """
-        if self.axis > result.ndim - 1:
-            raise ValueError("Requested axis is larger then no. of argument dimensions")
-
-        if offset > 0:
-            lead_indexer = [slice(None)] * result.ndim
-            lead_indexer[self.axis] = slice(offset, None)
-            result = np.copy(result[tuple(lead_indexer)])
-        return result
-
     def _apply(
         self,
         func: Callable[..., Any],
@@ -466,33 +453,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            def _calculate_center_offset(window) -> int:
-                """
-                Calculate an offset necessary to have the window label to be centered.
-
-                Parameters
-                ----------
-                window: ndarray or int
-                    window weights or window
-
-                Returns
-                -------
-                int
-                """
-                if not is_integer(window):
-                    window = len(window)
-                return int((window - 1) / 2.0)
-
-            offset = (
-                _calculate_center_offset(self.window)
-                if self.center
-                and not isinstance(self._get_window_indexer(), VariableWindowIndexer)
-                else 0
-            )
-            additional_nans = np.array([np.nan] * offset)
-
             def calc(x):
-                x = np.concatenate((x, additional_nans))
 
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
@@ -511,15 +472,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
             if numba_cache_key is not None:
                 NUMBA_FUNC_CACHE[numba_cache_key] = func
-
-            # TODO: is this equivalent to the above?
-            # if use_numba_cache:
-            #     NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
-
-            if self.center and not isinstance(
-                self._get_window_indexer(), VariableWindowIndexer
-            ):
-                result = self._center_window(result, self.window)
 
             return result
 
