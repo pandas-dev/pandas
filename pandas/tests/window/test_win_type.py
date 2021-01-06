@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, Timedelta, concat
+from pandas import DataFrame, Series, Timedelta, concat, date_range
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 
@@ -135,6 +135,12 @@ def test_consistent_win_type_freq(arg):
     s = Series(range(1))
     with pytest.raises(ValueError, match="Invalid win_type freq"):
         s.rolling(arg, win_type="freq")
+
+
+def test_win_type_freq_return_deprecation():
+    freq_roll = Series(range(2), index=date_range("2020", periods=2)).rolling("2s")
+    with tm.assert_produces_warning(FutureWarning):
+        assert freq_roll.win_type == "freq"
 
 
 @td.skip_if_no_scipy
