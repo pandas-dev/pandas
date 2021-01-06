@@ -64,7 +64,6 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Level,
-    NpDtype,
     PythonFuncType,
     Renamer,
     Scalar,
@@ -1366,7 +1365,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype=None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
