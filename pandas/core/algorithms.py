@@ -2205,16 +2205,13 @@ def _sort_tuples(values: np.ndarray[tuple]):
     return values[indexer]
 
 
-def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
+def union_with_duplicates(lvals, rvals) -> np.ndarray:
     """
-    Elements from union_values are re-sorted after the ranking of the first occurrence
-    in lvals and then rvals, if element is not in lvals. All occurrences of this element
-    are placed at the spot of the first occurrence of this element.
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
 
     Parameters
     ----------
-    union_values: np.array
-        sorted union of lvals and rvals
     lvals: np.ndarray
         left values which is ordered in front.
     rvals: np.ndarray
@@ -2222,14 +2219,13 @@ def re_sort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
 
     Returns
     -------
-    np.ndarray containing the resorted values from union_values
+    np.ndarray containing the unsorted union of noth arrays
     """
     indexer = []
-    x = value_counts(lvals, dropna=False)
-    y = value_counts(rvals, dropna=False)
-    z = x._align_series(y, fill_value=0)
+    l_count = value_counts(lvals, dropna=False)
+    r_count = value_counts(rvals, dropna=False)
+    l_count, r_count = l_count._align_series(r_count, fill_value=0)
     unique_array = unique(np.append(lvals, rvals))
-    # Create indexer to resort result
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(z[0][value], z[1][value]))
+        indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)

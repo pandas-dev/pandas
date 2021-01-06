@@ -2815,7 +2815,7 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic and (self.is_unique or other.is_unique):
+        if sort is None and self.is_monotonic and other.is_monotonic and not (self.has_duplicates and other.has_duplicates):
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
@@ -2827,8 +2827,8 @@ class Index(IndexOpsMixin, PandasObject):
                 result.extend([x for x in rvals if x not in value_set])
                 result = Index(result)._values  # do type inference here
         else:
-            # find indexes of things in "other" that are not in "self"
             if other.is_unique:
+                # find indexes of things in "other" that are not in "self"
                 if self.is_unique:
                     indexer = self.get_indexer(other)
                     missing = (indexer == -1).nonzero()[0]
@@ -2841,7 +2841,7 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     result = lvals
             else:
-                result = algos.re_sort_union_after_inputs(lvals, lvals, rvals)
+                result = algos.union_with_duplicates(lvals, rvals)
 
 
             if sort is None and (not self.is_monotonic or not other.is_monotonic):

@@ -542,3 +542,21 @@ def test_union_duplicate_index_different_dtypes():
     expected = Index([1, 2, 2, 3, "1", "0", "0"])
     result = idx1.union(idx2, sort=False)
     tm.assert_index_equal(result, expected)
+
+
+def test_union_same_value_duplicated_in_both():
+    # GH#36289
+    idx1 = Index([0, 0, 1])
+    idx2 = Index([0, 0, 1, 2])
+    result = idx1.union(idx2)
+    expected = Index([0, 0, 1, 2])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_nan_in_both():
+    # GH#36289
+    idx1 = Index([np.nan, 1, 2, 2])
+    idx2 = Index([np.nan, 1, 1, 2])
+    result = idx1.union(idx2, sort=False)
+    expected = Index([np.nan, 1.0, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)

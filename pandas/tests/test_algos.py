@@ -2411,11 +2411,10 @@ class TestDiff:
             algos.diff(dta, 1, axis=1)
 
 
-def test_resort_union_after_inputs():
+def test_union_with_duplicates():
     # GH#36289
-    union_values = np.array([1, 1, 2, 3, 3, 4])
-    lvals = np.array([[3, 1, 4]])
-    rvals = np.array([[2, 3, 1]])
-    result = algos.re_sort_union_after_inputs(union_values, lvals, rvals)
+    lvals = np.array([3, 1, 3, 4])
+    rvals = np.array([2, 3, 1, 1])
+    result = algos.union_with_duplicates(lvals, rvals)
     expected = np.array([3, 3, 1, 1, 4, 2])
     tm.assert_numpy_array_equal(result, expected)
