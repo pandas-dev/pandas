@@ -110,7 +110,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        self.win_type = win_type
+        # TODO: Change this back to self.win_type once deprecation is enforced
+        self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8 = None
@@ -130,6 +131,27 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 "must be a column (of DataFrame), an Index or None"
             )
         self.validate()
+
+    @property
+    def win_type(self):
+        if self._win_freq_i8 is not None:
+            warnings.warn(
+                "win_type will no longer return 'freq' in a future version. "
+                "Check the type of self.window instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            return "freq"
+        return self._win_type
+
+    @property
+    def is_datetimelike(self):
+        warnings.warn(
+            "is_datetimelike is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._win_freq_i8 is not None
 
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
