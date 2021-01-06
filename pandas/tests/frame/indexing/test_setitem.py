@@ -338,6 +338,16 @@ class TestDataFrameSetItem:
 
         tm.assert_index_equal(df.columns, expected_cols)
 
+    @pytest.mark.parametrize("indexer", ["B", ["B"]])
+    def test_setitem_frame_length_0_str_key(self, indexer):
+        # GH#38831
+        df = DataFrame(columns=["A", "B"])
+        other = DataFrame({"B": [1, 2]})
+        df[indexer] = other
+        expected = DataFrame({"A": [np.nan] * 2, "B": [1, 2]})
+        expected["A"] = expected["A"].astype("object")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
