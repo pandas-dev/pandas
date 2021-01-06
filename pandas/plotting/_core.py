@@ -630,8 +630,6 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
