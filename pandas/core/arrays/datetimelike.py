@@ -36,7 +36,7 @@ from pandas._libs.tslibs.timestamps import (
     integer_op_not_supported,
     round_nsint64,
 )
-from pandas._typing import DatetimeLikeScalar, DtypeObj
+from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -107,7 +107,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
-    def __init__(self, data, dtype=None, freq=None, copy=False):
+    def __init__(self, data, dtype: Optional[Dtype] = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
     @classmethod
@@ -115,7 +115,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         cls: Type[DatetimeLikeArrayT],
         values: np.ndarray,
         freq: Optional[BaseOffset] = None,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
     ) -> DatetimeLikeArrayT:
         raise AbstractMethodError(cls)
 
@@ -265,7 +265,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
@@ -352,6 +352,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
+            warnings.warn(
+                f"casting {self.dtype} values to int64 with .astype(...) is "
+                "deprecated and will raise in a future version. "
+                "Use .view(...) instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
             values = self.asi8
 
             if is_unsigned_integer_dtype(dtype):
@@ -375,7 +383,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def view(self, dtype=None):
+    def view(self, dtype: Optional[Dtype] = None):
         if dtype is None or dtype is self.dtype:
             return type(self)(self._ndarray, dtype=self.dtype)
         return self._ndarray.view(dtype=dtype)
@@ -601,6 +609,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(value, type(self)):
             return value
 
+        if isinstance(value, list) and len(value) == 0:
+            # We treat empty list as our own dtype.
+            return type(self)._from_sequence([], dtype=self.dtype)
+
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = array(value)
@@ -729,7 +741,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.zeros(self.shape, dtype=bool)
 
         if not isinstance(values, type(self)):
-            inferrable = [
+            inferable = [
                 "timedelta",
                 "timedelta64",
                 "datetime",
@@ -739,7 +751,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             ]
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
-                if inferred not in inferrable:
+                if inferred not in inferable:
                     if inferred == "string":
                         pass
 
@@ -1627,6 +1639,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
+
+    # --------------------------------------------------------------
+    # Reductions
+
+    def any(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#34479 discussion of desired behavior long-term
+        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+
+    def all(self, *, axis: Optional[int] = None, skipna: bool = True):
+        # GH#34479 discussion of desired behavior long-term
+        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
 
     # --------------------------------------------------------------
     # Frequency Methods

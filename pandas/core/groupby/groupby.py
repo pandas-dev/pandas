@@ -1233,7 +1233,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             # so we resort to this
             # GH 14776, 30667
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
@@ -1620,12 +1620,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if result.ndim == 1:
             result /= np.sqrt(self.count())
         else:
-            cols = result.columns.get_indexer_for(
-                result.columns.difference(self.exclusions).unique()
-            )
-            result.iloc[:, cols] = result.iloc[:, cols] / np.sqrt(
-                self.count().iloc[:, cols]
-            )
+            cols = result.columns.difference(self.exclusions).unique()
+            counts = self.count()
+            result_ilocs = result.columns.get_indexer_for(cols)
+            count_ilocs = counts.columns.get_indexer_for(cols)
+            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
         return result
 
     @final

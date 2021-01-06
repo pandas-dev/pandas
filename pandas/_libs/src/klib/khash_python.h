@@ -1,6 +1,14 @@
 #include <string.h>
 #include <Python.h>
 
+
+// use numpy's definitions for complex
+#include <numpy/arrayobject.h>
+typedef npy_complex64 khcomplex64_t;
+typedef npy_complex128 khcomplex128_t;
+
+
+
 // khash should report usage to tracemalloc
 #if PY_VERSION_HEX >= 0x03060000
 #include <pymem.h>
@@ -75,14 +83,14 @@ void traced_free(void* ptr){
 // predisposed to superlinear running times (see GH 36729 for comparison)
 
 
-khint64_t PANDAS_INLINE asint64(double key) {
-    khint64_t val;
+khuint64_t PANDAS_INLINE asuint64(double key) {
+    khuint64_t val;
     memcpy(&val, &key, sizeof(double));
     return val;
 }
 
-khint32_t PANDAS_INLINE asint32(float key) {
-    khint32_t val;
+khuint32_t PANDAS_INLINE asuint32(float key) {
+    khuint32_t val;
     memcpy(&val, &key, sizeof(float));
     return val;
 }
@@ -90,7 +98,7 @@ khint32_t PANDAS_INLINE asint32(float key) {
 #define ZERO_HASH 0
 #define NAN_HASH  0
 
-khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
+khuint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     // 0.0 and -0.0 should have the same hash:
     if (val == 0.0){
         return ZERO_HASH;
@@ -99,11 +107,11 @@ khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     if ( val!=val ){
         return NAN_HASH;
     }
-    khint64_t as_int = asint64(val);
+    khuint64_t as_int = asuint64(val);
     return murmur2_64to32(as_int);
 }
 
-khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
+khuint32_t PANDAS_INLINE kh_float32_hash_func(float val){
     // 0.0 and -0.0 should have the same hash:
     if (val == 0.0f){
         return ZERO_HASH;
@@ -112,7 +120,7 @@ khint32_t PANDAS_INLINE kh_float32_hash_func(float val){
     if ( val!=val ){
         return NAN_HASH;
     }
-    khint32_t as_int = asint32(val);
+    khuint32_t as_int = asuint32(val);
     return murmur2_32to32(as_int);
 }
 
@@ -127,6 +135,32 @@ KHASH_MAP_INIT_FLOAT64(float64, size_t)
 	KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func, kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
+
+khint32_t PANDAS_INLINE kh_complex128_hash_func(khcomplex128_t val){
+    return kh_float64_hash_func(val.real)^kh_float64_hash_func(val.imag);
+}
+khint32_t PANDAS_INLINE kh_complex64_hash_func(khcomplex64_t val){
+    return kh_float32_hash_func(val.real)^kh_float32_hash_func(val.imag);
+}
+
+#define kh_complex_hash_equal(a, b) \
+  (kh_floats_hash_equal(a.real, b.real) && kh_floats_hash_equal(a.imag, b.imag))
+
+
+#define KHASH_MAP_INIT_COMPLEX64(name, khval_t)								\
+	KHASH_INIT(name, khcomplex64_t, khval_t, 1, kh_complex64_hash_func, kh_complex_hash_equal)
+
+KHASH_MAP_INIT_COMPLEX64(complex64, size_t)
+
+
+#define KHASH_MAP_INIT_COMPLEX128(name, khval_t)								\
+	KHASH_INIT(name, khcomplex128_t, khval_t, 1, kh_complex128_hash_func, kh_complex_hash_equal)
+
+KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
+
+
+#define kh_exist_complex64(h, k) (kh_exist(h, k))
+#define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
@@ -186,15 +220,15 @@ p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
 	return result;
 }
 
-khint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
-    khint_t result = kh_put_str(table->table, key, ret);
+khuint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t* table, char* key, int* ret) {
+    khuint_t result = kh_put_str(table->table, key, ret);
 	if (*ret != 0) {
 		table->starts[(unsigned char)key[0]] = 1;
 	}
     return result;
 }
 
-khint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
+khuint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t* table, const char* key) {
     unsigned char ch = *key;
 	if (table->starts[ch]) {
 		if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets) return 1;
@@ -207,6 +241,6 @@ void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t* table) {
 	KHASH_FREE(table);
 }
 
-void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khint_t val) {
+void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t* table, khuint_t val) {
 	kh_resize_str(table->table, val);
 }

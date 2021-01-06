@@ -669,6 +669,12 @@ class TestDataFrameAnalytics:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_mode_empty_df(self):
+        df = DataFrame([], columns=["a", "b"])
+        result = df.mode()
+        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=int))
+        tm.assert_frame_equal(result, expected)
+
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
@@ -1091,9 +1097,13 @@ class TestDataFrameAnalytics:
             (np.all, {"A": Series([0, 1], dtype=int)}, False),
             (np.any, {"A": Series([0, 1], dtype=int)}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns]")}, False),
+            pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns, UTC]")}, True),
             pytest.param(np.all, {"A": Series([0, 1], dtype="m8[ns]")}, False),
             pytest.param(np.any, {"A": Series([0, 1], dtype="m8[ns]")}, True),
             pytest.param(np.all, {"A": Series([1, 2], dtype="m8[ns]")}, True),
@@ -1219,13 +1229,15 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
-    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+    def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            pytest.xfail(
-                reason="GH#37659 OSError raised within tzlocal bc Windows "
-                "chokes in times before 1970-01-01"
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="GH#37659 OSError raised within tzlocal bc Windows "
+                    "chokes in times before 1970-01-01"
+                )
             )
 
         df = DataFrame(
