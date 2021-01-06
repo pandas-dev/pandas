@@ -216,7 +216,6 @@ class MultiIndex(Index):
     set_codes
     to_frame
     to_flat_index
-    is_lexsorted
     sortlevel
     droplevel
     swaplevel
