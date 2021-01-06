@@ -223,3 +223,7 @@ class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
 
 class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
     pass
+
+
+class Test2DCompat(BaseDatetimeTests, base.Dim2CompatTests):
+    pass

@@ -43,6 +43,7 @@ by defining the staticmethods ``assert_frame_equal`` and
 """
 from .casting import BaseCastingTests  # noqa
 from .constructors import BaseConstructorsTests  # noqa
+from .dim2 import Dim2CompatTests  # noqa
 from .dtype import BaseDtypeTests  # noqa
 from .getitem import BaseGetitemTests  # noqa
 from .groupby import BaseGroupbyTests  # noqa

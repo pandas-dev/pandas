@@ -197,7 +197,9 @@ class StringArray(PandasArray):
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
+        if len(self._ndarray) and not lib.is_string_array(
+            self._ndarray.ravel("K"), skipna=True
+        ):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
@@ -256,7 +258,7 @@ class StringArray(PandasArray):
         arr = self._ndarray.copy()
         mask = self.isna()
         arr[mask] = -1
-        return arr, -1
+        return arr.ravel("K"), -1
 
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
@@ -316,9 +318,11 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, axis: Optional[int] = 0, **kwargs
+    ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
+            return getattr(self, name)(skipna=skipna, axis=axis)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
@@ -339,7 +343,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        return value_counts(self._ndarray.ravel("K"), dropna=dropna).astype("Int64")
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes

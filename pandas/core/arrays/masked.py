@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, TypeVar,
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype, NpDtype, Scalar
+from pandas._typing import ArrayLike, Dtype, NpDtype, Scalar, Shape
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_bool,
     is_dtype_equal,
-    is_integer,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -80,6 +80,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    _data: np.ndarray
+    _mask: np.ndarray[Any, bool]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         # values is supposed to already be validated in the subclass
@@ -88,10 +90,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if values.ndim != 1:
-            raise ValueError("values must be a 1D array")
-        if mask.ndim != 1:
-            raise ValueError("mask must be a 1D array")
+        if values.shape != mask.shape:
+            raise ValueError("values.shape must match mask.shape")
 
         if copy:
             values = values.copy()
@@ -107,14 +107,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __getitem__(
         self, item: Union[int, slice, np.ndarray]
     ) -> Union[BaseMaskedArray, Any]:
-        if is_integer(item):
-            if self._mask[item]:
+        item = check_array_indexer(self, item)
+
+        newmask = self._mask[item]
+        if is_bool(newmask):
+            # This is a scalar indexing
+            if newmask:
                 return self.dtype.na_value
             return self._data[item]
 
-        item = check_array_indexer(self, item)
-
-        return type(self)(self._data[item], self._mask[item])
+        return type(self)(self._data[item], newmask)
 
     def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
@@ -134,14 +136,41 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._mask[key] = mask
 
     def __iter__(self):
-        for i in range(len(self)):
-            if self._mask[i]:
-                yield self.dtype.na_value
-            else:
-                yield self._data[i]
+        if self.ndim == 1:
+            for i in range(len(self)):
+                if self._mask[i]:
+                    yield self.dtype.na_value
+                else:
+                    yield self._data[i]
+        else:
+            for i in range(len(self)):
+                yield self[i]
 
     def __len__(self) -> int:
         return len(self._data)
+
+    @property
+    def shape(self) -> Shape:
+        return self._data.shape
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    def reshape(self: BaseMaskedArrayT, *args, **kwargs) -> BaseMaskedArrayT:
+        data = self._data.reshape(*args, **kwargs)
+        mask = self._mask.reshape(*args, **kwargs)
+        return type(self)(data, mask)
+
+    def ravel(self: BaseMaskedArrayT, *args, **kwargs) -> BaseMaskedArrayT:
+        # TODO: need to make sure we have the same order for data/mask
+        data = self._data.ravel(*args, **kwargs)
+        mask = self._mask.ravel(*args, **kwargs)
+        return type(self)(data, mask)
+
+    @property
+    def T(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        return type(self)(self._data.T, self._mask.T)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask)
@@ -295,10 +324,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+        cls: Type[BaseMaskedArrayT],
+        to_concat: Sequence[BaseMaskedArrayT],
+        axis: int = 0,
     ) -> BaseMaskedArrayT:
-        data = np.concatenate([x._data for x in to_concat])
-        mask = np.concatenate([x._mask for x in to_concat])
+        data = np.concatenate([x._data for x in to_concat], axis=axis)
+        mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
 
     def take(
@@ -307,15 +338,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Optional[Scalar] = None,
+        axis: int = 0,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
         result = take(
-            self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
+            self._data,
+            indexer,
+            fill_value=data_fill_value,
+            allow_fill=allow_fill,
+            axis=axis,
         )
 
-        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
+        mask = take(
+            self._mask, indexer, fill_value=True, allow_fill=allow_fill, axis=axis
+        )
 
         # if we are filling
         # we only fill where the indexer is null
@@ -339,7 +377,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = self._data
         mask = self._mask
 
-        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+        codes, uniques = factorize_array(
+            arr.ravel(), na_sentinel=na_sentinel, mask=mask.ravel()
+        )
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
@@ -368,7 +408,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]
-        value_counts = Index(data).value_counts()
+        value_counts = Index(data.ravel("K")).value_counts()
 
         # TODO(extension)
         # if we have allow Index to hold an ExtensionArray
@@ -399,7 +439,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if name in {"sum", "prod", "min", "max", "mean"}:
             op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
+            result = op(data, mask, skipna=skipna, **kwargs)
+            return result
 
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)

@@ -149,3 +149,7 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    pass

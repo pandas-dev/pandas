@@ -255,3 +255,7 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    pass
