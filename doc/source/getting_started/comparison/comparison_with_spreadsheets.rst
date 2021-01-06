@@ -267,7 +267,7 @@ function. This can be used with the `TRIM
 <https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9>`_
 function to remove extra whitespace.
 
-.. code-block::
+::
 
    =LEN(TRIM(A2))
 
@@ -295,9 +295,7 @@ Extracting substring by position
 
 Spreadsheets have a `MID
 <https://support.microsoft.com/en-us/office/mid-midb-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028>`_
-formula for extracting a substring from a given position. To get the first character:
-
-.. code-block::
+formula for extracting a substring from a given position. To get the first character::
 
    =MID(A2,1,1)
 
