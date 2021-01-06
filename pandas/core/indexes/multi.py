@@ -21,7 +21,6 @@ from pandas._config import get_option
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import AnyArrayLike, DtypeObj, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
