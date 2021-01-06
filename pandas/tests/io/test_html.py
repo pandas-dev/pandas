@@ -129,6 +129,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
+    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     @pytest.mark.xfail(reason="2021-01-05 HTML layout changed?")
     def test_banklist_url_positional_match(self):
@@ -143,6 +144,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     @pytest.mark.xfail(reason="2021-01-05 HTML layout changed?")
     def test_banklist_url(self):
