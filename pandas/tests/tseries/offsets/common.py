@@ -133,7 +133,6 @@ class Base:
         except OutOfBoundsDatetime:
             pass
         except (ValueError, KeyError):
-            print("vk")
             # we are creating an invalid offset
             # so ignore
             pass
