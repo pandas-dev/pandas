@@ -102,10 +102,6 @@ class Base:
         tz = tz_naive_fixture
         if self._offset is None:
             return
-        if isinstance(tz, tzlocal) and not IS64:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
-            )
 
         # try to create an out-of-bounds result timestamp; if we can't create
         # the offset skip
@@ -115,7 +111,7 @@ class Base:
                 # difference
                 offset = self._get_offset(self._offset, value=100000)
             else:
-                offset = self._get_offset(self._offset, value=100000)
+                offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp("20080101") + offset
             assert isinstance(result, datetime)
@@ -125,11 +121,19 @@ class Base:
             t = Timestamp("20080101", tz=tz)
             result = t + offset
             assert isinstance(result, datetime)
+
+            if isinstance(tz, tzlocal) and not IS64:
+                # If we hit OutOfBoundsDatetime on non-64 bit machines
+                # we'll drop out of the try clause before the next test
+                request.node.add_marker(
+                    pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
+                )
             assert t.tzinfo == result.tzinfo
 
         except OutOfBoundsDatetime:
             pass
         except (ValueError, KeyError):
+            print("vk")
             # we are creating an invalid offset
             # so ignore
             pass
