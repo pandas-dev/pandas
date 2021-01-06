@@ -131,7 +131,6 @@ class TestReadHtml:
 
     @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
-    @pytest.mark.xfail(reason="2021-01-05 HTML layout changed?")
     def test_banklist_url_positional_match(self):
         url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         # Passing match argument as positional should cause a FutureWarning.
@@ -146,7 +145,6 @@ class TestReadHtml:
 
     @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
-    @pytest.mark.xfail(reason="2021-01-05 HTML layout changed?")
     def test_banklist_url(self):
         url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
