@@ -416,14 +416,13 @@ The equivalent in pandas:
 Adding a row
 ~~~~~~~~~~~~
 
-To appended a row, we can just assign values to an index using :meth:`~DataFrame.loc`.
-
-NOTE: If the index already exists, the values in that index will be over written.
+Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :meth:`DataFrame.append` to add a row to the bottom of a ``DataFrame``.
 
 .. ipython:: python
 
-    df1.loc[7] = [8, "tonks"]
-    df1
+    df
+    new_row = {"class": "E", "student_count": 51, "all_pass": True}
+    df.append(new_row, ignore_index=True)
 
 
 Find and Replace
