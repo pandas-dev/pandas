@@ -37,6 +37,7 @@ I/O
 
 - Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
 - Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
+- Fixed ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
 
 -
 -

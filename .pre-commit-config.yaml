@@ -20,11 +20,9 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.4
+    rev: 5.7.0
     hooks:
     -   id: isort
-        types: [text] # overwrite upstream `types: [python]`
-        types_or: [python, cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.4
     hooks:
@@ -128,7 +126,7 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
         types: [python]
         files: ^pandas/tests/
-        exclude: ^pandas/tests/(computation|extension|io)/
+        exclude: ^pandas/tests/extension/
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace in tests'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
