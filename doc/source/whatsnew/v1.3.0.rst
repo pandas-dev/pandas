@@ -161,6 +161,8 @@ Deprecations
 - Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` as a public methods, users should use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
 - Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
+- Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
+- Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
 -
 
 .. ---------------------------------------------------------------------------
