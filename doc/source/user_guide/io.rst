@@ -232,6 +232,8 @@ verbose : boolean, default ``False``
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
 
+.. _io.read_csv_table.datetime:
+
 Datetime handling
 +++++++++++++++++
 
