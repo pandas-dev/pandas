@@ -416,7 +416,6 @@ class StringArray(PandasArray):
                 na_value=na_value,
                 # pandas/core/arrays/string_.py:417: error: Value of type variable
                 # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
-
                 # pandas/core/arrays/string_.py:417: error: Argument 1 to "dtype" has
                 # incompatible type "Union[ExtensionDtype, str, dtype[Any],
                 # Type[object]]"; expected "Type[object]"  [arg-type]
