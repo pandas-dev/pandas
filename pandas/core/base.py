@@ -720,12 +720,18 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
+            # pandas/core/base.py:723: error: "ExtensionArray" has no attribute "any"
+            # [attr-defined]
+            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
                 return -1
             else:
                 return delegate.argmax()
         else:
-            return nanops.nanargmax(delegate, skipna=skipna)
+            # pandas/core/base.py:728: error: Incompatible return value type (got
+            # "Union[int, ndarray]", expected "int")  [return-value]
+            return nanops.nanargmax(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -778,12 +784,18 @@ class IndexOpsMixin(OpsMixin):
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
 
         if isinstance(delegate, ExtensionArray):
-            if not skipna and delegate.isna().any():
+            # pandas/core/base.py:781: error: "ExtensionArray" has no attribute "any"
+            # [attr-defined]
+            if not skipna and delegate.isna().any():  # type: ignore[attr-defined]
                 return -1
             else:
                 return delegate.argmin()
         else:
-            return nanops.nanargmin(delegate, skipna=skipna)
+            # pandas/core/base.py:786: error: Incompatible return value type (got
+            # "Union[int, ndarray]", expected "int")  [return-value]
+            return nanops.nanargmin(  # type: ignore[return-value]
+                delegate, skipna=skipna
+            )
 
     def tolist(self):
         """

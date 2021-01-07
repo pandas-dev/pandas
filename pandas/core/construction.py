@@ -569,7 +569,12 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
+                # pandas/core/construction.py:572: error: Argument "dtype" to "array"
+                # has incompatible type "Union[dtype[Any], ExtensionDtype, None]";
+                # expected "Union[dtype[Any], None, type, _SupportsDType, str,
+                # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+                # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+                data = np.array(data, dtype=dtype, copy=False)  # type: ignore[arg-type]
             result = np.array(data, dtype=object, copy=copy)
     return result
 

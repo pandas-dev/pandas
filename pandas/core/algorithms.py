@@ -2205,7 +2205,12 @@ def safe_sort(
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
-        values = np.asarray(values, dtype=dtype)
+        # pandas/core/algorithms.py:2208: error: Argument "dtype" to "asarray" has
+        # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]]"  [arg-type]
+        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
 

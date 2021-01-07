@@ -165,7 +165,9 @@ def to_numeric(arg, errors="raise", downcast=None):
         mask = values._mask
         values = values._data[~mask]
     else:
-        mask = None
+        # pandas/core/tools/numeric.py:168: error: Incompatible types in assignment
+        # (expression has type "None", variable has type "ndarray")  [assignment]
+        mask = None  # type: ignore[assignment]
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):

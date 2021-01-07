@@ -178,7 +178,12 @@ class PandasArray(
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars, dtype=dtype)
+        # pandas/core/arrays/numpy_.py:181: error: Argument "dtype" to "asarray" has
+        # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+        # dtype[floating[_64Bit]], Type[object], None]"; expected "Union[dtype[Any],
+        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
@@ -416,7 +421,17 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    def to_numpy(
+    # pandas/core/arrays/numpy_.py:419: error: Argument 1 of "to_numpy" is incompatible
+    # with supertype "ExtensionArray"; supertype defines the argument type as
+    # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
+    # Type[complex], Type[bool], Type[object], None]"  [override]
+
+    # pandas/core/arrays/numpy_.py:419: note: This violates the Liskov substitution
+    # principle
+
+    # pandas/core/arrays/numpy_.py:419: note: See
+    # https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-overrides
+    def to_numpy(  # type: ignore[override]
         self,
         dtype: Optional[NpDtype] = None,
         copy: bool = False,

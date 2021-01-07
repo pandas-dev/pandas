@@ -428,7 +428,13 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        result = np.asarray(self, dtype=dtype)
+        # pandas/core/arrays/base.py:431: error: Argument "dtype" to "asarray" has
+        # incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[str],
+        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]";
+        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any,
+        # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
+        # Any]]]"  [arg-type]
+        result = np.asarray(self, dtype=dtype)  # type: ignore[arg-type]
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:

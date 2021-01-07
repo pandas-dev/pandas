@@ -414,7 +414,13 @@ class StringArray(PandasArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                dtype=np.dtype(dtype),
+                # pandas/core/arrays/string_.py:417: error: Value of type variable
+                # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
+
+                # pandas/core/arrays/string_.py:417: error: Argument 1 to "dtype" has
+                # incompatible type "Union[ExtensionDtype, str, dtype[Any],
+                # Type[object]]"; expected "Type[object]"  [arg-type]
+                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
             )
 
             if not na_value_is_na:

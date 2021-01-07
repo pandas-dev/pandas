@@ -338,7 +338,13 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
-                data = _maybe_cast_with_dtype(data, dtype, copy)
+
+                # pandas/core/indexes/base.py:341: error: Argument 1 to
+                # "_maybe_cast_with_dtype" has incompatible type "Union[ndarray, Index,
+                # Series]"; expected "ndarray"  [arg-type]
+                data = _maybe_cast_with_dtype(
+                    data, dtype, copy  # type: ignore[arg-type]
+                )
                 dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
@@ -2806,10 +2812,17 @@ class Index(IndexOpsMixin, PandasObject):
                 # <T>   | <T>    -> T
                 # <T>   | <U>    -> object
                 if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    dtype = "float64"
+                    # pandas/core/indexes/base.py:2809: error: Incompatible types in
+                    # assignment (expression has type "str", variable has type
+                    # "Union[dtype[Any], ExtensionDtype]")  [assignment]
+                    dtype = "float64"  # type: ignore[assignment]
                 else:
                     # one is int64 other is uint64
-                    dtype = object
+
+                    # pandas/core/indexes/base.py:2812: error: Incompatible types in
+                    # assignment (expression has type "Type[object]", variable has type
+                    # "Union[dtype[Any], ExtensionDtype]")  [assignment]
+                    dtype = object  # type: ignore[assignment]
 
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
@@ -4241,7 +4254,12 @@ class Index(IndexOpsMixin, PandasObject):
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
         """
-        return self._data
+        # pandas/core/indexes/base.py:4244: error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ExtensionArray")  [return-value]
+
+        # pandas/core/indexes/base.py:4244: error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ndarray")  [return-value]
+        return self._data  # type: ignore[return-value]
 
     @cache_readonly
     @doc(IndexOpsMixin.array)
@@ -5898,7 +5916,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # FIXME: docstr inaccurate, args/kwargs not passed
         self._maybe_disable_logical_methods("any")
-        return np.any(self.values)
+        # pandas/core/indexes/base.py:5901: error: Argument 1 to "any" has incompatible
+        # type "ArrayLike"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        return np.any(self.values)  # type: ignore[arg-type]
 
     def all(self):
         """
@@ -5956,7 +5978,11 @@ class Index(IndexOpsMixin, PandasObject):
         # FIXME: docstr inaccurate, args/kwargs not passed
 
         self._maybe_disable_logical_methods("all")
-        return np.all(self.values)
+        # pandas/core/indexes/base.py:5959: error: Argument 1 to "all" has incompatible
+        # type "ArrayLike"; expected "Union[Union[int, float, complex, str, bytes,
+        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
+        # Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        return np.all(self.values)  # type: ignore[arg-type]
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t):
@@ -6243,7 +6269,12 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            data = _try_convert_to_int_array(subarr, False, None)
+            # pandas/core/indexes/base.py:6246: error: Argument 3 to
+            # "_try_convert_to_int_array" has incompatible type "None"; expected
+            # "dtype[Any]"  [arg-type]
+            data = _try_convert_to_int_array(
+                subarr, False, None  # type: ignore[arg-type]
+            )
             return data
         except ValueError:
             pass
@@ -6277,7 +6308,12 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            data = TimedeltaArray._from_sequence(subarr, copy=False)
+            # pandas/core/indexes/base.py:6280: error: Incompatible types in assignment
+            # (expression has type "TimedeltaArray", variable has type "ndarray")
+            # [assignment]
+            data = TimedeltaArray._from_sequence(  # type: ignore[assignment]
+                subarr, copy=False
+            )
             return data
         elif inferred == "period":
             try:
