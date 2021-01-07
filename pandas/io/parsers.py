@@ -1691,11 +1691,9 @@ class ParserBase:
             else:
                 is_ea = is_extension_array_dtype(cast_type)
                 is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
-                # skip inference if specified dtype is object or casting to an EA,
-                #  but cast if is_bool_dtype, categorical is handled later
-                try_num_bool = not (cast_type and is_str_or_ea_dtype) or (
-                    is_bool_dtype(cast_type) and not is_categorical_dtype(cast_type)
-                )
+                # skip inference if specified dtype is object
+                # or casting to an EA
+                try_num_bool = not (cast_type and is_str_or_ea_dtype)
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
@@ -1814,15 +1812,18 @@ class ParserBase:
             cast_type = pandas_dtype(cast_type)
             array_type = cast_type.construct_array_type()
             try:
-                if is_object_dtype(values.dtype):
-                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
-                else:
-                    return array_type._from_sequence(values, dtype=cast_type)
+                return array_type._from_sequence_of_strings(
+                    values,
+                    dtype=cast_type,
+                    **{
+                        "true_values": self.true_values,
+                        "false_values": self.false_values,
+                    },
+                )
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
-                    "_from_sequence_of_strings or _from_sequence in case of boolean "
-                    "in order to be used in parser methods"
+                    "_from_sequence_of_strings in order to be used in parser methods"
                 ) from err
 
         else:

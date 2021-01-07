@@ -224,7 +224,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False, **kwargs
     ) -> "PeriodArray":
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 

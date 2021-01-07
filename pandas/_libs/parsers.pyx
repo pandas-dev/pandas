@@ -1084,14 +1084,14 @@ cdef class TextReader:
         elif is_extension_array_dtype(dtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
-            if is_bool_dtype(dtype):
-                _try_switch_true_false_values(result, self.true_values,
-                                              self.false_values)
+            true_values = [x.decode() for x in self.true_values]
+            false_values = [x.decode() for x in self.false_values]
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                result = array_type._from_sequence_of_strings(result,
-                                                              dtype=dtype)
+                result = array_type._from_sequence_of_strings(
+                    result, dtype=dtype,
+                    **{"true_values": true_values, "false_values": false_values})
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
@@ -1860,21 +1860,6 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
             data += 1
 
     return 0
-
-
-cdef _try_switch_true_false_values(ndarray[object] values, list true_values,
-                                   list false_values):
-    cdef:
-        int i, n = len(values)
-        object word
-
-    for i in range(n):
-        word = values[i]
-        word = word.encode('utf-8') if isinstance(word, str) else word
-        if word in true_values:
-            values[i] = "1"
-        elif word in false_values:
-            values[i] = "0"
 
 
 cdef kh_str_starts_t* kset_from_list(list values) except NULL:

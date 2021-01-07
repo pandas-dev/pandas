@@ -282,14 +282,28 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls,
+        strings: List[str],
+        *,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        **kwargs,
     ) -> "BooleanArray":
+        true_values = kwargs.get("true_values")
+        false_values = kwargs.get("false_values")
+        true_values_union = {"True", "TRUE", "true", "1", "1.0"}
+        false_values_union = {"False", "FALSE", "false", "0", "0.0"}
+        if true_values is not None:
+            true_values_union.update(true_values)
+        if false_values is not None:
+            false_values_union.update(false_values)
+
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true", "1", "1.0"]:
+            elif s in true_values_union:
                 return True
-            elif s in ["False", "FALSE", "false", "0", "0.0"]:
+            elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
