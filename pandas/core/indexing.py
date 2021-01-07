@@ -1389,6 +1389,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer, dict):
             raise IndexError("iloc cannot enlarge its target object")
 
+        if isinstance(indexer, ABCDataFrame):
+            raise IndexError("DataFrame indexer is not allowed for iloc")
+
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
@@ -1480,6 +1483,9 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
+        if isinstance(key, ABCDataFrame):
+            raise IndexError("DataFrame indexer is not allowed for iloc")
+
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
 

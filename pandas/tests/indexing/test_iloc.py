@@ -947,6 +947,17 @@ class TestILocErrors:
         with pytest.raises(IndexError, match=_slice_iloc_msg):
             obj.iloc[3.0] = 0
 
+    def test_iloc_frame_indexer(self, frame_or_series):
+        # GH#39004
+        obj = frame_or_series([1, 2, 3])
+        indexer = DataFrame([True, True, False])
+        msg = "DataFrame indexer is not allowed for iloc"
+        with pytest.raises(IndexError, match=msg):
+            obj.iloc[indexer] = 1
+
+        with pytest.raises(IndexError, match=msg):
+            obj.iloc[indexer]
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
