@@ -83,12 +83,6 @@ class TestRollingTS:
         with pytest.raises(ValueError, match=msg):
             self.regular.rolling(window="1D", min_periods=minp)
 
-    def test_invalid_center_datetimelike(self):
-        # center is not implemented
-        msg = "center is not implemented for datetimelike and offset based windows"
-        with pytest.raises(NotImplementedError, match=msg):
-            self.regular.rolling(window="1D", center=True)
-
     def test_on(self):
 
         df = self.regular
