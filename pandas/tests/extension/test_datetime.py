@@ -162,20 +162,6 @@ class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
         # with (some) integers, depending on the value.
         pass
 
-    def test_compare_with_Categorical(self):
-        result = pd.date_range("2020", periods=3)
-        expected = pd.Categorical(result)
-        assert all(result == expected)
-        result = pd.date_range("2020", periods=3, tz="UTC")
-        expected = pd.Categorical(result)
-        assert all(result == expected)
-        result = pd.timedelta_range("0 days", periods=3)
-        expected = pd.Categorical(result)
-        assert all(result == expected)
-        result = pd.period_range("2020Q1", periods=3, freq="Q")
-        expected = pd.Categorical(result)
-        assert all(result == expected)
-
 
 class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
     pass
