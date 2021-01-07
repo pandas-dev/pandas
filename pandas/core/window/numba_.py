@@ -1,3 +1,4 @@
+import functools
 from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
@@ -225,6 +226,7 @@ def generate_numba_table_func(
 # This function will no longer be needed once numba supports
 # axis for all np.nan* agg functions
 # https://github.com/numba/numba/issues/1269
+@functools.lru_cache
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
     numba = import_optional_dependency("numba")
 
