@@ -226,7 +226,7 @@ def generate_numba_table_func(
 # This function will no longer be needed once numba supports
 # axis for all np.nan* agg functions
 # https://github.com/numba/numba/issues/1269
-@functools.lru_cache(max_size=None)
+@functools.lru_cache(maxsize=None)
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
     numba = import_optional_dependency("numba")
 
