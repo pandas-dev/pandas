@@ -208,7 +208,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         """ compute the results """
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
-            # pandas\core\apply.py:144: error: "aggregate" of DataFrame gets
+            # pandas\core\apply.py:144: error: "aggregate" of "DataFrame" gets
             # multiple values for keyword argument "axis"
             return self.obj.aggregate(  # type: ignore[misc]
                 self.f, axis=self.axis, *self.args, **self.kwds
