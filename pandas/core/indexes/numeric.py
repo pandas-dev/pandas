@@ -124,7 +124,9 @@ class NumericIndex(Index):
 
     @doc(Index._validate_fill_value)
     def _validate_fill_value(self, value):
-        if is_bool(value) or is_bool_dtype(value):
+        if isinstance(value, str):
+            raise TypeError
+        elif is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
