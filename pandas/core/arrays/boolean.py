@@ -287,10 +287,10 @@ class BooleanArray(BaseMaskedArray):
         *,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
+        true_values: Optional[List[str]] = None,
+        false_values: Optional[List[str]] = None,
         **kwargs,
     ) -> "BooleanArray":
-        true_values = kwargs.get("true_values")
-        false_values = kwargs.get("false_values")
         true_values_union = {"True", "TRUE", "true", "1", "1.0"}
         false_values_union = {"False", "FALSE", "false", "0", "0.0"}
         if true_values is not None:
