@@ -1406,7 +1406,7 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
     df = pd.DataFrame(np.random.random(size=(100, 5)))
 
     corr_mat = df.corr()
-    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool), k=-1)
+    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool_), k=-1)
 
     corr_mat.where(mask)
 
