@@ -735,10 +735,11 @@ def agg_dict_like(
         # deprecation of renaming keys
         # GH 15931
         keys = list(arg.keys())
-        common_keys = selected_obj.columns.intersection(keys)
-        if isinstance(selected_obj, ABCDataFrame) and len(common_keys) != len(keys):
+        if isinstance(selected_obj, ABCDataFrame) and len(
+            selected_obj.columns.intersection(keys)
+        ) != len(keys):
             cols = sorted(
-                set(keys) - set(common_keys),
+                set(keys) - set(selected_obj.columns.intersection(keys)),
                 key=lambda col: (isinstance(col, str), col),
             )
             raise SpecificationError(f"Column(s) {cols} do not exist")
