@@ -334,7 +334,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         if isinstance(self.window, BaseIndexer):
             return self.window
-
         if self._win_freq_i8 is not None:
             return VariableWindowIndexer(
                 index_array=self._index_array,
@@ -454,7 +453,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return values.copy()
 
             def calc(x):
-
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
                     min_periods=min_periods,
@@ -1884,7 +1882,6 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            # TODO: add "or self.is_datetimelike"?
             or isinstance(
                 self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
             )
