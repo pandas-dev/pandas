@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     FrozenSet,
     Hashable,
     List,
@@ -79,6 +80,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
+from pandas.core.dtypes.inference import is_dict_like
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import missing, ops
@@ -129,6 +131,11 @@ _o_dtype = np.dtype(object)
 
 
 _Identity = NewType("_Identity", object)
+
+
+def disallow_kwargs(kwargs: Dict[str, Any]):
+    if kwargs:
+        raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
 
 
 def _new_Index(cls, d):
@@ -296,13 +303,19 @@ class Index(IndexOpsMixin, PandasObject):
                 return result.astype(dtype, copy=False)
             return result
 
-        if is_ea_or_datetimelike_dtype(dtype):
+        elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
             klass = cls._dtype_to_subclass(dtype)
             if klass is not Index:
                 return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
-        if is_ea_or_datetimelike_dtype(data_dtype):
+            ea_cls = dtype.construct_array_type()
+            data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
+            data = np.asarray(data, dtype=object)
+            disallow_kwargs(kwargs)
+            return Index._simple_new(data, name=name)
+
+        elif is_ea_or_datetimelike_dtype(data_dtype):
             klass = cls._dtype_to_subclass(data_dtype)
             if klass is not Index:
                 result = klass(data, copy=copy, name=name, **kwargs)
@@ -310,18 +323,9 @@ class Index(IndexOpsMixin, PandasObject):
                     return result.astype(dtype, copy=False)
                 return result
 
-        # extension dtype
-        if is_extension_array_dtype(data_dtype) or is_extension_array_dtype(dtype):
-            if not (dtype is None or is_object_dtype(dtype)):
-                # coerce to the provided dtype
-                ea_cls = dtype.construct_array_type()
-                data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
-            else:
-                data = np.asarray(data, dtype=object)
-
-            # coerce to the object dtype
-            data = data.astype(object)
-            return Index(data, dtype=object, copy=copy, name=name, **kwargs)
+            data = np.array(data, dtype=object, copy=copy)
+            disallow_kwargs(kwargs)
+            return Index._simple_new(data, name=name)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -333,7 +337,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # should not be coerced
                 # GH 11836
                 data = _maybe_cast_with_dtype(data, dtype, copy)
-                dtype = data.dtype  # TODO: maybe not for object?
+                dtype = data.dtype
 
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
@@ -342,16 +346,15 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = com.asarray_tuplesafe(data, dtype=object)
 
                 if dtype is None:
-                    new_data = _maybe_cast_data_without_dtype(arr)
-                    new_dtype = new_data.dtype
-                    return cls(
-                        new_data, dtype=new_dtype, copy=copy, name=name, **kwargs
-                    )
+                    arr = _maybe_cast_data_without_dtype(arr)
+                    dtype = arr.dtype
+
+                    if kwargs:
+                        return cls(arr, dtype, copy=copy, name=name, **kwargs)
 
             klass = cls._dtype_to_subclass(arr.dtype)
             arr = klass._ensure_array(arr, dtype, copy)
-            if kwargs:
-                raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
+            disallow_kwargs(kwargs)
             return klass._simple_new(arr, name)
 
         elif is_scalar(data):
@@ -1376,11 +1379,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        names : label or list of label
+
+        names : label or list of label or dict-like for MultiIndex
             Name(s) to set.
+
+            .. versionchanged:: 1.3.0
+
         level : int, label or list of int or label, optional
-            If the index is a MultiIndex, level(s) to set (None for all
-            levels). Otherwise level must be None.
+            If the index is a MultiIndex and names is not dict-like, level(s) to set
+            (None for all levels). Otherwise level must be None.
+
+            .. versionchanged:: 1.3.0
+
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
@@ -1423,15 +1433,39 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
+
+        When renaming levels with a dict, levels can not be passed.
+
+        >>> idx.set_names({'kind': 'snake'})
+        MultiIndex([('python', 2018),
+                    ('python', 2019),
+                    ( 'cobra', 2018),
+                    ( 'cobra', 2019)],
+                   names=['snake', 'year'])
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
 
-        if level is not None and not is_list_like(level) and is_list_like(names):
+        elif level is not None and not is_list_like(level) and is_list_like(names):
             raise TypeError("Names must be a string when a single level is provided.")
 
-        if not is_list_like(names) and level is None and self.nlevels > 1:
+        elif not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
+
+        elif is_dict_like(names) and not isinstance(self, ABCMultiIndex):
+            raise TypeError("Can only pass dict-like as `names` for MultiIndex.")
+
+        elif is_dict_like(names) and level is not None:
+            raise TypeError("Can not pass level for dictlike `names`.")
+
+        if isinstance(self, ABCMultiIndex) and is_dict_like(names) and level is None:
+            # Transform dict to list of new names and corresponding levels
+            level, names_adjusted = [], []
+            for i, name in enumerate(self.names):
+                if name in names.keys():
+                    level.append(i)
+                    names_adjusted.append(names[name])
+            names = names_adjusted
 
         if not is_list_like(names):
             names = [names]
@@ -1442,6 +1476,7 @@ class Index(IndexOpsMixin, PandasObject):
             idx = self
         else:
             idx = self._shallow_copy()
+
         idx._set_names(names, level=level)
         if not inplace:
             return idx
@@ -1672,7 +1707,7 @@ class Index(IndexOpsMixin, PandasObject):
         Drop MultiIndex levels by level _number_, not name.
         """
 
-        if not levnums:
+        if not levnums and not isinstance(self, ABCMultiIndex):
             return self
         if len(levnums) >= self.nlevels:
             raise ValueError(

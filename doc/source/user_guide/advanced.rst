@@ -658,20 +658,18 @@ Furthermore, if you try to index something that is not fully lexsorted, this can
     In [5]: dfm.loc[(0, 'y'):(1, 'z')]
     UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
 
-The :meth:`~MultiIndex.is_lexsorted` method on a ``MultiIndex`` shows if the
-index is sorted, and the ``lexsort_depth`` property returns the sort depth:
+The :meth:`~MultiIndex.is_monotonic_increasing` method on a ``MultiIndex`` shows if the
+index is sorted:
 
 .. ipython:: python
 
-   dfm.index.is_lexsorted()
-   dfm.index.lexsort_depth
+   dfm.index.is_monotonic_increasing
 
 .. ipython:: python
 
    dfm = dfm.sort_index()
    dfm
-   dfm.index.is_lexsorted()
-   dfm.index.lexsort_depth
+   dfm.index.is_monotonic_increasing
 
 And now selection works as expected.
 

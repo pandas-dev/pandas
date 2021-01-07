@@ -58,6 +58,8 @@ Westminster* in respectively Paris, Antwerp and London.
 How to handle time series data with ease?
 -----------------------------------------
 
+.. _10min_tut_09_timeseries.properties:
+
 Using pandas datetime properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
