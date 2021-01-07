@@ -163,6 +163,7 @@ def test_invalid_kwargs_nopython():
 
 
 @td.skip_if_no("numba", "0.46.0")
+@pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
