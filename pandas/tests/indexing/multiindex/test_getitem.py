@@ -197,6 +197,38 @@ def test_frame_mixed_depth_get():
     tm.assert_series_equal(result, expected)
 
 
+def test_frame_getitem_nan_multiindex(nulls_fixture):
+    # GH#29751
+    # loc on a multiindex containing nan values
+    n = nulls_fixture  # for code readability
+    cols = ["a", "b", "c"]
+    df = DataFrame(
+        [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
+        columns=cols,
+        dtype="int64",
+    ).set_index(["a", "b"])
+
+    idx = (21, n)
+    result = df.loc[:idx]
+    expected = DataFrame(
+        [[11, n, 13], [21, n, 23]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[idx:]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+    idx1, idx2 = (21, n), (31, n)
+    result = df.loc[idx1:idx2]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33]], columns=cols, dtype="int64"
+    ).set_index(["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
 # ----------------------------------------------------------------------------
 # test indexing of DataFrame with multi-level Index with duplicates
 # ----------------------------------------------------------------------------
@@ -278,26 +310,4 @@ def test_loc_empty_multiindex():
     df.loc[df.loc[df.loc[:, "value"] == 0].index, "value"] = 5
     result = df
     expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("idx1,idx2", [(0, 1), (1, 4), (1, 3)])
-def test_loc_nan_multiindex(nulls_fixture, idx1, idx2):
-    # GH#29751
-    # loc on a multiindex containing nan values
-    arr = [
-        [11, nulls_fixture, 13],
-        [21, nulls_fixture, 23],
-        [31, nulls_fixture, 33],
-        [41, nulls_fixture, 43],
-        [51, nulls_fixture, 53],
-    ]
-    cols = ["a", "b", "c"]
-    df = DataFrame(arr, columns=cols, dtype="int64").set_index(["a", "b"])
-    start = df.index[idx1]
-    end = df.index[idx2]
-    result = df.loc[start:end, :]
-    expected = DataFrame(arr[idx1 : (idx2 + 1)], columns=cols, dtype="int64").set_index(
-        ["a", "b"]
-    )
     tm.assert_frame_equal(result, expected)
