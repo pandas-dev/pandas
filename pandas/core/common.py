@@ -8,13 +8,13 @@ from collections import abc, defaultdict
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+from typing import Any, Collection, Iterable, Iterator, List, Optional, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, Scalar, T
+from pandas._typing import AnyArrayLike, NpDtype, Scalar, T
 from pandas.compat.numpy import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -195,7 +195,7 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype=None):
+def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
@@ -218,7 +218,7 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(labels, dtype: Optional[NpDtype] = None) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
