@@ -65,6 +65,7 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import (
+    generate_manual_numpy_nan_agg_with_axis,
     generate_numba_apply_func,
     generate_numba_table_func,
 )
@@ -1378,16 +1379,15 @@ class RollingAndExpandingMixin(BaseWindow):
         nv.validate_window_func("sum", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
-                raise NotImplementedError("method='table' is not supported.")
-            # Once numba supports np.nansum with axis, args will be relevant.
-            # https://github.com/numba/numba/issues/6610
-            args = () if self.method == "single" else (0,)
+                func = generate_manual_numpy_nan_agg_with_axis(np.nansum)
+            else:
+                func = np.nansum
+
             return self.apply(
-                np.nansum,
+                func,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
-                args=args,
             )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
@@ -1424,16 +1424,15 @@ class RollingAndExpandingMixin(BaseWindow):
         nv.validate_window_func("max", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
-                raise NotImplementedError("method='table' is not supported.")
-            # Once numba supports np.nanmax with axis, args will be relevant.
-            # https://github.com/numba/numba/issues/6610
-            args = () if self.method == "single" else (0,)
+                func = generate_manual_numpy_nan_agg_with_axis(np.nanmax)
+            else:
+                func = np.nanmax
+
             return self.apply(
-                np.nanmax,
+                func,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
-                args=args,
             )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
@@ -1496,16 +1495,15 @@ class RollingAndExpandingMixin(BaseWindow):
         nv.validate_window_func("min", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
-                raise NotImplementedError("method='table' is not supported.")
-            # Once numba supports np.nanmin with axis, args will be relevant.
-            # https://github.com/numba/numba/issues/6610
-            args = () if self.method == "single" else (0,)
+                func = generate_manual_numpy_nan_agg_with_axis(np.nanmin)
+            else:
+                func = np.nanmin
+
             return self.apply(
-                np.nanmin,
+                func,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
-                args=args,
             )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
@@ -1514,16 +1512,15 @@ class RollingAndExpandingMixin(BaseWindow):
         nv.validate_window_func("mean", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
-                raise NotImplementedError("method='table' is not supported.")
-            # Once numba supports np.nanmean with axis, args will be relevant.
-            # https://github.com/numba/numba/issues/6610
-            args = () if self.method == "single" else (0,)
+                func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
+            else:
+                func = np.nanmean
+
             return self.apply(
-                np.nanmean,
+                func,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
-                args=args,
             )
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
@@ -1584,16 +1581,15 @@ class RollingAndExpandingMixin(BaseWindow):
     def median(self, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             if self.method == "table":
-                raise NotImplementedError("method='table' is not supported.")
-            # Once numba supports np.nanmedian with axis, args will be relevant.
-            # https://github.com/numba/numba/issues/6610
-            args = () if self.method == "single" else (0,)
+                func = generate_manual_numpy_nan_agg_with_axis(np.nanmedian)
+            else:
+                func = np.nanmedian
+
             return self.apply(
-                np.nanmedian,
+                func,
                 raw=True,
                 engine=engine,
                 engine_kwargs=engine_kwargs,
-                args=args,
             )
         window_func = window_aggregations.roll_median_c
         return self._apply(window_func, name="median", **kwargs)

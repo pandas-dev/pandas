@@ -37,7 +37,7 @@ For example:
 
 :class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
 ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
-See ref:`window.overview` for performance and functional benefits. (:issue:`15095`)
+See ref:`window.overview` for performance and functional benefits. (:issue:`15095`, :issue:`38995`)
 
 .. _whatsnew_130.enhancements.other:
 
