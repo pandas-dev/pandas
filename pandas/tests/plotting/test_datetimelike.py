@@ -1075,7 +1075,7 @@ class TestTSPlot(TestPlotBase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
 
-            us = int(round((t - int(t)) * 1e6))
+            us = round((t - int(t)) * 1e6)
 
             h, m = divmod(m, 60)
             rs = l.get_text()

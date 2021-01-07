@@ -2896,7 +2896,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self, request, datapath):
@@ -2917,7 +2917,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
