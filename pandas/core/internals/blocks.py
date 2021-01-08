@@ -65,8 +65,11 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    FloatingArray,
+    IntegerArray,
     PandasArray,
     PandasDtype,
+    StringArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -621,10 +624,17 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
+        values = self.values
         dtype = pandas_dtype(dtype)
+        if isinstance(dtype, ExtensionDtype) and self.values.ndim == 2:
+            # TODO(EA2D): kludge not needed with 2D EAs (astype_nansafe would raise)
+            # note DataFrame.astype has special handling to avoid getting here
+            if self.shape[0] != 1:
+                raise NotImplementedError("Need 2D EAs!")
+            values = values[0]
 
         try:
-            new_values = self._astype(dtype, copy=copy)
+            new_values = self._astype(values, dtype, copy=copy)
         except (ValueError, TypeError):
             # e.g. astype_nansafe can fail on object-dtype of strings
             #  trying to convert to float
@@ -643,8 +653,8 @@ class Block(PandasObject):
                 )
         return newb
 
-    def _astype(self, dtype: DtypeObj, copy: bool) -> ArrayLike:
-        values = self.values
+    @staticmethod
+    def _astype(values, dtype: DtypeObj, copy: bool) -> ArrayLike:
 
         if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
             return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
@@ -935,6 +945,16 @@ class Block(PandasObject):
             # otherwise should have _can_hold_element
 
             return self.astype(dtype).setitem(indexer, value)
+
+        value = extract_array(value, extract_numpy=True)
+        if isinstance(value, PandasArray) and not isinstance(value, StringArray):
+            # this is redundant with extract_array except for PandasArray tests
+            #  that patch _typ
+            value = value.to_numpy()
+
+        if isinstance(value, (IntegerArray, FloatingArray)) and not value._mask.any():
+            # GH#38896
+            value = value.to_numpy(value.dtype.numpy_dtype)
 
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -1910,6 +1930,10 @@ class FloatBlock(NumericBlock):
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
+            if isinstance(element, (IntegerArray, FloatingArray)):
+                # GH#38896
+                if element._mask.any():
+                    return False
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
                 tipo.type, np.timedelta64
             )
@@ -1975,11 +1999,16 @@ class IntBlock(NumericBlock):
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            return (
-                issubclass(tipo.type, np.integer)
-                and not issubclass(tipo.type, np.timedelta64)
-                and self.dtype.itemsize >= tipo.itemsize
-            )
+            if issubclass(tipo.type, np.integer):
+                if isinstance(element, IntegerArray):
+                    # GH#38896
+                    if element._mask.any():
+                        return False
+
+                return (
+                    not issubclass(tipo.type, np.timedelta64)
+                    and self.dtype.itemsize >= tipo.itemsize
+                )
         # We have not inferred an integer from the dtype
         # check if we have a builtin int or a float equal to an int
         return is_integer(element) or (is_float(element) and element.is_integer())

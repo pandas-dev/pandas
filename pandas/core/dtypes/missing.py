@@ -506,7 +506,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
         return array_equivalent(left, right, dtype_equal=True)
 
 
-def infer_fill_value(val):
+def infer_fill_value(val, length: int):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
@@ -514,6 +514,23 @@ def infer_fill_value(val):
     """
     if not is_list_like(val):
         val = [val]
+
+    if type(val).__name__ == "PandasArray":
+        # for test_numpy test where we patch PandasArray._typ
+        val = val.to_numpy()
+
+    if is_extension_array_dtype(val):
+        # We cannot use dtype._na_value bc pd.NA/pd.NaT do not preserve dtype
+        if len(val) == length:
+            # TODO: in this case see if we can avoid making a copy later on
+            return val
+        if length == 0:
+            return val[:0].copy()
+
+        dtype = val.dtype
+        cls = dtype.construct_array_type()
+        return cls._from_sequence([dtype._na_value], dtype=dtype).repeat(length)
+
     val = np.array(val, copy=False)
     if needs_i8_conversion(val.dtype):
         return np.array("NaT", dtype=val.dtype)

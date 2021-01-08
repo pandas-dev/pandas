@@ -33,8 +33,11 @@ from pandas.core.arrays.integer import (
 from pandas.tests.extension import base
 
 
-def make_data():
-    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+def make_data(with_nas: bool = True):
+    if with_nas:
+        return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+
+    return list(range(1, 101))
 
 
 @pytest.fixture(
@@ -53,9 +56,10 @@ def dtype(request):
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
-    return pd.array(make_data(), dtype=dtype)
+@pytest.fixture(params=[True, False])
+def data(dtype, request):
+    with_nas = request.param
+    return pd.array(make_data(with_nas), dtype=dtype)
 
 
 @pytest.fixture
@@ -198,7 +202,20 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    pass
+    def test_setitem_series(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+
+        key = full_indexer(ser)
+        result.loc[key] = ser
+
+        if not data._mask.any():
+            # GH#38896 like we do with ndarray, we set the values inplace
+            #  but cast to the new numpy dtype
+            expected = pd.Series(data.to_numpy(data.dtype.numpy_dtype), name="data")
+
+        self.assert_series_equal(result, expected)
 
 
 class TestMissing(base.BaseMissingTests):

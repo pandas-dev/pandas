@@ -24,12 +24,22 @@ from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
 from pandas.tests.extension import base
 
 
-def make_data():
+def make_data(with_nas: bool = True):
+    if with_nas:
+        return (
+            list(np.arange(0.1, 0.9, 0.1))
+            + [pd.NA]
+            + list(np.arange(1, 9.8, 0.1))
+            + [pd.NA]
+            + [9.9, 10.0]
+        )
+    # case without pd.NA that can be cast to floating ndarray losslessly
+    # TODO: get cases with np.nan instead of pd.NA GH#39039
     return (
         list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
+        + [np.nan]
         + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
+        + [np.nan]
         + [9.9, 10.0]
     )
 
@@ -39,9 +49,10 @@ def dtype(request):
     return request.param()
 
 
-@pytest.fixture
-def data(dtype):
-    return pd.array(make_data(), dtype=dtype)
+@pytest.fixture(params=[True, False])
+def data(dtype, request):
+    with_nas = request.param
+    return pd.array(make_data(with_nas), dtype=dtype)
 
 
 @pytest.fixture

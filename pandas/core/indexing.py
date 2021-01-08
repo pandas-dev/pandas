@@ -1601,7 +1601,7 @@ class _iLocIndexer(_LocationIndexer):
                             # We are setting an entire column
                             self.obj[key] = value
                         else:
-                            self.obj[key] = infer_fill_value(value)
+                            self.obj[key] = infer_fill_value(value, len(self.obj))
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes

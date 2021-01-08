@@ -501,6 +501,39 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
 
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer, request):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]._values
+
+        # For PandasArray we expect to get unboxed to numpy
+        expected = pd.DataFrame({"data": data.to_numpy()})
+        if isinstance(key, slice) and (
+            key == slice(None) or data.dtype.numpy_dtype == object
+        ):
+            mark = pytest.mark.xfail(
+                reason="This case goes through a different code path"
+            )
+            # Other cases go through Block.setitem
+            request.node.add_marker(mark)
+
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_series(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+
+        key = full_indexer(ser)
+        result.loc[key] = ser
+
+        # For PandasArray we expect to get unboxed to numpy
+        expected = pd.Series(data.to_numpy(), name="data")
+        self.assert_series_equal(result, expected)
+
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
