@@ -155,7 +155,6 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- Deprecated construction of :class:`IntervalDtype` without specifying ``closed`` (:issue:`38394`)
 - Deprecating allowing scalars passed to the :class:`Categorical` constructor (:issue:`38433`)
 - Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
@@ -202,7 +201,7 @@ Datetimelike
 - Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object ouf of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
--
+- Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
 
 Timedelta
 ^^^^^^^^^
@@ -313,8 +312,8 @@ Reshaping
 - Bug in :func:`merge` raising error when performing an inner join with partial index and ``right_index`` when no overlap between indices (:issue:`33814`)
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
 - Bug in :func:`join` over :class:`MultiIndex` returned wrong result, when one of both indexes had only one level (:issue:`36909`)
-- Bug in :func:`concat` incorrectly casting to ``object`` dtype in some cases when one or more of the operands is empty (:issue:`38843`, :issue:`38907`)
 - :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
+-
 
 Sparse
 ^^^^^^
