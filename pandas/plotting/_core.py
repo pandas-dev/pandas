@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
@@ -99,7 +101,7 @@ def hist_series(
 
 
 def hist_frame(
-    data: "DataFrame",
+    data: DataFrame,
     column: Union[Label, Sequence[Label]] = None,
     by=None,
     grid: bool = True,
@@ -630,8 +632,8 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
+        - 'scatter' : scatter plot (DataFrame only)
+        - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
