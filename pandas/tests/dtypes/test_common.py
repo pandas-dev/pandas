@@ -557,6 +557,11 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype("boolean")
 
 
+def test_is_bool_dtype_numpy_error():
+    # GH39010
+    assert not com.is_bool_dtype("0 - Name")
+
+
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
