@@ -2,10 +2,10 @@ import abc
 import datetime
 from distutils.version import LooseVersion
 import inspect
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BytesIO
 import os
 from textwrap import fill
-from typing import IO, Any, Dict, Mapping, Optional, Union, cast
+from typing import Any, Dict, Mapping, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -906,7 +906,7 @@ PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]] = None,
+    content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
 ) -> str:
     """
@@ -932,7 +932,6 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    assert content_or_path is not None
     if isinstance(content_or_path, bytes):
         content_or_path = BytesIO(content_or_path)
 
