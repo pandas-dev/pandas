@@ -506,8 +506,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
             reso = Resolution.from_attrname(reso)
-            grp = reso.freq_group
-            freqn = self.dtype.freq_group
+            grp = reso.freq_group.value
+            freqn = self.dtype.freq_group_code
 
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
@@ -580,15 +580,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
-        iv = Period(parsed, freq=grp)
+        iv = Period(parsed, freq=grp.value)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _validate_partial_date_slice(self, reso: Resolution):
         assert isinstance(reso, Resolution), (type(reso), reso)
         grp = reso.freq_group
-        freqn = self.dtype.freq_group
+        freqn = self.dtype.freq_group_code
 
-        if not grp < freqn:
+        if not grp.value < freqn:
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
