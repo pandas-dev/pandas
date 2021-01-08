@@ -1395,7 +1395,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         return False
     try:
         dtype = get_dtype(arr_or_dtype)
-    except TypeError:
+    except (TypeError, ValueError):
         return False
 
     if isinstance(arr_or_dtype, CategoricalDtype):
