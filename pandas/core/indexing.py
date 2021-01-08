@@ -1391,7 +1391,9 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, ABCDataFrame):
             warnings.warn(
-                "DataFrame indexer for iloc is deprecated and will be removed in "
+                "DataFrame indexer for .iloc is deprecated and will be removed in"
+                "a future version.\n"
+                 "consider using .loc with a DataFrame indexer for automatic alignment."
                 "a future version",
                 FutureWarning,
                 stacklevel=3,
