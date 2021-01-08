@@ -1,6 +1,9 @@
 """
 Routines for casting.
 """
+
+from __future__ import annotations
+
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import (
@@ -25,6 +28,7 @@ from pandas._libs import lib, missing as libmissing, tslib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Period,
     Timedelta,
     Timestamp,
@@ -114,12 +118,11 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
-
-        if any(isinstance(v, ABCSeries) for v in obj._values):
-            return True
-
-    return False
+    return bool(
+        isinstance(obj, ABCSeries)
+        and is_object_dtype(obj.dtype)
+        and any(isinstance(v, ABCSeries) for v in obj._values)
+    )
 
 
 def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scalar:
@@ -170,7 +173,7 @@ def maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return value
 
 
-def _disallow_mismatched_datetimelike(value: DtypeObj, dtype: DtypeObj):
+def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
     """
     numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
     vice-versa, but we do not want to allow this, so we need to
@@ -707,8 +710,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
+            msg = "invalid ndarray passed to infer_dtype_from_scalar"
             raise ValueError(msg)
 
         dtype = val.dtype
@@ -725,7 +728,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         dtype = np.dtype(object)
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = Timestamp(val)
+        try:
+            val = Timestamp(val)
+        except OutOfBoundsDatetime:
+            return np.dtype(object), val
+
         if val is NaT or val.tz is None:
             dtype = np.dtype("M8[ns]")
         else:
@@ -737,8 +744,12 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = Timedelta(val).value
-        dtype = np.dtype("m8[ns]")
+        try:
+            val = Timedelta(val).value
+        except (OutOfBoundsTimedelta, OverflowError):
+            dtype = np.dtype(object)
+        else:
+            dtype = np.dtype("m8[ns]")
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
@@ -972,7 +983,7 @@ def astype_dt64_to_dt64tz(
                 result = result.copy()
             return result
 
-        elif values.tz is not None and not aware:
+        elif values.tz is not None:
             result = values.tz_convert("UTC").tz_localize(None)
             if copy:
                 result = result.copy()
@@ -1133,11 +1144,11 @@ def astype_nansafe(
         )
         raise ValueError(msg)
 
-    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+    if copy or is_object_dtype(arr.dtype) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
-    return arr.view(dtype)
+    return arr.astype(dtype, copy=copy)
 
 
 def soft_convert_objects(
@@ -1380,7 +1391,7 @@ def maybe_infer_to_datetimelike(
 
         try:
             td_values = to_timedelta(v)
-        except ValueError:
+        except (ValueError, OverflowError):
             return v.reshape(shape)
         else:
             return np.asarray(td_values).reshape(shape)
@@ -1472,6 +1483,8 @@ def maybe_cast_to_datetime(value, dtype: Optional[DtypeObj]):
 
                 # we have an array of datetime or timedeltas & nulls
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype, dtype):
+                    _disallow_mismatched_datetimelike(value, dtype)
+
                     try:
                         if is_datetime64:
                             value = to_datetime(value, errors="raise")
@@ -1568,7 +1581,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     numpy.find_common_type
 
     """
-    if len(types) == 0:
+    if not types:
         raise ValueError("no types given")
 
     first = types[0]
@@ -1610,8 +1623,16 @@ def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
 
+    shape = (length, width)
+
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike(value, dtype)
+    elif dtype == object:
+        if isinstance(value, (np.timedelta64, np.datetime64)):
+            # calling np.array below would cast to pytimedelta/pydatetime
+            out = np.empty(shape, dtype=object)
+            out.fill(value)
+            return out
 
     # Attempt to coerce to a numpy array
     try:
@@ -1624,7 +1645,6 @@ def construct_2d_arraylike_from_scalar(
     if arr.ndim != 0:
         raise ValueError("DataFrame constructor not properly called!")
 
-    shape = (length, width)
     return np.full(shape, arr)
 
 
@@ -1847,12 +1867,16 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ------
     ValueError
     """
-    if issubclass(dtype.type, (np.integer, np.bool_)):
-        if is_float(value) and np.isnan(value):
-            raise ValueError("Cannot assign nan to integer series")
-
-    if issubclass(dtype.type, (np.integer, np.floating, complex)) and not issubclass(
-        dtype.type, np.bool_
+    if (
+        issubclass(dtype.type, (np.integer, np.bool_))
+        and is_float(value)
+        and np.isnan(value)
     ):
-        if is_bool(value):
-            raise ValueError("Cannot assign bool to float/integer series")
+        raise ValueError("Cannot assign nan to integer series")
+
+    if (
+        issubclass(dtype.type, (np.integer, np.floating, complex))
+        and not issubclass(dtype.type, np.bool_)
+        and is_bool(value)
+    ):
+        raise ValueError("Cannot assign bool to float/integer series")

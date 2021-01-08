@@ -61,8 +61,8 @@ class TestiLoc(Base):
         # the correct type
 
 
-class TestiLoc2:
-    # TODO: better name, just separating out things that dont rely on base class
+class TestiLocBaseIndependent:
+    """Tests Independent Of Base Class"""
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
@@ -262,12 +262,42 @@ class TestiLoc2:
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_array(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}])
+        tm.assert_frame_equal(df.iloc[[0]], expected)
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        tm.assert_frame_equal(df.iloc[[0, 1]], expected)
+
+        expected = DataFrame([{"B": 2, "C": 3}, {"B": 2000, "C": 3000}], index=[0, 2])
+        result = df.iloc[[0, 2], [1, 2]]
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_bool(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        result = df.iloc[[True, True, False]]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(
+            [{"A": 1, "B": 2, "C": 3}, {"A": 1000, "B": 2000, "C": 3000}], index=[0, 2]
+        )
+        result = df.iloc[lambda x: x.index % 2 == 0]
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_iloc_getitem_bool_diff_len(self, index):
@@ -278,8 +308,27 @@ class TestiLoc2:
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        result = df.iloc[:2]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([{"A": 100, "B": 200}], index=[1])
+        result = df.iloc[1:2, 0:2]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(
+            [{"A": 1, "C": 3}, {"A": 100, "C": 300}, {"A": 1000, "C": 3000}]
+        )
+        result = df.iloc[:, lambda df: [0, 2]]
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_slice_dups(self):
 

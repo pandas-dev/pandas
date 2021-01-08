@@ -1159,7 +1159,6 @@ class TestDatetimeIndexTimezones:
     @pytest.mark.parametrize(
         "tz", [None, "UTC", "US/Central", dateutil.tz.tzoffset(None, -28800)]
     )
-    @pytest.mark.usefixtures("datetime_tz_utc")
     def test_iteration_preserves_nanoseconds(self, tz):
         # GH 19603
         index = DatetimeIndex(

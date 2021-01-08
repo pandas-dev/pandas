@@ -8,7 +8,7 @@ Since many potential pandas users have some familiarity with
 `SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
-.. include:: comparison_boilerplate.rst
+.. include:: includes/introduction.rst
 
 Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read
 the data into a DataFrame called ``tips`` and assume we have a database table of the same name and
@@ -21,7 +21,14 @@ structure.
         "/pandas/master/pandas/tests/io/data/csv/tips.csv"
     )
     tips = pd.read_csv(url)
-    tips.head()
+    tips
+
+
+Copies vs. in place operations
+------------------------------
+
+.. include:: includes/copies.rst
+
 
 SELECT
 ------
@@ -31,14 +38,13 @@ to select all columns):
 .. code-block:: sql
 
     SELECT total_bill, tip, smoker, time
-    FROM tips
-    LIMIT 5;
+    FROM tips;
 
 With pandas, column selection is done by passing a list of column names to your DataFrame:
 
 .. ipython:: python
 
-    tips[["total_bill", "tip", "smoker", "time"]].head(5)
+    tips[["total_bill", "tip", "smoker", "time"]]
 
 Calling the DataFrame without the list of column names would display all columns (akin to SQL's
 ``*``).
@@ -48,14 +54,13 @@ In SQL, you can add a calculated column:
 .. code-block:: sql
 
     SELECT *, tip/total_bill as tip_rate
-    FROM tips
-    LIMIT 5;
+    FROM tips;
 
 With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to append a new column:
 
 .. ipython:: python
 
-    tips.assign(tip_rate=tips["tip"] / tips["total_bill"]).head(5)
+    tips.assign(tip_rate=tips["tip"] / tips["total_bill"])
 
 WHERE
 -----
@@ -65,50 +70,35 @@ Filtering in SQL is done via a WHERE clause.
 
     SELECT *
     FROM tips
-    WHERE time = 'Dinner'
-    LIMIT 5;
+    WHERE time = 'Dinner';
 
-DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`
+.. include:: includes/filtering.rst
 
-.. ipython:: python
+Just like SQL's ``OR`` and ``AND``, multiple conditions can be passed to a DataFrame using ``|``
+(``OR``) and ``&`` (``AND``).
 
-    tips[tips["time"] == "Dinner"].head(5)
-
-The above statement is simply passing a ``Series`` of True/False objects to the DataFrame,
-returning all rows with True.
-
-.. ipython:: python
-
-    is_dinner = tips["time"] == "Dinner"
-    is_dinner.value_counts()
-    tips[is_dinner].head(5)
-
-Just like SQL's OR and AND, multiple conditions can be passed to a DataFrame using | (OR) and &
-(AND).
+Tips of more than $5 at Dinner meals:
 
 .. code-block:: sql
 
-    -- tips of more than $5.00 at Dinner meals
     SELECT *
     FROM tips
     WHERE time = 'Dinner' AND tip > 5.00;
 
 .. ipython:: python
 
-    # tips of more than $5.00 at Dinner meals
     tips[(tips["time"] == "Dinner") & (tips["tip"] > 5.00)]
+
+Tips by parties of at least 5 diners OR bill total was more than $45:
 
 .. code-block:: sql
 
-    -- tips by parties of at least 5 diners OR bill total was more than $45
     SELECT *
     FROM tips
     WHERE size >= 5 OR total_bill > 45;
 
 .. ipython:: python
 
-    # tips by parties of at least 5 diners OR bill total was more than $45
     tips[(tips["size"] >= 5) | (tips["total_bill"] > 45)]
 
 NULL checking is done using the :meth:`~pandas.Series.notna` and :meth:`~pandas.Series.isna`
@@ -149,7 +139,7 @@ Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.
 
 GROUP BY
 --------
-In pandas, SQL's GROUP BY operations are performed using the similarly named
+In pandas, SQL's ``GROUP BY`` operations are performed using the similarly named
 :meth:`~pandas.DataFrame.groupby` method. :meth:`~pandas.DataFrame.groupby` typically refers to a
 process where we'd like to split a dataset into groups, apply some function (typically aggregation)
 , and then combine the groups together.
@@ -177,7 +167,7 @@ The pandas equivalent would be:
 Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not
 :meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because
 :meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning
-the number of ``not null`` records within each.
+the number of ``NOT NULL`` records within each.
 
 .. ipython:: python
 
@@ -238,10 +228,10 @@ Grouping by more than one column is done by passing a list of columns to the
 
 JOIN
 ----
-JOINs can be performed with :meth:`~pandas.DataFrame.join` or :meth:`~pandas.merge`. By default,
-:meth:`~pandas.DataFrame.join` will join the DataFrames on their indices. Each method has
-parameters allowing you to specify the type of join to perform (LEFT, RIGHT, INNER, FULL) or the
-columns to join on (column names or indices).
+``JOIN``\s can be performed with :meth:`~pandas.DataFrame.join` or :meth:`~pandas.merge`. By
+default, :meth:`~pandas.DataFrame.join` will join the DataFrames on their indices. Each method has
+parameters allowing you to specify the type of join to perform (``LEFT``, ``RIGHT``, ``INNER``,
+``FULL``) or the columns to join on (column names or indices).
 
 .. ipython:: python
 
@@ -250,7 +240,7 @@ columns to join on (column names or indices).
 
 Assume we have two database tables of the same name and structure as our DataFrames.
 
-Now let's go over the various types of JOINs.
+Now let's go over the various types of ``JOIN``\s.
 
 INNER JOIN
 ~~~~~~~~~~
@@ -276,9 +266,11 @@ column with another DataFrame's index.
 
 LEFT OUTER JOIN
 ~~~~~~~~~~~~~~~
+
+Show all records from ``df1``.
+
 .. code-block:: sql
 
-    -- show all records from df1
     SELECT *
     FROM df1
     LEFT OUTER JOIN df2
@@ -286,14 +278,15 @@ LEFT OUTER JOIN
 
 .. ipython:: python
 
-    # show all records from df1
     pd.merge(df1, df2, on="key", how="left")
 
 RIGHT JOIN
 ~~~~~~~~~~
+
+Show all records from ``df2``.
+
 .. code-block:: sql
 
-    -- show all records from df2
     SELECT *
     FROM df1
     RIGHT OUTER JOIN df2
@@ -301,17 +294,17 @@ RIGHT JOIN
 
 .. ipython:: python
 
-    # show all records from df2
     pd.merge(df1, df2, on="key", how="right")
 
 FULL JOIN
 ~~~~~~~~~
-pandas also allows for FULL JOINs, which display both sides of the dataset, whether or not the
-joined columns find a match. As of writing, FULL JOINs are not supported in all RDBMS (MySQL).
+pandas also allows for ``FULL JOIN``\s, which display both sides of the dataset, whether or not the
+joined columns find a match. As of writing, ``FULL JOIN``\s are not supported in all RDBMS (MySQL).
+
+Show all records from both tables.
 
 .. code-block:: sql
 
-    -- show all records from both tables
     SELECT *
     FROM df1
     FULL OUTER JOIN df2
@@ -319,13 +312,13 @@ joined columns find a match. As of writing, FULL JOINs are not supported in all 
 
 .. ipython:: python
 
-    # show all records from both frames
     pd.merge(df1, df2, on="key", how="outer")
 
 
 UNION
 -----
-UNION ALL can be performed using :meth:`~pandas.concat`.
+
+``UNION ALL`` can be performed using :meth:`~pandas.concat`.
 
 .. ipython:: python
 
@@ -357,7 +350,7 @@ UNION ALL can be performed using :meth:`~pandas.concat`.
 
     pd.concat([df1, df2])
 
-SQL's UNION is similar to UNION ALL, however UNION will remove duplicate rows.
+SQL's ``UNION`` is similar to ``UNION ALL``, however ``UNION`` will remove duplicate rows.
 
 .. code-block:: sql
 
@@ -382,6 +375,20 @@ In pandas, you can use :meth:`~pandas.concat` in conjunction with
 .. ipython:: python
 
     pd.concat([df1, df2]).drop_duplicates()
+
+
+LIMIT
+-----
+
+.. code-block:: sql
+
+    SELECT * FROM tips
+    LIMIT 10;
+
+.. ipython:: python
+
+    tips.head(10)
+
 
 pandas equivalents for some SQL analytic and aggregate functions
 ----------------------------------------------------------------
@@ -459,7 +466,7 @@ the same using ``rank(method='first')`` function
 Let's find tips with (rank < 3) per gender group for (tips < 2).
 Notice that when using ``rank(method='min')`` function
 ``rnk_min`` remains the same for the same ``tip``
-(as Oracle's RANK() function)
+(as Oracle's ``RANK()`` function)
 
 .. ipython:: python
 
@@ -492,7 +499,7 @@ DELETE
     DELETE FROM tips
     WHERE tip > 9;
 
-In pandas we select the rows that should remain, instead of deleting them
+In pandas we select the rows that should remain instead of deleting them:
 
 .. ipython:: python
 

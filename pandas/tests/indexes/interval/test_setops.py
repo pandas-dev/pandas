@@ -78,13 +78,6 @@ class TestIntervalIndex:
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
-        # GH 26225: duplicate element
-        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
-        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
-        expected = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3)])
-        result = index.intersection(other)
-        tm.assert_index_equal(result, expected)
-
         # GH 26225
         index = IntervalIndex.from_tuples([(0, 3), (0, 2)])
         other = IntervalIndex.from_tuples([(0, 2), (1, 3)])
@@ -116,6 +109,14 @@ class TestIntervalIndex:
 
         other = monotonic_index(300, 314, dtype="uint64", closed=closed)
         result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_duplicates(self):
+        # GH#38743
+        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
+        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
     def test_difference(self, closed, sort):
