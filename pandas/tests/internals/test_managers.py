@@ -1,6 +1,8 @@
 """
 Testing interaction between the different managers (BlockManager, ArrayManager)
 """
+from pandas.core.dtypes.missing import array_equivalent
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.internals import ArrayManager, BlockManager
@@ -26,7 +28,7 @@ def test_dataframe_creation():
     assert isinstance(result._mgr, ArrayManager)
     tm.assert_frame_equal(result, df_block)
     assert all(
-        tm.array_equivalent(left, right)
+        array_equivalent(left, right)
         for left, right in zip(result._mgr.arrays, df_array._mgr.arrays)
     )
 
