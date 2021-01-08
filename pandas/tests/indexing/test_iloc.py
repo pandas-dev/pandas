@@ -947,14 +947,17 @@ class TestILocErrors:
         with pytest.raises(IndexError, match=_slice_iloc_msg):
             obj.iloc[3.0] = 0
 
-    def test_iloc_frame_indexer(self, frame_or_series):
+    def test_iloc_frame_indexer(self):
         # GH#39004
         df = DataFrame({"a": [1, 2, 3]})
         indexer = DataFrame({"a": [True, False, True]})
         with tm.assert_produces_warning(FutureWarning):
             df.iloc[indexer] = 1
 
-        msg = "DataFrame indexer is not allowed for iloc"
+        msg = (
+            "DataFrame indexer is not allowed for .iloc\n"
+            "Consider using .loc for automatic alignment."
+        )
         with pytest.raises(IndexError, match=msg):
             df.iloc[indexer]
 
