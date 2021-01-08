@@ -1491,7 +1491,7 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_axis(self, key, axis: int):
         if isinstance(key, ABCDataFrame):
-            raise IndexError("DataFrame indexer is not allowed for iloc")
+            raise IndexError("DataFrame indexer is not allowed for .iloc\nConsider using .loc for automatic alignment.")
 
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
