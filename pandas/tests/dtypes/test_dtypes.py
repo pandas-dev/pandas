@@ -609,17 +609,13 @@ class TestIntervalDtype(Base):
             "for IntervalDtype"
         )
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # need to pass 'closed'
-                IntervalDtype(subtype)
+            IntervalDtype(subtype)
 
     @pytest.mark.parametrize("subtype", ["xx", "IntervalA", "Interval[foo]"])
     def test_construction_errors(self, subtype):
         msg = "could not construct IntervalDtype"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                # need to pass 'closed'
-                IntervalDtype(subtype)
+            IntervalDtype(subtype)
 
     def test_closed_must_match(self):
         # GH#37933
