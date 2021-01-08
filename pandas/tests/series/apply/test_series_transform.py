@@ -73,6 +73,14 @@ def test_transform_none_to_type():
         df.transform({"a": int})
 
 
+def test_transform_mixed_column_name_dtypes():
+    # GH39025
+    df = DataFrame({"a": ["1"]})
+    msg = r"Column\(s\) \[1, 'b'\] do not exist"
+    with pytest.raises(SpecificationError, match=msg):
+        df.transform({"a": int, 1: str, "b": int})
+
+
 def test_transform_axis_1_raises():
     # GH 35964
     msg = "No axis named 1 for object type Series"
