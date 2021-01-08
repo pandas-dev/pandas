@@ -253,7 +253,7 @@ def test_transform_passes_args(use_apply, frame_or_series):
 
 
 def test_transform_missing_columns(axis):
-    # GH 35964
+    # GH#35964
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     match = re.escape("Column(s) ['C'] do not exist")
     with pytest.raises(SpecificationError, match=match):
@@ -261,7 +261,7 @@ def test_transform_missing_columns(axis):
 
 
 def test_transform_none_to_type():
-    # GH34377
+    # GH#34377
     df = DataFrame({"a": [None]})
     msg = "Transform function failed"
     with pytest.raises(ValueError, match=msg):
