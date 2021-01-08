@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -153,22 +155,32 @@ class TestFloatSubtype(AstypeTests):
         with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 
-    @pytest.mark.xfail(reason="GH#15832")
+    @pytest.mark.parametrize("subtype", ["int64", "uint64"])
+    def test_subtype_integer_with_non_integer_borders(self, subtype):
+        index = interval_range(0.0, 3.0, freq=0.25)
+        dtype = IntervalDtype(subtype, "right")
+        result = index.astype(dtype)
+        expected = IntervalIndex.from_arrays(
+            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
         index = interval_range(-10.0, 10.0)
         dtype = IntervalDtype("uint64", "right")
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Cannot convert interval[float64, right] to interval[uint64, right]; "
+            "subtypes are incompatible"
+        )
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
         # float64 -> integer-like fails with non-integer valued floats
         index = interval_range(0.0, 10.0, freq=0.25)
         dtype = IntervalDtype("int64", "right")
-        with pytest.raises(ValueError):
-            index.astype(dtype)
-
-        dtype = IntervalDtype("uint64", "right")
-        with pytest.raises(ValueError):
+        msg = "foo"
+        with pytest.raises(ValueError, match=msg):
             index.astype(dtype)
 
     @pytest.mark.parametrize("subtype", ["datetime64[ns]", "timedelta64[ns]"])
@@ -197,10 +209,13 @@ class TestDatetimelikeSubtype(AstypeTests):
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, index, subtype):
         dtype = IntervalDtype(subtype, "right")
-        result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
-            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
-        )
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = index.astype(dtype)
+            expected = IntervalIndex.from_arrays(
+                index.left.astype(subtype),
+                index.right.astype(subtype),
+                closed=index.closed,
+            )
         tm.assert_index_equal(result, expected)
 
     def test_subtype_float(self, index):

@@ -698,6 +698,12 @@ to run its checks with::
 
 without needing to have done ``pre-commit install`` beforehand.
 
+If you want to run checks on all recently commited files on upstream/master you can use::
+
+    pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
+
+without needing to have done ``pre-commit install`` beforehand.
+
 .. note::
 
     If you have conflicting installations of ``virtualenv``, then you may get an
@@ -1609,6 +1615,17 @@ After the feature branch has been update locally, you can now update your pull
 request by pushing to the branch on GitHub::
 
     git push origin shiny-new-feature
+
+Autofixing formatting errors
+----------------------------
+
+We use several styling checks (e.g. ``black``, ``flake8``, ``isort``) which are run after
+you make a pull request. If there is a scenario where any of these checks fail then you
+can comment::
+
+    @github-actions pre-commit
+
+on that pull request. This will trigger a workflow which will autofix formatting errors.
 
 Delete your merged branch (optional)
 ------------------------------------

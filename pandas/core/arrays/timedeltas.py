@@ -22,6 +22,7 @@ from pandas._libs.tslibs.timedeltas import (
     ints_to_pytimedelta,
     parse_timedelta_unit,
 )
+from pandas._typing import NpDtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
@@ -324,12 +325,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
-            if copy:
-                return self.copy()
-            return self
-
-        elif dtype.kind == "m":
+        if dtype.kind == "m":
             return astype_td64_unit_conversion(self._data, dtype, copy=copy)
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
@@ -343,7 +339,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -357,7 +353,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         keepdims: bool = False,
         initial=None,
@@ -377,7 +373,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         self,
         *,
         axis=None,
-        dtype=None,
+        dtype: Optional[NpDtype] = None,
         out=None,
         ddof: int = 1,
         keepdims: bool = False,
@@ -400,11 +396,12 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return get_format_timedelta64(self, box=True)
 
+    @dtl.ravel_compat
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import get_format_timedelta64
 
         formatter = get_format_timedelta64(self._data, na_rep)
-        return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
+        return np.array([formatter(x) for x in self._data])
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
