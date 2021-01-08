@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
 import warnings
@@ -842,8 +844,12 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            with suppress(IndexingError):
-                return self._handle_lowerdim_multi_index_axis0(tup)
+            if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
+                # GH#10521 Series should reduce MultiIndex dimensions instead of
+                #  DataFrame, IndexingError is not raised when slice(None,None,None)
+                #  with one row.
+                with suppress(IndexingError):
+                    return self._handle_lowerdim_multi_index_axis0(tup)
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1738,7 +1744,7 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name: str):
+    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -2028,7 +2034,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: "DataFrame"):
+    def _align_frame(self, indexer, df: DataFrame):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -2200,7 +2206,7 @@ def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
     return tuple(_tup)
 
 
-def convert_to_index_sliceable(obj: "DataFrame", key):
+def convert_to_index_sliceable(obj: DataFrame, key):
     """
     If we are index sliceable, then return my slicer, otherwise return None.
     """

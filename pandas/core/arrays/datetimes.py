@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -571,7 +572,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             data = self.asi8
             length = len(self)
             chunksize = 10000
-            chunks = int(length / chunksize) + 1
+            chunks = (length // chunksize) + 1
             for i in range(chunks):
                 start_i = i * chunksize
                 end_i = min((i + 1) * chunksize, length)
@@ -587,24 +588,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # DatetimeLikeArrayMixin Super handles the rest.
         dtype = pandas_dtype(dtype)
 
-        if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
-            # GH#18951: datetime64_ns dtype but not equal means different tz
-            new_tz = getattr(dtype, "tz", None)
-            if getattr(self.dtype, "tz", None) is None:
-                return self.tz_localize(new_tz)
-            result = self.tz_convert(new_tz)
-            if copy:
-                result = result.copy()
-            if new_tz is None:
-                # Do we want .astype('datetime64[ns]') to be an ndarray.
-                # The astype in Block._astype expects this to return an
-                # ndarray, but we could maybe work around it there.
-                result = result._data
-            return result
-        elif is_datetime64tz_dtype(self.dtype) and is_dtype_equal(self.dtype, dtype):
+        if is_dtype_equal(dtype, self.dtype):
             if copy:
                 return self.copy()
             return self
+
+        elif is_datetime64_ns_dtype(dtype):
+            return astype_dt64_to_dt64tz(self, dtype, copy, via_utc=False)
+
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
@@ -1856,12 +1847,12 @@ default 'raise'
             + 1_721_118.5
             + (
                 self.hour
-                + self.minute / 60.0
-                + self.second / 3600.0
-                + self.microsecond / 3600.0 / 1e6
-                + self.nanosecond / 3600.0 / 1e9
+                + self.minute / 60
+                + self.second / 3600
+                + self.microsecond / 3600 / 10 ** 6
+                + self.nanosecond / 3600 / 10 ** 9
             )
-            / 24.0
+            / 24
         )
 
     # -----------------------------------------------------------------
@@ -2086,7 +2077,7 @@ def objects_to_datetime64ns(
             require_iso8601=require_iso8601,
         )
         result = result.reshape(data.shape, order=order)
-    except ValueError as e:
+    except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
             # If tzaware, these values represent unix timestamps, so we
@@ -2094,7 +2085,7 @@ def objects_to_datetime64ns(
             values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
-            raise e
+            raise err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array

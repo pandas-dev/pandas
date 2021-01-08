@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import DtypeObj, Shape
+from pandas._typing import ArrayLike, DtypeObj, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -31,11 +31,12 @@ from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
+    from pandas import Index
     from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes, concat_axis: int, copy: bool
+    mgrs_indexers, axes: List["Index"], concat_axis: int, copy: bool
 ) -> Union[ArrayManager, BlockManager]:
     """
     Concatenate block managers into one.
@@ -113,7 +114,7 @@ def concatenate_block_managers(
     return BlockManager(blocks, axes)
 
 
-def _get_mgr_concatenation_plan(mgr, indexers):
+def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: Dict[int, np.ndarray]):
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -252,7 +253,7 @@ class JoinUnit:
 
         return isna_all(values_flat)
 
-    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na):
+    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
@@ -324,13 +325,21 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(join_units, concat_axis, copy):
+def _concatenate_join_units(
+    join_units: List[JoinUnit], concat_axis: int, copy: bool
+) -> ArrayLike:
     """
     Concatenate values from several join units along selected axis.
     """
     if concat_axis == 0 and len(join_units) > 1:
         # Concatenating join units along ax0 is handled in _merge_blocks.
         raise AssertionError("Concatenating join units along axis0")
+
+    nonempties = [
+        x for x in join_units if x.block is None or x.block.shape[concat_axis] > 0
+    ]
+    if nonempties:
+        join_units = nonempties
 
     empty_dtype, upcasted_na = _get_empty_dtype_and_na(join_units)
 
@@ -427,7 +436,7 @@ def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, A
         return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
-    else:  # pragma
+    else:
         try:
             common_dtype = np.find_common_type(upcast_classes, [])
         except TypeError:
@@ -530,7 +539,7 @@ def _is_uniform_reindex(join_units) -> bool:
     )
 
 
-def _trim_join_unit(join_unit, length):
+def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     """
     Reduce join_unit's shape along item axis to length.
 
@@ -557,7 +566,7 @@ def _trim_join_unit(join_unit, length):
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis):
+def _combine_concat_plans(plans, concat_axis: int):
     """
     Combine multiple concatenation plans into one.
 

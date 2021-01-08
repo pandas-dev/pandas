@@ -408,7 +408,8 @@ class TestMMapWrapper:
                 df.to_csv(path, compression=compression_, encoding=encoding)
 
             # reading should fail (otherwise we wouldn't need the warning)
-            with pytest.raises(Exception):
+            msg = r"UTF-\d+ stream does not start with BOM"
+            with pytest.raises(UnicodeError, match=msg):
                 pd.read_csv(path, compression=compression_, encoding=encoding)
 
 
@@ -420,3 +421,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+
+
+def test_default_errors():
+    # GH 38989
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(b"\xe4\na\n1")
+        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))

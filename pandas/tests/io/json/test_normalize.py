@@ -172,6 +172,24 @@ class TestJSONNormalize:
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data, record_path, exception_type",
+        [
+            ([{"a": 0}, {"a": 1}], None, None),
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", None),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, NotImplementedError),
+            (None, None, NotImplementedError),
+        ],
+    )
+    def test_accepted_input(self, data, record_path, exception_type):
+        if exception_type is not None:
+            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+                json_normalize(data, record_path=record_path)
+        else:
+            result = json_normalize(data, record_path=record_path)
+            expected = DataFrame([0, 1], columns=["a"])
+            tm.assert_frame_equal(result, expected)
+
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
         result = json_normalize({"A": {"A": 1, "B": 2}})
@@ -520,6 +538,17 @@ class TestJSONNormalize:
         expected = DataFrame(
             {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_generator(self, state_data):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        def generator_data():
+            yield from state_data[0]["counties"]
+
+        result = json_normalize(generator_data())
+        expected = DataFrame(state_data[0]["counties"])
+
         tm.assert_frame_equal(result, expected)
 
 

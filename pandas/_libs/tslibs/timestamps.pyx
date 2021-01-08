@@ -16,6 +16,7 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 cnp.import_array()
 
 from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+    PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
@@ -281,6 +282,20 @@ cdef class _Timestamp(ABCTimestamp):
                 return np.zeros(other.shape, dtype=np.bool_)
             return NotImplemented
 
+        elif PyDate_Check(other):
+            # returning NotImplemented defers to the `date` implementation
+            #  which incorrectly drops tz and normalizes to midnight
+            #  before comparing
+            # We follow the stdlib datetime behavior of never being equal
+            warnings.warn(
+                "Comparison of Timestamp with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable."
+                "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return NotImplemented
         else:
             return NotImplemented
 
