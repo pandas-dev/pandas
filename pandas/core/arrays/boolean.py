@@ -293,20 +293,20 @@ class BooleanArray(BaseMaskedArray):
         false_values: Optional[List[str]] = None,
     ) -> "BooleanArray":
         if true_values is not None:
-            true_values = cls._TRUE_VALUES.union(true_values)
+            true_values_union = cls._TRUE_VALUES.union(true_values)
         else:
-            true_values = cls._TRUE_VALUES
+            true_values_union = cls._TRUE_VALUES
         if false_values is not None:
-            false_values = cls._FALSE_VALUES.union(false_values)
+            false_values_union = cls._FALSE_VALUES.union(false_values)
         else:
-            false_values = cls._FALSE_VALUES
+            false_values_union = cls._FALSE_VALUES
 
         def map_string(s):
             if isna(s):
                 return s
-            elif s in true_values:
+            elif s in true_values_union:
                 return True
-            elif s in false_values:
+            elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
