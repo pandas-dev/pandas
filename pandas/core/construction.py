@@ -550,7 +550,17 @@ def _sanitize_ndim(
         if isinstance(data, np.ndarray):
             raise ValueError("Data must be 1-dimensional")
         else:
-            result = com.asarray_tuplesafe(data, dtype=dtype)
+            # pandas/core/construction.py:553: error: Incompatible types in assignment
+            # (expression has type "ndarray", variable has type "ExtensionArray")
+            # [assignment]
+
+            # pandas/core/construction.py:553: error: Argument "dtype" to
+            # "asarray_tuplesafe" has incompatible type "Union[dtype[Any],
+            # ExtensionDtype, None]"; expected "Union[str, dtype[Any], None]"
+            # [arg-type]
+            result = com.asarray_tuplesafe(  # type: ignore[assignment]
+                data, dtype=dtype  # type: ignore[arg-type]
+            )
     return result
 
 

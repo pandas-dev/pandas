@@ -351,7 +351,12 @@ class Index(IndexOpsMixin, PandasObject):
                 # maybe coerce to a sub-class
                 arr = data
             else:
-                arr = com.asarray_tuplesafe(data, dtype=object)
+                # pandas/core/indexes/base.py:354: error: Argument "dtype" to
+                # "asarray_tuplesafe" has incompatible type "Type[object]"; expected
+                # "Union[str, dtype[Any], None]"  [arg-type]
+                arr = com.asarray_tuplesafe(
+                    data, dtype=object  # type: ignore[arg-type]
+                )
 
                 if dtype is None:
                     arr = _maybe_cast_data_without_dtype(arr)
@@ -385,7 +390,11 @@ class Index(IndexOpsMixin, PandasObject):
                         data, names=name or kwargs.get("names")
                     )
             # other iterable of some kind
-            subarr = com.asarray_tuplesafe(data, dtype=object)
+
+            # pandas/core/indexes/base.py:388: error: Argument "dtype" to
+            # "asarray_tuplesafe" has incompatible type "Type[object]"; expected
+            # "Union[str, dtype[Any], None]"  [arg-type]
+            subarr = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod

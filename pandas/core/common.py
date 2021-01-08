@@ -200,9 +200,16 @@ def asarray_tuplesafe(values, dtype: Optional[NpDtype] = None) -> np.ndarray:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
-        return values._values
+        # pandas/core/common.py:203: error: Incompatible return value type (got
+        # "Union[ExtensionArray, ndarray]", expected "ndarray")  [return-value]
+        return values._values  # type: ignore[return-value]
 
-    if isinstance(values, list) and dtype in [np.object_, object]:
+    # pandas/core/common.py:205: error: Non-overlapping container check (element type:
+    # "Union[str, dtype[Any], None]", container item type: "type")  [comparison-overlap]
+    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
+        np.object_,
+        object,
+    ]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)

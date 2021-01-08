@@ -318,7 +318,11 @@ class UInt64Index(IntegerIndex):
         ):
             dtype = np.uint64
 
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)
+        # pandas/core/indexes/numeric.py:321: error: Argument "dtype" to
+        # "asarray_tuplesafe" has incompatible type
+        # "Optional[Type[unsignedinteger[Any]]]"; expected "Union[str, dtype[Any],
+        # None]"  [arg-type]
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)  # type: ignore[arg-type]
 
 
 _float64_descr_args = {

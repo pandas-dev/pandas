@@ -2182,7 +2182,12 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes, dtype=object)
+                # pandas/core/indexes/multi.py:2185: error: Argument "dtype" to
+                # "index_labels_to_array" has incompatible type "Type[object]"; expected
+                # "Union[str, dtype[Any], None]"  [arg-type]
+                codes = com.index_labels_to_array(
+                    codes, dtype=object  # type: ignore[arg-type]
+                )
             except ValueError:
                 pass
 
