@@ -145,6 +145,7 @@ from pandas.core.internals.construction import (
     init_dict,
     init_ndarray,
     masked_rec_array_to_mgr,
+    mgr_to_mgr,
     nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
@@ -602,23 +603,19 @@ class DataFrame(NDFrame, OpsMixin):
                     values, index, columns, dtype=values.dtype, copy=False
                 )
 
+        # ensure correct Manager type according to settings
         manager = get_option("mode.data_manager")
-
-        if manager == "array" and not isinstance(mgr, ArrayManager):
-            # TODO proper initialization
-            df = DataFrame(mgr)
-            mgr = df._as_manager("array")._mgr
-        # TODO check for case of manager="block" but mgr is ArrayManager
+        mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
 
-    def _as_manager(self, typ):
+    def _as_manager(self, typ: str) -> DataFrame:
         """
         Private helper function to create a DataFrame with specific manager.
 
         Parameters
         ----------
-        mgr : {"block", "array"}
+        typ : {"block", "array"}
 
         Returns
         -------
@@ -627,24 +624,7 @@ class DataFrame(NDFrame, OpsMixin):
             to be a copy or not.
         """
         new_mgr: Union[BlockManager, ArrayManager]
-        mgr = self._mgr
-        if typ == "block":
-            if isinstance(mgr, BlockManager):
-                new_mgr = mgr
-            else:
-                new_mgr = arrays_to_mgr(
-                    mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], dtype=None
-                )
-        elif typ == "array":
-            if isinstance(mgr, ArrayManager):
-                new_mgr = mgr
-            else:
-                arrays = [arr.copy() for arr in self._iter_column_arrays()]
-                new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
-        else:
-            raise ValueError(
-                f"'typ' needs to be one of {{'block', 'array'}}, got '{type}'"
-            )
+        new_mgr = mgr_to_mgr(self._mgr, typ=typ)
         # fastpath of passing a manager doesn't check the option/manager class
         return DataFrame(new_mgr)
 

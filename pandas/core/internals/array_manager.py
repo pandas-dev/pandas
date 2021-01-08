@@ -54,7 +54,7 @@ class ArrayManager(DataManager):
     """
 
     __slots__ = [
-        "_axes",
+        "_axes",  # private attribute, because 'axes' has different order, see below
         "arrays",
     ]
 
