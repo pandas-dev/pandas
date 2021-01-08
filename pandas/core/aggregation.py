@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
+from pandas.core.algorithms import safe_sort
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
@@ -738,9 +739,8 @@ def agg_dict_like(
         if isinstance(selected_obj, ABCDataFrame) and len(
             selected_obj.columns.intersection(keys)
         ) != len(keys):
-            cols = sorted(
+            cols = safe_sort(
                 set(keys) - set(selected_obj.columns.intersection(keys)),
-                key=lambda col: (isinstance(col, str), col),
             )
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
