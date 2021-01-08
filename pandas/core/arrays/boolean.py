@@ -257,8 +257,8 @@ class BooleanArray(BaseMaskedArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
-    TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
-    FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
+    _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
+    _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
@@ -293,13 +293,13 @@ class BooleanArray(BaseMaskedArray):
         false_values: Optional[List[str]] = None,
     ) -> "BooleanArray":
         if true_values is not None:
-            true_values = cls.TRUE_VALUES.union(true_values)
+            true_values = cls._TRUE_VALUES.union(true_values)
         else:
-            true_values = cls.TRUE_VALUES
+            true_values = cls._TRUE_VALUES
         if false_values is not None:
-            false_values = cls.FALSE_VALUES.union(false_values)
+            false_values = cls._FALSE_VALUES.union(false_values)
         else:
-            false_values = cls.FALSE_VALUES
+            false_values = cls._FALSE_VALUES
 
         def map_string(s):
             if isna(s):
