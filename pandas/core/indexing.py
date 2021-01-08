@@ -1393,7 +1393,7 @@ class _iLocIndexer(_LocationIndexer):
             warnings.warn(
                 "DataFrame indexer for .iloc is deprecated and will be removed in"
                 "a future version.\n"
-                 "consider using .loc with a DataFrame indexer for automatic alignment."
+                "consider using .loc with a DataFrame indexer for automatic alignment."
                 "a future version",
                 FutureWarning,
                 stacklevel=3,
@@ -1491,7 +1491,10 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_axis(self, key, axis: int):
         if isinstance(key, ABCDataFrame):
-            raise IndexError("DataFrame indexer is not allowed for .iloc\nConsider using .loc for automatic alignment.")
+            raise IndexError(
+                "DataFrame indexer is not allowed for .iloc\n"
+                "Consider using .loc for automatic alignment."
+            )
 
         if isinstance(key, slice):
             return self._get_slice_axis(key, axis=axis)
