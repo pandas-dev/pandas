@@ -1390,7 +1390,12 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("iloc cannot enlarge its target object")
 
         if isinstance(indexer, ABCDataFrame):
-            raise IndexError("DataFrame indexer is not allowed for iloc")
+            warnings.warn(
+                "DataFrame indexer for iloc is deprecated and will be removed in "
+                "a future version",
+                FutureWarning,
+                stacklevel=3,
+            )
 
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)

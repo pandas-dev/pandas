@@ -949,14 +949,14 @@ class TestILocErrors:
 
     def test_iloc_frame_indexer(self, frame_or_series):
         # GH#39004
-        obj = frame_or_series([1, 2, 3])
-        indexer = DataFrame([True, True, False])
+        df = DataFrame({"a": [1, 2, 3]})
+        indexer = DataFrame({"a": [True, False, True]})
+        with tm.assert_produces_warning(FutureWarning):
+            df.iloc[indexer] = 1
+
         msg = "DataFrame indexer is not allowed for iloc"
         with pytest.raises(IndexError, match=msg):
-            obj.iloc[indexer] = 1
-
-        with pytest.raises(IndexError, match=msg):
-            obj.iloc[indexer]
+            df.iloc[indexer]
 
 
 class TestILocSetItemDuplicateColumns:
