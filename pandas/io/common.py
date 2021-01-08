@@ -553,8 +553,7 @@ def get_handle(
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    if encoding is None:
-        encoding = "utf-8"
+    encoding_passed, encoding = encoding, encoding or "utf-8"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
@@ -641,6 +640,9 @@ def get_handle(
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
+            if errors is None and encoding_passed is None:
+                # ignore errors when no encoding is specified
+                errors = "replace"
             # Encoding
             handle = open(
                 handle,

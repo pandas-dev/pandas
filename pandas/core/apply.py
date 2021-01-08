@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import inspect
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Type, cast
@@ -33,7 +35,7 @@ ResType = Dict[int, Any]
 
 
 def frame_apply(
-    obj: "DataFrame",
+    obj: DataFrame,
     how: str,
     func: AggFuncType,
     axis: Axis = 0,
@@ -69,22 +71,22 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def result_index(self) -> "Index":
+    def result_index(self) -> Index:
         pass
 
     @property
     @abc.abstractmethod
-    def result_columns(self) -> "Index":
+    def result_columns(self) -> Index:
         pass
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Iterator["Series"]:
+    def series_generator(self) -> Iterator[Series]:
         pass
 
     @abc.abstractmethod
     def wrap_results_for_axis(
-        self, results: ResType, res_index: "Index"
+        self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
         pass
 
@@ -92,7 +94,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        obj: "DataFrame",
+        obj: DataFrame,
         how: str,
         func,
         raw: bool,
@@ -131,15 +133,15 @@ class FrameApply(metaclass=abc.ABCMeta):
         self.f: AggFuncType = f
 
     @property
-    def res_columns(self) -> "Index":
+    def res_columns(self) -> Index:
         return self.result_columns
 
     @property
-    def columns(self) -> "Index":
+    def columns(self) -> Index:
         return self.obj.columns
 
     @property
-    def index(self) -> "Index":
+    def index(self) -> Index:
         return self.obj.index
 
     @cache_readonly
@@ -147,11 +149,11 @@ class FrameApply(metaclass=abc.ABCMeta):
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self) -> "Series":
+    def dtypes(self) -> Series:
         return self.obj.dtypes
 
     @property
-    def agg_axis(self) -> "Index":
+    def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
@@ -311,7 +313,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         else:
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
-    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+    def apply_broadcast(self, target: DataFrame) -> DataFrame:
         assert callable(self.f)
 
         result_values = np.empty_like(target.values)
@@ -346,7 +348,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
+    def apply_series_generator(self) -> Tuple[ResType, Index]:
         assert callable(self.f)
 
         series_gen = self.series_generator
@@ -365,7 +367,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         return results, res_index
 
-    def wrap_results(self, results: ResType, res_index: "Index") -> FrameOrSeriesUnion:
+    def wrap_results(self, results: ResType, res_index: Index) -> FrameOrSeriesUnion:
         from pandas import Series
 
         # see if we can infer the results
@@ -392,7 +394,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 class FrameRowApply(FrameApply):
     axis = 0
 
-    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+    def apply_broadcast(self, target: DataFrame) -> DataFrame:
         return super().apply_broadcast(target)
 
     @property
@@ -400,15 +402,15 @@ class FrameRowApply(FrameApply):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
-    def result_index(self) -> "Index":
+    def result_index(self) -> Index:
         return self.columns
 
     @property
-    def result_columns(self) -> "Index":
+    def result_columns(self) -> Index:
         return self.index
 
     def wrap_results_for_axis(
-        self, results: ResType, res_index: "Index"
+        self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
         """ return the results for the rows """
 
@@ -452,7 +454,7 @@ class FrameRowApply(FrameApply):
 class FrameColumnApply(FrameApply):
     axis = 1
 
-    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+    def apply_broadcast(self, target: DataFrame) -> DataFrame:
         result = super().apply_broadcast(target.T)
         return result.T
 
@@ -483,15 +485,15 @@ class FrameColumnApply(FrameApply):
                 yield ser
 
     @property
-    def result_index(self) -> "Index":
+    def result_index(self) -> Index:
         return self.index
 
     @property
-    def result_columns(self) -> "Index":
+    def result_columns(self) -> Index:
         return self.columns
 
     def wrap_results_for_axis(
-        self, results: ResType, res_index: "Index"
+        self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
         """ return the results for the columns """
         result: FrameOrSeriesUnion
@@ -511,7 +513,7 @@ class FrameColumnApply(FrameApply):
 
         return result
 
-    def infer_to_same_shape(self, results: ResType, res_index: "Index") -> "DataFrame":
+    def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
         """ infer the results to the same shape as the input object """
         result = self.obj._constructor(data=results)
         result = result.T

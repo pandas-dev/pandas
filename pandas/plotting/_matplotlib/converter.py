@@ -510,28 +510,28 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
     periodsperday = -1
 
-    if dtype_code >= FreqGroup.FR_HR:
-        if dtype_code == FreqGroup.FR_NS:
+    if dtype_code >= FreqGroup.FR_HR.value:
+        if dtype_code == FreqGroup.FR_NS.value:
             periodsperday = 24 * 60 * 60 * 1000000000
-        elif dtype_code == FreqGroup.FR_US:
+        elif dtype_code == FreqGroup.FR_US.value:
             periodsperday = 24 * 60 * 60 * 1000000
-        elif dtype_code == FreqGroup.FR_MS:
+        elif dtype_code == FreqGroup.FR_MS.value:
             periodsperday = 24 * 60 * 60 * 1000
-        elif dtype_code == FreqGroup.FR_SEC:
+        elif dtype_code == FreqGroup.FR_SEC.value:
             periodsperday = 24 * 60 * 60
-        elif dtype_code == FreqGroup.FR_MIN:
+        elif dtype_code == FreqGroup.FR_MIN.value:
             periodsperday = 24 * 60
-        elif dtype_code == FreqGroup.FR_HR:
+        elif dtype_code == FreqGroup.FR_HR.value:
             periodsperday = 24
         else:  # pragma: no cover
             raise ValueError(f"unexpected frequency: {dtype_code}")
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
 
-    elif dtype_code == FreqGroup.FR_BUS:
+    elif dtype_code == FreqGroup.FR_BUS.value:
         periodsperyear = 261
         periodspermonth = 19
-    elif dtype_code == FreqGroup.FR_DAY:
+    elif dtype_code == FreqGroup.FR_DAY.value:
         periodsperyear = 365
         periodspermonth = 28
     elif FreqGroup.get_freq_group(dtype_code) == FreqGroup.FR_WK:
@@ -661,7 +661,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
     elif span <= periodsperyear // 4:
         month_start = period_break(dates_, "month")
         info_maj[month_start] = True
-        if dtype_code < FreqGroup.FR_HR:
+        if dtype_code < FreqGroup.FR_HR.value:
             info["min"] = True
         else:
             day_start = period_break(dates_, "day")
@@ -872,14 +872,15 @@ def _annual_finder(vmin, vmax, freq):
 def get_finder(freq: BaseOffset):
     dtype_code = freq._period_dtype_code
     fgroup = (dtype_code // 1000) * 1000
+    fgroup = FreqGroup(fgroup)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
     elif fgroup == FreqGroup.FR_QTR:
         return _quarterly_finder
-    elif dtype_code == FreqGroup.FR_MTH:
+    elif dtype_code == FreqGroup.FR_MTH.value:
         return _monthly_finder
-    elif (dtype_code >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK:
+    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:
         return _daily_finder
     else:  # pragma: no cover
         raise NotImplementedError(f"Unsupported frequency: {dtype_code}")

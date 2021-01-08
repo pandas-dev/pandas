@@ -65,6 +65,13 @@ particular row don't change.
 See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index``
 effectively.
 
+
+Copies vs. in place operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: includes/copies.rst
+
+
 Data input / output
 -------------------
 

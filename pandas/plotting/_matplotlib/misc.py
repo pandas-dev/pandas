@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def scatter_matrix(
-    frame: "DataFrame",
+    frame: DataFrame,
     alpha=0.5,
     figsize=None,
     ax=None,
@@ -124,7 +126,7 @@ def _get_marker_compat(marker):
 
 
 def radviz(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     ax: Optional["Axes"] = None,
     color=None,
@@ -212,7 +214,7 @@ def radviz(
 
 
 def andrews_curves(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     ax: Optional["Axes"] = None,
     samples: int = 200,
@@ -334,7 +336,7 @@ def bootstrap_plot(
 
 
 def parallel_coordinates(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     cols=None,
     ax: Optional["Axes"] = None,
