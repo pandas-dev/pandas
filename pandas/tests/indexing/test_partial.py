@@ -154,8 +154,7 @@ class TestPartialSetting:
         # columns will align
         df = DataFrame(columns=["A", "B"])
         df.loc[0] = Series(1, index=range(4))
-        expected = DataFrame(columns=["A", "B"], index=[0], dtype=int)
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
 
         # columns will align
         df = DataFrame(columns=["A", "B"])
