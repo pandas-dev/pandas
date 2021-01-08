@@ -1,4 +1,6 @@
 """ Google BigQuery support """
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from pandas.compat._optional import import_optional_dependency
@@ -195,7 +197,7 @@ def read_gbq(
 
 
 def to_gbq(
-    dataframe: "DataFrame",
+    dataframe: DataFrame,
     destination_table: str,
     project_id: Optional[str] = None,
     chunksize: Optional[int] = None,

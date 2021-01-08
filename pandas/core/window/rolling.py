@@ -2,6 +2,8 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import partial
 import inspect
@@ -314,7 +316,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         return values
 
-    def _insert_on_column(self, result: "DataFrame", obj: "DataFrame"):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series

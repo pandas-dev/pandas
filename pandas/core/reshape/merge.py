@@ -1,6 +1,7 @@
 """
 SQL-style merge routines
 """
+from __future__ import annotations
 
 import copy
 import datetime
@@ -99,7 +100,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
+def _groupby_and_merge(by, on, left: DataFrame, right: DataFrame, merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -157,8 +158,8 @@ def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_piec
 
 
 def merge_ordered(
-    left: "DataFrame",
-    right: "DataFrame",
+    left: DataFrame,
+    right: DataFrame,
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -300,8 +301,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: "DataFrame",
-    right: "DataFrame",
+    left: DataFrame,
+    right: DataFrame,
     on: Optional[IndexLabel] = None,
     left_on: Optional[IndexLabel] = None,
     right_on: Optional[IndexLabel] = None,
@@ -717,12 +718,12 @@ class _MergeOperation:
 
         return result.__finalize__(self, method="merge")
 
-    def _maybe_drop_cross_column(self, result: "DataFrame", cross_col: Optional[str]):
+    def _maybe_drop_cross_column(self, result: DataFrame, cross_col: Optional[str]):
         if cross_col is not None:
             result.drop(columns=cross_col, inplace=True)
 
     def _indicator_pre_merge(
-        self, left: "DataFrame", right: "DataFrame"
+        self, left: DataFrame, right: DataFrame
     ) -> Tuple["DataFrame", "DataFrame"]:
 
         columns = left.columns.union(right.columns)
@@ -1230,7 +1231,7 @@ class _MergeOperation:
                 self.right = self.right.assign(**{name: self.right[name].astype(typ)})
 
     def _create_cross_configuration(
-        self, left: "DataFrame", right: "DataFrame"
+        self, left: DataFrame, right: DataFrame
     ) -> Tuple["DataFrame", "DataFrame", str, str]:
         """
         Creates the configuration to dispatch the cross operation to inner join,
@@ -1546,8 +1547,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: "DataFrame",
-        right: "DataFrame",
+        left: DataFrame,
+        right: DataFrame,
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
@@ -1640,8 +1641,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: "DataFrame",
-        right: "DataFrame",
+        left: DataFrame,
+        right: DataFrame,
         on: Optional[IndexLabel] = None,
         left_on: Optional[IndexLabel] = None,
         right_on: Optional[IndexLabel] = None,
