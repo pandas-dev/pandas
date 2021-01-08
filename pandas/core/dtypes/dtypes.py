@@ -15,7 +15,6 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
 import pytz
@@ -1054,21 +1053,6 @@ class IntervalDtype(PandasExtensionDtype):
                                     "specified in dtype string"
                                 )
                         closed = gd["closed"]
-                    elif closed is not None:
-                        # user passed eg. IntervalDtype("interval[int64]", "left")
-                        pass
-                    else:
-                        warnings.warn(
-                            "Constructing an IntervalDtype from a string without "
-                            "specifying 'closed' is deprecated and will raise in "
-                            "a future version. "
-                            f"Use e.g. 'interval[{subtype}, left]'. "
-                            "Defaulting to closed='right'.",
-                            FutureWarning,
-                            stacklevel=2,
-                        )
-                        # default to "right"
-                        closed = "right"
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1082,18 +1066,6 @@ class IntervalDtype(PandasExtensionDtype):
                 "for IntervalDtype"
             )
             raise TypeError(msg)
-
-        if closed is None and subtype is not None:
-            warnings.warn(
-                "Constructing an IntervalDtype without "
-                "specifying 'closed' is deprecated and will raise in "
-                "a future version. "
-                "Use e.g. IntervalDtype(np.int64, 'left'). "
-                "Defaulting to closed='right'.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            closed = "right"
 
         key = str(subtype) + str(closed)
         try:
@@ -1158,6 +1130,9 @@ class IntervalDtype(PandasExtensionDtype):
     def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
+        if self.closed is None:
+            # Only partially initialized GH#38394
+            return f"interval[{self.subtype}]"
         return f"interval[{self.subtype}, {self.closed}]"
 
     def __hash__(self) -> int:
@@ -1187,14 +1162,6 @@ class IntervalDtype(PandasExtensionDtype):
 
         # backward-compat older pickles won't have "closed" key
         self._closed = state.pop("closed", None)
-        if self._closed is None:
-            warnings.warn(
-                "Unpickled legacy IntervalDtype does not specify 'closed' "
-                "attribute.  Set dtype._closed to one of 'left', 'right', 'both', "
-                "'neither' before using this IntervalDtype object.",
-                UserWarning,
-                stacklevel=2,
-            )
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:

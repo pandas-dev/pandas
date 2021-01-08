@@ -176,13 +176,6 @@ class TestFloatSubtype(AstypeTests):
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
-        # float64 -> integer-like fails with non-integer valued floats
-        index = interval_range(0.0, 10.0, freq=0.25)
-        dtype = IntervalDtype("int64", "right")
-        msg = "foo"
-        with pytest.raises(ValueError, match=msg):
-            index.astype(dtype)
-
     @pytest.mark.parametrize("subtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_subtype_datetimelike(self, index, subtype):
         dtype = IntervalDtype(subtype, "right")

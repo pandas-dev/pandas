@@ -572,13 +572,11 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize(
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
-    def test_construction_requires_closed(self, subtype):
+    def test_construction_allows_closed_none(self, subtype):
+        # GH#38394
+        dtype = IntervalDtype(subtype)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # need to specify "closed"
-            dtype = IntervalDtype(subtype)
-
-        assert dtype.closed == "right"  # default
+        assert dtype.closed is None
 
     def test_closed_mismatch(self):
         msg = "'closed' keyword does not match value specified in dtype string"
@@ -671,6 +669,9 @@ class TestIntervalDtype(Base):
     def test_is_dtype(self, dtype):
         assert IntervalDtype.is_dtype(dtype)
         assert IntervalDtype.is_dtype("interval")
+        assert IntervalDtype.is_dtype(IntervalDtype("float64"))
+        assert IntervalDtype.is_dtype(IntervalDtype("int64"))
+        assert IntervalDtype.is_dtype(IntervalDtype(np.int64))
         assert IntervalDtype.is_dtype(IntervalDtype("float64", "left"))
         assert IntervalDtype.is_dtype(IntervalDtype("int64", "right"))
         assert IntervalDtype.is_dtype(IntervalDtype(np.int64, "both"))
@@ -690,6 +691,12 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(dtype, IntervalDtype("int64", "right"))
         assert is_dtype_equal(
             IntervalDtype("int64", "right"), IntervalDtype("int64", "right")
+        )
+
+        assert not is_dtype_equal(dtype, "interval[int64]")
+        assert not is_dtype_equal(dtype, IntervalDtype("int64"))
+        assert not is_dtype_equal(
+            IntervalDtype("int64", "right"), IntervalDtype("int64")
         )
 
         assert not is_dtype_equal(dtype, "int64")
@@ -804,7 +811,6 @@ class TestIntervalDtype(Base):
 
         assert dtype._closed is None
 
-        # FIXME: with tm.assert_produces_warning(UserWarning):
         tm.round_trip_pickle(dtype)
 
 
