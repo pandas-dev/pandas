@@ -201,7 +201,7 @@ Datetimelike
 - Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object ouf of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
--
+- Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
 
 Timedelta
 ^^^^^^^^^
