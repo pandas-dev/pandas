@@ -3220,7 +3220,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _set_item_frame_value(self, key, value: "DataFrame") -> None:
+    def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
 
         # align right-hand-side columns if self.columns
