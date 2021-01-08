@@ -212,7 +212,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy=False, **kwargs
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
