@@ -485,8 +485,8 @@ def transform_dict_like(
         # Check for missing columns on a frame
         cols = set(func.keys()) - set(obj.columns)
         if len(cols) > 0:
-            cols = list(safe_sort(list(cols)))
-            raise SpecificationError(f"Column(s) {cols} do not exist")
+            cols_sorted = list(safe_sort(list(cols)))
+            raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
 
     # Can't use func.values(); wouldn't work for a Series
     if any(is_dict_like(v) for _, v in func.items()):
