@@ -739,8 +739,10 @@ def agg_dict_like(
         if isinstance(selected_obj, ABCDataFrame) and len(
             selected_obj.columns.intersection(keys)
         ) != len(keys):
-            cols = safe_sort(
-                set(keys) - set(selected_obj.columns.intersection(keys)),
+            cols = list(
+                safe_sort(
+                    list(set(keys) - set(selected_obj.columns.intersection(keys))),
+                )
             )
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
