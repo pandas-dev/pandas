@@ -292,14 +292,8 @@ class BooleanArray(BaseMaskedArray):
         true_values: Optional[List[str]] = None,
         false_values: Optional[List[str]] = None,
     ) -> "BooleanArray":
-        if true_values is not None:
-            true_values_union = cls._TRUE_VALUES.union(true_values)
-        else:
-            true_values_union = cls._TRUE_VALUES
-        if false_values is not None:
-            false_values_union = cls._FALSE_VALUES.union(false_values)
-        else:
-            false_values_union = cls._FALSE_VALUES
+        true_values_union = cls._TRUE_VALUES.union(true_values or [])
+        false_values_union = cls._FALSE_VALUES.union(false_values or [])
 
         def map_string(s):
             if isna(s):
