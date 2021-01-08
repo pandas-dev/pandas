@@ -3745,9 +3745,13 @@ class Index(IndexOpsMixin, PandasObject):
                 # need to retake to have the same size as the indexer
                 indexer[~check] = -1
 
-                # reset the new indexer to account for the new size
-                new_indexer = np.arange(len(self.take(indexer)))
-                new_indexer[~check] = -1
+                if len(self):
+                    # reset the new indexer to account for the new size
+                    new_indexer = np.arange(len(self.take(indexer)))
+                    new_indexer[~check] = -1
+                else:
+                    # GH#38906
+                    new_indexer = np.arange(0)
 
         if isinstance(self, ABCMultiIndex):
             new_index = type(self).from_tuples(new_labels, names=self.names)
