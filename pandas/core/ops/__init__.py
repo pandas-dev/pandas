@@ -3,6 +3,8 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+from __future__ import annotations
+
 import operator
 from typing import TYPE_CHECKING, Optional, Set
 import warnings
@@ -293,7 +295,7 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: "DataFrame", right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -322,7 +324,7 @@ def should_reindex_frame_op(
 
 
 def frame_arith_method_with_reindex(
-    left: "DataFrame", right: "DataFrame", op
+    left: DataFrame, right: DataFrame, op
 ) -> "DataFrame":
     """
     For DataFrame-with-DataFrame operations that require reindexing,
@@ -367,7 +369,7 @@ def frame_arith_method_with_reindex(
     return result
 
 
-def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: "Series", axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.

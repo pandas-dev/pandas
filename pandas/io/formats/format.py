@@ -2,6 +2,7 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
@@ -462,7 +463,7 @@ class DataFrameFormatter:
 
     def __init__(
         self,
-        frame: "DataFrame",
+        frame: DataFrame,
         columns: Optional[Sequence[str]] = None,
         col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
@@ -813,7 +814,7 @@ class DataFrameFormatter:
                 i = self.columns[i]
             return self.formatters.get(i, None)
 
-    def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
+    def _get_formatted_column_labels(self, frame: DataFrame) -> List[List[str]]:
         from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
@@ -854,7 +855,7 @@ class DataFrameFormatter:
         # self.str_columns = str_columns
         return str_columns
 
-    def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
+    def _get_formatted_index(self, frame: DataFrame) -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
