@@ -2,10 +2,10 @@ import abc
 import datetime
 from distutils.version import LooseVersion
 import inspect
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BytesIO
 import os
 from textwrap import fill
-from typing import IO, Any, Dict, Mapping, Optional, Union, cast
+from typing import Any, Dict, Mapping, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -906,24 +906,18 @@ PEEK_SIZE = max(len(XLS_SIGNATURE), len(ZIP_SIGNATURE))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    path: Optional[str] = None,
-    content: Union[None, BufferedIOBase, RawIOBase, bytes] = None,
+    content_or_path: FilePathOrBuffer,
     storage_options: StorageOptions = None,
 ) -> str:
     """
     Inspect the path or content of an excel file and get its format.
 
-    At least one of path or content must be not None. If both are not None,
-    content will take precedence.
-
     Adopted from xlrd: https://github.com/python-excel/xlrd.
 
     Parameters
     ----------
-    path : str, optional
-        Path to file to inspect. May be a URL.
-    content : file-like object, optional
-        Content of file to inspect.
+    content_or_path : str or file-like object
+        Path to file or content of file to inspect. May be a URL.
     {storage_options}
 
     Returns
@@ -938,12 +932,8 @@ def inspect_excel_format(
     BadZipFile
         If resulting stream does not have an XLS signature and is not a valid zipfile.
     """
-    content_or_path: Union[None, str, BufferedIOBase, RawIOBase, IO[bytes]]
-    if isinstance(content, bytes):
-        content_or_path = BytesIO(content)
-    else:
-        content_or_path = content or path
-    assert content_or_path is not None
+    if isinstance(content_or_path, bytes):
+        content_or_path = BytesIO(content_or_path)
 
     with get_handle(
         content_or_path, "rb", storage_options=storage_options, is_text=False
@@ -1069,7 +1059,7 @@ class ExcelFile:
             ext = "xls"
         else:
             ext = inspect_excel_format(
-                content=path_or_buffer, storage_options=storage_options
+                content_or_path=path_or_buffer, storage_options=storage_options
             )
 
         if engine is None:
