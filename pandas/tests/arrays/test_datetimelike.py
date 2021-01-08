@@ -92,7 +92,7 @@ class SharedTests:
             pd.date_range("2020", periods=3, tz="UTC"),
             pd.timedelta_range("0 days", periods=3),
             pd.period_range("2020Q1", periods=3, freq="Q")
-        ]
+        ],
     )
     def test_compare_with_Categorical(self, result):
         expected = pd.Categorical(result)
