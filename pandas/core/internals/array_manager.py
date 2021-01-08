@@ -322,9 +322,7 @@ class ArrayManager(DataManager):
     def isna(self, func) -> "ArrayManager":
         return self.apply("apply", func=func)
 
-    def where(
-        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
-    ) -> "ArrayManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> "ArrayManager":
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -337,7 +335,6 @@ class ArrayManager(DataManager):
             other=other,
             cond=cond,
             errors=errors,
-            try_cast=try_cast,
             axis=axis,
         )
 
@@ -346,7 +343,6 @@ class ArrayManager(DataManager):
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -359,9 +355,7 @@ class ArrayManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
     def diff(self, n: int, axis: int) -> "ArrayManager":
