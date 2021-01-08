@@ -258,3 +258,19 @@ def test_transform_missing_columns(axis):
     match = re.escape("Column(s) ['C'] do not exist")
     with pytest.raises(SpecificationError, match=match):
         df.transform({"C": "cumsum"})
+
+
+def test_transform_none_to_type():
+    # GH34377
+    df = DataFrame({"a": [None]})
+    msg = "Transform function failed"
+    with pytest.raises(ValueError, match=msg):
+        df.transform({"a": int})
+
+
+def test_transform_mixed_column_name_dtypes():
+    # GH39025
+    df = DataFrame({"a": ["1"]})
+    msg = r"Column\(s\) \[1, 'b'\] do not exist"
+    with pytest.raises(SpecificationError, match=msg):
+        df.transform({"a": int, 1: str, "b": int})
