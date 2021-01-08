@@ -866,11 +866,6 @@ def value_counts_arraylike(values, dropna: bool):
         f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
 
-        mask = isna(values)
-        if not dropna and mask.any() and not isna(keys).any():
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
-
     keys = _reconstruct_data(keys, original.dtype, original)
 
     return keys, counts

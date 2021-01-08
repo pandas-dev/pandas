@@ -77,9 +77,9 @@ cdef build_count_table_{{dtype}}(const {{dtype}}_t[:] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cpdef stable_value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
 {{else}}
-cpdef stable_value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -90,6 +90,7 @@ cpdef stable_value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
         # Don't use Py_ssize_t, since table.n_buckets is unsigned
         khiter_t k
+        bint is_null
 
         {{c_type}} val
 
@@ -108,7 +109,10 @@ cpdef stable_value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
     for i in range(n):
         val = values[i]
-        if not checknull(val) or not dropna:
+        is_null = checknull(val)
+        if is_null:
+            val = navalue
+        if not is_null or not dropna:
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 unique_key_index = table.vals[k]
@@ -141,15 +145,6 @@ cpdef stable_value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     kh_destroy_{{ttype}}(table)
 
     return result_keys.to_array(), result_counts.to_array()
-
-
-{{if dtype == 'object'}}
-cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
-    return stable_value_count_{{dtype}}(values, 1)
-{{else}}
-cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
-    return stable_value_count_{{dtype}}(values, dropna)
-{{endif}}
 
 
 @cython.wraparound(False)
