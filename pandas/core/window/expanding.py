@@ -1,11 +1,14 @@
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
+import numpy as np
+
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import _doc_template, _shared_docs
-from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
 from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
@@ -21,6 +24,14 @@ class Expanding(RollingAndExpandingMixin):
     center : bool, default False
         Set the labels at the center of the window.
     axis : int or str, default 0
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -56,18 +67,26 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis"]
+    _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
+    def __init__(
+        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
+    ):
+        super().__init__(
+            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
-    @property
-    def _constructor(self):
-        return Expanding
-
-    def _get_window(self, other=None, **kwargs):
+    def _get_window_indexer(self) -> BaseIndexer:
         """
-        Get the window length over which to perform some operation.
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExpandingIndexer()
+
+    def _get_cov_corr_window(
+        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
+    ) -> int:
+        """
+        Get the window length over which to perform cov and corr operations.
 
         Parameters
         ----------
@@ -128,19 +147,19 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
-    def count(self, **kwargs):
-        return super().count(**kwargs)
+    def count(self):
+        return super().count()
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
     def apply(
         self,
-        func,
+        func: Callable[..., Any],
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
-        args=None,
-        kwargs=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,
@@ -153,49 +172,49 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sem"])
-    def sem(self, ddof=1, *args, **kwargs):
+    def sem(self, ddof: int = 1, *args, **kwargs):
         return super().sem(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", func_name="skew")
@@ -237,20 +256,38 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["quantile"])
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(
+        self,
+        quantile,
+        interpolation="linear",
+        **kwargs,
+    ):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @Substitution(name="expanding", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["corr"])
-    def corr(self, other=None, pairwise=None, **kwargs):
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
@@ -259,14 +296,13 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     Provide a expanding groupby implementation.
     """
 
-    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+    @property
+    def _constructor(self):
+        return Expanding
+
+    def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
-
-        Parameters
-        ----------
-        window : int
-            window size for FixedWindowIndexer (unused)
 
         Returns
         -------

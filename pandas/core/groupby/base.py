@@ -5,6 +5,9 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
 from typing import List
+import warnings
+
+from pandas._typing import final
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
@@ -16,6 +19,7 @@ OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 class ShallowMixin(PandasObject):
     _attributes: List[str] = []
 
+    @final
     def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
@@ -24,7 +28,10 @@ class ShallowMixin(PandasObject):
             obj = obj.obj
         for attr in self._attributes:
             if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
+                # TODO: Remove once win_type deprecation is enforced
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "win_type", FutureWarning)
+                    kwargs[attr] = getattr(self, attr)
         return self._constructor(obj, **kwargs)
 
 
@@ -35,6 +42,7 @@ class GotItemMixin(PandasObject):
 
     _attributes: List[str]
 
+    @final
     def _gotitem(self, key, ndim, subset=None):
         """
         Sub-classes to define. Return a sliced object.
@@ -49,23 +57,41 @@ class GotItemMixin(PandasObject):
         """
         # create a new object to prevent aliasing
         if subset is None:
-            subset = self.obj
+            # pandas\core\groupby\base.py:52: error: "GotItemMixin" has no
+            # attribute "obj"  [attr-defined]
+            subset = self.obj  # type: ignore[attr-defined]
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        # TODO: Remove once win_type deprecation is enforced
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "win_type", FutureWarning)
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
         # Try to select from a DataFrame, falling back to a Series
         try:
-            groupby = self._groupby[key]
+            # pandas\core\groupby\base.py:60: error: "GotItemMixin" has no
+            # attribute "_groupby"  [attr-defined]
+            groupby = self._groupby[key]  # type: ignore[attr-defined]
         except IndexError:
-            groupby = self._groupby
+            # pandas\core\groupby\base.py:62: error: "GotItemMixin" has no
+            # attribute "_groupby"  [attr-defined]
+            groupby = self._groupby  # type: ignore[attr-defined]
 
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        # pandas\core\groupby\base.py:64: error: Too many arguments for
+        # "GotItemMixin"  [call-arg]
+
+        # pandas\core\groupby\base.py:64: error: Unexpected keyword argument
+        # "groupby" for "GotItemMixin"  [call-arg]
+
+        # pandas\core\groupby\base.py:64: error: Unexpected keyword argument
+        # "parent" for "GotItemMixin"  [call-arg]
+        self = type(self)(
+            subset, groupby=groupby, parent=self, **kwargs  # type: ignore[call-arg]
+        )
         self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
+        if subset.ndim == 2 and (is_scalar(key) and key in subset or is_list_like(key)):
+            self._selection = key
         return self
 
 
@@ -177,6 +203,7 @@ groupby_other_methods = frozenset(
         "describe",
         "dtypes",
         "expanding",
+        "ewm",
         "filter",
         "get_group",
         "groups",

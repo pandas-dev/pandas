@@ -1,16 +1,15 @@
 import numbers
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -18,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -170,12 +169,13 @@ def coerce_to_array(
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
-        if inferred_dtype in integer_like:
-            if not np.all(
+        if (inferred_dtype in integer_like) and not (
+            np.all(
                 values[~mask_values].astype(float)
                 == values_object[~mask_values].astype(float)
-            ):
-                raise TypeError("Need to pass bool-like values")
+            )
+        ):
+            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(len(values), dtype=bool)
@@ -193,9 +193,9 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if not values.ndim == 1:
+    if values.ndim != 1:
         raise ValueError("values must be a 1D list-like")
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise ValueError("mask must be a 1D list-like")
 
     return values, mask
@@ -272,7 +272,9 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
+    def _from_sequence(
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+    ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -280,7 +282,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], dtype=None, copy: bool = False
+        cls, strings: List[str], *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
@@ -293,7 +295,7 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError(f"{s} cannot be cast to bool")
 
         scalars = [map_string(x) for x in strings]
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -369,18 +371,10 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, BooleanDtype):
-            values, mask = coerce_to_array(self, copy=copy)
-            if not copy:
-                return self
-            else:
-                return BooleanArray(values, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -388,16 +382,11 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
-        if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
-            from pandas.core.arrays import IntegerArray
 
-            return IntegerArray(
-                self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
-            )
         # for integer, error if there are missing values
-        if is_integer_dtype(dtype):
-            if self._hasna:
-                raise ValueError("cannot convert NA to integer")
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
+
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
@@ -418,13 +407,13 @@ class BooleanArray(BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         data[self._mask] = -1
         return data
 
-    def any(self, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, **kwargs):
         """
         Return whether any element is True.
 
@@ -492,7 +481,7 @@ class BooleanArray(BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, **kwargs):
         """
         Return whether all elements are True.
 
@@ -576,7 +565,7 @@ class BooleanArray(BaseMaskedArray):
         elif isinstance(other, np.bool_):
             other = other.item()
 
-        if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+        if other_is_scalar and other is not libmissing.NA and not lib.is_bool(other):
             raise TypeError(
                 "'other' should be pandas.NA or a bool. "
                 f"Got {type(other).__name__} instead."
@@ -664,6 +653,11 @@ class BooleanArray(BaseMaskedArray):
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
         else:
+            if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
+                # Avoid DeprecationWarning: In future, it will be an error
+                #  for 'np.bool_' scalars to be interpreted as an index
+                other = bool(other)
+
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
 
@@ -677,12 +671,12 @@ class BooleanArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        return super()._reduce(name, skipna, **kwargs)
+        return super()._reduce(name, skipna=skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -699,10 +693,11 @@ class BooleanArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
 
-        if is_bool_dtype(result):
+            return FloatingArray(result, mask, copy=False)
+
+        elif is_bool_dtype(result):
             return BooleanArray(result, mask, copy=False)
 
         elif is_integer_dtype(result):

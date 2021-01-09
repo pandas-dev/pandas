@@ -118,8 +118,8 @@ class TestDataFrameToDict:
         ]
         assert isinstance(recons_data, list)
         assert len(recons_data) == 3
-        for l, r in zip(recons_data, expected_records):
-            tm.assert_dict_equal(l, r)
+        for left, right in zip(recons_data, expected_records):
+            tm.assert_dict_equal(left, right)
 
         # GH#10844
         recons_data = DataFrame(test_data).to_dict("index")
@@ -257,17 +257,30 @@ class TestDataFrameToDict:
         assert result == expected
 
     def test_to_dict_orient_dtype(self):
-        # GH#22620
-        # Input Data
-        input_data = {"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["X", "Y", "Z"]}
-        df = DataFrame(input_data)
-        # Expected Dtypes
-        expected = {"a": int, "b": float, "c": str}
-        # Extracting dtypes out of to_dict operation
-        for df_dict in df.to_dict("records"):
-            result = {
-                "a": type(df_dict["a"]),
-                "b": type(df_dict["b"]),
-                "c": type(df_dict["c"]),
+        # GH22620 & GH21256
+
+        df = DataFrame(
+            {
+                "bool": [True, True, False],
+                "datetime": [
+                    datetime(2018, 1, 1),
+                    datetime(2019, 2, 2),
+                    datetime(2020, 3, 3),
+                ],
+                "float": [1.0, 2.0, 3.0],
+                "int": [1, 2, 3],
+                "str": ["X", "Y", "Z"],
             }
+        )
+
+        expected = {
+            "int": int,
+            "float": float,
+            "str": str,
+            "datetime": Timestamp,
+            "bool": bool,
+        }
+
+        for df_dict in df.to_dict("records"):
+            result = {col: type(df_dict[col]) for col in list(df.columns)}
             assert result == expected

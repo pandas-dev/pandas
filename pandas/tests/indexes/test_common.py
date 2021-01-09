@@ -37,7 +37,11 @@ class TestCommon:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
-            with pytest.raises(ValueError):
+            msg = (
+                "Cannot remove 1 levels from an index with 1 levels: at least one "
+                "level must be left."
+            )
+            with pytest.raises(ValueError, match=msg):
                 index.droplevel(level)
 
         for level in "wrong", ["wrong"]:
@@ -75,141 +79,12 @@ class TestCommon:
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, itm):
-        with pytest.raises(IndexError):
+        msg = r"index 101 is out of bounds for axis 0 with size [\d]+|" + re.escape(
+            "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+            "and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
             index[itm]
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_union(self, index, fname, sname, expected_name):
-        # GH 9943 9862
-        # Test unions with various name combinations
-        # Do not test MultiIndex or repeats
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.union(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test copy.union(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        union = first.union(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-        # Test empty.union(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        union = first.union(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(union, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_union_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # test copy.union(subset) - need sort for unicode and string
-        first = index.copy().set_names(fname)
-        second = index[1:].set_names(sname)
-        union = first.union(second).sort_values()
-        expected = index.set_names(expected_name).sort_values()
-        tm.assert_index_equal(union, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_corner_intersect(self, index, fname, sname, expected_name):
-        # GH35847
-        # Test intersections with various name combinations
-
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # Test copy.intersection(copy)
-        first = index.copy().set_names(fname)
-        second = index.copy().set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.copy().set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test copy.intersection(empty)
-        first = index.copy().set_names(fname)
-        second = index.drop(index).set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test empty.intersection(copy)
-        first = index.drop(index).set_names(fname)
-        second = index.copy().set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-        # Test empty.intersection(empty)
-        first = index.drop(index).set_names(fname)
-        second = index.drop(index).set_names(sname)
-        intersect = first.intersection(second)
-        expected = index.drop(index).set_names(expected_name)
-        tm.assert_index_equal(intersect, expected)
-
-    @pytest.mark.parametrize(
-        "fname, sname, expected_name",
-        [
-            ("A", "A", "A"),
-            ("A", "B", None),
-            ("A", None, None),
-            (None, "B", None),
-            (None, None, None),
-        ],
-    )
-    def test_intersect_unequal(self, index, fname, sname, expected_name):
-        if isinstance(index, MultiIndex) or not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
-
-        # test copy.intersection(subset) - need sort for unicode and string
-        first = index.copy().set_names(fname)
-        second = index[1:].set_names(sname)
-        intersect = first.intersection(second).sort_values()
-        expected = index[1:].set_names(expected_name).sort_values()
-        tm.assert_index_equal(intersect, expected)
 
     def test_to_flat_index(self, index):
         # 22866
@@ -320,6 +195,10 @@ class TestCommon:
             vals[0] = np.nan
 
         vals_unique = vals[:2]
+        if index.dtype.kind in ["m", "M"]:
+            # i.e. needs_i8_conversion but not period_dtype, as above
+            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -331,13 +210,6 @@ class TestCommon:
             for i in [idx_nan, idx_unique_nan]:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
-
-    def test_mutability(self, index):
-        if not len(index):
-            pytest.skip("Skip check for empty Index")
-        msg = "Index does not support mutable operations"
-        with pytest.raises(TypeError, match=msg):
-            index[0] = index[0]
 
     def test_view(self, index):
         assert index.view().name == index.name
@@ -383,7 +255,8 @@ class TestCommon:
             assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
-            with pytest.raises(ValueError):
+            msg = "index must be monotonic increasing or decreasing"
+            with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
     def test_pickle(self, index):
@@ -475,9 +348,14 @@ class TestCommon:
         else:
             index.name = "idx"
 
+        warn = None
+        if dtype in ["int64", "uint64"]:
+            if needs_i8_conversion(index.dtype):
+                warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            result = index.astype(dtype)
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+                result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -491,16 +369,25 @@ class TestCommon:
         with tm.assert_produces_warning(FutureWarning):
             index.ravel()
 
+    def test_asi8_deprecation(self, index):
+        # GH#37877
+        if isinstance(index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+            warn = None
+        else:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn):
+            index.asi8
+
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-        # datetime-like indices will get na_position kwarg as part of
-        # synchronizing duplicate-sorting behavior, because we currently expect
-        # them, other indices, and Series to sort differently (xref 35922)
-        pytest.xfail("sort_values does not support na_position kwarg")
-    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+def test_sort_values_invalid_na_position(request, index_with_missing, na_position):
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="missing value sorting order not defined for index type"
+            )
+        )
 
     if na_position not in ["first", "last"]:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
@@ -508,17 +395,16 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(request, index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-        # datetime-like indices will get na_position kwarg as part of
-        # synchronizing duplicate-sorting behavior, because we currently expect
-        # them, other indices, and Series to sort differently (xref 35922)
-        pytest.xfail("sort_values does not support na_position kwarg")
-    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
-        pytest.xfail("missing value sorting order not defined for index type")
+    if isinstance(index_with_missing, MultiIndex):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="missing value sorting order not implemented")
+        )
+    elif isinstance(index_with_missing, CategoricalIndex):
+        pytest.skip("missing value sorting order not well-defined")
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

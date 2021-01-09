@@ -23,13 +23,14 @@ import shutil
 from warnings import catch_warnings, simplefilter
 import zipfile
 
+import numpy as np
 import pytest
 
 from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index
+from pandas import Index, Series, period_range
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
@@ -499,7 +500,7 @@ class MyTz(datetime.tzinfo):
 
 def test_read_pickle_with_subclass():
     # GH 12163
-    expected = pd.Series(dtype=object), MyTz()
+    expected = Series(dtype=object), MyTz()
     result = tm.round_trip_pickle(expected)
 
     tm.assert_series_equal(result[0], expected[0])
@@ -531,3 +532,59 @@ def test_pickle_binary_object_compression(compression):
     read_df = pd.read_pickle(buffer, compression=compression)
     buffer.seek(0)
     tm.assert_frame_equal(df, read_df)
+
+
+def test_pickle_dataframe_with_multilevel_index(
+    multiindex_year_month_day_dataframe_random_data,
+    multiindex_dataframe_random_data,
+):
+    ymd = multiindex_year_month_day_dataframe_random_data
+    frame = multiindex_dataframe_random_data
+
+    def _test_roundtrip(frame):
+        unpickled = tm.round_trip_pickle(frame)
+        tm.assert_frame_equal(frame, unpickled)
+
+    _test_roundtrip(frame)
+    _test_roundtrip(frame.T)
+    _test_roundtrip(ymd)
+    _test_roundtrip(ymd.T)
+
+
+def test_pickle_timeseries_periodindex():
+    # GH#2891
+    prng = period_range("1/1/2011", "1/1/2012", freq="M")
+    ts = Series(np.random.randn(len(prng)), prng)
+    new_ts = tm.round_trip_pickle(ts)
+    assert new_ts.index.freq == "M"
+
+
+@pytest.mark.parametrize(
+    "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
+)
+def test_pickle_preserve_name(name):
+
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
+    assert unpickled.name == name
+
+
+def test_pickle_datetimes(datetime_series):
+    unp_ts = tm.round_trip_pickle(datetime_series)
+    tm.assert_series_equal(unp_ts, datetime_series)
+
+
+def test_pickle_strings(string_series):
+    unp_series = tm.round_trip_pickle(string_series)
+    tm.assert_series_equal(unp_series, string_series)
+
+
+def test_pickle_preserves_block_ndim():
+    # GH#37631
+    ser = Series(list("abc")).astype("category").iloc[[0]]
+    res = tm.round_trip_pickle(ser)
+
+    assert res._mgr.blocks[0].ndim == 1
+    assert res._mgr.blocks[0].shape == (1,)
+
+    # GH#37631 OP issue was about indexing, underlying problem was pickle
+    tm.assert_series_equal(res[[True]], ser)

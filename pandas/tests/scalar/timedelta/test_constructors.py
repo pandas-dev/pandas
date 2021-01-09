@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import OutOfBoundsTimedelta
+
 from pandas import Timedelta, offsets, to_timedelta
 
 
@@ -197,6 +199,31 @@ def test_overflow_on_construction():
         Timedelta(timedelta(days=13 * 19999))
 
 
+def test_construction_out_of_bounds_td64():
+    # TODO: parametrize over units just above/below the implementation bounds
+    #  once GH#38964 is resolved
+
+    # Timedelta.max is just under 106752 days
+    td64 = np.timedelta64(106752, "D")
+    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+
+    msg = "106752 days"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 - 1) == td64 - 1
+
+    td64 *= -1
+    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 + 1) == td64 + 1
+
+
 @pytest.mark.parametrize(
     "fmt,exp",
     [
@@ -228,6 +255,14 @@ def test_overflow_on_construction():
         ("P0DT0H0M0.001S", Timedelta(milliseconds=1)),
         ("P0DT0H1M0S", Timedelta(minutes=1)),
         ("P1DT25H61M61S", Timedelta(days=1, hours=25, minutes=61, seconds=61)),
+        ("PT1S", Timedelta(seconds=1)),
+        ("PT0S", Timedelta(seconds=0)),
+        ("P1WT0S", Timedelta(days=7, seconds=0)),
+        ("P1D", Timedelta(days=1)),
+        ("P1DT1H", Timedelta(days=1, hours=1)),
+        ("P1W", Timedelta(days=7)),
+        ("PT300S", Timedelta(seconds=300)),
+        ("P1DT0H0M00000000000S", Timedelta(days=1)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -241,7 +276,6 @@ def test_iso_constructor(fmt, exp):
         "PDTHMS",
         "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
-        "P1DT0H0M00000000000S",
         "P1DT0H0M0.S",
     ],
 )

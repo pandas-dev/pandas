@@ -96,7 +96,7 @@ hence we'll concentrate our efforts cythonizing these two functions.
 Plain Cython
 ~~~~~~~~~~~~
 
-First we're going to need to import the Cython magic function to ipython:
+First we're going to need to import the Cython magic function to IPython:
 
 .. ipython:: python
    :okwarning:
@@ -123,7 +123,7 @@ is here to distinguish between function versions):
 .. note::
 
   If you're having trouble pasting the above into your ipython, you may need
-  to be using bleeding edge ipython for paste to play well with cell magics.
+  to be using bleeding edge IPython for paste to play well with cell magics.
 
 
 .. code-block:: ipython
@@ -160,7 +160,7 @@ We get another huge improvement simply by providing type information:
    In [4]: %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 20.3 ms per loop
 
-Now, we're talking! It's now over ten times faster than the original python
+Now, we're talking! It's now over ten times faster than the original Python
 implementation, and we haven't *really* modified the code. Let's have another
 look at what's eating up time:
 
@@ -375,7 +375,7 @@ Numba as an argument
 
 Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
 by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
-<stats.rolling_apply>` for an extensive example.
+<window.numba_engine>` for an extensive example.
 
 Vectorize
 ~~~~~~~~~

@@ -3,6 +3,8 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+from __future__ import annotations
+
 import operator
 from typing import TYPE_CHECKING, Optional, Set
 import warnings
@@ -13,8 +15,8 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.common import is_array_like, is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -25,7 +27,10 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
+from pandas.core.ops.common import (  # noqa:F401
+    get_op_result_name,
+    unpack_zerodim_and_defer,
+)
 from pandas.core.ops.docstrings import (
     _flex_comp_doc_FRAME,
     _op_descriptions,
@@ -75,67 +80,6 @@ ARITHMETIC_BINOPS: Set[str] = {
 
 
 COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
-
-# -----------------------------------------------------------------------------
-# Ops Wrapping Utilities
-
-
-def get_op_result_name(left, right):
-    """
-    Find the appropriate name to pin to an operation result.  This result
-    should always be either an Index or a Series.
-
-    Parameters
-    ----------
-    left : {Series, Index}
-    right : object
-
-    Returns
-    -------
-    name : object
-        Usually a string
-    """
-    # `left` is always a Series when called from within ops
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
-        name = _maybe_match_name(left, right)
-    else:
-        name = left.name
-    return name
-
-
-def _maybe_match_name(a, b):
-    """
-    Try to find a name to attach to the result of an operation between
-    a and b.  If only one of these has a `name` attribute, return that
-    name.  Otherwise return a consensus name if they match of None if
-    they have different names.
-
-    Parameters
-    ----------
-    a : object
-    b : object
-
-    Returns
-    -------
-    name : str or None
-
-    See Also
-    --------
-    pandas.core.common.consensus_name_attr
-    """
-    a_has = hasattr(a, "name")
-    b_has = hasattr(b, "name")
-    if a_has and b_has:
-        if a.name == b.name:
-            return a.name
-        else:
-            # TODO: what if they both have np.nan for their names?
-            return None
-    elif a_has:
-        return a.name
-    elif b_has:
-        return b.name
-    return None
 
 
 # -----------------------------------------------------------------------------
@@ -311,6 +255,11 @@ def align_method_FRAME(
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
+        # GH 36702. Raise when attempting arithmetic with list of array-like.
+        if any(is_array_like(el) for el in right):
+            raise ValueError(
+                f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+            )
         # GH17901
         right = to_series(right)
 
@@ -346,7 +295,7 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: "DataFrame", right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -362,9 +311,12 @@ def should_reindex_frame_op(
 
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
-        cols = left.columns.intersection(right.columns)
 
-        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+        # Intersection is always unique so we have to check the unique columns
+        left_uniques = left.columns.unique()
+        right_uniques = right.columns.unique()
+        cols = left_uniques.intersection(right_uniques)
+        if len(cols) and not (cols.equals(left_uniques) and cols.equals(right_uniques)):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
@@ -372,7 +324,7 @@ def should_reindex_frame_op(
 
 
 def frame_arith_method_with_reindex(
-    left: "DataFrame", right: "DataFrame", op
+    left: DataFrame, right: DataFrame, op
 ) -> "DataFrame":
     """
     For DataFrame-with-DataFrame operations that require reindexing,
@@ -417,7 +369,7 @@ def frame_arith_method_with_reindex(
     return result
 
 
-def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: "Series", axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.

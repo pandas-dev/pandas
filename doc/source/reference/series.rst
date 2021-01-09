@@ -22,10 +22,6 @@ Attributes
    :toctree: api/
 
    Series.index
-
-.. autosummary::
-   :toctree: api/
-
    Series.array
    Series.values
    Series.dtype
@@ -256,7 +252,6 @@ Combining / comparing / joining / merging
 
    Series.append
    Series.compare
-   Series.replace
    Series.update
 
 Time Series-related
@@ -323,8 +318,10 @@ Datetime properties
    Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
+   Series.dt.day_of_week
    Series.dt.weekday
    Series.dt.dayofyear
+   Series.dt.day_of_year
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end

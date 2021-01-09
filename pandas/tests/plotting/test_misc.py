@@ -1,8 +1,6 @@
 """ Test cases for misc plot functions """
 
 import numpy as np
-from numpy import random
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -12,6 +10,8 @@ import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 import pandas.plotting as plotting
+
+pytestmark = pytest.mark.slow
 
 
 @td.skip_if_mpl
@@ -68,24 +68,23 @@ class TestSeriesPlots(TestPlotBase):
         self.ts = tm.makeTimeSeries()
         self.ts.name = "ts"
 
-    @pytest.mark.slow
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
-        _check_plot_works(autocorrelation_plot, series=self.ts)
-        _check_plot_works(autocorrelation_plot, series=self.ts.values)
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(autocorrelation_plot, series=self.ts)
+            _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
-        ax = autocorrelation_plot(self.ts, label="Test")
+            ax = autocorrelation_plot(self.ts, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
-    @pytest.mark.slow
     def test_lag_plot(self):
         from pandas.plotting import lag_plot
 
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
-    @pytest.mark.slow
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
@@ -95,20 +94,29 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
-    def test_scatter_matrix_axis(self):
+    @pytest.mark.parametrize("pass_axis", [False, True])
+    def test_scatter_matrix_axis(self, pass_axis):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 
         scatter_matrix = plotting.scatter_matrix
 
+        ax = None
+        if pass_axis:
+            _, ax = self.plt.subplots(3, 3)
+
         with tm.RNGContext(42):
-            df = DataFrame(randn(100, 3))
+            df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(
             UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
         ):
             axes = _check_plot_works(
-                scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
+                scatter_matrix,
+                filterwarnings="always",
+                frame=df,
+                range_padding=0.1,
+                ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
 
@@ -122,22 +130,26 @@ class TestDataFramePlots(TestPlotBase):
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(
-                scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
+                scatter_matrix,
+                filterwarnings="always",
+                frame=df,
+                range_padding=0.1,
+                ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ["-1.0", "-0.5", "0.0"]
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @pytest.mark.slow
     def test_andrews_curves(self, iris):
         from matplotlib import cm
 
         from pandas.plotting import andrews_curves
 
         df = iris
-
-        _check_plot_works(andrews_curves, frame=df, class_column="Name")
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(andrews_curves, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(
@@ -166,9 +178,9 @@ class TestDataFramePlots(TestPlotBase):
         length = 10
         df = DataFrame(
             {
-                "A": random.rand(length),
-                "B": random.rand(length),
-                "C": random.rand(length),
+                "A": np.random.rand(length),
+                "B": np.random.rand(length),
+                "C": np.random.rand(length),
                 "Name": ["A"] * length,
             }
         )
@@ -205,7 +217,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from matplotlib import cm
 
@@ -279,14 +290,15 @@ class TestDataFramePlots(TestPlotBase):
             # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
-    @pytest.mark.slow
     def test_radviz(self, iris):
         from matplotlib import cm
 
         from pandas.plotting import radviz
 
         df = iris
-        _check_plot_works(radviz, frame=df, class_column="Name")
+        # Ensure no UserWarning when making plot
+        with tm.assert_produces_warning(None):
+            _check_plot_works(radviz, frame=df, class_column="Name")
 
         rgba = ("#556270", "#4ECDC4", "#C7F464")
         ax = _check_plot_works(radviz, frame=df, class_column="Name", color=rgba)
@@ -312,7 +324,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, facecolors=colors)
 
-    @pytest.mark.slow
     def test_subplot_titles(self, iris):
         df = iris.drop("Name", axis=1).head()
         # Use the column names as the subplot titles
@@ -353,11 +364,11 @@ class TestDataFramePlots(TestPlotBase):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the random seed isn't reset by get_standard_colors
+        # Make sure that the np.random.seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = random.random()
+        rand1 = np.random.random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = random.random()
+        rand2 = np.random.random()
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
@@ -413,7 +424,6 @@ class TestDataFramePlots(TestPlotBase):
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
 
-    @pytest.mark.slow
     def test_dictionary_color(self):
         # issue-8193
         # Test plot color dictionary format
@@ -434,7 +444,6 @@ class TestDataFramePlots(TestPlotBase):
         colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
         assert all(color == expected[index] for index, color in enumerate(colors))
 
-    @pytest.mark.slow
     def test_has_externally_shared_axis_x_axis(self):
         # GH33819
         # Test _has_externally_shared_axis() works for x-axis
@@ -460,7 +469,6 @@ class TestDataFramePlots(TestPlotBase):
         assert func(plots[0][2], "x")
         assert not func(plots[0][3], "x")
 
-    @pytest.mark.slow
     def test_has_externally_shared_axis_y_axis(self):
         # GH33819
         # Test _has_externally_shared_axis() works for y-axis
@@ -486,7 +494,6 @@ class TestDataFramePlots(TestPlotBase):
         assert func(plots[2][0], "y")
         assert not func(plots[3][0], "y")
 
-    @pytest.mark.slow
     def test_has_externally_shared_axis_invalid_compare_axis(self):
         # GH33819
         # Test _has_externally_shared_axis() raises an exception when
@@ -504,7 +511,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             func(plots[0][0], "z")
 
-    @pytest.mark.slow
     def test_externally_shared_axes(self):
         # Example from GH33819
         # Create data
