@@ -4630,6 +4630,34 @@ Keep all original rows and also all original values
         4     True
         5    False
         Name: animal, dtype: bool
+        
+        New behaviour from pandas v1.2.0 caused some tests to fail because users where unaware of this change.
+        
+        Before v1.2.0:
+        
+        >>>import pandas as pd
+        pd.Series([0]).isin(['0']) 
+        # 0    True
+        # dtype: bool
+        pd.Series([1]).isin(['1']) 
+        # 0    True
+        # dtype: bool
+        pd.Series([1.1]).isin(['1.1']) 
+        # 0    True
+        # dtype: bool
+        
+        From v1.2.0
+        
+        >>>import pandas as pd
+        pd.Series([0]).isin(['0']) 
+        # 0    False
+        # dtype: bool
+        pd.Series([1]).isin(['1']) 
+        # 0    False
+        # dtype: bool
+        pd.Series([1.1]).isin(['1.1']) 
+        # 0    False
+        # dtype: bool
         """
         result = algorithms.isin(self._values, values)
         return self._constructor(result, index=self.index).__finalize__(
