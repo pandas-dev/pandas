@@ -29,11 +29,6 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import HDFStore, _maybe_adjust_name, read_hdf
 
-_default_compressor = "blosc"
-ignore_natural_naming_warning = pytest.mark.filterwarnings(
-    "ignore:object name:tables.exceptions.NaturalNameWarning"
-)
-
 
 @pytest.mark.single
 class TestHDFStore:
@@ -144,7 +139,9 @@ class TestHDFStore:
             repr(s)
             str(s)
 
-    @ignore_natural_naming_warning
+    @pytest.mark.filterwarnings(
+        "ignore:object name:tables.exceptions.NaturalNameWarning"
+    )
     def test_contains(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
@@ -790,7 +787,6 @@ class TestHDFStore:
     @pytest.mark.parametrize("start, stop", [(0, 2), (1, 2), (None, None)])
     def test_contiguous_mixed_data_table(self, start, stop, setup_path):
         # GH 17021
-        # ValueError when reading a contiguous mixed-data table ft. VLArray
         df = DataFrame(
             {
                 "a": Series([20111010, 20111011, 20111012]),
@@ -893,16 +889,6 @@ class TestHDFStore:
                 do_copy(f=path)
                 do_copy(f=path, propindexes=False)
 
-    # FIXME: don't leave commented-out code
-    # def test_cant_write_multiindex_table(self):
-    #     # for now, #1848
-    #     df = DataFrame(np.random.randn(10, 4),
-    #                    index=[np.arange(5).repeat(2),
-    #                           np.tile(np.arange(2), 5)])
-    #
-    #     with pytest.raises(Exception):
-    #         store.put('foo', df, format='table')
-
     def test_duplicate_column_name(self, setup_path):
         df = DataFrame(columns=["a", "a"], data=[[0, 0]])
 
@@ -920,8 +906,6 @@ class TestHDFStore:
 
     def test_preserve_timedeltaindex_type(self, setup_path):
         # GH9635
-        # Storing TimedeltaIndexed DataFrames in fixed stores did not preserve
-        # the type of the index.
         df = DataFrame(np.random.normal(size=(10, 5)))
         df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
 
@@ -932,8 +916,6 @@ class TestHDFStore:
 
     def test_columns_multiindex_modified(self, setup_path):
         # BUG: 7212
-        # read_hdf store.select modified the passed columns parameters
-        # when multi-indexed.
 
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
         df.index.name = "letters"
@@ -954,11 +936,12 @@ class TestHDFStore:
             df_loaded = read_hdf(path, "df", columns=cols2load)  # noqa
             assert cols2load_original == cols2load
 
-    @ignore_natural_naming_warning
+    pytest.mark.filterwarnings(
+        "ignore:object name:tables.exceptions.NaturalNameWarning"
+    )
+
     def test_to_hdf_with_object_column_names(self, setup_path):
         # GH9057
-        # Writing HDF5 table format should only work for string-like
-        # column types
 
         types_should_fail = [
             tm.makeIntIndex,
@@ -997,10 +980,6 @@ class TestHDFStore:
     @pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
     def test_select_empty_where(self, where):
         # GH26610
-
-        # Using keyword `where` as '' or (), or [None], etc
-        # while reading from HDF store raises
-        # "SyntaxError: only a single expression is allowed"
 
         df = DataFrame([1, 2, 3])
         with ensure_clean_path("empty_where.h5") as path:

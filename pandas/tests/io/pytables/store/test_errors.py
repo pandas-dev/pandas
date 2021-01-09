@@ -19,6 +19,7 @@ from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_stor
 from pandas.io.pytables import Term
 
 
+@pytest.mark.single
 class TestErrors:
     def test_pass_spec_to_storer(self, setup_path):
 

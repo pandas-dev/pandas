@@ -18,6 +18,7 @@ from pandas.io import pytables as pytables
 from pandas.io.pytables import ClosedFileError, PossibleDataLossError, Term
 
 
+@pytest.mark.single
 class TestFileHandling:
     def test_mode(self, setup_path):
 

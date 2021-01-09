@@ -12,6 +12,7 @@ from pandas.tests.io.pytables.common import (
 )
 
 
+@pytest.mark.single
 class TestRetainAttributes:
     def test_retain_index_attributes(self, setup_path):
 

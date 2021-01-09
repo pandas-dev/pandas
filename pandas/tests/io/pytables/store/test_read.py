@@ -20,6 +20,7 @@ from pandas.util import _test_decorators as td
 from pandas.io.pytables import TableIterator
 
 
+@pytest.mark.single
 class TestRead:
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766

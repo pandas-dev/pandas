@@ -25,6 +25,7 @@ from pandas.tests.io.pytables.common import (
 )
 
 
+@pytest.mark.single
 class TestAppend:
     @pytest.mark.filterwarnings(
         "ignore:object name:tables.exceptions.NaturalNameWarning"

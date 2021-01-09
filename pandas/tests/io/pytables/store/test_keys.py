@@ -8,6 +8,7 @@ from pandas.tests.io.pytables.common import (
 )
 
 
+@pytest.mark.single
 class TestKeys:
     def test_keys(self, setup_path):
 

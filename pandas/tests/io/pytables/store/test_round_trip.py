@@ -22,8 +22,9 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,
 )
-from pandas.tests.io.pytables.test_store import _default_compressor
 from pandas.util import _test_decorators as td
+
+_default_compressor = "blosc"
 
 
 @pytest.mark.single

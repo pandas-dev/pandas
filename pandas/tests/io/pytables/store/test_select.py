@@ -30,6 +30,7 @@ from pandas.tests.io.pytables.common import (
 from pandas.io.pytables import Term
 
 
+@pytest.mark.single
 class TestSelect:
     def test_select_columns_in_where(self, setup_path):
 

@@ -9,6 +9,7 @@ from pandas.tests.io.pytables.common import (
 )
 
 
+@pytest.mark.single
 class TestCategorical:
     def test_categorical(self, setup_path):
 
