@@ -272,7 +272,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     def _unbox_scalar(
         self, value: Union[Period, NaTType], setitem: bool = False
-    ) -> int:
+    ) -> np.int64:
         if value is NaT:
             return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
