@@ -271,13 +271,13 @@ def test_apply_with_mutated_index():
         s = Series([1, 2], index=["a", "b"])
         return s
 
-    expected = df.groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
+    expected = df.groupby(pd.Grouper(freq="M")).apply(f)
 
     result = df.resample("M").apply(f)
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
 
