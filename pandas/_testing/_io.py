@@ -82,10 +82,7 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            # pandas\_testing.py:2331: error: Incompatible types in assignment
-            # (expression has type "List[<nothing>]", variable has type
-            # "Tuple[Any, ...]")
-            args = []  # type: ignore[assignment]
+            args = ()
             return dec(f)
         else:
             return dec
