@@ -1,11 +1,11 @@
-from collections import Counter
+import collections
 from datetime import datetime
 from functools import wraps
 import operator
 import os
 import re
 import string
-from typing import Callable, ContextManager, List, Type
+from typing import Callable, ContextManager, Counter, List, Type
 import warnings
 
 import numpy as np
@@ -568,7 +568,7 @@ def makeCustomIndex(
 
     assert all(x > 0 for x in ndupe_l)
 
-    tuples = []
+    list_of_lists = []
     for i in range(nlevels):
 
         def keyfunc(x):
@@ -579,16 +579,18 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
-        cnt = Counter()  # type: ignore[var-annotated]
+
+        # Deprecated since version 3.9: collections.Counter now supports []. See PEP 585
+        # and Generic Alias Type.
+        cnt: Counter[str] = collections.Counter()
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
         # cute Counter trick
         result = sorted(cnt.elements(), key=keyfunc)[:nentries]
-        tuples.append(result)
+        list_of_lists.append(result)
 
-    tuples = list(zip(*tuples))
+    tuples = list(zip(*list_of_lists))
 
     # convert tuples to index
     if nentries == 1:
