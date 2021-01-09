@@ -524,39 +524,39 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
 )
 def test_union_with_duplicate_index(cls):
     # GH#36289
-    idx1 = cls([1, 0, 0])
-    idx2 = cls([0, 1])
+    a = cls([1, 0, 0])
+    b = cls([0, 1])
     expected = cls([0, 0, 1])
 
-    result = idx1.union(idx2)
+    result = a.union(b)
     tm.assert_index_equal(result, expected)
 
-    result = idx2.union(idx1)
+    result = a.union(b)
     tm.assert_index_equal(result, expected)
 
 
 def test_union_duplicate_index_different_dtypes():
     # GH#36289
-    idx1 = Index([1, 2, 2, 3])
-    idx2 = Index(["1", "0", "0"])
+    a = Index([1, 2, 2, 3])
+    b = Index(["1", "0", "0"])
     expected = Index([1, 2, 2, 3, "1", "0", "0"])
-    result = idx1.union(idx2, sort=False)
+    result = a.union(b, sort=False)
     tm.assert_index_equal(result, expected)
 
 
 def test_union_same_value_duplicated_in_both():
     # GH#36289
-    idx1 = Index([0, 0, 1])
-    idx2 = Index([0, 0, 1, 2])
-    result = idx1.union(idx2)
+    a = Index([0, 0, 1])
+    b = Index([0, 0, 1, 2])
+    result = a.union(b)
     expected = Index([0, 0, 1, 2])
     tm.assert_index_equal(result, expected)
 
 
 def test_union_nan_in_both():
     # GH#36289
-    idx1 = Index([np.nan, 1, 2, 2])
-    idx2 = Index([np.nan, 1, 1, 2])
-    result = idx1.union(idx2, sort=False)
+    a = Index([np.nan, 1, 2, 2])
+    b = Index([np.nan, 1, 1, 2])
+    result = a.union(b, sort=False)
     expected = Index([np.nan, 1.0, 1.0, 2.0, 2.0])
     tm.assert_index_equal(result, expected)
