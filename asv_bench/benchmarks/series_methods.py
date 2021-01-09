@@ -25,7 +25,7 @@ class SeriesConstructor:
 
 class IsIn:
 
-    params = ["int64", "uint64", "object"]
+    params = ["int64", "uint64", "object", "Int64"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
@@ -59,8 +59,12 @@ class IsInDatetime64:
 
 
 class IsInFloat64:
-    def setup(self):
-        self.small = Series([1, 2], dtype=np.float64)
+
+    params = [np.float64, "Float64"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        self.small = Series([1, 2], dtype=dtype)
         self.many_different_values = np.arange(10 ** 6, dtype=np.float64)
         self.few_different_values = np.zeros(10 ** 7, dtype=np.float64)
         self.only_nans_values = np.full(10 ** 7, np.nan, dtype=np.float64)
@@ -114,7 +118,7 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        ["int64", "int32", "float64", "float32", "object"],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
@@ -141,7 +145,7 @@ class IsInLongSeriesLookUpDominates:
 
 class IsInLongSeriesValuesDominate:
     params = [
-        ["int64", "int32", "float64", "float32", "object"],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         ["random", "monotone"],
     ]
     param_names = ["dtype", "series_type"]
