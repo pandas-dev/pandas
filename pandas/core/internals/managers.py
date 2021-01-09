@@ -866,7 +866,13 @@ class BlockManager(PandasObject):
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                    # pandas/core/internals/managers.py:869: error: Argument 1 to
+                    # "astype" of "_ArrayOrScalarCommon" has incompatible type
+                    # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
+                    # "Union[dtype[Any], None, type, _SupportsDType, str,
+                    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+                    # List[Any], _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -899,7 +905,12 @@ class BlockManager(PandasObject):
         elif is_dtype_equal(dtype, str):
             dtype = "object"
 
-        result = np.empty(self.shape, dtype=dtype)
+        # pandas/core/internals/managers.py:902: error: Argument "dtype" to "empty" has
+        # incompatible type "Union[ExtensionDtype, str, dtype[Any], Type[object],
+        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"  [arg-type]
+        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
 
         itemmask = np.zeros(self.shape[0])
 

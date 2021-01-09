@@ -933,7 +933,10 @@ def _get_dummies_1d(
 
     if dtype is None:
         dtype = np.uint8
-    dtype = np.dtype(dtype)
+    # pandas/core/reshape/reshape.py:936: error: Argument 1 to "dtype" has incompatible
+    # type "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected "Type[Any]"
+    # [arg-type]
+    dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")

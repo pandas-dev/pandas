@@ -9848,7 +9848,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        return np.abs(self)
+        # pandas/core/generic.py:9851: error: Argument 1 to "__call__" of "ufunc" has
+        # incompatible type "FrameOrSeries"; expected "Union[Union[int, float, complex,
+        # str, bytes, generic], Sequence[Union[int, float, complex, str, bytes,
+        # generic]], Sequence[Sequence[Any]], _SupportsArray]"  [arg-type]
+        return np.abs(self)  # type: ignore[arg-type]
 
     @final
     def describe(
