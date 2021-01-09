@@ -6,6 +6,7 @@ import numpy as np
 import pandas._libs.algos as libalgos
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
+from pandas._typing import Dtype
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -734,11 +735,11 @@ def get_dummies(
     data,
     prefix=None,
     prefix_sep="_",
-    dummy_na=False,
+    dummy_na: bool = False,
     columns=None,
-    sparse=False,
-    drop_first=False,
-    dtype=None,
+    sparse: bool = False,
+    drop_first: bool = False,
+    dtype: Optional[Dtype] = None,
 ) -> "DataFrame":
     """
     Convert categorical variable into dummy/indicator variables.
@@ -923,7 +924,7 @@ def _get_dummies_1d(
     dummy_na=False,
     sparse=False,
     drop_first=False,
-    dtype=None,
+    dtype: Optional[Dtype] = None,
 ):
     from pandas.core.reshape.concat import concat
 

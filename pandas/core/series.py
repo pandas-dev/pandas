@@ -28,10 +28,12 @@ from pandas._typing import (
     AggFuncType,
     ArrayLike,
     Axis,
+    Dtype,
     DtypeObj,
     FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
+    NpDtype,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -214,7 +216,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
+        self,
+        data=None,
+        index=None,
+        dtype: Optional[Dtype] = None,
+        name=None,
+        copy: bool = False,
+        fastpath: bool = False,
     ):
 
         if (
@@ -339,7 +347,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype=None):
+    def _init_dict(self, data, index=None, dtype: Optional[Dtype] = None):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -618,7 +626,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return len(self._mgr)
 
-    def view(self, dtype=None) -> "Series":
+    def view(self, dtype: Optional[Dtype] = None) -> "Series":
         """
         Create a new view of the Series.
 
@@ -692,7 +700,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
@@ -99,7 +101,7 @@ def hist_series(
 
 
 def hist_frame(
-    data: "DataFrame",
+    data: DataFrame,
     column: Union[Label, Sequence[Label]] = None,
     by=None,
     grid: bool = True,
