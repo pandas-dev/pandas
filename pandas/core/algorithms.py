@@ -1991,7 +1991,11 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     elif is_integer_dtype(dtype):
         # We have to cast in order to be able to hold np.nan
-        dtype = np.float64
+        # int8, int16 are incompatible with float64
+        if np.dtype(dtype) in [np.int8, np.int16]:
+            dtype = np.float32
+        else:
+            dtype = np.float64
 
     orig_ndim = arr.ndim
     if orig_ndim == 1:
