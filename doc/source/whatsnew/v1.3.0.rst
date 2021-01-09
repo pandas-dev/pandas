@@ -88,7 +88,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.782           |          |         |
+| mypy (dev)      | 0.790           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
