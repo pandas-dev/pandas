@@ -436,7 +436,20 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
         ids=["datetime64", "datetime64tz"],
     )
-    def test_insert_index_datetimes(self, fill_val, exp_dtype):
+    @pytest.mark.parametrize(
+        "insert_value",
+        [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
+    )
+    def test_insert_index_datetimes(self, request, fill_val, exp_dtype, insert_value):
+        if not hasattr(insert_value, "tz"):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="ToDo: must coerce to object")
+            )
+        elif fill_val.tz != insert_value.tz:
+            request.node.add_marker(
+                pytest.mark.xfail(reason="GH 37605 - require tz equality?")
+            )
+
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
         )
@@ -448,25 +461,7 @@ class TestInsertIndexCoercion(CoercionBase):
         )
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
-        if fill_val.tz:
-            msg = "Cannot compare tz-naive and tz-aware"
-            with pytest.raises(TypeError, match=msg):
-                obj.insert(1, pd.Timestamp("2012-01-01"))
-
-            msg = "Timezones don't match"
-            with pytest.raises(ValueError, match=msg):
-                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
-
-        else:
-            msg = "Cannot compare tz-naive and tz-aware"
-            with pytest.raises(TypeError, match=msg):
-                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
-
-        msg = "value should be a 'Timestamp' or 'NaT'. Got 'int' instead."
-        with pytest.raises(TypeError, match=msg):
-            obj.insert(1, 1)
-
-        pytest.xfail("ToDo: must coerce to object")
+        obj.insert(1, insert_value)
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
