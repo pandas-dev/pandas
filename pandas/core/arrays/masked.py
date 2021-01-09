@@ -335,8 +335,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.core.arrays import BooleanArray
 
         result = isin(self._data, values) * np.invert(self._mask)
-        if any(x is NA for x in values):
-            result += self._mask
         mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
