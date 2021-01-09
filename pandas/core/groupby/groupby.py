@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import inspect
+import os
 from textwrap import dedent
 import types
 from typing import (
@@ -965,7 +966,10 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ):
             # We've detected value-dependent behavior: the result's index depends on
             # whether the user's function `f` returned the same index or not.
-            if self.ndim == 1:
+            caller = inspect.stack()[2]
+            if caller.filename.endswith(os.path.join("pandas", "core", "resample.py")):
+                stacklevel = 5
+            elif self.ndim == 1:
                 stacklevel = 4
             elif self._selection is None:
                 stacklevel = 3

@@ -1013,11 +1013,11 @@ def test_apply_function_with_indexing_return_column():
 
 
 @pytest.mark.parametrize(
-    "udf, is_transform",
-    [(lambda x: x.copy(), True), (lambda x: x.copy().rename(lambda y: y + 1), False)],
+    "udf",
+    [(lambda x: x.copy()), (lambda x: x.copy().rename(lambda y: y + 1))],
 )
 @pytest.mark.parametrize("group_keys", [True, False])
-def test_apply_result_type(group_keys, udf, is_transform):
+def test_apply_result_type(group_keys, udf):
     # https://github.com/pandas-dev/pandas/issues/34809
     # We'd like to control whether the group keys end up in the index
     # regardless of whether the UDF happens to be a transform.
