@@ -58,7 +58,7 @@ beautifulsoup4>=4.6.0
 html5lib
 lxml
 openpyxl
-xlrd==1.2.0
+xlrd
 xlsxwriter
 xlwt
 odfpy

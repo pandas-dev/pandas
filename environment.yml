@@ -92,7 +92,7 @@ dependencies:
 
   # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
   - openpyxl
-  - xlrd=1.2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - odfpy
