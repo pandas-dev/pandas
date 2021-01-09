@@ -1089,7 +1089,7 @@ def date_range(
 def bdate_range(
     start=None,
     end=None,
-    periods=None,
+    periods: Optional[int] = None,
     freq="B",
     tz=None,
     normalize=True,
