@@ -284,6 +284,7 @@ I/O
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
 - :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
+- Bug in :func:`read_csv` not switching ``true_values`` and ``false_values`` for nullable ``boolean`` dtype (:issue:`34655`)
 - Bug in :func:``read_json`` when ``orient="split"`` does not maintan numeric string index (:issue:`28556`)
 
 Period
