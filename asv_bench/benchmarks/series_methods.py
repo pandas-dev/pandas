@@ -36,6 +36,19 @@ class IsIn:
         self.s.isin(self.values)
 
 
+class IsInBoolean:
+
+    params = ["boolean", "bool"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        self.s = Series(np.random.randint(0, 2, 100000)).astype(dtype)
+        self.values = [True, False]
+
+    def time_isin(self, dtypes):
+        self.s.isin(self.values)
+
+
 class IsInDatetime64:
     def setup(self):
         dti = date_range(
