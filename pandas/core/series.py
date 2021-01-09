@@ -15,6 +15,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -3983,7 +3984,7 @@ Keep all original rows and also all original values
         self,
         func: AggFuncType,
         convert_dtype: bool = True,
-        args: Tuple[Any] = (),
+        args: Tuple[Any, ...] = (),
         **kwds,
     ) -> FrameOrSeriesUnion:
         """
@@ -4099,7 +4100,8 @@ Keep all original rows and also all original values
         if kwds or args and not isinstance(func, np.ufunc):
 
             def f(x):
-                return func(x, *args, **kwds)
+                _func = cast(Callable[..., Any], func)
+                return _func(x, *args, **kwds)
 
         else:
             f = func
