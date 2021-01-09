@@ -136,24 +136,16 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "always", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("always", category)
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("ignore", category)
 
 
 set_testing_mode()
