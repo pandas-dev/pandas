@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-)
+from pandas import DataFrame, NaT, Series, Timedelta, Timestamp
 import pandas._testing as tm
 
 
