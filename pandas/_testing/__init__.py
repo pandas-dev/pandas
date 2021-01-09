@@ -460,7 +460,7 @@ def makeTimeDataFrame(nper=None, freq="B"):
     return DataFrame(data)
 
 
-def makeDataFrame():
+def makeDataFrame() -> DataFrame:
     data = getSeriesData()
     return DataFrame(data)
 
@@ -732,14 +732,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "density"  [misc]
-
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "random_state"  [misc]
-    i, j = _create_missing_idx(  # type: ignore[misc]
-        *df.shape, density=density, random_state=random_state
-    )
+    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
     return df
 
