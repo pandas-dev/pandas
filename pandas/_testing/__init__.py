@@ -108,9 +108,9 @@ STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES = [bool, "bool"]
-BYTES_DTYPES = [bytes, "bytes"]
-OBJECT_DTYPES = [object, "object"]
+BOOL_DTYPES: List[Dtype] = [bool, "bool"]
+BYTES_DTYPES: List[Dtype] = [bytes, "bytes"]
+OBJECT_DTYPES: List[Dtype] = [object, "object"]
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (
