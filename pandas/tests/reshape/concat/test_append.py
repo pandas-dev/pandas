@@ -82,7 +82,6 @@ class TestAppend:
         df5 = df.append(df3, sort=sort)
 
         expected = DataFrame(index=[0, 1], columns=["A", "B", "C"])
-        expected["C"] = expected["C"].astype(np.float64)
         tm.assert_frame_equal(df5, expected)
 
     def test_append_records(self):
@@ -341,11 +340,16 @@ class TestAppend:
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
+        # These columns get cast to object after append
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
         tm.assert_frame_equal(result_a, expected)
 
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]] * 2, columns=["c", "d", "a", "b", "date"]
         )
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
 
         result_b = result_a.append(s, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
