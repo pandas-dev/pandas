@@ -175,9 +175,8 @@ class TestMethods(base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_searchsorted(self, data_for_sorting):
-        if not data_for_sorting.ordered:
-            raise pytest.skip(reason="searchsorted requires ordered data.")
+    def test_searchsorted(self, data_for_sorting, as_series):
+        super().test_searchsorted(data_for_sorting, as_series)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -229,21 +228,26 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
-        if op_name != "__rmod__":
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-        else:
-            pytest.skip("rmod never called when string is first argument")
+        if op_name == "__rmod__":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="rmod never called when string is first argument"
+                )
+            )
+        super().test_arith_frame_with_scalar(data, op_name)
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
-        if op_name != "__rmod__":
-            super().test_arith_series_with_scalar(data, op_name)
-        else:
-            pytest.skip("rmod never called when string is first argument")
+        if op_name == "__rmod__":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="rmod never called when string is first argument"
+                )
+            )
+        super().test_arith_series_with_scalar(data, op_name)
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
