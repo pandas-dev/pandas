@@ -152,6 +152,11 @@ repos:
             \#\ type:\s?ignore(?!\[)
         language: pygrep
         types: [python]
+    -   id: np-bool
+        name: Check for use of np.bool instead of np.bool_
+        entry: np\.bool[^_8]
+        language: pygrep
+        types_or: [python, cython, rst]
     -   id: no-os-remove
         name: Check code for instances of os.remove
         entry: os\.remove
