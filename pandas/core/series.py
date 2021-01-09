@@ -3979,7 +3979,9 @@ Keep all original rows and also all original values
     ) -> FrameOrSeriesUnion:
         return transform(self, func, axis, *args, **kwargs)
 
-    def apply(self, func, convert_dtype=True, args=(), **kwds):
+    def apply(
+        self, func: AggFuncType, convert_dtype: bool = True, args: tuple = (), **kwds
+    ):
         """
         Invoke function on values of Series.
 
