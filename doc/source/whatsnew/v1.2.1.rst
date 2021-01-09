@@ -28,6 +28,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.replace` raising ``ValueError`` when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
 - Fixed regression in :meth:`DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
 - Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
+- Fixed regression in :meth:`DataFrame.groupby` when aggregating an :class:`ExtensionDType` that could fail for non-numeric values (:issue:`38980`)
 -
 -
 
