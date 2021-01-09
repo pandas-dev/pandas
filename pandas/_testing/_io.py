@@ -1,7 +1,7 @@
 import bz2
 from functools import wraps
 import gzip
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Iterable, Optional, Tuple
 import zipfile
 
 from pandas._typing import FilePathOrBuffer, FrameOrSeries
@@ -100,7 +100,7 @@ def network(
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
-    skip_errnos=_network_errno_vals,
+    skip_errnos: Iterable[int] = _network_errno_vals,
     _skip_on_messages=_network_error_messages,
 ):
     """
@@ -129,7 +129,7 @@ def network(
         error classes to ignore. If not in ``error_classes``, raises the error.
         defaults to IOError. Be careful about changing the error classes here.
     skip_errnos : iterable of int
-        Any exception that has .errno or .reason.erno set to one
+        Any exception that has .errno or .reason.errno set to one
         of these values will be skipped with an appropriate
         message.
     _skip_on_messages: iterable of string
@@ -204,9 +204,9 @@ def network(
             return t(*args, **kwargs)
         except Exception as err:
             errno = getattr(err, "errno", None)
-            if not errno and hasattr(errno, "reason"):
-                # pandas\_testing.py:2521: error: "Exception" has no attribute
-                # "reason"
+            if not errno and hasattr(err, "reason"):
+                # https://github.com/python/mypy/issues/1424
+                # error: "Exception" has no attribute "reason"
                 errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
