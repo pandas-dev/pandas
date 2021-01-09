@@ -26,6 +26,7 @@ Fixed regressions
 - Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 - Fixed regression in :meth:`Rolling.skew` and :meth:`Rolling.kurt` modifying the object inplace (:issue:`38908`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
+- Fixed regression in :meth:`DataFrame.replace` raising ValueError when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
 
 .. ---------------------------------------------------------------------------
 
