@@ -1937,8 +1937,7 @@ class _iLocIndexer(_LocationIndexer):
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ri = Index(range(len(self.obj.columns)))
-            ilocs = ri[column_indexer]
+            ilocs = np.arange(len(self.obj.columns))[column_indexer]
         elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
             column_indexer.dtype
         ):
