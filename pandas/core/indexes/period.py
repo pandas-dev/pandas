@@ -417,12 +417,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         # indexing
         return "period"
 
-    def insert(self, loc: int, item):
-        if not isinstance(item, Period) or self.freq != item.freq:
-            return self.astype(object).insert(loc, item)
-
-        return DatetimeIndexOpsMixin.insert(self, loc, item)
-
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """
         See Index.join
