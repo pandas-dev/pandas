@@ -28,10 +28,12 @@ from pandas._typing import (
     AggFuncType,
     ArrayLike,
     Axis,
+    Dtype,
     DtypeObj,
     FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
+    NpDtype,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -69,13 +71,13 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import algorithms, base, generic, missing, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import aggregate, transform
+from pandas.core.aggregation import transform
+from pandas.core.apply import series_apply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     create_series_with_explicit_dtype,
     extract_array,
     is_empty_data,
@@ -214,7 +216,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
+        self,
+        data=None,
+        index=None,
+        dtype: Optional[Dtype] = None,
+        name=None,
+        copy: bool = False,
+        fastpath: bool = False,
     ):
 
         if (
@@ -337,7 +345,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype=None):
+    def _init_dict(self, data, index=None, dtype: Optional[Dtype] = None):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -612,7 +620,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return len(self._mgr)
 
-    def view(self, dtype=None) -> "Series":
+    def view(self, dtype: Optional[Dtype] = None) -> "Series":
         """
         Create a new view of the Series.
 
@@ -686,7 +694,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -3936,7 +3944,8 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        result, how = aggregate(self, func, *args, **kwargs)
+        op = series_apply(self, "agg", func, args=args, kwds=kwargs)
+        result, how = op.get_result()
         if result is None:
 
             # we can be called from an inner function which
@@ -4068,48 +4077,8 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        if len(self) == 0:
-            return self._constructor(dtype=self.dtype, index=self.index).__finalize__(
-                self, method="apply"
-            )
-
-        # dispatch to agg
-        if isinstance(func, (list, dict)):
-            return self.aggregate(func, *args, **kwds)
-
-        # if we are a string, try to dispatch
-        if isinstance(func, str):
-            return self._try_aggregate_string_function(func, *args, **kwds)
-
-        # handle ufuncs and lambdas
-        if kwds or args and not isinstance(func, np.ufunc):
-
-            def f(x):
-                return func(x, *args, **kwds)
-
-        else:
-            f = func
-
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
-                return f(self)
-
-            # row-wise access
-            if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
-                # GH#23179 some EAs do not have `map`
-                mapped = self._values.map(f)
-            else:
-                values = self.astype(object)._values
-                mapped = lib.map_infer(values, f, convert=convert_dtype)
-
-        if len(mapped) and isinstance(mapped[0], Series):
-            # GH 25959 use pd.array instead of tolist
-            # so extension arrays can be used
-            return self._constructor_expanddim(pd_array(mapped), index=self.index)
-        else:
-            return self._constructor(mapped, index=self.index).__finalize__(
-                self, method="apply"
-            )
+        op = series_apply(self, "apply", func, convert_dtype, args, kwds)
+        return op.get_result()
 
     def _reduce(
         self,

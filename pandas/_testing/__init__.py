@@ -1,11 +1,11 @@
-from collections import Counter
+import collections
 from datetime import datetime
 from functools import wraps
 import operator
 import os
 import re
 import string
-from typing import Callable, ContextManager, List, Type
+from typing import Callable, ContextManager, Counter, List, Type
 import warnings
 
 import numpy as np
@@ -108,9 +108,9 @@ STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES = [bool, "bool"]
-BYTES_DTYPES = [bytes, "bytes"]
-OBJECT_DTYPES = [object, "object"]
+BOOL_DTYPES: List[Dtype] = [bool, "bool"]
+BYTES_DTYPES: List[Dtype] = [bytes, "bytes"]
+OBJECT_DTYPES: List[Dtype] = [object, "object"]
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 ALL_NUMPY_DTYPES = (
@@ -136,24 +136,16 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "always", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("always", category)
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
-        # incompatible type "Tuple[Type[DeprecationWarning],
-        # Type[ResourceWarning]]"; expected "Type[Warning]"
-        warnings.simplefilter(
-            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
-        )
+        for category in _testing_mode_warnings:
+            warnings.simplefilter("ignore", category)
 
 
 set_testing_mode()
@@ -468,7 +460,7 @@ def makeTimeDataFrame(nper=None, freq="B"):
     return DataFrame(data)
 
 
-def makeDataFrame():
+def makeDataFrame() -> DataFrame:
     data = getSeriesData()
     return DataFrame(data)
 
@@ -568,7 +560,7 @@ def makeCustomIndex(
 
     assert all(x > 0 for x in ndupe_l)
 
-    tuples = []
+    list_of_lists = []
     for i in range(nlevels):
 
         def keyfunc(x):
@@ -579,16 +571,18 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
-        cnt = Counter()  # type: ignore[var-annotated]
+
+        # Deprecated since version 3.9: collections.Counter now supports []. See PEP 585
+        # and Generic Alias Type.
+        cnt: Counter[str] = collections.Counter()
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
         # cute Counter trick
         result = sorted(cnt.elements(), key=keyfunc)[:nentries]
-        tuples.append(result)
+        list_of_lists.append(result)
 
-    tuples = list(zip(*tuples))
+    tuples = list(zip(*list_of_lists))
 
     # convert tuples to index
     if nentries == 1:
@@ -738,14 +732,7 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "density"  [misc]
-
-    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
-    # values for keyword argument "random_state"  [misc]
-    i, j = _create_missing_idx(  # type: ignore[misc]
-        *df.shape, density=density, random_state=random_state
-    )
+    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
     df.values[i, j] = np.nan
     return df
 
