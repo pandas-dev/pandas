@@ -85,6 +85,20 @@ class SharedTests:
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
 
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pd.date_range("2020", periods=3),
+            pd.date_range("2020", periods=3, tz="UTC"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.period_range("2020Q1", periods=3, freq="Q"),
+        ],
+    )
+    def test_compare_with_Categorical(self, result):
+        expected = pd.Categorical(result)
+        assert all(result == expected)
+        assert not any(result != expected)
+
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
     def test_compare_categorical_dtype(self, arr1d, as_index, reverse, ordered):

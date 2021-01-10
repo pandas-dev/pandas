@@ -182,7 +182,7 @@ class TestDataFrameSetItem:
         "obj,dtype",
         [
             (Period("2020-01"), PeriodDtype("M")),
-            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
@@ -338,6 +338,16 @@ class TestDataFrameSetItem:
 
         tm.assert_index_equal(df.columns, expected_cols)
 
+    @pytest.mark.parametrize("indexer", ["B", ["B"]])
+    def test_setitem_frame_length_0_str_key(self, indexer):
+        # GH#38831
+        df = DataFrame(columns=["A", "B"])
+        other = DataFrame({"B": [1, 2]})
+        df[indexer] = other
+        expected = DataFrame({"A": [np.nan] * 2, "B": [1, 2]})
+        expected["A"] = expected["A"].astype("object")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSetItemWithExpansion:
     def test_setitem_listlike_views(self):
@@ -355,6 +365,13 @@ class TestDataFrameSetItemWithExpansion:
 
         expected = Series([100, 2, 3], name="a")
         tm.assert_series_equal(ser, expected)
+
+    def test_setitem_string_column_numpy_dtype_raising(self):
+        # GH#39010
+        df = DataFrame([[1, 2], [3, 4]])
+        df["0 - Name"] = [5, 6]
+        expected = DataFrame([[1, 2, 5], [3, 4, 6]], columns=[0, 1, "0 - Name"])
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:
