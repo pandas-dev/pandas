@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas import (
     DataFrame,
     Float64Index,
@@ -96,6 +98,7 @@ class TestMultiIndexPartial:
         expected = ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_getitem_partial_column_select(self):
         idx = MultiIndex(
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],

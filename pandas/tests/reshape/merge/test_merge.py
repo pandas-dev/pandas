@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -2037,6 +2039,7 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 @pytest.mark.parametrize(
     "how,expected",
     [

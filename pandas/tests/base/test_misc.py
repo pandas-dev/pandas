@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PYPY
+from pandas.compat import IS64, PYPY, is_numpy_dev
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 
@@ -115,6 +115,9 @@ def test_searchsorted(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
         pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
+
+    if is_object_dtype(obj) and is_numpy_dev:
+        pytest.skip("GH#39089 Numpy changed dtype inference")
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)

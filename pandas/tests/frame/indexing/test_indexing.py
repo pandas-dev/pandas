@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer
 
@@ -254,6 +255,8 @@ class TestDataFrameIndexing:
     )
     def test_setitem_same_column(self, cols, values, expected):
         # GH 23239
+        if cols == ["C", "D", "D", "a"] and is_numpy_dev:
+            pytest.skip("GH#39089 Numpy changed dtype inference")
         df = DataFrame([values], columns=cols)
         df["a"] = df["a"]
         result = df["a"].values[0]

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
@@ -129,6 +130,7 @@ class TestTake:
 
 
 class TestGetLoc:
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_get_loc(self):
         # GH 12531
         cidx1 = CategoricalIndex(list("abcde"), categories=list("edabc"))

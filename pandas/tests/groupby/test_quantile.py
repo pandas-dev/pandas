@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Index
 import pandas._testing as tm
@@ -71,6 +73,7 @@ def test_quantile_array():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_quantile_array2():
     # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
     df = DataFrame(
@@ -106,6 +109,7 @@ def test_quantile_array_no_sort():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_quantile_array_multiple_levels():
     df = DataFrame(
         {"A": [0, 1, 2], "B": [3, 4, 5], "c": ["a", "a", "a"], "d": ["a", "a", "b"]}
@@ -216,6 +220,8 @@ def test_quantile_missing_group_values_correct_results(
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 def test_groupby_quantile_nullable_array(values, q):
     # https://github.com/pandas-dev/pandas/issues/33136
+    if isinstance(q, list):
+        pytest.skip("GH#39089 Numpy changed dtype inference")
     df = DataFrame({"a": ["x"] * 3 + ["y"] * 3, "b": values})
     result = df.groupby("a")["b"].quantile(q)
 
@@ -256,6 +262,7 @@ def test_groupby_timedelta_quantile():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_columns_groupby_quantile():
     # GH 33795
     df = DataFrame(
