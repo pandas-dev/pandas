@@ -24,6 +24,14 @@ class Expanding(RollingAndExpandingMixin):
     center : bool, default False
         Set the labels at the center of the window.
     axis : int or str, default 0
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -59,10 +67,14 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis"]
+    _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
-        super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
+    def __init__(
+        self, obj, min_periods=1, center=None, axis=0, method="single", **kwargs
+    ):
+        super().__init__(
+            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+        )
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -160,33 +172,33 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
-    def sum(self, *args, **kwargs):
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("sum", args, kwargs)
-        return super().sum(*args, **kwargs)
+        return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
-    def max(self, *args, **kwargs):
+    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("max", args, kwargs)
-        return super().max(*args, **kwargs)
+        return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["min"])
-    def min(self, *args, **kwargs):
+    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("min", args, kwargs)
-        return super().min(*args, **kwargs)
+        return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["mean"])
-    def mean(self, *args, **kwargs):
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         nv.validate_expanding_func("mean", args, kwargs)
-        return super().mean(*args, **kwargs)
+        return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["median"])
-    def median(self, **kwargs):
-        return super().median(**kwargs)
+    def median(self, engine=None, engine_kwargs=None, **kwargs):
+        return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
@@ -244,9 +256,16 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["quantile"])
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(
+        self,
+        quantile,
+        interpolation="linear",
+        **kwargs,
+    ):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @Substitution(name="expanding", func_name="cov")

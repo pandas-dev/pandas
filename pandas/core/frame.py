@@ -48,6 +48,7 @@ from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
     AggFuncType,
+    AnyArrayLike,
     ArrayLike,
     Axes,
     Axis,
@@ -112,7 +113,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_named_tuple,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -122,14 +122,9 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
-    aggregate,
-    reconstruct_func,
-    relabel_result,
-    transform,
-)
+from pandas.core.aggregation import reconstruct_func, relabel_result, transform
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array, sanitize_masked_array
 from pandas.core.generic import NDFrame, _shared_docs
@@ -147,13 +142,14 @@ from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
-    get_names_from_index,
     init_dict,
     init_ndarray,
     masked_rec_array_to_mgr,
+    nested_data_to_arrays,
     reorder_arrays,
     sanitize_index,
     to_arrays,
+    treat_as_nested,
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
@@ -184,6 +180,9 @@ _shared_doc_kwargs = {
     "axis": """axis : {0 or 'index', 1 or 'columns'}, default 0
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
+    "inplace": """
+    inplace : boolean, default False
+        If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by.
@@ -197,6 +196,9 @@ _shared_doc_kwargs = {
     "optional_axis": """axis : int or str, optional
             Axis to target. Can be either the axis name ('index', 'columns')
             or number (0, 1).""",
+    "replace_iloc": """
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.""",
 }
 
 _numeric_only_doc = """numeric_only : boolean, default None
@@ -559,27 +561,16 @@ class DataFrame(NDFrame, OpsMixin):
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
+        elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-                    if is_named_tuple(data[0]) and columns is None:
-                        columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
-                    columns = ensure_index(columns)
-
-                    # set the index
-                    if index is None:
-                        if isinstance(data[0], Series):
-                            index = get_names_from_index(data)
-                        elif isinstance(data[0], Categorical):
-                            index = ibase.default_index(len(data[0]))
-                        else:
-                            index = ibase.default_index(len(data))
-
+                if treat_as_nested(data):
+                    arrays, columns, index = nested_data_to_arrays(
+                        data, columns, index, dtype
+                    )
                     mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
@@ -1151,7 +1142,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return len(self.index)
 
-    def dot(self, other):
+    # pandas/core/frame.py:1146: error: Overloaded function signatures 1 and 2
+    # overlap with incompatible return types  [misc]
+    @overload
+    def dot(self, other: Series) -> Series:  # type: ignore[misc]
+        ...
+
+    @overload
+    def dot(self, other: Union[DataFrame, Index, ArrayLike]) -> DataFrame:
+        ...
+
+    def dot(self, other: Union[AnyArrayLike, FrameOrSeriesUnion]) -> FrameOrSeriesUnion:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1261,7 +1262,19 @@ class DataFrame(NDFrame, OpsMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
-    def __matmul__(self, other):
+    @overload
+    def __matmul__(self, other: Series) -> Series:
+        ...
+
+    @overload
+    def __matmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
+        ...
+
+    def __matmul__(
+        self, other: Union[AnyArrayLike, FrameOrSeriesUnion]
+    ) -> FrameOrSeriesUnion:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
@@ -3207,7 +3220,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _set_item_frame_value(self, key, value: "DataFrame") -> None:
+    def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
 
         # align right-hand-side columns if self.columns
@@ -3321,13 +3334,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         # GH5632, make sure that we are a Series convertible
         if not len(self.index) and is_list_like(value) and len(value):
-            try:
-                value = Series(value)
-            except (ValueError, NotImplementedError, TypeError) as err:
-                raise ValueError(
-                    "Cannot set a frame with no defined index "
-                    "and a value that cannot be converted to a Series"
-                ) from err
+            if not isinstance(value, DataFrame):
+                try:
+                    value = Series(value)
+                except (ValueError, NotImplementedError, TypeError) as err:
+                    raise ValueError(
+                        "Cannot set a frame with no defined index "
+                        "and a value that cannot be converted to a Series"
+                    ) from err
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
@@ -5531,9 +5545,9 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information. `mergesort` and `stable` are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
         na_position : {'first', 'last'}, default 'last'
@@ -7628,13 +7642,24 @@ NaN 12.3   33.0
         return result
 
     def _aggregate(self, arg, axis: Axis = 0, *args, **kwargs):
+        from pandas.core.apply import frame_apply
+
+        op = frame_apply(
+            self if axis == 0 else self.T,
+            how="agg",
+            func=arg,
+            axis=0,
+            args=args,
+            kwds=kwargs,
+        )
+        result, how = op.get_result()
+
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
-            return result, how
-        return aggregate(self, arg, *args, **kwargs)
+
+        return result, how
 
     agg = aggregate
 
@@ -7794,6 +7819,7 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self,
+            how="apply",
             func=func,
             axis=axis,
             raw=raw,
@@ -9235,7 +9261,12 @@ NaN 12.3   33.0
         def f(s):
             return s.mode(dropna=dropna)
 
-        return data.apply(f, axis=axis)
+        data = data.apply(f, axis=axis)
+        # Ensure index is type stable (should always use int index)
+        if data.empty:
+            data.index = ibase.default_index(0)
+
+        return data
 
     def quantile(
         self,
@@ -9600,7 +9631,7 @@ def _from_nested_dict(data) -> collections.defaultdict:
     return new_data
 
 
-def _reindex_for_setitem(value, index: Index):
+def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
@@ -9608,7 +9639,7 @@ def _reindex_for_setitem(value, index: Index):
 
     # GH#4107
     try:
-        value = value.reindex(index)._values
+        reindexed_value = value.reindex(index)._values
     except ValueError as err:
         # raised in MultiIndex.from_tuples, see test_insert_error_msmgs
         if not value.index.is_unique:
@@ -9618,7 +9649,7 @@ def _reindex_for_setitem(value, index: Index):
         raise TypeError(
             "incompatible index of inserted column with frame index"
         ) from err
-    return value
+    return reindexed_value
 
 
 def _maybe_atleast_2d(value):

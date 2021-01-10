@@ -112,8 +112,9 @@ index_col : int, str, sequence of int / str, or False, default ``None``
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
-  of the data file, then a default index is used.  If it is one larger, then
-  the first field is used as an index.
+  of the data file, then a default index is used.  If it is larger, then
+  the first columns are used as index so that the remaining number of fields in
+  the body are equal to the number of fields in the header.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -231,6 +232,8 @@ verbose : boolean, default ``False``
   Indicate number of NA values placed in non-numeric columns.
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
+
+.. _io.read_csv_table.datetime:
 
 Datetime handling
 +++++++++++++++++
@@ -2444,22 +2447,22 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
+   url = (
+       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+       "pandas/tests/io/data/html/spam.html"
+   )
    dfs = pd.read_html(url)
    dfs
 
-.. note::
-
-   The data from the above URL changes every Monday so the resulting data above
-   and the data below may be slightly different.
-
-Read in the content of the file from the above URL and pass it to ``read_html``
+Read in the content of the "banklist.html" file and pass it to ``read_html``
 as a string:
 
 .. ipython:: python
    :suppress:
 
-   file_path = os.path.abspath(os.path.join("source", "_static", "banklist.html"))
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
+                           "banklist.html")
+   file_path = os.path.abspath(rel_path)
 
 .. ipython:: python
 
@@ -2834,14 +2837,39 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
-files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
+can be read using ``xlrd``. Binary Excel (``.xlsb``)
 files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
+
+.. warning::
+
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
+   old-style ``.xls`` files.
+
+   Previously, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files.
+   If `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__  is installed,
+   many of these cases will now default to using the ``openpyxl`` engine.
+   See the :func:`read_excel` documentation for more details.
+
+   Thus, it is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. _io.excel_reader:
 

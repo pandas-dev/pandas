@@ -626,7 +626,8 @@ def _gen_two_subplots(f, fig, **kwargs):
     """
     Create plot on two subplots forcefully created.
     """
-    kwargs.get("ax", fig.add_subplot(211))
+    if "ax" not in kwargs:
+        fig.add_subplot(211)
     yield f(**kwargs)
 
     if f is pd.plotting.bootstrap_plot:

@@ -7,7 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Label
+from pandas._typing import ArrayLike, Dtype, Label
 from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
@@ -180,17 +180,19 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
+        cls,
+        data=None,
+        categories=None,
+        ordered=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
 
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            # don't allow scalars
-            # if data is None, then categories must be provided
-            if data is not None or categories is None:
-                raise cls._scalar_data_error(data)
-            data = []
+            raise cls._scalar_data_error(data)
 
         data = Categorical(
             data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
@@ -353,11 +355,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return self.hasnans
 
         return contains(self, key, container=self._engine)
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy=True):
-        res_data = self._data.astype(dtype, copy=copy)
-        return Index(res_data, name=self.name)
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
