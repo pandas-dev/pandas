@@ -158,7 +158,7 @@ def setop_check(method):
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
                   closed='right',
-                  dtype='interval[int64]')
+                  dtype='interval[int64, right]')
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalIndex.from_arrays`,
@@ -243,7 +243,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         }
@@ -274,7 +274,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
                       closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         }
@@ -306,7 +306,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
                        closed='right',
-                       dtype='interval[int64]')
+                       dtype='interval[int64, right]')
         """
             ),
         }
@@ -446,7 +446,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
               closed='right',
-              dtype='interval[int64]')
+              dtype='interval[int64, right]')
         >>> index.is_overlapping
         True
 
@@ -456,7 +456,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
               closed='both',
-              dtype='interval[int64]')
+              dtype='interval[int64, both]')
         >>> index.is_overlapping
         True
 
@@ -466,7 +466,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
               closed='left',
-              dtype='interval[int64]')
+              dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
         """
@@ -1117,7 +1117,8 @@ def interval_range(
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right', dtype='interval[int64]')
+                  closed='right',
+                  dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
 
@@ -1125,7 +1126,7 @@ def interval_range(
     ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  closed='right', dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1133,7 +1134,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-                  closed='right', dtype='interval[float64]')
+                  closed='right', dtype='interval[float64, right]')
 
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
@@ -1142,7 +1143,7 @@ def interval_range(
     ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  closed='right', dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -1150,14 +1151,14 @@ def interval_range(
     >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
               closed='right',
-              dtype='interval[float64]')
+              dtype='interval[float64, right]')
 
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
-                  closed='both', dtype='interval[int64]')
+                  closed='both', dtype='interval[int64, both]')
     """
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)

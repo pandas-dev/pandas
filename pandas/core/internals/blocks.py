@@ -984,6 +984,14 @@ class Block(PandasObject):
 
             values = values.astype(arr_value.dtype, copy=False)
 
+        elif is_ea_value:
+            # GH#38952
+            if values.ndim == 1:
+                values[indexer] = value
+            else:
+                # TODO(EA2D): special case not needed with 2D EA
+                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
+
         # set
         else:
             values[indexer] = value
@@ -2293,7 +2301,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def _maybe_coerce_values(self, values):
-        if issubclass(values.dtype.type, str):
+        if issubclass(values.dtype.type, (str, bytes)):
             values = np.array(values, dtype=object)
         return values
 
