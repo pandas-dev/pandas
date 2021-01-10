@@ -7,6 +7,7 @@ import pytz
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
+from pandas.compat.numpy import is_numpy_dev
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -59,6 +60,7 @@ def test_nat_fields(nat, idx):
         assert result is False
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
