@@ -9,7 +9,6 @@ import contextlib
 from functools import partial
 import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Collection,
