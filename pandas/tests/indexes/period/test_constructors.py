@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 

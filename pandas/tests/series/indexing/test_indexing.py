@@ -5,7 +5,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import is_scalar
 

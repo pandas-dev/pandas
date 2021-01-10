@@ -6,7 +6,7 @@ from typing import Dict, List, Union
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range

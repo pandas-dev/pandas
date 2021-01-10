@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm

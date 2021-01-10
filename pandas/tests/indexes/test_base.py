@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64
-from pandas.compat.numpy import is_numpy_dev, np_datetime64_compat
+from pandas.compat import IS64, is_numpy_dev
+from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd

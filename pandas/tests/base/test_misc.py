@@ -3,8 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PYPY
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import IS64, PYPY, is_numpy_dev
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 

@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
