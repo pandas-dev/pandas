@@ -3730,8 +3730,13 @@ class Index(IndexOpsMixin, PandasObject):
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
 
+            # GH#38906
+            if not len(self):
+
+                new_indexer = np.arange(0)
+
             # a unique indexer
-            if target.is_unique:
+            elif target.is_unique:
 
                 # see GH5553, make sure we use the right indexer
                 new_indexer = np.arange(len(indexer))
@@ -3745,13 +3750,9 @@ class Index(IndexOpsMixin, PandasObject):
                 # need to retake to have the same size as the indexer
                 indexer[~check] = -1
 
-                if len(self):
-                    # reset the new indexer to account for the new size
-                    new_indexer = np.arange(len(self.take(indexer)))
-                    new_indexer[~check] = -1
-                else:
-                    # GH#38906
-                    new_indexer = np.arange(0)
+                # reset the new indexer to account for the new size
+                new_indexer = np.arange(len(self.take(indexer)))
+                new_indexer[~check] = -1
 
         if isinstance(self, ABCMultiIndex):
             new_index = type(self).from_tuples(new_labels, names=self.names)

@@ -533,19 +533,3 @@ class TestCategoricalIndex:
         result.loc[sl, "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "cat_idx",
-        [
-            # No duplicates
-            CategoricalIndex(["A", "B"]),
-            # Duplicates: GH#38906
-            CategoricalIndex(["A", "A"]),
-        ],
-    )
-    def test_reindex_empty(self, cat_idx):
-        df = DataFrame(columns=CategoricalIndex([]), index=["K"], dtype="f8")
-
-        result = df.reindex(columns=cat_idx)
-        expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
-        tm.assert_frame_equal(result, expected)
