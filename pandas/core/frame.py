@@ -702,7 +702,7 @@ class DataFrame(NDFrame, OpsMixin):
         False
         """
         if isinstance(self._mgr, ArrayManager):
-            return False
+            return len({arr.dtype for arr in self._mgr.arrays}) == 1
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:

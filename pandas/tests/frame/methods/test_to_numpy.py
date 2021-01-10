@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas import DataFrame, Timestamp, option_context
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Timestamp
 import pandas._testing as tm
 
 
@@ -17,10 +19,10 @@ class TestToNumpy:
         result = df.to_numpy(dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_to_numpy_copy(self):
         arr = np.random.randn(4, 3)
-        with option_context("mode.data_manager", "block"):
-            df = DataFrame(arr)
+        df = DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr

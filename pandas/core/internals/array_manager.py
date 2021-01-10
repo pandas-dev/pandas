@@ -307,8 +307,7 @@ class ArrayManager(DataManager):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
             applied = getattr(block, f)(**kwargs)
-            while isinstance(applied, list):
-                # ObjectBlock gives double nested result?, some functions give no list
+            if isinstance(applied, list):
                 applied = applied[0]
             arr = applied.values
             if isinstance(arr, np.ndarray):
@@ -387,11 +386,8 @@ class ArrayManager(DataManager):
                 limit = libalgos.validate_limit(None, limit=limit)
                 mask[mask.cumsum() > limit] = False
 
-            # if not self._can_hold_na:
-            #     if inplace:
-            #         return [self]
-            #     else:
-            #         return [self.copy()]
+            # TODO could optimize for arrays that cannot hold NAs
+            # (like _can_hold_na on Blocks)
             if not inplace:
                 array = array.copy()
 
