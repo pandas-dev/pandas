@@ -37,7 +37,7 @@ from pandas._libs.tslibs.timestamps import (
     round_nsint64,
 )
 from pandas._typing import DatetimeLikeScalar, Dtype, DtypeObj, NpDtype
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 

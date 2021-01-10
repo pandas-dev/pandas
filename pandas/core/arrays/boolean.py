@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike, Dtype
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,

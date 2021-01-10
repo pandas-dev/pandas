@@ -8,7 +8,7 @@ import numpy as np
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype

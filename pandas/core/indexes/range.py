@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Dtype, Label
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (

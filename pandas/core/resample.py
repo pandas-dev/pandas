@@ -15,7 +15,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
 

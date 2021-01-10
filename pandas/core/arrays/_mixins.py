@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import Shape
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_fillna_kwargs

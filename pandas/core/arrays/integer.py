@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, Dtype, DtypeObj
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype

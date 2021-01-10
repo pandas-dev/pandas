@@ -23,7 +23,7 @@ from pandas._config import get_option
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Dtype, NpDtype, Ordered, Scalar
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 

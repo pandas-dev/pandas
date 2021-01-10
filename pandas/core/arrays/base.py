@@ -26,7 +26,8 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._typing import ArrayLike, Dtype, Shape
-from pandas.compat import function as nv, set_function_name
+from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs

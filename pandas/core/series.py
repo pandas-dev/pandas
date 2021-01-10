@@ -37,7 +37,7 @@ from pandas._typing import (
     StorageOptions,
     ValueKeyFunc,
 )
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile

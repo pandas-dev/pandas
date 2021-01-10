@@ -23,7 +23,7 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 from pandas._typing import NpDtype
-from pandas.compat import function as nv
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
