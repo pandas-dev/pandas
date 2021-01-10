@@ -40,9 +40,6 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
-if TYPE_CHECKING:
-    from pandas._typing import T
-
 
 class SettingWithCopyError(ValueError):
     pass
