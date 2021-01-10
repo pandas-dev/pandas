@@ -73,7 +73,7 @@ class BaseDtypeTests(BaseExtensionTests):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             result = df.dtypes == str(dtype)
-            # NumPy>=1.20.0, but not pandas.compat till there
+            # NumPy>=1.20.0, but not pandas.compat.numpy till there
             # is a wheel available with this change.
             try:
                 new_numpy_behavior = np.dtype("int64") != "Int64"

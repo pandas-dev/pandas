@@ -13,7 +13,6 @@ import warnings
 
 from pandas._typing import F
 from pandas.compat.numpy import (
-    function,
     is_numpy_dev,
     np_array_datetime64_compat,
     np_datetime64_compat,
@@ -130,7 +129,6 @@ def get_lzma_file(lzma):
 
 __all__ = [
     "is_numpy_dev",
-    "function",
     "np_array_datetime64_compat",
     "np_datetime64_compat",
     "np_version_under1p17",
