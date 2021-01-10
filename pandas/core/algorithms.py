@@ -456,9 +456,6 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_extension_array_dtype(comps.dtype):
         return comps.isin(values)
 
-    elif is_interval_dtype(comps.dtype):
-        return cast("IntervalArray", comps).isin(values)
-
     elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
         return array(comps).isin(values)
