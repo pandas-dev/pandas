@@ -149,7 +149,7 @@ for more.
     >>> pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
     <IntervalArray>
     [(0, 1], (1, 5]]
-    Length: 2, closed: right, dtype: interval[int64]
+    Length: 2, closed: right, dtype: interval[int64, right]
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalArray.from_arrays`,
@@ -222,6 +222,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ):
         result = IntervalMixin.__new__(cls)
 
+        if closed is None and isinstance(dtype, IntervalDtype):
+            closed = dtype.closed
+
         closed = closed or "right"
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
@@ -237,6 +240,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             else:
                 msg = f"dtype must be an IntervalDtype, got {dtype}"
                 raise TypeError(msg)
+
+            if dtype.closed is None:
+                # possibly loading an old pickle
+                dtype = IntervalDtype(dtype.subtype, closed)
+            elif closed != dtype.closed:
+                raise ValueError("closed keyword does not match dtype.closed")
 
         # coerce dtypes to match if needed
         if is_float_dtype(left) and is_integer_dtype(right):
@@ -279,9 +288,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # If these share data, then setitem could corrupt our IA
             right = right.copy()
 
+        dtype = IntervalDtype(left.dtype, closed=closed)
+        result._dtype = dtype
+
         result._left = left
         result._right = right
-        result._closed = closed
         if verify_integrity:
             result._validate()
         return result
@@ -343,7 +354,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3])
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64]
+        Length: 3, closed: right, dtype: interval[int64, right]
         """
             ),
         }
@@ -414,7 +425,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64]
+        Length: 3, closed: right, dtype: interval[int64, right]
         """
             ),
         }
@@ -473,7 +484,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
         <IntervalArray>
         [(0, 1], (1, 2]]
-        Length: 2, closed: right, dtype: interval[int64]
+        Length: 2, closed: right, dtype: interval[int64, right]
         """
             ),
         }
@@ -553,7 +564,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def dtype(self):
-        return IntervalDtype(self.left.dtype)
+        return self._dtype
 
     @property
     def nbytes(self) -> int:
@@ -1174,7 +1185,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
-        Length: 3, closed: right, dtype: interval[int64]
+        Length: 3, closed: right, dtype: interval[int64, right]
         """
             ),
         }
@@ -1203,7 +1214,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
         """
-        return self._closed
+        return self.dtype.closed
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
@@ -1238,11 +1249,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> index
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
-        Length: 3, closed: right, dtype: interval[int64]
+        Length: 3, closed: right, dtype: interval[int64, right]
         >>> index.set_closed('both')
         <IntervalArray>
         [[0, 1], [1, 2], [2, 3]]
-        Length: 3, closed: both, dtype: interval[int64]
+        Length: 3, closed: both, dtype: interval[int64, both]
         """
             ),
         }
@@ -1301,7 +1312,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = self._left
         right = self._right
         mask = self.isna()
-        closed = self._closed
+        closed = self.closed
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):
@@ -1441,7 +1452,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
-        Length: 3, closed: right, dtype: interval[int64]
+        Length: 3, closed: right, dtype: interval[int64, right]
         """
             ),
         }
