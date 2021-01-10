@@ -40,7 +40,7 @@ class WriteExcel:
 
 class ReadExcel:
 
-    params = ["xlrd", "openpyxl", "odf"]
+    params = ["openpyxl", "odf"]
     param_names = ["engine"]
     fname_excel = "spreadsheet.xlsx"
     fname_odf = "spreadsheet.ods"

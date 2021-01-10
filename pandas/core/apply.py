@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._config import option_context
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -26,7 +27,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.aggregation import agg_dict_like, agg_list_like
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    array as pd_array,
+    create_series_with_explicit_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Index, Series
@@ -43,7 +47,7 @@ def frame_apply(
     result_type: Optional[str] = None,
     args=None,
     kwds=None,
-):
+) -> FrameApply:
     """ construct and return a row or column based frame apply object """
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
@@ -63,38 +67,30 @@ def frame_apply(
     )
 
 
-class FrameApply(metaclass=abc.ABCMeta):
+def series_apply(
+    obj: Series,
+    how: str,
+    func: AggFuncType,
+    convert_dtype: bool = True,
+    args=None,
+    kwds=None,
+) -> SeriesApply:
+    return SeriesApply(
+        obj,
+        how,
+        func,
+        convert_dtype,
+        args,
+        kwds,
+    )
 
-    # ---------------------------------------------------------------
-    # Abstract Methods
+
+class Apply(metaclass=abc.ABCMeta):
     axis: int
-
-    @property
-    @abc.abstractmethod
-    def result_index(self) -> Index:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def result_columns(self) -> Index:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def series_generator(self) -> Iterator[Series]:
-        pass
-
-    @abc.abstractmethod
-    def wrap_results_for_axis(
-        self, results: ResType, res_index: Index
-    ) -> FrameOrSeriesUnion:
-        pass
-
-    # ---------------------------------------------------------------
 
     def __init__(
         self,
-        obj: DataFrame,
+        obj: FrameOrSeriesUnion,
         how: str,
         func,
         raw: bool,
@@ -133,34 +129,18 @@ class FrameApply(metaclass=abc.ABCMeta):
         self.f: AggFuncType = f
 
     @property
-    def res_columns(self) -> Index:
-        return self.result_columns
-
-    @property
-    def columns(self) -> Index:
-        return self.obj.columns
-
-    @property
     def index(self) -> Index:
         return self.obj.index
-
-    @cache_readonly
-    def values(self):
-        return self.obj.values
-
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
-
-    @property
-    def agg_axis(self) -> Index:
-        return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
         if self.how == "apply":
             return self.apply()
         else:
             return self.agg()
+
+    @abc.abstractmethod
+    def apply(self) -> FrameOrSeriesUnion:
+        pass
 
     def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
         """
@@ -203,6 +183,62 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         # caller can react
         return result, True
+
+
+class FrameApply(Apply):
+    obj: DataFrame
+
+    # ---------------------------------------------------------------
+    # Abstract Methods
+
+    @property
+    @abc.abstractmethod
+    def result_index(self) -> Index:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def result_columns(self) -> Index:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def series_generator(self) -> Iterator[Series]:
+        pass
+
+    @abc.abstractmethod
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: Index
+    ) -> FrameOrSeriesUnion:
+        pass
+
+    # ---------------------------------------------------------------
+
+    @property
+    def res_columns(self) -> Index:
+        return self.result_columns
+
+    @property
+    def columns(self) -> Index:
+        return self.obj.columns
+
+    @cache_readonly
+    def values(self):
+        return self.obj.values
+
+    @cache_readonly
+    def dtypes(self) -> Series:
+        return self.obj.dtypes
+
+    @property
+    def agg_axis(self) -> Index:
+        return self.obj._get_agg_axis(self.axis)
+
+    def get_result(self):
+        if self.how == "apply":
+            return self.apply()
+        else:
+            return self.agg()
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
@@ -525,3 +561,79 @@ class FrameColumnApply(FrameApply):
         result = result.infer_objects()
 
         return result
+
+
+class SeriesApply(Apply):
+    obj: Series
+    axis = 0
+
+    def __init__(
+        self,
+        obj: Series,
+        how: str,
+        func: AggFuncType,
+        convert_dtype: bool,
+        args,
+        kwds,
+    ):
+        self.convert_dtype = convert_dtype
+
+        super().__init__(
+            obj,
+            how,
+            func,
+            raw=False,
+            result_type=None,
+            args=args,
+            kwds=kwds,
+        )
+
+    def apply(self) -> FrameOrSeriesUnion:
+        obj = self.obj
+        func = self.f
+        args = self.args
+        kwds = self.kwds
+
+        if len(obj) == 0:
+            return self.apply_empty_result()
+
+        # dispatch to agg
+        if isinstance(func, (list, dict)):
+            return obj.aggregate(func, *args, **kwds)
+
+        # if we are a string, try to dispatch
+        if isinstance(func, str):
+            return obj._try_aggregate_string_function(func, *args, **kwds)
+
+        return self.apply_standard()
+
+    def apply_empty_result(self) -> Series:
+        obj = self.obj
+        return obj._constructor(dtype=obj.dtype, index=obj.index).__finalize__(
+            obj, method="apply"
+        )
+
+    def apply_standard(self) -> FrameOrSeriesUnion:
+        f = self.f
+        obj = self.obj
+
+        with np.errstate(all="ignore"):
+            if isinstance(f, np.ufunc):
+                return f(obj)
+
+            # row-wise access
+            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
+                # GH#23179 some EAs do not have `map`
+                mapped = obj._values.map(f)
+            else:
+                values = obj.astype(object)._values
+                mapped = lib.map_infer(values, f, convert=self.convert_dtype)
+
+        if len(mapped) and isinstance(mapped[0], ABCSeries):
+            # GH 25959 use pd.array instead of tolist
+            # so extension arrays can be used
+            return obj._constructor_expanddim(pd_array(mapped), index=obj.index)
+        else:
+            return obj._constructor(mapped, index=obj.index).__finalize__(
+                obj, method="apply"
+            )

@@ -37,6 +37,8 @@ from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     CompressionOptions,
+    Dtype,
+    DtypeArg,
     FilePathOrBuffer,
     FrameOrSeries,
     IndexKeyFunc,
@@ -44,6 +46,7 @@ from pandas._typing import (
     JSONSerializable,
     Label,
     Level,
+    NpDtype,
     Renamer,
     StorageOptions,
     TimedeltaConvertibleTypes,
@@ -211,7 +214,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @classmethod
     def _init_mgr(
-        cls, mgr, axes, dtype=None, copy: bool = False
+        cls, mgr, axes, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> Union[BlockManager, ArrayManager]:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
@@ -1909,7 +1912,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -2650,7 +2653,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index: bool_t = True,
         index_label=None,
         chunksize=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         method=None,
     ) -> None:
         """

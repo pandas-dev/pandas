@@ -15,7 +15,7 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -241,7 +241,7 @@ class Block(PandasObject):
         """
         return PandasArray(self.values)
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
@@ -984,6 +984,14 @@ class Block(PandasObject):
 
             values = values.astype(arr_value.dtype, copy=False)
 
+        elif is_ea_value:
+            # GH#38952
+            if values.ndim == 1:
+                values[indexer] = value
+            else:
+                # TODO(EA2D): special case not needed with 2D EA
+                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
+
         # set
         else:
             values[indexer] = value
@@ -1669,7 +1677,7 @@ class ExtensionBlock(Block):
         self.values[indexer] = value
         return self
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         # ExtensionArrays must be iterable, so this works.
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
@@ -1990,7 +1998,7 @@ class DatetimeLikeBlockMixin(Block):
 
     _can_hold_na = True
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
@@ -2168,7 +2176,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         Returns an ndarray of values.
 
@@ -2293,7 +2301,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def _maybe_coerce_values(self, values):
-        if issubclass(values.dtype.type, str):
+        if issubclass(values.dtype.type, (str, bytes)):
             values = np.array(values, dtype=object)
         return values
 
@@ -2449,7 +2457,7 @@ class CategoricalBlock(ExtensionBlock):
 # Constructor Helpers
 
 
-def get_block_type(values, dtype=None):
+def get_block_type(values, dtype: Optional[Dtype] = None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -2464,7 +2472,7 @@ def get_block_type(values, dtype=None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    dtype = dtype or values.dtype
+    dtype = cast(np.dtype, pandas_dtype(dtype) if dtype else values.dtype)
     vtype = dtype.type
     kind = dtype.kind
 
@@ -2500,7 +2508,7 @@ def get_block_type(values, dtype=None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None):
+def make_block(values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):

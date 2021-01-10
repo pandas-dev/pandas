@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
@@ -261,6 +263,7 @@ def test_frame_mi_access(dataframe_with_duplicate_index, indexer):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):
     # GH 4146, not returning a block manager when selecting a unique index
     # from a duplicate index
@@ -272,6 +275,7 @@ def test_frame_mi_access_returns_series(dataframe_with_duplicate_index):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_frame_mi_access_returns_frame(dataframe_with_duplicate_index):
     # selecting a non_unique from the 2nd level
     df = dataframe_with_duplicate_index
