@@ -179,7 +179,8 @@ def stringify_path(
         # this function with convert_file_like=True to infer the compression.
         return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
 
-    if isinstance(filepath_or_buffer, os.PathLike):
+    # Only @runtime_checkable protocols can be used with instance and class checks
+    if isinstance(filepath_or_buffer, os.PathLike):  # type: ignore[misc]
         filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
@@ -487,9 +488,15 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = f"Unrecognized compression type: {compression}"
-    valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += f"\nValid compression types are {valid}"
+    # https://github.com/python/mypy/issues/5492
+    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
+    valid = ["infer", None] + sorted(
+        _compression_to_extension
+    )  # type: ignore[operator]
+    msg = (
+        f"Unrecognized compression type: {compression}\n"
+        f"Valid compression types are {valid}"
+    )
     raise ValueError(msg)
 
 
