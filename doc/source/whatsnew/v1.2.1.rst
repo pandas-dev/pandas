@@ -27,6 +27,7 @@ Fixed regressions
 - Fixed regression in :meth:`Rolling.skew` and :meth:`Rolling.kurt` modifying the object inplace (:issue:`38908`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
 - Fixed regression in :meth:`DataFrame.replace` raising ValueError when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
+- Fixed regression in :meth:`DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
 
 .. ---------------------------------------------------------------------------
 
