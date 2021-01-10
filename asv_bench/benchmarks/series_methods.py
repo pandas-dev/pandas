@@ -29,7 +29,8 @@ class IsIn:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        self.s = Series(np.random.randint(1, 10, 100000)).astype(dtype)
+        N = 10000
+        self.s = Series(np.random.randint(1, 10, N)).astype(dtype)
         self.values = [1, 2]
 
     def time_isin(self, dtypes):
@@ -42,7 +43,8 @@ class IsInBoolean:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        self.s = Series(np.random.randint(0, 2, 100000)).astype(dtype)
+        N = 10000
+        self.s = Series(np.random.randint(0, 2, N)).astype(dtype)
         self.values = [True, False]
 
     def time_isin(self, dtypes):
@@ -77,10 +79,12 @@ class IsInFloat64:
     param_names = ["dtype"]
 
     def setup(self, dtype):
+        N_many = 10 ** 5
+        N_few = 10 ** 6
         self.small = Series([1, 2], dtype=dtype)
-        self.many_different_values = np.arange(10 ** 6, dtype=np.float64)
-        self.few_different_values = np.zeros(10 ** 7, dtype=np.float64)
-        self.only_nans_values = np.full(10 ** 7, np.nan, dtype=np.float64)
+        self.many_different_values = np.arange(N_many, dtype=np.float64)
+        self.few_different_values = np.zeros(N_few, dtype=np.float64)
+        self.only_nans_values = np.full(N_few, np.nan, dtype=np.float64)
 
     def time_isin_many_different(self, dtypes):
         # runtime is dominated by creation of the lookup-table
