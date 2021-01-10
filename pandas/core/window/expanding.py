@@ -106,10 +106,13 @@ class Expanding(RollingAndExpandingMixin):
         # assignment (expression has type "int", variable has type
         # "Union[ndarray, FrameOrSeries, None]")  [assignment]
         other = self.min_periods or -1  # type: ignore[assignment]
-        # pandas\core\window\expanding.py:92: error: Incompatible return value
-        # type (got "Union[int, ndarray, FrameOrSeries, None]", expected "int")
+        # pandas/core/window/expanding.py:109: error: Value of type variable "_LT" of
+        # "max" cannot be "Union[int, ndarray, FrameOrSeries, None]"  [type-var]
+
+        # pandas/core/window/expanding.py:109: error: Incompatible return value type
+        # (got "Union[int, ndarray, FrameOrSeries, None]", expected "int")
         # [return-value]
-        return max(length, other)  # type: ignore[return-value]
+        return max(length, other)  # type: ignore[type-var,return-value]
 
     _agg_see_also_doc = dedent(
         """

@@ -270,24 +270,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    # pandas\core\arrays\period.py:264: error: Return type "int" of
-    # "_unbox_scalar" incompatible with return type
-    # "Union[signedinteger[_64Bit], datetime64, timedelta64]" in supertype
-    # "DatetimeLikeArrayMixin"  [override]
-    def _unbox_scalar(  # type: ignore[override]
+    def _unbox_scalar(
         self, value: Union[Period, NaTType], setitem: bool = False
     ) -> np.int64:
         if value is NaT:
-            # pandas\core\arrays\period.py:268: error: Incompatible return
-            # value type (got "signedinteger[_64Bit]", expected "int")
-            # [return-value]
-            return np.int64(value.value)  # type: ignore[return-value]
+            return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=setitem)
-            # pandas\core\arrays\period.py:271: error: Incompatible return
-            # value type (got "signedinteger[_64Bit]", expected "int")
-            # [return-value]
-            return np.int64(value.ordinal)  # type: ignore[return-value]
+            return np.int64(value.ordinal)
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 

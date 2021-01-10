@@ -530,7 +530,10 @@ class MultiIndex(Index):
         elif isinstance(tuples, list):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
-            arrays = zip(*tuples)
+            # pandas/core/indexes/multi.py:533: error: Incompatible types in assignment
+            # (expression has type "Iterator[Any]", variable has type
+            # "List[Sequence[Optional[Hashable]]]")  [assignment]
+            arrays = zip(*tuples)  # type: ignore[assignment]
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 

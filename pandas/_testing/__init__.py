@@ -119,21 +119,9 @@ ALL_NUMPY_DTYPES = (
     + STRING_DTYPES
     + DATETIME64_DTYPES
     + TIMEDELTA64_DTYPES
-    # pandas/_testing/__init__.py:122: error: Unsupported operand types for +
-    # ("List[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-    # Type[int], Type[complex], Type[bool], Type[object]]]" and "List[object]")
-    # [operator]
-    + BOOL_DTYPES  # type: ignore[operator]
-    # pandas/_testing/__init__.py:123: error: Unsupported operand types for +
-    # ("List[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-    # Type[int], Type[complex], Type[bool], Type[object]]]" and "List[object]")
-    # [operator]
-    + OBJECT_DTYPES  # type: ignore[operator]
-    # pandas/_testing/__init__.py:124: error: Unsupported operand types for +
-    # ("List[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
-    # Type[int], Type[complex], Type[bool], Type[object]]]" and "List[object]")
-    # [operator]
-    + BYTES_DTYPES  # type: ignore[operator]
+    + BOOL_DTYPES
+    + OBJECT_DTYPES
+    + BYTES_DTYPES
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]

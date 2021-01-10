@@ -1422,8 +1422,7 @@ def get_join_indexers(
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
-    # error: No overload variant of "list" matches argument type "object"
-    llab, rlab, shape = [list(x) for x in zipped]  # type: ignore[call-overload]
+    llab, rlab, shape = [list(x) for x in zipped]
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1913,8 +1912,7 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
-    # error: No overload variant of "list" matches argument type "object"
-    rcodes, lcodes, shape = [list(x) for x in zipped]  # type: ignore[call-overload]
+    rcodes, lcodes, shape = [list(x) for x in zipped]
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
