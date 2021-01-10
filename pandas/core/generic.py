@@ -123,6 +123,7 @@ from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import T
 
     from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler
@@ -5356,7 +5357,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         r"""
         Apply func(self, \*args, \*\*kwargs).
 

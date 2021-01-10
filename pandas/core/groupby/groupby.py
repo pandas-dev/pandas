@@ -6,6 +6,7 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
@@ -14,6 +15,7 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Dict,
     FrozenSet,
@@ -77,6 +79,10 @@ from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+if TYPE_CHECKING:
+    from pandas._typing import T
+
 
 _common_see_also = """
         See Also
@@ -476,7 +482,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
+def group_selection_context(groupby: BaseGroupBy) -> Iterator[BaseGroupBy]:
     """
     Set / reset the group_selection_context.
     """
@@ -724,8 +730,8 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @final
     def _set_result_index_ordered(
-        self, result: "OutputFrameOrSeries"
-    ) -> "OutputFrameOrSeries":
+        self, result: OutputFrameOrSeries
+    ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -790,7 +796,12 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         ),
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return com.pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
@@ -3058,7 +3069,7 @@ def get_groupby(
     by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
-    grouper: "Optional[ops.BaseGrouper]" = None,
+    grouper: Optional[ops.BaseGrouper] = None,
     exclusions=None,
     selection=None,
     as_index: bool = True,

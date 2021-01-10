@@ -1,7 +1,7 @@
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import Dict, Optional, Union, no_type_check
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Tuple, Union, no_type_check
 
 import numpy as np
 
@@ -42,6 +42,9 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
+
+if TYPE_CHECKING:
+    from pandas._typing import T
 
 _shared_docs_kwargs: Dict[str, str] = {}
 
@@ -231,7 +234,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
     2012-08-04  1""",
     )
     @Appender(_pipe_template)
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent(

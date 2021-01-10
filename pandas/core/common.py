@@ -8,7 +8,19 @@ from collections import abc, defaultdict
 import contextlib
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Optional, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -27,6 +39,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+
+if TYPE_CHECKING:
+    from pandas._typing import T
 
 
 class SettingWithCopyError(ValueError):
@@ -405,7 +420,9 @@ def random_state(state=None):
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Union[Callable[..., T], Tuple[Callable[..., T], str]], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
