@@ -276,7 +276,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # "DatetimeLikeArrayMixin"  [override]
     def _unbox_scalar(  # type: ignore[override]
         self, value: Union[Period, NaTType], setitem: bool = False
-    ) -> int:
+    ) -> np.int64:
         if value is NaT:
             # pandas\core\arrays\period.py:268: error: Incompatible return
             # value type (got "signedinteger[_64Bit]", expected "int")
