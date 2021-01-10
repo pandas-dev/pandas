@@ -779,7 +779,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
             dtype = PeriodDtype(freq=val.freq)
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype)
+            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
 
