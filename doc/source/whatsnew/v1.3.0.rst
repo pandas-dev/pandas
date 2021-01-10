@@ -192,6 +192,7 @@ Categorical
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 - Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
 - Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
+- Bug in :meth:`DataFrame.reindex` was throwing ``IndexError`` when new index contained duplicates and old index was :class:`CategoricalIndex` (:issue:`38906`)
 
 Datetimelike
 ^^^^^^^^^^^^
