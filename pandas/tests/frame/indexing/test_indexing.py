@@ -1682,6 +1682,21 @@ class TestDataFrameIndexing:
         res = df.loc[:, 0.5]
         tm.assert_series_equal(res, expected)
 
+    @pytest.mark.parametrize("indexer", ["A", ["A"], ("A", slice(None))])
+    def test_setitem_unsorted_multiindex_columns(self, indexer):
+        # GH#38601
+        mi = MultiIndex.from_tuples([("A", 4), ("B", "3"), ("A", "2")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        obj = df.copy()
+        obj.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
+        tm.assert_frame_equal(obj, expected)
+
+        df = df.sort_index(1)
+        df.loc[:, indexer] = np.zeros((2, 2), dtype=int)
+        expected = expected.sort_index(1)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
