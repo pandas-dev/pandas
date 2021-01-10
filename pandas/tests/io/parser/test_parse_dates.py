@@ -55,6 +55,25 @@ def test_separator_date_conflict(all_parsers):
     )
     tm.assert_frame_equal(df, expected)
 
+@pytest.fixtures(all_parsers)
+def test_read_csv_with_custom_date_parser(self, all_parsers):
+        # GH36111
+
+        testdata = StringIO("""time    e   n   h
+        41047.00	-98573.7297	871458.0640	389.0089
+        41048.00	-98573.7299	871458.0640	389.0089
+        41049.00	-98573.7300	871458.0642	389.0088
+        41050.00	-98573.7299	871458.0643	389.0088
+        41051.00	-98573.7302	871458.0640	389.0086
+            """)
+
+        result = pd.read_csv(testdata, delim_whitespace=True, parse_dates=True, date_parser=all_parsers, index_col='time')
+        expected = pd.DataFrame({"e": [-98573.7297, -98573.7299, -98573.7300, -98573.7299, -98573.7302],
+                                 "n": [871458.0640, 871458.0640, 871458.0642, 871458.0643, 871458.0640],
+                                 "h": [389.0089, 389.0089, 389.0088, 389.0088, 389.0086]},
+                                index=[41047.00, 41048.00, 41049.00, 41050.00, 41051.00])
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("keep_date_col", [True, False])
 def test_multiple_date_col_custom(all_parsers, keep_date_col):
