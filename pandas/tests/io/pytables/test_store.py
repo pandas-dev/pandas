@@ -27,7 +27,7 @@ from pandas.tests.io.pytables.common import (
     safe_close,
 )
 
-from pandas.io.pytables import HDFStore, _maybe_adjust_name, read_hdf
+from pandas.io.pytables import HDFStore, read_hdf
 
 pytestmark = pytest.mark.single
 
@@ -996,28 +996,3 @@ def test_to_hdf_with_object_column_names(setup_path):
                 df.to_hdf(path, "df", format="table", data_columns=True)
                 result = pd.read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                 assert len(result)
-
-
-def test_fspath():
-    with tm.ensure_clean("foo.h5") as path:
-        with HDFStore(path) as store:
-            assert os.fspath(store) == str(path)
-
-
-@pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
-def test_select_empty_where(where):
-    # GH26610
-
-    df = DataFrame([1, 2, 3])
-    with ensure_clean_path("empty_where.h5") as path:
-        with HDFStore(path) as store:
-            store.put("df", df, "t")
-            result = pd.read_hdf(store, "df", where=where)
-            tm.assert_frame_equal(result, df)
-
-
-@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
-def test_maybe_adjust_name_bad_version_raises(bad_version):
-    msg = "Version is incorrect, expected sequence of 3 integers"
-    with pytest.raises(ValueError, match=msg):
-        _maybe_adjust_name("values_block_0", version=bad_version)

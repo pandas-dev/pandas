@@ -437,3 +437,9 @@ def test_multiple_open_close(setup_path):
         msg = "'HDFStore' object has no attribute 'df'"
         with pytest.raises(AttributeError, match=msg):
             store.df
+
+
+def test_fspath():
+    with tm.ensure_clean("foo.h5") as path:
+        with HDFStore(path) as store:
+            assert os.fspath(store) == str(path)

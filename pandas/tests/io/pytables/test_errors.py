@@ -18,7 +18,7 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
 
-from pandas.io.pytables import Term
+from pandas.io.pytables import Term, _maybe_adjust_name
 
 pytestmark = pytest.mark.single
 
@@ -225,3 +225,10 @@ def test_read_hdf_generic_buffer_errors():
     msg = "Support for generic buffers has not been implemented."
     with pytest.raises(NotImplementedError, match=msg):
         read_hdf(BytesIO(b""), "df")
+
+
+@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
+def test_maybe_adjust_name_bad_version_raises(bad_version):
+    msg = "Version is incorrect, expected sequence of 3 integers"
+    with pytest.raises(ValueError, match=msg):
+        _maybe_adjust_name("values_block_0", version=bad_version)

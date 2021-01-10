@@ -967,3 +967,15 @@ def test_query_compare_column_type(setup_path):
                 else:
                     expected = df.loc[[], :]
                 tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("where", ["", (), (None,), [], [None]])
+def test_select_empty_where(where):
+    # GH26610
+
+    df = DataFrame([1, 2, 3])
+    with ensure_clean_path("empty_where.h5") as path:
+        with HDFStore(path) as store:
+            store.put("df", df, "t")
+            result = pd.read_hdf(store, "df", where=where)
+            tm.assert_frame_equal(result, df)
