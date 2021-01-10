@@ -283,8 +283,8 @@ class BaseGrouper:
             return self.groupings[0].groups
         else:
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return self.axis.groupby(to_groupby)
+            index = Index(to_groupby)
+            return self.axis.groupby(index)
 
     @final
     @cache_readonly
