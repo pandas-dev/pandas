@@ -46,6 +46,7 @@ from pandas._typing import (
     JSONSerializable,
     Label,
     Level,
+    Manager,
     NpDtype,
     Renamer,
     StorageOptions,
@@ -187,7 +188,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     )
     _metadata: List[str] = []
     _is_copy = None
-    _mgr: Union[BlockManager, ArrayManager]
+    _mgr: Manager
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
@@ -196,7 +197,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __init__(
         self,
-        data: Union[BlockManager, ArrayManager],
+        data: Manager,
         copy: bool = False,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
@@ -215,7 +216,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @classmethod
     def _init_mgr(
         cls, mgr, axes, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> Union[BlockManager, ArrayManager]:
+    ) -> Manager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:

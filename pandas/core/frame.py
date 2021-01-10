@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Level,
+    Manager,
     PythonFuncType,
     Renamer,
     StorageOptions,
@@ -623,7 +624,7 @@ class DataFrame(NDFrame, OpsMixin):
             New DataFrame using specified manager type. Is not guaranteed
             to be a copy or not.
         """
-        new_mgr: Union[BlockManager, ArrayManager]
+        new_mgr: Manager
         new_mgr = mgr_to_mgr(self._mgr, typ=typ)
         # fastpath of passing a manager doesn't check the option/manager class
         return DataFrame(new_mgr)

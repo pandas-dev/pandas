@@ -1,12 +1,12 @@
 from collections import defaultdict
 import copy
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Shape
+from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 def concatenate_block_managers(
     mgrs_indexers, axes: List["Index"], concat_axis: int, copy: bool
-) -> Union[ArrayManager, BlockManager]:
+) -> Manager:
     """
     Concatenate block managers into one.
 

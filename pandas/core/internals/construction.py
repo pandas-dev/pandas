@@ -9,7 +9,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Label, Scalar
+from pandas._typing import Axis, DtypeObj, Label, Manager, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -146,7 +146,7 @@ def mgr_to_mgr(mgr, typ: str):
     """
     from pandas.core.internals import ArrayManager, BlockManager
 
-    new_mgr: Union[ArrayManager, BlockManager]
+    new_mgr: Manager
 
     if typ == "block":
         if isinstance(mgr, BlockManager):
