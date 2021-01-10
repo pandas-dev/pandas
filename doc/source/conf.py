@@ -432,7 +432,7 @@ extlinks = {
 
 
 ipython_warning_is_error = False
-ipython_exec_lines = [
+ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",
     # This ensures correct rendering on system with console encoding != utf8
