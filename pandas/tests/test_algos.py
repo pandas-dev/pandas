@@ -2409,3 +2409,10 @@ class TestDiff:
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16"])
+    def test_diff_low_precision_int(self, dtype):
+        arr = np.array([0, 1, 1, 0, 0], dtype=dtype)
+        result = algos.diff(arr, 1)
+        expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
+        tm.assert_numpy_array_equal(result, expected)

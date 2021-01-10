@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
 import warnings
@@ -13,6 +15,7 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_bool_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -1742,7 +1745,7 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name: str):
+    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -1931,12 +1934,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        # Ensure we have something we can iterate over
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ri = Index(range(len(self.obj.columns)))
-            ilocs = ri[column_indexer]
+            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
+            column_indexer.dtype
+        ):
+            ilocs = np.arange(len(column_indexer))[column_indexer]
         else:
             ilocs = column_indexer
         return ilocs
@@ -2032,7 +2037,7 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Incompatible indexer with Series")
 
-    def _align_frame(self, indexer, df: "DataFrame"):
+    def _align_frame(self, indexer, df: DataFrame):
         is_frame = self.ndim == 2
 
         if isinstance(indexer, tuple):
@@ -2204,7 +2209,7 @@ def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
     return tuple(_tup)
 
 
-def convert_to_index_sliceable(obj: "DataFrame", key):
+def convert_to_index_sliceable(obj: DataFrame, key):
     """
     If we are index sliceable, then return my slicer, otherwise return None.
     """
