@@ -167,7 +167,7 @@ repos:
             (?x)^
             pandas/tests/io/excel/test_writers\.py|
             pandas/tests/io/pytables/common\.py|
-            pandas/tests/io/pytables/store/test_store\.py$
+            pandas/tests/io/pytables/test_store\.py$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
