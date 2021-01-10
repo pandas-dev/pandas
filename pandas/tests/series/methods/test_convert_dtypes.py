@@ -141,7 +141,7 @@ test_cases = [
     (
         pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
         None,
-        pd.IntervalDtype("int64"),
+        pd.IntervalDtype("int64", "right"),
         {},
     ),
 ]

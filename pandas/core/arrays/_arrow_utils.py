@@ -127,7 +127,7 @@ if _pyarrow_version_ge_015:
         def to_pandas_dtype(self):
             import pandas as pd
 
-            return pd.IntervalDtype(self.subtype.to_pandas_dtype())
+            return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
 
     # register the type with a dummy instance
     _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
