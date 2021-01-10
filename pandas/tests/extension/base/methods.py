@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
@@ -106,6 +108,27 @@ class BaseMethodsTests(BaseExtensionTests):
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected
+    ):
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        ser = pd.Series(data_missing_for_sorting)
+        result = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
         "na_position, expected",
@@ -371,6 +394,9 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
+    @pytest.mark.xfail(
+        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
+    )
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
         arr = type(data_for_sorting)._from_sequence([a, b, c])

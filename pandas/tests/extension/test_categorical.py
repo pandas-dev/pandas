@@ -117,8 +117,9 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
+    @pytest.mark.xfail(reason="Deliberately upcast to object?")
     def test_concat_with_reindex(self, data):
-        pytest.xfail(reason="Deliberately upcast to object?")
+        super().test_concat_with_reindex(data)
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -223,7 +224,7 @@ class TestCasting(base.BaseCastingTests):
     )
     def test_consistent_casting(self, dtype, expected):
         # GH 28448
-        result = Categorical("2015-01-01").astype(dtype)
+        result = Categorical(["2015-01-01"]).astype(dtype)
         assert result == expected
 
 
