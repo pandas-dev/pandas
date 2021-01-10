@@ -88,7 +88,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.782           |          |         |
+| mypy (dev)      | 0.790           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
@@ -192,6 +192,7 @@ Categorical
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 - Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
 - Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
+- Bug in :meth:`DataFrame.reindex` was throwing ``IndexError`` when new index contained duplicates and old index was :class:`CategoricalIndex` (:issue:`38906`)
 
 Datetimelike
 ^^^^^^^^^^^^

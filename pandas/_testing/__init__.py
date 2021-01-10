@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 from datetime import datetime
 from functools import wraps
@@ -5,7 +7,15 @@ import operator
 import os
 import re
 import string
-from typing import Callable, ContextManager, Counter, List, Type
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    ContextManager,
+    Counter,
+    Iterable,
+    List,
+    Type,
+)
 import warnings
 
 import numpy as np
@@ -89,6 +99,9 @@ from pandas._testing.contexts import (  # noqa:F401
     with_csv_dialect,
 )
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+
+if TYPE_CHECKING:
+    from pandas import PeriodIndex, TimedeltaIndex
 
 _N = 30
 _K = 4
@@ -281,17 +294,17 @@ def makeFloatIndex(k=10, name=None):
     return Index(values * (10 ** np.random.randint(0, 9)), name=name)
 
 
-def makeDateIndex(k=10, freq="B", name=None, **kwargs):
+def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
+def makeTimedeltaIndex(k: int = 10, freq="D", name=None, **kwargs) -> TimedeltaIndex:
     return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
-def makePeriodIndex(k=10, name=None, **kwargs):
+def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
     return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
@@ -394,7 +407,7 @@ def index_subclass_makers_generator():
     yield from make_index_funcs
 
 
-def all_timeseries_index_generator(k=10):
+def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
     """
     Generator which can be iterated over to get instances of all the classes
     which represent time-series.
@@ -403,10 +416,13 @@ def all_timeseries_index_generator(k=10):
     ----------
     k: length of each of the index instances
     """
-    make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
+    make_index_funcs: List[Callable[..., Index]] = [
+        makeDateIndex,
+        makePeriodIndex,
+        makeTimedeltaIndex,
+    ]
     for make_index_func in make_index_funcs:
-        # pandas\_testing.py:1986: error: Cannot call function of unknown type
-        yield make_index_func(k=k)  # type: ignore[operator]
+        yield make_index_func(k=k)
 
 
 # make series
