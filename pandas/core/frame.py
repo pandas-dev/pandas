@@ -7646,13 +7646,12 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self if axis == 0 else self.T,
-            how="agg",
             func=arg,
             axis=0,
             args=args,
             kwds=kwargs,
         )
-        result, how = op.get_result()
+        result, how = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
@@ -7819,7 +7818,6 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self,
-            how="apply",
             func=func,
             axis=axis,
             raw=raw,
@@ -7827,7 +7825,7 @@ NaN 12.3   33.0
             args=args,
             kwds=kwds,
         )
-        return op.get_result()
+        return op.apply()
 
     def applymap(
         self, func: PythonFuncType, na_action: Optional[str] = None
