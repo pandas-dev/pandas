@@ -54,8 +54,8 @@ from pandas._typing import (
     ValueKeyFunc,
     final,
 )
+from pandas.compat import function as nv
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc, rewrite_axis_style_signature
 from pandas.util._validators import (

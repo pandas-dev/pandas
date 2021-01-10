@@ -69,8 +69,8 @@ from pandas._typing import (
     Suffixes,
     ValueKeyFunc,
 )
+from pandas.compat import function as nv
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
     Substitution,

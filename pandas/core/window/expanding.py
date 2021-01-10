@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 import numpy as np
 
 from pandas._typing import FrameOrSeries
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import _doc_template, _shared_docs

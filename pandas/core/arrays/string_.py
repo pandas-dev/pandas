@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Dtype, Scalar
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (

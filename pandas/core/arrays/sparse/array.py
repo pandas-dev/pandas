@@ -14,7 +14,7 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 from pandas._typing import Dtype, NpDtype, Scalar
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import (

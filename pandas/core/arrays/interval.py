@@ -15,7 +15,7 @@ from pandas._libs.interval import (
 )
 from pandas._libs.missing import NA
 from pandas._typing import ArrayLike, Dtype, NpDtype
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import maybe_convert_platform

@@ -20,8 +20,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import Dtype, DtypeObj, IndexLabel
-from pandas.compat import PYPY
-from pandas.compat.numpy import function as nv
+from pandas.compat import PYPY, function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 

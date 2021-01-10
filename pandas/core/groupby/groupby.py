@@ -47,7 +47,7 @@ from pandas._typing import (
     Scalar,
     final,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 

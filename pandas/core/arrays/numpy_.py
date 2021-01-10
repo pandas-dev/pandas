@@ -6,7 +6,7 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import Dtype, NpDtype, Scalar
-from pandas.compat.numpy import function as nv
+from pandas.compat import function as nv
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
