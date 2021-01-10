@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
+from pandas.core.algorithms import safe_sort
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
@@ -482,9 +483,10 @@ def transform_dict_like(
 
     if obj.ndim != 1:
         # Check for missing columns on a frame
-        cols = sorted(set(func.keys()) - set(obj.columns))
+        cols = set(func.keys()) - set(obj.columns)
         if len(cols) > 0:
-            raise SpecificationError(f"Column(s) {cols} do not exist")
+            cols_sorted = list(safe_sort(list(cols)))
+            raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
 
     # Can't use func.values(); wouldn't work for a Series
     if any(is_dict_like(v) for _, v in func.items()):
@@ -738,7 +740,11 @@ def agg_dict_like(
         if isinstance(selected_obj, ABCDataFrame) and len(
             selected_obj.columns.intersection(keys)
         ) != len(keys):
-            cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+            cols = list(
+                safe_sort(
+                    list(set(keys) - set(selected_obj.columns.intersection(keys))),
+                )
+            )
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
     from pandas.core.reshape.concat import concat

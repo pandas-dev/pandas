@@ -163,6 +163,7 @@ def test_invalid_kwargs_nopython():
 
 
 @td.skip_if_no("numba", "0.46.0")
+@pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
@@ -177,9 +178,6 @@ class TestTableMethod:
                 f, engine="numba", raw=True
             )
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="method='table' is not supported."
-    )
     def test_table_method_rolling_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
@@ -247,9 +245,6 @@ class TestTableMethod:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="method='table' is not supported."
-    )
     def test_table_method_expanding_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
