@@ -85,6 +85,14 @@ Featuretools is a Python library for automated feature engineering built on top 
 
 Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
 
+`STUMPY <https://github.com/TDAmeritrade/stumpy>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+STUMPY is a powerful and scalable Python library for modern time series analysis.
+At its core, STUMPY efficiently computes something called a
+`matrix profile <https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html>`__,
+which can be used for a wide variety of time series data mining tasks.
+
 .. _ecosystem.visualization:
 
 Visualization
