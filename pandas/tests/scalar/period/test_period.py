@@ -10,7 +10,7 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat.numpy import np_datetime64_compat
+from pandas.compat import np_datetime64_compat
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
