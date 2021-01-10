@@ -74,13 +74,13 @@ def test_read_csv_with_custom_date_parser(self, all_parsers):
         delim_whitespace=True,
         parse_dates=True,
         date_parser=all_parsers,
-        index_col='time',
+        index_col="time",
     )
     expected = pd.DataFrame(
         {
             "e": [-98573.7297, -98573.7299, -98573.7300, -98573.7299, -98573.7302],
             "n": [871458.0640, 871458.0640, 871458.0642, 871458.0643, 871458.0640],
-            "h": [389.0089, 389.0089, 389.0088, 389.0088, 389.0086]
+            "h": [389.0089, 389.0089, 389.0088, 389.0088, 389.0086],
         },
         index=[41047.00, 41048.00, 41049.00, 41050.00, 41051.00],
     )
