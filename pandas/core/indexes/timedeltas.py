@@ -2,7 +2,7 @@
 
 from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import Timedelta, to_offset
-from pandas._typing import DtypeObj
+from pandas._typing import DtypeObj, Optional
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import TD64NS_DTYPE, is_scalar, is_timedelta64_dtype
@@ -212,7 +212,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
 
 def timedelta_range(
-    start=None, end=None, periods=None, freq=None, name=None, closed=None
+    start=None,
+    end=None,
+    periods: Optional[int] = None,
+    freq=None,
+    name=None,
+    closed=None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
@@ -236,7 +241,7 @@ def timedelta_range(
 
     Returns
     -------
-    rng : TimedeltaIndex
+    TimedeltaIndex
 
     Notes
     -----
