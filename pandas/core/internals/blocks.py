@@ -678,11 +678,7 @@ class Block(PandasObject):
 
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
-        dtype = self.values.dtype.type
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, dtype)
-        return isinstance(element, dtype)
+        raise NotImplementedError("Implemented on subclasses")
 
     def should_store(self, value: ArrayLike) -> bool:
         """
@@ -1969,10 +1965,10 @@ class ComplexBlock(NumericBlock):
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
-        return isinstance(
-            element, (float, int, complex, np.float_, np.int_)
-        ) and not isinstance(element, (bool, np.bool_))
+            return tipo.kind in ["c", "f", "i", "u"]
+        return (
+            lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element)
+        )
 
 
 class IntBlock(NumericBlock):

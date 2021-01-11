@@ -40,7 +40,6 @@ ResType = Dict[int, Any]
 
 def frame_apply(
     obj: DataFrame,
-    how: str,
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
@@ -58,7 +57,6 @@ def frame_apply(
 
     return klass(
         obj,
-        how,
         func,
         raw=raw,
         result_type=result_type,
@@ -69,7 +67,6 @@ def frame_apply(
 
 def series_apply(
     obj: Series,
-    how: str,
     func: AggFuncType,
     convert_dtype: bool = True,
     args=None,
@@ -77,7 +74,6 @@ def series_apply(
 ) -> SeriesApply:
     return SeriesApply(
         obj,
-        how,
         func,
         convert_dtype,
         args,
@@ -91,16 +87,13 @@ class Apply(metaclass=abc.ABCMeta):
     def __init__(
         self,
         obj: FrameOrSeriesUnion,
-        how: str,
         func,
         raw: bool,
         result_type: Optional[str],
         args,
         kwds,
     ):
-        assert how in ("apply", "agg")
         self.obj = obj
-        self.how = how
         self.raw = raw
         self.args = args or ()
         self.kwds = kwds or {}
@@ -131,12 +124,6 @@ class Apply(metaclass=abc.ABCMeta):
     @property
     def index(self) -> Index:
         return self.obj.index
-
-    def get_result(self):
-        if self.how == "apply":
-            return self.apply()
-        else:
-            return self.agg()
 
     @abc.abstractmethod
     def apply(self) -> FrameOrSeriesUnion:
@@ -233,12 +220,6 @@ class FrameApply(Apply):
     @property
     def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
-
-    def get_result(self):
-        if self.how == "apply":
-            return self.apply()
-        else:
-            return self.agg()
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
@@ -570,7 +551,6 @@ class SeriesApply(Apply):
     def __init__(
         self,
         obj: Series,
-        how: str,
         func: AggFuncType,
         convert_dtype: bool,
         args,
@@ -580,7 +560,6 @@ class SeriesApply(Apply):
 
         super().__init__(
             obj,
-            how,
             func,
             raw=False,
             result_type=None,

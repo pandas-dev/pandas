@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeries, Hashable
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -193,7 +193,7 @@ def describe_ndframe(
 
     ldesc = [describe_1d(s) for _, s in data.items()]
     # set a convenient order for rows
-    names: List[Label] = []
+    names: List[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:

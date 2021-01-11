@@ -247,10 +247,11 @@ Indexing
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.loc`, :meth:`Series.loc`, :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` returning incorrect elements for non-monotonic :class:`DatetimeIndex` for string slices (:issue:`33146`)
+- Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` with timezone aware indexes raising ``TypeError`` for ``method="ffill"`` and ``method="bfill"`` and specified ``tolerance`` (:issue:`38566`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
--
+- Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 
 Missing
 ^^^^^^^
