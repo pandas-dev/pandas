@@ -159,7 +159,7 @@ class SelectionMixin:
     """
 
     obj: Any
-    exclusions: Set[Label] = set()
+    exclusions: Set[Label]
 
     _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]

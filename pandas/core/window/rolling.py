@@ -106,6 +106,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         self.__dict__.update(kwargs)
         self.obj = obj
+        self.exclusions = set()
         self.on = on
         self.closed = closed
         self.window = window
