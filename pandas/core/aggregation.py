@@ -11,6 +11,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -23,16 +24,18 @@ from typing import (
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
+    AggFuncTypeDict,
+    AggObjType,
     Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Label,
 )
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
+from pandas.core.algorithms import safe_sort
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
@@ -291,9 +294,9 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 def relabel_result(
     result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Iterable[Label],
+    columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Label, "Series"]:
+) -> Dict[Hashable, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -320,7 +323,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -442,7 +445,7 @@ def transform(
             func = {col: func for col in obj}
 
     if is_dict_like(func):
-        func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
+        func = cast(AggFuncTypeDict, func)
         return transform_dict_like(obj, func, *args, **kwargs)
 
     # func is either str or callable
@@ -466,7 +469,7 @@ def transform(
 
 def transform_dict_like(
     obj: FrameOrSeries,
-    func: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    func: AggFuncTypeDict,
     *args,
     **kwargs,
 ):
@@ -480,16 +483,17 @@ def transform_dict_like(
 
     if obj.ndim != 1:
         # Check for missing columns on a frame
-        cols = sorted(set(func.keys()) - set(obj.columns))
+        cols = set(func.keys()) - set(obj.columns)
         if len(cols) > 0:
-            raise SpecificationError(f"Column(s) {cols} do not exist")
+            cols_sorted = list(safe_sort(list(cols)))
+            raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
 
     # Can't use func.values(); wouldn't work for a Series
     if any(is_dict_like(v) for _, v in func.items()):
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
-    results: Dict[Label, FrameOrSeriesUnion] = {}
+    results: Dict[Hashable, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:
@@ -529,7 +533,7 @@ def transform_str_or_callable(
 
 
 def aggregate(
-    obj,
+    obj: AggObjType,
     arg: AggFuncType,
     *args,
     **kwargs,
@@ -560,7 +564,7 @@ def aggregate(
     if isinstance(arg, str):
         return obj._try_aggregate_string_function(arg, *args, **kwargs), None
     elif is_dict_like(arg):
-        arg = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], arg)
+        arg = cast(AggFuncTypeDict, arg)
         return agg_dict_like(obj, arg, _axis), True
     elif is_list_like(arg):
         # we require a list, but not an 'str'
@@ -579,7 +583,7 @@ def aggregate(
 
 
 def agg_list_like(
-    obj,
+    obj: AggObjType,
     arg: List[AggFuncTypeBase],
     _axis: int,
 ) -> FrameOrSeriesUnion:
@@ -671,8 +675,8 @@ def agg_list_like(
 
 
 def agg_dict_like(
-    obj,
-    arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    obj: AggObjType,
+    arg: AggFuncTypeDict,
     _axis: int,
 ) -> FrameOrSeriesUnion:
     """
@@ -701,7 +705,7 @@ def agg_dict_like(
     # eg. {'A' : ['mean']}, normalize all to
     # be list-likes
     if any(is_aggregator(x) for x in arg.values()):
-        new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
+        new_arg: AggFuncTypeDict = {}
         for k, v in arg.items():
             if not isinstance(v, (tuple, list, dict)):
                 new_arg[k] = [v]
@@ -736,7 +740,11 @@ def agg_dict_like(
         if isinstance(selected_obj, ABCDataFrame) and len(
             selected_obj.columns.intersection(keys)
         ) != len(keys):
-            cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+            cols = list(
+                safe_sort(
+                    list(set(keys) - set(selected_obj.columns.intersection(keys))),
+                )
+            )
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
     from pandas.core.reshape.concat import concat

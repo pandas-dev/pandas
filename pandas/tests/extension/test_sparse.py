@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
@@ -355,7 +370,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
-        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected_dtype = SparseDtype(str, str(data.fill_value))
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
 

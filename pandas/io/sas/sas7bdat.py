@@ -16,7 +16,7 @@ Reference for binary data compression:
 from collections import abc
 from datetime import datetime, timedelta
 import struct
-from typing import IO, Any, Union
+from typing import IO, Any, Union, cast
 
 import numpy as np
 
@@ -24,7 +24,7 @@ from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 
 import pandas as pd
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
@@ -52,13 +52,17 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
         if unit == "s":
-            return sas_datetimes.apply(
+            s_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
             )
+            s_series = cast(pd.Series, s_series)
+            return s_series
         elif unit == "d":
-            return sas_datetimes.apply(
+            d_series = sas_datetimes.apply(
                 lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
             )
+            d_series = cast(pd.Series, d_series)
+            return d_series
         else:
             raise ValueError("unit must be 'd' or 's'")
 
@@ -131,8 +135,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         bytes.
     """
 
-    _path_or_buf: IO[Any]
-
     def __init__(
         self,
         path_or_buf,
@@ -170,14 +172,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
-        if isinstance(path_or_buf, str):
-            buf = open(path_or_buf, "rb")
-            self.handle = buf
-        else:
-            buf = path_or_buf
+        self.handles = get_handle(path_or_buf, "rb", is_text=False)
 
-        self._path_or_buf: IO[Any] = buf
+        self._path_or_buf = cast(IO[Any], self.handles.handle)
 
         try:
             self._get_properties()
@@ -202,10 +199,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):
-        try:
-            self.handle.close()
-        except AttributeError:
-            pass
+        self.handles.close()
 
     def _get_properties(self):
 
@@ -213,7 +207,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._path_or_buf.seek(0)
         self._cached_page = self._path_or_buf.read(288)
         if self._cached_page[0 : len(const.magic)] != const.magic:
-            self.close()
             raise ValueError("magic number mismatch (not a SAS file?)")
 
         # Get alignment information
@@ -289,7 +282,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
         if len(self._cached_page) != self.header_length:
-            self.close()
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_int(
@@ -343,6 +335,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def __next__(self):
         da = self.read(nrows=self.chunksize or 1)
         if da is None:
+            self.close()
             raise StopIteration
         return da
 
@@ -387,7 +380,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
-                self.close()
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
 

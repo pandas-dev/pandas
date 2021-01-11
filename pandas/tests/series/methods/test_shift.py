@@ -32,7 +32,7 @@ class TestShift:
         # GH22397
         assert ser.shift(shift_size) is not ser
 
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
     def test_datetime_shift_always_copy(self, move_by_freq):
         # GH#22397
         ser = Series(range(5), index=date_range("2017", periods=5))
@@ -170,7 +170,7 @@ class TestShift:
 
         # check for incorrect fill_value
         msg = "'fill_value=f' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 
     def test_shift_dst(self):

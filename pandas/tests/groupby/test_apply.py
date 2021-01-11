@@ -665,7 +665,7 @@ def test_apply_aggregating_timedelta_and_datetime():
     df["time_delta_zero"] = df.datetime - df.datetime
     result = df.groupby("clientid").apply(
         lambda ddf: Series(
-            dict(clientid_age=ddf.time_delta_zero.min(), date=ddf.datetime.min())
+            {"clientid_age": ddf.time_delta_zero.min(), "date": ddf.datetime.min()}
         )
     )
     expected = DataFrame(
@@ -784,7 +784,7 @@ def test_groupby_apply_none_first():
 
 def test_groupby_apply_return_empty_chunk():
     # GH 22221: apply filter which returns some empty groups
-    df = DataFrame(dict(value=[0, 1], group=["filled", "empty"]))
+    df = DataFrame({"value": [0, 1], "group": ["filled", "empty"]})
     groups = df.groupby("group")
     result = groups.apply(lambda group: group[group.value != 1]["value"])
     expected = Series(
@@ -1087,3 +1087,25 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)
+
+
+def test_apply_dropna_with_indexed_same():
+    # GH 38227
+
+    df = DataFrame(
+        {
+            "col": [1, 2, 3, 4, 5],
+            "group": ["a", np.nan, np.nan, "b", "b"],
+        },
+        index=list("xxyxz"),
+    )
+    result = df.groupby("group").apply(lambda x: x)
+    expected = DataFrame(
+        {
+            "col": [1, 4, 5],
+            "group": ["a", "b", "b"],
+        },
+        index=list("xxz"),
+    )
+
+    tm.assert_frame_equal(result, expected)

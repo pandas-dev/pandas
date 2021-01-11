@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -53,7 +54,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -528,16 +529,21 @@ def get_flattened_list(
     return [tuple(array) for array in arrays.values()]
 
 
-def get_indexer_dict(label_list, keys):
+def get_indexer_dict(
+    label_list: List[np.ndarray], keys: List["Index"]
+) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
     -------
-    dict
+    dict:
         Labels mapped to indexers.
     """
     shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    if np.all(group_index == -1):
+        # Short-circuit, lib.indices_fast will return the same
+        return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
         if is_int64_overflow_possible(shape)
@@ -598,7 +604,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

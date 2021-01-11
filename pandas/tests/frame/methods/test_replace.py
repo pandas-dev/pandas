@@ -6,6 +6,8 @@ from typing import Dict, List, Union
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -709,19 +711,25 @@ class TestDataFrameReplace:
         )
         tm.assert_frame_equal(res, expec)
 
-    def test_replace_with_empty_list(self):
+    def test_replace_with_empty_list(self, frame_or_series):
         # GH 21977
-        s = Series([["a", "b"], [], np.nan, [1]])
-        df = DataFrame({"col": s})
-        expected = df
-        result = df.replace([], np.nan)
-        tm.assert_frame_equal(result, expected)
+        ser = Series([["a", "b"], [], np.nan, [1]])
+        obj = DataFrame({"col": ser})
+        if frame_or_series is Series:
+            obj = ser
+        expected = obj
+        result = obj.replace([], np.nan)
+        tm.assert_equal(result, expected)
 
         # GH 19266
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            df.replace({np.nan: []})
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            df.replace({np.nan: ["dummy", "alt"]})
+        msg = (
+            "NumPy boolean array indexing assignment cannot assign {size} "
+            "input values to the 1 output values where the mask is true"
+        )
+        with pytest.raises(ValueError, match=msg.format(size=0)):
+            obj.replace({np.nan: []})
+        with pytest.raises(ValueError, match=msg.format(size=2)):
+            obj.replace({np.nan: ["dummy", "alt"]})
 
     def test_replace_series_dict(self):
         # from GH 3064
@@ -1117,7 +1125,7 @@ class TestDataFrameReplace:
         tm.assert_series_equal(result, expected)
 
     def test_replace_dict_tuple_list_ordering_remains_the_same(self):
-        df = DataFrame(dict(A=[np.nan, 1]))
+        df = DataFrame({"A": [np.nan, 1]})
         res1 = df.replace(to_replace={np.nan: 0, 1: -1e8})
         res2 = df.replace(to_replace=(1, np.nan), value=[-1e8, 0])
         res3 = df.replace(to_replace=[1, np.nan], value=[-1e8, 0])
@@ -1502,6 +1510,7 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     @pytest.mark.parametrize("replacement", [np.nan, 5])
     def test_replace_with_duplicate_columns(self, replacement):
         # GH 24798
@@ -1517,18 +1526,16 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="replace() changes dtype from period to object, see GH34871", strict=True
-    )
-    def test_replace_period_ignore_float(self):
-        """
-        Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
-        with a Period column the old, faulty behavior is to raise TypeError.
-        """
-        df = DataFrame({"Per": [pd.Period("2020-01")] * 3})
-        result = df.replace(1.0, 0.0)
-        expected = DataFrame({"Per": [pd.Period("2020-01")] * 3})
-        tm.assert_frame_equal(expected, result)
+    @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
+    def test_replace_ea_ignore_float(self, frame_or_series, value):
+        # GH#34871
+        obj = DataFrame({"Per": [value] * 3})
+        if frame_or_series is not DataFrame:
+            obj = obj["Per"]
+
+        expected = obj.copy()
+        result = obj.replace(1.0, 0.0)
+        tm.assert_equal(expected, result)
 
     def test_replace_value_category_type(self):
         """
@@ -1632,3 +1639,10 @@ class TestDataFrameReplace:
         result = df1.replace(columns_values_map)
         expected = DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_bytes(self, frame_or_series):
+        # GH#38900
+        obj = frame_or_series(["o"]).astype("|S")
+        expected = obj.copy()
+        obj = obj.replace({None: np.nan})
+        tm.assert_equal(obj, expected)

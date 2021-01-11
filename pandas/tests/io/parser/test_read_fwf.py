@@ -340,6 +340,51 @@ def test_fwf_comment(comment):
     tm.assert_almost_equal(result, expected)
 
 
+def test_fwf_skip_blank_lines():
+    data = """
+
+A         B            C            D
+
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+
+
+201162    502.953953   173.237159   12468.3
+
+"""
+    result = read_fwf(StringIO(data), skip_blank_lines=True)
+    expected = DataFrame(
+        [
+            [201158, 360.242940, 149.910199, 11950.7],
+            [201159, 444.953632, 166.985655, 11788.4],
+            [201162, 502.953953, 173.237159, 12468.3],
+        ],
+        columns=["A", "B", "C", "D"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    data = """\
+A         B            C            D
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+
+
+201162    502.953953   173.237159   12468.3
+"""
+    result = read_fwf(StringIO(data), skip_blank_lines=False)
+    expected = DataFrame(
+        [
+            [201158, 360.242940, 149.910199, 11950.7],
+            [201159, 444.953632, 166.985655, 11788.4],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [201162, 502.953953, 173.237159, 12468.3],
+        ],
+        columns=["A", "B", "C", "D"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("thousands", [",", "#", "~"])
 def test_fwf_thousands(thousands):
     data = """\
@@ -491,7 +536,7 @@ def test_variable_width_unicode():
         "\r\n"
     )
     encoding = "utf8"
-    kwargs = dict(header=None, encoding=encoding)
+    kwargs = {"header": None, "encoding": encoding}
 
     expected = read_fwf(
         BytesIO(data.encode(encoding)), colspecs=[(0, 4), (5, 9)], **kwargs
@@ -500,7 +545,7 @@ def test_variable_width_unicode():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", [dict(), {"a": "float64", "b": str, "c": "int32"}])
+@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "int32"}])
 def test_dtype(dtype):
     data = """ a    b    c
 1    2    3.2
@@ -593,7 +638,7 @@ cc\tdd """
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("infer", [True, False, None])
+@pytest.mark.parametrize("infer", [True, False])
 def test_fwf_compression(compression_only, infer):
     data = """1111111111
     2222222222
@@ -602,7 +647,7 @@ def test_fwf_compression(compression_only, infer):
     compression = compression_only
     extension = "gz" if compression == "gzip" else compression
 
-    kwargs = dict(widths=[5, 5], names=["one", "two"])
+    kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
 
     data = bytes(data, encoding="utf-8")

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, option_context
 import pandas._testing as tm
@@ -121,13 +123,13 @@ class TestChaining:
         tm.assert_frame_equal(df, DataFrame({"response": mdata, "response1": data}))
 
         # GH 6056
-        expected = DataFrame(dict(A=[np.nan, "bar", "bah", "foo", "bar"]))
-        df = DataFrame(dict(A=np.array(["foo", "bar", "bah", "foo", "bar"])))
+        expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
+        df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         df["A"].iloc[0] = np.nan
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(dict(A=np.array(["foo", "bar", "bah", "foo", "bar"])))
+        df = DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
         df.A.iloc[0] = np.nan
         result = df.head()
         tm.assert_frame_equal(result, expected)
@@ -299,12 +301,12 @@ class TestChaining:
 
         # Mixed type setting but same dtype & changing dtype
         df = DataFrame(
-            dict(
-                A=date_range("20130101", periods=5),
-                B=np.random.randn(5),
-                C=np.arange(5, dtype="int64"),
-                D=list("abcde"),
-            )
+            {
+                "A": date_range("20130101", periods=5),
+                "B": np.random.randn(5),
+                "C": np.arange(5, dtype="int64"),
+                "D": ["a", "b", "c", "d", "e"],
+            }
         )
 
         with pytest.raises(com.SettingWithCopyError, match=msg):
@@ -347,6 +349,7 @@ class TestChaining:
             with pytest.raises(com.SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = 111
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
         # xref gh-13017.
         with option_context("chained_assignment", "warn"):

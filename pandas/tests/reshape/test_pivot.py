@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -411,16 +409,14 @@ class TestPivotTable:
             },
             index=idx,
         )
-        res = df.pivot_table(
-            index=df.index.month, columns=pd.Grouper(key="dt", freq="M")
-        )
+        res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="M"))
         exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
         exp = DataFrame([3.25, 2.0], index=[1, 2], columns=exp_columns)
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
-            index=pd.Grouper(freq="A"), columns=pd.Grouper(key="dt", freq="M")
+            index=Grouper(freq="A"), columns=Grouper(key="dt", freq="M")
         )
         exp = DataFrame(
             [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
@@ -2055,8 +2051,8 @@ class TestPivotTable:
 
     def test_pivot_table_no_column_raises(self):
         # GH 10326
-        def agg(l):
-            return np.mean(l)
+        def agg(arr):
+            return np.mean(arr)
 
         foo = DataFrame({"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]})
         with pytest.raises(KeyError, match="notpresent"):
@@ -2104,7 +2100,6 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot("a", "b", "c")
 
-    @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")
@@ -2153,3 +2148,41 @@ class TestPivot:
 
         expected.columns.name = "columns"
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_index_list_values_none_immutable_args(self):
+        # GH37635
+        df = DataFrame(
+            {
+                "lev1": [1, 1, 1, 2, 2, 2],
+                "lev2": [1, 1, 2, 1, 1, 2],
+                "lev3": [1, 2, 1, 2, 1, 2],
+                "lev4": [1, 2, 3, 4, 5, 6],
+                "values": [0, 1, 2, 3, 4, 5],
+            }
+        )
+        index = ["lev1", "lev2"]
+        columns = ["lev3"]
+        result = df.pivot(index=index, columns=columns, values=None)
+
+        expected = DataFrame(
+            np.array(
+                [
+                    [1.0, 2.0, 0.0, 1.0],
+                    [3.0, np.nan, 2.0, np.nan],
+                    [5.0, 4.0, 4.0, 3.0],
+                    [np.nan, 6.0, np.nan, 5.0],
+                ]
+            ),
+            index=MultiIndex.from_arrays(
+                [(1, 1, 2, 2), (1, 2, 1, 2)], names=["lev1", "lev2"]
+            ),
+            columns=MultiIndex.from_arrays(
+                [("lev4", "lev4", "values", "values"), (1, 2, 1, 2)],
+                names=[None, "lev3"],
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        assert index == ["lev1", "lev2"]
+        assert columns == ["lev3"]

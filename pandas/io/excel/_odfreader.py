@@ -19,7 +19,7 @@ class ODFReader(BaseExcelReader):
     filepath_or_buffer : string, path to be parsed or
         an open readable stream.
     storage_options : dict, optional
-        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
+        passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
     """
 
     def __init__(
@@ -69,6 +69,7 @@ class ODFReader(BaseExcelReader):
             if table.getAttribute("name") == name:
                 return table
 
+        self.close()
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
@@ -190,6 +191,7 @@ class ODFReader(BaseExcelReader):
             result = cast(pd.Timestamp, result)
             return result.time()
         else:
+            self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
 
     def _get_cell_string_value(self, cell) -> str:

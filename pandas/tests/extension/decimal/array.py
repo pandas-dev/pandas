@@ -155,6 +155,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._data)
 
+    def __contains__(self, item) -> bool:
+        if not isinstance(item, decimal.Decimal):
+            return False
+        elif item.is_nan():
+            return self.isna().any()
+        else:
+            return super().__contains__(item)
+
     @property
     def nbytes(self) -> int:
         n = len(self)
@@ -178,7 +186,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if skipna:
             # If we don't have any NAs, we can ignore skipna

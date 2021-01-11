@@ -5,6 +5,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -225,6 +227,7 @@ def test_getitem_dups_with_missing():
         s[["foo", "bar", "bah", "bam"]]
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_getitem_dups():
     s = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
     expected = Series([3, 4], index=["C", "C"], dtype=np.int64)
@@ -271,32 +274,6 @@ def test_setitem(datetime_series, string_series):
     tm.assert_series_equal(s, expected)
 
 
-def test_setitem_dtypes():
-    # change dtypes
-    # GH 4463
-    expected = Series([np.nan, 2, 3])
-
-    s = Series([1, 2, 3])
-    s.iloc[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([1, 2, 3])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([1, 2, 3])
-    s[0] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    s = Series([False])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, Series([np.nan]))
-
-    s = Series([False, True])
-    s.loc[0] = np.nan
-    tm.assert_series_equal(s, Series([np.nan, 1.0]))
-
-
 def test_setslice(datetime_series):
     sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
@@ -309,8 +286,7 @@ def test_loc_setitem_2d_to_1d_raises():
 
     msg = "|".join(
         [
-            r"shape mismatch: value array of shape \(2,2\) could not be "
-            r"broadcast to indexing result of shape \(2,\)",
+            r"shape mismatch: value array of shape \(2,2\)",
             r"cannot reshape array of size 4 into shape \(2,\)",
         ]
     )
@@ -327,9 +303,9 @@ def test_loc_setitem_2d_to_1d_raises():
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     msg = "key of type tuple not found and not a MultiIndex"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
@@ -487,7 +463,7 @@ def test_categorical_assigning_ops():
 
 def test_getitem_categorical_str():
     # GH#31765
-    ser = Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
+    ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
@@ -667,7 +643,9 @@ def test_underlying_data_conversion():
     df
     df["val"].update(s)
 
-    expected = DataFrame(dict(a=[1, 2, 3], b=[1, 2, 3], c=[1, 2, 3], val=[0, 1, 0]))
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
+    )
     return_value = expected.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
     tm.assert_frame_equal(df, expected)
@@ -690,11 +668,11 @@ def test_underlying_data_conversion():
     pd.set_option("chained_assignment", "raise")
 
     # GH 3217
-    df = DataFrame(dict(a=[1, 3], b=[np.nan, 2]))
+    df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
     df["c"] = np.nan
     df["c"].update(Series(["foo"], index=[0]))
 
-    expected = DataFrame(dict(a=[1, 3], b=[np.nan, 2], c=["foo", np.nan]))
+    expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
     tm.assert_frame_equal(df, expected)
 
 
