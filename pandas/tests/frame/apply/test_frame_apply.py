@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -582,6 +584,7 @@ class TestDataFrameApply:
             tm.assert_frame_equal(reduce_false, df)
             tm.assert_series_equal(reduce_none, dicts)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_applymap(self, float_frame):
         applied = float_frame.applymap(lambda x: x * 2)
         tm.assert_frame_equal(applied, float_frame * 2)
