@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Hashable, List, Optional, Tuple
 import warnings
 
 from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -107,8 +106,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[Label] = None,
-        ylabel: Optional[Label] = None,
+        xlabel: Optional[Hashable] = None,
+        ylabel: Optional[Hashable] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -170,7 +169,7 @@ class MPLPlot:
         self.grid = grid
         self.legend = legend
         self.legend_handles: List[Artist] = []
-        self.legend_labels: List[Label] = []
+        self.legend_labels: List[Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)

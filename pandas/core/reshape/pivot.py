@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -15,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeriesUnion, IndexLabel
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -424,9 +425,9 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: DataFrame,
-    index: Optional[Union[Label, Sequence[Label]]] = None,
-    columns: Optional[Union[Label, Sequence[Label]]] = None,
-    values: Optional[Union[Label, Sequence[Label]]] = None,
+    index: Optional[IndexLabel] = None,
+    columns: Optional[IndexLabel] = None,
+    values: Optional[IndexLabel] = None,
 ) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
@@ -454,7 +455,7 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Label], values)
+            values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
                 data[values]._values, index=index, columns=values
             )

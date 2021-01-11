@@ -18,6 +18,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -47,7 +48,6 @@ from pandas._typing import (
     FloatFormatType,
     FormattersType,
     IndexLabel,
-    Label,
     StorageOptions,
 )
 
@@ -1032,7 +1032,7 @@ class DataFrameRenderer:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
         sep: str = ",",
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",

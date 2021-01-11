@@ -2,7 +2,7 @@
 from functools import wraps
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -210,7 +210,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array: IntervalArray, name: Label = None):
+    def _simple_new(cls, array: IntervalArray, name: Hashable = None):
         """
         Construct from an IntervalArray
 

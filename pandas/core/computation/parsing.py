@@ -6,9 +6,7 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Iterator, Tuple
-
-from pandas._typing import Label
+from typing import Hashable, Iterator, Tuple
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
@@ -90,7 +88,7 @@ def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: "Label") -> "Label":
+def clean_column_name(name: Hashable) -> Hashable:
     """
     Function to emulate the cleaning of a backtick quoted name.
 

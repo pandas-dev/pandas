@@ -43,7 +43,6 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
-    Label,
     Scalar,
     final,
 )
@@ -522,7 +521,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         axis: int = 0,
         level: Optional[IndexLabel] = None,
         grouper: Optional["ops.BaseGrouper"] = None,
-        exclusions: Optional[Set[Label]] = None,
+        exclusions: Optional[Set[Hashable]] = None,
         selection: Optional[IndexLabel] = None,
         as_index: bool = True,
         sort: bool = True,
@@ -860,7 +859,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    def __iter__(self) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator.
 

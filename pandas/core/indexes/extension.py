@@ -1,12 +1,11 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List, Optional, TypeVar
+from typing import Hashable, List, Optional, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -215,7 +214,7 @@ class ExtensionIndex(Index):
 
     @doc(Index._shallow_copy)
     def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Label = lib.no_default
+        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
     ):
         name = self.name if name is lib.no_default else name
 
