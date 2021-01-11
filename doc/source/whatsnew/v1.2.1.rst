@@ -14,9 +14,8 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
 - Fixed regression in :meth:`to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
-- Fixed a regression in ``groupby().rolling()`` where :class:`MultiIndex` levels were dropped (:issue:`38523`)
+- Fixed regression in ``groupby().rolling()`` where :class:`MultiIndex` levels were dropped (:issue:`38523`)
 - Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression in :meth:`DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
 - Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
@@ -24,11 +23,13 @@ Fixed regressions
 - Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
 - Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
-- Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 - Fixed regression in :meth:`Rolling.skew` and :meth:`Rolling.kurt` modifying the object inplace (:issue:`38908`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
-- Fixed regression in :meth:`DataFrame.replace` raising ValueError when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
+- Fixed regression in :meth:`DataFrame.replace` raising ``ValueError`` when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
 - Fixed regression in :meth:`DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
+- Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -37,13 +38,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-I/O
-^^^
-
-- Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
-- Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
-- Fixed ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
-
+- Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 -
 -
 
@@ -53,8 +48,14 @@ I/O
 
 Other
 ~~~~~
+
+- The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
+- Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
+- Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
 - Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
 - Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 whats new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
