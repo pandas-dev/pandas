@@ -5,7 +5,7 @@ Methods that can be shared by many array-like classes or subclasses:
     ExtensionArray
 """
 import operator
-from typing import Any, Callable
+from typing import Any
 import warnings
 
 import numpy as np
@@ -149,7 +149,7 @@ class OpsMixin:
         return self._arith_method(other, roperator.rpow)
 
 
-def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     Compatibility with numpy ufuncs.
 
@@ -257,9 +257,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
-    if self.ndim > 1 and (
-        len(inputs) > 1 or ufunc.nout > 1  # type: ignore[attr-defined]
-    ):
+    if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
         # Just give up on preserving types in the complex case.
         # In theory we could preserve them for them.
         # * nout>1 is doable if BlockManager.apply took nout and
@@ -277,7 +275,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         mgr = inputs[0]._mgr
         result = mgr.apply(getattr(ufunc, method))
 
-    if ufunc.nout > 1:  # type: ignore[attr-defined]
+    if ufunc.nout > 1:
         result = tuple(reconstruct(x) for x in result)
     else:
         result = reconstruct(result)
