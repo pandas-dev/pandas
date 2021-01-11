@@ -394,7 +394,6 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
-        # Pass dtype so sorting order is not lost for Categorical
         arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
         if as_series:
