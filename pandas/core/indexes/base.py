@@ -3378,7 +3378,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
         return indexer
 
     @final
