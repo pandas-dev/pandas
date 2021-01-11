@@ -1880,3 +1880,46 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
             raise ValueError(
                 f"Cannot assign {type(value).__name__} to float/integer series"
             )
+
+
+def can_hold_element(dtype: np.dtype, element: Any) -> bool:
+    """
+    Can we do an inplace setitem with this element in an array with this dtype?
+
+    Parameters
+    ----------
+    dtype : np.dtype
+    element : Any
+
+    Returns
+    -------
+    bool
+    """
+    tipo = maybe_infer_dtype_type(element)
+
+    if dtype.kind in ["i", "u"]:
+        if tipo is not None:
+            return tipo.kind in ["i", "u"] and dtype.itemsize >= tipo.itemsize
+
+        # We have not inferred an integer from the dtype
+        # check if we have a builtin int or a float equal to an int
+        return is_integer(element) or (is_float(element) and element.is_integer())
+
+    elif dtype.kind == "f":
+        if tipo is not None:
+            return tipo.kind in ["f", "i", "u"]
+        return lib.is_integer(element) or lib.is_float(element)
+
+    elif dtype.kind == "c":
+        if tipo is not None:
+            return tipo.kind in ["c", "f", "i", "u"]
+        return (
+            lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element)
+        )
+
+    elif dtype.kind == "b":
+        if tipo is not None:
+            return tipo.kind == "b"
+        return lib.is_bool(element)
+
+    raise NotImplementedError(dtype)
