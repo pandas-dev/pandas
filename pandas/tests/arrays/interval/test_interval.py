@@ -131,7 +131,7 @@ def test_repr():
     expected = (
         "<IntervalArray>\n"
         "[(0, 1], (1, 2]]\n"
-        "Length: 2, closed: right, dtype: interval[int64, right]"
+        "Length: 2, dtype: interval[int64, right]"
     )
     assert result == expected
 
