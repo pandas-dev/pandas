@@ -3944,8 +3944,8 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        op = series_apply(self, "agg", func, args=args, kwds=kwargs)
-        result, how = op.get_result()
+        op = series_apply(self, func, args=args, kwds=kwargs)
+        result, how = op.agg()
         if result is None:
 
             # we can be called from an inner function which
@@ -4083,8 +4083,8 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        op = series_apply(self, "apply", func, convert_dtype, args, kwds)
-        return op.get_result()
+        op = series_apply(self, func, convert_dtype, args, kwds)
+        return op.apply()
 
     def _reduce(
         self,
