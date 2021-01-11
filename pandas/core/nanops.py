@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.construction import extract_array
 
-bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
+bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
 

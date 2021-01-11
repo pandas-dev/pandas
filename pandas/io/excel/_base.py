@@ -1043,12 +1043,7 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         # Determine xlrd version if installed
-        if (
-            import_optional_dependency(
-                "xlrd", raise_on_missing=False, on_version="ignore"
-            )
-            is None
-        ):
+        if import_optional_dependency("xlrd", errors="ignore") is None:
             xlrd_version = None
         else:
             import xlrd

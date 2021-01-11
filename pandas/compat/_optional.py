@@ -62,8 +62,7 @@ def _get_version(module: types.ModuleType) -> str:
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    raise_on_missing: bool = True,
-    on_version: str = "raise",
+    errors: str = "raise",
     min_version: Optional[str] = None,
 ):
     """
@@ -79,17 +78,16 @@ def import_optional_dependency(
         The module name.
     extra : str
         Additional text to include in the ImportError message.
-    raise_on_missing : bool, default True
-        Whether to raise if the optional dependency is not found.
-        When False and the module is not present, None is returned.
-    on_version : str {'raise', 'warn'}
-        What to do when a dependency's version is too old.
+    errors : str {'raise', 'warn', 'ignore'}
+        What to do when a dependency is not found or its version is too old.
 
         * raise : Raise an ImportError
-        * warn : Warn that the version is too old. Returns None
-        * ignore: Return the module, even if the version is too old.
+        * warn : Only applicable when a module's version is to old.
+          Warns that the version is too old and returns None
+        * ignore: If the module is not installed, return None, otherwise,
+          return the module, even if the version is too old.
           It's expected that users validate the version locally when
-          using ``on_version="ignore"`` (see. ``io/html.py``)
+          using ``errors="ignore"`` (see. ``io/html.py``)
     min_version : str, default None
         Specify a minimum version that is different from the global pandas
         minimum version required.
@@ -97,10 +95,12 @@ def import_optional_dependency(
     -------
     maybe_module : Optional[ModuleType]
         The imported module, when found and the version is correct.
-        None is returned when the package is not found and `raise_on_missing`
-        is False, or when the package's version is too old and `on_version`
+        None is returned when the package is not found and `errors`
+        is False, or when the package's version is too old and `errors`
         is ``'warn'``.
     """
+
+    assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
     install_name = package_name if package_name is not None else name
@@ -112,7 +112,7 @@ def import_optional_dependency(
     try:
         module = importlib.import_module(name)
     except ImportError:
-        if raise_on_missing:
+        if errors == "raise":
             raise ImportError(msg) from None
         else:
             return None
@@ -128,15 +128,14 @@ def import_optional_dependency(
     if minimum_version:
         version = _get_version(module_to_get)
         if distutils.version.LooseVersion(version) < minimum_version:
-            assert on_version in {"warn", "raise", "ignore"}
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."
             )
-            if on_version == "warn":
+            if errors == "warn":
                 warnings.warn(msg, UserWarning)
                 return None
-            elif on_version == "raise":
+            elif errors == "raise":
                 raise ImportError(msg)
 
     return module
