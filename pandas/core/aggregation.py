@@ -11,6 +11,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -28,7 +29,6 @@ from pandas._typing import (
     Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Label,
 )
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -294,9 +294,9 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 def relabel_result(
     result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Iterable[Label],
+    columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Label, "Series"]:
+) -> Dict[Hashable, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -323,7 +323,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -493,7 +493,7 @@ def transform_dict_like(
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
-    results: Dict[Label, FrameOrSeriesUnion] = {}
+    results: Dict[Hashable, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:

@@ -1812,7 +1812,15 @@ class ParserBase:
             cast_type = pandas_dtype(cast_type)
             array_type = cast_type.construct_array_type()
             try:
-                return array_type._from_sequence_of_strings(values, dtype=cast_type)
+                if is_bool_dtype(cast_type):
+                    return array_type._from_sequence_of_strings(
+                        values,
+                        dtype=cast_type,
+                        true_values=self.true_values,
+                        false_values=self.false_values,
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "

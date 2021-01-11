@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -29,14 +30,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    FrameOrSeries,
-    FrameOrSeriesUnion,
-    Label,
-    Shape,
-)
+from pandas._typing import ArrayLike, DtypeArg, FrameOrSeries, FrameOrSeriesUnion, Shape
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -2935,7 +2929,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Label] = []
+        names: List[Hashable] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -3084,7 +3078,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Label
+    name: Hashable
 
     @property
     def shape(self):
@@ -3235,7 +3229,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: Union[int, List[Label]] = 1
+    levels: Union[int, List[Hashable]] = 1
     is_table = True
 
     index_axes: List[IndexCol]
@@ -3333,7 +3327,7 @@ class Table(Fixed):
 
     def validate_multiindex(
         self, obj: FrameOrSeriesUnion
-    ) -> Tuple[DataFrame, List[Label]]:
+    ) -> Tuple[DataFrame, List[Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3476,7 +3470,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels: List[Label] = getattr(self.attrs, "levels", None) or []
+        self.levels: List[Hashable] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4622,7 +4616,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
-    levels: List[Label]
+    levels: List[Hashable]
 
     @property
     def pandas_type(self) -> str:

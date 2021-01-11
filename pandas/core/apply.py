@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._config import option_context
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -26,7 +27,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.aggregation import agg_dict_like, agg_list_like
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    array as pd_array,
+    create_series_with_explicit_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Index, Series
@@ -36,7 +40,6 @@ ResType = Dict[int, Any]
 
 def frame_apply(
     obj: DataFrame,
-    how: str,
     func: AggFuncType,
     axis: Axis = 0,
     raw: bool = False,
@@ -54,7 +57,6 @@ def frame_apply(
 
     return klass(
         obj,
-        how,
         func,
         raw=raw,
         result_type=result_type,
@@ -63,22 +65,35 @@ def frame_apply(
     )
 
 
+def series_apply(
+    obj: Series,
+    func: AggFuncType,
+    convert_dtype: bool = True,
+    args=None,
+    kwds=None,
+) -> SeriesApply:
+    return SeriesApply(
+        obj,
+        func,
+        convert_dtype,
+        args,
+        kwds,
+    )
+
+
 class Apply(metaclass=abc.ABCMeta):
     axis: int
 
     def __init__(
         self,
-        obj: DataFrame,
-        how: str,
+        obj: FrameOrSeriesUnion,
         func,
         raw: bool,
         result_type: Optional[str],
         args,
         kwds,
     ):
-        assert how in ("apply", "agg")
         self.obj = obj
-        self.how = how
         self.raw = raw
         self.args = args or ()
         self.kwds = kwds or {}
@@ -111,11 +126,55 @@ class Apply(metaclass=abc.ABCMeta):
         return self.obj.index
 
     @abc.abstractmethod
-    def get_result(self):
+    def apply(self) -> FrameOrSeriesUnion:
         pass
+
+    def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
+        """
+        Provide an implementation for the aggregators.
+
+        Returns
+        -------
+        tuple of result, how.
+
+        Notes
+        -----
+        how can be a string describe the required post-processing, or
+        None if not required.
+        """
+        obj = self.obj
+        arg = self.f
+        args = self.args
+        kwargs = self.kwds
+
+        _axis = kwargs.pop("_axis", None)
+        if _axis is None:
+            _axis = getattr(obj, "axis", 0)
+
+        if isinstance(arg, str):
+            return obj._try_aggregate_string_function(arg, *args, **kwargs), None
+        elif is_dict_like(arg):
+            arg = cast(AggFuncTypeDict, arg)
+            return agg_dict_like(obj, arg, _axis), True
+        elif is_list_like(arg):
+            # we require a list, but not a 'str'
+            arg = cast(List[AggFuncTypeBase], arg)
+            return agg_list_like(obj, arg, _axis=_axis), None
+        else:
+            result = None
+
+        if callable(arg):
+            f = obj._get_cython_func(arg)
+            if f and not args and not kwargs:
+                return getattr(obj, f)(), None
+
+        # caller can react
+        return result, True
 
 
 class FrameApply(Apply):
+    obj: DataFrame
+
     # ---------------------------------------------------------------
     # Abstract Methods
 
@@ -161,54 +220,6 @@ class FrameApply(Apply):
     @property
     def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
-
-    def get_result(self):
-        if self.how == "apply":
-            return self.apply()
-        else:
-            return self.agg()
-
-    def agg(self) -> Tuple[Optional[FrameOrSeriesUnion], Optional[bool]]:
-        """
-        Provide an implementation for the aggregators.
-
-        Returns
-        -------
-        tuple of result, how.
-
-        Notes
-        -----
-        how can be a string describe the required post-processing, or
-        None if not required.
-        """
-        obj = self.obj
-        arg = self.f
-        args = self.args
-        kwargs = self.kwds
-
-        _axis = kwargs.pop("_axis", None)
-        if _axis is None:
-            _axis = getattr(obj, "axis", 0)
-
-        if isinstance(arg, str):
-            return obj._try_aggregate_string_function(arg, *args, **kwargs), None
-        elif is_dict_like(arg):
-            arg = cast(AggFuncTypeDict, arg)
-            return agg_dict_like(obj, arg, _axis), True
-        elif is_list_like(arg):
-            # we require a list, but not a 'str'
-            arg = cast(List[AggFuncTypeBase], arg)
-            return agg_list_like(obj, arg, _axis=_axis), None
-        else:
-            result = None
-
-        if callable(arg):
-            f = obj._get_cython_func(arg)
-            if f and not args and not kwargs:
-                return getattr(obj, f)(), None
-
-        # caller can react
-        return result, True
 
     def apply(self) -> FrameOrSeriesUnion:
         """ compute the results """
@@ -531,3 +542,77 @@ class FrameColumnApply(FrameApply):
         result = result.infer_objects()
 
         return result
+
+
+class SeriesApply(Apply):
+    obj: Series
+    axis = 0
+
+    def __init__(
+        self,
+        obj: Series,
+        func: AggFuncType,
+        convert_dtype: bool,
+        args,
+        kwds,
+    ):
+        self.convert_dtype = convert_dtype
+
+        super().__init__(
+            obj,
+            func,
+            raw=False,
+            result_type=None,
+            args=args,
+            kwds=kwds,
+        )
+
+    def apply(self) -> FrameOrSeriesUnion:
+        obj = self.obj
+        func = self.f
+        args = self.args
+        kwds = self.kwds
+
+        if len(obj) == 0:
+            return self.apply_empty_result()
+
+        # dispatch to agg
+        if isinstance(func, (list, dict)):
+            return obj.aggregate(func, *args, **kwds)
+
+        # if we are a string, try to dispatch
+        if isinstance(func, str):
+            return obj._try_aggregate_string_function(func, *args, **kwds)
+
+        return self.apply_standard()
+
+    def apply_empty_result(self) -> Series:
+        obj = self.obj
+        return obj._constructor(dtype=obj.dtype, index=obj.index).__finalize__(
+            obj, method="apply"
+        )
+
+    def apply_standard(self) -> FrameOrSeriesUnion:
+        f = self.f
+        obj = self.obj
+
+        with np.errstate(all="ignore"):
+            if isinstance(f, np.ufunc):
+                return f(obj)
+
+            # row-wise access
+            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
+                # GH#23179 some EAs do not have `map`
+                mapped = obj._values.map(f)
+            else:
+                values = obj.astype(object)._values
+                mapped = lib.map_infer(values, f, convert=self.convert_dtype)
+
+        if len(mapped) and isinstance(mapped[0], ABCSeries):
+            # GH 25959 use pd.array instead of tolist
+            # so extension arrays can be used
+            return obj._constructor_expanddim(pd_array(mapped), index=obj.index)
+        else:
+            return obj._constructor(mapped, index=obj.index).__finalize__(
+                obj, method="apply"
+            )

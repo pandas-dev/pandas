@@ -5,6 +5,7 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Hashable,
     List,
     Optional,
     Tuple,
@@ -32,7 +33,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import AnyArrayLike, ArrayLike, Label, Timezone
+from pandas._typing import AnyArrayLike, ArrayLike, Timezone
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -181,7 +182,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Label = None
+    dt_array: ArrayLike, utc: Optional[bool] = None, name: Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -267,7 +268,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
 def _convert_listlike_datetimes(
     arg,
     format: Optional[str],
-    name: Label = None,
+    name: Hashable = None,
     tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
     errors: Optional[str] = None,

@@ -24,10 +24,7 @@ pytestmark = [
 ]
 
 
-if (
-    import_optional_dependency("xlrd", raise_on_missing=False, on_version="ignore")
-    is None
-):
+if import_optional_dependency("xlrd", errors="ignore") is None:
     xlrd_version = None
 else:
     import xlrd
