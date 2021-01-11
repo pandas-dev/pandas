@@ -6441,7 +6441,7 @@ Keep all original rows and columns and also all original values
             Provided DataFrame to use to fill null values.
 
         preserve_dtypes : bool, default False
-            try to preserve the column dtypes afetr combining
+            try to preserve the column dtypes after combining
 
             .. versionadded:: 1.2.1
 
