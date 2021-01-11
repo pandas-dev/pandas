@@ -175,9 +175,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_searchsorted(self, data_for_sorting, as_series):
-        super().test_searchsorted(data_for_sorting, as_series)
-
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
