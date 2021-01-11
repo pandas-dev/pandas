@@ -92,6 +92,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype, extract_array
+from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -110,7 +111,6 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.describe import describe_ndframe
 from pandas.io.formats.format import DataFrameFormatter, DataFrameRenderer
 from pandas.io.formats.printing import pprint_thing
 
