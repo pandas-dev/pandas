@@ -24,6 +24,12 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
+        exp = DataFrame(
+            {"A": list("abab"), "B": [0, 1, 0, 1]}, index=[0, 1, 5, 6]
+        )
+        combined = f.combine_first(g, preserve_dtypes=True)
+        tm.assert_frame_equal(combined, exp)
+
     def test_combine_first(self, float_frame):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
@@ -363,9 +369,16 @@ class TestDataFrameCombineFirst:
         expected_12 = DataFrame({"a": [0, 1, 3, 5]}, dtype="float64")
         tm.assert_frame_equal(result_12, expected_12)
 
+        result_12 = df1.combine_first(df2, preserve_dtypes=True)
+        expected_12 = DataFrame({"a": [0, 1, 3, 5]})
+        tm.assert_frame_equal(result_12, expected_12)
+
         result_21 = df2.combine_first(df1)
         expected_21 = DataFrame({"a": [1, 4, 3, 5]}, dtype="float64")
+        tm.assert_frame_equal(result_21, expected_21)
 
+        result_21 = df2.combine_first(df1, preserve_dtypes=True)
+        expected_21 = DataFrame({"a": [1, 4, 3, 5]})
         tm.assert_frame_equal(result_21, expected_21)
 
     @pytest.mark.parametrize("val", [1, 1.0])
@@ -439,3 +452,34 @@ def test_combine_first_with_nan_multiindex():
         index=mi_expected,
     )
     tm.assert_frame_equal(res, expected)
+
+def test_combine_preserve_dtypes():
+    a = Series(["a", "b"], index=range(2))
+    b = Series(range(2), index=range(2))
+    f = DataFrame({"A": a, "B": b})
+
+    c = Series(["a", "b"], index=range(5, 7))
+    b = Series(range(-1, 1), index=range(5, 7))
+    g = DataFrame({"B": b, "C": c})
+
+    exp = DataFrame(
+        {
+            "A": ["a", "b", np.nan, np.nan],
+            "B": [0.0, 1.0, -1.0, 0.0],
+            "C": [np.nan, np.nan, "a", "b"]
+        },
+        index=[0, 1, 5, 6]
+    )
+    combined = f.combine_first(g)
+    tm.assert_frame_equal(combined, exp)
+
+    exp = DataFrame(
+        {
+            "A": ["a", "b", np.nan, np.nan],
+            "B": [0, 1, -1, 0],
+            "C": [np.nan, np.nan, "a", "b"]
+        },
+        index=[0, 1, 5, 6]
+    )
+    combined = f.combine_first(g, preserve_dtypes=True)
+    tm.assert_frame_equal(combined, exp)

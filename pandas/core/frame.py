@@ -6425,7 +6425,7 @@ Keep all original rows and columns and also all original values
         # convert_objects just in case
         return self._constructor(result, index=new_index, columns=new_columns)
 
-    def combine_first(self, other: DataFrame) -> DataFrame:
+    def combine_first(self, other: DataFrame, preserve_dtypes: bool = False) -> DataFrame:
         """
         Update null elements with value in the same location in `other`.
 
@@ -6437,6 +6437,11 @@ Keep all original rows and columns and also all original values
         ----------
         other : DataFrame
             Provided DataFrame to use to fill null values.
+
+        preserve_dtypes : bool, default False
+            try to preserve the column dtypes afetr combining
+
+            .. versionadded:: 1.2.1
 
         Returns
         -------
@@ -6482,7 +6487,18 @@ Keep all original rows and columns and also all original values
 
             return expressions.where(mask, y_values, x_values)
 
-        return self.combine(other, combiner, overwrite=False)
+        combined = self.combine(other, combiner, overwrite=False)
+
+        if preserve_dtypes:
+            dtypes = {
+                col: find_common_type([self.dtypes[col], other.dtypes[col]])
+                for col in self.columns.intersection(other.columns)
+            }
+
+            if dtypes:
+                combined = combined.astype(dtypes)
+
+        return combined
 
     def update(
         self,
