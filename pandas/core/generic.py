@@ -44,7 +44,6 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
-    Label,
     Level,
     NpDtype,
     Renamer,
@@ -526,7 +525,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Hashable, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -536,7 +535,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Hashable, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -776,7 +775,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self, item: Label) -> Union[Series, Any]:
+    def pop(self, item: Hashable) -> Union[Series, Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -3225,7 +3224,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
         index_label: Optional[IndexLabel] = None,
@@ -10214,7 +10213,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
-        names: List[Label] = []
+        names: List[Hashable] = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:

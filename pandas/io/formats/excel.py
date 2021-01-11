@@ -5,13 +5,23 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import Label, StorageOptions
+from pandas._typing import IndexLabel, StorageOptions
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
@@ -440,10 +450,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence[Label]] = None,
-        header: Union[Sequence[Label], bool] = True,
+        cols: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        index_label: Optional[IndexLabel] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
