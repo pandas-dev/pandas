@@ -24,9 +24,7 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-        exp = DataFrame(
-            {"A": list("abab"), "B": [0, 1, 0, 1]}, index=[0, 1, 5, 6]
-        )
+        exp = DataFrame({"A": list("abab"), "B": [0, 1, 0, 1]}, index=[0, 1, 5, 6])
         combined = f.combine_first(g, preserve_dtypes=True)
         tm.assert_frame_equal(combined, exp)
 
@@ -453,6 +451,7 @@ def test_combine_first_with_nan_multiindex():
     )
     tm.assert_frame_equal(res, expected)
 
+
 def test_combine_preserve_dtypes():
     a = Series(["a", "b"], index=range(2))
     b = Series(range(2), index=range(2))
@@ -466,9 +465,9 @@ def test_combine_preserve_dtypes():
         {
             "A": ["a", "b", np.nan, np.nan],
             "B": [0.0, 1.0, -1.0, 0.0],
-            "C": [np.nan, np.nan, "a", "b"]
+            "C": [np.nan, np.nan, "a", "b"],
         },
-        index=[0, 1, 5, 6]
+        index=[0, 1, 5, 6],
     )
     combined = f.combine_first(g)
     tm.assert_frame_equal(combined, exp)
@@ -477,9 +476,9 @@ def test_combine_preserve_dtypes():
         {
             "A": ["a", "b", np.nan, np.nan],
             "B": [0, 1, -1, 0],
-            "C": [np.nan, np.nan, "a", "b"]
+            "C": [np.nan, np.nan, "a", "b"],
         },
-        index=[0, 1, 5, 6]
+        index=[0, 1, 5, 6],
     )
     combined = f.combine_first(g, preserve_dtypes=True)
     tm.assert_frame_equal(combined, exp)

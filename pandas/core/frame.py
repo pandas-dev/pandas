@@ -6425,7 +6425,9 @@ Keep all original rows and columns and also all original values
         # convert_objects just in case
         return self._constructor(result, index=new_index, columns=new_columns)
 
-    def combine_first(self, other: DataFrame, preserve_dtypes: bool = False) -> DataFrame:
+    def combine_first(
+        self, other: DataFrame, preserve_dtypes: bool = False
+    ) -> DataFrame:
         """
         Update null elements with value in the same location in `other`.
 
