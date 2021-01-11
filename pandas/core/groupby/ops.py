@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
+from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -134,7 +134,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -260,7 +260,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -903,7 +903,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [self.binlabels.name]
 
     @property

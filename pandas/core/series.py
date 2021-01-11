@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -32,7 +33,6 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeriesUnion,
     IndexKeyFunc,
-    Label,
     NpDtype,
     StorageOptions,
     ValueKeyFunc,
@@ -193,7 +193,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _typ = "series"
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    _name: Label
+    _name: Hashable
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -462,7 +462,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.dtype
 
     @property
-    def name(self) -> Label:
+    def name(self) -> Hashable:
         """
         Return the name of the Series.
 
@@ -512,7 +512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._name
 
     @name.setter
-    def name(self, value: Label) -> None:
+    def name(self, value: Hashable) -> None:
         validate_all_hashable(value, error_name=f"{type(self).__name__}.name")
         object.__setattr__(self, "_name", value)
 
@@ -1453,7 +1453,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def items(self) -> Iterable[Tuple[Label, Any]]:
+    def items(self) -> Iterable[Tuple[Hashable, Any]]:
         """
         Lazily iterate over (index, value) tuples.
 
@@ -1483,7 +1483,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return zip(iter(self.index), iter(self))
 
     @Appender(items.__doc__)
-    def iteritems(self) -> Iterable[Tuple[Label, Any]]:
+    def iteritems(self) -> Iterable[Tuple[Hashable, Any]]:
         return self.items()
 
     # ----------------------------------------------------------------------
@@ -2706,7 +2706,7 @@ Name: Max Speed, dtype: float64
         return ret
 
     def _construct_result(
-        self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Label
+        self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Hashable
     ) -> Union["Series", Tuple["Series", "Series"]]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -4409,7 +4409,7 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
-    def pop(self, item: Label) -> Any:
+    def pop(self, item: Hashable) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.
 
