@@ -395,3 +395,27 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
+
+
+@pytest.mark.parametrize(
+    "key", [0, slice(0, 1), [0], np.array([0]), range(1)], ids=type
+)
+@pytest.mark.parametrize("dtype", [complex, int, float])
+def test_setitem_td64_into_complex(key, dtype, indexer_sli):
+    # timedelta64 should not be treated as integers
+    arr = np.arange(5).astype(dtype)
+    ser = Series(arr)
+    td = np.timedelta64(4, "ns")
+
+    indexer_sli(ser)[key] = td
+    assert ser.dtype == object
+    assert arr[0] == 0  # original array is unchanged
+
+    if not isinstance(key, int) and not (
+        indexer_sli is tm.loc and isinstance(key, slice)
+    ):
+        # skip key/indexer_sli combinations that will have mismatched lengths
+        ser = Series(arr)
+        indexer_sli(ser)[key] = np.full((1,), td)
+        assert ser.dtype == object
+        assert arr[0] == 0  # original array is unchanged

@@ -1874,9 +1874,9 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ):
         raise ValueError("Cannot assign nan to integer series")
 
-    if (
-        issubclass(dtype.type, (np.integer, np.floating, complex))
-        and not issubclass(dtype.type, np.bool_)
-        and is_bool(value)
-    ):
-        raise ValueError("Cannot assign bool to float/integer series")
+    if dtype.kind in ["i", "u", "f", "c"]:
+        if is_bool(value) or isinstance(value, np.timedelta64):
+            # numpy will cast td64 to integer if we're not careful
+            raise ValueError(
+                f"Cannot assign {type(value).__name__} to float/integer series"
+            )
