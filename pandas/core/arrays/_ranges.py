@@ -69,11 +69,8 @@ def generate_regular_range(
 
 
 def _generate_range_overflow_safe(
-    endpoint: Union[int, np.integer],
-    periods: Union[int, np.integer],
-    stride: int,
-    side: str = "start",
-) -> np.integer:
+    endpoint: int, periods: int, stride: int, side: str = "start"
+):
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -139,11 +136,8 @@ def _generate_range_overflow_safe(
 
 
 def _generate_range_overflow_safe_signed(
-    endpoint: Union[int, np.integer],
-    periods: Union[int, np.integer],
-    stride: int,
-    side: str,
-) -> np.integer:
+    endpoint: int, periods: int, stride: int, side: str
+):
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
