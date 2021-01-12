@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
     ensure_uint64,
+    ensure_complex128,
     is_array_like,
     is_bool_dtype,
     is_categorical_dtype,
@@ -131,8 +132,7 @@ def _ensure_data(
         elif is_float_dtype(values) or is_float_dtype(dtype):
             return ensure_float64(values), np.dtype("float64")
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
-            # Complex dtype is not supported coerce to object
-            return ensure_object(values), np.dtype("complex64")
+            return ensure_complex128(values), np.dtype("complex128")
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
@@ -251,6 +251,7 @@ _hashtables = {
     "int64": htable.Int64HashTable,
     "string": htable.StringHashTable,
     "object": htable.PyObjectHashTable,
+    "complex128": htable.Complex128HashTable
 }
 
 
