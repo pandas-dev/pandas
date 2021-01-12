@@ -966,6 +966,7 @@ class Block(PandasObject):
             # we need to create a new categorical block
             values[indexer] = value
             if values.ndim == 2:
+                # TODO(EA2D): special case not needed with 2D EAs
                 if values.shape[-1] != 1:
                     # shouldn't get here (at least until 2D EAs)
                     raise NotImplementedError
