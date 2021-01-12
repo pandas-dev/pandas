@@ -2,13 +2,24 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick
-from pandas._typing import Callable, Label
+from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -108,7 +119,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _simple_new(
         cls,
         values: Union[DatetimeArray, TimedeltaArray, PeriodArray],
-        name: Label = None,
+        name: Optional[Hashable] = None,
     ):
         assert isinstance(values, cls._data_cls), type(values)
 

@@ -85,9 +85,8 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
-Label = Optional[Hashable]
-IndexLabel = Union[Label, Sequence[Label]]
-Level = Union[Label, int]
+IndexLabel = Union[Hashable, Sequence[Hashable]]
+Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
@@ -100,11 +99,11 @@ Dtype = Union[
     "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, Dict[Label, Dtype]]
+DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
+Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -121,7 +120,7 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
@@ -156,10 +155,10 @@ CompressionOptions = Optional[Union[str, CompressionDict]]
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-ColspaceType = Mapping[Label, Union[str, int]]
+ColspaceType = Mapping[Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
+    str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
 
 # internals
