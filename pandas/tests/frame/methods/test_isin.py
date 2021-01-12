@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
@@ -32,6 +34,7 @@ class TestDataFrameIsIn:
         result = df.isin(empty)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_isin_dict(self):
         df = DataFrame({"A": ["a", "b", "c"], "B": ["a", "e", "f"]})
         d = {"A": ["a"]}

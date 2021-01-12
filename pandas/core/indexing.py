@@ -16,6 +16,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.cast import maybe_infer_dtype_type
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_bool_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -1960,12 +1961,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        # Ensure we have something we can iterate over
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
-            ri = Index(range(len(self.obj.columns)))
-            ilocs = ri[column_indexer]
+            ilocs = np.arange(len(self.obj.columns))[column_indexer]
+        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
+            column_indexer.dtype
+        ):
+            ilocs = np.arange(len(column_indexer))[column_indexer]
         else:
             ilocs = column_indexer
         return ilocs
