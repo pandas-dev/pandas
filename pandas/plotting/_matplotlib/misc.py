@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import random
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Set
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
 import numpy as np
-
-from pandas._typing import Label
 
 from pandas.core.dtypes.missing import notna
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 def scatter_matrix(
-    frame: "DataFrame",
+    frame: DataFrame,
     alpha=0.5,
     figsize=None,
     ax=None,
@@ -124,7 +124,7 @@ def _get_marker_compat(marker):
 
 
 def radviz(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     ax: Optional["Axes"] = None,
     color=None,
@@ -148,7 +148,7 @@ def radviz(
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
 
-    to_plot: Dict[Label, List[List]] = {}
+    to_plot: Dict[Hashable, List[List]] = {}
     colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
@@ -212,7 +212,7 @@ def radviz(
 
 
 def andrews_curves(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     ax: Optional["Axes"] = None,
     samples: int = 200,
@@ -334,7 +334,7 @@ def bootstrap_plot(
 
 
 def parallel_coordinates(
-    frame: "DataFrame",
+    frame: DataFrame,
     class_column,
     cols=None,
     ax: Optional["Axes"] = None,

@@ -61,7 +61,6 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     IndexLabel,
-    Label,
     Level,
     PythonFuncType,
     Renamer,
@@ -992,7 +991,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Label, Series]]:
+    def items(self) -> Iterable[Tuple[Hashable, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -1001,10 +1000,10 @@ class DataFrame(NDFrame, OpsMixin):
                 yield k, self._ixs(i, axis=1)
 
     @Appender(_shared_docs["items"])
-    def iteritems(self) -> Iterable[Tuple[Label, Series]]:
+    def iteritems(self) -> Iterable[Tuple[Hashable, Series]]:
         yield from self.items()
 
-    def iterrows(self) -> Iterable[Tuple[Label, Series]]:
+    def iterrows(self) -> Iterable[Tuple[Hashable, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -2121,14 +2120,14 @@ class DataFrame(NDFrame, OpsMixin):
     def to_stata(
         self,
         path: FilePathOrBuffer,
-        convert_dates: Optional[Dict[Label, str]] = None,
+        convert_dates: Optional[Dict[Hashable, str]] = None,
         write_index: bool = True,
         byteorder: Optional[str] = None,
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
-        variable_labels: Optional[Dict[Label, str]] = None,
+        variable_labels: Optional[Dict[Hashable, str]] = None,
         version: Optional[int] = 114,
-        convert_strl: Optional[Sequence[Label]] = None,
+        convert_strl: Optional[Sequence[Hashable]] = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
@@ -3220,7 +3219,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
-    def _set_item_frame_value(self, key, value: "DataFrame") -> None:
+    def _set_item_frame_value(self, key, value: DataFrame) -> None:
         self._ensure_valid_index(value)
 
         # align right-hand-side columns if self.columns
@@ -3334,13 +3333,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         # GH5632, make sure that we are a Series convertible
         if not len(self.index) and is_list_like(value) and len(value):
-            try:
-                value = Series(value)
-            except (ValueError, NotImplementedError, TypeError) as err:
-                raise ValueError(
-                    "Cannot set a frame with no defined index "
-                    "and a value that cannot be converted to a Series"
-                ) from err
+            if not isinstance(value, DataFrame):
+                try:
+                    value = Series(value)
+                except (ValueError, NotImplementedError, TypeError) as err:
+                    raise ValueError(
+                        "Cannot set a frame with no defined index "
+                        "and a value that cannot be converted to a Series"
+                    ) from err
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
@@ -4482,7 +4482,7 @@ class DataFrame(NDFrame, OpsMixin):
             downcast=downcast,
         )
 
-    def pop(self, item: Label) -> Series:
+    def pop(self, item: Hashable) -> Series:
         """
         Return item and drop from frame. Raise KeyError if not found.
 
@@ -4545,7 +4545,7 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
     def _replace_columnwise(
-        self, mapping: Dict[Label, Tuple[Any, Any]], inplace: bool, regex
+        self, mapping: Dict[Hashable, Tuple[Any, Any]], inplace: bool, regex
     ):
         """
         Dispatch to Series.replace column-wise.
@@ -4723,7 +4723,7 @@ class DataFrame(NDFrame, OpsMixin):
             "one-dimensional arrays."
         )
 
-        missing: List[Label] = []
+        missing: List[Hashable] = []
         for col in keys:
             if isinstance(col, (Index, Series, np.ndarray, list, abc.Iterator)):
                 # arrays are fine as long as they are one-dimensional
@@ -4751,7 +4751,7 @@ class DataFrame(NDFrame, OpsMixin):
             frame = self.copy()
 
         arrays = []
-        names: List[Label] = []
+        names: List[Hashable] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
@@ -4760,7 +4760,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 arrays.append(self.index)
 
-        to_remove: List[Label] = []
+        to_remove: List[Hashable] = []
         for col in keys:
             if isinstance(col, MultiIndex):
                 for n in range(col.nlevels):
@@ -4818,7 +4818,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
-        col_fill: Label = ...,
+        col_fill: Hashable = ...,
     ) -> DataFrame:
         ...
 
@@ -4829,7 +4829,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         inplace: Literal[True] = ...,
         col_level: Hashable = ...,
-        col_fill: Label = ...,
+        col_fill: Hashable = ...,
     ) -> None:
         ...
 
@@ -4839,7 +4839,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
-        col_fill: Label = "",
+        col_fill: Hashable = "",
     ) -> Optional[DataFrame]:
         """
         Reset the index, or a level of it.
@@ -5629,7 +5629,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def value_counts(
         self,
-        subset: Optional[Sequence[Label]] = None,
+        subset: Optional[Sequence[Hashable]] = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -7510,7 +7510,7 @@ NaN 12.3   33.0
 
     def _gotitem(
         self,
-        key: Union[Label, List[Label]],
+        key: IndexLabel,
         ndim: int,
         subset: Optional[FrameOrSeriesUnion] = None,
     ) -> FrameOrSeriesUnion:
@@ -7645,13 +7645,12 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self if axis == 0 else self.T,
-            how="agg",
             func=arg,
             axis=0,
             args=args,
             kwds=kwargs,
         )
-        result, how = op.get_result()
+        result, how = op.agg()
 
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
@@ -7818,7 +7817,6 @@ NaN 12.3   33.0
 
         op = frame_apply(
             self,
-            how="apply",
             func=func,
             axis=axis,
             raw=raw,
@@ -7826,7 +7824,7 @@ NaN 12.3   33.0
             args=args,
             kwds=kwds,
         )
-        return op.get_result()
+        return op.apply()
 
     def applymap(
         self, func: PythonFuncType, na_action: Optional[str] = None
