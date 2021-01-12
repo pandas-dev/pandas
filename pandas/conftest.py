@@ -473,7 +473,7 @@ def index_with_missing(request):
     Fixture for indices with missing values
     """
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.xfail("missing values not supported")
+        pytest.skip("missing values not supported")
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -703,8 +703,8 @@ def float_frame():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
