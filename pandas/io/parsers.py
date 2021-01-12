@@ -2457,11 +2457,16 @@ class PythonParser(ParserBase):
             def _read():
                 line = f.readline()
                 pat = re.compile(sep)
+                # if isinstance(line, bytes):
+                #     line = line.decode()
 
                 yield pat.split(line.strip())
 
                 for line in f:
                     yield pat.split(line.strip())
+
+            # if isinstance(sep, bytes):
+            #     sep = sep.decode()
 
             reader = _read()
 
