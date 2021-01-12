@@ -1,6 +1,6 @@
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, Union, cast
 
 import numpy as np
 
@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
-    maybe_infer_dtype_type,
     maybe_promote,
     maybe_upcast,
     soft_convert_objects,
@@ -51,7 +50,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCPandasArray, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
@@ -1879,7 +1878,24 @@ class ExtensionBlock(Block):
         return blocks, mask
 
 
-class ObjectValuesExtensionBlock(ExtensionBlock):
+class HybridMixin:
+    """
+    Mixin for Blocks backed (maybe indirectly) by ExtensionArrays.
+    """
+
+    array_values: Callable
+
+    def _can_hold_element(self, element: Any) -> bool:
+        values = self.array_values()
+
+        try:
+            values._validate_setitem_value(element)
+            return True
+        except (ValueError, TypeError):
+            return False
+
+
+class ObjectValuesExtensionBlock(HybridMixin, ExtensionBlock):
     """
     Block providing backwards-compatibility for `.values`.
 
@@ -1889,16 +1905,6 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
 
     def external_values(self):
         return self.values.astype(object)
-
-    def _can_hold_element(self, element: Any) -> bool:
-        if is_valid_nat_for_dtype(element, self.dtype):
-            return True
-        if isinstance(element, list) and len(element) == 0:
-            return True
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, self.dtype.type)
-        return isinstance(element, self.dtype.type)
 
 
 class NumericBlock(Block):
@@ -1959,7 +1965,7 @@ class IntBlock(NumericBlock):
     _can_hold_na = False
 
 
-class DatetimeLikeBlockMixin(Block):
+class DatetimeLikeBlockMixin(HybridMixin, Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     _can_hold_na = True
@@ -2041,15 +2047,6 @@ class DatetimeLikeBlockMixin(Block):
         res_values = res_values.reshape(self.values.shape)
         nb = self.make_block_same_class(res_values)
         return [nb]
-
-    def _can_hold_element(self, element: Any) -> bool:
-        arr = self.array_values()
-
-        try:
-            arr._validate_setitem_value(element)
-            return True
-        except (TypeError, ValueError):
-            return False
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin):
