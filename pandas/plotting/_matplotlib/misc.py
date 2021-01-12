@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Set
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
 import numpy as np
-
-from pandas._typing import Label
 
 from pandas.core.dtypes.missing import notna
 
@@ -150,7 +148,7 @@ def radviz(
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
 
-    to_plot: Dict[Label, List[List]] = {}
+    to_plot: Dict[Hashable, List[List]] = {}
     colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
