@@ -399,7 +399,7 @@ class BaseMethodsTests(BaseExtensionTests):
     )
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b, c])
+        arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
         if as_series:
             arr = pd.Series(arr)
