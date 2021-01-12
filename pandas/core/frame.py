@@ -6484,25 +6484,12 @@ Keep all original rows and columns and also all original values
 
         combined = self.combine(other, combiner, overwrite=False)
 
-        dtypes = {}
-
-        for col in self.columns.intersection(other.columns):
-            try:
-                # if the column has different dtype in the
-                # DataFrame objects then add the common dtype
-                # to the columns dtype conversion dict
-                if combined.dtypes[col] != self.dtypes[col]:
-                    dtypes[col] = find_common_type(
-                        [self.dtypes[col], other.dtypes[col]]
-                    )
-            except TypeError:
-                # numpy dtype was compared with pandas dtype
-                try:
-                    # just try to apply the initial column dtype
-                    combined[col] = combined[col].astype(self.dtypes[col])
-                except ValueError:
-                    # could not apply the initial dtype, so skip
-                    pass
+        dtypes = {
+            col: find_common_type([self.dtypes[col], other.dtypes[col]])
+            for col in self.columns.intersection(other.columns)
+            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+            and not is_dtype_equal(combined.dtypes[col], find_common_type([self.dtypes[col], other.dtypes[col]]))
+        }
 
         if dtypes:
             combined = combined.astype(dtypes)

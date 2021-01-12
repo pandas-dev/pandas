@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import find_common_type, is_dtype_equal
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
@@ -402,12 +402,9 @@ def test_combine_first_timestamp_bug(scalar1, scalar2, nulls_fixture):
     frame = DataFrame([[na_value, na_value]], columns=["a", "b"])
     other = DataFrame([[scalar1, scalar2]], columns=["b", "c"])
 
-    try:
-        common_dtype = find_common_type([frame.dtypes["b"], other.dtypes["b"]])
-    except TypeError:
-        common_dtype = "object"
+    common_dtype = find_common_type([frame.dtypes["b"], other.dtypes["b"]])
 
-    if common_dtype == "object" or frame.dtypes["b"] == other.dtypes["b"]:
+    if is_dtype_equal(common_dtype, "object") or frame.dtypes["b"] == other.dtypes["b"]:
         val = scalar1
     else:
         val = na_value
@@ -466,6 +463,7 @@ def test_combine_first_with_nan_multiindex():
 
 
 def test_combine_preserve_dtypes():
+    # GH7509
     a = Series(["a", "b"], index=range(2))
     b = Series(range(2), index=range(2))
     f = DataFrame({"A": a, "B": b})
