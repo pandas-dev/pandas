@@ -33,8 +33,6 @@ For example:
         storage_options=headers
     )
 
-
-
 .. _whatsnew_130.window_method_table:
 
 :class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
@@ -209,8 +207,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-:meth:`~DataFrame.groupby` no longer ignore ``group_keys`` for transform-like ``apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
 functions passed to ``apply`` that return like-indexed outputs will have the
