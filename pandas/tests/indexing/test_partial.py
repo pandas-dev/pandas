@@ -157,7 +157,8 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
 
         # columns will align
-        df = DataFrame(columns=["A", "B"])
+        # TODO: it isnt great that this behavior depends on consolidation
+        df = DataFrame(columns=["A", "B"])._consolidate()
         df.loc[0] = Series(1, index=["B"])
 
         exp = DataFrame([[np.nan, 1]], columns=["A", "B"], index=[0], dtype="float64")
