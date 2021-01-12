@@ -6,6 +6,8 @@ from typing import Dict, List, Union
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -1508,6 +1510,7 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     @pytest.mark.parametrize("replacement", [np.nan, 5])
     def test_replace_with_duplicate_columns(self, replacement):
         # GH 24798
@@ -1636,3 +1639,10 @@ class TestDataFrameReplace:
         result = df1.replace(columns_values_map)
         expected = DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_bytes(self, frame_or_series):
+        # GH#38900
+        obj = frame_or_series(["o"]).astype("|S")
+        expected = obj.copy()
+        obj = obj.replace({None: np.nan})
+        tm.assert_equal(obj, expected)

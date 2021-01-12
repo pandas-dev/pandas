@@ -1,11 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -257,6 +257,8 @@ class BooleanArray(BaseMaskedArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
+    _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
+    _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
@@ -273,7 +275,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
+        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
     ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
@@ -282,14 +284,23 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], *, dtype=None, copy: bool = False
+        cls,
+        strings: List[str],
+        *,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        true_values: Optional[List[str]] = None,
+        false_values: Optional[List[str]] = None,
     ) -> "BooleanArray":
+        true_values_union = cls._TRUE_VALUES.union(true_values or [])
+        false_values_union = cls._FALSE_VALUES.union(false_values or [])
+
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true", "1", "1.0"]:
+            elif s in true_values_union:
                 return True
-            elif s in ["False", "FALSE", "false", "0", "0.0"]:
+            elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")

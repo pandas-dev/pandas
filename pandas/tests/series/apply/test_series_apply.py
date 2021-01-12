@@ -4,6 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_number
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, isna, timedelta_range
 import pandas._testing as tm
@@ -336,19 +338,21 @@ class TestSeriesAggregate:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_non_callable_aggregates(self):
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_non_callable_aggregates(self, how):
         # test agg using non-callable series attributes
+        # GH 39116 - expand to apply
         s = Series([1, 2, None])
 
         # Calling agg w/ just a string arg same as calling s.arg
-        result = s.agg("size")
+        result = getattr(s, how)("size")
         expected = s.size
         assert result == expected
 
         # test when mixed w/ callable reducers
-        result = s.agg(["size", "count", "mean"])
+        result = getattr(s, how)(["size", "count", "mean"])
         expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
-        tm.assert_series_equal(result[expected.index], expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "series, func, expected",
@@ -400,7 +404,7 @@ class TestSeriesAggregate:
         # test reducing functions in
         # pandas.core.base.SelectionMixin._cython_table
         result = series.agg(func)
-        if tm.is_number(expected):
+        if is_number(expected):
             assert np.isclose(result, expected, equal_nan=True)
         else:
             assert result == expected
@@ -452,7 +456,8 @@ class TestSeriesAggregate:
     )
     def test_agg_cython_table_raises(self, series, func, expected):
         # GH21224
-        with pytest.raises(expected):
+        msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+        with pytest.raises(expected, match=msg):
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
 
@@ -712,7 +717,7 @@ class TestSeriesMap:
         tm.assert_series_equal(result, exp)
         assert result.dtype == object
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
             s.map(lambda x: x, na_action="ignore")
 
     def test_map_datetimetz(self):
@@ -735,7 +740,7 @@ class TestSeriesMap:
         exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
             s.map(lambda x: x, na_action="ignore")
 
         # not vectorized
@@ -776,10 +781,14 @@ class TestSeriesMap:
             ),
         ],
     )
-    def test_apply_series_on_date_time_index_aware_series(self, dti, exp):
+    @pytest.mark.parametrize("aware", [True, False])
+    def test_apply_series_on_date_time_index_aware_series(self, dti, exp, aware):
         # GH 25959
         # Calling apply on a localized time series should not cause an error
-        index = dti.tz_localize("UTC").index
+        if aware:
+            index = dti.tz_localize("UTC").index
+        else:
+            index = dti.index
         result = Series(index).apply(lambda x: Series([1, 2]))
         tm.assert_frame_equal(result, exp)
 

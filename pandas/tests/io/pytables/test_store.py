@@ -2055,7 +2055,10 @@ class TestHDFStore:
             df = tm.makeDataFrame()
             df["invalid"] = [["a"]] * len(df)
             assert df.dtypes["invalid"] == np.object_
-            msg = re.escape("object of type 'int' has no len()")
+            msg = re.escape(
+                """Cannot serialize the column [invalid]
+because its data contents are not [string] but [mixed] object dtype"""
+            )
             with pytest.raises(TypeError, match=msg):
                 store.append("df", df)
 
@@ -2221,7 +2224,10 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
             # this fails because we have a date in the object block......
-            msg = "object of type 'int' has no len()"
+            msg = re.escape(
+                """Cannot serialize the column [datetime1]
+because its data contents are not [string] but [date] object dtype"""
+            )
             with pytest.raises(TypeError, match=msg):
                 store.append("df_unimplemented", df)
 
@@ -2441,17 +2447,13 @@ class TestHDFStore:
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # auto-casting object->DatetimeIndex deprecated
-            ts2 = Series(ts.index, Index(ts.index, dtype=object))
+        ts2 = Series(ts.index, Index(ts.index, dtype=object))
         self._check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
-        with tm.assert_produces_warning(FutureWarning):
-            # auto-casting object->DatetimeIndex deprecated
-            ts3 = Series(
-                ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
-            )
-        self._check_roundtrip(ts3, tm.assert_series_equal, path=setup_path)
+        ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
+        self._check_roundtrip(
+            ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
+        )
 
     def test_float_index(self, setup_path):
 
@@ -3168,7 +3170,7 @@ class TestHDFStore:
         # GH 8014
         # using iterator and where clause can return many empty
         # frames.
-        chunksize = int(1e4)
+        chunksize = 10_000
 
         # with iterator, range limited to the first chunk
         with ensure_clean_store(setup_path) as store:

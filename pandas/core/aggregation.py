@@ -11,6 +11,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
@@ -28,13 +29,13 @@ from pandas._typing import (
     Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    Label,
 )
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
+from pandas.core.algorithms import safe_sort
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
@@ -293,9 +294,9 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 def relabel_result(
     result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Iterable[Label],
+    columns: Iterable[Hashable],
     order: Iterable[int],
-) -> Dict[Label, "Series"]:
+) -> Dict[Hashable, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -322,7 +323,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, "Series"] = {}
+    reordered_result_in_dict: Dict[Hashable, "Series"] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -482,16 +483,17 @@ def transform_dict_like(
 
     if obj.ndim != 1:
         # Check for missing columns on a frame
-        cols = sorted(set(func.keys()) - set(obj.columns))
+        cols = set(func.keys()) - set(obj.columns)
         if len(cols) > 0:
-            raise SpecificationError(f"Column(s) {cols} do not exist")
+            cols_sorted = list(safe_sort(list(cols)))
+            raise SpecificationError(f"Column(s) {cols_sorted} do not exist")
 
     # Can't use func.values(); wouldn't work for a Series
     if any(is_dict_like(v) for _, v in func.items()):
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
-    results: Dict[Label, FrameOrSeriesUnion] = {}
+    results: Dict[Hashable, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:
@@ -738,7 +740,11 @@ def agg_dict_like(
         if isinstance(selected_obj, ABCDataFrame) and len(
             selected_obj.columns.intersection(keys)
         ) != len(keys):
-            cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+            cols = list(
+                safe_sort(
+                    list(set(keys) - set(selected_obj.columns.intersection(keys))),
+                )
+            )
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
     from pandas.core.reshape.concat import concat
