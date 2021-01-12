@@ -9,6 +9,7 @@ from pandas.core.dtypes.common import is_dict_like
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
+import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
@@ -148,8 +149,8 @@ class BoxPlot(LinePlot):
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
-            labels = [l for l, _ in self._iter_data()]
-            labels = [pprint_thing(l) for l in labels]
+            labels = [left for left, _ in self._iter_data()]
+            labels = [pprint_thing(left) for left in labels]
             if not self.use_index:
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
@@ -443,6 +444,15 @@ def boxplot_frame_groupby(
                 df = frames[0].join(frames[1::])
             else:
                 df = frames[0]
+
+        # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
+        # is assigned, and in this case, since `df` here becomes MI after groupby,
+        # so we need to couple the keys (grouped values) and column (original df
+        # column) together to search for subset to plot
+        if column is not None:
+            column = com.convert_to_list_like(column)
+            multi_key = pd.MultiIndex.from_product([keys, column])
+            column = list(multi_key.values)
         ret = df.boxplot(
             column=column,
             fontsize=fontsize,

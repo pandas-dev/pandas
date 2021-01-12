@@ -118,6 +118,8 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
 def is_scalar(val: object) -> bool:
     """
+    Return True if given object is scalar.
+
     Parameters
     ----------
     val : object
@@ -634,7 +636,7 @@ cpdef ndarray[object] ensure_string_array(
     ----------
     arr : array-like
         The values to be converted to str, if needed.
-    na_value : Any
+    na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
         If False, existing na values will be used unchanged in the new array.
@@ -886,31 +888,43 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
     k = len(keys)
 
-    if n == 0:
+    # Start at the first non-null entry
+    j = 0
+    for j in range(0, n):
+        if labels[j] != -1:
+            break
+    else:
         return result
+    cur = labels[j]
+    start = j
 
-    start = 0
-    cur = labels[0]
-    for i in range(1, n):
+    for i in range(j+1, n):
         lab = labels[i]
 
         if lab != cur:
             if lab != -1:
-                tup = PyTuple_New(k)
-                for j in range(k):
-                    val = keys[j][sorted_labels[j][i - 1]]
-                    PyTuple_SET_ITEM(tup, j, val)
-                    Py_INCREF(val)
-
+                if k == 1:
+                    # When k = 1 we do not want to return a tuple as key
+                    tup = keys[0][sorted_labels[0][i - 1]]
+                else:
+                    tup = PyTuple_New(k)
+                    for j in range(k):
+                        val = keys[j][sorted_labels[j][i - 1]]
+                        PyTuple_SET_ITEM(tup, j, val)
+                        Py_INCREF(val)
                 result[tup] = index[start:i]
             start = i
         cur = lab
 
-    tup = PyTuple_New(k)
-    for j in range(k):
-        val = keys[j][sorted_labels[j][n - 1]]
-        PyTuple_SET_ITEM(tup, j, val)
-        Py_INCREF(val)
+    if k == 1:
+        # When k = 1 we do not want to return a tuple as key
+        tup = keys[0][sorted_labels[0][n - 1]]
+    else:
+        tup = PyTuple_New(k)
+        for j in range(k):
+            val = keys[j][sorted_labels[j][n - 1]]
+            PyTuple_SET_ITEM(tup, j, val)
+            Py_INCREF(val)
     result[tup] = index[start:]
 
     return result
@@ -920,6 +934,8 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
 
 def is_float(obj: object) -> bool:
     """
+    Return True if given object is float.
+
     Returns
     -------
     bool
@@ -929,6 +945,8 @@ def is_float(obj: object) -> bool:
 
 def is_integer(obj: object) -> bool:
     """
+    Return True if given object is integer.
+
     Returns
     -------
     bool
@@ -938,6 +956,8 @@ def is_integer(obj: object) -> bool:
 
 def is_bool(obj: object) -> bool:
     """
+    Return True if given object is boolean.
+
     Returns
     -------
     bool
@@ -947,6 +967,8 @@ def is_bool(obj: object) -> bool:
 
 def is_complex(obj: object) -> bool:
     """
+    Return True if given object is complex.
+
     Returns
     -------
     bool
@@ -964,7 +986,7 @@ cpdef bint is_interval(object obj):
 
 def is_period(val: object) -> bool:
     """
-    Return a boolean if this is a Period object.
+    Return True if given object is Period.
 
     Returns
     -------
@@ -1296,7 +1318,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     'boolean'
 
     >>> infer_dtype([True, False, np.nan])
-    'mixed'
+    'boolean'
 
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
@@ -1466,7 +1488,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     return "mixed"
 
 
-def infer_datetimelike_array(arr: object) -> object:
+def infer_datetimelike_array(arr: ndarray[object]) -> str:
     """
     Infer if we have a datetime or timedelta array.
     - date: we have *only* date and maybe strings, nulls
@@ -1479,7 +1501,7 @@ def infer_datetimelike_array(arr: object) -> object:
 
     Parameters
     ----------
-    arr : object array
+    arr : ndarray[object]
 
     Returns
     -------

@@ -53,10 +53,10 @@ class TestFillNA:
         mf = mixed_float_frame.reindex(columns=["A", "B", "D"])
         mf.loc[mf.index[-10:], "A"] = np.nan
         result = mf.fillna(value=0)
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
         result = mf.fillna(method="pad")
-        _check_mixed_float(result, dtype=dict(C=None))
+        _check_mixed_float(result, dtype={"C": None})
 
     def test_fillna_empty(self):
         # empty frame (GH#2778)
@@ -170,7 +170,7 @@ class TestFillNA:
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        msg = "'fill_value=4' is not present in this Categorical's categories"
+        msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
@@ -262,7 +262,7 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
         # equiv of replace
-        df = DataFrame(dict(A=[1, np.nan], B=[1.0, 2.0]))
+        df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
         for v in ["", 1, np.nan, 1.0]:
             expected = df.replace(np.nan, v)
             result = df.fillna(v)
@@ -524,3 +524,18 @@ class TestFillNA:
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+
+def test_fillna_nonconsolidated_frame():
+    # https://github.com/pandas-dev/pandas/issues/36495
+    df = DataFrame(
+        [
+            [1, 1, 1, 1.0],
+            [2, 2, 2, 2.0],
+            [3, 3, 3, 3.0],
+        ],
+        columns=["i1", "i2", "i3", "f1"],
+    )
+    df_nonconsol = df.pivot("i1", "i2")
+    result = df_nonconsol.fillna(0)
+    assert result.isna().sum().sum() == 0

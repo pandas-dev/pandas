@@ -2,11 +2,11 @@
 Read SAS sas7bdat or xport files.
 """
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Hashable, Optional, Union, overload
 
-from pandas._typing import FilePathOrBuffer, Label
+from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import get_filepath_or_buffer, stringify_path
+from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -26,12 +26,18 @@ class ReaderBase(metaclass=ABCMeta):
     def close(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
 
 @overload
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = ...,
-    index: Optional[Label] = ...,
+    index: Optional[Hashable] = ...,
     encoding: Optional[str] = ...,
     chunksize: int = ...,
     iterator: bool = ...,
@@ -43,7 +49,7 @@ def read_sas(
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = ...,
-    index: Optional[Label] = ...,
+    index: Optional[Hashable] = ...,
     encoding: Optional[str] = ...,
     chunksize: None = ...,
     iterator: bool = ...,
@@ -54,7 +60,7 @@ def read_sas(
 def read_sas(
     filepath_or_buffer: FilePathOrBuffer,
     format: Optional[str] = None,
-    index: Optional[Label] = None,
+    index: Optional[Hashable] = None,
     encoding: Optional[str] = None,
     chunksize: Optional[int] = None,
     iterator: bool = False,
@@ -85,8 +91,16 @@ def read_sas(
         Encoding for text data.  If None, text data are stored as raw bytes.
     chunksize : int
         Read file `chunksize` lines at a time, returns iterator.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
+
+        .. versionchanged:: 1.2
+
+            ``TextFileReader`` is a context manager.
 
     Returns
     -------
@@ -109,25 +123,23 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
-    ioargs = get_filepath_or_buffer(filepath_or_buffer, encoding)
-
     reader: ReaderBase
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
 
         reader = XportReader(
-            ioargs.filepath_or_buffer,
+            filepath_or_buffer,
             index=index,
-            encoding=ioargs.encoding,
+            encoding=encoding,
             chunksize=chunksize,
         )
     elif format.lower() == "sas7bdat":
         from pandas.io.sas.sas7bdat import SAS7BDATReader
 
         reader = SAS7BDATReader(
-            ioargs.filepath_or_buffer,
+            filepath_or_buffer,
             index=index,
-            encoding=ioargs.encoding,
+            encoding=encoding,
             chunksize=chunksize,
         )
     else:
@@ -136,8 +148,5 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    try:
+    with reader:
         return reader.read()
-    finally:
-        if ioargs.should_close:
-            reader.close()

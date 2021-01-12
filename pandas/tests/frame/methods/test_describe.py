@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
@@ -56,7 +57,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data_1": [4, 2, True, 2], "bool_data_2": [4, 2, True, 3]},
+            {"bool_data_1": [4, 2, False, 2], "bool_data_2": [4, 2, True, 3]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
@@ -79,7 +80,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data": [4, 2, True, 2], "str_data": [4, 3, "a", 2]},
+            {"bool_data": [4, 2, False, 2], "str_data": [4, 3, "a", 2]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
@@ -117,7 +118,7 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_categorical_column(self):
         # GH#26397
-        # Ensure the index of an an empty categorical DataFrame column
+        # Ensure the index of an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
         df = DataFrame({"empty_col": Categorical([])})
         result = df.describe()
@@ -360,3 +361,13 @@ class TestDataFrameDescribe:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
+    def test_describe_when_include_all_exclude_not_allowed(self, exclude):
+        """
+        When include is 'all', then setting exclude != None is not allowed.
+        """
+        df = DataFrame({"x": [1], "y": [2], "z": [3]})
+        msg = "exclude must be None when include is 'all'"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include="all", exclude=exclude)

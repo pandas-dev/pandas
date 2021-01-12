@@ -130,12 +130,17 @@ class TestDatetimeConcat:
 
     def test_concat_multiindex_datetime_object_index(self):
         # https://github.com/pandas-dev/pandas/issues/11058
+        idx = Index(
+            [dt.date(2013, 1, 1), dt.date(2014, 1, 1), dt.date(2015, 1, 1)],
+            dtype="object",
+        )
+
         s = Series(
             ["a", "b"],
             index=MultiIndex.from_arrays(
                 [
                     [1, 2],
-                    Index([dt.date(2013, 1, 1), dt.date(2014, 1, 1)], dtype="object"),
+                    idx[:-1],
                 ],
                 names=["first", "second"],
             ),
@@ -143,26 +148,19 @@ class TestDatetimeConcat:
         s2 = Series(
             ["a", "b"],
             index=MultiIndex.from_arrays(
-                [
-                    [1, 2],
-                    Index([dt.date(2013, 1, 1), dt.date(2015, 1, 1)], dtype="object"),
-                ],
+                [[1, 2], idx[::2]],
                 names=["first", "second"],
             ),
         )
+        mi = MultiIndex.from_arrays(
+            [[1, 2, 2], idx],
+            names=["first", "second"],
+        )
+        assert mi.levels[1].dtype == object
+
         expected = DataFrame(
             [["a", "a"], ["b", np.nan], [np.nan, "b"]],
-            index=MultiIndex.from_arrays(
-                [
-                    [1, 2, 2],
-                    DatetimeIndex(
-                        ["2013-01-01", "2014-01-01", "2015-01-01"],
-                        dtype="datetime64[ns]",
-                        freq=None,
-                    ),
-                ],
-                names=["first", "second"],
-            ),
+            index=mi,
         )
         result = concat([s, s2], axis=1)
         tm.assert_frame_equal(result, expected)
@@ -373,10 +371,10 @@ class TestTimezoneConcat:
 
     def test_concat_tz_frame(self):
         df2 = DataFrame(
-            dict(
-                A=Timestamp("20130102", tz="US/Eastern"),
-                B=Timestamp("20130603", tz="CET"),
-            ),
+            {
+                "A": Timestamp("20130102", tz="US/Eastern"),
+                "B": Timestamp("20130603", tz="CET"),
+            },
             index=range(5),
         )
 
@@ -391,20 +389,20 @@ class TestTimezoneConcat:
         ts2 = Timestamp("2015-01-01", tz="UTC")
         ts3 = Timestamp("2015-01-01", tz="EST")
 
-        df1 = DataFrame(dict(time=[ts1]))
-        df2 = DataFrame(dict(time=[ts2]))
-        df3 = DataFrame(dict(time=[ts3]))
+        df1 = DataFrame({"time": [ts1]})
+        df2 = DataFrame({"time": [ts2]})
+        df3 = DataFrame({"time": [ts3]})
 
         results = pd.concat([df1, df2]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts2]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts2]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df1, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts3]), dtype=object)
+        expected = DataFrame({"time": [ts1, ts3]}, dtype=object)
         tm.assert_frame_equal(results, expected)
 
         results = pd.concat([df2, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts2, ts3]))
+        expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
     def test_concat_multiindex_with_tz(self):

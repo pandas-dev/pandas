@@ -12,6 +12,7 @@ import sys
 import warnings
 
 from pandas._typing import F
+from pandas.compat.numpy import is_numpy_dev
 
 PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
@@ -50,7 +51,7 @@ def is_platform_windows() -> bool:
     bool
         True if the running platform is windows.
     """
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ["win32", "cygwin"]
 
 
 def is_platform_linux() -> bool:
@@ -118,3 +119,8 @@ def get_lzma_file(lzma):
             "might be required to solve this issue."
         )
     return lzma.LZMAFile
+
+
+__all__ = [
+    "is_numpy_dev",
+]

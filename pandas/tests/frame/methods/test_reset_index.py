@@ -71,6 +71,15 @@ class TestResetIndex:
         expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=tz))
         tm.assert_frame_equal(df.reset_index(), expected)
 
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_frame_reset_index_tzaware_index(self, tz):
+        dr = date_range("2012-06-02", periods=10, tz=tz)
+        df = DataFrame(np.random.randn(len(dr)), dr)
+        roundtripped = df.reset_index().set_index("index")
+        xp = df.index.tz
+        rs = roundtripped.index.tz
+        assert xp == rs
+
     def test_reset_index_with_intervals(self):
         idx = IntervalIndex.from_breaks(np.arange(11), name="x")
         original = DataFrame({"x": idx, "y": np.arange(10)})[["x", "y"]]
@@ -121,7 +130,7 @@ class TestResetIndex:
         float_frame.index.name = "index"
         deleveled = float_frame.reset_index()
         tm.assert_series_equal(deleveled["index"], Series(float_frame.index))
-        tm.assert_index_equal(deleveled.index, Index(np.arange(len(deleveled))))
+        tm.assert_index_equal(deleveled.index, Index(range(len(deleveled))), exact=True)
 
         # preserve column names
         float_frame.columns.name = "columns"
@@ -609,7 +618,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
 
 def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame(dict(c1=[10.0], c2=["a"], c3=pd.to_datetime("2020-01-01")))
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(

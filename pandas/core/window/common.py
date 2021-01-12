@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import cast
 import warnings
 
 import numpy as np
@@ -109,6 +110,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                     # set the index and reorder
                     if arg2.columns.nlevels > 1:
+                        # mypy needs to know columns is a MultiIndex, Index doesn't
+                        # have levels attribute
+                        arg2.columns = cast(MultiIndex, arg2.columns)
                         result.index = MultiIndex.from_product(
                             arg2.columns.levels + [result_index]
                         )

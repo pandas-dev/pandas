@@ -82,7 +82,7 @@ class TestTimedeltaIndex:
         # When taking the union of two TimedeltaIndexes, we infer
         #  a freq even if the arguments don't have freq.  This matches
         #  DatetimeIndex behavior.
-        tdi = pd.timedelta_range("1 Day", periods=5)
+        tdi = timedelta_range("1 Day", periods=5)
         left = tdi[[0, 1, 3, 4]]
         right = tdi[[2, 3, 1]]
 
@@ -97,13 +97,15 @@ class TestTimedeltaIndex:
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(5)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         assert len(result) == 0
 
         index_1 = timedelta_range("1 day", periods=4, freq="h")
         index_2 = index_1 + pd.offsets.Hour(1)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         expected = timedelta_range("1 day 01:00:00", periods=3, freq="h")
         tm.assert_index_equal(result, expected)
         assert result.freq == expected.freq
