@@ -15,7 +15,6 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     FrozenSet,

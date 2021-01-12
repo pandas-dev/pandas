@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from datetime import timedelta
 from textwrap import dedent
-from typing import TYPE_CHECKING, Callable, Dict, Optional, Tuple, Union, no_type_check
+from typing import Callable, Dict, Optional, Tuple, Union, no_type_check
 
 import numpy as np
 
