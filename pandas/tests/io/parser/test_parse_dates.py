@@ -86,7 +86,6 @@ def test_read_csv_with_custom_date_parser(self):
         },
         index=[41047, 41048, 41049, 41050, 41051],
     )
-    expected = expected.astype(np.int)
     tm.assert_frame_equal(result, expected)
 
 
