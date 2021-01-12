@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import IS64, is_numpy_dev
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
@@ -19,6 +20,7 @@ from pandas import (
     DatetimeIndex,
     Float64Index,
     Int64Index,
+    IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -333,6 +335,7 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
+    @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
@@ -1249,10 +1252,9 @@ class TestIndex(Base):
         if method == "get_indexer":
             tm.assert_numpy_array_equal(result, expected)
         else:
-            expected = np.array([-1, -1, -1, -1], dtype=np.intp)
-
+            missing = np.arange(3, dtype=np.intp)
             tm.assert_numpy_array_equal(result[0], expected)
-            tm.assert_numpy_array_equal(result[1], expected)
+            tm.assert_numpy_array_equal(result[1], missing)
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -1356,6 +1358,7 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_slice_locs_dup(self):
         index = Index(["a", "a", "b", "c", "d", "d"])
         assert index.slice_locs("a", "d") == (0, 6)
@@ -1395,6 +1398,9 @@ class TestIndex(Base):
         with pytest.raises(KeyError, match=""):
             index.slice_locs(end=1.5)
 
+    @pytest.mark.xfail(
+        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
+    )
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
@@ -1505,6 +1511,17 @@ class TestIndex(Base):
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
+    def test_drop_with_duplicates_in_index(self, index):
+        # GH38051
+        if len(index) == 0 or isinstance(index, MultiIndex):
+            return
+        if isinstance(index, IntervalIndex) and not IS64:
+            pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
+        index = index.unique().repeat(2)
+        expected = index[2:]
+        result = index.drop(index[0])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "attr",
         [
@@ -1583,13 +1600,15 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, nulls_fixture):
+    def test_isin_nan_common_float64(self, request, nulls_fixture):
         if nulls_fixture is pd.NaT:
             pytest.skip("pd.NaT not compatible with Float64Index")
 
         # Float64Index overrides isin, so must be checked separately
         if nulls_fixture is pd.NA:
-            pytest.xfail("Float64Index cannot contain pd.NA")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
+            )
 
         tm.assert_numpy_array_equal(
             Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])
@@ -2243,6 +2262,7 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
         index_maker(foo="bar")
 
 
+@pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
 def test_deprecated_fastpath():
     msg = "[Uu]nexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
@@ -2346,5 +2366,6 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
+        missing = np.arange(6, dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], no_matches)
-        tm.assert_numpy_array_equal(result[1], no_matches)
+        tm.assert_numpy_array_equal(result[1], missing)

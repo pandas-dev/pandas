@@ -1,16 +1,16 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List, Optional, Tuple
+from typing import Any, Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Label
+from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -28,7 +28,7 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import maybe_extract_name
 from pandas.core.indexes.numeric import Float64Index, Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -83,7 +83,13 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
+        cls,
+        start=None,
+        stop=None,
+        step=None,
+        dtype: Optional[Dtype] = None,
+        copy=False,
+        name=None,
     ):
 
         cls._validate_dtype(dtype)
@@ -113,7 +119,9 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, name=name)
 
     @classmethod
-    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
+    def from_range(
+        cls, data: range, name=None, dtype: Optional[Dtype] = None
+    ) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -131,7 +139,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name: Label = None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Hashable = None) -> "RangeIndex":
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -354,10 +362,9 @@ class RangeIndex(Int64Index):
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
-    @Appender(_index_shared_docs["get_indexer"])
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def _get_indexer(self, target, method=None, limit=None, tolerance=None):
         if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
-            return super().get_indexer(
+            return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
             )
 
@@ -371,7 +378,7 @@ class RangeIndex(Int64Index):
         target_array = np.asarray(target)
         if not (is_signed_integer_dtype(target_array) and target_array.ndim == 1):
             # checks/conversions/roundings are delegated to general method
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
@@ -393,7 +400,7 @@ class RangeIndex(Int64Index):
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = no_default):
+    def _shallow_copy(self, values=None, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
         if values is not None:
@@ -406,7 +413,7 @@ class RangeIndex(Int64Index):
         return result
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, names=None):
+    def copy(self, name=None, deep=False, dtype: Optional[Dtype] = None, names=None):
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         new_index = self._shallow_copy(name=name)
 
@@ -482,34 +489,11 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Set Operations
 
-    def intersection(self, other, sort=False):
-        """
-        Form the intersection of two Index objects.
-
-        Parameters
-        ----------
-        other : Index or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        intersection : Index
-        """
-        self._validate_sort_keyword(sort)
-
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
+    def _intersection(self, other, sort=False):
 
         if not isinstance(other, RangeIndex):
-            return super().intersection(other, sort=sort)
+            # Int64Index
+            return super()._intersection(other, sort=sort)
 
         if not len(self) or not len(other):
             return self._simple_new(_empty_range)
@@ -551,7 +535,7 @@ class RangeIndex(Int64Index):
         if sort is None:
             new_index = new_index.sort_values()
 
-        return self._wrap_setop_result(other, new_index)
+        return new_index
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
@@ -600,9 +584,6 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
         if isinstance(other, RangeIndex) and sort is None:
             start_s, step_s = self.start, self.step
             end_s = self.start + self.step * (len(self) - 1)
@@ -652,6 +633,8 @@ class RangeIndex(Int64Index):
     def difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
         self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
             return super().difference(other, sort=sort)
@@ -668,7 +651,7 @@ class RangeIndex(Int64Index):
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
-            # We wont end up with RangeIndex, so fall back
+            # We won't end up with RangeIndex, so fall back
             return super().difference(other, sort=sort)
         if overlap.step != first.step:
             # In some cases we might be able to get a RangeIndex back,

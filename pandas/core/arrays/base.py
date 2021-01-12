@@ -25,7 +25,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike, Shape
+from pandas._typing import ArrayLike, Dtype, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -37,10 +37,11 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -48,7 +49,7 @@ from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
-_extension_array_shared_docs: Dict[str, str] = dict()
+_extension_array_shared_docs: Dict[str, str] = {}
 
 ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
@@ -188,7 +189,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -210,7 +211,9 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ):
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -354,6 +357,23 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
+    def __contains__(self, item) -> bool:
+        """
+        Return for `item in self`.
+        """
+        # GH37867
+        # comparisons of any item to pd.NA always return pd.NA, so e.g. "a" in [pd.NA]
+        # would raise a TypeError. The implementation below works around that.
+        if is_scalar(item) and isna(item):
+            if not self._can_hold_na:
+                return False
+            elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
+                return self.isna().any()
+            else:
+                return False
+        else:
+            return (item == self).any()
+
     def __eq__(self, other: Any) -> ArrayLike:
         """
         Return for `self == other` (element-wise equality).
@@ -373,7 +393,10 @@ class ExtensionArray:
         return ~(self == other)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value=lib.no_default
+        self,
+        dtype: Optional[Dtype] = None,
+        copy: bool = False,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
@@ -543,7 +566,7 @@ class ExtensionArray:
         ascending : bool, default True
             Whether the indices should result in an ascending
             or descending sort.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
@@ -934,7 +957,7 @@ class ExtensionArray:
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
@@ -1047,7 +1070,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> ArrayLike:
+    def view(self, dtype: Optional[Dtype] = None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1343,7 +1366,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
+            if isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

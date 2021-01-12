@@ -17,6 +17,7 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    date_range,
     isna,
     timedelta_range,
     to_timedelta,
@@ -526,9 +527,17 @@ class TestIndexReductions:
     def test_min_max_categorical(self):
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation min\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.min()
-        with pytest.raises(TypeError):
+        msg = (
+            r"Categorical is not ordered for operation max\n"
+            r"you can use .as_ordered\(\) to change the Categorical to an ordered one\n"
+        )
+        with pytest.raises(TypeError, match=msg):
             ci.max()
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
@@ -678,6 +687,23 @@ class TestSeriesReductions:
         result = getattr(s, method)(level=0, min_count=1)
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["mean"])
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
+    def test_ops_consistency_on_empty_nullable(self, method, dtype):
+
+        # GH#34814
+        # consistency for nullable dtypes on empty or ALL-NA mean
+
+        # empty series
+        eser = Series([], dtype=dtype)
+        result = getattr(eser, method)()
+        assert result is pd.NA
+
+        # ALL-NA series
+        nser = Series([np.nan], dtype=dtype)
+        result = getattr(nser, method)()
+        assert result is pd.NA
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
@@ -880,16 +906,20 @@ class TestSeriesReductions:
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
-        # bool_only is not implemented with level option.
-        with pytest.raises(NotImplementedError):
+        msg = "Option bool_only is not implemented with option level"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        with pytest.raises(NotImplementedError):
+        # TODO GH38810 change this error message to:
+        # "Series.any does not implement bool_only"
+        msg = "Series.any does not implement numeric_only"
+        with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        with pytest.raises(NotImplementedError):
+        msg = "Series.all does not implement numeric_only."
+        with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
     def test_all_any_boolean(self):
@@ -922,6 +952,48 @@ class TestSeriesReductions:
         result = df.any(axis=1, bool_only=True)
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
+
+    def test_any_all_datetimelike(self):
+        # GH#38723 these may not be the desired long-term behavior (GH#34479)
+        #  but in the interim should be internally consistent
+        dta = date_range("1995-01-02", periods=3)._data
+        ser = Series(dta)
+        df = DataFrame(ser)
+
+        assert dta.all()
+        assert dta.any()
+
+        assert ser.all()
+        assert ser.any()
+
+        assert df.any().all()
+        assert df.all().all()
+
+        dta = dta.tz_localize("UTC")
+        ser = Series(dta)
+        df = DataFrame(ser)
+
+        assert dta.all()
+        assert dta.any()
+
+        assert ser.all()
+        assert ser.any()
+
+        assert df.any().all()
+        assert df.all().all()
+
+        tda = dta - dta[0]
+        ser = Series(tda)
+        df = DataFrame(ser)
+
+        assert tda.any()
+        assert not tda.all()
+
+        assert ser.any()
+        assert not ser.all()
+
+        assert df.any().all()
+        assert not df.all().any()
 
     def test_timedelta64_analytics(self):
 
@@ -980,13 +1052,21 @@ class TestSeriesReductions:
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmin' not allowed for this dtype|"
+            "attempt to get argmin of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmin(skipna=False)
-        with pytest.raises(error_type):
+        msg = (
+            "reduction operation 'argmax' not allowed for this dtype|"
+            "attempt to get argmax of an empty sequence"
+        )
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax()
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=msg):
             test_input.idxmax(skipna=False)
 
     def test_idxminmax_with_inf(self):

@@ -11,6 +11,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -24,7 +25,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, IndexLabel
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -215,10 +216,10 @@ class Styler:
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Label]] = None,
-        header: Union[Sequence[Label], bool] = True,
+        columns: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        index_label: Optional[IndexLabel] = None,
         startrow: int = 0,
         startcol: int = 0,
         engine: Optional[str] = None,
@@ -389,7 +390,7 @@ class Styler:
                 rowspan = idx_lengths.get((c, r), 0)
                 if rowspan > 1:
                     es["attributes"] = [
-                        format_attr({"key": "rowspan", "value": rowspan})
+                        format_attr({"key": "rowspan", "value": f'"{rowspan}"'})
                     ]
                 row_es.append(es)
 
@@ -433,16 +434,16 @@ class Styler:
             else:
                 table_attr += ' class="tex2jax_ignore"'
 
-        return dict(
-            head=head,
-            cellstyle=cellstyle,
-            body=body,
-            uuid=uuid,
-            precision=precision,
-            table_styles=table_styles,
-            caption=caption,
-            table_attributes=table_attr,
-        )
+        return {
+            "head": head,
+            "cellstyle": cellstyle,
+            "body": body,
+            "uuid": uuid,
+            "precision": precision,
+            "table_styles": table_styles,
+            "caption": caption,
+            "table_attributes": table_attr,
+        }
 
     def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
         """
@@ -1139,7 +1140,7 @@ class Styler:
     def highlight_null(
         self,
         null_color: str = "red",
-        subset: Optional[Union[Label, Sequence[Label]]] = None,
+        subset: Optional[IndexLabel] = None,
     ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.

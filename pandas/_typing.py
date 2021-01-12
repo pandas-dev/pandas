@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from mmap import mmap
-from pathlib import Path
+from os import PathLike
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -71,13 +71,6 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# other
-
-Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
-]
-DtypeObj = Union[np.dtype, "ExtensionDtype"]
-
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
 # is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
@@ -91,16 +84,25 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
-Label = Optional[Hashable]
-IndexLabel = Union[Label, Sequence[Label]]
-Level = Union[Label, int]
+IndexLabel = Union[Hashable, Sequence[Hashable]]
+Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
+Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
+# dtypes
+NpDtype = Union[str, np.dtype]
+Dtype = Union[
+    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+]
+# DtypeArg specifies all allowable dtypes in a functions its dtype argument
+DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
+
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
+Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -117,7 +119,7 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
@@ -132,10 +134,12 @@ AggObjType = Union[
     "Resampler",
 ]
 
+PythonFuncType = Callable[[Any], Any]
+
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
 FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union[Path, FileOrBuffer[T]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -146,5 +150,12 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-# type of float formatter in DataFrameFormatter
+# types in DataFrameFormatter
+FormattersType = Union[
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+]
+ColspaceType = Mapping[Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
+]

@@ -4,11 +4,10 @@ import bz2
 from collections import abc
 import dataclasses
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
+from io import BufferedIOBase, BytesIO, RawIOBase, StringIO, TextIOWrapper
 import mmap
 import os
-import pathlib
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, cast
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union, cast
 from urllib.parse import (
     urljoin,
     urlparse as parse_url,
@@ -153,6 +152,7 @@ def validate_header_arg(header) -> None:
 
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
+    convert_file_like: bool = False,
 ) -> FileOrBuffer[AnyStr]:
     """
     Attempt to convert a path-like object to a string.
@@ -170,25 +170,18 @@ def stringify_path(
     Objects supporting the fspath protocol (python 3.6+) are coerced
     according to its __fspath__ method.
 
-    For backwards compatibility with older pythons, pathlib.Path and
-    py.path objects are specially coerced.
-
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if hasattr(filepath_or_buffer, "__fspath__"):
-        # https://github.com/python/mypy/issues/1424
-        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
-        # attribute "__fspath__"  [union-attr]
-        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
-    elif isinstance(filepath_or_buffer, pathlib.Path):
-        filepath_or_buffer = str(filepath_or_buffer)
+    if not convert_file_like and is_file_like(filepath_or_buffer):
+        # GH 38125: some fsspec objects implement os.PathLike but have already opened a
+        # file. This prevents opening the file a second time. infer_compression calls
+        # this function with convert_file_like=True to infer the compression.
+        return cast(FileOrBuffer[AnyStr], filepath_or_buffer)
+
+    # Only @runtime_checkable protocols can be used with instance and class checks
+    if isinstance(filepath_or_buffer, os.PathLike):  # type: ignore[misc]
+        filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
 
 
@@ -288,12 +281,18 @@ def _get_filepath_or_buffer(
         fsspec_mode += "b"
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
-        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
-        if storage_options:
-            raise ValueError(
-                "storage_options passed with file object or non-fsspec file path"
-            )
-        req = urlopen(filepath_or_buffer)
+        # TODO: fsspec can also handle HTTP via requests, but leaving this
+        # unchanged. using fsspec appears to break the ability to infer if the
+        # server responded with gzipped data
+        storage_options = storage_options or {}
+
+        # waiting until now for importing to match intended lazy logic of
+        # urlopen function defined elsewhere in this module
+        import urllib.request
+
+        # assuming storage_options is to be interpretted as headers
+        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req = urlopen(req_info)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
@@ -474,7 +473,7 @@ def infer_compression(
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
+        filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
@@ -489,9 +488,15 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = f"Unrecognized compression type: {compression}"
-    valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += f"\nValid compression types are {valid}"
+    # https://github.com/python/mypy/issues/5492
+    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
+    valid = ["infer", None] + sorted(
+        _compression_to_extension
+    )  # type: ignore[operator]
+    msg = (
+        f"Unrecognized compression type: {compression}\n"
+        f"Valid compression types are {valid}"
+    )
     raise ValueError(msg)
 
 
@@ -555,8 +560,7 @@ def get_handle(
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
-    if encoding is None:
-        encoding = "utf-8"
+    encoding_passed, encoding = encoding, encoding or "utf-8"
 
     # read_csv does not know whether the buffer is opened in binary/text mode
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
@@ -643,6 +647,9 @@ def get_handle(
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
+            if errors is None and encoding_passed is None:
+                # ignore errors when no encoding is specified
+                errors = "replace"
             # Encoding
             handle = open(
                 handle,
@@ -715,17 +722,36 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name: Optional[str] = None,
         **kwargs,
     ):
-        if mode in ["wb", "rb"]:
-            mode = mode.replace("b", "")
+        mode = mode.replace("b", "")
         self.archive_name = archive_name
+        self.multiple_write_buffer: Optional[Union[StringIO, BytesIO]] = None
+
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
+
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = (
+                BytesIO() if isinstance(data, bytes) else StringIO()
+            )
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
         # ZipFile needs a non-empty string
         archive_name = self.archive_name or self.filename or "zip"
-        super().writestr(archive_name, data)
+        with self.multiple_write_buffer:
+            super().writestr(archive_name, self.multiple_write_buffer.getvalue())
+
+    def close(self):
+        self.flush()
+        super().close()
 
     @property
     def closed(self):

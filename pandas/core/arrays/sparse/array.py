@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Sequence, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -13,7 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
-from pandas._typing import Scalar
+from pandas._typing import Dtype, NpDtype, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
     astype_nansafe,
     construct_1d_arraylike_from_scalar,
     find_common_type,
-    infer_dtype_from_scalar,
     maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
@@ -36,7 +35,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -58,7 +57,7 @@ import pandas.io.formats.printing as printing
 
 SparseArrayT = TypeVar("SparseArrayT", bound="SparseArray")
 
-_sparray_doc_kwargs = dict(klass="SparseArray")
+_sparray_doc_kwargs = {"klass": "SparseArray"}
 
 
 def _get_fill(arr: "SparseArray") -> np.ndarray:
@@ -175,7 +174,7 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
-def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
+def _wrap_result(name, data, sparse_index, fill_value, dtype: Optional[Dtype] = None):
     """
     wrap op result to have correct dtype
     """
@@ -282,7 +281,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         index=None,
         fill_value=None,
         kind="integer",
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy=False,
     ):
 
@@ -328,8 +327,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 npoints = sparse_index.length
 
-            dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, npoints, dtype)
+            data = construct_1d_arraylike_from_scalar(data, npoints, dtype=None)
+            dtype = data.dtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -455,7 +454,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -488,7 +487,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -579,7 +578,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
-        return float(self.sp_index.npoints) / float(self.sp_index.length)
+        return self.sp_index.npoints / self.sp_index.length
 
     @property
     def npoints(self) -> int:
@@ -747,7 +746,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 keys = np.insert(keys, 0, self.fill_value)
                 counts = np.insert(counts, 0, fcounts)
 
-        if not isinstance(keys, ABCIndexClass):
+        if not isinstance(keys, ABCIndex):
             keys = Index(keys)
         return Series(counts, index=keys)
 
@@ -976,7 +975,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             # when concatenating block indices, we don't claim that you'll
-            # get an identical index as concating the values and then
+            # get an identical index as concatenating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
             # BlockIndex may have more blocks.
@@ -999,7 +998,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype=None, copy=True):
+    def astype(self, dtype: Optional[Dtype] = None, copy=True):
         """
         Change the dtype of a SparseArray.
 
@@ -1062,7 +1061,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        subtype = dtype._subtype_with_str
+        subtype = pandas_dtype(dtype._subtype_with_str)
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
@@ -1462,7 +1461,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return None
 
 
-def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
+def make_sparse(
+    arr: np.ndarray, kind="block", fill_value=None, dtype: Optional[NpDtype] = None
+):
     """
     Convert ndarray to sparse format
 

@@ -144,9 +144,9 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # not lexsorted
-        assert df.index.lexsort_depth == 2
+        assert df.index._lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
-        assert df.index.lexsort_depth == 0
+        assert df.index._lexsort_depth == 0
 
         msg = (
             "MultiIndex slicing requires the index to be "
@@ -778,4 +778,14 @@ class TestMultiIndexSlicers:
 
         result = df.loc[tslice_]
         expected = DataFrame({("b", "d"): [4, 1]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_slice_negative_stepsize(self):
+        # GH#38071
+        mi = MultiIndex.from_product([["a", "b"], [0, 1]])
+        df = DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], index=mi)
+        result = df.loc[("a", slice(None, None, -1)), :]
+        expected = DataFrame(
+            [[3, 4], [1, 2]], index=MultiIndex.from_tuples([("a", 1), ("a", 0)])
+        )
         tm.assert_frame_equal(result, expected)

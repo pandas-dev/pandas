@@ -1,3 +1,4 @@
+import logging
 import os
 import shlex
 import subprocess
@@ -49,6 +50,7 @@ def s3_base(worker_id):
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
     requests = pytest.importorskip("requests")
+    logging.getLogger("requests").disabled = True
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
@@ -68,7 +70,9 @@ def s3_base(worker_id):
 
         # pipe to null to avoid logging in terminal
         proc = subprocess.Popen(
-            shlex.split(f"moto_server s3 -p {endpoint_port}"), stdout=subprocess.DEVNULL
+            shlex.split(f"moto_server s3 -p {endpoint_port}"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
         timeout = 5

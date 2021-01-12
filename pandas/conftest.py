@@ -266,7 +266,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
+@pytest.fixture(params=tm.NULL_OBJECTS, ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -287,7 +287,6 @@ def unique_nulls_fixture(request):
 
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
-
 
 # ----------------------------------------------------------------
 # Classes
@@ -319,6 +318,16 @@ def index_or_series(request):
 
 # Generate cartesian product of index_or_series fixture:
 index_or_series2 = index_or_series
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.array], ids=["index", "series", "array"]
+)
+def index_or_series_or_array(request):
+    """
+    Fixture to parametrize over Index, Series, and ExtensionArray
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -464,7 +473,7 @@ def index_with_missing(request):
     Fixture for indices with missing values
     """
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
-        pytest.xfail("missing values not supported")
+        pytest.skip("missing values not supported")
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
@@ -694,8 +703,8 @@ def float_frame():
 # ----------------------------------------------------------------
 @pytest.fixture(
     params=[
-        (Interval(left=0, right=5), IntervalDtype("int64")),
-        (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        (Interval(left=0, right=5), IntervalDtype("int64", "right")),
+        (Interval(left=0.1, right=0.5), IntervalDtype("float64", "right")),
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
@@ -993,14 +1002,6 @@ def tz_aware_fixture(request):
 tz_aware_fixture2 = tz_aware_fixture
 
 
-@pytest.fixture(scope="module")
-def datetime_tz_utc():
-    """
-    Yields the UTC timezone object from the datetime module.
-    """
-    return timezone.utc
-
-
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
@@ -1091,6 +1092,20 @@ def float_ea_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_allowed_nullable_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1166,7 +1181,7 @@ def any_nullable_int_dtype(request):
 
 
 @pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_numeric_dtype(request):
+def any_nullable_numeric_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1409,3 +1424,33 @@ def fsspectest():
     registry.pop("testmem", None)
     TestMemoryFS.test[0] = None
     TestMemoryFS.store.clear()
+
+
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.loc, tm.iloc])
+def indexer_sli(request):
+    """
+    Parametrize over __setitem__, loc.__setitem__, iloc.__setitem__
+    """
+    return request.param
+
+
+@pytest.fixture(params=[tm.setitem, tm.iloc])
+def indexer_si(request):
+    """
+    Parametrize over __setitem__, iloc.__setitem__
+    """
+    return request.param
