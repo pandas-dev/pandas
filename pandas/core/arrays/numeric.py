@@ -1,6 +1,6 @@
 import datetime
 import numbers
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, List, Union
 
 import numpy as np
 
@@ -156,7 +156,7 @@ class NumericArray(BaseMaskedArray):
             return result
 
         mask = np.zeros(len(self), dtype=bool)
-        inputs2 = []
+        inputs2: List[Any] = []
         for x in inputs:
             if isinstance(x, NumericArray):
                 mask |= x._mask
