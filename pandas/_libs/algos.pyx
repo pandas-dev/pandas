@@ -394,6 +394,77 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
 
 # ----------------------------------------------------------------------
+# Kendall correlation
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
+    cdef:
+        Py_ssize_t i, j, xi, yi, N, K
+        ndarray[float64_t, ndim=2] result
+        ndarray[float64_t, ndim=2] ranked_mat
+        ndarray[uint8_t, ndim=2] mask
+        float64_t currj
+        ndarray[uint8_t, ndim=1] valid
+        ndarray[float64_t, ndim=2] valid_cols
+        ndarray[float64_t, ndim=1] col
+        int64_t n_concordant
+        int64_t total_concordant = 0
+        int64_t total_discordant = 0
+        float64_t kendall_tau
+        int64_t n_obs
+        const int64_t[:] labels_n
+
+    N, K = (<object>mat).shape
+
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    ranked_mat = np.empty((N, K), dtype=np.float64)
+    # For compatibility when calling rank_1d
+    labels_n = np.zeros(N, dtype=np.int64)
+
+    for i in range(K):
+        ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
+
+    for xi in range(K):
+        for yi in range(xi + 1, K):
+            valid = mask[:, xi] & mask[:, yi]
+            if valid.sum() < minp:
+                result[xi, yi] = NaN
+                result[yi, xi] = NaN
+            else:
+                # Get columns and order second column using 1st column ranks
+                if not valid.all():
+                    valid_cols = ranked_mat[valid.nonzero()][:, [xi, yi]]
+                else:
+                    valid_cols = ranked_mat[:, [xi, yi]]
+                # Unfortunately we have to sort here, since we can have tied indices
+                col = valid_cols[:, 1][valid_cols[:, 0].argsort()]
+                n_obs = valid_cols.shape[0]
+                total_concordant = 0
+                total_discordant = 0
+                for j in range(n_obs - 1):
+                    currj = col[j]
+                    # Count num concordant and discordant pairs
+                    n_concordant = np.sum(col[j+1:]>=currj)
+                    total_concordant += n_concordant
+                    total_discordant += (n_obs-1-j-n_concordant)
+                kendall_tau = (total_concordant - total_discordant) / \
+                              (total_concordant + total_discordant)
+                result[xi, yi] = kendall_tau
+                result[yi, xi] = kendall_tau
+
+        if mask[:, xi].sum() > minp:
+            result[xi, xi] = 1
+        else:
+            result[xi, xi] = NaN
+
+    return result
+
+
+# ----------------------------------------------------------------------
 
 ctypedef fused algos_t:
     float64_t
