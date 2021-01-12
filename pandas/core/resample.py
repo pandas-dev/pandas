@@ -16,7 +16,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
+from pandas._typing import T, TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, doc
@@ -44,9 +44,6 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
-
-if TYPE_CHECKING:
-    from pandas._typing import T
 
 _shared_docs_kwargs: Dict[str, str] = {}
 

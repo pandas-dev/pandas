@@ -47,6 +47,7 @@ from pandas._typing import (
     IndexLabel,
     Label,
     Scalar,
+    T,
     final,
 )
 from pandas.compat.numpy import function as nv
@@ -79,10 +80,6 @@ from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
-
-if TYPE_CHECKING:
-    from pandas._typing import T
-
 
 _common_see_also = """
         See Also
