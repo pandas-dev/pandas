@@ -326,6 +326,11 @@ class TestResetIndex:
     )
     def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
+        warn = None
+        if isinstance(name, Timestamp) and name.tz is not None:
+            # _deprecate_mismatched_indexing
+            warn = FutureWarning
+
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
@@ -333,7 +338,8 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        result = df.reset_index()
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            result = df.reset_index()
 
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
