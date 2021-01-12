@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, TypeVar,
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Hashable
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar
@@ -679,7 +679,7 @@ class ArrayManager(DataManager):
         # TODO
         raise Exception
 
-    def insert(self, loc: int, item: Label, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
