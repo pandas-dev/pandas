@@ -33,11 +33,62 @@ For example:
         storage_options=headers
     )
 
+
+
 .. _whatsnew_130.window_method_table:
 
 :class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
 ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
 See ref:`window.overview` for performance and functional benefits. (:issue:`15095`, :issue:`38995`)
+
+.. _whatsnew_130.resample_group_keys:
+
+Control of index with ``group_keys`` in :meth:`DataFrame.resample`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The argument ``group_keys`` has been added to the method :meth:`DataFrame.resample`.
+As with :meth:`DataFrame.groupby`, this argument controls the whether each group is added
+to the index in the resample when :meth:`.Resampler.apply` is used.
+
+.. warning::
+   Not specifying the ``group_keys`` argument will retain the
+   previous behavior and emit a warning. In a future version
+   of pandas, not specifying ``group_keys`` will default to
+   the same behavior as ``group_keys=False``.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {'a': range(6)},
+        index=pd.date_range("2021-01-01", periods=6, freq="8H")
+    )
+    df.resample("D", group_keys=True).apply(lambda x: x)
+    df.resample("D", group_keys=False).apply(lambda x: x)
+
+Previously, the resulting index would depend upon the values returned by ``apply``,
+as seen in the following example.
+
+.. code-block:: python
+
+   >>> # pandas 1.2
+   >>> df.resample("D").apply(lambda x: x)
+                        a
+   2021-01-01 00:00:00  0
+   2021-01-01 08:00:00  1
+   2021-01-01 16:00:00  2
+   2021-01-02 00:00:00  3
+   2021-01-02 08:00:00  4
+   2021-01-02 16:00:00  5
+   >>> df.resample("D").apply(lambda x: x.reset_index())
+                              index  a
+   2021-01-01 0 2021-01-01 00:00:00  0
+              1 2021-01-01 08:00:00  1
+              2 2021-01-01 16:00:00  2
+   2021-01-02 0 2021-01-02 00:00:00  3
+              1 2021-01-02 08:00:00  4
+              2 2021-01-02 16:00:00  5
+
+
 
 .. _whatsnew_130.enhancements.other:
 
@@ -158,8 +209,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`~DataFrame.groupby` no longer ignore ``group_keys`` for transform-like ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
 functions passed to ``apply`` that return like-indexed outputs will have the

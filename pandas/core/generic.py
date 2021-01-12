@@ -7809,8 +7809,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             .. versionadded:: 1.1.0
 
         group_keys : bool, optional
-            Whether to include the group keys in the result index when performing
-            a ``.groupby().apply()`` to the resampled object.
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object. Not specifying ``group_keys``
+            will retain values-dependent behavior from pandas 1.2
+            and earlier (see
+            :ref:`pandas 1.3.0 Release notes<whatsnew_130.resample_group_keys>`
+            for examples). In a future version of pandas, the behavior will
+            default to the same as specifying ``group_keys=False``.
 
             .. versionadded:: 1.3.0
 
