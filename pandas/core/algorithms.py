@@ -11,7 +11,7 @@ from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
+from pandas._libs import algos, hashtable as htable, iNaT, lib
 from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -50,7 +51,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCRangeIndex,
     ABCSeries,
@@ -58,11 +59,16 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core.construction import array, extract_array
+from pandas.core.construction import (
+    array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
+    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -215,7 +221,7 @@ def _reconstruct_data(
         values = values.astype(dtype, copy=False)
 
         # we only support object dtypes bool Index
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
@@ -437,9 +443,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(
-        values, (ABCIndexClass, ABCSeries, ABCExtensionArray, np.ndarray)
-    ):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         values = _ensure_arraylike(list(values))
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
@@ -454,7 +458,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
-    if needs_i8_conversion(comps.dtype):
+    elif is_interval_dtype(comps.dtype):
+        return cast("IntervalArray", comps).isin(values)
+
+    elif needs_i8_conversion(comps.dtype):
         # Dispatch to DatetimeLikeArrayMixin.isin
         return array(comps).isin(values)
     elif needs_i8_conversion(values.dtype) and not is_object_dtype(comps.dtype):
@@ -700,7 +707,7 @@ def factorize(
         and values.freq is not None
     ):
         codes, uniques = values.factorize(sort=sort)
-        if isinstance(original, ABCIndexClass):
+        if isinstance(original, ABCIndex):
             uniques = original._shallow_copy(uniques, name=None)
         elif isinstance(original, ABCSeries):
             from pandas import Index
@@ -739,8 +746,11 @@ def factorize(
     uniques = _reconstruct_data(uniques, dtype, original)
 
     # return original tenor
-    if isinstance(original, ABCIndexClass):
+    if isinstance(original, ABCIndex):
         if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            original._data = cast(
+                "Union[DatetimeArray, TimedeltaArray]", original._data
+            )
             uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
@@ -825,7 +835,7 @@ def value_counts(
         result = result.sort_values(ascending=ascending)
 
     if normalize:
-        result = result / float(counts.sum())
+        result = result / counts.sum()
 
     return result
 
@@ -918,6 +928,7 @@ def mode(values, dropna: bool = True) -> Series:
     mode : Series
     """
     from pandas import Series
+    import pandas.core.indexes.base as ibase
 
     values = _ensure_arraylike(values)
     original = values
@@ -944,7 +955,8 @@ def mode(values, dropna: bool = True) -> Series:
         warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
-    return Series(result)
+    # Ensure index is type stable (should always use int index)
+    return Series(result, index=ibase.default_index(len(result)))
 
 
 def rank(
@@ -982,6 +994,7 @@ def rank(
         values = _get_values_for_rank(values)
         ranks = algos.rank_1d(
             values,
+            labels=np.zeros(len(values), dtype=np.int64),
             ties_method=method,
             ascending=ascending,
             na_option=na_option,
@@ -1900,10 +1913,7 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
     ):
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
-        value_ser = array([value]) if is_scalar(value) else array(value)
-        value = value_ser[0] if is_scalar(value) else value_ser
-        if isinstance(value, Timestamp) and value.tzinfo is None:
-            value = value.to_datetime64()
+        arr = ensure_wrapped_if_datetimelike(arr)
 
     result = arr.searchsorted(value, side=side, sorter=sorter)
     return result
@@ -1981,7 +1991,13 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     elif is_integer_dtype(dtype):
         # We have to cast in order to be able to hold np.nan
-        dtype = np.float64
+
+        # int8, int16 are incompatible with float64,
+        # see https://github.com/cython/cython/issues/2646
+        if arr.dtype.name in ["int8", "int16"]:
+            dtype = np.float32
+        else:
+            dtype = np.float64
 
     orig_ndim = arr.ndim
     if orig_ndim == 1:
@@ -2193,24 +2209,3 @@ def _sort_tuples(values: np.ndarray[tuple]):
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
     return values[indexer]
-
-
-def make_duplicates_of_left_unique_in_right(
-    left: np.ndarray, right: np.ndarray
-) -> np.ndarray:
-    """
-    If left has duplicates, which are also duplicated in right, this duplicated values
-    are dropped from right, meaning that every duplicate value from left exists only
-    once in right.
-
-    Parameters
-    ----------
-    left: ndarray
-    right: ndarray
-
-    Returns
-    -------
-    Duplicates of left are unique in right
-    """
-    left_duplicates = unique(left[duplicated(left)])
-    return right[~(duplicated(right) & isin(right, left_duplicates))]

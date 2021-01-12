@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Hashable, List, Optional, Tuple
 import warnings
 
 from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -22,7 +21,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -107,8 +106,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[Label] = None,
-        ylabel: Optional[Label] = None,
+        xlabel: Optional[Hashable] = None,
+        ylabel: Optional[Hashable] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -170,7 +169,7 @@ class MPLPlot:
         self.grid = grid
         self.legend = legend
         self.legend_handles: List[Artist] = []
-        self.legend_labels: List[Label] = []
+        self.legend_labels: List[Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
@@ -192,7 +191,7 @@ class MPLPlot:
             for kw, err in zip(["xerr", "yerr"], [xerr, yerr])
         }
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndexClass)):
+        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -678,7 +677,7 @@ class MPLPlot:
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, ABCIndexClass):
+        if isinstance(x, ABCIndex):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -748,7 +747,7 @@ class MPLPlot:
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndexClass)):
+        if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -1232,8 +1231,8 @@ class LinePlot(MPLPlot):
 
         raise ValueError(
             "When stacked is True, each column must be either "
-            "all positive or negative."
-            f"{label} contains both positive and negative values"
+            "all positive or all negative. "
+            f"Column '{label}' contains both positive and negative values"
         )
 
     @classmethod
@@ -1555,7 +1554,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError(f"{kind} doesn't allow negative values")
+            raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):

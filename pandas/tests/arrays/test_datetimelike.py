@@ -85,6 +85,20 @@ class SharedTests:
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
 
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pd.date_range("2020", periods=3),
+            pd.date_range("2020", periods=3, tz="UTC"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.period_range("2020Q1", periods=3, freq="Q"),
+        ],
+    )
+    def test_compare_with_Categorical(self, result):
+        expected = pd.Categorical(result)
+        assert all(result == expected)
+        assert not any(result != expected)
+
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
     def test_compare_categorical_dtype(self, arr1d, as_index, reverse, ordered):
@@ -719,6 +733,15 @@ class TestDatetimeArray(SharedTests):
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    def test_to_period_2d(self, arr1d):
+        arr2d = arr1d.reshape(1, -1)
+
+        warn = None if arr1d.tz is None else UserWarning
+        with tm.assert_produces_warning(warn):
+            result = arr2d.to_period("D")
+            expected = arr1d.to_period("D").reshape(1, -1)
+        tm.assert_period_array_equal(result, expected)
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._bool_ops)
     def test_bool_properties(self, arr1d, propname):

@@ -5,13 +5,23 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import Label, StorageOptions
+from pandas._typing import IndexLabel, StorageOptions
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
@@ -21,6 +31,7 @@ from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 from pandas.core import generic
 import pandas.core.common as com
 
+from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -65,28 +76,7 @@ class CSSToExcelConverter:
         CSS processed by :meth:`__call__`.
     """
 
-    NAMED_COLORS = {
-        "maroon": "800000",
-        "brown": "A52A2A",
-        "red": "FF0000",
-        "pink": "FFC0CB",
-        "orange": "FFA500",
-        "yellow": "FFFF00",
-        "olive": "808000",
-        "green": "008000",
-        "purple": "800080",
-        "fuchsia": "FF00FF",
-        "lime": "00FF00",
-        "teal": "008080",
-        "aqua": "00FFFF",
-        "blue": "0000FF",
-        "navy": "000080",
-        "black": "000000",
-        "gray": "808080",
-        "grey": "808080",
-        "silver": "C0C0C0",
-        "white": "FFFFFF",
-    }
+    NAMED_COLORS = CSS4_COLORS
 
     VERTICAL_MAP = {
         "top": "top",
@@ -460,10 +450,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence[Label]] = None,
-        header: Union[Sequence[Label], bool] = True,
+        cols: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        index_label: Optional[IndexLabel] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
