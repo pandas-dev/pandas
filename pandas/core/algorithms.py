@@ -21,12 +21,12 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
+    ensure_complex128,
     ensure_float64,
     ensure_int64,
     ensure_object,
     ensure_platform_int,
     ensure_uint64,
-    ensure_complex128,
     is_array_like,
     is_bool_dtype,
     is_categorical_dtype,
@@ -251,7 +251,7 @@ _hashtables = {
     "int64": htable.Int64HashTable,
     "string": htable.StringHashTable,
     "object": htable.PyObjectHashTable,
-    "complex128": htable.Complex128HashTable
+    "complex128": htable.Complex128HashTable,
 }
 
 
