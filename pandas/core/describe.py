@@ -126,6 +126,15 @@ def describe_ndframe(
 
 
 def describe_numeric_1d(series, percentiles) -> "Series":
+    """Describe series containing numerical data.
+
+    Parameters
+    ----------
+    series : Series
+        Series to be described.
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output.
+    """
     from pandas import Series
 
     formatted_percentiles = format_percentiles(percentiles)
@@ -140,6 +149,16 @@ def describe_numeric_1d(series, percentiles) -> "Series":
 
 
 def describe_categorical_1d(data, is_series) -> "Series":
+    """Describe series containing categorical data.
+
+    Parameters
+    ----------
+    data : Series
+        Series to be described.
+    is_series : bool
+        True if the original object is a Series.
+        False if the one column of the DataFrame is described.
+    """
     names = ["count", "unique"]
     objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
@@ -192,6 +211,15 @@ def describe_categorical_1d(data, is_series) -> "Series":
 
 
 def describe_timestamp_1d(data, percentiles) -> "Series":
+    """Describe series containing datetime64 dtype.
+
+    Parameters
+    ----------
+    data : Series
+        Series to be described.
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output.
+    """
     # GH-30164
     from pandas import Series
 
@@ -207,6 +235,24 @@ def describe_timestamp_1d(data, percentiles) -> "Series":
 
 
 def describe_1d(data, percentiles, datetime_is_numeric, *, is_series) -> "Series":
+    """Describe series.
+
+    Parameters
+    ----------
+    data : Series
+        Series to be described.
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output.
+    datetime_is_numeric : bool, default False
+        Whether to treat datetime dtypes as numeric.
+    is_series : bool
+        True if the original object is a Series.
+        False if the one column of the DataFrame is described.
+
+    Returns
+    -------
+    Series
+    """
     if is_bool_dtype(data.dtype):
         return describe_categorical_1d(data, is_series)
     elif is_numeric_dtype(data):
