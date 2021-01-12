@@ -338,19 +338,21 @@ class TestSeriesAggregate:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_non_callable_aggregates(self):
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_non_callable_aggregates(self, how):
         # test agg using non-callable series attributes
+        # GH 39116 - expand to apply
         s = Series([1, 2, None])
 
         # Calling agg w/ just a string arg same as calling s.arg
-        result = s.agg("size")
+        result = getattr(s, how)("size")
         expected = s.size
         assert result == expected
 
         # test when mixed w/ callable reducers
-        result = s.agg(["size", "count", "mean"])
+        result = getattr(s, how)(["size", "count", "mean"])
         expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
-        tm.assert_series_equal(result[expected.index], expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "series, func, expected",

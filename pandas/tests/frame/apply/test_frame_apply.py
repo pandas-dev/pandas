@@ -166,8 +166,16 @@ class TestDataFrameApply:
             pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
         ],
     )
-    def test_apply_with_string_funcs(self, float_frame, func, args, kwds):
-        result = float_frame.apply(func, *args, **kwds)
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_apply_with_string_funcs(self, request, float_frame, func, args, kwds, how):
+        if len(args) > 1 and how == "agg":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="agg/apply signature mismatch - agg passes 2nd "
+                    "argument to func"
+                )
+            )
+        result = getattr(float_frame, how)(func, *args, **kwds)
         expected = getattr(float_frame, func)(*args, **kwds)
         tm.assert_series_equal(result, expected)
 
@@ -1314,30 +1322,32 @@ class TestDataFrameAggregate:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_non_callable_aggregates(self):
+    @pytest.mark.parametrize("how", ["agg", "apply"])
+    def test_non_callable_aggregates(self, how):
 
         # GH 16405
         # 'size' is a property of frame/series
         # validate that this is working
+        # GH 39116 - expand to apply
         df = DataFrame(
             {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
         )
 
         # Function aggregate
-        result = df.agg({"A": "count"})
+        result = getattr(df, how)({"A": "count"})
         expected = Series({"A": 2})
 
         tm.assert_series_equal(result, expected)
 
         # Non-function aggregate
-        result = df.agg({"A": "size"})
+        result = getattr(df, how)({"A": "size"})
         expected = Series({"A": 3})
 
         tm.assert_series_equal(result, expected)
 
         # Mix function and non-function aggs
-        result1 = df.agg(["count", "size"])
-        result2 = df.agg(
+        result1 = getattr(df, how)(["count", "size"])
+        result2 = getattr(df, how)(
             {"A": ["count", "size"], "B": ["count", "size"], "C": ["count", "size"]}
         )
         expected = DataFrame(
@@ -1352,13 +1362,13 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result2, expected, check_like=True)
 
         # Just functional string arg is same as calling df.arg()
-        result = df.agg("count")
+        result = getattr(df, how)("count")
         expected = df.count()
 
         tm.assert_series_equal(result, expected)
 
         # Just a string attribute arg same as calling df.arg
-        result = df.agg("size")
+        result = getattr(df, how)("size")
         expected = df.size
 
         assert result == expected
@@ -1576,4 +1586,29 @@ def test_apply_raw_returns_string():
     df = DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
     expected = Series(["aa", "bbb"])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
+)
+@pytest.mark.parametrize("how", ["transform", "apply"])
+def test_apply_np_transformer(float_frame, op, how):
+    # GH 39116
+    result = getattr(float_frame, how)(op)
+    expected = getattr(np, op)(float_frame)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_np_reducer(float_frame, op, how):
+    # GH 39116
+    float_frame = DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = getattr(float_frame, how)(op)
+    # pandas ddof defaults to 1, numpy to 0
+    kwargs = {"ddof": 1} if op in ("std", "var") else {}
+    expected = Series(
+        getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
+    )
     tm.assert_series_equal(result, expected)
