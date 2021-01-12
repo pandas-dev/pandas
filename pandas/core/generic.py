@@ -37,13 +37,15 @@ from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     CompressionOptions,
+    Dtype,
+    DtypeArg,
     FilePathOrBuffer,
     FrameOrSeries,
     IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
-    Label,
     Level,
+    NpDtype,
     Renamer,
     StorageOptions,
     TimedeltaConvertibleTypes,
@@ -55,11 +57,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc, rewrite_axis_style_signature
-from pandas.util._validators import (
-    validate_bool_kwarg,
-    validate_fillna_kwargs,
-    validate_percentile,
-)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -93,6 +91,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype, extract_array
+from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
@@ -111,11 +110,7 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import (
-    DataFrameFormatter,
-    DataFrameRenderer,
-    format_percentiles,
-)
+from pandas.io.formats.format import DataFrameFormatter, DataFrameRenderer
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
@@ -210,7 +205,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
     @classmethod
-    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
+    def _init_mgr(
+        cls, mgr, axes, dtype: Optional[Dtype] = None, copy: bool = False
+    ) -> BlockManager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
@@ -521,7 +518,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> Dict[Label, Union[Series, MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[Hashable, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: Dict[str, Union[Series, MultiIndex]] = {}
@@ -531,7 +528,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> Dict[Label, Series]:
+    def _get_cleaned_column_resolvers(self) -> Dict[Hashable, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -771,7 +768,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self, item: Label) -> Union[Series, Any]:
+    def pop(self, item: Hashable) -> Union[Series, Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -1901,7 +1898,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -2642,7 +2639,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index: bool_t = True,
         index_label=None,
         chunksize=None,
-        dtype=None,
+        dtype: Optional[DtypeArg] = None,
         method=None,
     ) -> None:
         """
@@ -3220,7 +3217,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Label]] = None,
+        columns: Optional[Sequence[Hashable]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
         index_label: Optional[IndexLabel] = None,
@@ -10080,145 +10077,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         75%            NaN      2.5
         max            NaN      3.0
         """
-        if self.ndim == 2 and self.columns.size == 0:
-            raise ValueError("Cannot describe a DataFrame without columns")
-
-        if percentiles is not None:
-            # explicit conversion of `percentiles` to list
-            percentiles = list(percentiles)
-
-            # get them all to be in [0, 1]
-            validate_percentile(percentiles)
-
-            # median should always be included
-            if 0.5 not in percentiles:
-                percentiles.append(0.5)
-            percentiles = np.asarray(percentiles)
-        else:
-            percentiles = np.array([0.25, 0.5, 0.75])
-
-        # sort and check for duplicates
-        unique_pcts = np.unique(percentiles)
-        if len(unique_pcts) < len(percentiles):
-            raise ValueError("percentiles cannot contain duplicates")
-        percentiles = unique_pcts
-
-        formatted_percentiles = format_percentiles(percentiles)
-
-        def describe_numeric_1d(series) -> "Series":
-            stat_index = (
-                ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
-            )
-            d = (
-                [series.count(), series.mean(), series.std(), series.min()]
-                + series.quantile(percentiles).tolist()
-                + [series.max()]
-            )
-            return pd.Series(d, index=stat_index, name=series.name)
-
-        def describe_categorical_1d(data) -> "Series":
-            names = ["count", "unique"]
-            objcounts = data.value_counts()
-            count_unique = len(objcounts[objcounts != 0])
-            result = [data.count(), count_unique]
-            dtype = None
-            if result[1] > 0:
-                top, freq = objcounts.index[0], objcounts.iloc[0]
-                if is_datetime64_any_dtype(data.dtype):
-                    if self.ndim == 1:
-                        stacklevel = 4
-                    else:
-                        stacklevel = 5
-                    warnings.warn(
-                        "Treating datetime data as categorical rather than numeric in "
-                        "`.describe` is deprecated and will be removed in a future "
-                        "version of pandas. Specify `datetime_is_numeric=True` to "
-                        "silence this warning and adopt the future behavior now.",
-                        FutureWarning,
-                        stacklevel=stacklevel,
-                    )
-                    tz = data.dt.tz
-                    asint = data.dropna().values.view("i8")
-                    top = Timestamp(top)
-                    if top.tzinfo is not None and tz is not None:
-                        # Don't tz_localize(None) if key is already tz-aware
-                        top = top.tz_convert(tz)
-                    else:
-                        top = top.tz_localize(tz)
-                    names += ["top", "freq", "first", "last"]
-                    result += [
-                        top,
-                        freq,
-                        Timestamp(asint.min(), tz=tz),
-                        Timestamp(asint.max(), tz=tz),
-                    ]
-                else:
-                    names += ["top", "freq"]
-                    result += [top, freq]
-
-            # If the DataFrame is empty, set 'top' and 'freq' to None
-            # to maintain output shape consistency
-            else:
-                names += ["top", "freq"]
-                result += [np.nan, np.nan]
-                dtype = "object"
-
-            return pd.Series(result, index=names, name=data.name, dtype=dtype)
-
-        def describe_timestamp_1d(data) -> "Series":
-            # GH-30164
-            stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
-            d = (
-                [data.count(), data.mean(), data.min()]
-                + data.quantile(percentiles).tolist()
-                + [data.max()]
-            )
-            return pd.Series(d, index=stat_index, name=data.name)
-
-        def describe_1d(data) -> "Series":
-            if is_bool_dtype(data.dtype):
-                return describe_categorical_1d(data)
-            elif is_numeric_dtype(data):
-                return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
-                return describe_timestamp_1d(data)
-            elif is_timedelta64_dtype(data.dtype):
-                return describe_numeric_1d(data)
-            else:
-                return describe_categorical_1d(data)
-
-        if self.ndim == 1:
-            # Incompatible return value type
-            #  (got "Series", expected "FrameOrSeries")  [return-value]
-            return describe_1d(self)  # type:ignore[return-value]
-        elif (include is None) and (exclude is None):
-            # when some numerics are found, keep only numerics
-            default_include = [np.number]
-            if datetime_is_numeric:
-                default_include.append("datetime")
-            data = self.select_dtypes(include=default_include)
-            if len(data.columns) == 0:
-                data = self
-        elif include == "all":
-            if exclude is not None:
-                msg = "exclude must be None when include is 'all'"
-                raise ValueError(msg)
-            data = self
-        else:
-            data = self.select_dtypes(include=include, exclude=exclude)
-
-        ldesc = [describe_1d(s) for _, s in data.items()]
-        # set a convenient order for rows
-        names: List[Label] = []
-        ldesc_indexes = sorted((x.index for x in ldesc), key=len)
-        for idxnames in ldesc_indexes:
-            for name in idxnames:
-                if name not in names:
-                    names.append(name)
-
-        d = pd.concat([x.reindex(names, copy=False) for x in ldesc], axis=1, sort=False)
-        d.columns = data.columns.copy()
-        return d
+        return describe_ndframe(
+            obj=self,
+            include=include,
+            exclude=exclude,
+            datetime_is_numeric=datetime_is_numeric,
+            percentiles=percentiles,
+        )
 
     @final
     def pct_change(

@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
+from pandas.compat import PY38, is_numpy_dev
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -59,6 +59,7 @@ def test_nat_fields(nat, idx):
         assert result is False
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
@@ -134,7 +135,7 @@ def test_round_nat(klass, method, freq):
         pytest.param(
             "fromisocalendar",
             marks=pytest.mark.skipif(
-                not compat.PY38,
+                not PY38,
                 reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
             ),
         ),
@@ -310,7 +311,7 @@ def test_overlap_public_nat_methods(klass, expected):
     # is considered to be with Timestamp and NaT, not Timedelta.
 
     # "fromisocalendar" was introduced in 3.8
-    if klass is Timestamp and not compat.PY38:
+    if klass is Timestamp and not PY38:
         expected.remove("fromisocalendar")
 
     assert _get_overlap_public_nat_methods(klass) == expected
