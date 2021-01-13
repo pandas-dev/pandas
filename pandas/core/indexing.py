@@ -1839,20 +1839,19 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, tuple):
 
-            # if we are setting on the info axis ONLY
-            # set using those methods to avoid block-splitting
-            # logic here
+            # If we are only setting in one column (or one row for Series),
+            #  use __setitem__ to avoid block-splitting.
             if (
-                len(indexer) > info_axis
-                and is_integer(indexer[info_axis])
-                and all(
-                    com.is_null_slice(idx)
-                    for i, idx in enumerate(indexer)
-                    if i != info_axis
-                )
+                len(indexer) == self.ndim
+                # is_integer -> only setting one column (row for Series)
+                and is_integer(indexer[-1])
+                # setting entire column (condition always True for Series)
+                and all(com.is_null_slice(idx) for idx in indexer[:-1])
+                # uniqueness -> using __setitem__ is equivalent to using iloc
                 and item_labels.is_unique
             ):
-                self.obj[item_labels[indexer[info_axis]]] = value
+                key = item_labels[indexer[-1]]
+                self.obj[key] = value
                 return
 
             indexer = maybe_convert_ix(*indexer)
