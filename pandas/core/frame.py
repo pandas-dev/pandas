@@ -6488,10 +6488,6 @@ Keep all original rows and columns and also all original values
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
             for col in self.columns.intersection(other.columns)
             if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
-            and not is_dtype_equal(
-                combined.dtypes[col],
-                find_common_type([self.dtypes[col], other.dtypes[col]]),
-            )
         }
 
         if dtypes:
