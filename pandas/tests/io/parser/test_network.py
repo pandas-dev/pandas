@@ -225,6 +225,7 @@ class TestS3:
                 "s3://an_s3_bucket_data_doesnt_exit/not_real.csv", storage_options=s3so
             )
 
+    @pytest.mark.xfail(reason="GH#39155 s3fs upgrade")
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679
