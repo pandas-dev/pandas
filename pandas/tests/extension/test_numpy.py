@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.missing import infer_fill_value as infer_fill_value_orig
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
@@ -26,6 +28,16 @@ from . import base
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
     return PandasDtype(np.dtype(request.param))
+
+
+def infer_fill_value(val, length: int):
+    # GH#39044 we have to patch core.dtypes.missing.infer_fill_value
+    #  to unwrap PandasArray bc it won't recognize PandasArray with
+    #  is_extension_dtype
+    if isinstance(val, PandasArray):
+        val = val.to_numpy()
+
+    return infer_fill_value_orig(val, length)
 
 
 @pytest.fixture
@@ -47,6 +59,7 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(pd.core.indexing, "infer_fill_value", infer_fill_value)
         yield
 
 

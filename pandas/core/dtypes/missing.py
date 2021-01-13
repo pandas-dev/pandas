@@ -515,10 +515,6 @@ def infer_fill_value(val, length: int):
     if not is_list_like(val):
         val = [val]
 
-    if type(val).__name__ == "PandasArray":
-        # for test_numpy test where we patch PandasArray._typ
-        val = val.to_numpy()
-
     if is_extension_array_dtype(val):
         # We cannot use dtype._na_value bc pd.NA/pd.NaT do not preserve dtype
         if len(val) == length:
