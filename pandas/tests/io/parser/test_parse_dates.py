@@ -55,7 +55,7 @@ def test_separator_date_conflict(all_parsers):
     )
     tm.assert_frame_equal(df, expected)
 
-def test_read_csv_with_custom_date_parser(self):
+def test_read_csv_with_custom_date_parser(parser=all_parsers):
     # GH36111
     def __custom_date_parser(time):
         time = time.astype(np.float)
@@ -71,7 +71,7 @@ def test_read_csv_with_custom_date_parser(self):
             """
     )
 
-    result = pd.read_csv(
+    result = parser.read_csv(
         testdata,
         delim_whitespace=True,
         parse_dates=True,
