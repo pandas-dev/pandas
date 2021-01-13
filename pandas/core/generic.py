@@ -148,6 +148,7 @@ _shared_doc_kwargs = {
     you to specify a location to update with some value.""",
 }
 
+
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
@@ -1631,6 +1632,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and key in self.axes[axis].names
             and any(key in self.axes[ax] for ax in other_axes)
         ):
+
             # Build an informative and grammatical warning
             level_article, level_type = (
                 ("an", "index") if axis == 0 else ("a", "column")
@@ -6361,9 +6363,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
 
-        Replace with a DataFrame with the same column name
+        Replacement happens along same column names and same indices
 
-        >>> df2 = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
+        >>> df2 = pd.DataFrame(np.zeros((5, 5)), columns=list("ABCED"))
         >>> df.fillna(df2)
             A   B   C   D
         0   0.0 2.0 0.0 0
