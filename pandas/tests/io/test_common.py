@@ -272,7 +272,9 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            ("to_json", {}, "os"),
+            pytest.param(
+                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
+            ),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),

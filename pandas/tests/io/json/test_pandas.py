@@ -15,6 +15,9 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 _seriesd = tm.getSeriesData()
 
 _frame = DataFrame(_seriesd)

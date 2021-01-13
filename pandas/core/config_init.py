@@ -483,6 +483,12 @@ with cf.config_prefix("mode"):
     cf.register_option(
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
+    cf.register_option(
+        "data_manager",
+        "block",
+        "Internal data manager type",
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"

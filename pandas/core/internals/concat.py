@@ -1,11 +1,12 @@
 from collections import defaultdict
 import copy
+import itertools
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import ArrayLike, DtypeObj, Shape
+from pandas._typing import ArrayLike, DtypeObj, Manager, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -25,6 +26,7 @@ from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -35,7 +37,7 @@ if TYPE_CHECKING:
 
 def concatenate_block_managers(
     mgrs_indexers, axes: List["Index"], concat_axis: int, copy: bool
-) -> BlockManager:
+) -> Manager:
     """
     Concatenate block managers into one.
 
@@ -50,6 +52,21 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    if isinstance(mgrs_indexers[0][0], ArrayManager):
+
+        if concat_axis == 1:
+            # TODO for now only fastpath without indexers
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = [
+                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
+                for j in range(len(mgrs[0].arrays))
+            ]
+            return ArrayManager(arrays, [axes[1], axes[0]])
+        elif concat_axis == 0:
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+            return ArrayManager(arrays, [axes[1], axes[0]])
+
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]

@@ -1,9 +1,14 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, timedelta_range
 import pandas._testing as tm
+
+# TODO td.skip_array_manager_not_yet_implemented
+# appending with reindexing not yet working
 
 
 class TestDataFrameAppend:
@@ -32,6 +37,7 @@ class TestDataFrameAppend:
         tm.assert_frame_equal(result, expected)
         assert result is not df  # .append() should return a new object
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -72,6 +78,7 @@ class TestDataFrameAppend:
         expected = df.append(df[-1:], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_list_of_series_dicts(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -90,6 +97,7 @@ class TestDataFrameAppend:
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_missing_cols(self):
         # GH22252
         # exercise the conditional branch in append method where the data
@@ -134,6 +142,7 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_append_dtypes(self):
 
         # GH 5754
@@ -193,6 +202,7 @@ class TestDataFrameAppend:
         expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "data, dtype",
         [

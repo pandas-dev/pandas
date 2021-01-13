@@ -3,9 +3,14 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, date_range, period_range
 import pandas._testing as tm
+
+# TODO(ArrayManager) concat with reindexing
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture

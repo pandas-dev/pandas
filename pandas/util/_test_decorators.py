@@ -274,3 +274,18 @@ def async_mark():
         async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
 
     return async_mark
+
+
+# Note: we are using a string as condition (and not for example
+# `get_option("mode.data_manager") == "array"`) because this needs to be
+# evaluated at test time (otherwise this boolean condition gets evaluated
+# at import time, when the pd.options.mode.data_manager has not yet been set)
+
+skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+    "config.getvalue('--array-manager')", reason="JSON C code relies on Blocks"
+)
+
+skip_array_manager_invalid_test = pytest.mark.skipif(
+    "config.getvalue('--array-manager')",
+    reason="Test that relies on BlockManager internals or specific behaviour",
+)
