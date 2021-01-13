@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
@@ -25,13 +26,13 @@ def test_ufuncs_single_float(ufunc):
     a = pd.array([1, 2, -3, np.nan])
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = ufunc(a.astype(float))
-    tm.assert_numpy_array_equal(result, expected)
+        expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
+    tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
     with np.errstate(invalid="ignore"):
         result = ufunc(s)
-        expected = ufunc(s.astype(float))
+    expected = pd.Series(expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -67,14 +68,13 @@ def test_ufunc_binary_output():
     a = pd.array([1, 2, np.nan])
     result = np.modf(a)
     expected = np.modf(a.to_numpy(na_value=np.nan, dtype="float"))
+    expected = (pd.array(expected[0]), pd.array(expected[1]))
 
     assert isinstance(result, tuple)
     assert len(result) == 2
 
     for x, y in zip(result, expected):
-        # TODO(FloatArray): This will return an extension array.
-        # y = pd.array(y)
-        tm.assert_numpy_array_equal(x, y)
+        tm.assert_extension_array_equal(x, y)
 
 
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
