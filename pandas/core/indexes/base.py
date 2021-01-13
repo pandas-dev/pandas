@@ -3850,7 +3850,16 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._join_non_unique(
                     other, how=how, return_indexers=return_indexers
                 )
-        elif self.is_monotonic and other.is_monotonic:
+        elif (
+            self.is_monotonic
+            and other.is_monotonic
+            and (
+                not isinstance(self, ABCMultiIndex)
+                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
+            )
+        ):
+            # Categorical is monotonic if data are ordered as categories, but join can
+            #  not handle this in case of not lexicographically monotonic GH#38502
             try:
                 return self._join_monotonic(
                     other, how=how, return_indexers=return_indexers
