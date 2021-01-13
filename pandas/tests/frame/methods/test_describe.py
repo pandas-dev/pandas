@@ -1,9 +1,14 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
+
+# TODO(ArrayManager) quantile is needed for describe()
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestDataFrameDescribe:

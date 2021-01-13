@@ -45,6 +45,7 @@ from pandas._typing import (
     IndexLabel,
     JSONSerializable,
     Level,
+    Manager,
     NpDtype,
     Renamer,
     StorageOptions,
@@ -102,7 +103,7 @@ from pandas.core.indexes.api import (
     RangeIndex,
     ensure_index,
 )
-from pandas.core.internals import BlockManager
+from pandas.core.internals import ArrayManager, BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
@@ -179,7 +180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     )
     _metadata: List[str] = []
     _is_copy = None
-    _mgr: BlockManager
+    _mgr: Manager
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
@@ -188,7 +189,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __init__(
         self,
-        data: BlockManager,
+        data: Manager,
         copy: bool = False,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
@@ -207,7 +208,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @classmethod
     def _init_mgr(
         cls, mgr, axes, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> BlockManager:
+    ) -> Manager:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
@@ -220,7 +221,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             mgr = mgr.copy()
         if dtype is not None:
             # avoid further copies if we can
-            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
+            if (
+                isinstance(mgr, BlockManager)
+                and len(mgr.blocks) == 1
+                and mgr.blocks[0].values.dtype == dtype
+            ):
+                pass
+            else:
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
@@ -4544,11 +4551,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
-        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+        new_data.set_axis(baxis, new_data.axes[baxis]._sort_levels_monotonic())
 
         if ignore_index:
             axis = 1 if isinstance(self, ABCDataFrame) else 0
-            new_data.axes[axis] = ibase.default_index(len(indexer))
+            new_data.set_axis(axis, ibase.default_index(len(indexer)))
 
         result = self._constructor(new_data)
 
@@ -5521,6 +5528,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
+        if isinstance(self._mgr, ArrayManager):
+            return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
         if len(self._mgr.blocks) != blocks_before:
@@ -5710,11 +5719,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
 
-        Internal ONLY
+        Internal ONLY - only works for BlockManager
         """
+        mgr = self._mgr
+        mgr = cast(BlockManager, mgr)
         return {
             k: self._constructor(v).__finalize__(self)
-            for k, v, in self._mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict(copy=copy).items()
         }
 
     def astype(

@@ -12,6 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -28,6 +30,9 @@ from pandas.io.stata import (
     StataWriterUTF8,
     read_stata,
 )
+
+# TODO(ArrayManager) the stata code relies on BlockManager internals (eg blknos)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture()
