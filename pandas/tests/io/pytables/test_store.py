@@ -7,6 +7,8 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -25,6 +27,15 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,
     safe_close,
+)
+
+# TODO(ArrayManager) HDFStore relies on accessing the blocks
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
+_default_compressor = "blosc"
+ignore_natural_naming_warning = pytest.mark.filterwarnings(
+    "ignore:object name:tables.exceptions.NaturalNameWarning"
 )
 
 from pandas.io.pytables import HDFStore, read_hdf

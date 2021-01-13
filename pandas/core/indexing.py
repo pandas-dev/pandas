@@ -1865,7 +1865,6 @@ class _iLocIndexer(_LocationIndexer):
         self.obj._check_is_chained_assignment_possible()
 
         # actually do the set
-        self.obj._consolidate_inplace()
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
         self.obj._maybe_update_cacher(clear=True)
 
