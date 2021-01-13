@@ -75,7 +75,7 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
-    is_exact_match,
+    is_exact_shape_match,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -945,7 +945,7 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = is_exact_match(values, arr_value)
+        exact_match = is_exact_shape_match(values, arr_value)
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass

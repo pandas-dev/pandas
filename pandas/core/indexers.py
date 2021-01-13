@@ -270,7 +270,7 @@ def maybe_convert_indices(indices, n: int):
 # Unsorted
 
 
-def is_exact_match(target: ArrayLike, value: ArrayLike) -> bool:
+def is_exact_shape_match(target: ArrayLike, value: ArrayLike) -> bool:
     """
     Is setting this value into this target overwriting the entire column?
 
