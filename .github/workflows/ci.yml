@@ -28,13 +28,10 @@ jobs:
       if: always()
 
     - name: Cache conda
-      uses: actions/cache@v1
-      env:
-        CACHE_NUMBER: 0
+      uses: actions/cache@v2
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ env.ENV_FILE }}') }}
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
@@ -109,13 +106,10 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Cache conda
-      uses: actions/cache@v1
-      env:
-        CACHE_NUMBER: 0
+      uses: actions/cache@v2
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('${{ env.ENV_FILE }}') }}
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
@@ -138,7 +132,7 @@ jobs:
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
-      run: doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
+      run: doc/make.py --warnings-are-errors --num-jobs 2 | tee sphinx.log ; exit ${PIPESTATUS[0]}
 
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
