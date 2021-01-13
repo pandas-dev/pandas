@@ -73,44 +73,27 @@ Preserve dtypes in  :meth:`~pandas.DataFrame.combine_first`
 .. ipython:: python
 
    df1 = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=[0, 1, 2])
+   df1
    df2 = pd.DataFrame({"B": [4, 5, 6], "C": [1, 2, 3]}, index=[2, 3, 4])
+   df2
    combined = df1.combine_first(df2)
 
 *pandas 1.2.x*
 
 .. code-block:: ipython
 
-   In [1]: (combined, "---------------", combined.dtypes)
+   In [1]: combined.dtypes
    Out[2]:
-   (     A    B    C
-   0  1.0  1.0  NaN
-   1  2.0  2.0  NaN
-   2  3.0  3.0  1.0
-   3  NaN  5.0  2.0
-   4  NaN  6.0  3.0,
-   '---------------',
    A    float64
    B    float64
    C    float64
-   dtype: object)
+   dtype: object
 
 *pandas 1.3.0*
 
 .. ipython:: python
 
-   In [1]: (combined, "---------------", combined.dtypes)
-   Out[2]:
-   (     A  B    C
-   0  1.0  1  NaN
-   1  2.0  2  NaN
-   2  3.0  3  1.0
-   3  NaN  5  2.0
-   4  NaN  6  3.0, 
-   '---------------', 
-   A    float64
-   B      int64
-   C    float64
-   dtype: object)
+   combined.dtypes
 
 
 .. _whatsnew_130.api_breaking.deps:
