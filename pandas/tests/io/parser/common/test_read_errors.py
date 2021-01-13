@@ -3,13 +3,17 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 import codecs
+import csv
 from io import StringIO
 import os
+from pathlib import Path
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.errors import EmptyDataError, ParserError
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -208,3 +212,22 @@ def test_null_byte_char(all_parsers):
         msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), names=names)
+
+
+@td.check_file_leaks
+def test_open_file(all_parsers):
+    # GH 39024
+    parser = all_parsers
+    if parser.engine == "c":
+        pytest.skip()
+
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(b"\xe4\na\n1")
+
+        # should not trigger a ResourceWarning
+        warnings.simplefilter("always", category=ResourceWarning)
+        with warnings.catch_warnings(record=True) as record:
+            with pytest.raises(csv.Error, match="Could not determine delimiter"):
+                parser.read_csv(file, sep=None)
+            assert len(record) == 0, record[0].message
