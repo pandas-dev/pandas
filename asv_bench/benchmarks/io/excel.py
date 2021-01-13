@@ -40,9 +40,10 @@ class WriteExcel:
 
 class ReadExcel:
 
-    params = ["openpyxl", "odf"]
+    params = ["xlrd", "openpyxl", "odf"]
     param_names = ["engine"]
     fname_excel = "spreadsheet.xlsx"
+    fname_excel_xls = "spreadsheet.xls"
     fname_odf = "spreadsheet.ods"
 
     def _create_odf(self):
@@ -63,10 +64,16 @@ class ReadExcel:
         self.df = _generate_dataframe()
 
         self.df.to_excel(self.fname_excel, sheet_name="Sheet1")
+        self.df.to_excel(self.fname_excel_xls, sheet_name="Sheet1")
         self._create_odf()
 
     def time_read_excel(self, engine):
-        fname = self.fname_odf if engine == "odf" else self.fname_excel
+        if engine == "xlrd":
+            fname = self.fname_excel_xls
+        elif engine == "odf":
+            fname = self.fname_odf
+        else:
+            fname = self.fname_excel
         read_excel(fname, engine=engine)
 
 
