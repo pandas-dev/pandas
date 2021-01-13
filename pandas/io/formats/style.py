@@ -805,7 +805,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
-        self.tooltips = None
+        self.tooltips: Optional[_Tooltips] = None
         self.cell_context = {}
         self._todo = []
 
@@ -1934,6 +1934,7 @@ class _Tooltips:
         ]
 
         if self.table_styles:
+            # add span class to every cell only if at least 1 non-empty tooltip
             for row in d["body"]:
                 for item in row:
                     if item["type"] == "td":
