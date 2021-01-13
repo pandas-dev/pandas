@@ -410,6 +410,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
+        if hasattr(self.book, "close"):
+            # pyxlsb opens a TemporaryFile
+            self.book.close()
         self.handles.close()
 
     @property
@@ -483,6 +486,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
+            if hasattr(sheet, "close"):
+                # pyxlsb opens two TemporaryFiles
+                sheet.close()
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
