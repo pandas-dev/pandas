@@ -375,7 +375,7 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
         decorated.__doc__ = "".join(
             [
                 component.format(**params)
-                if isinstance(component, str)
+                if isinstance(component, str) and params != {}
                 else dedent(component.__doc__ or "")
                 for component in docstring_components
             ]

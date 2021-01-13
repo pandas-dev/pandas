@@ -9527,6 +9527,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def tz_convert(
         self: FrameOrSeries, tz, axis=0, level=None, copy: bool_t = True
     ) -> FrameOrSeries:
@@ -10488,6 +10489,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     product = prod
 
+    @doc()
     def mad(self, axis=None, skipna=None, level=None):
         """
         {desc}
