@@ -284,8 +284,8 @@ def is_exact_match(target: ArrayLike, value: ArrayLike) -> bool:
     bool
     """
     return (
-        len(value.shape)
-        and len(target.shape)
+        len(value.shape) > 0
+        and len(target.shape) > 0
         and value.shape[0] == target.shape[0]
         and value.size == target.size
     )
