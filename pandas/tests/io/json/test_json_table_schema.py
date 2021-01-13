@@ -6,6 +6,8 @@ import sys
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
 
 import pandas as pd
@@ -19,6 +21,8 @@ from pandas.io.json._table_schema import (
     convert_pandas_type_to_json_field,
     set_default_names,
 )
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestBuildSchema:
