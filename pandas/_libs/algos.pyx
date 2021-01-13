@@ -407,7 +407,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
         ndarray[uint8_t, ndim=2] mask
         float64_t currj
         ndarray[uint8_t, ndim=1] valid
-        ndarray[float64_t, ndim=2] valid_cols
+        ndarray[int64_t] sorted_idxs
         ndarray[float64_t, ndim=1] col
         int64_t n_concordant
         int64_t total_concordant = 0
@@ -419,7 +419,7 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
     N, K = (<object>mat).shape
 
     result = np.empty((K, K), dtype=np.float64)
-    mask = np.isfinite(mat).view(np.uint8)
+    mask = np.isfinite(mat)
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
     # For compatibility when calling rank_1d
@@ -429,6 +429,9 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
         ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
 
     for xi in range(K):
+        sorted_idxs = ranked_mat[:, xi].argsort()
+        ranked_mat = ranked_mat[sorted_idxs]
+        mask = mask[sorted_idxs]
         for yi in range(xi + 1, K):
             valid = mask[:, xi] & mask[:, yi]
             if valid.sum() < minp:
@@ -437,12 +440,11 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
             else:
                 # Get columns and order second column using 1st column ranks
                 if not valid.all():
-                    valid_cols = ranked_mat[valid.nonzero()][:, [xi, yi]]
+                    col = ranked_mat[valid.nonzero()][:, yi]
                 else:
-                    valid_cols = ranked_mat[:, [xi, yi]]
+                    col = ranked_mat[:, yi]
                 # Unfortunately we have to sort here, since we can have tied indices
-                col = valid_cols[:, 1][valid_cols[:, 0].argsort()]
-                n_obs = valid_cols.shape[0]
+                n_obs = col.shape[0]
                 total_concordant = 0
                 total_discordant = 0
                 for j in range(n_obs - 1):
