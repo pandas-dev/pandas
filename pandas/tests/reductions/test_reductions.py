@@ -1440,15 +1440,13 @@ class TestSeriesMode:
             (
                 # no modes
                 [0, 1j, 1, 1 + 1j, 1 + 2j],
-                Series([0, 1, 1j, 1 + 1j, 1 + 2j], dtype=np.complex128),
+                Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
             ),
-            ([1 + 1j, 2j, 1 + 1j, 2j, 3], Series([1 + 1j, 2j], dtype=np.complex128)),
+            ([1 + 1j, 2j, 1 + 1j, 2j, 3], Series([2j, 1 + 1j], dtype=np.complex128)),
         ],
     )
     def test_multimode_complex(self, array, expected):
         # mode tries to sort multimodal series.
-        # A warning will be raised since complex numbers
-        # are not ordered.
-        with tm.assert_produces_warning(UserWarning):
-            result = Series(array).mode()
+        # Complex numbers are sorted by their magnitude
+        result = Series(array).mode()
         tm.assert_series_equal(result, expected)
