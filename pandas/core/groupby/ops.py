@@ -543,7 +543,9 @@ class BaseGrouper:
             result = type(orig_values)._from_sequence(res_values)
             return result
 
-        raise NotImplementedError(values.dtype)
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: {values.dtype}"
+        )
 
     @final
     def _cython_operation(
