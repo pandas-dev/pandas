@@ -132,7 +132,9 @@ jobs:
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
     - name: Build documentation
-      run: doc/make.py --warnings-are-errors --num-jobs 2 | tee sphinx.log ; exit ${PIPESTATUS[0]}
+      run: |
+        doc/make.py --warnings-are-errors --num-jobs 2 | tee sphinx.log
+        echo ${PIPESTATUS}
 
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
