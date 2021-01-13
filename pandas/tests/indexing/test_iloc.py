@@ -14,6 +14,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    array as pd_array,
     concat,
     date_range,
     isna,
@@ -63,6 +64,24 @@ class TestiLoc(Base):
 
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
+
+    @pytest.mark.parametrize("box", [pd_array, Series])
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
+        # GH#38952 Case with not setting a full column
+        #  IntegerArray without NAs
+        arr = pd_array([1, 2, 3, 4])
+        obj = frame_or_series(arr.to_numpy("i8"))
+        values = obj.values
+
+        obj.iloc[:2] = box(arr[2:])
+        expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
+        tm.assert_equal(obj, expected)
+
+        # Check that we are actually in-place
+        if frame_or_series is Series:
+            assert obj.values is values
+        else:
+            assert obj.values.base is values.base and values.base is not None
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access

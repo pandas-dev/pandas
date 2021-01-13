@@ -54,6 +54,8 @@ Other enhancements
 - Add support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
 - :func:`pandas.read_excel` can now auto detect .xlsb files (:issue:`35416`)
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`)
+- :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
+- :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - Disallow :class:`DataFrame` indexer for ``iloc`` for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__`, (:issue:`39004`)
 
 .. ---------------------------------------------------------------------------
@@ -89,7 +91,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.782           |          |         |
+| mypy (dev)      | 0.790           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
@@ -193,6 +195,7 @@ Categorical
 - Bug in ``CategoricalIndex.reindex`` failed when ``Index`` passed with elements all in category (:issue:`28690`)
 - Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
 - Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
+- Bug in :meth:`DataFrame.reindex` was throwing ``IndexError`` when new index contained duplicates and old index was :class:`CategoricalIndex` (:issue:`38906`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -247,10 +250,11 @@ Indexing
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.loc`, :meth:`Series.loc`, :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` returning incorrect elements for non-monotonic :class:`DatetimeIndex` for string slices (:issue:`33146`)
+- Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` with timezone aware indexes raising ``TypeError`` for ``method="ffill"`` and ``method="bfill"`` and specified ``tolerance`` (:issue:`38566`)
 - Bug in :meth:`DataFrame.__setitem__` raising ``ValueError`` with empty :class:`DataFrame` and specified columns for string indexer and non empty :class:`DataFrame` to set (:issue:`38831`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
--
+- Bug in setting ``timedelta64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`)
 
 Missing
 ^^^^^^^
@@ -285,6 +289,7 @@ I/O
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
 - :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
+- Bug in :func:`read_csv` not switching ``true_values`` and ``false_values`` for nullable ``boolean`` dtype (:issue:`34655`)
 - Bug in :func:``read_json`` when ``orient="split"`` does not maintan numeric string index (:issue:`28556`)
 
 Period
@@ -307,6 +312,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
 - Fixed bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` causing loss of precision through using Kahan summation (:issue:`38778`)
 - Fixed bug in :meth:`DataFrameGroupBy.cumsum`, :meth:`SeriesGroupBy.cumsum`, :meth:`DataFrameGroupBy.mean` and :meth:`SeriesGroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
+- Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys having mixed dtypes (:issue:`39025`)
 
 Reshaping
 ^^^^^^^^^
@@ -314,6 +320,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` with missing levels led to incorrect index names (:issue:`37510`)
 - Bug in :func:`join` over :class:`MultiIndex` returned wrong result, when one of both indexes had only one level (:issue:`36909`)
 - :meth:`merge_asof` raises ``ValueError`` instead of cryptic ``TypeError`` in case of non-numerical merge columns (:issue:`29130`)
+- Bug in :meth:`DataFrame.join` not assigning values correctly when having :class:`MultiIndex` where at least one dimension is from dtype ``Categorical`` with non-alphabetically sorted categories (:issue:`38502`)
 -
 
 Sparse
