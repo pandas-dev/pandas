@@ -38,6 +38,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
+from pandas.core.indexing import maybe_convert_ix
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
@@ -561,6 +562,69 @@ class BlockManager(DataManager):
 
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
+
+    # TODO: could just operate inplace, so we dont end up swapping out
+    #  parent frame/series _mgr?
+    def setitem2(self, indexer, value) -> "BlockManager":
+        result_blocks = []
+
+        # assuming for now 2D
+        pi, col_indexer = indexer
+
+        if lib.is_integer(col_indexer):
+            col_indexer = [col_indexer]
+        col_indexer = Index(col_indexer)
+        col_indexer2 = list(col_indexer)
+
+        def handle_block(blk: Block) -> List[Block]:
+            locs = Index(blk.mgr_locs.as_array).intersection(col_indexer)
+            ilocs = [list(blk.mgr_locs).index(x) for x in locs]
+            # iloc2 = self.blklocs[locs]
+            # assert (ilocs == ilocs2).all(), (ilocs, ilocs2)
+            # this assertion works for non-recursed blocks
+            rlocs = [col_indexer2.index(x) for x in locs]
+
+            if not len(ilocs):
+                nbs = [blk]
+            else:
+                is2d = False
+                value_for_block = value
+                if getattr(value, "ndim", 0) == 2:
+                    is2d = True
+                    if isinstance(value, ABCDataFrame):
+                        # TODO: similar to what we have in BlockManager.apply?
+                        value_for_block = value.iloc[:, rlocs]
+                    else:
+                        value_for_block = value[:, rlocs]
+
+                blk_indexer = (pi, ilocs)
+                blk_indexer = maybe_convert_ix(*blk_indexer)
+
+                if blk._can_hold_element(value_for_block) and (not blk.is_object or (is2d and value_for_block.shape[1] == blk.shape[0])):
+                    nb = blk.setitem(blk_indexer, value_for_block)
+                    nbs = [nb]
+
+                elif blk.shape[0] == 1:
+                    # casting
+                    nb = blk.setitem(blk_indexer, value_for_block)
+                    nbs = [nb]
+
+                else:
+                    # recurse -> operate column-wise
+                    blocks = blk._split()
+                    nbs = []
+                    for subblk in blocks:
+                        nbs2 = handle_block(subblk)
+                        nbs.extend(nbs2)
+
+            return nbs
+
+        for blk in self.blocks:
+            nbs = handle_block(blk)
+
+            result_blocks.extend(nbs)
+
+        return type(self).from_blocks(result_blocks, self.axes)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
 

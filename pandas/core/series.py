@@ -1020,7 +1020,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_values(self, key, value):
         if isinstance(key, Series):
-            key = key._values
+            key = key._values  # TODO: has this necessarily been aligned?
         self._mgr = self._mgr.setitem(  # type: ignore[assignment]
             indexer=key, value=value
         )

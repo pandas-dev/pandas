@@ -3229,7 +3229,13 @@ class DataFrame(NDFrame, OpsMixin):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.iloc[:, indexer] = value
+
+                if is_scalar(value):
+                    indexer = self.iloc._ensure_iterable_column_indexer(indexer)
+                    for i in indexer:
+                        self[self.columns[i]] = value
+                else:
+                    self.iloc[:, indexer] = value  # TODO: indicate not-inplace
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -3286,7 +3292,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value):
+    def _iset_item(self, loc: int, value):  # only called from _setitem_single_column
         value = self._sanitize_column(value)
         value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)

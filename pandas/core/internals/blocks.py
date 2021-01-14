@@ -902,35 +902,8 @@ class Block(PandasObject):
             if self.is_numeric:
                 value = np.nan
 
-        # coerce if block dtype can store value
         values = self.values
-        if not self._can_hold_element(value):
-            # current dtype cannot store value, coerce to common dtype
-            # TODO: can we just use coerce_to_target_dtype for all this
-            if hasattr(value, "dtype"):
-                dtype = value.dtype
 
-            elif lib.is_scalar(value) and not isna(value):
-                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-
-            else:
-                # e.g. we are bool dtype and value is nan
-                # TODO: watch out for case with listlike value and scalar/empty indexer
-                dtype, _ = maybe_promote(np.array(value).dtype)
-                return self.astype(dtype).setitem(indexer, value)
-
-            dtype = find_common_type([values.dtype, dtype])
-            assert not is_dtype_equal(self.dtype, dtype)
-            # otherwise should have _can_hold_element
-
-            return self.astype(dtype).setitem(indexer, value)
-
-        if self.dtype.kind in ["m", "M"]:
-            arr = self.array_values().T
-            arr[indexer] = value
-            return self
-
-        # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
@@ -946,6 +919,42 @@ class Block(PandasObject):
         # length checking
         check_setitem_lengths(indexer, value, values)
         exact_match = is_exact_shape_match(values, arr_value)
+
+        if not self._can_hold_element(value):
+            # current dtype cannot store value, coerce to common dtype
+            # TODO: can we just use coerce_to_target_dtype for all this
+            if hasattr(value, "dtype"):
+                dtype = value.dtype
+
+            elif lib.is_scalar(value) and not isna(value):
+                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+
+            else:
+                # e.g. we are bool dtype and value is nan
+                # TODO: watch out for case with listlike value and scalar/empty indexer
+                dtype, _ = maybe_promote(np.array(value).dtype)
+                return self.astype(dtype).setitem(indexer, value)
+
+            if isinstance(indexer, tuple) and len(indexer) == self.ndim:
+                if com.is_null_slice(indexer[0]):
+                    value2 = lib.item_from_zerodim(value)
+                    if lib.is_scalar(value2):
+                        # TODO: de-duplicate with similar in setitem_single_block
+                        value2 = np.full(self.shape, arr_value)
+                        return self.make_block(value2)
+
+            dtype = find_common_type([values.dtype, dtype])
+            assert not is_dtype_equal(self.dtype, dtype)
+            # otherwise should have _can_hold_element
+
+            return self.astype(dtype).setitem(indexer, value)
+
+        if self.dtype.kind in ["m", "M"]:
+            arr = self.array_values().T
+            arr[indexer] = value
+            return self
+
+        # value must be storable at this moment
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -1668,6 +1677,13 @@ class ExtensionBlock(Block):
             # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
             indexer = indexer[0]
+
+        if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == self.ndim == 2:
+            # TODO: test for this
+            value = value.T
+            if value.shape[0] != 1:
+                raise ValueError
+            value = value[0]
 
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value

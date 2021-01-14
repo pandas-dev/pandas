@@ -1603,7 +1603,7 @@ class _iLocIndexer(_LocationIndexer):
                             # We are setting an entire column
                             self.obj[key] = value
                         else:
-                            self.obj[key] = infer_fill_value(value)
+                            self.obj[key] = infer_fill_value(value, len(self.obj))
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1725,8 +1725,8 @@ class _iLocIndexer(_LocationIndexer):
         else:
 
             # scalar value
-            for loc in ilocs:
-                self._setitem_single_column(loc, value, pi)
+            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._clear_item_cache()
 
     def _setitem_with_indexer_2d_value(self, indexer, value):
         # We get here with np.ndim(value) == 2, excluding DataFrame,
@@ -1742,6 +1742,8 @@ class _iLocIndexer(_LocationIndexer):
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
+        # self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+        #  need to make setitem2 re-coerce
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
@@ -1758,9 +1760,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # We do not want to align the value in case of iloc GH#37728
         if name == "iloc":
-            for i, loc in enumerate(ilocs):
-                val = value.iloc[:, i]
-                self._setitem_single_column(loc, val, pi)
+            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._clear_item_cache()
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
