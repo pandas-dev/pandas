@@ -7,7 +7,7 @@ import pytest
 from pandas.core.dtypes.common import is_number
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, isna, timedelta_range
+from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, timedelta_range
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -827,3 +827,75 @@ class TestSeriesMap:
         b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
+
+
+@pytest.mark.parametrize(
+    "ops, names",
+    [
+        ([np.sum], ["sum"]),
+        ([np.sum, np.mean], ["sum", "mean"]),
+        (np.array([np.sum]), ["sum"]),
+        (np.array([np.sum, np.mean]), ["sum", "mean"]),
+    ],
+)
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_listlike_reducer(string_series, ops, names, how):
+    # GH 39140
+    expected = Series({name: op(string_series) for name, op in zip(names, ops)})
+    expected.name = "series"
+    result = getattr(string_series, how)(ops)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"A": np.sum},
+        {"A": np.sum, "B": np.mean},
+        Series({"A": np.sum}),
+        Series({"A": np.sum, "B": np.mean}),
+    ],
+)
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_dictlike_reducer(string_series, ops, how):
+    # GH 39140
+    expected = Series({name: op(string_series) for name, op in ops.items()})
+    expected.name = string_series.name
+    result = getattr(string_series, how)(ops)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, names",
+    [
+        ([np.sqrt], ["sqrt"]),
+        ([np.abs, np.sqrt], ["absolute", "sqrt"]),
+        (np.array([np.sqrt]), ["sqrt"]),
+        (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
+    ],
+)
+def test_apply_listlike_transformer(string_series, ops, names):
+    # GH 39140
+    with np.errstate(all="ignore"):
+        expected = concat([op(string_series) for op in ops], axis=1)
+        expected.columns = names
+        result = string_series.apply(ops)
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"A": np.sqrt},
+        {"A": np.sqrt, "B": np.exp},
+        Series({"A": np.sqrt}),
+        Series({"A": np.sqrt, "B": np.exp}),
+    ],
+)
+def test_apply_dictlike_transformer(string_series, ops):
+    # GH 39140
+    with np.errstate(all="ignore"):
+        expected = concat({name: op(string_series) for name, op in ops.items()})
+        expected.name = string_series.name
+        result = string_series.apply(ops)
+        tm.assert_series_equal(result, expected)
