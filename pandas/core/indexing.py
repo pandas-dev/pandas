@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
+    is_extension_array_dtype,
     is_scalar,
     is_sequence,
 )
@@ -1682,7 +1683,17 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                self._setitem_single_column(ilocs[0], value, pi)
+                if is_extension_array_dtype(value):
+                    # TODO(EA2D): special case not needed with 2D EAs
+                    self._setitem_single_column(ilocs[0], value, pi)
+                elif len(value) == len(self.obj):
+                    # Setting entire column, so swapping out
+                    # GH#??? we may want to change this behavior
+                    self.obj._iset_item(ilocs[0], value)
+                else:
+                    val = np.atleast_2d(value).T
+                    self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
+                    self.obj._clear_item_cache()
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
@@ -1705,6 +1716,18 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
+                #if is_extension_array_dtype(value):  # TODO: not hit
+                #    val = DataFrame.from_arrays([value], index=[0], columns=range(len(value)))
+                #elif isinstance(value, np.ndarray):
+                #    val = np.atleast_2d(value)
+                #else:
+                #    # avoid numpy casting which can take e.g. ["b", 2] -> ["b", "2"]
+                #    ser = self.obj._constructor_sliced(value)
+                #    val = ser.to_frame().T
+                #
+                #breakpoint()
+                #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
+                #self.obj._clear_item_cache()
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, pi)
 
@@ -1742,7 +1765,8 @@ class _iLocIndexer(_LocationIndexer):
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
-        # self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+        #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+        #self.obj._clear_item_cache()
         #  need to make setitem2 re-coerce
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
@@ -1771,7 +1795,7 @@ class _iLocIndexer(_LocationIndexer):
                 if item in value:
                     sub_indexer[1] = item
                     val = self._align_series(
-                        tuple(sub_indexer),
+                        (pi, item),
                         value.iloc[:, loc],
                         multiindex_indexer,
                     )
@@ -1787,9 +1811,8 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:
-                    sub_indexer[1] = item
                     val = self._align_series(
-                        tuple(sub_indexer), value[item], multiindex_indexer
+                        (pi, item), value[item], multiindex_indexer
                     )
                 else:
                     val = np.nan
