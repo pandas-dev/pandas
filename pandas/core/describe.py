@@ -62,7 +62,7 @@ def describe_ndframe(
     if obj.ndim == 2 and obj.columns.size == 0:
         raise ValueError("Cannot describe a DataFrame without columns")
 
-    percentiles = _refine_percentiles(percentiles)
+    percentiles = refine_percentiles(percentiles)
 
     if obj.ndim == 1:
         series = cast("Series", obj)
@@ -253,7 +253,7 @@ def describe_1d(
         return describe_categorical_1d(data, is_series)
 
 
-def _refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
+def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
     """Ensure that percentiles are unique and sorted.
 
     Parameters
