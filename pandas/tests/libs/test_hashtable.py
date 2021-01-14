@@ -273,6 +273,7 @@ class TestHelpFunctions:
         assert np.all(counts == 5)
 
     def test_value_count_stable(self, dtype, type_suffix, writable):
+        # GH12679
         value_count = get_ht_function("value_count", type_suffix)
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
