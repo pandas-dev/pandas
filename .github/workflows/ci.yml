@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: master
+    branches: [master]
   pull_request:
     branches:
       - master
@@ -10,16 +10,17 @@ on:
 
 env:
   ENV_FILE: environment.yml
+  PANDAS_CI: 1
 
 jobs:
   checks:
     name: Checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
-
-    - name: Setting conda path
-      run: echo "${HOME}/miniconda3/bin" >> $GITHUB_PATH
-
     - name: Checkout
       uses: actions/checkout@v1
 
@@ -27,49 +28,55 @@ jobs:
       run: ci/code_checks.sh patterns
       if: always()
 
-    - name: Setup environment and build pandas
-      run: ci/setup_env.sh
-      if: always()
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Environment Detail
+      run: |
+        conda info
+        conda list
+
+    - name: Build Pandas
+      run: |
+        python setup.py build_ext -j 2
+        python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Linting
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh lint
+      run: ci/code_checks.sh lint
       if: always()
 
     - name: Checks on imported code
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh code
+      run: ci/code_checks.sh code
       if: always()
 
     - name: Running doctests
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh doctests
+      run: ci/code_checks.sh doctests
       if: always()
 
     - name: Docstring validation
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh docstrings
+      run: ci/code_checks.sh docstrings
       if: always()
 
     - name: Typing validation
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh typing
+      run: ci/code_checks.sh typing
       if: always()
 
     - name: Testing docstring validation script
-      run: |
-        source activate pandas-dev
-        pytest --capture=no --strict-markers scripts
+      run: pytest --capture=no --strict-markers scripts
       if: always()
 
     - name: Running benchmarks
       run: |
-        source activate pandas-dev
         cd asv_bench
         asv check -E existing
         git remote add upstream https://github.com/pandas-dev/pandas.git
@@ -106,7 +113,6 @@ jobs:
       run: |
         source activate pandas-dev
         python web/pandas_web.py web/pandas --target-path=web/build
-
     - name: Build documentation
       run: |
         source activate pandas-dev
