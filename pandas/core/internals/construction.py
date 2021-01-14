@@ -19,7 +19,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Scalar
+from pandas._typing import Axis, DtypeObj, Manager, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -147,6 +147,33 @@ def masked_rec_array_to_mgr(
     if copy:
         mgr = mgr.copy()
     return mgr
+
+
+def mgr_to_mgr(mgr, typ: str):
+    """
+    Convert to specific type of Manager. Does not copy if the type is already
+    correct. Does not guarantee a copy otherwise.
+    """
+    from pandas.core.internals import ArrayManager, BlockManager
+
+    new_mgr: Manager
+
+    if typ == "block":
+        if isinstance(mgr, BlockManager):
+            new_mgr = mgr
+        else:
+            new_mgr = arrays_to_mgr(
+                mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], dtype=None
+            )
+    elif typ == "array":
+        if isinstance(mgr, ArrayManager):
+            new_mgr = mgr
+        else:
+            arrays = [mgr.iget_values(i).copy() for i in range(len(mgr.axes[0]))]
+            new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+    else:
+        raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{type}'")
+    return new_mgr
 
 
 # ---------------------------------------------------------------------

@@ -292,13 +292,12 @@ def _get_filepath_or_buffer(
 
         # assuming storage_options is to be interpretted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
-        req = urlopen(req_info)
-        content_encoding = req.headers.get("Content-Encoding", None)
-        if content_encoding == "gzip":
-            # Override compression based on Content-Encoding header
-            compression = {"method": "gzip"}
-        reader = BytesIO(req.read())
-        req.close()
+        with urlopen(req_info) as req:
+            content_encoding = req.headers.get("Content-Encoding", None)
+            if content_encoding == "gzip":
+                # Override compression based on Content-Encoding header
+                compression = {"method": "gzip"}
+            reader = BytesIO(req.read())
         return IOArgs(
             filepath_or_buffer=reader,
             encoding=encoding,
