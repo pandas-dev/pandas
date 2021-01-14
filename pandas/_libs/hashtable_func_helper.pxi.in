@@ -96,6 +96,12 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 
         int ret = 0
 
+    # we track the order in which keys are first seen (GH39009),
+    # khash-map isn't insertion-ordered, thus:
+    #    table maps key to index_of_appearence
+    #    result_keys maps index_of_appearence to key
+    #    result_counts maps index_of_appearence to number of elements
+
     result_keys = {{name}}Vector()
     result_counts = Int64Vector()
     table = kh_init_{{ttype}}()
