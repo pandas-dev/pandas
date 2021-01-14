@@ -4631,8 +4631,7 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
         
-        .. versionchanged:: 1.2.0
-        Strings and integers are now treated as distinct. This new behaviour caused some tests to fail because users where unaware of this change.
+        Strings and integers are distinct and are therefore not comparable:
         
         >>>import pandas as pd
         pd.Series([1]).isin(['1']) 
