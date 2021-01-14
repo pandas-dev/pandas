@@ -15,6 +15,9 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 _seriesd = tm.getSeriesData()
 
 _frame = DataFrame(_seriesd)
@@ -165,7 +168,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
+    def test_roundtrip_str_axes(self, request, orient, convert_axes, numpy, dtype):
         df = DataFrame(
             np.zeros((200, 4)),
             columns=[str(i) for i in range(4)],
@@ -175,7 +178,9 @@ class TestPandasContainer:
 
         # TODO: do we even need to support U3 dtypes?
         if numpy and dtype == "U3" and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         data = df.to_json(orient=orient)
         result = pd.read_json(
@@ -191,25 +196,32 @@ class TestPandasContainer:
         # JSON objects. JSON keys are by definition strings, so there's no way
         # to disambiguate whether those keys actually were strings or numeric
         # beforehand and numeric wins out.
-        # TODO: Split should be able to support this
-        if convert_axes and (orient in ("split", "index", "columns")):
+        if convert_axes and (orient in ("index", "columns")):
             expected.columns = expected.columns.astype(np.int64)
             expected.index = expected.index.astype(np.int64)
         elif orient == "records" and convert_axes:
+            expected.columns = expected.columns.astype(np.int64)
+        elif convert_axes and orient == "split":
             expected.columns = expected.columns.astype(np.int64)
 
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_categorical(self, orient, convert_axes, numpy):
+    def test_roundtrip_categorical(self, request, orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            pytest.xfail(f"Can't have duplicate index values for orient '{orient}')")
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"Can't have duplicate index values for orient '{orient}')"
+                )
+            )
 
         data = self.categorical.to_json(orient=orient)
         if numpy and orient in ("records", "values"):
-            pytest.xfail(f"Orient {orient} is broken with numpy=True")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"Orient {orient} is broken with numpy=True")
+            )
 
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
@@ -264,9 +276,11 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_mixed(self, orient, convert_axes, numpy):
+    def test_roundtrip_mixed(self, request, orient, convert_axes, numpy):
         if numpy and orient != "split":
-            pytest.xfail("Can't decode directly to array")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Can't decode directly to array")
+            )
 
         index = pd.Index(["a", "b", "c", "d", "e"])
         values = {

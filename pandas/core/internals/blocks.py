@@ -15,12 +15,13 @@ from pandas._libs import (
 )
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj, Scalar, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_dt64_to_dt64tz,
     astype_nansafe,
+    can_hold_element,
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
@@ -40,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -241,7 +241,7 @@ class Block(PandasObject):
         """
         return PandasArray(self.values)
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         return an internal format, currently just the ndarray
         this is often overridden to handle to_dense like operations
@@ -658,7 +658,7 @@ class Block(PandasObject):
             values = values.astype(dtype, copy=copy)
 
         else:
-            values = astype_nansafe(values, dtype, copy=True)
+            values = astype_nansafe(values, dtype, copy=copy)
 
         return values
 
@@ -678,11 +678,7 @@ class Block(PandasObject):
 
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
-        dtype = self.values.dtype.type
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, dtype)
-        return isinstance(element, dtype)
+        raise NotImplementedError("Implemented on subclasses")
 
     def should_store(self, value: ArrayLike) -> bool:
         """
@@ -983,6 +979,14 @@ class Block(PandasObject):
             values[indexer] = value
 
             values = values.astype(arr_value.dtype, copy=False)
+
+        elif is_ea_value:
+            # GH#38952
+            if values.ndim == 1:
+                values[indexer] = value
+            else:
+                # TODO(EA2D): special case not needed with 2D EA
+                values[indexer] = value.to_numpy(values.dtype).reshape(-1, 1)
 
         # set
         else:
@@ -1669,7 +1673,7 @@ class ExtensionBlock(Block):
         self.values[indexer] = value
         return self
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         # ExtensionArrays must be iterable, so this works.
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
@@ -1902,23 +1906,13 @@ class NumericBlock(Block):
     is_numeric = True
     _can_hold_na = True
 
+    def _can_hold_element(self, element: Any) -> bool:
+        return can_hold_element(self.dtype, element)
+
 
 class FloatBlock(NumericBlock):
     __slots__ = ()
     is_float = True
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
-                tipo.type, np.timedelta64
-            )
-        return isinstance(
-            element, (float, int, np.floating, np.int_)
-        ) and not isinstance(
-            element,
-            (bool, np.bool_, np.timedelta64),
-        )
 
     def to_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
@@ -1958,31 +1952,11 @@ class ComplexBlock(NumericBlock):
     __slots__ = ()
     is_complex = True
 
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, (np.floating, np.integer, np.complexfloating))
-        return isinstance(
-            element, (float, int, complex, np.float_, np.int_)
-        ) and not isinstance(element, (bool, np.bool_))
-
 
 class IntBlock(NumericBlock):
     __slots__ = ()
     is_integer = True
     _can_hold_na = False
-
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return (
-                issubclass(tipo.type, np.integer)
-                and not issubclass(tipo.type, np.timedelta64)
-                and self.dtype.itemsize >= tipo.itemsize
-            )
-        # We have not inferred an integer from the dtype
-        # check if we have a builtin int or a float equal to an int
-        return is_integer(element) or (is_float(element) and element.is_integer())
 
 
 class DatetimeLikeBlockMixin(Block):
@@ -1990,7 +1964,7 @@ class DatetimeLikeBlockMixin(Block):
 
     _can_hold_na = True
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
@@ -2168,7 +2142,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
 
-    def get_values(self, dtype=None):
+    def get_values(self, dtype: Optional[Dtype] = None):
         """
         Returns an ndarray of values.
 
@@ -2280,12 +2254,6 @@ class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
-    def _can_hold_element(self, element: Any) -> bool:
-        tipo = maybe_infer_dtype_type(element)
-        if tipo is not None:
-            return issubclass(tipo.type, np.bool_)
-        return isinstance(element, (bool, np.bool_))
-
 
 class ObjectBlock(Block):
     __slots__ = ()
@@ -2293,7 +2261,7 @@ class ObjectBlock(Block):
     _can_hold_na = True
 
     def _maybe_coerce_values(self, values):
-        if issubclass(values.dtype.type, str):
+        if issubclass(values.dtype.type, (str, bytes)):
             values = np.array(values, dtype=object)
         return values
 
@@ -2449,7 +2417,7 @@ class CategoricalBlock(ExtensionBlock):
 # Constructor Helpers
 
 
-def get_block_type(values, dtype=None):
+def get_block_type(values, dtype: Optional[Dtype] = None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -2464,7 +2432,7 @@ def get_block_type(values, dtype=None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    dtype = dtype or values.dtype
+    dtype = cast(np.dtype, pandas_dtype(dtype) if dtype else values.dtype)
     vtype = dtype.type
     kind = dtype.kind
 
@@ -2500,7 +2468,7 @@ def get_block_type(values, dtype=None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None):
+def make_block(values, placement, klass=None, ndim=None, dtype: Optional[Dtype] = None):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):

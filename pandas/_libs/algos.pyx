@@ -26,6 +26,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -1105,14 +1106,13 @@ def rank_2d(
         Py_ssize_t infs
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-        ndarray[int64_t, ndim=2] argsorted
+        ndarray[intp_t, ndim=2] argsort_indexer
         ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_value
         float64_t count, sum_ranks = 0.0
         int tiebreak = 0
         int64_t idx
         bint check_mask, condition, keep_na
-        const int64_t[:] labels
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1158,40 +1158,19 @@ def rank_2d(
 
     n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
-    # For compatibility when calling rank_1d
-    labels = np.zeros(k, dtype=np.int64)
 
-    if rank_t is object:
-        try:
-            _as = values.argsort(1)
-        except TypeError:
-            values = in_arr
-            for i in range(len(values)):
-                ranks[i] = rank_1d(
-                    in_arr[i],
-                    labels=labels,
-                    ties_method=ties_method,
-                    ascending=ascending,
-                    pct=pct
-                )
-            if axis == 0:
-                return ranks.T
-            else:
-                return ranks
+    if tiebreak == TIEBREAK_FIRST:
+        # need to use a stable sort here
+        argsort_indexer = values.argsort(axis=1, kind='mergesort')
+        if not ascending:
+            tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        if tiebreak == TIEBREAK_FIRST:
-            # need to use a stable sort here
-            _as = values.argsort(axis=1, kind='mergesort')
-            if not ascending:
-                tiebreak = TIEBREAK_FIRST_DESCENDING
-        else:
-            _as = values.argsort(1)
+        argsort_indexer = values.argsort(1)
 
     if not ascending:
-        _as = _as[:, ::-1]
+        argsort_indexer = argsort_indexer[:, ::-1]
 
-    values = _take_2d(values, _as)
-    argsorted = _as.astype('i8')
+    values = _take_2d(values, argsort_indexer)
 
     for i in range(n):
         dups = sum_ranks = infs = 0
@@ -1200,7 +1179,7 @@ def rank_2d(
         count = 0.0
         for j in range(k):
             val = values[i, j]
-            idx = argsorted[i, j]
+            idx = argsort_indexer[i, j]
             if keep_na and check_mask and mask[i, idx]:
                 ranks[i, idx] = NaN
                 infs += 1
@@ -1215,38 +1194,38 @@ def rank_2d(
                 condition = (
                     j == k - 1 or
                     are_diff(values[i, j + 1], val) or
-                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
                 )
             else:
                 condition = (
                     j == k - 1 or
                     values[i, j + 1] != val or
-                    (keep_na and check_mask and mask[i, argsorted[i, j + 1]])
+                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
                 )
 
             if condition:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = sum_ranks / dups
+                        ranks[i, argsort_indexer[i, z]] = sum_ranks / dups
                 elif tiebreak == TIEBREAK_MIN:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = j - dups + 2
+                        ranks[i, argsort_indexer[i, z]] = j - dups + 2
                 elif tiebreak == TIEBREAK_MAX:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = j + 1
+                        ranks[i, argsort_indexer[i, z]] = j + 1
                 elif tiebreak == TIEBREAK_FIRST:
                     if rank_t is object:
                         raise ValueError('first not supported for non-numeric data')
                     else:
                         for z in range(j - dups + 1, j + 1):
-                            ranks[i, argsorted[i, z]] = z + 1
+                            ranks[i, argsort_indexer[i, z]] = z + 1
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = 2 * j - z - dups + 2
+                        ranks[i, argsort_indexer[i, z]] = 2 * j - z - dups + 2
                 elif tiebreak == TIEBREAK_DENSE:
                     total_tie_count += 1
                     for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsorted[i, z]] = total_tie_count
+                        ranks[i, argsort_indexer[i, z]] = total_tie_count
                 sum_ranks = dups = 0
         if pct:
             if tiebreak == TIEBREAK_DENSE:

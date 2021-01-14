@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import IS64
+from pandas.compat import IS64, is_numpy_dev
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
@@ -1358,6 +1358,7 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_slice_locs_dup(self):
         index = Index(["a", "a", "b", "c", "d", "d"])
         assert index.slice_locs("a", "d") == (0, 6)
@@ -1397,6 +1398,9 @@ class TestIndex(Base):
         with pytest.raises(KeyError, match=""):
             index.slice_locs(end=1.5)
 
+    @pytest.mark.xfail(
+        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
+    )
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
@@ -1596,13 +1600,15 @@ class TestIndex(Base):
                 np.array([False, False]),
             )
 
-    def test_isin_nan_common_float64(self, nulls_fixture):
+    def test_isin_nan_common_float64(self, request, nulls_fixture):
         if nulls_fixture is pd.NaT:
             pytest.skip("pd.NaT not compatible with Float64Index")
 
         # Float64Index overrides isin, so must be checked separately
         if nulls_fixture is pd.NA:
-            pytest.xfail("Float64Index cannot contain pd.NA")
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
+            )
 
         tm.assert_numpy_array_equal(
             Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])
