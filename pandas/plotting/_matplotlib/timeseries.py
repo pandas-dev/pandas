@@ -1,7 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superp
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from pandas import Index, Series
+    from pandas import DatetimeIndex, Index, Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -215,7 +215,7 @@ def use_dynamic_x(ax: "Axes", data: FrameOrSeriesUnion) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         base = to_offset(freq)._period_dtype_code
         x = data.index
-        if base <= FreqGroup.FR_DAY:
+        if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
         return Period(x[0], freq).to_timestamp().tz_localize(x.tz) == x[0]
     return True
@@ -243,6 +243,7 @@ def maybe_convert_index(ax: "Axes", data):
 
         if freq is None:
             # We only get here for DatetimeIndex
+            data.index = cast("DatetimeIndex", data.index)
             freq = data.index.inferred_freq
             freq = to_offset(freq)
 

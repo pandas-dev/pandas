@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -124,7 +126,7 @@ def test_drop_not_lexsorted():
     # define the lexsorted version of the multi-index
     tuples = [("a", ""), ("b1", "c1"), ("b2", "c2")]
     lexsorted_mi = MultiIndex.from_tuples(tuples, names=["b", "c"])
-    assert lexsorted_mi.is_lexsorted()
+    assert lexsorted_mi._is_lexsorted()
 
     # and the not-lexsorted version
     df = pd.DataFrame(
@@ -133,7 +135,7 @@ def test_drop_not_lexsorted():
     df = df.pivot_table(index="a", columns=["b", "c"], values="d")
     df = df.reset_index()
     not_lexsorted_mi = df.columns
-    assert not not_lexsorted_mi.is_lexsorted()
+    assert not not_lexsorted_mi._is_lexsorted()
 
     # compare the results
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
@@ -147,3 +149,42 @@ def test_drop_with_nan_in_index(nulls_fixture):
     msg = r"labels \[Timestamp\('2001-01-01 00:00:00'\)\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(pd.Timestamp("2001"), level="date")
+
+
+def test_drop_with_non_monotonic_duplicates():
+    # GH#33494
+    mi = MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", PerformanceWarning)
+        result = mi.drop((1, 2))
+    expected = MultiIndex.from_tuples([(2, 3)])
+    tm.assert_index_equal(result, expected)
+
+
+def test_single_level_drop_partially_missing_elements():
+    # GH 37820
+
+    mi = MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
+    msg = r"labels \[4\] not found in level"
+    with pytest.raises(KeyError, match=msg):
+        mi.drop(4, level=0)
+    with pytest.raises(KeyError, match=msg):
+        mi.drop([1, 4], level=0)
+    msg = r"labels \[nan\] not found in level"
+    with pytest.raises(KeyError, match=msg):
+        mi.drop([np.nan], level=0)
+    with pytest.raises(KeyError, match=msg):
+        mi.drop([np.nan, 1, 2, 3], level=0)
+
+    mi = MultiIndex.from_tuples([(np.nan, 1), (1, 2)])
+    msg = r"labels \['a'\] not found in level"
+    with pytest.raises(KeyError, match=msg):
+        mi.drop([np.nan, 1, "a"], level=0)
+
+
+def test_droplevel_multiindex_one_level():
+    # GH#37208
+    index = pd.MultiIndex.from_tuples([(2,)], names=("b",))
+    result = index.droplevel([])
+    expected = pd.Int64Index([2], name="b")
+    tm.assert_index_equal(result, expected)

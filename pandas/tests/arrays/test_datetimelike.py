@@ -3,7 +3,6 @@ from typing import Type, Union
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
@@ -85,6 +84,20 @@ class SharedTests:
         # test the index classes while we're at it, GH#23078
         with pytest.raises(ValueError, match="Lengths must match"):
             idx <= idx[[0]]
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            pd.date_range("2020", periods=3),
+            pd.date_range("2020", periods=3, tz="UTC"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.period_range("2020Q1", periods=3, freq="Q"),
+        ],
+    )
+    def test_compare_with_Categorical(self, result):
+        expected = pd.Categorical(result)
+        assert all(result == expected)
+        assert not any(result != expected)
 
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
@@ -269,18 +282,16 @@ class SharedTests:
             assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box):
+    def test_searchsorted_castable_strings(self, arr1d, box, request):
         if isinstance(arr1d, DatetimeArray):
             tz = arr1d.tz
-            if (
-                tz is not None
-                and tz is not pytz.UTC
-                and not isinstance(tz, pytz._FixedOffset)
-            ):
+            ts1, ts2 = arr1d[1:3]
+            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                pytest.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                request.node.add_marker(mark)
 
         arr = arr1d
         if box is None:
@@ -391,19 +402,17 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
-    def test_setitem_strs(self, arr1d):
+    def test_setitem_strs(self, arr1d, request):
         # Check that we parse strs in both scalar and listlike
         if isinstance(arr1d, DatetimeArray):
             tz = arr1d.tz
-            if (
-                tz is not None
-                and tz is not pytz.UTC
-                and not isinstance(tz, pytz._FixedOffset)
-            ):
+            ts1, ts2 = arr1d[-2:]
+            if tz is not None and ts1.tz.tzname(ts1) != ts2.tz.tzname(ts2):
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                pytest.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                request.node.add_marker(mark)
 
         # Setting list-like of strs
         expected = arr1d.copy()
@@ -724,6 +733,15 @@ class TestDatetimeArray(SharedTests):
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    def test_to_period_2d(self, arr1d):
+        arr2d = arr1d.reshape(1, -1)
+
+        warn = None if arr1d.tz is None else UserWarning
+        with tm.assert_produces_warning(warn):
+            result = arr2d.to_period("D")
+            expected = arr1d.to_period("D").reshape(1, -1)
+        tm.assert_period_array_equal(result, expected)
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._bool_ops)
     def test_bool_properties(self, arr1d, propname):

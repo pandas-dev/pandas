@@ -31,7 +31,6 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -55,7 +54,7 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
@@ -391,7 +390,7 @@ def nargsort(
     return indexer
 
 
-def nargminmax(values: "ExtensionArray", method: str) -> int:
+def nargminmax(values, method: str):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -406,20 +405,16 @@ def nargminmax(values: "ExtensionArray", method: str) -> int:
     int
     """
     assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
 
-    mask = np.asarray(values.isna())
-    if mask.all():
-        # Use same exception message we would get from numpy
-        raise ValueError(f"attempt to get {method} of an empty sequence")
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
 
-    if method == "argmax":
-        # Use argsort with ascending=False so that if more than one entry
-        #  achieves the maximum, we take the first such occurence.
-        sorters = values.argsort(ascending=False)
-    else:
-        sorters = values.argsort(ascending=True)
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
 
-    return sorters[0]
+    return non_nan_idx[func(non_nans)]
 
 
 def _ensure_key_mapped_multiindex(
@@ -547,8 +542,7 @@ def get_indexer_dict(
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
-        # When all keys are nan and dropna=True, indices_fast can't handle this
-        # and the return is empty anyway
+        # Short-circuit, lib.indices_fast will return the same
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
@@ -610,7 +604,7 @@ def compress_group_index(group_index, sort: bool = True):
     if sort and len(obs_group_ids) > 0:
         obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
-    return comp_ids, obs_group_ids
+    return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
 def _reorder_by_uniques(uniques, labels):

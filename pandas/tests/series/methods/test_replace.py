@@ -75,10 +75,9 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace([1, 2, 3], [np.nan, 0])
 
-        # make sure that we aren't just masking a TypeError because bools don't
-        # implement indexing
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            ser.replace([1, 2], [np.nan, 0])
+        # ser is dt64 so can't hold 1 or 2, so this replace is a no-op
+        result = ser.replace([1, 2], [np.nan, 0])
+        tm.assert_series_equal(result, ser)
 
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -209,6 +208,15 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_Int_with_na(self, any_nullable_int_dtype):
+        # GH 38267
+        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
+        tm.assert_series_equal(result, expected)
+        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        result.replace(1, pd.NA, inplace=True)
+        tm.assert_series_equal(result, expected)
+
     def test_replace2(self):
         N = 100
         ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
@@ -253,7 +261,7 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace({}))
 
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = pd.Series([])
@@ -291,7 +299,7 @@ class TestSeriesReplace:
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
-            (pd.Categorical("A", categories=["A", "B"]), [1]),
+            (pd.Categorical(["A"], categories=["A", "B"]), [1]),
             (pd.Categorical(("A",), categories=["A", "B"]), [1]),
             (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
         ],
