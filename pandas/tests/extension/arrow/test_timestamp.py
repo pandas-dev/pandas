@@ -43,9 +43,6 @@ class ArrowTimestampUSArray(ArrowExtensionArray):
         self._dtype = ArrowTimestampUSDtype()
 
 
-@pytest.mark.xfail(
-    reason="DatetimeTZBlock is created while ExtensionBlock should be, see #34986"
-)
 def test_constructor_extensionblock():
     # GH 34986
     pd.DataFrame(
