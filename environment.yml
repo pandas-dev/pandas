@@ -68,7 +68,7 @@ dependencies:
 
   # unused (required indirectly may be?)
   - ipywidgets
-  - nbformat
+  - nbformat=5.0.8
   - notebook>=5.7.5
   - pip
 
