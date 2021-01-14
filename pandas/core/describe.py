@@ -4,7 +4,7 @@ Module responsible for execution of NDFrame.describe() method.
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
 
-from typing import TYPE_CHECKING, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Union, cast
 import warnings
 
 import numpy as np
@@ -62,32 +62,14 @@ def describe_ndframe(
     if obj.ndim == 2 and obj.columns.size == 0:
         raise ValueError("Cannot describe a DataFrame without columns")
 
-    if percentiles is not None:
-        # explicit conversion of `percentiles` to list
-        percentiles = list(percentiles)
-
-        # get them all to be in [0, 1]
-        validate_percentile(percentiles)
-
-        # median should always be included
-        if 0.5 not in percentiles:
-            percentiles.append(0.5)
-        percentiles = np.asarray(percentiles)
-    else:
-        percentiles = np.array([0.25, 0.5, 0.75])
-
-    # sort and check for duplicates
-    unique_pcts = np.unique(percentiles)
-    assert percentiles is not None
-    if len(unique_pcts) < len(percentiles):
-        raise ValueError("percentiles cannot contain duplicates")
-    percentiles = unique_pcts
+    percentiles = _refine_percentiles(percentiles)
 
     if obj.ndim == 1:
+        series = cast("Series", obj)
         # Incompatible return value type
         #  (got "Series", expected "FrameOrSeries")  [return-value]
         return describe_1d(
-            obj,
+            series,
             percentiles,
             datetime_is_numeric,
             is_series=True,
@@ -125,14 +107,14 @@ def describe_ndframe(
     return d
 
 
-def describe_numeric_1d(series, percentiles) -> "Series":
+def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Series":
     """Describe series containing numerical data.
 
     Parameters
     ----------
     series : Series
         Series to be described.
-    percentiles : list-like of numbers, optional
+    percentiles : list-like of numbers
         The percentiles to include in the output.
     """
     from pandas import Series
@@ -148,7 +130,7 @@ def describe_numeric_1d(series, percentiles) -> "Series":
     return Series(d, index=stat_index, name=series.name)
 
 
-def describe_categorical_1d(data, is_series) -> "Series":
+def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
     """Describe series containing categorical data.
 
     Parameters
@@ -210,14 +192,14 @@ def describe_categorical_1d(data, is_series) -> "Series":
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data, percentiles) -> "Series":
+def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> "Series":
     """Describe series containing datetime64 dtype.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    percentiles : list-like of numbers, optional
+    percentiles : list-like of numbers
         The percentiles to include in the output.
     """
     # GH-30164
@@ -234,14 +216,20 @@ def describe_timestamp_1d(data, percentiles) -> "Series":
     return Series(d, index=stat_index, name=data.name)
 
 
-def describe_1d(data, percentiles, datetime_is_numeric, *, is_series) -> "Series":
+def describe_1d(
+    data: "Series",
+    percentiles: Sequence[float],
+    datetime_is_numeric: bool,
+    *,
+    is_series: bool,
+) -> "Series":
     """Describe series.
 
     Parameters
     ----------
     data : Series
         Series to be described.
-    percentiles : list-like of numbers, optional
+    percentiles : list-like of numbers
         The percentiles to include in the output.
     datetime_is_numeric : bool, default False
         Whether to treat datetime dtypes as numeric.
@@ -263,3 +251,35 @@ def describe_1d(data, percentiles, datetime_is_numeric, *, is_series) -> "Series
         return describe_numeric_1d(data, percentiles)
     else:
         return describe_categorical_1d(data, is_series)
+
+
+def _refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
+    """Ensure that percentiles are unique and sorted.
+
+    Parameters
+    ----------
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output.
+    """
+    if percentiles is None:
+        return np.array([0.25, 0.5, 0.75])
+
+    # explicit conversion of `percentiles` to list
+    percentiles = list(percentiles)
+
+    # get them all to be in [0, 1]
+    validate_percentile(percentiles)
+
+    # median should always be included
+    if 0.5 not in percentiles:
+        percentiles.append(0.5)
+
+    percentiles = np.asarray(percentiles)
+
+    # sort and check for duplicates
+    unique_pcts = np.unique(percentiles)
+    assert percentiles is not None
+    if len(unique_pcts) < len(percentiles):
+        raise ValueError("percentiles cannot contain duplicates")
+
+    return unique_pcts
