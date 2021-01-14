@@ -308,6 +308,18 @@ class TestMultiIndexLoc:
         expected = DataFrame([0, 2], index=mi)
         tm.assert_frame_equal(obj, expected)
 
+    def test_multiindex_setitem_columns_enlarging(self):
+        # GH#39147
+        mi = MultiIndex.from_tuples([(1, 2), (3, 4)])
+        df = DataFrame([[1, 2], [3, 4]], index=mi, columns=["a", "b"])
+        df.loc[:, ["c", "d"]] = None
+        expected = DataFrame(
+            [[1, 2, None, None], [3, 4, None, None]],
+            index=mi,
+            columns=["a", "b", "c", "d"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
