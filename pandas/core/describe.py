@@ -89,7 +89,7 @@ def describe_series(
     series: "Series",
     percentiles: Sequence[float],
     datetime_is_numeric: bool,
-) -> "Series":
+) -> Series:
     """Describe series.
 
     The reason for the delegation to ``describe_1d`` only:
@@ -122,7 +122,7 @@ def describe_frame(
     exclude: Optional[Union[str, Sequence[str]]],
     percentiles: Sequence[float],
     datetime_is_numeric: bool,
-) -> "DataFrame":
+) -> DataFrame:
     """Describe DataFrame.
 
     Parameters
@@ -180,7 +180,7 @@ def select_columns(
     include: Optional[Union[str, Sequence[str]]],
     exclude: Optional[Union[str, Sequence[str]]],
     datetime_is_numeric: bool,
-) -> "DataFrame":
+) -> DataFrame:
     """Select columns to be described."""
     if (include is None) and (exclude is None):
         # when some numerics are found, keep only numerics
