@@ -281,6 +281,7 @@ I/O
 - :func:`read_excel` now respects :func:`set_option` (:issue:`34252`)
 - Bug in :func:`read_csv` not switching ``true_values`` and ``false_values`` for nullable ``boolean`` dtype (:issue:`34655`)
 - Bug in :func:`read_json` when ``orient="split"`` does not maintain numeric string index (:issue:`28556`)
+- :meth:`read_sql` returned an empty generator if ``chunksize`` was no-zero and the query returned no results. Now returns a generator with a single empty dataframe (:issue:`34411`)
 
 Period
 ^^^^^^
