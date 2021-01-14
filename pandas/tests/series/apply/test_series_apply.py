@@ -894,7 +894,8 @@ def test_apply_listlike_transformer(string_series, ops, names):
 )
 def test_apply_dictlike_transformer(string_series, ops):
     # GH 39140
-    expected = concat({name: op(string_series) for name, op in ops.items()})
-    expected.name = string_series.name
-    result = string_series.apply(ops)
-    tm.assert_series_equal(result, expected)
+    with np.errstate(all="ignore"):
+        expected = concat({name: op(string_series) for name, op in ops.items()})
+        expected.name = string_series.name
+        result = string_series.apply(ops)
+        tm.assert_series_equal(result, expected)
