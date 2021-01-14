@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
@@ -68,7 +67,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Index, Series
-    from pandas.core.arrays import DatetimeArray, IntervalArray, TimedeltaArray
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _shared_docs: Dict[str, str] = {}
 
@@ -477,7 +476,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
-            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+            def f(c, v): return np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
 
