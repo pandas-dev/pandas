@@ -33,6 +33,7 @@ import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
+    is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
 )
@@ -1815,6 +1816,9 @@ class _iLocIndexer(_LocationIndexer):
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
+        elif is_array_like(value) and is_exact_shape_match(ser, value):
+            ser = value
+
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
