@@ -12,6 +12,7 @@ from pandas.util._decorators import cache_readonly, doc
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal,
+    is_extension_array_dtype,
     is_integer,
     is_object_dtype,
     is_scalar,
@@ -335,7 +336,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.core.arrays import BooleanArray
 
         result = isin(self._data, values) * np.invert(self._mask)
-        if NA in values:
+        if (is_extension_array_dtype(values.dtype) or is_object_dtype(values.dtype))\
+                and NA in values:
             result += self._mask
         mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
