@@ -8,8 +8,10 @@ from datetime import datetime
 from inspect import signature
 from io import BytesIO, StringIO
 import os
+from pathlib import Path
 import platform
 from urllib.error import URLError
+import warnings
 
 import numpy as np
 import pytest
@@ -2369,3 +2371,22 @@ def test_context_manageri_user_provided(all_parsers, datapath):
                 assert False
         except AssertionError:
             assert not reader._engine.handles.handle.closed
+
+
+@td.check_file_leaks
+def test_open_file(all_parsers):
+    # GH 39024
+    parser = all_parsers
+    if parser.engine == "c":
+        pytest.skip()
+
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(b"\xe4\na\n1")
+
+        # should not trigger a ResourceWarning
+        warnings.simplefilter("always", category=ResourceWarning)
+        with warnings.catch_warnings(record=True) as record:
+            with pytest.raises(csv.Error, match="Could not determine delimiter"):
+                parser.read_csv(file, sep=None)
+            assert len(record) == 0, record[0].message
