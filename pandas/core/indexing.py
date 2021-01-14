@@ -662,14 +662,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        if isinstance(key, tuple) and (
-            not isinstance(self.obj.index, ABCMultiIndex)
-            or len(key) == 2
-            and not isinstance(key[1], slice)
-        ):
+        if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
-            # if index is not a MultiIndex or second element is not a slice,
-            # set key to column part
+            # if length of key is > 1 set key to column part
             key = key[column_axis]
             axis = column_axis
 
