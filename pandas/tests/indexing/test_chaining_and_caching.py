@@ -36,7 +36,7 @@ class TestCaching:
         # GH 5424
         cont = ["one", "two", "three", "four", "five", "six", "seven"]
 
-        for do_ref in [False, False]:
+        for do_ref in [True, False]:
             df = DataFrame({"a": cont, "b": cont[3:] + cont[:3], "c": np.arange(7)})
 
             # ref the cache
