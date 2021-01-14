@@ -62,26 +62,7 @@ def describe_ndframe(
     if obj.ndim == 2 and obj.columns.size == 0:
         raise ValueError("Cannot describe a DataFrame without columns")
 
-    if percentiles is not None:
-        # explicit conversion of `percentiles` to list
-        percentiles = list(percentiles)
-
-        # get them all to be in [0, 1]
-        validate_percentile(percentiles)
-
-        # median should always be included
-        if 0.5 not in percentiles:
-            percentiles.append(0.5)
-        percentiles = np.asarray(percentiles)
-    else:
-        percentiles = np.array([0.25, 0.5, 0.75])
-
-    # sort and check for duplicates
-    unique_pcts = np.unique(percentiles)
-    assert percentiles is not None
-    if len(unique_pcts) < len(percentiles):
-        raise ValueError("percentiles cannot contain duplicates")
-    percentiles = unique_pcts
+    percentiles = _refine_percentiles(percentiles)
 
     if obj.ndim == 1:
         # Incompatible return value type
@@ -263,3 +244,35 @@ def describe_1d(data, percentiles, datetime_is_numeric, *, is_series) -> "Series
         return describe_numeric_1d(data, percentiles)
     else:
         return describe_categorical_1d(data, is_series)
+
+
+def _refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
+    """Ensure that percentiles are unique and sorted.
+
+    Parameters
+    ----------
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output.
+    """
+    if percentiles is None:
+        return np.array([0.25, 0.5, 0.75])
+
+    # explicit conversion of `percentiles` to list
+    percentiles = list(percentiles)
+
+    # get them all to be in [0, 1]
+    validate_percentile(percentiles)
+
+    # median should always be included
+    if 0.5 not in percentiles:
+        percentiles.append(0.5)
+
+    percentiles = np.asarray(percentiles)
+
+    # sort and check for duplicates
+    unique_pcts = np.unique(percentiles)
+    assert percentiles is not None
+    if len(unique_pcts) < len(percentiles):
+        raise ValueError("percentiles cannot contain duplicates")
+
+    return unique_pcts
