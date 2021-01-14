@@ -207,11 +207,7 @@ class Apply(metaclass=abc.ABCMeta):
         # Note: dict-likes are list-like
         if not is_list_like(self.f):
             return None
-        # pandas\core\apply.py:144: error: "aggregate" of "DataFrame" gets
-        # multiple values for keyword argument "axis"
-        return self.obj.aggregate(  # type: ignore[misc]
-            self.f, axis=self.axis, *self.args, **self.kwds
-        )
+        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwds)
 
 
 class FrameApply(Apply):
