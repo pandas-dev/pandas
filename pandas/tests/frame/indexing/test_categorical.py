@@ -54,7 +54,53 @@ class TestDataFrameIndexingCategorical:
         cat = Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
         df = DataFrame(Series(cat))
 
-    def test_assigning_ops(self):
+    @pytest.fixture
+    def dfs_for_assignment(self):
+        cats = Categorical(["a", "a", "a", "a", "a", "a", "a"], categories=["a", "b"])
+        idx = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values = [1, 1, 1, 1, 1, 1, 1]
+        orig = DataFrame({"cats": cats, "values": values}, index=idx)
+
+        # changed multiple rows
+        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
+        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values2 = [1, 1, 2, 2, 1, 1, 1]
+        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
+        return orig, exp_multi_row
+
+    def test_iloc_setitem_multiple_rows(self, dfs_for_assignment):
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        orig, exp_multi_row = dfs_for_assignment
+        df = orig.copy()
+
+        df.iloc[2:4, :] = [["b", 2], ["b", 2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        msg1 = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
+        )
+        with pytest.raises(ValueError, match=msg1):
+            df = orig.copy()
+            df.iloc[2:4, :] = [["c", 2], ["c", 2]]
+
+    def test_loc_setitem_multiple_rows(self, dfs_for_assignment):
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        orig, exp_multi_row = dfs_for_assignment
+        df = orig.copy()
+
+        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        msg1 = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
+        )
+        with pytest.raises(ValueError, match=msg1):
+            df = orig.copy()
+            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
+
+    def test_assigning_ops(self, dfs_for_assignment):
         # systematically test the assigning operations:
         # for all slicing ops:
         #  for value in categories and value not in categories:
@@ -70,11 +116,7 @@ class TestDataFrameIndexingCategorical:
 
         # assign a part of a column with dtype != categorical ->
         # exp_parts_cats_col
-
-        cats = Categorical(["a", "a", "a", "a", "a", "a", "a"], categories=["a", "b"])
-        idx = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values = [1, 1, 1, 1, 1, 1, 1]
-        orig = DataFrame({"cats": cats, "values": values}, index=idx)
+        orig, exp_multi_row = dfs_for_assignment
 
         # the expected values
         # changed single row
@@ -82,12 +124,6 @@ class TestDataFrameIndexingCategorical:
         idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
         values1 = [1, 1, 2, 1, 1, 1, 1]
         exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
-
-        # changed multiple rows
-        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
-        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values2 = [1, 1, 2, 2, 1, 1, 1]
-        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
 
         # changed part of the cats column
         cats3 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
@@ -133,15 +169,6 @@ class TestDataFrameIndexingCategorical:
         with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.iloc[2, :] = ["c", 2]
-
-        #   - assign multiple rows (mixed values) -> exp_multi_row
-        df = orig.copy()
-        df.iloc[2:4, :] = [["b", 2], ["b", 2]]
-        tm.assert_frame_equal(df, exp_multi_row)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.iloc[2:4, :] = [["c", 2], ["c", 2]]
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -193,15 +220,6 @@ class TestDataFrameIndexingCategorical:
         with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
-
-        #   - assign multiple rows (mixed values) -> exp_multi_row
-        df = orig.copy()
-        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
-        tm.assert_frame_equal(df, exp_multi_row)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -257,15 +275,6 @@ class TestDataFrameIndexingCategorical:
         with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
-
-        #   - assign multiple rows (mixed values) -> exp_multi_row
-        df = orig.copy()
-        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
-        tm.assert_frame_equal(df, exp_multi_row)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
