@@ -3,6 +3,7 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Sequence, Union, cast
 import warnings
@@ -107,7 +108,7 @@ def describe_ndframe(
     return d
 
 
-def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
     Parameters
@@ -130,7 +131,7 @@ def describe_numeric_1d(series: "Series", percentiles: Sequence[float]) -> "Seri
     return Series(d, index=stat_index, name=series.name)
 
 
-def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
+def describe_categorical_1d(data: "Series", is_series: bool) -> Series:
     """Describe series containing categorical data.
 
     Parameters
@@ -192,7 +193,7 @@ def describe_categorical_1d(data: "Series", is_series: bool) -> "Series":
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> "Series":
+def describe_timestamp_1d(data: "Series", percentiles: Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
     Parameters
@@ -222,7 +223,7 @@ def describe_1d(
     datetime_is_numeric: bool,
     *,
     is_series: bool,
-) -> "Series":
+) -> Series:
     """Describe series.
 
     Parameters

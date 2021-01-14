@@ -7,6 +7,8 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionality.
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
@@ -724,7 +726,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     @final
     def _set_result_index_ordered(
         self, result: "OutputFrameOrSeries"
-    ) -> "OutputFrameOrSeries":
+    ) -> OutputFrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 

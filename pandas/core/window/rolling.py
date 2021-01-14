@@ -362,7 +362,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
     def _apply_series(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
-    ) -> "Series":
+    ) -> Series:
         """
         Series version of _apply_blockwise
         """
