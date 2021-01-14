@@ -164,18 +164,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
+    # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported  [misc]
     @property  # type:ignore[misc]
     @doc(PeriodArray.hour.fget)
     def hour(self) -> Int64Index:
         return Int64Index(self._data.hour, name=self.name)
 
+    # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported  [misc]
     @property  # type:ignore[misc]
     @doc(PeriodArray.minute.fget)
     def minute(self) -> Int64Index:
         return Int64Index(self._data.minute, name=self.name)
 
+    # https://github.com/python/mypy/issues/1362
     # error: Decorated property not supported  [misc]
     @property  # type:ignore[misc]
     @doc(PeriodArray.second.fget)
@@ -646,7 +649,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods=None, freq=None, name=None
+    start=None, end=None, periods: Optional[int] = None, freq=None, name=None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
