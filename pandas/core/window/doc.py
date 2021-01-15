@@ -106,3 +106,23 @@ window_apply_notes = dedent(
     considerations for the Numba engine.
     """
 )
+
+window_agg_numba_parameters = dedent(
+    """
+    engine : str, default None
+        * ``'cython'`` : Runs rolling max through C-extensions from cython.
+        * ``'numba'`` : Runs rolling max through JIT compiled code from numba.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+          .. versionadded:: 1.3.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+          .. versionadded:: 1.3.0
+    """
+)
