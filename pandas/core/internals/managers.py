@@ -600,7 +600,10 @@ class BlockManager(DataManager):
                 blk_indexer = (pi, ilocs)
                 blk_indexer = maybe_convert_ix(*blk_indexer)
 
-                if blk._can_hold_element(value_for_block) and (not blk.is_object or (is2d and value_for_block.shape[1] == blk.shape[0])):
+                if blk._can_hold_element(value_for_block) and (
+                    not blk.is_object
+                    or (is2d and value_for_block.shape[1] == blk.shape[0])
+                ):
                     nb = blk.setitem(blk_indexer, value_for_block)
                     nbs = [nb]
 

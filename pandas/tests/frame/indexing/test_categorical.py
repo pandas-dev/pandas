@@ -100,6 +100,7 @@ class TestDataFrameIndexingCategorical:
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
+    # TODO: split still-giant test
     def test_assigning_ops(self, dfs_for_assignment):
         # systematically test the assigning operations:
         # for all slicing ops:

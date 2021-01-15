@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, isin, unique1d, value_counts
@@ -612,6 +613,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if isinstance(value, list) and len(value) == 0:
             # We treat empty list as our own dtype.
             return type(self)._from_sequence([], dtype=self.dtype)
+
+        if isinstance(value, ABCDataFrame) and value.shape[1] == 1:
+            # FIXME: kludge
+            res = self._validate_listlike(value._ixs(0, axis=1), allow_object=allow_object)
+            return res.reshape(-1, 1)
 
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods

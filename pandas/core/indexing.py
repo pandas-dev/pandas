@@ -1683,13 +1683,19 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                if is_extension_array_dtype(value):
-                    # TODO(EA2D): special case not needed with 2D EAs
-                    self._setitem_single_column(ilocs[0], value, pi)
-                elif len(value) == len(self.obj):
+                if len(value) == len(self.obj):
                     # Setting entire column, so swapping out
                     # GH#??? we may want to change this behavior
                     self.obj._iset_item(ilocs[0], value)
+                elif is_extension_array_dtype(value):
+                    # TODO(EA2D): special case not needed with 2D EAs
+                    obj = type(self.obj)(value)
+                    orig_mgr = self.obj._mgr.copy(deep=True)
+                    new_mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+                    #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+                    #self.obj._clear_item_cache()
+                    # 1 test stil failing would be fixed by using _setitem_single_column
+                    self._setitem_single_column(ilocs[0], value, pi)
                 else:
                     val = np.atleast_2d(value).T
                     self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
@@ -1715,21 +1721,28 @@ class _iLocIndexer(_LocationIndexer):
                 pass
 
             elif len(ilocs) == len(value):
-                # We are setting multiple columns in a single row.
-                #if is_extension_array_dtype(value):  # TODO: not hit
-                #    val = DataFrame.from_arrays([value], index=[0], columns=range(len(value)))
-                #elif isinstance(value, np.ndarray):
-                #    val = np.atleast_2d(value)
-                #else:
-                #    # avoid numpy casting which can take e.g. ["b", 2] -> ["b", "2"]
-                #    ser = self.obj._constructor_sliced(value)
-                #    val = ser.to_frame().T
+                # We are setting multiple columns in a with one row which we broadcast
+                if is_extension_array_dtype(value):  # TODO: not hit
+                    val = DataFrame.from_arrays([value], index=[0], columns=range(len(value)))
+                elif isinstance(value, np.ndarray):
+                    val = np.atleast_2d(value)
+                else:
+                    # avoid numpy casting which can take e.g. ["b", 2] -> ["b", "2"]
+                    #ser = self.obj._constructor_sliced(value)
+                    #val = ser.to_frame().T
+                    val = type(self.obj)([value])
+                    if lplane_indexer != 1:
+                        # broadcast to length of pi
+                        # TODO: EA compat for broadcast_to
+                        arrs = list(val._iter_column_arrays())
+                        arrs = [np.broadcast_to(x, lplane_indexer) for x in arrs]
+                        val = type(self.obj)._from_arrays(arrs, index=range(lplane_indexer), columns=range(len(arrs)))
                 #
-                #breakpoint()
-                #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
-                #self.obj._clear_item_cache()
-                for loc, v in zip(ilocs, value):
-                    self._setitem_single_column(loc, v, pi)
+                # 3 tests broken here fixed by using _setitem_single_column
+                self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
+                self.obj._clear_item_cache()
+                #for loc, v in zip(ilocs, value):
+                #    self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see

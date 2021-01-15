@@ -3209,6 +3209,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
+            # bool indexer is indexing along rows
             if len(key) != len(self.index):
                 raise ValueError(
                     f"Item wrong length {len(key)} instead of {len(self.index)}!"
@@ -3223,6 +3224,24 @@ class DataFrame(NDFrame, OpsMixin):
                     raise ValueError("Columns must be same length as key")
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
+
+            elif all(is_hashable(x) for x in key) and any(x not in self.columns for x in key):
+                # We need to do this instead of going through iloc to ensure
+                #  we get correct dtype for new columns
+                self._check_setitem_copy()
+
+                # TODO: de-duplicate with some of whats in indexing.py
+                if is_scalar(value):
+                    for i, x in enumerate(key):
+                        self[x] = value
+                elif np.ndim(value) == 1:
+                    for i, x in enumerate(key):
+                        self[x] = value[i]
+                else:
+                    value = np.asarray(value)  # TODO: or DataFrame?
+                    for i, x in enumerate(key):
+                        self[x] = value[:, i]
+
             else:
                 self.loc._ensure_listlike_indexer(key, axis=1, value=value)
                 indexer = self.loc._get_listlike_indexer(

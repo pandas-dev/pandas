@@ -76,6 +76,7 @@ from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_exact_shape_match,
+    length_of_indexer,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -1678,12 +1679,25 @@ class ExtensionBlock(Block):
             # we are always 1-D
             indexer = indexer[0]
 
-        if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == self.ndim == 2:
+            if isinstance(indexer, np.ndarray) and self.ndim == indexer.ndim == 2:
+                # possibly constructed  with maybe_convert_ix
+
+                indexer = indexer.squeeze()
+                indexer = np.atleast_1d(indexer)
+
+        if (
+            isinstance(value, (np.ndarray, ExtensionArray))
+            and value.ndim == self.ndim == 2
+        ):
             # TODO: test for this
             value = value.T
             if value.shape[0] != 1:
                 raise ValueError
             value = value[0]
+        elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+            if value.shape[1] != 1:
+                raise ValueError
+            value = value._ixs(0, axis=1)._values
 
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
@@ -2060,6 +2074,10 @@ class DatetimeLikeBlockMixin(Block):
 
     def _can_hold_element(self, element: Any) -> bool:
         arr = self.array_values()
+
+        if isinstance(element, ABCDataFrame) and element.shape[1] == 1:
+            element = element.iloc[:, 0]
+            # TODO: probably need to update _can_hold_element
 
         try:
             arr._validate_setitem_value(element)
