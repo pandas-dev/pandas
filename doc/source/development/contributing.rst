@@ -146,9 +146,10 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and Python environment. If you're making documentation
-changes, you can skip to :ref:`contributing.documentation` but you won't be able
-to build the documentation locally before pushing your changes.
+requires a C/C++ compiler and Python environment. If you're making documentation
+changes, you can skip to :ref:`contributing.documentation` but if you skip
+creating the development environment you won't be able to build the documentation
+locally before pushing your changes.
 
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -195,6 +196,13 @@ operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
 
+If you have setup your environment using ``conda``, the packages ``c-compiler``
+and ``cxx-compiler`` will install a fitting compiler for your platform that is
+compatible with the remaining conda packages. On Windows and macOS, you will
+also need to install the SDKs as they have to be distributed separately.
+These packages will be automatically installed by using ``pandas``'s
+``environment.yml``.
+
 **Windows**
 
 You will need `Build Tools for Visual Studio 2017
@@ -206,12 +214,33 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
+You can install the necessary components on the commandline using
+`vs_buildtools.exe <https://aka.ms/vs/16/release/vs_buildtools.exe>`_:
+
+.. code::
+
+    vs_buildtools.exe --quiet --wait --norestart --nocache ^
+        --installPath C:\BuildTools ^
+        --add "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" ^
+        --add Microsoft.VisualStudio.Component.VC.v141 ^
+        --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 ^
+        --add Microsoft.VisualStudio.Component.Windows10SDK.17763
+
+To setup the right paths on the commandline, call
+``"C:\BuildTools\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=14.16 10.0.17763.0``.
+
 **macOS**
 
-Information about compiler installation can be found here:
+To use the ``conda``-based compilers, you will need to install the
+Developer Tools using ``xcode-select --install``. Otherwise
+information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
 
-**Unix**
+**Linux**
+
+For Linux-based ``conda`` installations, you won't have to install any
+additional components outside of the conda environment. The instructions
+below are only needed if your setup isn't based on conda environments.
 
 Some Linux distributions will come with a pre-installed C compiler. To find out
 which compilers (and versions) are installed on your system::
@@ -243,11 +272,10 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that you have a C compiler, create an isolated pandas development
-environment:
+Now create an isolated pandas development environment:
 
-* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
-  <https://conda.io/miniconda.html>`_
+* Install either `Anaconda <https://www.anaconda.com/download/>`_, `miniconda
+  <https://conda.io/miniconda.html>`_, or `miniforge <https://github.com/conda-forge/miniforge>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :ref:`cloned the repository <contributing.forking>`
 * ``cd`` to the pandas source directory
@@ -667,6 +695,12 @@ If you don't want to use ``pre-commit`` as part of your workflow, you can still 
 to run its checks with::
 
     pre-commit run --files <files you have modified>
+
+without needing to have done ``pre-commit install`` beforehand.
+
+If you want to run checks on all recently commited files on upstream/master you can use::
+
+    pre-commit run --from-ref=upstream/master --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
 
@@ -1581,6 +1615,17 @@ After the feature branch has been update locally, you can now update your pull
 request by pushing to the branch on GitHub::
 
     git push origin shiny-new-feature
+
+Autofixing formatting errors
+----------------------------
+
+We use several styling checks (e.g. ``black``, ``flake8``, ``isort``) which are run after
+you make a pull request. If there is a scenario where any of these checks fail then you
+can comment::
+
+    @github-actions pre-commit
+
+on that pull request. This will trigger a workflow which will autofix formatting errors.
 
 Delete your merged branch (optional)
 ------------------------------------

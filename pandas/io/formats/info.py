@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 import sys
 from typing import (
@@ -203,7 +205,7 @@ class BaseInfo(ABC):
             consume the same memory amount for corresponding dtypes. With deep
             memory introspection, a real memory usage calculation is performed
             at the cost of computational resources.
-        %(null_counts_sub)s
+        %(show_counts_sub)s
 
         Returns
         -------
@@ -227,10 +229,10 @@ class DataFrameInfo(BaseInfo):
 
     def __init__(
         self,
-        data: "DataFrame",
+        data: DataFrame,
         memory_usage: Optional[Union[bool, str]] = None,
     ):
-        self.data: "DataFrame" = data
+        self.data: DataFrame = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
     @property
@@ -679,7 +681,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
             yield pprint_thing(col)
 
 
-def _get_dataframe_dtype_counts(df: "DataFrame") -> Mapping[str, int]:
+def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     """
     Create mapping between datatypes and their number of occurences.
     """

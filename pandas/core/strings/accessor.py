@@ -16,17 +16,12 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
 
-_shared_docs: Dict[str, str] = dict()
+_shared_docs: Dict[str, str] = {}
 _cpython_optimized_encoders = (
     "utf-8",
     "utf8",
@@ -256,7 +251,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndexClass):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -289,7 +284,7 @@ class StringMethods(NoNewAttributesMixin):
 
         # Wait until we are sure result is a Series or Index before
         # checking attributes (GH 12180)
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # if result is a boolean np.array, return the np.array
             # instead of wrapping it into a boolean Index (GH 8875)
             if is_bool_dtype(result):
@@ -347,14 +342,14 @@ class StringMethods(NoNewAttributesMixin):
         from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
-        idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
+        idx = self._orig if isinstance(self._orig, ABCIndex) else self._orig.index
 
         # Generally speaking, all objects without an index inherit the index
         # `idx` of the calling Series/Index - i.e. must have matching length.
         # Objects with an index (i.e. Series/Index/DataFrame) keep their own.
         if isinstance(others, ABCSeries):
             return [others]
-        elif isinstance(others, ABCIndexClass):
+        elif isinstance(others, ABCIndex):
             return [Series(others._values, index=idx)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
@@ -367,7 +362,7 @@ class StringMethods(NoNewAttributesMixin):
             # in case of list-like `others`, all elements must be
             # either Series/Index/np.ndarray (1-dim)...
             if all(
-                isinstance(x, (ABCSeries, ABCIndexClass))
+                isinstance(x, (ABCSeries, ABCIndex))
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
@@ -528,7 +523,7 @@ class StringMethods(NoNewAttributesMixin):
         if sep is None:
             sep = ""
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             data = Series(self._orig, index=self._orig)
         else:  # Series
             data = self._orig
@@ -589,7 +584,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
@@ -1442,17 +1437,17 @@ class StringMethods(NoNewAttributesMixin):
     filled : Series/Index of objects.
     """
 
-    @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
+    @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
     def center(self, width, fillchar=" "):
         return self.pad(width, side="both", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % dict(side="right", method="ljust"))
+    @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
     def ljust(self, width, fillchar=" "):
         return self.pad(width, side="right", fillchar=fillchar)
 
-    @Appender(_shared_docs["str_pad"] % dict(side="left", method="rjust"))
+    @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
     def rjust(self, width, fillchar=" "):
         return self.pad(width, side="left", fillchar=fillchar)
@@ -1548,40 +1543,40 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["koala", "fox", "chameleon"])
+        >>> s = pd.Series(["koala", "dog", "chameleon"])
         >>> s
         0        koala
-        1          fox
+        1          dog
         2    chameleon
         dtype: object
 
         >>> s.str.slice(start=1)
         0        oala
-        1          ox
+        1          og
         2    hameleon
         dtype: object
 
         >>> s.str.slice(start=-1)
         0           a
-        1           x
+        1           g
         2           n
         dtype: object
 
         >>> s.str.slice(stop=2)
         0    ko
-        1    fo
+        1    do
         2    ch
         dtype: object
 
         >>> s.str.slice(step=2)
         0      kaa
-        1       fx
+        1       dg
         2    caeen
         dtype: object
 
         >>> s.str.slice(start=0, stop=5, step=3)
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
 
@@ -1589,7 +1584,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> s.str[0:5:3]
         0    kl
-        1     f
+        1     d
         2    cm
         dtype: object
         """
@@ -1786,9 +1781,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(
-            side="left and right sides", method="strip", position="leading and trailing"
-        )
+        % {
+            "side": "left and right sides",
+            "method": "strip",
+            "position": "leading and trailing",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
@@ -1797,7 +1794,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(side="left side", method="lstrip", position="leading")
+        % {"side": "left side", "method": "lstrip", "position": "leading"}
     )
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
@@ -1806,7 +1803,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["str_strip"]
-        % dict(side="right side", method="rstrip", position="trailing")
+        % {"side": "right side", "method": "rstrip", "position": "trailing"}
     )
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
@@ -2408,11 +2405,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["find"]
-        % dict(
-            side="lowest",
-            method="find",
-            also="rfind : Return highest indexes in each strings.",
-        )
+        % {
+            "side": "lowest",
+            "method": "find",
+            "also": "rfind : Return highest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def find(self, sub, start=0, end=None):
@@ -2425,11 +2422,11 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["find"]
-        % dict(
-            side="highest",
-            method="rfind",
-            also="find : Return lowest indexes in each strings.",
-        )
+        % {
+            "side": "highest",
+            "method": "rfind",
+            "also": "find : Return lowest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def rfind(self, sub, start=0, end=None):
@@ -2491,12 +2488,12 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["index"]
-        % dict(
-            side="lowest",
-            similar="find",
-            method="index",
-            also="rindex : Return highest indexes in each strings.",
-        )
+        % {
+            "side": "lowest",
+            "similar": "find",
+            "method": "index",
+            "also": "rindex : Return highest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def index(self, sub, start=0, end=None):
@@ -2509,12 +2506,12 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(
         _shared_docs["index"]
-        % dict(
-            side="highest",
-            similar="rfind",
-            method="rindex",
-            also="index : Return lowest indexes in each strings.",
-        )
+        % {
+            "side": "highest",
+            "similar": "rfind",
+            "method": "rindex",
+            "also": "index : Return lowest indexes in each strings.",
+        }
     )
     @forbid_nonstring_types(["bytes"])
     def rindex(self, sub, start=0, end=None):
@@ -2649,18 +2646,24 @@ class StringMethods(NoNewAttributesMixin):
     #     isalpha, isnumeric isalnum isdigit isdecimal isspace islower isupper istitle
     # _doc_args holds dict of strings to use in substituting casemethod docs
     _doc_args: Dict[str, Dict[str, str]] = {}
-    _doc_args["lower"] = dict(type="lowercase", method="lower", version="")
-    _doc_args["upper"] = dict(type="uppercase", method="upper", version="")
-    _doc_args["title"] = dict(type="titlecase", method="title", version="")
-    _doc_args["capitalize"] = dict(
-        type="be capitalized", method="capitalize", version=""
-    )
-    _doc_args["swapcase"] = dict(type="be swapcased", method="swapcase", version="")
-    _doc_args["casefold"] = dict(
-        type="be casefolded",
-        method="casefold",
-        version="\n    .. versionadded:: 0.25.0\n",
-    )
+    _doc_args["lower"] = {"type": "lowercase", "method": "lower", "version": ""}
+    _doc_args["upper"] = {"type": "uppercase", "method": "upper", "version": ""}
+    _doc_args["title"] = {"type": "titlecase", "method": "title", "version": ""}
+    _doc_args["capitalize"] = {
+        "type": "be capitalized",
+        "method": "capitalize",
+        "version": "",
+    }
+    _doc_args["swapcase"] = {
+        "type": "be swapcased",
+        "method": "swapcase",
+        "version": "",
+    }
+    _doc_args["casefold"] = {
+        "type": "be casefolded",
+        "method": "casefold",
+        "version": "\n    .. versionadded:: 0.25.0\n",
+    }
 
     @Appender(_shared_docs["casemethods"] % _doc_args["lower"])
     @forbid_nonstring_types(["bytes"])
@@ -2840,15 +2843,15 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
     """
-    _doc_args["isalnum"] = dict(type="alphanumeric", method="isalnum")
-    _doc_args["isalpha"] = dict(type="alphabetic", method="isalpha")
-    _doc_args["isdigit"] = dict(type="digits", method="isdigit")
-    _doc_args["isspace"] = dict(type="whitespace", method="isspace")
-    _doc_args["islower"] = dict(type="lowercase", method="islower")
-    _doc_args["isupper"] = dict(type="uppercase", method="isupper")
-    _doc_args["istitle"] = dict(type="titlecase", method="istitle")
-    _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
-    _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
+    _doc_args["isalnum"] = {"type": "alphanumeric", "method": "isalnum"}
+    _doc_args["isalpha"] = {"type": "alphabetic", "method": "isalpha"}
+    _doc_args["isdigit"] = {"type": "digits", "method": "isdigit"}
+    _doc_args["isspace"] = {"type": "whitespace", "method": "isspace"}
+    _doc_args["islower"] = {"type": "lowercase", "method": "islower"}
+    _doc_args["isupper"] = {"type": "uppercase", "method": "isupper"}
+    _doc_args["istitle"] = {"type": "titlecase", "method": "istitle"}
+    _doc_args["isnumeric"] = {"type": "numeric", "method": "isnumeric"}
+    _doc_args["isdecimal"] = {"type": "decimal", "method": "isdecimal"}
     # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
 
     isalnum = _map_and_wrap(
@@ -3000,7 +3003,7 @@ def _str_extract_noexpand(arr, pat, flags=0):
         # not dispatching, so we have to reconstruct here.
         result = array(result, dtype=result_dtype)
     else:
-        if isinstance(arr, ABCIndexClass):
+        if isinstance(arr, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
         name = None
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
@@ -3064,7 +3067,7 @@ def str_extractall(arr, pat, flags=0):
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
 
-    if isinstance(arr, ABCIndexClass):
+    if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True)
 
     names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
