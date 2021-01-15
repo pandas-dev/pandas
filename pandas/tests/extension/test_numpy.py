@@ -20,7 +20,9 @@ from pandas.core.dtypes.missing import infer_fill_value as infer_fill_value_orig
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import StringArray
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
+from pandas.core.construction import extract_array
 
 from . import base
 
@@ -28,6 +30,17 @@ from . import base
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
     return PandasDtype(np.dtype(request.param))
+
+
+orig_setitem = pd.core.internals.Block.setitem
+
+
+def setitem(self, indexer, value):
+    # patch Block.setitem
+    value = extract_array(value, extract_numpy=True)
+    if isinstance(value, PandasArray) and not isinstance(value, StringArray):
+        value = value.to_numpy()
+    return orig_setitem(self, indexer, value)
 
 
 def infer_fill_value(val, length: int):
@@ -60,6 +73,7 @@ def allow_in_pandas(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
         m.setattr(pd.core.indexing, "infer_fill_value", infer_fill_value)
+        #m.setattr(pd.core.internals.Block, "setitem", setitem)
         yield
 
 
@@ -522,10 +536,13 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         key = full_indexer(df)
         result.loc[key, "data"] = df["data"]._values
 
-        # For PandasArray we expect to get unboxed to numpy
-        expected = pd.DataFrame({"data": data.to_numpy()})
+        expected = pd.DataFrame({"data": data})
+        if data.dtype.numpy_dtype != object:
+            # For PandasArray we expect to get unboxed to numpy
+            expected = pd.DataFrame({"data": data.to_numpy()})
+
         if isinstance(key, slice) and (
-            key == slice(None) or data.dtype.numpy_dtype == object
+            key == slice(None) and data.dtype.numpy_dtype != object
         ):
             mark = pytest.mark.xfail(
                 reason="This case goes through a different code path"

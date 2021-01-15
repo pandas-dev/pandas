@@ -78,6 +78,7 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
+    is_exact_shape_match,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -913,15 +914,7 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        if self._can_hold_element(value):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
-            if self.dtype.kind in ["m", "M"]:
-                arr = self.array_values().T
-                arr[indexer] = value
-                return self
-
-        else:
+        if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             # TODO: can we just use coerce_to_target_dtype for all this
             if hasattr(value, "dtype"):
@@ -947,10 +940,21 @@ class Block(PandasObject):
             # this is redundant with extract_array except for PandasArray tests
             #  that patch _typ
             value = value.to_numpy()
+            if self.ndim == 2 and value.ndim == 1:
+                # TODO(EA2D): special case not needed with 2D EAs
+                value = np.atleast_2d(value)#.T
 
         if isinstance(value, (IntegerArray, FloatingArray)) and not value._mask.any():
             # GH#38896
             value = value.to_numpy(value.dtype.numpy_dtype)
+            if self.ndim == 2 and value.ndim == 1:
+                # TODO(EA2D): special case not needed with 2D EAs
+                value = np.atleast_2d(value).T
+
+        if self.dtype.kind in ["m", "M"]:
+            arr = self.array_values().T
+            arr[indexer] = value
+            return self
 
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
@@ -967,11 +971,7 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = (
-            len(arr_value.shape)
-            and arr_value.shape[0] == values.shape[0]
-            and arr_value.size == values.size
-        )
+        exact_match = is_exact_shape_match(values, arr_value)
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -985,7 +985,13 @@ class Block(PandasObject):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
             values[indexer] = value
-            return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+            if values.ndim == 2:
+                # TODO(EA2D): special case not needed with 2D EAs
+                if values.shape[-1] != 1:
+                    # shouldn't get here (at least until 2D EAs)
+                    raise NotImplementedError
+                values = values[:, 0]
+            return self.make_block(Categorical(values, dtype=arr_value.dtype))
 
         elif exact_match and is_ea_value:
             # GH#32395 if we're going to replace the values entirely, just
