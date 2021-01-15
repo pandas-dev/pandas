@@ -1231,7 +1231,11 @@ class TestCanHoldElement:
             df.iloc[: len(elem), 0] = elem
 
         if inplace:
-            assert df._mgr.blocks[0].values is arr  # i.e. setting was done inplace
+            # assertion here implies setting was done inplace
+
+            # error: Item "ArrayManager" of "Union[ArrayManager, BlockManager]"
+            #  has no attribute "blocks"  [union-attr]
+            assert df._mgr.blocks[0].values is arr  # type:ignore[union-attr]
         else:
             assert df.dtypes[0] == object
 
