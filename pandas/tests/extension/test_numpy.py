@@ -40,6 +40,10 @@ def setitem(self, indexer, value):
     value = extract_array(value, extract_numpy=True)
     if isinstance(value, PandasArray) and not isinstance(value, StringArray):
         value = value.to_numpy()
+        if self.ndim == 2 and value.ndim == 1:
+            # TODO(EA2D): special case not needed with 2D EAs
+            value = np.atleast_2d(value)
+
     return orig_setitem(self, indexer, value)
 
 
@@ -73,7 +77,7 @@ def allow_in_pandas(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
         m.setattr(pd.core.indexing, "infer_fill_value", infer_fill_value)
-        #m.setattr(pd.core.internals.Block, "setitem", setitem)
+        m.setattr(pd.core.internals.Block, "setitem", setitem)
         yield
 
 

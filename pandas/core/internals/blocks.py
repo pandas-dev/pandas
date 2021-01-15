@@ -68,7 +68,6 @@ from pandas.core.arrays import (
     IntegerArray,
     PandasArray,
     PandasDtype,
-    StringArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -935,13 +934,6 @@ class Block(PandasObject):
             return self.astype(dtype).setitem(indexer, value)
 
         value = extract_array(value, extract_numpy=True)
-        if isinstance(value, PandasArray) and not isinstance(value, StringArray):
-            # this is redundant with extract_array except for PandasArray tests
-            #  that patch _typ
-            value = value.to_numpy()
-            if self.ndim == 2 and value.ndim == 1:
-                # TODO(EA2D): special case not needed with 2D EAs
-                value = np.atleast_2d(value)#.T
 
         if isinstance(value, (IntegerArray, FloatingArray)) and not value._mask.any():
             # GH#38896
