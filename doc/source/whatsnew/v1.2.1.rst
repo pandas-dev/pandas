@@ -55,8 +55,7 @@ Other
 - Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
 - Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
 - Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 whats new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
--
--
+- :class:`Index` and :class:`MultiIndex` now have a ``replace()`` method (:issue:`19495`).
 
 .. ---------------------------------------------------------------------------
 

@@ -123,6 +123,7 @@ _index_doc_kwargs = {
     "raises_section": "",
     "unique": "Index",
     "duplicated": "np.ndarray",
+    "replace_iloc": "",
 }
 _index_shared_docs = {}
 str_t = str
@@ -1536,10 +1537,10 @@ class Index(IndexOpsMixin, PandasObject):
         return self.set_names([name], inplace=inplace)
 
     @doc(
-        _shared_docs["to_replace"],
+        _shared_docs["replace"],
         klass=_index_doc_kwargs["klass"],
         inplace=_index_doc_kwargs["inplace"],
-        replace_iloc="",
+        replace_iloc=_index_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,

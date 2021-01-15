@@ -3776,10 +3776,10 @@ class MultiIndex(Index):
     __inv__ = make_invalid_op("__inv__")
 
     @doc(
-        _shared_docs["to_replace"],
+        _shared_docs["replace"],
         klass=_index_doc_kwargs["klass"],
         inplace=_index_doc_kwargs["inplace"],
-        replace_iloc="",
+        replace_iloc=_index_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,

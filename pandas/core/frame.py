@@ -154,7 +154,6 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_doc_kwargs as core_shared_doc_kwargs
 from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_handle
@@ -4555,12 +4554,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @doc(
-        NDFrame.replace,
-        inplace=core_shared_doc_kwargs["inplace"],
-        replace_iloc=core_shared_doc_kwargs["replace_iloc"],
-        **_shared_doc_kwargs,
-    )
+    @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
         self,
         to_replace=None,
