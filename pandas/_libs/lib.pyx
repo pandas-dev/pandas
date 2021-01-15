@@ -69,6 +69,7 @@ from pandas._libs cimport util
 from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
     C_NA,
@@ -1078,8 +1079,8 @@ _TYPE_MAP = {
     "M": "datetime64",
     "timedelta64[ns]": "timedelta64",
     "m": "timedelta64",
-    "period": "period",
     "interval": "interval",
+    Period: "period",
 }
 
 # types only exist on certain platform
@@ -1231,15 +1232,10 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["name", "kind", "base"]:
+    for attr in ["name", "kind", "base", "type"]:
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
-        # also check base name for parametrized dtypes (eg period[D])
-        if isinstance(val, str):
-            val = val.split("[")[0]
-            if val in _TYPE_MAP:
-                return _TYPE_MAP[val]
     return None
 
 
