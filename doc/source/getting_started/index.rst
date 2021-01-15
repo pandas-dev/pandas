@@ -682,6 +682,7 @@ material is enlisted in the community contributed :ref:`communitytutorials`.
 
     install
     overview
+    how_to_read_these_docs
     intro_tutorials/index
     comparison/index
     tutorials
