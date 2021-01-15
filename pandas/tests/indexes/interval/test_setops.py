@@ -38,10 +38,20 @@ class TestIntervalIndex:
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
-        # GH 19101: empty result, different dtypes -> common dtype is object
+        # GH 19101: empty result, different numeric dtypes -> common dtype is f8
         other = empty_index(dtype="float64", closed=closed)
         result = index.union(other, sort=sort)
-        expected = Index([], dtype=object)
+        expected = other
+        tm.assert_index_equal(result, expected)
+
+        other = index.union(index, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        other = empty_index(dtype="uint64", closed=closed)
+        result = index.union(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        result = other.union(index, sort=sort)
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
@@ -65,13 +75,6 @@ class TestIntervalIndex:
         index = IntervalIndex.from_tuples([(1, 2), (1, 3), (1, 4), (0, 2)])
         other = IntervalIndex.from_tuples([(1, 2), (1, 3)])
         expected = IntervalIndex.from_tuples([(1, 2), (1, 3)])
-        result = index.intersection(other)
-        tm.assert_index_equal(result, expected)
-
-        # GH 26225: duplicate element
-        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
-        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
-        expected = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
@@ -106,6 +109,14 @@ class TestIntervalIndex:
 
         other = monotonic_index(300, 314, dtype="uint64", closed=closed)
         result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_duplicates(self):
+        # GH#38743
+        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
+        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
     def test_difference(self, closed, sort):
@@ -148,6 +159,7 @@ class TestIntervalIndex:
             index.left.astype("float64"), index.right, closed=closed
         )
         result = index.symmetric_difference(other, sort=sort)
+        expected = empty_index(dtype="float64", closed=closed)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

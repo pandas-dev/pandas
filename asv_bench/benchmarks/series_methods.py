@@ -284,7 +284,7 @@ class Dir:
 class SeriesGetattr:
     # https://github.com/pandas-dev/pandas/issues/19764
     def setup(self):
-        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=int(1e6)))
+        self.s = Series(1, index=date_range("2012-01-01", freq="s", periods=10 ** 6))
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, "a", None)
@@ -347,6 +347,20 @@ class NanOps:
 
     def time_func(self, func, N, dtype):
         self.func()
+
+
+class Rank:
+
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=dtype)
+
+    def time_rank(self, dtype):
+        self.s.rank()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

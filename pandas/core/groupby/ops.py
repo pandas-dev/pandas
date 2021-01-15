@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import ArrayLike, F, FrameOrSeries, Label, Shape, final
+from pandas._typing import ArrayLike, F, FrameOrSeries, Shape, final
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import isna, maybe_fill
 
 import pandas.core.algorithms as algorithms
@@ -133,7 +134,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[Tuple[Label, FrameOrSeries]]:
+    ) -> Iterator[Tuple[Hashable, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -202,13 +203,10 @@ class BaseGrouper:
             try:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
-            except libreduction.InvalidApply as err:
-                # This Exception is raised if `f` triggers an exception
-                # but it is preferable to raise the exception in Python.
-                if "Let this error raise above us" not in str(err):
-                    # TODO: can we infer anything about whether this is
-                    #  worth-retrying in pure-python?
-                    raise
+            except IndexError:
+                # This is a rare case in which re-running in python-space may
+                #  make a difference, see  test_apply_mutate.test_mutate_groups
+                pass
 
             else:
                 # If the fast apply path could be used we can return here.
@@ -244,6 +242,11 @@ class BaseGrouper:
     @cache_readonly
     def indices(self):
         """ dict {group name -> group indices} """
+        if len(self.groupings) == 1 and isinstance(
+            self.result_index, ABCCategoricalIndex
+        ):
+            # This shows unused categories in indices GH#38642
+            return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
@@ -257,7 +260,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -280,8 +283,8 @@ class BaseGrouper:
             return self.groupings[0].groups
         else:
             to_groupby = zip(*(ping.grouper for ping in self.groupings))
-            to_groupby = Index(to_groupby)
-            return self.axis.groupby(to_groupby)
+            index = Index(to_groupby)
+            return self.axis.groupby(index)
 
     @final
     @cache_readonly
@@ -498,7 +501,7 @@ class BaseGrouper:
         If we have an ExtensionArray, unwrap, call _cython_operation, and
         re-wrap if appropriate.
         """
-        # TODO: general case implementation overrideable by EAs.
+        # TODO: general case implementation overridable by EAs.
         orig_values = values
 
         if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
@@ -537,7 +540,9 @@ class BaseGrouper:
             result = type(orig_values)._from_sequence(res_values)
             return result
 
-        raise NotImplementedError(values.dtype)
+        raise NotImplementedError(
+            f"function is not implemented for this dtype: {values.dtype}"
+        )
 
     @final
     def _cython_operation(
@@ -900,7 +905,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels]
 
     @property
-    def names(self) -> List[Label]:
+    def names(self) -> List[Hashable]:
         return [self.binlabels.name]
 
     @property

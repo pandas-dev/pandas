@@ -5,6 +5,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -17,7 +18,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
@@ -39,10 +40,10 @@ from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -61,7 +62,7 @@ from pandas.core.internals.ops import blockwise_all, operate_blockwise
 T = TypeVar("T", bound="BlockManager")
 
 
-class BlockManager(PandasObject):
+class BlockManager(DataManager):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 
@@ -542,9 +543,7 @@ class BlockManager(PandasObject):
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(
-        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
-    ) -> "BlockManager":
+    def where(self, other, cond, align: bool, errors: str, axis: int) -> "BlockManager":
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -557,7 +556,6 @@ class BlockManager(PandasObject):
             other=other,
             cond=cond,
             errors=errors,
-            try_cast=try_cast,
             axis=axis,
         )
 
@@ -565,7 +563,6 @@ class BlockManager(PandasObject):
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True, axis: int = 0):
-        transpose = self.ndim == 2
 
         if align:
             align_keys = ["new", "mask"]
@@ -578,9 +575,7 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            inplace=True,
             axis=axis,
-            transpose=transpose,
         )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
@@ -822,7 +817,7 @@ class BlockManager(PandasObject):
     def as_array(
         self,
         transpose: bool = False,
-        dtype=None,
+        dtype: Optional[Dtype] = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -878,7 +873,9 @@ class BlockManager(PandasObject):
 
         return arr.transpose() if transpose else arr
 
-    def _interleave(self, dtype=None, na_value=lib.no_default) -> np.ndarray:
+    def _interleave(
+        self, dtype: Optional[Dtype] = None, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
@@ -1170,7 +1167,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc: int, item: Label, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1231,35 +1228,6 @@ class BlockManager(PandasObject):
                 PerformanceWarning,
                 stacklevel=5,
             )
-
-    def reindex_axis(
-        self,
-        new_index,
-        axis: int,
-        method=None,
-        limit=None,
-        fill_value=None,
-        copy: bool = True,
-        consolidate: bool = True,
-        only_slice: bool = False,
-    ):
-        """
-        Conform block manager to new index.
-        """
-        new_index = ensure_index(new_index)
-        new_index, indexer = self.axes[axis].reindex(
-            new_index, method=method, limit=limit
-        )
-
-        return self.reindex_indexer(
-            new_index,
-            indexer,
-            axis=axis,
-            fill_value=fill_value,
-            copy=copy,
-            consolidate=consolidate,
-            only_slice=only_slice,
-        )
 
     def reindex_indexer(
         self: T,
@@ -1358,7 +1326,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
-                # GH#32959 EABlock would fail since we cant make 0-width
+                # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
                     return []
@@ -1848,7 +1816,7 @@ def _simple_blockify(tuples, dtype) -> List[Block]:
     return [block]
 
 
-def _multi_blockify(tuples, dtype=None):
+def _multi_blockify(tuples, dtype: Optional[Dtype] = None):
     """ return an array of blocks that potentially have different dtypes """
     # group by dtype
     grouper = itertools.groupby(tuples, lambda x: x[2].dtype)

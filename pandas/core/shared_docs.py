@@ -108,7 +108,7 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
 group_keys : bool, default True
-    When calling apply, add group keys to index to identify pieces.
+    When calling ``groupby().apply()``, add group keys to index to identify pieces.
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.
@@ -383,15 +383,13 @@ _shared_docs[
     "storage_options"
 ] = """storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc., if using a URL that will
-    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-    will be raised if providing this argument with a non-fsspec URL.
-    See the fsspec and backend storage implementation docs for the set of
-    allowed keys and values."""
-
+    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+    are forwarded to ``urllib`` as header options. For other URLs (e.g.
+    starting with "s3://", and "gcs://") the key-value pairs are forwarded to
+    ``fsspec``. Please see ``fsspec`` and ``urllib`` for more details."""
 
 _shared_docs[
-    "to_replace"
+    "replace"
 ] = """
     Replace values given in `to_replace` with `value`.
 
@@ -667,12 +665,3 @@ _shared_docs[
     4     b
     dtype: object
 """
-
-_shared_doc_kwargs: Dict[str, str] = {
-    "inplace": """
-    inplace : boolean, default False
-        If True, performs operation inplace and returns None.""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
-}

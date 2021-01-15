@@ -45,6 +45,25 @@ def test_get_dtypes():
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
+def test_get_dtypes_no_level_name():
+    # Test MultiIndex.dtypes (# GH38580 )
+    idx_multitype = MultiIndex.from_product(
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC"),
+        ],
+    )
+    expected = pd.Series(
+        {
+            "level_0": np.dtype("int64"),
+            "level_1": np.dtype("O"),
+            "level_2": DatetimeTZDtype(tz="utc"),
+        }
+    )
+    tm.assert_series_equal(expected, idx_multitype.dtypes)
+
+
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
