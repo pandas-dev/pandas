@@ -29,7 +29,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -54,10 +54,12 @@ from pandas.core.construction import extract_array
 from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
-from pandas.core.window.common import _shared_docs, flex_binary_moment, zsqrt
+from pandas.core.window.common import flex_binary_moment, zsqrt
 from pandas.core.window.doc import (
+    _shared_docs,
     doc_template,
     kwargs_compat,
+    kwargs_scipy,
     numpy_args_kwargs,
     window_apply_notes,
     window_apply_parameters,
@@ -1092,30 +1094,68 @@ class Window(BaseWindow):
 
     agg = aggregate
 
-    # @Substitution(name="window")
-    # @Appender(_shared_docs["sum"])
+    @doc(
+        doc_template,
+        window_method="rolling",
+        aggregation_description="weighted window sum",
+        parameters=kwargs_scipy,
+        numpy_args_kwargs="",
+        agg_method="sum",
+        other_see_also="",
+        notes="",
+        examples="",
+    )
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = window_aggregations.roll_weighted_sum
         return self._apply(window_func, name="sum", **kwargs)
 
-    @Substitution(name="window")
-    @Appender(_shared_docs["mean"])
+    @doc(
+        doc_template,
+        window_method="rolling",
+        aggregation_description="weighted window mean",
+        parameters=kwargs_scipy,
+        numpy_args_kwargs="",
+        agg_method="mean",
+        other_see_also="",
+        notes="",
+        examples="",
+    )
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = window_aggregations.roll_weighted_mean
         return self._apply(window_func, name="mean", **kwargs)
 
-    @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
-    @Appender(_shared_docs["var"])
+    @doc(
+        doc_template,
+        window_method="rolling",
+        aggregation_description="weighted window variance \n.. versionadded:: 1.0.0\n",
+        parameters=kwargs_scipy,
+        numpy_args_kwargs="",
+        agg_method="var",
+        other_see_also="",
+        notes="",
+        examples="",
+    )
     def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_weighted_var, ddof=ddof)
         kwargs.pop("name", None)
         return self._apply(window_func, name="var", **kwargs)
 
-    @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
-    @Appender(_shared_docs["std"])
+    @doc(
+        doc_template,
+        window_method="rolling",
+        aggregation_description=(
+            "weighted window standard deviation \n.. versionadded:: 1.0.0\n"
+        ),
+        parameters="",
+        numpy_args_kwargs=numpy_args_kwargs,
+        agg_method="std",
+        other_see_also="",
+        notes="",
+        examples="",
+    )
     def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
@@ -2148,16 +2188,6 @@ class Rolling(RollingAndExpandingMixin):
         5    1.154701
         6    0.000000
         dtype: float64
-
-        >>> s.expanding(3).std()
-        0         NaN
-        1         NaN
-        2    0.577350
-        3    0.957427
-        4    0.894427
-        5    0.836660
-        6    0.786796
-        dtype: float64
         """
         ),
     )
@@ -2198,16 +2228,6 @@ class Rolling(RollingAndExpandingMixin):
         4    1.000000
         5    1.333333
         6    0.000000
-        dtype: float64
-
-        >>> s.expanding(3).var()
-        0         NaN
-        1         NaN
-        2    0.333333
-        3    0.916667
-        4    0.800000
-        5    0.700000
-        6    0.619048
         dtype: float64
         """
         ),
@@ -2253,13 +2273,6 @@ class Rolling(RollingAndExpandingMixin):
         1    0.707107
         2    0.707107
         3    0.707107
-        dtype: float64
-
-        >>> s.expanding().sem()
-        0         NaN
-        1    0.707107
-        2    0.707107
-        3    0.745356
         dtype: float64
         """
         ),

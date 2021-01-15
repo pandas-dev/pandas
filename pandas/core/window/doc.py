@@ -1,3 +1,4 @@
+"""Any shareable docstring components for rolling/expanding/ewm"""
 from textwrap import dedent
 
 from pandas.core.shared_docs import _shared_docs
@@ -41,6 +42,13 @@ numpy_args_kwargs = dedent(
     """
     *args, **kwargs
         For Numpy compatibility and has no effect on the computed value.
+    """
+)
+
+kwargs_scipy = dedent(
+    """
+    **kwargs
+        Keyword arguments to configure the ``Scipy`` weighted window type.
     """
 )
 
@@ -94,8 +102,6 @@ window_apply_parameters = dedent(
 
 window_apply_notes = dedent(
     """
-    Notes
-    -----
     See :ref:`window.numba_engine` for extended documentation and performance
     considerations for the Numba engine.
     """
