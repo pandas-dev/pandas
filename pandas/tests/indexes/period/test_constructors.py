@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -304,6 +305,7 @@ class TestPeriodIndex:
                 )
             )
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_constructor_mixed(self):
         idx = PeriodIndex(["2011-01", NaT, Period("2011-01", freq="M")])
         exp = PeriodIndex(["2011-01", "NaT", "2011-01"], freq="M")
@@ -329,7 +331,7 @@ class TestPeriodIndex:
         msg = "Should be numpy array of type i8"
         with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
-            type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
+            type(idx._data)._simple_new(idx._int64index, freq=idx.freq)
 
         arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
         result = idx._simple_new(arr, name="p")

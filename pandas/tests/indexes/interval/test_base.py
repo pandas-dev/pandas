@@ -52,6 +52,15 @@ class TestBase(Base):
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_getitem_2d_deprecated(self):
+        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
+        idx = self.create_index()
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                idx[:, None]
+
+
+class TestPutmask:
     @pytest.mark.parametrize("tz", ["US/Pacific", None])
     def test_putmask_dt64(self, tz):
         # GH#37968
@@ -75,10 +84,3 @@ class TestBase(Base):
         result = idx.putmask(mask, idx[-1])
         expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
-
-    def test_getitem_2d_deprecated(self):
-        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
-        idx = self.create_index()
-        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                idx[:, None]

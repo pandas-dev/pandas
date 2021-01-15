@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
@@ -133,7 +135,7 @@ class TestComparison:
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
 
-        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int64"):
+        if nulls_fixture is pd.NA and array.dtype.subtype != "int64":
             mark = pytest.mark.xfail(
                 reason="broken for non-integer IntervalArray; see GH 31882"
             )
@@ -252,6 +254,7 @@ class TestComparison:
         with pytest.raises(ValueError, match="Lengths must match to compare"):
             op(array, other)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     @pytest.mark.parametrize(
         "constructor, expected_type, assert_func",
         [

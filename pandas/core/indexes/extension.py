@@ -1,17 +1,16 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List, Optional, TypeVar
+from typing import Hashable, List, Optional, TypeVar
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
+from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype, pandas_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -215,7 +214,7 @@ class ExtensionIndex(Index):
 
     @doc(Index._shallow_copy)
     def _shallow_copy(
-        self, values: Optional[ExtensionArray] = None, name: Label = lib.no_default
+        self, values: Optional[ExtensionArray] = None, name: Hashable = lib.no_default
     ):
         name = self.name if name is lib.no_default else name
 
@@ -248,6 +247,10 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+        # overriding IndexOpsMixin improves performance GH#38083
+        return self._data.searchsorted(value, side=side, sorter=sorter)
+
     # ---------------------------------------------------------------------
 
     @property
@@ -275,18 +278,13 @@ class ExtensionIndex(Index):
         if method is None:
             return
 
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for {type(self).__name__}"
-            )
-
-        raise ValueError("Invalid fill method")
+    # ---------------------------------------------------------------------
 
     def _get_engine_target(self) -> np.ndarray:
         return np.asarray(self._data)
 
     def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
+        nv.validate_repeat((), {"axis": axis})
         result = self._data.repeat(repeats, axis=axis)
         return type(self)._simple_new(result, name=self.name)
 
@@ -322,9 +320,12 @@ class ExtensionIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
+        dtype = pandas_dtype(dtype)
+        if is_dtype_equal(self.dtype, dtype):
+            if not copy:
+                # Ensure that self.astype(self.dtype) is self
+                return self
+            return self.copy()
 
         new_values = self._data.astype(dtype, copy=copy)
 
@@ -358,7 +359,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
-    def delete(self, loc):
+    def delete(self: _T, loc) -> _T:
         """
         Make new Index with passed location(-s) deleted
 
@@ -366,11 +367,10 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         -------
         new_index : Index
         """
-        new_vals = np.delete(self._data._ndarray, loc)
-        arr = self._data._from_backing_data(new_vals)
+        arr = self._data.delete(loc)
         return type(self)._simple_new(arr, name=self.name)
 
-    def insert(self, loc: int, item):
+    def insert(self: _T, loc: int, item) -> _T:
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values.
@@ -396,7 +396,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         return type(self)._simple_new(new_arr, name=self.name)
 
     @doc(Index.where)
-    def where(self, cond, other=None):
+    def where(self: _T, cond: np.ndarray, other=None) -> _T:
         res_values = self._data.where(cond, other)
         return type(self)._simple_new(res_values, name=self.name)
 

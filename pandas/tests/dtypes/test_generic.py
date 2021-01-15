@@ -1,6 +1,7 @@
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 from pandas.core.dtypes import generic as gt
 
@@ -21,28 +22,65 @@ class TestABCClasses:
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
-    def test_abc_types(self):
-        assert isinstance(pd.Index(["a", "b", "c"]), gt.ABCIndex)
-        assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCInt64Index)
-        assert isinstance(pd.UInt64Index([1, 2, 3]), gt.ABCUInt64Index)
-        assert isinstance(pd.Float64Index([1, 2, 3]), gt.ABCFloat64Index)
-        assert isinstance(self.multi_index, gt.ABCMultiIndex)
-        assert isinstance(self.datetime_index, gt.ABCDatetimeIndex)
-        assert isinstance(self.timedelta_index, gt.ABCTimedeltaIndex)
-        assert isinstance(self.period_index, gt.ABCPeriodIndex)
-        assert isinstance(self.categorical_df.index, gt.ABCCategoricalIndex)
-        assert isinstance(pd.Index(["a", "b", "c"]), gt.ABCIndexClass)
-        assert isinstance(pd.Int64Index([1, 2, 3]), gt.ABCIndexClass)
-        assert isinstance(pd.Series([1, 2, 3]), gt.ABCSeries)
-        assert isinstance(self.df, gt.ABCDataFrame)
-        assert isinstance(self.sparse_array, gt.ABCExtensionArray)
-        assert isinstance(self.categorical, gt.ABCCategorical)
+    abc_pairs = [
+        ("ABCInt64Index", pd.Int64Index([1, 2, 3])),
+        ("ABCUInt64Index", pd.UInt64Index([1, 2, 3])),
+        ("ABCFloat64Index", pd.Float64Index([1, 2, 3])),
+        ("ABCMultiIndex", multi_index),
+        ("ABCDatetimeIndex", datetime_index),
+        ("ABCRangeIndex", pd.RangeIndex(3)),
+        ("ABCTimedeltaIndex", timedelta_index),
+        ("ABCIntervalIndex", pd.interval_range(start=0, end=3)),
+        ("ABCPeriodArray", pd.arrays.PeriodArray([2000, 2001, 2002], freq="D")),
+        ("ABCPandasArray", pd.arrays.PandasArray(np.array([0, 1, 2]))),
+        ("ABCPeriodIndex", period_index),
+        ("ABCCategoricalIndex", categorical_df.index),
+        ("ABCSeries", pd.Series([1, 2, 3])),
+        ("ABCDataFrame", df),
+        ("ABCCategorical", categorical),
+        ("ABCDatetimeArray", datetime_array),
+        ("ABCTimedeltaArray", timedelta_array),
+    ]
 
-        assert isinstance(self.datetime_array, gt.ABCDatetimeArray)
-        assert not isinstance(self.datetime_index, gt.ABCDatetimeArray)
+    @pytest.mark.parametrize("abctype1, inst", abc_pairs)
+    @pytest.mark.parametrize("abctype2, _", abc_pairs)
+    def test_abc_pairs(self, abctype1, abctype2, inst, _):
+        # GH 38588
+        if abctype1 == abctype2:
+            assert isinstance(inst, getattr(gt, abctype2))
+        else:
+            assert not isinstance(inst, getattr(gt, abctype2))
 
-        assert isinstance(self.timedelta_array, gt.ABCTimedeltaArray)
-        assert not isinstance(self.timedelta_index, gt.ABCTimedeltaArray)
+    abc_subclasses = {
+        "ABCIndex": [
+            abctype
+            for abctype, _ in abc_pairs
+            if "Index" in abctype and abctype != "ABCIndex"
+        ],
+        "ABCNDFrame": ["ABCSeries", "ABCDataFrame"],
+        "ABCExtensionArray": [
+            "ABCCategorical",
+            "ABCDatetimeArray",
+            "ABCPeriodArray",
+            "ABCTimedeltaArray",
+        ],
+    }
+
+    @pytest.mark.parametrize("parent, subs", abc_subclasses.items())
+    @pytest.mark.parametrize("abctype, inst", abc_pairs)
+    def test_abc_hierarchy(self, parent, subs, abctype, inst):
+        # GH 38588
+        if abctype in subs:
+            assert isinstance(inst, getattr(gt, parent))
+        else:
+            assert not isinstance(inst, getattr(gt, parent))
+
+    @pytest.mark.parametrize("abctype", [e for e in gt.__dict__ if e.startswith("ABC")])
+    def test_abc_coverage(self, abctype):
+        # GH 38588
+        assert (
+            abctype in (e for e, _ in self.abc_pairs) or abctype in self.abc_subclasses
+        )
 
 
 def test_setattr_warnings():

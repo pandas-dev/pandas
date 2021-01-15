@@ -143,6 +143,13 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
+    @pytest.mark.xfail(
+        reason="comparison method not implemented for JSONArray (GH-37867)"
+    )
+    def test_contains(self, data):
+        # GH-37867
+        super().test_contains(data)
+
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="not implemented constructor from dtype")
@@ -305,6 +312,10 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
+
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):

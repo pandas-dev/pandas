@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
@@ -144,6 +146,7 @@ class TestMultiIndexLoc:
         with pytest.raises(KeyError, match="not in index"):
             df.loc[key]
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
         s = Series(
@@ -304,6 +307,21 @@ class TestMultiIndexLoc:
         obj.loc[indexer, :] = 0
         expected = DataFrame([0, 2], index=mi)
         tm.assert_frame_equal(obj, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, exp_value", [(slice(None), 1.0), ((1, 2), np.nan)]
+    )
+    def test_multiindex_setitem_columns_enlarging(self, indexer, exp_value):
+        # GH#39147
+        mi = MultiIndex.from_tuples([(1, 2), (3, 4)])
+        df = DataFrame([[1, 2], [3, 4]], index=mi, columns=["a", "b"])
+        df.loc[indexer, ["c", "d"]] = 1.0
+        expected = DataFrame(
+            [[1, 2, 1.0, 1.0], [3, 4, exp_value, exp_value]],
+            index=mi,
+            columns=["a", "b", "c", "d"],
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
@@ -695,3 +713,17 @@ def test_loc_getitem_index_differently_ordered_slice_none():
         columns=["a", "b"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_getitem_drops_levels_for_one_row_dataframe():
+    # GH#10521
+    mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
+    df = DataFrame({"d": [0]}, index=mi)
+    expected = df.copy()
+    result = df.loc["x", :, "z"]
+    tm.assert_frame_equal(result, expected)
+
+    ser = Series([0], index=mi)
+    result = ser.loc["x", :, "z"]
+    expected = Series([0], index=Index(["y"], name="b"))
+    tm.assert_series_equal(result, expected)

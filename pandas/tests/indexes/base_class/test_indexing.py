@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas import Index
 import pandas._testing as tm
 
@@ -13,6 +15,7 @@ class TestGetSliceBounds:
         result = index.get_slice_bound("e", kind=kind, side=side)
         assert result == expected
 
+    @pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize(
