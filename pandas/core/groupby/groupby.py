@@ -8,8 +8,6 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
-from __future__ import annotations
-
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
