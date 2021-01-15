@@ -152,6 +152,10 @@ class NumericIndex(Index):
                     raise TypeError
                 value = int(value)
 
+        elif hasattr(value, "dtype") and value.dtype.kind in ["m", "M"]:
+            # TODO: if we're checking arraylike here, do so systematically
+            raise TypeError
+
         return value
 
     def _convert_tolerance(self, tolerance, target):
