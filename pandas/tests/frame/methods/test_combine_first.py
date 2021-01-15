@@ -464,15 +464,15 @@ def test_combine_first_with_nan_multiindex():
 
 def test_combine_preserve_dtypes():
     # GH7509
-    a = Series(["a", "b"], index=range(2))
-    b = Series(range(2), index=range(2))
-    f = DataFrame({"A": a, "B": b})
+    a_column = Series(["a", "b"], index=range(2))
+    b_column = Series(range(2), index=range(2))
+    df1 = DataFrame({"A": a_column, "B": b_column})
 
-    c = Series(["a", "b"], index=range(5, 7))
-    b = Series(range(-1, 1), index=range(5, 7))
-    g = DataFrame({"B": b, "C": c})
+    c_column = Series(["a", "b"], index=range(5, 7))
+    b_column = Series(range(-1, 1), index=range(5, 7))
+    df2 = DataFrame({"B": b_column, "C": c_column})
 
-    exp = DataFrame(
+    expected = DataFrame(
         {
             "A": ["a", "b", np.nan, np.nan],
             "B": [0, 1, -1, 0],
@@ -480,5 +480,5 @@ def test_combine_preserve_dtypes():
         },
         index=[0, 1, 5, 6],
     )
-    combined = f.combine_first(g)
-    tm.assert_frame_equal(combined, exp)
+    combined = df1.combine_first(df2)
+    tm.assert_frame_equal(combined, expected)
