@@ -6513,7 +6513,18 @@ Keep all original rows and columns and also all original values
 
             return expressions.where(mask, y_values, x_values)
 
-        return self.combine(other, combiner, overwrite=False)
+        combined = self.combine(other, combiner, overwrite=False)
+
+        dtypes = {
+            col: find_common_type([self.dtypes[col], other.dtypes[col]])
+            for col in self.columns.intersection(other.columns)
+            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+        }
+
+        if dtypes:
+            combined = combined.astype(dtypes)
+
+        return combined
 
     def update(
         self,
