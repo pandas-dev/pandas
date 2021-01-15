@@ -63,15 +63,14 @@ def describe_ndframe(
     percentiles = refine_percentiles(percentiles)
 
     describer: NDFrameDescriberAbstract
-
     if obj.ndim == 1:
         describer = SeriesDescriber(
-            series=cast("Series", obj),
+            obj=cast("Series", obj),
             datetime_is_numeric=datetime_is_numeric,
         )
     else:
         describer = DataFrameDescriber(
-            frame=cast("DataFrame", obj),
+            obj=cast("DataFrame", obj),
             include=include,
             exclude=exclude,
             datetime_is_numeric=datetime_is_numeric,
@@ -82,7 +81,19 @@ def describe_ndframe(
 
 
 class NDFrameDescriberAbstract(ABC):
-    """Abstract class for describing dataframe or series."""
+    """Abstract class for describing dataframe or series.
+
+    Parameters
+    ----------
+    obj : Series or DataFrame
+        Object to be described.
+    datetime_is_numeric : bool
+        Whether to treat datetime dtypes as numeric.
+    """
+
+    def __init__(self, obj: "FrameOrSeriesUnion", datetime_is_numeric: bool):
+        self.obj = obj
+        self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
     def describe(self, percentiles: Sequence[float]) -> "FrameOrSeriesUnion":
@@ -96,28 +107,13 @@ class NDFrameDescriberAbstract(ABC):
 
 
 class SeriesDescriber(NDFrameDescriberAbstract):
-    """Class responsible for creating series description.
+    """Class responsible for creating series description."""
 
-    Parameters
-    ----------
-    data : Series
-        Series to be described.
-    datetime_is_numeric : bool
-        Whether to treat datetime dtypes as numeric.
-    """
-
-    def __init__(
-        self,
-        series: "Series",
-        *,
-        datetime_is_numeric: bool,
-    ):
-        self.series = series
-        self.datetime_is_numeric = datetime_is_numeric
+    obj: "Series"
 
     def describe(self, percentiles: Sequence[float]) -> "Series":
         return describe_1d(
-            self.series,
+            self.obj,
             percentiles=percentiles,
             datetime_is_numeric=self.datetime_is_numeric,
             is_series=True,
@@ -125,12 +121,12 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
 
 class DataFrameDescriber(NDFrameDescriberAbstract):
-    """Class responsible for creating dataframe description.
+    """Class responsible for creating dataobj description.
 
     Parameters
     ----------
-    data : DataFrame
-        Dataframe to be described.
+    obj : DataFrame
+        DataFrame to be described.
     include : 'all', list-like of dtypes or None
         A white list of data types to include in the result.
     exclude : list-like of dtypes or None
@@ -141,17 +137,16 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
     def __init__(
         self,
-        frame: "DataFrame",
+        obj: "DataFrame",
         *,
         include: Optional[Union[str, Sequence[str]]],
         exclude: Optional[Union[str, Sequence[str]]],
         datetime_is_numeric: bool,
     ):
-        validate_frame(frame)
-        self.frame = frame
         self.include = include
         self.exclude = exclude
-        self.datetime_is_numeric = datetime_is_numeric
+        validate_frame(obj)
+        super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
     def describe(self, percentiles: Sequence[float]) -> "DataFrame":
         data = self._select_data()
@@ -182,16 +177,16 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             default_include = [np.number]
             if self.datetime_is_numeric:
                 default_include.append("datetime")
-            data = self.frame.select_dtypes(include=default_include)
+            data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
-                data = self.frame
+                data = self.obj
         elif self.include == "all":
             if self.exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)
-            data = self.frame
+            data = self.obj
         else:
-            data = self.frame.select_dtypes(
+            data = self.obj.select_dtypes(
                 include=self.include,
                 exclude=self.exclude,
             )
