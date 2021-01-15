@@ -240,7 +240,7 @@ class DocBuilder:
             else:
                 self._add_redirects()
                 if self.whatsnew:
-                    self._open_browser("whatsnew/index.html")
+                    self._open_browser(os.path.join("whatsnew", "index.html"))
 
         return ret_code
 
