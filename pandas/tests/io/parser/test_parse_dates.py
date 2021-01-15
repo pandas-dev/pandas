@@ -55,13 +55,14 @@ def test_separator_date_conflict(all_parsers):
     )
     tm.assert_frame_equal(df, expected)
 
-@pytest.fixtures(all_parsers)
+
 def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
         time = time.astype(np.float)
         time = time.astype(np.int)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
+
     testdata = StringIO(
         """time    e   n   h
         41047.00	-98573.7297	871458.0640	389.0089
@@ -71,8 +72,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
         41051.00	-98573.7302	871458.0640	389.0086
             """
     )
-    parser = all_parsers
-    result = parser.read_csv(
+    result = all_parsers.read_csv(
         testdata,
         delim_whitespace=True,
         parse_dates=True,
