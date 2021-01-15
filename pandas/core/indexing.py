@@ -664,9 +664,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.ndim != 2:
             return
 
-        if isinstance(key, tuple) and not isinstance(self.obj.index, ABCMultiIndex):
+        if isinstance(key, tuple) and len(key) > 1:
             # key may be a tuple if we are .loc
-            # if index is not a MultiIndex, set key to column part
+            # if length of key is > 1 set key to column part
             key = key[column_axis]
             axis = column_axis
 
@@ -1691,11 +1691,13 @@ class _iLocIndexer(_LocationIndexer):
                     # TODO(EA2D): special case not needed with 2D EAs
                     obj = type(self.obj)(value)
                     orig_mgr = self.obj._mgr.copy(deep=True)
+                    #breakpoint()
                     new_mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+                    self.obj._mgr = new_mgr
                     #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
                     #self.obj._clear_item_cache()
                     # 1 test stil failing would be fixed by using _setitem_single_column
-                    self._setitem_single_column(ilocs[0], value, pi)
+                    #self._setitem_single_column(ilocs[0], value, pi)
                 else:
                     val = np.atleast_2d(value).T
                     self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
@@ -1737,12 +1739,8 @@ class _iLocIndexer(_LocationIndexer):
                         arrs = list(val._iter_column_arrays())
                         arrs = [np.broadcast_to(x, lplane_indexer) for x in arrs]
                         val = type(self.obj)._from_arrays(arrs, index=range(lplane_indexer), columns=range(len(arrs)))
-                #
-                # 3 tests broken here fixed by using _setitem_single_column
                 self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
                 self.obj._clear_item_cache()
-                #for loc, v in zip(ilocs, value):
-                #    self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
