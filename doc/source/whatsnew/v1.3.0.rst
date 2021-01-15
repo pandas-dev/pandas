@@ -33,17 +33,12 @@ For example:
         storage_options=headers
     )
 
-.. _whatsnew_130.window_method_table:
-
-:class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a
-``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`.
-See ref:`window.overview` for performance and functional benefits. (:issue:`15095`, :issue:`38995`)
-
 .. _whatsnew_130.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :class:`Rolling` and :class:`Expanding` now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See ref:`window.overview` for performance and functional benefits (:issue:`15095`, :issue:`38995`)
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 - Added ``end`` and ``end_day`` options for ``origin`` in :meth:`DataFrame.resample` (:issue:`37804`)
 - Improve error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
@@ -56,6 +51,7 @@ Other enhancements
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support ``Numba`` execution with the ``engine`` keyword (:issue:`38895`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
+- :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 
 .. ---------------------------------------------------------------------------
 
@@ -157,10 +153,10 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- Deprecating allowing scalars passed to the :class:`Categorical` constructor (:issue:`38433`)
-- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`,:issue:`21311`,:issue:`22315`,:issue:`26974`)
+- Deprecated allowing scalars to be passed to the :class:`Categorical` constructor (:issue:`38433`)
+- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`, :issue:`21311`, :issue:`22315`, :issue:`26974`)
 - Deprecated ``astype`` of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
-- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth` as a public methods, users should use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
+- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth`, use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
 - Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
 - Deprecated comparison of :class:`Timestamp` object with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
 - Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
@@ -185,9 +181,6 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
--
--
-
 Categorical
 ^^^^^^^^^^^
 - Bug in :class:`CategoricalIndex` incorrectly failing to raise ``TypeError`` when scalar data is passed (:issue:`38614`)
@@ -195,13 +188,15 @@ Categorical
 - Bug where constructing a :class:`Categorical` from an object-dtype array of ``date`` objects did not round-trip correctly with ``astype`` (:issue:`38552`)
 - Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
 - Bug in :meth:`DataFrame.reindex` was throwing ``IndexError`` when new index contained duplicates and old index was :class:`CategoricalIndex` (:issue:`38906`)
+- Bug in setting categorical values into an object-dtype column in a :class:`DataFrame` (:issue:`39136`)
+- Bug in :meth:`DataFrame.reindex` was raising ``IndexError`` when new index contained duplicates and old index was :class:`CategoricalIndex` (:issue:`38906`)
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` and :class:`Series` constructors sometimes dropping nanoseconds from :class:`Timestamp` (resp. :class:`Timedelta`) ``data``, with ``dtype=datetime64[ns]`` (resp. ``timedelta64[ns]``) (:issue:`38032`)
 - Bug in :meth:`DataFrame.first` and :meth:`Series.first` returning two months for offset one month when first day is last calendar day (:issue:`29623`)
 - Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise ``TypeError`` (:issue:`38575`, :issue:`38764`, :issue:`38792`)
-- Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object ouf of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
+- Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object out of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
@@ -265,9 +260,9 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and no level is provided (:issue:`36293`)
+- Bug in :meth:`DataFrame.drop` raising ``TypeError`` when :class:`MultiIndex` is non-unique and ``level`` is not provided (:issue:`36293`)
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in result (:issue:`38623`)
-- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differntly ordered (:issue:`38439`)
+- Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning empty when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
 
 I/O
@@ -282,14 +277,14 @@ I/O
 - Bug in :func:`read_csv` raising ``TypeError`` when ``names`` and ``parse_dates`` is specified for ``engine="c"`` (:issue:`33699`)
 - Bug in :func:`read_clipboard`, :func:`DataFrame.to_clipboard` not working in WSL (:issue:`38527`)
 - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
-- Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
-  for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
+- Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`)
 - Bug in :meth:`~HDFStore.put` raising a wrong ``TypeError`` when saving a DataFrame with non-string dtype (:issue:`34274`)
 - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
 - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
-- :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
+- :func:`read_excel` now respects :func:`set_option` (:issue:`34252`)
 - Bug in :func:`read_csv` not switching ``true_values`` and ``false_values`` for nullable ``boolean`` dtype (:issue:`34655`)
-- Bug in :func:``read_json`` when ``orient="split"`` does not maintan numeric string index (:issue:`28556`)
+- Bug in :func:`read_json` when ``orient="split"`` does not maintain numeric string index (:issue:`28556`)
+- :meth:`read_sql` returned an empty generator if ``chunksize`` was no-zero and the query returned no results. Now returns a generator with a single empty dataframe (:issue:`34411`)
 
 Period
 ^^^^^^
@@ -311,7 +306,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.GroupBy.indices` would contain non-existent indices when null values were present in the groupby keys (:issue:`9304`)
 - Fixed bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` causing loss of precision through using Kahan summation (:issue:`38778`)
 - Fixed bug in :meth:`DataFrameGroupBy.cumsum`, :meth:`SeriesGroupBy.cumsum`, :meth:`DataFrameGroupBy.mean` and :meth:`SeriesGroupBy.mean` causing loss of precision through using Kahan summation (:issue:`38934`)
-- Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys having mixed dtypes (:issue:`39025`)
+- Bug in :meth:`.Resampler.aggregate` and :meth:`DataFrame.transform` raising ``TypeError`` instead of ``SpecificationError`` when missing keys had mixed dtypes (:issue:`39025`)
 
 Reshaping
 ^^^^^^^^^
@@ -332,13 +327,13 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with ExtensionArray dtype (:issue:`38729`)
+- Bug in :meth:`DataFrame.where` when ``other`` is a :class:`Series` with :class:`ExtensionArray` dtype (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin` and ``argmax/min`` fail when the underlying data is :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 -
 
 Other
 ^^^^^
-- Bug in :class:`Index` constructor sometimes silently ignorning a a specified ``dtype`` (:issue:`38879`)
+- Bug in :class:`Index` constructor sometimes silently ignorning a specified ``dtype`` (:issue:`38879`)
 -
 -
 

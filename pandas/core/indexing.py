@@ -1816,7 +1816,7 @@ class _iLocIndexer(_LocationIndexer):
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
             ser = value
-        elif is_array_like(value) and is_exact_shape_match(value, ser):
+        elif is_array_like(value) and is_exact_shape_match(ser, value):
             ser = value
         else:
             # set the item, possibly having a dtype change

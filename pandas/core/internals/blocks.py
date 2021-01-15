@@ -906,15 +906,7 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        if self._can_hold_element(value):
-            # We only get here for non-Extension Blocks, so _try_coerce_args
-            #  is only relevant for DatetimeBlock and TimedeltaBlock
-            if self.dtype.kind in ["m", "M"]:
-                arr = self.array_values().T
-                arr[indexer] = value
-                return self
-
-        else:
+        if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             # TODO: can we just use coerce_to_target_dtype for all this
             if hasattr(value, "dtype"):
@@ -934,6 +926,11 @@ class Block(PandasObject):
             # otherwise should have _can_hold_element
 
             return self.astype(dtype).setitem(indexer, value)
+
+        if self.dtype.kind in ["m", "M"]:
+            arr = self.array_values().T
+            arr[indexer] = value
+            return self
 
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):

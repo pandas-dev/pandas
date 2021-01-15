@@ -65,6 +65,48 @@ class TestiLoc(Base):
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
 
+    @pytest.mark.parametrize(
+        "key",
+        [
+            slice(None),
+            slice(3),
+            range(3),
+            [0, 1, 2],
+            Index(range(3)),
+            np.asarray([0, 1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+        frame = DataFrame({0: range(3)}, dtype=object)
+
+        cat = Categorical(["alpha", "beta", "gamma"])
+
+        assert frame._mgr.blocks[0]._can_hold_element(cat)
+
+        df = frame.copy()
+        orig_vals = df.values
+        indexer(df)[key, 0] = cat
+
+        overwrite = isinstance(key, slice) and key == slice(None)
+
+        if overwrite:
+            # TODO: GH#39986 this probably shouldn't behave differently
+            expected = DataFrame({0: cat})
+            assert not np.shares_memory(df.values, orig_vals)
+        else:
+            expected = DataFrame({0: cat}).astype(object)
+            assert np.shares_memory(df.values, orig_vals)
+
+        tm.assert_frame_equal(df, expected)
+
+        # check we dont have a view on cat (may be undesired GH#39986)
+        df.iloc[0, 0] = "gamma"
+        if overwrite:
+            assert cat[0] != "gamma"
+        else:
+            assert cat[0] != "gamma"
+
     @pytest.mark.parametrize("box", [pd_array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
         # GH#38952 Case with not setting a full column
