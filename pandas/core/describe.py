@@ -61,24 +61,38 @@ def describe_ndframe(
     Dataframe or series description.
     """
     percentiles = refine_percentiles(percentiles)
+    describer = create_describer(
+        obj,
+        include=include,
+        exclude=exclude,
+        datetime_is_numeric=datetime_is_numeric,
+    )
+    result = describer.describe(percentiles=percentiles)
+    return cast(FrameOrSeries, result)
 
+
+def create_describer(
+    obj: "FrameOrSeries",
+    include: Optional[Union[str, Sequence[str]]],
+    exclude: Optional[Union[str, Sequence[str]]],
+    datetime_is_numeric: bool,
+) -> "NDFrameDescriberAbstract":
+    """
+    Create concrete NDFrameDescriberAbstract instance suitable for the object.
+    """
     describer: NDFrameDescriberAbstract
-
     if obj.ndim == 1:
-        describer = SeriesDescriber(
+        return SeriesDescriber(
             series=cast("Series", obj),
             datetime_is_numeric=datetime_is_numeric,
         )
     else:
-        describer = DataFrameDescriber(
+        return DataFrameDescriber(
             frame=cast("DataFrame", obj),
             include=include,
             exclude=exclude,
             datetime_is_numeric=datetime_is_numeric,
         )
-
-    result = describer.describe(percentiles=percentiles)
-    return cast(FrameOrSeries, result)
 
 
 class NDFrameDescriberAbstract(ABC):
