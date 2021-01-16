@@ -29,6 +29,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
 - Fixed regression in :meth:`Series.fillna` that raised ``RecursionError`` with ``datetime64[ns, UTC]`` dtype (:issue:`38851`)
 - Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
+- Fixed regression in :func:`pandas.testing.assert_frame_equal` raising ``TypeError`` with ``check_like=True`` when :class:`Index` or columns have mixed dtype (:issue:`39168`)
 - Fixed regression in :meth:`DataFrame.groupby` when aggregating an :class:`ExtensionDType` that could fail for non-numeric values (:issue:`38980`)
 - Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
 - Fixed regression in comparisons between ``NaT`` and ``datetime.date`` objects incorrectly returning ``True`` (:issue:`39151`)
@@ -42,7 +43,7 @@ Bug fixes
 
 - Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
 - Bug in :func:`read_csv` not closing an opened file handle when a ``csv.Error`` or ``UnicodeDecodeError`` occurred while initializing (:issue:`39024`)
--
+- Bug in :func:`pandas.testing.assert_index_equal` raising ``TypeError`` with ``check_order=False`` when :class:`Index` has mixed dtype (:issue:`39168`)
 
 .. ---------------------------------------------------------------------------
 
