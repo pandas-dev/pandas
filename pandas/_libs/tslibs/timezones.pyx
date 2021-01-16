@@ -341,6 +341,9 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     bool
     """
     # GH 18523
+    if is_utc(start):
+        # GH#38851 consider pytz/dateutil/stdlib UTCs as equivalent
+        return is_utc(end)
     return get_timezone(start) == get_timezone(end)
 
 
