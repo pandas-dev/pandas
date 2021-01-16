@@ -3209,6 +3209,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
+            # By convention, bool indexer is indexing along rows
             if len(key) != len(self.index):
                 raise ValueError(
                     f"Item wrong length {len(key)} instead of {len(self.index)}!"
