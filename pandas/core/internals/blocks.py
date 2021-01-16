@@ -633,7 +633,7 @@ class Block(PandasObject):
             values = values[0]
 
         try:
-            new_values = self._astype(values, dtype, copy=copy)
+            new_values = astype_block_compat(values, dtype, copy=copy)
         except (ValueError, TypeError):
             # e.g. astype_nansafe can fail on object-dtype of strings
             #  trying to convert to float
@@ -651,25 +651,6 @@ class Block(PandasObject):
                     f"({newb.dtype.name} [{newb.shape}])"
                 )
         return newb
-
-    @staticmethod
-    def _astype(values, dtype: DtypeObj, copy: bool) -> ArrayLike:
-
-        if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
-            return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
-
-        if is_dtype_equal(values.dtype, dtype):
-            if copy:
-                return values.copy()
-            return values
-
-        if isinstance(values, ExtensionArray):
-            values = values.astype(dtype, copy=copy)
-
-        else:
-            values = astype_nansafe(values, dtype, copy=copy)
-
-        return values
 
     def convert(
         self,
@@ -2599,3 +2580,24 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype
     return mask
+
+
+def astype_block_compat(values: ArrayLike, dtype: DtypeObj, copy: bool) -> ArrayLike:
+    """
+    Series/DataFrame implementation of .astype
+    """
+    if is_datetime64tz_dtype(dtype) and is_datetime64_dtype(values.dtype):
+        return astype_dt64_to_dt64tz(values, dtype, copy, via_utc=True)
+
+    if is_dtype_equal(values.dtype, dtype):
+        if copy:
+            return values.copy()
+        return values
+
+    if isinstance(values, ExtensionArray):
+        values = values.astype(dtype, copy=copy)
+
+    else:
+        values = astype_nansafe(values, dtype, copy=copy)
+
+    return values

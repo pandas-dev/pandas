@@ -25,21 +25,16 @@ from pandas.tests.extension import base
 
 
 def make_data(with_nas: bool = True):
-    if with_nas:
-        return (
-            list(np.arange(0.1, 0.9, 0.1))
-            + [pd.NA]
-            + list(np.arange(1, 9.8, 0.1))
-            + [pd.NA]
-            + [9.9, 10.0]
-        )
-    # case without pd.NA that can be cast to floating ndarray losslessly
+    na_value = pd.NA if with_nas else np.nan
+    # `not with_nas` -> case without pd.NA that can be cast to
+    #  floating ndarray losslessly
     # TODO: get cases with np.nan instead of pd.NA GH#39039
+
     return (
         list(np.arange(0.1, 0.9, 0.1))
-        + [np.nan]
+        + [na_value]
         + list(np.arange(1, 9.8, 0.1))
-        + [np.nan]
+        + [na_value]
         + [9.9, 10.0]
     )
 
