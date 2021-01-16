@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import TYPE_CHECKING, Iterator, List, Tuple
 
@@ -45,7 +47,7 @@ def _iter_block_pairs(
 
 def operate_blockwise(
     left: "BlockManager", right: "BlockManager", array_op
-) -> "BlockManager":
+) -> BlockManager:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 

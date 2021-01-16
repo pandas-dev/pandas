@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional, Tuple, Type
 import warnings
 
@@ -242,14 +244,14 @@ class FloatingArray(NumericArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return FloatingArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype=None, copy: bool = False
-    ) -> "FloatingArray":
+    ) -> FloatingArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 

@@ -1,6 +1,8 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
+from __future__ import annotations
+
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -445,7 +447,7 @@ class Styler:
             "table_attributes": table_attr,
         }
 
-    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> Styler:
         """
         Format the text display value of cells.
 
@@ -516,7 +518,7 @@ class Styler:
                 self._display_funcs[(i, j)] = formatter
         return self
 
-    def set_td_classes(self, classes: DataFrame) -> "Styler":
+    def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Add string based CSS class names to data cells that will appear within the
         `Styler` HTML result. These classes are added within specified `<td>` elements.
@@ -656,7 +658,7 @@ class Styler:
                 for pair in c.split(";"):
                     self.ctx[(i, j)].append(pair)
 
-    def _copy(self, deepcopy: bool = False) -> "Styler":
+    def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
             self.data,
             precision=self.precision,
@@ -673,13 +675,13 @@ class Styler:
             styler._todo = self._todo
         return styler
 
-    def __copy__(self) -> "Styler":
+    def __copy__(self) -> Styler:
         """
         Deep copy by default.
         """
         return self._copy(deepcopy=False)
 
-    def __deepcopy__(self, memo) -> "Styler":
+    def __deepcopy__(self, memo) -> Styler:
         return self._copy(deepcopy=True)
 
     def clear(self) -> None:
@@ -712,7 +714,7 @@ class Styler:
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
@@ -751,7 +753,7 @@ class Styler:
         axis: Optional[Axis] = 0,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Apply a function column-wise, row-wise, or table-wise.
 
@@ -802,7 +804,7 @@ class Styler:
         )
         return self
 
-    def _applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
+    def _applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
@@ -811,7 +813,7 @@ class Styler:
         self._update_ctx(result)
         return self
 
-    def applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
+    def applymap(self, func: Callable, subset=None, **kwargs) -> Styler:
         """
         Apply a function elementwise.
 
@@ -848,7 +850,7 @@ class Styler:
         other: Optional[str] = None,
         subset=None,
         **kwargs,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Apply a function elementwise.
 
@@ -884,7 +886,7 @@ class Styler:
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
 
-    def set_precision(self, precision: int) -> "Styler":
+    def set_precision(self, precision: int) -> Styler:
         """
         Set the precision used to render.
 
@@ -899,7 +901,7 @@ class Styler:
         self.precision = precision
         return self
 
-    def set_table_attributes(self, attributes: str) -> "Styler":
+    def set_table_attributes(self, attributes: str) -> Styler:
         """
         Set the table attributes.
 
@@ -939,7 +941,7 @@ class Styler:
         """
         return self._todo
 
-    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> "Styler":
+    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> Styler:
         """
         Set the styles on the current Styler.
 
@@ -961,7 +963,7 @@ class Styler:
         self._todo.extend(styles)
         return self
 
-    def set_uuid(self, uuid: str) -> "Styler":
+    def set_uuid(self, uuid: str) -> Styler:
         """
         Set the uuid for a Styler.
 
@@ -976,7 +978,7 @@ class Styler:
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str) -> "Styler":
+    def set_caption(self, caption: str) -> Styler:
         """
         Set the caption on a Styler.
 
@@ -991,7 +993,7 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> "Styler":
+    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> Styler:
         """
         Set the table styles on a Styler.
 
@@ -1082,7 +1084,7 @@ class Styler:
             self.table_styles = table_styles
         return self
 
-    def set_na_rep(self, na_rep: str) -> "Styler":
+    def set_na_rep(self, na_rep: str) -> Styler:
         """
         Set the missing data representation on a Styler.
 
@@ -1099,7 +1101,7 @@ class Styler:
         self.na_rep = na_rep
         return self
 
-    def hide_index(self) -> "Styler":
+    def hide_index(self) -> Styler:
         """
         Hide any indices from rendering.
 
@@ -1110,7 +1112,7 @@ class Styler:
         self.hidden_index = True
         return self
 
-    def hide_columns(self, subset) -> "Styler":
+    def hide_columns(self, subset) -> Styler:
         """
         Hide columns from rendering.
 
@@ -1141,7 +1143,7 @@ class Styler:
         self,
         null_color: str = "red",
         subset: Optional[IndexLabel] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Shade the background ``null_color`` for missing values.
 
@@ -1170,7 +1172,7 @@ class Styler:
         text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Color the background in a gradient style.
 
@@ -1307,7 +1309,7 @@ class Styler:
                     columns=s.columns,
                 )
 
-    def set_properties(self, subset=None, **kwargs) -> "Styler":
+    def set_properties(self, subset=None, **kwargs) -> Styler:
         """
         Method to set one or more non-data dependent properties or each cell.
 
@@ -1401,7 +1403,7 @@ class Styler:
         align: str = "left",
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-    ) -> "Styler":
+    ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
 
@@ -1478,7 +1480,7 @@ class Styler:
 
     def highlight_max(
         self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
-    ) -> "Styler":
+    ) -> Styler:
         """
         Highlight the maximum by shading the background.
 
@@ -1500,7 +1502,7 @@ class Styler:
 
     def highlight_min(
         self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
-    ) -> "Styler":
+    ) -> Styler:
         """
         Highlight the minimum by shading the background.
 
@@ -1528,7 +1530,7 @@ class Styler:
         color: str = "yellow",
         axis: Optional[Axis] = None,
         max_: bool = True,
-    ) -> "Styler":
+    ) -> Styler:
         subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
         self.apply(
             self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
