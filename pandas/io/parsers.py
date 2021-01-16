@@ -1812,7 +1812,15 @@ class ParserBase:
             cast_type = pandas_dtype(cast_type)
             array_type = cast_type.construct_array_type()
             try:
-                return array_type._from_sequence_of_strings(values, dtype=cast_type)
+                if is_bool_dtype(cast_type):
+                    return array_type._from_sequence_of_strings(
+                        values,
+                        dtype=cast_type,
+                        true_values=self.true_values,
+                        false_values=self.false_values,
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
@@ -2289,7 +2297,11 @@ class PythonParser(ParserBase):
             self._open_handles(f, kwds)
             assert self.handles is not None
             assert hasattr(self.handles.handle, "readline")
-            self._make_reader(self.handles.handle)
+            try:
+                self._make_reader(self.handles.handle)
+            except (csv.Error, UnicodeDecodeError):
+                self.close()
+                raise
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.

@@ -77,13 +77,13 @@ exclude_patterns = [
 try:
     import nbconvert
 except ImportError:
-    logger.warn("nbconvert not installed. Skipping notebooks.")
+    logger.warning("nbconvert not installed. Skipping notebooks.")
     exclude_patterns.append("**/*.ipynb")
 else:
     try:
         nbconvert.utils.pandoc.get_pandoc_version()
     except nbconvert.utils.pandoc.PandocMissing:
-        logger.warn("Pandoc not installed. Skipping notebooks.")
+        logger.warning("Pandoc not installed. Skipping notebooks.")
         exclude_patterns.append("**/*.ipynb")
 
 # sphinx_pattern can be '-api' to exclude the API pages,
@@ -91,15 +91,18 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
+single_doc = pattern is not None and pattern != "-api"
+include_api = pattern != "-api"
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
+        reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
                 fname = os.path.relpath(os.path.join(dirname, fname), source_path)
 
                 if fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
-                elif pattern == "-api" and dirname == "reference":
+                elif pattern == "-api" and reldir.startswith("reference"):
                     exclude_patterns.append(fname)
                 elif pattern != "-api" and fname != pattern:
                     exclude_patterns.append(fname)
@@ -109,11 +112,11 @@ with open(os.path.join(source_path, "index.rst.template")) as f:
 with open(os.path.join(source_path, "index.rst"), "w") as f:
     f.write(
         t.render(
-            include_api=pattern is None,
-            single_doc=(pattern if pattern is not None and pattern != "-api" else None),
+            include_api=include_api,
+            single_doc=(pattern if single_doc else None),
         )
     )
-autosummary_generate = True if pattern is None else ["index"]
+autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
@@ -315,7 +318,7 @@ for old, new in moved_classes:
         # ... and each of its public methods
         moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
 
-if pattern is None:
+if include_api:
     html_additional_pages = {
         "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
     }
@@ -411,7 +414,7 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-if pattern is None:
+if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/", None),

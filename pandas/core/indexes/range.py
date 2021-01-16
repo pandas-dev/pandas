@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List, Optional, Tuple
+from typing import Any, Hashable, List, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Dtype, Label
+from pandas._typing import Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, doc
 
@@ -121,7 +123,7 @@ class RangeIndex(Int64Index):
     @classmethod
     def from_range(
         cls, data: range, name=None, dtype: Optional[Dtype] = None
-    ) -> "RangeIndex":
+    ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
 
@@ -139,7 +141,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name: Label = None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -400,7 +402,7 @@ class RangeIndex(Int64Index):
         yield from self._range
 
     @doc(Int64Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = no_default):
+    def _shallow_copy(self, values=None, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
         if values is not None:

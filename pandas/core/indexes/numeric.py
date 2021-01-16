@@ -1,10 +1,10 @@
-from typing import Any, Optional
+from typing import Any, Hashable, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -115,7 +115,7 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+    def _shallow_copy(self, values=None, name: Hashable = lib.no_default):
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":
             name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
@@ -151,6 +151,10 @@ class NumericIndex(Index):
                 if not value.is_integer():
                     raise TypeError
                 value = int(value)
+
+        elif hasattr(value, "dtype") and value.dtype.kind in ["m", "M"]:
+            # TODO: if we're checking arraylike here, do so systematically
+            raise TypeError
 
         return value
 

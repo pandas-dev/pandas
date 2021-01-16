@@ -3,6 +3,8 @@ import pytest
 
 import pandas._config.config as cf
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 
 import pandas.io.formats.format as fmt
@@ -119,6 +121,7 @@ c        ff         いいい"""
         assert adjoined == expected
 
 
+@td.skip_array_manager_not_yet_implemented
 class TestTableSchemaRepr:
     @classmethod
     def setup_class(cls):
