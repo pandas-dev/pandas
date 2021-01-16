@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame  # noqa: F401
     from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
     from pandas.core.indexes.base import Index
+    from pandas.core.internals import ArrayManager, BlockManager
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow
@@ -159,3 +160,6 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
+
+# internals
+Manager = Union["ArrayManager", "BlockManager"]

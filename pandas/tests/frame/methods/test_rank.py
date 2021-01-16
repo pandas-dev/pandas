@@ -238,6 +238,7 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, method, dtype):
 

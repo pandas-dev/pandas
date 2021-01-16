@@ -977,3 +977,11 @@ def loc(x):
 
 def iloc(x):
     return x.iloc
+
+
+def at(x):
+    return x.at
+
+
+def iat(x):
+    return x.iat
