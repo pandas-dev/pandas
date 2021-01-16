@@ -15,7 +15,6 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
-- Fixed regression in ``groupby().rolling()`` where :class:`MultiIndex` levels were dropped (:issue:`38523`)
 - Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
 - Fixed regression in :meth:`DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
 - Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
