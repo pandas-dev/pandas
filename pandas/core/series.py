@@ -4630,14 +4630,14 @@ Keep all original rows and also all original values
         4     True
         5    False
         Name: animal, dtype: bool
-        
+
         Strings and integers are distinct and are therefore not comparable:
-        
+
         >>>import pandas as pd
-        pd.Series([1]).isin(['1']) 
+        pd.Series([1]).isin(['1'])
         0    False
         dtype: bool
-        pd.Series([1.1]).isin(['1.1']) 
+        pd.Series([1.1]).isin(['1.1'])
         0    False
         dtype: bool
         """
