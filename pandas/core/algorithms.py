@@ -476,7 +476,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
         if isna(values).any():
-            def f(c, v): return np.logical_or(np.in1d(c, v), np.isnan(c))
+            def f(c, v):
+                return np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
 
