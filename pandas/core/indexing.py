@@ -16,13 +16,13 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
     is_numeric_dtype,
     is_object_dtype,
-    is_extension_array_dtype,
     is_scalar,
     is_sequence,
 )
@@ -1690,14 +1690,8 @@ class _iLocIndexer(_LocationIndexer):
                 elif is_extension_array_dtype(value):
                     # TODO(EA2D): special case not needed with 2D EAs
                     obj = type(self.obj)(value)
-                    orig_mgr = self.obj._mgr.copy(deep=True)
-                    #breakpoint()
-                    new_mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
-                    self.obj._mgr = new_mgr
-                    #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
-                    #self.obj._clear_item_cache()
-                    # 1 test stil failing would be fixed by using _setitem_single_column
-                    #self._setitem_single_column(ilocs[0], value, pi)
+                    self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+                    self.obj._clear_item_cache()
                 else:
                     val = np.atleast_2d(value).T
                     self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
@@ -1725,20 +1719,22 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a with one row which we broadcast
                 if is_extension_array_dtype(value):  # TODO: not hit
-                    val = DataFrame.from_arrays([value], index=[0], columns=range(len(value)))
+                    val = DataFrame.from_arrays(
+                        [value], index=[0], columns=range(len(value))
+                    )
                 elif isinstance(value, np.ndarray):
                     val = np.atleast_2d(value)
                 else:
                     # avoid numpy casting which can take e.g. ["b", 2] -> ["b", "2"]
-                    #ser = self.obj._constructor_sliced(value)
-                    #val = ser.to_frame().T
                     val = type(self.obj)([value])
                     if lplane_indexer != 1:
                         # broadcast to length of pi
                         # TODO: EA compat for broadcast_to
                         arrs = list(val._iter_column_arrays())
                         arrs = [np.broadcast_to(x, lplane_indexer) for x in arrs]
-                        val = type(self.obj)._from_arrays(arrs, index=range(lplane_indexer), columns=range(len(arrs)))
+                        val = type(self.obj)._from_arrays(
+                            arrs, index=range(lplane_indexer), columns=range(len(arrs))
+                        )
                 self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
                 self.obj._clear_item_cache()
 
@@ -1776,8 +1772,10 @@ class _iLocIndexer(_LocationIndexer):
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
-        #self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
-        #self.obj._clear_item_cache()
+        # wrap in DataFrame to coerce where appropriate
+        # obj = type(self.obj)(value)
+        # self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+        # self.obj._clear_item_cache()
         #  need to make setitem2 re-coerce
         for i, loc in enumerate(ilocs):
             # setting with a list, re-coerces
