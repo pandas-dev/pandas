@@ -3,10 +3,14 @@ import json
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, Index, Series, json_normalize
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
