@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -7,7 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import ArrayLike, Dtype, Label
+from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import (
@@ -201,7 +201,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: Categorical, name: Label = None):
+    def _simple_new(cls, values: Categorical, name: Optional[Hashable] = None):
         assert isinstance(values, Categorical), type(values)
         result = object.__new__(cls)
 
@@ -221,7 +221,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _shallow_copy(  # type:ignore[override]
         self,
         values: Optional[Categorical] = None,
-        name: Label = no_default,
+        name: Hashable = no_default,
     ):
         name = self.name if name is no_default else name
 
@@ -605,7 +605,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> Index:
+    def _concat(self, to_concat: List["Index"], name: Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])

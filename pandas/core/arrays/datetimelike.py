@@ -613,6 +613,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # We treat empty list as our own dtype.
             return type(self)._from_sequence([], dtype=self.dtype)
 
+        if hasattr(value, "dtype") and value.dtype == object:
+            # `array` below won't do inference if value is an Index or Series.
+            #  so do so here.  in the Index case, inferred_type may be cached.
+            if lib.infer_dtype(value) in self._infer_matches:
+                try:
+                    value = type(self)._from_sequence(value)
+                except (ValueError, TypeError):
+                    if allow_object:
+                        return value
+                    msg = self._validation_error_message(value, True)
+                    raise TypeError(msg)
+
         # Do type inference if necessary up front
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = array(value)

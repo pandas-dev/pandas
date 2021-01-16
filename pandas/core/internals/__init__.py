@@ -1,3 +1,5 @@
+from pandas.core.internals.array_manager import ArrayManager
+from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
     BoolBlock,
@@ -35,6 +37,8 @@ __all__ = [
     "TimeDeltaBlock",
     "safe_reshape",
     "make_block",
+    "DataManager",
+    "ArrayManager",
     "BlockManager",
     "SingleBlockManager",
     "concatenate_block_managers",

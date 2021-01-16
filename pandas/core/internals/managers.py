@@ -5,6 +5,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
@@ -17,7 +18,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, Dtype, DtypeObj, Label, Shape
+from pandas._typing import ArrayLike, Dtype, DtypeObj, Shape
 from pandas.errors import PerformanceWarning
 from pandas.util._validators import validate_bool_kwarg
 
@@ -39,10 +40,10 @@ from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -61,7 +62,7 @@ from pandas.core.internals.ops import blockwise_all, operate_blockwise
 T = TypeVar("T", bound="BlockManager")
 
 
-class BlockManager(PandasObject):
+class BlockManager(DataManager):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 
@@ -1166,7 +1167,7 @@ class BlockManager(PandasObject):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
-    def insert(self, loc: int, item: Label, value, allow_duplicates: bool = False):
+    def insert(self, loc: int, item: Hashable, value, allow_duplicates: bool = False):
         """
         Insert item at selected position.
 
@@ -1227,35 +1228,6 @@ class BlockManager(PandasObject):
                 PerformanceWarning,
                 stacklevel=5,
             )
-
-    def reindex_axis(
-        self,
-        new_index,
-        axis: int,
-        method=None,
-        limit=None,
-        fill_value=None,
-        copy: bool = True,
-        consolidate: bool = True,
-        only_slice: bool = False,
-    ):
-        """
-        Conform block manager to new index.
-        """
-        new_index = ensure_index(new_index)
-        new_index, indexer = self.axes[axis].reindex(
-            new_index, method=method, limit=limit
-        )
-
-        return self.reindex_indexer(
-            new_index,
-            indexer,
-            axis=axis,
-            fill_value=fill_value,
-            copy=copy,
-            consolidate=consolidate,
-            only_slice=only_slice,
-        )
 
     def reindex_indexer(
         self: T,
@@ -1919,7 +1891,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks.extend(merged_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
