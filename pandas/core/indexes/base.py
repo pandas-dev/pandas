@@ -28,7 +28,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -235,7 +235,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id: Optional[_Identity] = None
-    _name: Label = None
+    _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
@@ -486,7 +486,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values, name: Label = None):
+    def _simple_new(cls, values, name: Hashable = None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -570,7 +570,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, name: Label = no_default):
+    def _shallow_copy(self, values=None, name: Hashable = no_default):
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -888,10 +888,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(
         self: _IndexT,
-        name: Optional[Label] = None,
+        name: Optional[Hashable] = None,
         deep: bool = False,
         dtype: Optional[Dtype] = None,
-        names: Optional[Sequence[Label]] = None,
+        names: Optional[Sequence[Hashable]] = None,
     ) -> _IndexT:
         """
         Make a copy of this object.
@@ -1308,7 +1308,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._name = value
 
     @final
-    def _validate_names(self, name=None, names=None, deep: bool = False) -> List[Label]:
+    def _validate_names(
+        self, name=None, names=None, deep: bool = False
+    ) -> List[Hashable]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -3378,7 +3380,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
         return indexer
 
     @final
@@ -3730,8 +3732,13 @@ class Index(IndexOpsMixin, PandasObject):
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
 
+            # GH#38906
+            if not len(self):
+
+                new_indexer = np.arange(0)
+
             # a unique indexer
-            if target.is_unique:
+            elif target.is_unique:
 
                 # see GH5553, make sure we use the right indexer
                 new_indexer = np.arange(len(indexer))
@@ -3843,7 +3850,16 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._join_non_unique(
                     other, how=how, return_indexers=return_indexers
                 )
-        elif self.is_monotonic and other.is_monotonic:
+        elif (
+            self.is_monotonic
+            and other.is_monotonic
+            and (
+                not isinstance(self, ABCMultiIndex)
+                or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
+            )
+        ):
+            # Categorical is monotonic if data are ordered as categories, but join can
+            #  not handle this in case of not lexicographically monotonic GH#38502
             try:
                 return self._join_monotonic(
                     other, how=how, return_indexers=return_indexers
@@ -4501,7 +4517,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: List["Index"], name: Label) -> "Index":
+    def _concat(self, to_concat: List["Index"], name: Hashable) -> "Index":
         """
         Concatenate multiple Index objects.
         """
@@ -5369,8 +5385,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(
         self,
-        start: Optional[Label] = None,
-        end: Optional[Label] = None,
+        start: Optional[Hashable] = None,
+        end: Optional[Hashable] = None,
         step: Optional[int] = None,
         kind: Optional[str_t] = None,
     ) -> slice:
@@ -6109,7 +6125,7 @@ def default_index(n: int) -> "RangeIndex":
     return RangeIndex(0, n, name=None)
 
 
-def maybe_extract_name(name, obj, cls) -> Label:
+def maybe_extract_name(name, obj, cls) -> Hashable:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
@@ -6291,7 +6307,7 @@ def _try_convert_to_int_array(
     raise ValueError
 
 
-def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
+def get_unanimous_names(*indexes: Index) -> Tuple[Hashable, ...]:
     """
     Return common name if all indices agree, otherwise None (level-by-level).
 

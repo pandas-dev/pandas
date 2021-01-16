@@ -14,12 +14,14 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Hashable,
     List,
     Optional,
     Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -29,14 +31,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    FrameOrSeries,
-    FrameOrSeriesUnion,
-    Label,
-    Shape,
-)
+from pandas._typing import ArrayLike, DtypeArg, FrameOrSeries, FrameOrSeriesUnion, Shape
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -73,6 +68,7 @@ import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
+from pandas.core.internals import BlockManager
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -2935,7 +2931,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Label] = []
+        names: List[Hashable] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -3084,7 +3080,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Label
+    name: Hashable
 
     @property
     def shape(self):
@@ -3235,7 +3231,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: Union[int, List[Label]] = 1
+    levels: Union[int, List[Hashable]] = 1
     is_table = True
 
     index_axes: List[IndexCol]
@@ -3333,7 +3329,7 @@ class Table(Fixed):
 
     def validate_multiindex(
         self, obj: FrameOrSeriesUnion
-    ) -> Tuple[DataFrame, List[Label]]:
+    ) -> Tuple[DataFrame, List[Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3476,7 +3472,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels: List[Label] = getattr(self.attrs, "levels", None) or []
+        self.levels: List[Hashable] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -3989,19 +3985,21 @@ class Table(Fixed):
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
 
-        blocks: List["Block"] = list(frame._mgr.blocks)
-        blk_items: List[Index] = get_blk_items(frame._mgr)
+        mgr = frame._mgr
+        mgr = cast(BlockManager, mgr)
+        blocks: List["Block"] = list(mgr.blocks)
+        blk_items: List[Index] = get_blk_items(mgr)
 
         if len(data_columns):
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
 
-            blocks = list(mgr.blocks)
+            blocks = list(mgr.blocks)  # type: ignore[union-attr]
             blk_items = get_blk_items(mgr)
             for c in data_columns:
                 mgr = frame.reindex([c], axis=axis)._mgr
-                blocks.extend(mgr.blocks)
+                blocks.extend(mgr.blocks)  # type: ignore[union-attr]
                 blk_items.extend(get_blk_items(mgr))
 
         # reorder the blocks in the same order as the existing table if we can
@@ -4622,7 +4620,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
-    levels: List[Label]
+    levels: List[Hashable]
 
     @property
     def pandas_type(self) -> str:

@@ -30,13 +30,12 @@ try:
 except ImportError:
     pa = None
 else:
-    # our min supported version of pyarrow, 0.15.1, does not have a compute
-    # module
-    try:
+    # PyArrow backed StringArrays are available starting at 1.0.0, but this
+    # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
+    # and its compute functions existed. GH38801
+    if LooseVersion(pa.__version__) >= "1.0.0":
         import pyarrow.compute as pc
-    except ImportError:
-        pass
-    else:
+
         ARROW_CMP_FUNCS = {
             "eq": pc.equal,
             "ne": pc.not_equal,

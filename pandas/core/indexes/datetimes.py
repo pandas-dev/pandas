@@ -571,7 +571,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError
 
         grp = reso.freq_group
-        per = Period(parsed, freq=grp)
+        per = Period(parsed, freq=grp.value)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -1089,7 +1089,7 @@ def date_range(
 def bdate_range(
     start=None,
     end=None,
-    periods=None,
+    periods: Optional[int] = None,
     freq="B",
     tz=None,
     normalize=True,
