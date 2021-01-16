@@ -3225,36 +3225,27 @@ class DataFrame(NDFrame, OpsMixin):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
 
-            elif all(is_hashable(x) for x in key) and any(x not in self.columns for x in key):
-                # We need to do this instead of going through iloc to ensure
-                #  we get correct dtype for new columns
-                self._check_setitem_copy()
+            elif not is_list_like(value):
+                for col in key:
+                    self[col] = value
 
-                # TODO: de-duplicate with some of whats in indexing.py
-                if is_scalar(value):
-                    for i, x in enumerate(key):
-                        self[x] = value
-                elif np.ndim(value) == 1:
-                    for i, x in enumerate(key):
-                        self[x] = value[i]
-                else:
-                    value = np.asarray(value)  # TODO: or DataFrame?
-                    for i, x in enumerate(key):
-                        self[x] = value[:, i]
+            elif isinstance(value, np.ndarray) and value.ndim == 2:
+                if value.shape[-1] != len(key):
+                    raise ValueError("Columns must be same length as key")
+
+                for i, col in enumerate(key):
+                    self[col] = value[:, i]
+
+            elif np.ndim(value) > 1:
+                # list of lists
+                value = DataFrame(value).values
+                return self._setitem_array(key, value)
 
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
-                indexer = self.loc._get_listlike_indexer(
-                    key, axis=1, raise_missing=False
-                )[1]
-                self._check_setitem_copy()
-
-                if is_scalar(value):
-                    indexer = self.iloc._ensure_iterable_column_indexer(indexer)
-                    for i in indexer:
-                        self[self.columns[i]] = value
-                else:
-                    self.iloc[:, indexer] = value  # TODO: indicate not-inplace
+                if len(value) != len(key):
+                    raise ValueError("Columns must be same length as key")
+                for i, col in enumerate(key):
+                    self[col] = value[i]
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
