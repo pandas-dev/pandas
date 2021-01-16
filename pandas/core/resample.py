@@ -454,7 +454,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            result.index = _asfreq_compat(obj.index, freq=self.freq)
+            # When index is all NaT, result is empty but index is not
+            result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         return result
@@ -1653,10 +1654,16 @@ class TimeGrouper(Grouper):
             nat_count = np.sum(memb._isnan)
             memb = memb[~memb._isnan]
 
-        # if index contains no valid (non-NaT) values, return empty index
         if not len(memb):
-            binner = labels = PeriodIndex(data=[], freq=self.freq, name=ax.name)
-            return binner, [], labels
+            if len(ax) == 0:
+                # if index is empty, return empty bins
+                data = bins = []
+            else:
+                # if index is all NaT, return a single bin
+                data = [NaT]
+                bins = [len(ax)]
+            binner = labels = PeriodIndex(data=data, freq=self.freq, name=ax.name)
+            return binner, bins, labels
 
         freq_mult = self.freq.n
 

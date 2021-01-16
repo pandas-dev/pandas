@@ -787,10 +787,11 @@ class TestPeriodIndex:
     def test_resample_with_only_nat(self):
         # GH 13224
         pi = PeriodIndex([pd.NaT] * 3, freq="S")
-        frame = DataFrame([2, 3, 5], index=pi)
+        frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
-        expected = DataFrame(index=expected_index)
-        result = frame.resample("1s").mean()
+        expected = DataFrame(index=expected_index, columns=["a"], dtype=int)
+        rs = frame.resample("1s")
+        result = rs.mean()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
