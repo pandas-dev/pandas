@@ -1749,7 +1749,6 @@ class _iLocIndexer(_LocationIndexer):
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        sub_indexer = list(indexer)
         pi = indexer[0]
 
         multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)
@@ -1768,9 +1767,8 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:
-                    sub_indexer[1] = item
                     val = self._align_series(
-                        tuple(sub_indexer),
+                        (pi, item),
                         value.iloc[:, loc],
                         multiindex_indexer,
                     )
@@ -1786,9 +1784,8 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:
-                    sub_indexer[1] = item
                     val = self._align_series(
-                        tuple(sub_indexer), value[item], multiindex_indexer
+                        (pi, item), value[item], multiindex_indexer
                     )
                 else:
                     val = np.nan
