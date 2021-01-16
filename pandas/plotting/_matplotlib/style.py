@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -148,7 +150,7 @@ def _get_colors_from_colormap(
     return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
 
 
-def _get_cmap_instance(colormap: Union[str, "Colormap"]) -> "Colormap":
+def _get_cmap_instance(colormap: Union[str, "Colormap"]) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap

@@ -8,11 +8,9 @@ from pandas._libs import NaT, OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
+from pandas import DatetimeIndex, Index, Period, PeriodIndex, TimedeltaIndex
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import Period, PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.arrays import DatetimeArray, PandasArray, PeriodArray, TimedeltaArray
 
 
 # TODO: more freq variants
@@ -401,6 +399,37 @@ class SharedTests:
         arr[:2] = arr[-2:]
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            Index,
+            pd.Series,
+            np.array,
+            list,
+            PandasArray,
+        ],
+    )
+    def test_setitem_object_dtype(self, box, arr1d):
+
+        expected = arr1d.copy()[::-1]
+        if expected.dtype.kind in ["m", "M"]:
+            expected = expected._with_freq(None)
+
+        vals = expected
+        if box is list:
+            vals = list(vals)
+        elif box is np.array:
+            # if we do np.array(x).astype(object) then dt64 and td64 cast to ints
+            vals = np.array(vals.astype(object))
+        elif box is PandasArray:
+            vals = box(np.asarray(vals, dtype=object))
+        else:
+            vals = box(vals).astype(object)
+
+        arr1d[:] = vals
+
+        tm.assert_equal(arr1d, expected)
 
     def test_setitem_strs(self, arr1d, request):
         # Check that we parse strs in both scalar and listlike
