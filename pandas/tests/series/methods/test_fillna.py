@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
@@ -13,6 +13,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    date_range,
     isna,
 )
 import pandas._testing as tm
@@ -710,6 +711,14 @@ class TestSeriesFillNA:
             for method in ["backfill", "bfill", "pad", "ffill", None]:
                 with pytest.raises(ValueError, match=msg):
                     ser.fillna(1, limit=limit, method=method)
+
+    def test_fillna_datetime64_with_timezone_tzinfo(self):
+        # https://github.com/pandas-dev/pandas/issues/38851
+        s = Series(date_range("2020", periods=3, tz="UTC"))
+        expected = s.astype(object)
+        s[1] = NaT
+        result = s.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
+        tm.assert_series_equal(result, expected)
 
 
 class TestFillnaPad:
