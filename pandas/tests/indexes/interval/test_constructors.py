@@ -82,12 +82,40 @@ class ConstructorTests:
         expected = constructor(**expected_kwargs)
 
         result_kwargs = self.get_kwargs_from_breaks(breaks)
-        iv_dtype = IntervalDtype(subtype)
+        iv_dtype = IntervalDtype(subtype, "right")
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(warn, check_stacklevel=False):
 
                 result = constructor(dtype=dtype, **result_kwargs)
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "breaks",
+        [
+            Int64Index([0, 1, 2, 3, 4]),
+            Int64Index([0, 1, 2, 3, 4]),
+            Int64Index([0, 1, 2, 3, 4]),
+            Float64Index([0, 1, 2, 3, 4]),
+            date_range("2017-01-01", periods=5),
+            timedelta_range("1 day", periods=5),
+        ],
+    )
+    def test_constructor_pass_closed(self, constructor, breaks):
+        # not passing closed to IntervalDtype, but to IntervalArray constructor
+        warn = None
+        if isinstance(constructor, partial) and constructor.func is Index:
+            # passing kwargs to Index is deprecated
+            warn = FutureWarning
+
+        iv_dtype = IntervalDtype(breaks.dtype)
+
+        result_kwargs = self.get_kwargs_from_breaks(breaks)
+
+        for dtype in (iv_dtype, str(iv_dtype)):
+            with tm.assert_produces_warning(warn, check_stacklevel=False):
+
+                result = constructor(dtype=dtype, closed="left", **result_kwargs)
+            assert result.dtype.closed == "left"
 
     @pytest.mark.filterwarnings("ignore:Passing keywords other:FutureWarning")
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])
@@ -165,7 +193,7 @@ class ConstructorTests:
         filler = self.get_kwargs_from_breaks(range(10))
 
         # invalid closed
-        msg = "invalid option for 'closed': invalid"
+        msg = "closed must be one of 'right', 'left', 'both', 'neither'"
         with pytest.raises(ValueError, match=msg):
             constructor(closed="invalid", **filler)
 
@@ -439,3 +467,16 @@ class TestClassConstructors(ConstructorTests):
         result = Index(intervals)
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
+
+
+def test_dtype_closed_mismatch():
+    # GH#38394 closed specified in both dtype and IntervalIndex constructor
+
+    dtype = IntervalDtype(np.int64, "left")
+
+    msg = "closed keyword does not match dtype.closed"
+    with pytest.raises(ValueError, match=msg):
+        IntervalIndex([], dtype=dtype, closed="neither")
+
+    with pytest.raises(ValueError, match=msg):
+        IntervalArray([], dtype=dtype, closed="neither")

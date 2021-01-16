@@ -1,8 +1,10 @@
 """ define the IntervalIndex """
+from __future__ import annotations
+
 from functools import wraps
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Hashable, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -11,7 +13,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
-from pandas._typing import Dtype, DtypeObj, Label
+from pandas._typing import Dtype, DtypeObj
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -51,7 +53,6 @@ from pandas.core.indexes.base import (
     default_pprint,
     ensure_index,
     maybe_extract_name,
-    unpack_nested_dtype,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
@@ -157,8 +158,7 @@ def setop_check(method):
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right',
-                  dtype='interval[int64]')
+                  dtype='interval[int64, right]')
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalIndex.from_arrays`,
@@ -212,7 +212,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array: IntervalArray, name: Label = None):
+    def _simple_new(cls, array: IntervalArray, name: Hashable = None):
         """
         Construct from an IntervalArray
 
@@ -242,8 +242,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
-                      closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         }
@@ -273,8 +272,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
         IntervalIndex([(0, 1], (1, 2], (2, 3]],
-                      closed='right',
-                      dtype='interval[int64]')
+                      dtype='interval[int64, right]')
         """
             ),
         }
@@ -305,8 +303,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         --------
         >>> pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
-                       closed='right',
-                       dtype='interval[int64]')
+                       dtype='interval[int64, right]')
         """
             ),
         }
@@ -445,8 +442,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
-              closed='right',
-              dtype='interval[int64]')
+              dtype='interval[int64, right]')
         >>> index.is_overlapping
         True
 
@@ -455,8 +451,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed='both')
         >>> index
         IntervalIndex([[0, 1], [1, 2], [2, 3]],
-              closed='both',
-              dtype='interval[int64]')
+              dtype='interval[int64, both]')
         >>> index.is_overlapping
         True
 
@@ -465,8 +460,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed='left')
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
-              closed='left',
-              dtype='interval[int64]')
+              dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
         """
@@ -777,16 +771,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
+        if self.closed != dtype.closed:
+            return False
         common_subtype = find_common_type([self.dtype.subtype, dtype.subtype])
         return not is_object_dtype(common_subtype)
-
-    def _should_compare(self, other) -> bool:
-        other = unpack_nested_dtype(other)
-        if is_object_dtype(other.dtype):
-            return True
-        if not self._is_comparable_dtype(other.dtype):
-            return False
-        return other.closed == self.closed
 
     # --------------------------------------------------------------------
 
@@ -911,7 +899,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return summary + "," + self._format_space()
 
     def _format_attrs(self):
-        attrs = [("closed", repr(self.closed))]
+        attrs = []
         if self.name is not None:
             attrs.append(("name", default_pprint(self.name)))
         attrs.append(("dtype", f"'{self.dtype}'"))
@@ -955,7 +943,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return taken
 
-    def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
+    def _intersection_unique(self, other: "IntervalIndex") -> IntervalIndex:
         """
         Used when the IntervalIndex does not have any common endpoint,
         no matter left or right.
@@ -978,7 +966,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return self.take(indexer)
 
-    def _intersection_non_unique(self, other: "IntervalIndex") -> "IntervalIndex":
+    def _intersection_non_unique(self, other: "IntervalIndex") -> IntervalIndex:
         """
         Used when the IntervalIndex does have some common endpoints,
         on either sides.
@@ -1117,7 +1105,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, end=5)
     IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
-                  closed='right', dtype='interval[int64]')
+                  dtype='interval[int64, right]')
 
     Additionally, datetime-like input is also supported.
 
@@ -1125,7 +1113,7 @@ def interval_range(
     ...                   end=pd.Timestamp('2017-01-04'))
     IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
                    (2017-01-03, 2017-01-04]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1133,7 +1121,7 @@ def interval_range(
 
     >>> pd.interval_range(start=0, periods=4, freq=1.5)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-                  closed='right', dtype='interval[float64]')
+                  dtype='interval[float64, right]')
 
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
@@ -1142,22 +1130,21 @@ def interval_range(
     ...                   periods=3, freq='MS')
     IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
                    (2017-03-01, 2017-04-01]],
-                  closed='right', dtype='interval[datetime64[ns]]')
+                  dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
 
     >>> pd.interval_range(start=0, end=6, periods=4)
     IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]],
-              closed='right',
-              dtype='interval[float64]')
+              dtype='interval[float64, right]')
 
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
     >>> pd.interval_range(end=5, periods=4, closed='both')
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
-                  closed='both', dtype='interval[int64]')
+                  dtype='interval[int64, both]')
     """
     start = maybe_box_datetimelike(start)
     end = maybe_box_datetimelike(end)
