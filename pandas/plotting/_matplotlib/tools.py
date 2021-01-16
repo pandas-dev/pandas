@@ -1,4 +1,6 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 from math import ceil
 from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
 import warnings
@@ -32,7 +34,7 @@ def format_date_labels(ax: "Axes", rot):
 
 def table(
     ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
-) -> "Table":
+) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):

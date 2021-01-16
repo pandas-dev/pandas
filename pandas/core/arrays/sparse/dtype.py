@@ -1,4 +1,5 @@
 """Sparse Dtype"""
+from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
@@ -185,7 +186,7 @@ class SparseDtype(ExtensionDtype):
         return SparseArray
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "SparseDtype":
+    def construct_from_string(cls, string: str) -> SparseDtype:
         """
         Construct a SparseDtype from a string form.
 

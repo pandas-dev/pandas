@@ -1,4 +1,5 @@
 """ manage PyTables query interface via Expressions """
+from __future__ import annotations
 
 import ast
 from functools import partial
@@ -180,7 +181,7 @@ class BinOp(ops.BinOp):
         val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
-    def convert_value(self, v) -> "TermValue":
+    def convert_value(self, v) -> TermValue:
         """
         convert the expression that is in the term to something that is
         accepted by pytables

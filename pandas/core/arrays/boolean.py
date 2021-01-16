@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 import warnings
@@ -93,7 +95,7 @@ class BooleanDtype(BaseMaskedDtype):
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "BooleanArray":
+    ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
@@ -276,7 +278,7 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "BooleanArray":
+    ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -291,7 +293,7 @@ class BooleanArray(BaseMaskedArray):
         copy: bool = False,
         true_values: Optional[List[str]] = None,
         false_values: Optional[List[str]] = None,
-    ) -> "BooleanArray":
+    ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, time, timedelta, tzinfo
 from typing import Optional, Union, cast
 import warnings
@@ -291,7 +293,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _simple_new(
         cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
-    ) -> "DatetimeArray":
+    ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"

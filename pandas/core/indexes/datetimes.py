@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
 from typing import TYPE_CHECKING, Optional, Tuple
@@ -239,40 +241,38 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return Index(arr, name=self.name)
 
     @doc(DatetimeArray.tz_convert)
-    def tz_convert(self, tz) -> "DatetimeIndex":
+    def tz_convert(self, tz) -> DatetimeIndex:
         arr = self._data.tz_convert(tz)
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
-    def tz_localize(
-        self, tz, ambiguous="raise", nonexistent="raise"
-    ) -> "DatetimeIndex":
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise") -> DatetimeIndex:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_period)
-    def to_period(self, freq=None) -> "PeriodIndex":
+    def to_period(self, freq=None) -> PeriodIndex:
         from pandas.core.indexes.api import PeriodIndex
 
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_perioddelta)
-    def to_perioddelta(self, freq) -> "TimedeltaIndex":
+    def to_perioddelta(self, freq) -> TimedeltaIndex:
         from pandas.core.indexes.api import TimedeltaIndex
 
         arr = self._data.to_perioddelta(freq)
         return TimedeltaIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
-    def to_julian_date(self) -> "Float64Index":
+    def to_julian_date(self) -> Float64Index:
         from pandas.core.indexes.api import Float64Index
 
         arr = self._data.to_julian_date()
         return Float64Index._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
-    def isocalendar(self) -> "DataFrame":
+    def isocalendar(self) -> DataFrame:
         df = self._data.isocalendar()
         return df.set_index(self)
 

@@ -50,7 +50,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> "DataFrame":
+) -> DataFrame:
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -428,7 +428,7 @@ def pivot(
     index: Optional[IndexLabel] = None,
     columns: Optional[IndexLabel] = None,
     values: Optional[IndexLabel] = None,
-) -> "DataFrame":
+) -> DataFrame:
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
@@ -475,7 +475,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an

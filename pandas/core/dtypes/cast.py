@@ -944,7 +944,7 @@ def coerce_indexer_dtype(indexer, categories):
 
 def astype_dt64_to_dt64tz(
     values: ArrayLike, dtype: DtypeObj, copy: bool, via_utc: bool = False
-) -> "DatetimeArray":
+) -> DatetimeArray:
     # GH#33401 we have inconsistent behaviors between
     #  Datetimeindex[naive].astype(tzaware)
     #  Series[dt64].astype(tzaware)

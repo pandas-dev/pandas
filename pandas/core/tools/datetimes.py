@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 from functools import partial
@@ -146,7 +148,7 @@ def _maybe_cache(
     format: Optional[str],
     cache: bool,
     convert_listlike: Callable,
-) -> "Series":
+) -> Series:
     """
     Create a cache of unique dates from an array of dates
 
@@ -214,7 +216,7 @@ def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: "Series",
     name: Optional[str] = None,
-) -> "Index":
+) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
 
@@ -586,7 +588,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> "Series":
+) -> Series:
     ...
 
 

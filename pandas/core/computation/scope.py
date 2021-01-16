@@ -1,6 +1,7 @@
 """
 Module for scope operations
 """
+from __future__ import annotations
 
 import datetime
 import inspect
@@ -19,7 +20,7 @@ from pandas.compat.chainmap import DeepChainMap
 
 def ensure_scope(
     level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-) -> "Scope":
+) -> Scope:
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,

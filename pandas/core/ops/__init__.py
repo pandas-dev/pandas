@@ -323,9 +323,7 @@ def should_reindex_frame_op(
     return False
 
 
-def frame_arith_method_with_reindex(
-    left: DataFrame, right: DataFrame, op
-) -> "DataFrame":
+def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> DataFrame:
     """
     For DataFrame-with-DataFrame operations that require reindexing,
     operate only on shared columns, then reindex.

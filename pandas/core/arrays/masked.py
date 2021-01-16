@@ -346,7 +346,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
         return codes, uniques
 
-    def value_counts(self, dropna: bool = True) -> "Series":
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each unique value.
 

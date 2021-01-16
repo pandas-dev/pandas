@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from typing import List, Optional, Union
 
@@ -738,7 +740,7 @@ def get_dummies(
     sparse: bool = False,
     drop_first: bool = False,
     dtype: Optional[Dtype] = None,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Convert categorical variable into dummy/indicator variables.
 

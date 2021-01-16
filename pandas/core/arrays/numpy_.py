@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 from typing import Optional, Tuple, Type, Union
 
@@ -75,7 +77,7 @@ class PandasDtype(ExtensionDtype):
         return self.kind == "b"
 
     @classmethod
-    def construct_from_string(cls, string: str) -> "PandasDtype":
+    def construct_from_string(cls, string: str) -> PandasDtype:
         try:
             dtype = np.dtype(string)
         except TypeError as err:
@@ -174,7 +176,7 @@ class PandasArray(
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "PandasArray":
+    ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -184,10 +186,10 @@ class PandasArray(
         return cls(result)
 
     @classmethod
-    def _from_factorized(cls, values, original) -> "PandasArray":
+    def _from_factorized(cls, values, original) -> PandasArray:
         return cls(values)
 
-    def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
+    def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
         return type(self)(arr)
 
     # ------------------------------------------------------------------------

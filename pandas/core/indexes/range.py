@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -121,7 +123,7 @@ class RangeIndex(Int64Index):
     @classmethod
     def from_range(
         cls, data: range, name=None, dtype: Optional[Dtype] = None
-    ) -> "RangeIndex":
+    ) -> RangeIndex:
         """
         Create RangeIndex from a range object.
 
@@ -139,7 +141,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name: Hashable = None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Hashable = None) -> RangeIndex:
         result = object.__new__(cls)
 
         assert isinstance(values, range)

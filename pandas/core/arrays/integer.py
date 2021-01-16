@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional, Tuple, Type
 import warnings
 
@@ -303,14 +305,14 @@ class IntegerArray(NumericArray):
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
-    ) -> "IntegerArray":
+    ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 

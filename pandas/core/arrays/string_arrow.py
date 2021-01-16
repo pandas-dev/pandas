@@ -105,7 +105,7 @@ class ArrowStringDtype(ExtensionDtype):
 
     def __from_arrow__(
         self, array: Union["pa.Array", "pa.ChunkedArray"]
-    ) -> "ArrowStringArray":
+    ) -> ArrowStringArray:
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
@@ -507,7 +507,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> "ExtensionArray":
+    ) -> ExtensionArray:
         """
         Take elements from an array.
 

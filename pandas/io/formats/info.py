@@ -312,7 +312,7 @@ class InfoPrinterAbstract:
         fmt.buffer_put_lines(buf, lines)
 
     @abstractmethod
-    def _create_table_builder(self) -> "TableBuilderAbstract":
+    def _create_table_builder(self) -> TableBuilderAbstract:
         """Create instance of table builder."""
 
 
@@ -376,7 +376,7 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
         else:
             return show_counts
 
-    def _create_table_builder(self) -> "DataFrameTableBuilder":
+    def _create_table_builder(self) -> DataFrameTableBuilder:
         """
         Create instance of table builder based on verbosity and display settings.
         """
@@ -485,7 +485,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         """Add lines to the info table, pertaining to non-empty dataframe."""
 
     @property
-    def data(self) -> "DataFrame":
+    def data(self) -> DataFrame:
         """DataFrame."""
         return self.info.data
 

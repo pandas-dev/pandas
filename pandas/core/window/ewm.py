@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from functools import partial
 from textwrap import dedent
@@ -77,7 +79,7 @@ def get_center_of_mass(
     return float(comass)
 
 
-def wrap_result(obj: "Series", result: np.ndarray) -> "Series":
+def wrap_result(obj: "Series", result: np.ndarray) -> Series:
     """
     Wrap a single 1D result.
     """

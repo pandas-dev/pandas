@@ -130,7 +130,7 @@ def radviz(
     color=None,
     colormap=None,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     def normalize(series):
@@ -219,7 +219,7 @@ def andrews_curves(
     color=None,
     colormap=None,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     def function(amplitudes):
@@ -284,7 +284,7 @@ def bootstrap_plot(
     size: int = 50,
     samples: int = 500,
     **kwds,
-) -> "Figure":
+) -> Figure:
 
     import matplotlib.pyplot as plt
 
@@ -346,7 +346,7 @@ def parallel_coordinates(
     axvlines_kwds=None,
     sort_labels: bool = False,
     **kwds,
-) -> "Axes":
+) -> Axes:
     import matplotlib.pyplot as plt
 
     if axvlines_kwds is None:
@@ -415,7 +415,7 @@ def parallel_coordinates(
 
 def lag_plot(
     series: "Series", lag: int = 1, ax: Optional["Axes"] = None, **kwds
-) -> "Axes":
+) -> Axes:
     # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
@@ -432,9 +432,7 @@ def lag_plot(
     return ax
 
 
-def autocorrelation_plot(
-    series: "Series", ax: Optional["Axes"] = None, **kwds
-) -> "Axes":
+def autocorrelation_plot(series: "Series", ax: Optional["Axes"] = None, **kwds) -> Axes:
     import matplotlib.pyplot as plt
 
     n = len(series)
