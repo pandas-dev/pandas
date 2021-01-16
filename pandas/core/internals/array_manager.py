@@ -658,7 +658,7 @@ class ArrayManager(DataManager):
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
 
-    def iset(self, loc: Union[int, slice, np.ndarray], value):
+    def iset(self, loc: Union[int, slice, np.ndarray], value, inplace: bool = False):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
