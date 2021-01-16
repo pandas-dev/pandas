@@ -108,7 +108,7 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
 group_keys : bool, default True
-    When calling ``groupby().apply()``, add group keys to index to identify pieces.
+    When calling apply, add group keys to index to identify pieces.
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.
