@@ -222,6 +222,21 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
 # Indexer Conversion
 
 
+def ensure_iterable_indexer(ncols: int, column_indexer):
+    """
+    Ensure that our column indexer is something that can be iterated over.
+    """
+    if is_integer(column_indexer):
+        ilocs = [column_indexer]
+    elif isinstance(column_indexer, slice):
+        ilocs = np.arange(ncols)[column_indexer]
+    elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(column_indexer.dtype):
+        ilocs = np.arange(len(column_indexer))[column_indexer]
+    else:
+        ilocs = column_indexer
+    return ilocs
+
+
 def maybe_convert_indices(indices, n: int):
     """
     Attempt to convert indices into valid, positive indices.

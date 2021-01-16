@@ -15,7 +15,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_array_like,
-    is_bool_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -33,6 +32,7 @@ import pandas.core.common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
+    ensure_iterable_indexer,
     is_exact_shape_match,
     is_list_like_indexer,
     length_of_indexer,
@@ -1664,7 +1664,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # Ensure we have something we can iterate over
         info_axis = indexer[1]
-        ilocs = self._ensure_iterable_column_indexer(info_axis)
+        ilocs = ensure_iterable_indexer(len(self.obj.columns), info_axis)
 
         pi = indexer[0]
         lplane_indexer = length_of_indexer(pi, self.obj.index)
@@ -1733,7 +1733,7 @@ class _iLocIndexer(_LocationIndexer):
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
 
-        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+        ilocs = ensure_iterable_indexer(len(self.obj.columns), indexer[1])
 
         # GH#7551 Note that this coerces the dtype if we are mixed
         value = np.array(value, dtype=object)
@@ -1747,7 +1747,7 @@ class _iLocIndexer(_LocationIndexer):
             self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
-        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+        ilocs = ensure_iterable_indexer(len(self.obj.columns), indexer[1])
 
         pi = indexer[0]
 
@@ -1928,22 +1928,6 @@ class _iLocIndexer(_LocationIndexer):
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
-
-    def _ensure_iterable_column_indexer(self, column_indexer):
-        """
-        Ensure that our column indexer is something that can be iterated over.
-        """
-        if is_integer(column_indexer):
-            ilocs = [column_indexer]
-        elif isinstance(column_indexer, slice):
-            ilocs = np.arange(len(self.obj.columns))[column_indexer]
-        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
-            column_indexer.dtype
-        ):
-            ilocs = np.arange(len(column_indexer))[column_indexer]
-        else:
-            ilocs = column_indexer
-        return ilocs
 
     def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
         """
