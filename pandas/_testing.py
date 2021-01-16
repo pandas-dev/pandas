@@ -57,7 +57,7 @@ from pandas import (
     Series,
     bdate_range,
 )
-from pandas.core.algorithms import take_1d
+from pandas.core.algorithms import safe_sort, take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -804,8 +804,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = left.sort_values()
-        right = right.sort_values()
+        left = Index(safe_sort(left))
+        right = Index(safe_sort(right))
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:

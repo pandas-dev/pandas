@@ -192,3 +192,9 @@ ordered=False\\)"""
             tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
+
+
+def test_assert_index_equal_mixed_dtype():
+    # GH#39168
+    idx = Index(["foo", "bar", 42])
+    tm.assert_index_equal(idx, idx, check_order=False)
