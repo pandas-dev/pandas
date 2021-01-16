@@ -7,7 +7,7 @@ _shared_docs = dict(**_shared_docs)
 
 doc_template = dedent(
     """
-    "Calculate the {window_method} {aggregation_description}"
+    Calculate the {window_method} {aggregation_description}
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ window_apply_parameters = dedent(
     """
 )
 
-window_apply_notes = dedent(
+numba_notes = dedent(
     """
     See :ref:`window.numba_engine` for extended documentation and performance
     considerations for the Numba engine.
@@ -110,8 +110,8 @@ window_apply_notes = dedent(
 window_agg_numba_parameters = dedent(
     """
     engine : str, default None
-        * ``'cython'`` : Runs rolling max through C-extensions from cython.
-        * ``'numba'`` : Runs rolling max through JIT compiled code from numba.
+        * ``'cython'`` : Runs the operation through C-extensions from cython.
+        * ``'numba'`` : Runs the operation through JIT compiled code from numba.
         * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
           .. versionadded:: 1.3.0

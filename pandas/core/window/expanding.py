@@ -11,9 +11,9 @@ from pandas.core.window.doc import (
     _shared_docs,
     doc_template,
     kwargs_compat,
+    numba_notes,
     numpy_args_kwargs,
     window_agg_numba_parameters,
-    window_apply_notes,
     window_apply_parameters,
 )
 from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
@@ -171,7 +171,7 @@ class Expanding(RollingAndExpandingMixin):
         numpy_args_kwargs="",
         agg_method="apply",
         other_see_also="",
-        notes=window_apply_notes,
+        notes=numba_notes,
         examples="",
     )
     def apply(
@@ -200,7 +200,7 @@ class Expanding(RollingAndExpandingMixin):
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="sum",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
@@ -210,12 +210,12 @@ class Expanding(RollingAndExpandingMixin):
     @doc(
         doc_template,
         window_method="expanding",
-        aggregation_description="max",
+        aggregation_description="maximum",
         parameters=window_agg_numba_parameters,
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="max",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
@@ -225,12 +225,12 @@ class Expanding(RollingAndExpandingMixin):
     @doc(
         doc_template,
         window_method="expanding",
-        aggregation_description="min",
+        aggregation_description="minimum",
         parameters="",
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="min",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
@@ -245,7 +245,7 @@ class Expanding(RollingAndExpandingMixin):
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="mean",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
@@ -260,7 +260,7 @@ class Expanding(RollingAndExpandingMixin):
         numpy_args_kwargs="",
         agg_method="median",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def median(self, engine=None, engine_kwargs=None, **kwargs):
@@ -320,11 +320,11 @@ class Expanding(RollingAndExpandingMixin):
         """
         ),
         numpy_args_kwargs=numpy_args_kwargs,
-        agg_method="std",
+        agg_method="var",
         other_see_also="numpy.var : Equivalent method for Numpy array.",
         notes=dedent(
             """
-        The default ``ddof`` of 1 used in :meth:`Series.std` is different
+        The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
         A minimum of one period is required for the rolling calculation.
@@ -363,8 +363,8 @@ class Expanding(RollingAndExpandingMixin):
         ),
         numpy_args_kwargs="",
         agg_method="sem",
-        other_see_also="A minimum of one period is required for the calculation.",
-        notes="",
+        other_see_also="",
+        notes="A minimum of one period is required for the calculation.",
         examples=dedent(
             """
         >>> s = pd.Series([0, 1, 2, 3])
@@ -405,7 +405,7 @@ class Expanding(RollingAndExpandingMixin):
         other_see_also="scipy.stats.kurtosis : Reference SciPy method.",
         notes=dedent(
             """
-        A minimum of 4 periods is required for the calculation.
+        A minimum of four periods is required for the calculation.
         """
         ),
         examples=dedent(

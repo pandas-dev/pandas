@@ -60,9 +60,9 @@ from pandas.core.window.doc import (
     doc_template,
     kwargs_compat,
     kwargs_scipy,
+    numba_notes,
     numpy_args_kwargs,
     window_agg_numba_parameters,
-    window_apply_notes,
     window_apply_parameters,
 )
 from pandas.core.window.indexers import (
@@ -1430,7 +1430,7 @@ class Rolling(RollingAndExpandingMixin):
         numpy_args_kwargs="",
         agg_method="apply",
         other_see_also="",
-        notes=window_apply_notes,
+        notes=numba_notes,
         examples="",
     )
     def apply(
@@ -1453,7 +1453,7 @@ class Rolling(RollingAndExpandingMixin):
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="sum",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples=dedent(
             """
         Examples
@@ -1511,12 +1511,12 @@ class Rolling(RollingAndExpandingMixin):
     @doc(
         doc_template,
         window_method="rolling",
-        aggregation_description="max",
+        aggregation_description="maximum",
         parameters=window_agg_numba_parameters,
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="max",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples="",
     )
     def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
@@ -1526,12 +1526,12 @@ class Rolling(RollingAndExpandingMixin):
     @doc(
         doc_template,
         window_method="rolling",
-        aggregation_description="min",
+        aggregation_description="minimum",
         parameters=window_agg_numba_parameters,
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="min",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples=dedent(
             """
         Performing a rolling minimum with a window size of 3.
@@ -1559,7 +1559,7 @@ class Rolling(RollingAndExpandingMixin):
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="mean",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples=dedent(
             """
         The below examples will show rolling mean calculations with window sizes of
@@ -1594,7 +1594,7 @@ class Rolling(RollingAndExpandingMixin):
         numpy_args_kwargs="",
         agg_method="median",
         other_see_also="",
-        notes="",
+        notes=numba_notes,
         examples=dedent(
             """
         Compute the rolling median of a series with a window size of 3.
@@ -1666,11 +1666,11 @@ class Rolling(RollingAndExpandingMixin):
         """
         ),
         numpy_args_kwargs=numpy_args_kwargs,
-        agg_method="std",
+        agg_method="var",
         other_see_also="numpy.var : Equivalent method for Numpy array.",
         notes=dedent(
             """
-        The default ``ddof`` of 1 used in :meth:`Series.std` is different
+        The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
         A minimum of one period is required for the rolling calculation.
@@ -1722,8 +1722,8 @@ class Rolling(RollingAndExpandingMixin):
         ),
         numpy_args_kwargs="",
         agg_method="sem",
-        other_see_also="A minimum of one period is required for the calculation.",
-        notes="",
+        other_see_also="",
+        notes="A minimum of one period is required for the calculation.",
         examples=dedent(
             """
         >>> s = pd.Series([0, 1, 2, 3])
@@ -1749,7 +1749,7 @@ class Rolling(RollingAndExpandingMixin):
         other_see_also="scipy.stats.kurtosis : Reference SciPy method.",
         notes=dedent(
             """
-        A minimum of 4 periods is required for the calculation.
+        A minimum of four periods is required for the calculation.
         """
         ),
         examples=dedent(

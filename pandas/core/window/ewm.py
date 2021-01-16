@@ -370,9 +370,6 @@ class ExponentialMovingWindow(BaseWindow):
         examples="",
     )
     def var(self, bias: bool = False, *args, **kwargs):
-        """
-        Exponential weighted moving variance.
-        """
         nv.validate_window_func("var", args, kwargs)
         window_func = window_aggregations.ewmcov
         window_func = partial(
