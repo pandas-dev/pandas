@@ -4602,11 +4602,10 @@ Keep all original rows and also all original values
 
         Strings and integers are distinct and are therefore not comparable:
 
-        >>>import pandas as pd
-        pd.Series([1]).isin(['1'])
+        >>> pd.Series([1]).isin(['1'])
         0    False
         dtype: bool
-        pd.Series([1.1]).isin(['1.1'])
+        >>> pd.Series([1.1]).isin(['1.1'])
         0    False
         dtype: bool
         """
