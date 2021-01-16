@@ -395,7 +395,16 @@ class TestLoc2:
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
 
-    def test_loc_setitem_consistency(self):
+    @pytest.fixture
+    def frame_for_consistency(self):
+        return DataFrame(
+            {
+                "date": date_range("2000-01-01", "2000-01-5"),
+                "val": Series(range(5), dtype=np.int64),
+            }
+        )
+
+    def test_loc_setitem_consistency(self, frame_for_consistency):
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame(
@@ -404,33 +413,21 @@ class TestLoc2:
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = 0
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = np.array(0, dtype=np.int64)
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = np.array([0, 0, 0, 0, 0], dtype=np.int64)
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
+        # GH 6149
+        # coerce similarly for setitem and loc when rows have a null-slice
 
         expected = DataFrame(
             {
@@ -438,30 +435,24 @@ class TestLoc2:
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = "foo"
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_consistency_dt64_to_float(self, frame_for_consistency):
+        # GH 6149
+        # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame(
             {
                 "date": Series(1.0, index=range(5)),
                 "val": Series(range(5), dtype=np.int64),
             }
         )
-        df = DataFrame(
-            {
-                "date": date_range("2000-01-01", "2000-01-5"),
-                "val": Series(range(5), dtype=np.int64),
-            }
-        )
+        df = frame_for_consistency.copy()
         df.loc[:, "date"] = 1.0
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_consistency_single_row(self):
         # GH 15494
         # setting on frame with single row
         df = DataFrame({"date": Series([Timestamp("20180101")])})
