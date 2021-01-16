@@ -214,10 +214,9 @@ class Holiday:
         if self.observance is not None:
             info += f"observance={self.observance}"
 
-        repr = f"Holiday: {self.name} ({info})"
-        return repr
+        return f"Holiday: {self.name} ({info})"
 
-    def dates(self, start_date, end_date, return_name=False):
+    def dates(self, start_date, end_date, return_name: bool = False):
         """
         Calculate holidays observed between start date and end date
 
@@ -225,7 +224,7 @@ class Holiday:
         ----------
         start_date : starting date, datetime-like, optional
         end_date : ending date, datetime-like, optional
-        return_name : bool, optional, default=False
+        return_name : bool, default False
             If True, return a series that has dates and holiday names.
             False will only return dates.
         """
@@ -264,7 +263,9 @@ class Holiday:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
 
-    def _reference_dates(self, start_date, end_date):
+    def _reference_dates(
+        self, start_date: Timestamp, end_date: Timestamp
+    ) -> DatetimeIndex:
         """
         Get reference dates for the holiday.
 
@@ -297,7 +298,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: DatetimeIndex) -> DatetimeIndex:
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -339,7 +340,7 @@ def register(cls):
     holiday_calendars[name] = cls
 
 
-def get_calendar(name):
+def get_calendar(name: str):
     """
     Return an instance of a calendar based on its name.
 
@@ -352,7 +353,7 @@ def get_calendar(name):
 
 
 class HolidayCalendarMetaClass(type):
-    def __new__(cls, clsname, bases, attrs):
+    def __new__(cls, clsname: str, bases, attrs):
         calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
@@ -395,7 +396,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name=False):
+    def holidays(self, start=None, end=None, return_name: bool = False):
         """
         Returns a curve with holidays between start_date and end_date
 
@@ -403,13 +404,13 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         ----------
         start : starting date, datetime-like, optional
         end : ending date, datetime-like, optional
-        return_name : bool, optional
+        return_name : bool, default False
             If True, return a series that has dates and holiday names.
             False will only return a DatetimeIndex of dates.
 
         Returns
         -------
-            DatetimeIndex of holidays
+        DatetimeIndex
         """
         if self.rules is None:
             raise Exception(
@@ -456,9 +457,9 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         Parameters
         ----------
         base : AbstractHolidayCalendar
-          instance/subclass or array of Holiday objects
+            instance/subclass or array of Holiday objects
         other : AbstractHolidayCalendar
-          instance/subclass or array of Holiday objects
+            instance/subclass or array of Holiday objects
         """
         try:
             other = other.rules
@@ -481,7 +482,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         other_holidays.update(base_holidays)
         return list(other_holidays.values())
 
-    def merge(self, other, inplace=False):
+    def merge(self, other, inplace: bool = False):
         """
         Merge holiday calendars together.  The caller's class
         rules take precedence.  The merge will be done
@@ -546,7 +547,9 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
     ]
 
 
-def HolidayCalendarFactory(name, base, other, base_class=AbstractHolidayCalendar):
+def HolidayCalendarFactory(
+    name: str, base, other, base_class=AbstractHolidayCalendar
+) -> type:
     rules = AbstractHolidayCalendar.merge_class(base, other)
     calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
     return calendar_class

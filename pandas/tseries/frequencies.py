@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Union
 import warnings
 
 import numpy as np
@@ -13,12 +13,7 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
 )
 from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
-from pandas._libs.tslibs.offsets import (  # noqa:F401
-    DateOffset,
-    Day,
-    _get_offset,
-    to_offset,
-)
+from pandas._libs.tslibs.offsets import DateOffset, _get_offset, to_offset  # noqa:F401
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas.util._decorators import cache_readonly
 
@@ -27,9 +22,19 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex,
+    ABCFloat64Index,
+    ABCIndex,
+    ABCInt64Index,
+    ABCSeries,
+)
 
 from pandas.core.algorithms import unique
+
+if TYPE_CHECKING:
+    from pandas import DatetimeIndex, Series, TimedeltaIndex
+
 
 _ONE_MICRO = 1000
 _ONE_MILLI = _ONE_MICRO * 1000
@@ -117,7 +122,9 @@ def get_offset(name: str) -> DateOffset:
 # Period codes
 
 
-def infer_freq(index, warn: bool = True) -> Optional[str]:
+def infer_freq(
+    index: Union["Series", "DatetimeIndex", "TimedeltaIndex"], warn: bool = True
+) -> Optional[str]:
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -140,7 +147,6 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     ValueError
         If there are fewer than three values.
     """
-    import pandas as pd
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -169,15 +175,17 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
-    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
-        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+    if isinstance(index, ABCIndex) and not isinstance(index, ABCDatetimeIndex):
+        if isinstance(index, (ABCInt64Index, ABCFloat64Index)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
         index = index._values
 
-    if not isinstance(index, pd.DatetimeIndex):
-        index = pd.DatetimeIndex(index)
+    if not isinstance(index, ABCDatetimeIndex):
+        from pandas import DatetimeIndex
+
+        index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -210,11 +218,11 @@ class _FrequencyInferer:
         )
 
     @cache_readonly
-    def deltas(self):
+    def deltas(self) -> np.ndarray:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self):
+    def deltas_asi8(self) -> np.ndarray:
         # NB: we cannot use self.i8values here because we may have converted
         #  the tz in __init__
         return unique_deltas(self.index.asi8)
@@ -281,23 +289,23 @@ class _FrequencyInferer:
         return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
-    def fields(self):
+    def fields(self) -> np.ndarray:
         return build_field_sarray(self.i8values)
 
     @cache_readonly
-    def rep_stamp(self):
+    def rep_stamp(self) -> Timestamp:
         return Timestamp(self.i8values[0])
 
     def month_position_check(self):
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
-    def mdiffs(self):
+    def mdiffs(self) -> np.ndarray:
         nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
-    def ydiffs(self):
+    def ydiffs(self) -> np.ndarray:
         return unique_deltas(self.fields["Y"].astype("i8"))
 
     def _infer_daily_rule(self) -> Optional[str]:
@@ -430,16 +438,18 @@ def _maybe_add_count(base: str, count: float) -> str:
 # Frequency comparison
 
 
-def is_subperiod(source, target) -> bool:
+def is_subperiod(
+    source: Optional[Union[DateOffset, str]], target: Optional[Union[DateOffset, str]]
+) -> bool:
     """
     Returns True if downsampling is possible between source and target
     frequencies
 
     Parameters
     ----------
-    source : str or DateOffset
+    source : str, DateOffset, or None
         Frequency converting from
-    target : str or DateOffset
+    target : str, DateOffset, or None
         Frequency converting to
 
     Returns
@@ -486,16 +496,18 @@ def is_subperiod(source, target) -> bool:
         return False
 
 
-def is_superperiod(source, target) -> bool:
+def is_superperiod(
+    source: Optional[Union[DateOffset, str]], target: Optional[Union[DateOffset, str]]
+) -> bool:
     """
     Returns True if upsampling is possible between source and target
     frequencies
 
     Parameters
     ----------
-    source : str or DateOffset
+    source : DateOffset, str,  or None
         Frequency converting from
-    target : str or DateOffset
+    target : DateOffset, str, or None
         Frequency converting to
 
     Returns
@@ -544,7 +556,7 @@ def is_superperiod(source, target) -> bool:
         return False
 
 
-def _maybe_coerce_freq(code) -> str:
+def _maybe_coerce_freq(code: Union[DateOffset, str]) -> str:
     """we might need to coerce a code to a rule_code
     and uppercase it
 

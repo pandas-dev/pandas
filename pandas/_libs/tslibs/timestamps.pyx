@@ -156,17 +156,20 @@ class RoundTo:
 cdef inline _floor_int64(values, unit):
     return values - np.remainder(values, unit)
 
+
 cdef inline _ceil_int64(values, unit):
     return values + np.remainder(-values, unit)
 
+
 cdef inline _rounddown_int64(values, unit):
     return _ceil_int64(values - unit//2, unit)
+
 
 cdef inline _roundup_int64(values, unit):
     return _floor_int64(values + unit//2, unit)
 
 
-def round_nsint64(values, mode, freq):
+def round_nsint64(values: np.ndarray, mode: RoundTo, freq) -> np.ndarray:
     """
     Applies rounding mode at given frequency
 
@@ -709,7 +712,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return np.datetime64(self.value, 'ns')
 
-    def timestamp(self):
+    def timestamp(self) -> float:
         """Return POSIX timestamp as float."""
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
@@ -735,7 +738,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return np.datetime64(self.value, "ns")
 
-    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+    def to_numpy(self, dtype=None, copy: bool = False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -755,7 +758,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.to_datetime64()
 
-    def to_period(self, freq=None):
+    def to_period(self, freq=None) -> "Period":
         """
         Return an period of which this timestamp is an observation.
         """
@@ -852,7 +855,7 @@ class Timestamp(_Timestamp):
     """
 
     @classmethod
-    def fromordinal(cls, ordinal, freq=None, tz=None):
+    def fromordinal(cls, ordinal: int, freq=None, tz=None) -> "Timestamp":
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
@@ -872,7 +875,7 @@ class Timestamp(_Timestamp):
                    freq=freq, tz=tz)
 
     @classmethod
-    def now(cls, tz=None):
+    def now(cls, tz=None) -> "Timestamp":
         """
         Timestamp.now(tz=None)
 
@@ -889,7 +892,7 @@ class Timestamp(_Timestamp):
         return cls(datetime.now(tz))
 
     @classmethod
-    def today(cls, tz=None):
+    def today(cls, tz=None) -> "Timestamp":
         """
         Timestamp.today(cls, tz=None)
 
@@ -905,7 +908,7 @@ class Timestamp(_Timestamp):
         return cls.now(tz)
 
     @classmethod
-    def utcnow(cls):
+    def utcnow(cls) -> "Timestamp":
         """
         Timestamp.utcnow()
 
@@ -914,7 +917,7 @@ class Timestamp(_Timestamp):
         return cls.now(UTC)
 
     @classmethod
-    def utcfromtimestamp(cls, ts):
+    def utcfromtimestamp(cls, ts: float) -> "Timestamp":
         """
         Timestamp.utcfromtimestamp(ts)
 
@@ -923,7 +926,7 @@ class Timestamp(_Timestamp):
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
-    def fromtimestamp(cls, ts):
+    def fromtimestamp(cls, ts: float) -> "Timestamp":
         """
         Timestamp.fromtimestamp(ts)
 
@@ -931,7 +934,7 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.fromtimestamp(ts))
 
-    def strftime(self, format):
+    def strftime(self, format: str) -> str:
         """
         Timestamp.strftime(format)
 
@@ -961,7 +964,7 @@ class Timestamp(_Timestamp):
         )
 
     @classmethod
-    def combine(cls, date, time):
+    def combine(cls, date, time) -> "Timestamp":
         """
         Timestamp.combine(date, time)
 
@@ -1120,7 +1123,7 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
-    def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
+    def _round(self, freq, mode, ambiguous='raise', nonexistent='raise') -> "Timestamp":
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -1137,7 +1140,7 @@ class Timestamp(_Timestamp):
             )
         return result
 
-    def round(self, freq, ambiguous='raise', nonexistent='raise'):
+    def round(self, freq, ambiguous='raise', nonexistent='raise') -> "Timestamp":
         """
         Round the Timestamp to the specified resolution.
 
@@ -1182,7 +1185,7 @@ timedelta}, default 'raise'
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
         )
 
-    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
+    def floor(self, freq, ambiguous='raise', nonexistent='raise') -> "Timestamp":
         """
         Return a new Timestamp floored to this resolution.
 
@@ -1221,7 +1224,7 @@ timedelta}, default 'raise'
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise') -> "Timestamp":
         """
         Return a new Timestamp ceiled to this resolution.
 
@@ -1282,7 +1285,7 @@ timedelta}, default 'raise'
         """
         return getattr(self.freq, 'freqstr', self.freq)
 
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise') -> "Timestamp":
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -1364,7 +1367,7 @@ default 'raise'
                     "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
                 )
 
-    def tz_convert(self, tz):
+    def tz_convert(self, tz) -> "Timestamp":
         """
         Convert tz-aware Timestamp to another time zone.
 
@@ -1406,7 +1409,7 @@ default 'raise'
         nanosecond=None,
         tzinfo=object,
         fold=None,
-    ):
+    ) -> "Timestamp":
         """
         Implements datetime.replace, handles nanoseconds.
 

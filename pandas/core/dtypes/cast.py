@@ -37,7 +37,7 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -1350,7 +1350,7 @@ def maybe_infer_to_datetimelike(
     if not is_object_dtype(v):
         return value
 
-    shape = v.shape
+    shape: Shape = v.shape
     if v.ndim != 1:
         v = v.ravel()
 

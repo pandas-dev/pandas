@@ -597,14 +597,14 @@ cdef bint _validate_ops_compat(other):
     return False
 
 
-def _op_unary_method(func, name):
+def _op_unary_method(func, name: str):
     def f(self):
-        return Timedelta(func(self.value), unit='ns')
+        return Timedelta(func(self.value), unit="ns")
     f.__name__ = name
     return f
 
 
-def _binary_op_method_timedeltalike(op, name):
+def _binary_op_method_timedeltalike(op, name: str):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
     def f(self, other):
@@ -875,7 +875,7 @@ cdef class _Timedelta(timedelta):
         """
         return np.timedelta64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False) -> np.timedelta64:
+    def to_numpy(self, dtype=None, copy: bool = False) -> np.timedelta64:
         """
         Convert the Timedelta to a NumPy timedelta64.
 
@@ -902,7 +902,7 @@ cdef class _Timedelta(timedelta):
         return np.timedelta64(self.value).view(dtype)
 
     @property
-    def components(self):
+    def components(self) -> Components:
         """
         Return a components namedtuple-like.
         """
@@ -912,7 +912,7 @@ cdef class _Timedelta(timedelta):
                           self._ms, self._us, self._ns)
 
     @property
-    def delta(self):
+    def delta(self) -> int64_t:
         """
         Return the timedelta in nanoseconds (ns), for internal compatibility.
 
@@ -1035,7 +1035,7 @@ cdef class _Timedelta(timedelta):
             return "D"
 
     @property
-    def nanoseconds(self):
+    def nanoseconds(self) -> int64_t:
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
 
@@ -1301,7 +1301,7 @@ class Timedelta(_Timedelta):
         object_state = self.value,
         return (Timedelta, object_state)
 
-    def _round(self, freq, rounder):
+    def _round(self, freq, rounder) -> "Timedelta":
         cdef:
             int64_t result, unit
 
@@ -1310,7 +1310,7 @@ class Timedelta(_Timedelta):
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
 
-    def round(self, freq):
+    def round(self, freq) -> "Timedelta":
         """
         Round the Timedelta to the specified resolution.
 
@@ -1329,7 +1329,7 @@ class Timedelta(_Timedelta):
         """
         return self._round(freq, np.round)
 
-    def floor(self, freq):
+    def floor(self, freq) -> "Timedelta":
         """
         Return a new Timedelta floored to this resolution.
 
@@ -1340,7 +1340,7 @@ class Timedelta(_Timedelta):
         """
         return self._round(freq, np.floor)
 
-    def ceil(self, freq):
+    def ceil(self, freq) -> "Timedelta":
         """
         Return a new Timedelta ceiled to this resolution.
 
