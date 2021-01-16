@@ -5,10 +5,9 @@ from pandas._libs import lib
 
 import pandas as pd
 from pandas import DataFrame, Series, _testing as tm
-from pandas.tests.strings.test_strings import any_string_method  # noqa
 
 
-def test_string_array(any_string_method):  # noqa
+def test_string_array(any_string_method):
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")

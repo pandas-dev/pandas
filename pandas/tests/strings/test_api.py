@@ -2,10 +2,6 @@ import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm
 from pandas.core import strings as strings
-from pandas.tests.strings.test_strings import (  # noqa
-    any_allowed_skipna_inferred_dtype,
-    any_string_method,
-)
 
 
 def test_api():
@@ -55,8 +51,8 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
 def test_api_per_method(
     index_or_series,
     dtype,
-    any_allowed_skipna_inferred_dtype,  # noqa
-    any_string_method,  # noqa
+    any_allowed_skipna_inferred_dtype,
+    any_string_method,
     request,
 ):
     # this test does not check correctness of the different methods,
@@ -115,7 +111,7 @@ def test_api_per_method(
             method(*args, **kwargs)
 
 
-def test_api_for_categorical(any_string_method):  # noqa
+def test_api_for_categorical(any_string_method):
     # https://github.com/pandas-dev/pandas/issues/10661
     s = Series(list("aabb"))
     s = s + " " + s
