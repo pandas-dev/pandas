@@ -805,7 +805,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
-        self.tooltips: Optional[_Tooltips] = None
+        self.tooltips = None
         self.cell_context = {}
         self._todo = []
 
