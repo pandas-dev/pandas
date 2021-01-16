@@ -1690,11 +1690,11 @@ class _iLocIndexer(_LocationIndexer):
                 elif is_extension_array_dtype(value):
                     # TODO(EA2D): special case not needed with 2D EAs
                     obj = type(self.obj)(value)
-                    self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+                    self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), obj)
                     self.obj._clear_item_cache()
                 else:
                     val = np.atleast_2d(value).T
-                    self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
+                    self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), val)
                     self.obj._clear_item_cache()
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
@@ -1735,7 +1735,7 @@ class _iLocIndexer(_LocationIndexer):
                         val = type(self.obj)._from_arrays(
                             arrs, index=range(lplane_indexer), columns=range(len(arrs))
                         )
-                self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), val)
+                self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), val)
                 self.obj._clear_item_cache()
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
@@ -1758,7 +1758,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
 
             # scalar value
-            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), value)
             self.obj._clear_item_cache()
 
     def _setitem_with_indexer_2d_value(self, indexer, value):
@@ -1777,7 +1777,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # wrap in DataFrame to coerce where appropriate
         obj = type(self.obj)(value.tolist())
-        self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+        self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), obj)
         self.obj._clear_item_cache()
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
@@ -1792,13 +1792,13 @@ class _iLocIndexer(_LocationIndexer):
 
         # We do not want to align the value in case of iloc GH#37728
         if name == "iloc":
-            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), value)
             self.obj._clear_item_cache()
 
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
             # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
-            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._mgr = self.obj._mgr.setitem_blockwise((pi, ilocs), value)
             self.obj._clear_item_cache()
 
         elif not unique_cols:

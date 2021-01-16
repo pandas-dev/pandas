@@ -567,7 +567,7 @@ class BlockManager(DataManager):
 
     # TODO: could just operate inplace, so we dont end up swapping out
     #  parent frame/series _mgr?
-    def setitem2(self, indexer, value) -> "BlockManager":
+    def setitem_blockwise(self, indexer, value) -> "BlockManager":
         result_blocks = []
 
         # assuming for now 2D
@@ -602,10 +602,10 @@ class BlockManager(DataManager):
                 blk_indexer = (pi, ilocs)
                 blk_indexer = maybe_convert_ix(*blk_indexer)
 
-                if blk._can_hold_element(vfb) and (
-                    not blk.is_object
-                    or (is2d and vfb.shape[1] == blk.shape[0])
-                ):
+                # without the extra condition we fail in tests.indexing.test_indexing:: test_astype_assignment, but
+                #  that is doing `df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
+                #  which i _think_ *should* be inplace, so should not be casting, which the test wants to do
+                if blk._can_hold_element(vfb) and (not blk.is_object or (is2d and vfb.shape[1] == blk.shape[0])):
                     nb = blk.setitem(blk_indexer, vfb)
                     nbs = [nb]
 

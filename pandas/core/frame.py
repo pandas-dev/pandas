@@ -3219,7 +3219,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
             self.iloc[indexer] = value
         else:
-            if isinstance(value, DataFrame):
+            if isinstance(value, DataFrame):  # 7 test_string_array tests fail if this block is disabled
                 if len(value.columns) != len(key):
                     raise ValueError("Columns must be same length as key")
                 for k1, k2 in zip(key, value.columns):
@@ -3311,7 +3311,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value):  # only called from _setitem_single_column
+    def _iset_item(self, loc: int, value):
         value = self._sanitize_column(value)
         value = _maybe_atleast_2d(value)
         self._iset_item_mgr(loc, value)
