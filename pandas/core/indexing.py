@@ -1744,7 +1744,10 @@ class _iLocIndexer(_LocationIndexer):
                 # e.g. df = DataFrame(columns=["x", "y"])
                 #  df["x"] = df["x"].astype(np.int64)
                 #  df.loc[:, "x"] = [1, 2, 3]
-                self._setitem_single_column(ilocs[0], value, pi)
+
+                # Setting entire column, so swapping out
+                # GH#??? we may want to change this behavior
+                self.obj._iset_item(ilocs[0], value)
 
             else:
                 raise ValueError(
@@ -1795,19 +1798,8 @@ class _iLocIndexer(_LocationIndexer):
         elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
             # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
-            for loc in ilocs:
-                item = self.obj.columns[loc]
-                if item in value:
-                    sub_indexer[1] = item
-                    val = self._align_series(
-                        (pi, item),
-                        value.iloc[:, loc],
-                        multiindex_indexer,
-                    )
-                else:
-                    val = np.nan
-
-                self._setitem_single_column(loc, val, pi)
+            self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
+            self.obj._clear_item_cache()
 
         elif not unique_cols:
             raise ValueError("Setting with non-unique columns is not allowed.")
