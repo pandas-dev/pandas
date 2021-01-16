@@ -14,7 +14,7 @@ from pandas._libs.parsers import TextReader
 from pandas import DataFrame
 import pandas._testing as tm
 
-from pandas.io.parsers import TextFileReader, read_csv
+from pandas.io.parsers.readers import TextFileReader, read_csv
 
 
 class TestTextReader:

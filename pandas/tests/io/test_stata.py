@@ -20,7 +20,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.frame import DataFrame, Series
 
-from pandas.io.parsers import read_csv
+from pandas.io.parsers.readers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
     InvalidColumnName,

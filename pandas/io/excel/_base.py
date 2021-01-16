@@ -30,7 +30,7 @@ from pandas.io.excel._util import (
     maybe_convert_usecols,
     pop_header_name,
 )
-from pandas.io.parsers import TextParser
+from pandas.io.parsers.readers import TextParser
 
 _read_excel_doc = (
     """
