@@ -588,28 +588,28 @@ class BlockManager(DataManager):
                 nbs = [blk]
             else:
                 is2d = False
-                value_for_block = value
+                vfb = value  # vfb -> value_for_block
                 if getattr(value, "ndim", 0) == 2:
                     is2d = True
                     if isinstance(value, ABCDataFrame):
                         # TODO: similar to what we have in BlockManager.apply?
-                        value_for_block = value.iloc[:, rlocs]
+                        vfb = value.iloc[:, rlocs]
                     else:
-                        value_for_block = value[:, rlocs]
+                        vfb = value[:, rlocs]
 
                 blk_indexer = (pi, ilocs)
                 blk_indexer = maybe_convert_ix(*blk_indexer)
 
-                if blk._can_hold_element(value_for_block) and (
+                if blk._can_hold_element(vfb) and (
                     not blk.is_object
-                    or (is2d and value_for_block.shape[1] == blk.shape[0])
+                    or (is2d and vfb.shape[1] == blk.shape[0])
                 ):
-                    nb = blk.setitem(blk_indexer, value_for_block)
+                    nb = blk.setitem(blk_indexer, vfb)
                     nbs = [nb]
 
                 elif blk.shape[0] == 1:
                     # casting
-                    nb = blk.setitem(blk_indexer, value_for_block)
+                    nb = blk.setitem(blk_indexer, vfb)
                     nbs = [nb]
 
                 else:

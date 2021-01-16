@@ -1773,13 +1773,9 @@ class _iLocIndexer(_LocationIndexer):
             )
 
         # wrap in DataFrame to coerce where appropriate
-        # obj = type(self.obj)(value)
-        # self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), value)
-        # self.obj._clear_item_cache()
-        #  need to make setitem2 re-coerce
-        for i, loc in enumerate(ilocs):
-            # setting with a list, re-coerces
-            self._setitem_single_column(loc, value[:, i].tolist(), pi)
+        obj = type(self.obj)(value.tolist())
+        self.obj._mgr = self.obj._mgr.setitem2((pi, ilocs), obj)
+        self.obj._clear_item_cache()
 
     def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])

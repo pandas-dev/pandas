@@ -70,7 +70,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import extract_array, ensure_wrapped_if_datetimelike
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
@@ -912,6 +912,15 @@ class Block(PandasObject):
         else:
             is_ea_value = False
             arr_value = np.array(value)
+
+            # TODO: why the ndim restriction here?
+            if self.dtype == object and arr_value.dtype.kind in ["m", "M"] and arr_value.size > 0 and self.ndim == 2:
+                # get Timestamp/Timedelta, numpy would cast to ints (yikes!)
+                # FIXME: np.asarray(dta, dtype=object), dta.to_numpy(object)
+                #  both have the same wrong numpy behavior
+                arr_value = ensure_wrapped_if_datetimelike(arr_value)
+                arr_value = np.asarray(arr_value.astype(object))
+                value = arr_value
 
         if transpose:
             values = values.T
