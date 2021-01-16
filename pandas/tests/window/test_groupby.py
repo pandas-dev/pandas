@@ -556,31 +556,23 @@ class TestRolling:
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
 
-    @pytest.mark.parametrize("group_keys", [True, False])
-    def test_groupby_rolling_group_keys(self, group_keys):
+    def test_groupby_rolling_group_keys(self):
         # GH 37641
-        # GH 38523: GH 37641 actually was not a bug.
-        # group_keys only applies to groupby.apply directly
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
         s = Series([1, 2, 3], index=index)
-        result = s.groupby(["idx1", "idx2"], group_keys=group_keys).rolling(1).mean()
+        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
         expected = Series(
             [1.0, 2.0, 3.0],
             index=MultiIndex.from_tuples(
-                [
-                    ("val1", "val1", "val1", "val1"),
-                    ("val1", "val1", "val1", "val1"),
-                    ("val2", "val2", "val2", "val2"),
-                ],
-                names=["idx1", "idx2", "idx1", "idx2"],
+                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
+                names=["idx1", "idx2"],
             ),
         )
         tm.assert_series_equal(result, expected)
 
     def test_groupby_rolling_index_level_and_column_label(self):
-        # The groupby keys should not appear as a resulting column
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
@@ -589,12 +581,7 @@ class TestRolling:
         expected = DataFrame(
             {"B": [0.0, 1.0, 2.0]},
             index=MultiIndex.from_tuples(
-                [
-                    ("val1", 1, "val1", "val1"),
-                    ("val1", 1, "val1", "val1"),
-                    ("val2", 2, "val2", "val2"),
-                ],
-                names=["idx1", "A", "idx1", "idx2"],
+                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
             ),
         )
         tm.assert_frame_equal(result, expected)
@@ -652,30 +639,6 @@ class TestRolling:
             names=["b", None, "c"],
         )
         tm.assert_index_equal(result.index, expected_index)
-
-    def test_groupby_level(self):
-        # GH 38523
-        arrays = [
-            ["Falcon", "Falcon", "Parrot", "Parrot"],
-            ["Captive", "Wild", "Captive", "Wild"],
-        ]
-        index = MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
-        df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
-        result = df.groupby(level=0)["Max Speed"].rolling(2).sum()
-        expected = Series(
-            [np.nan, 740.0, np.nan, 50.0],
-            index=MultiIndex.from_tuples(
-                [
-                    ("Falcon", "Falcon", "Captive"),
-                    ("Falcon", "Falcon", "Wild"),
-                    ("Parrot", "Parrot", "Captive"),
-                    ("Parrot", "Parrot", "Wild"),
-                ],
-                names=["Animal", "Animal", "Type"],
-            ),
-            name="Max Speed",
-        )
-        tm.assert_series_equal(result, expected)
 
 
 class TestExpanding:
