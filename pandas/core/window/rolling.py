@@ -970,12 +970,12 @@ class Window(BaseWindow):
     @doc(
         doc_template,
         window_method="rolling",
-        aggregation_description="weighted window variance \n.. versionadded:: 1.0.0\n",
+        aggregation_description="weighted window variance",
         parameters=kwargs_scipy,
         numpy_args_kwargs="",
         agg_method="var",
         other_see_also="",
-        notes="",
+        notes=".. versionadded:: 1.0.0",
         examples="",
     )
     def var(self, ddof: int = 1, *args, **kwargs):
@@ -987,14 +987,12 @@ class Window(BaseWindow):
     @doc(
         doc_template,
         window_method="rolling",
-        aggregation_description=(
-            "weighted window standard deviation \n.. versionadded:: 1.0.0\n"
-        ),
+        aggregation_description="weighted window standard deviation",
         parameters="",
         numpy_args_kwargs=numpy_args_kwargs,
         agg_method="std",
         other_see_also="",
-        notes="",
+        notes=".. versionadded:: 1.0.0",
         examples="",
     )
     def std(self, ddof: int = 1, *args, **kwargs):
