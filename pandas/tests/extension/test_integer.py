@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_integer_dtype
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -31,7 +32,7 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension import base
-from pandas.api.types import is_integer_dtype
+
 
 def make_data():
     return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
