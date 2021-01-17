@@ -40,12 +40,12 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
-from pandas.core.indexing import maybe_convert_ix
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import extract_array
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import ensure_iterable_indexer, maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexing import maybe_convert_ix
 from pandas.core.internals.base import DataManager
 from pandas.core.internals.blocks import (
     Block,
@@ -567,24 +567,24 @@ class BlockManager(DataManager):
 
     # TODO: could just operate inplace, so we dont end up swapping out
     #  parent frame/series _mgr?
-    def setitem_blockwise(self, indexer, value) -> "BlockManager":
+    def setitem_blockwise(self, indexer, value) -> BlockManager:
         result_blocks = []
 
         # assuming for now 2D
         pi, col_indexer = indexer
 
-        if lib.is_integer(col_indexer):
-            col_indexer = [col_indexer]
+        col_indexer = ensure_iterable_indexer(len(self.items), col_indexer)
         col_indexer = Index(col_indexer)
         col_indexer2 = list(col_indexer)
 
         def handle_block(blk: Block) -> List[Block]:
             locs = Index(blk.mgr_locs.as_array).intersection(col_indexer)
             ilocs = [list(blk.mgr_locs).index(x) for x in locs]
-            # iloc2 = self.blklocs[locs]
-            # assert (ilocs == ilocs2).all(), (ilocs, ilocs2)
-            # this assertion works for non-recursed blocks
+            # For blocks that are among self.blocks (i.e. not reached via recursion)
+            #  this should match self.blklocs[locs]
             rlocs = [col_indexer2.index(x) for x in locs]
+            rlocs2 = col_indexer.get_indexer(locs)
+            assert (rlocs2 == rlocs).all()
 
             if not len(ilocs):
                 nbs = [blk]
@@ -605,7 +605,9 @@ class BlockManager(DataManager):
                 # without the extra condition we fail in tests.indexing.test_indexing:: test_astype_assignment, but
                 #  that is doing `df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
                 #  which i _think_ *should* be inplace, so should not be casting, which the test wants to do
-                if blk._can_hold_element(vfb) and (not blk.is_object or (is2d and vfb.shape[1] == blk.shape[0])):
+                if blk._can_hold_element(vfb) and (
+                    not blk.is_object or (is2d and vfb.shape[1] == blk.shape[0])
+                ):
                     nb = blk.setitem(blk_indexer, vfb)
                     nbs = [nb]
 

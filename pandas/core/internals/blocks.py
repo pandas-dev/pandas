@@ -72,12 +72,11 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array, ensure_wrapped_if_datetimelike
+from pandas.core.construction import ensure_wrapped_if_datetimelike, extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_exact_shape_match,
-    length_of_indexer,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -916,7 +915,12 @@ class Block(PandasObject):
             arr_value = np.array(value)
 
             # TODO: why the ndim restriction here?
-            if self.dtype == object and arr_value.dtype.kind in ["m", "M"] and arr_value.size > 0 and self.ndim == 2:
+            if (
+                self.dtype == object
+                and arr_value.dtype.kind in ["m", "M"]
+                and arr_value.size > 0
+                and self.ndim == 2
+            ):
                 # get Timestamp/Timedelta, numpy would cast to ints (yikes!)
                 # FIXME: np.asarray(dta, dtype=object), dta.to_numpy(object)
                 #  both have the same wrong numpy behavior
@@ -947,6 +951,7 @@ class Block(PandasObject):
                 return self.astype(dtype).setitem(indexer, value)
 
             if isinstance(indexer, tuple) and len(indexer) == self.ndim:
+                # test_loc_setitem_consistency, test_loc_setitem_consistency_dt64_to_float
                 if com.is_null_slice(indexer[0]):
                     value2 = lib.item_from_zerodim(value)
                     if lib.is_scalar(value2):

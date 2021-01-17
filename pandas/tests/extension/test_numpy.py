@@ -16,9 +16,12 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.missing import infer_fill_value as infer_fill_value_orig
+
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
+from pandas.core.arrays import PandasArray, PandasDtype, StringArray
+from pandas.core.construction import extract_array
 
 from . import base
 
@@ -26,6 +29,31 @@ from . import base
 @pytest.fixture(params=["float", "object"])
 def dtype(request):
     return PandasDtype(np.dtype(request.param))
+
+
+orig_setitem = pd.core.internals.Block.setitem
+
+
+def setitem(self, indexer, value):
+    # patch Block.setitem
+    value = extract_array(value, extract_numpy=True)
+    if isinstance(value, PandasArray) and not isinstance(value, StringArray):
+        value = value.to_numpy()
+        if self.ndim == 2 and value.ndim == 1:
+            # TODO(EA2D): special case not needed with 2D EAs
+            value = np.atleast_2d(value)
+
+    return orig_setitem(self, indexer, value)
+
+
+def infer_fill_value(val, length: int):
+    # GH#39044 we have to patch core.dtypes.missing.infer_fill_value
+    #  to unwrap PandasArray bc it won't recognize PandasArray with
+    #  is_extension_dtype
+    if isinstance(val, PandasArray):
+        val = val.to_numpy()
+
+    return infer_fill_value_orig(val, length)
 
 
 @pytest.fixture
@@ -47,6 +75,8 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(pd.core.indexing, "infer_fill_value", infer_fill_value)
+        m.setattr(pd.core.internals.Block, "setitem", setitem)
         yield
 
 
@@ -500,6 +530,18 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
+
+    def test_setitem_series(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+
+        key = full_indexer(ser)
+        result.loc[key] = ser
+
+        # For PandasArray we expect to get unboxed to numpy
+        expected = pd.Series(data.to_numpy(), name="data")
+        self.assert_series_equal(result, expected)
 
 
 @skip_nested
