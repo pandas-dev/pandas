@@ -96,7 +96,7 @@ _any_string_method = [
             "title",
             "upper",
             "casefold",
-            "removeprefix"
+            "removeprefix",
         ],
         [()] * 100,
         [{}] * 100,
