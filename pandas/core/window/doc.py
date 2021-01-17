@@ -24,8 +24,8 @@ doc_template = dedent(
     --------
     pandas.Series.{window_method} : Calling {window_method} with Series data.
     pandas.DataFrame.{window_method} : Calling {window_method} with DataFrames.
-    pandas.Series.{agg_method} : {agg_method} for Series.
-    pandas.DataFrame.{agg_method} : {agg_method} for DataFrame.
+    pandas.Series.{agg_method} : Aggregating {agg_method} for Series.
+    pandas.DataFrame.{agg_method} : Aggregating {agg_method} for DataFrame.
     {other_see_also}
 
     Notes
