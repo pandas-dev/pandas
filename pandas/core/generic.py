@@ -49,6 +49,7 @@ from pandas._typing import (
     NpDtype,
     Renamer,
     StorageOptions,
+    T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -85,7 +86,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas as pd
 from pandas.core import arraylike, indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
@@ -106,6 +106,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import ArrayManager, BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
+from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
@@ -5304,7 +5305,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         "when sampling from a Series."
                     )
 
-            weights = pd.Series(weights, dtype="float64")
+            if isinstance(self, ABCSeries):
+                func = self._constructor
+            else:
+                func = self._constructor_sliced
+            weights = func(weights, dtype="float64")
 
             if len(weights) != axis_length:
                 raise ValueError(
@@ -5355,7 +5360,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
-    def pipe(self, func, *args, **kwargs):
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args,
+        **kwargs,
+    ) -> T:
         r"""
         Apply func(self, \*args, \*\*kwargs).
 
@@ -5890,7 +5900,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.copy()
 
         # GH 19920: retain column metadata after concat
-        result = pd.concat(results, axis=1, copy=False)
+        result = concat(results, axis=1, copy=False)
         result.columns = self.columns
         return result
 
@@ -6254,7 +6264,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 )
                 for col_name, col in self.items()
             ]
-            result = pd.concat(results, axis=1, copy=False)
+            result = concat(results, axis=1, copy=False)
             return result
 
     # ----------------------------------------------------------------------
@@ -6532,10 +6542,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
-                    from pandas import Series
-
                     return self.apply(
-                        Series._replace_single,
+                        self._constructor_sliced._replace_single,
                         args=(to_replace, method, inplace, limit),
                     )
                 self = cast("Series", self)

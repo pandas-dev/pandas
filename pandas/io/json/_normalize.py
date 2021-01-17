@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
+from __future__ import annotations
 
 from collections import abc, defaultdict
 import copy
@@ -118,7 +119,7 @@ def _json_normalize(
     errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-) -> "DataFrame":
+) -> DataFrame:
     """
     Normalize semi-structured JSON data into a flat table.
 
