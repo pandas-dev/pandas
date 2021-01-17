@@ -152,7 +152,7 @@ class Expanding(RollingAndExpandingMixin):
     @doc(
         doc_template,
         window_method="expanding",
-        aggregation_description="count of any non-NaN observations",
+        aggregation_description="count of non NaN observations",
         parameters="",
         numpy_args_kwargs="",
         agg_method="count",
