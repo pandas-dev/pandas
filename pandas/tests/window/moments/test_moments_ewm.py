@@ -5,13 +5,13 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+@pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_series(series, name):
     series_result = getattr(series.ewm(com=10), name)()
     assert isinstance(series_result, Series)
 
 
-@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+@pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_frame(frame, name):
     frame_result = getattr(frame.ewm(com=10), name)()
     assert isinstance(frame_result, DataFrame)
