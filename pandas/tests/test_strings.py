@@ -309,8 +309,18 @@ class TestStringMethods:
 
         method_name, args, kwargs = any_string_method
 
-        result = getattr(c.str, method_name)(*args, **kwargs)
-        expected = getattr(s.str, method_name)(*args, **kwargs)
+        # we expect an AttributeError when str.removeprefix is tested on <= 3.9
+        if (
+            sys.version_info[0] <= 3
+            and sys.version_info[1] < 9
+            and method_name == "removeprefix"
+        ):
+            with pytest.raises(AttributeError):
+                result = getattr(c.str, method_name)(*args, **kwargs)
+                expected = getattr(s.str, method_name)(*args, **kwargs)
+        else:
+            result = getattr(c.str, method_name)(*args, **kwargs)
+            expected = getattr(s.str, method_name)(*args, **kwargs)
 
         if isinstance(result, DataFrame):
             tm.assert_frame_equal(result, expected)
@@ -3683,7 +3693,8 @@ def test_str_accessor_in_apply_func():
 
 
 @pytest.mark.skipif(
-    sum(sys.version_info[:3]) < 12, reason="Requires python 3.9 or greater"
+    sys.version_info[0] <= 3 and sys.version_info[1] < 9,
+    reason="Requires python 3.9 or greater",
 )
 def test_str_removeprefix():
     # https://github.com/pandas-dev/pandas/issues/36944
