@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+import sys
 
 import numpy as np
 import pytest
@@ -3686,4 +3687,7 @@ def test_str_removeprefix():
     df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
     df["A"] = df["A"].str.removeprefix("str_")
     expected = DataFrame({"A": ["string1", "string2", "string3"]})
-    tm.assert_frame_equal(df, expected)
+
+    # str.removeprefix only has to be tested on python >= 3.9
+    if sys.version_info[0] >= 3 and sys.version_info[1] >= 9:
+        tm.assert_frame_equal(df, expected)
