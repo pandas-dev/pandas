@@ -11,10 +11,10 @@ from pandas.core.dtypes.common import is_dtype_equal, is_list_like, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
+from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 from pandas.core.indexers import check_array_indexer
-from pandas.api.types import is_scalar
 
 
 @register_extension_dtype

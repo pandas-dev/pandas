@@ -21,8 +21,8 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
-from pandas.core.arraylike import OpsMixin
 from pandas.api.types import is_scalar
+from pandas.core.arraylike import OpsMixin
 
 
 @register_extension_dtype
