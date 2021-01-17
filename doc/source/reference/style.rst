@@ -39,6 +39,8 @@ Style application
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
+   Styler.set_tooltips
+   Styler.set_tooltips_class
    Styler.set_caption
    Styler.set_properties
    Styler.set_uuid
