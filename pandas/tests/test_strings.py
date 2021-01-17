@@ -3685,7 +3685,7 @@ def test_str_accessor_in_apply_func():
 def test_str_removeprefix():
     # https://github.com/pandas-dev/pandas/issues/36944
 
-    if sys.version_info[0] >= 3 and sys.version_info[1] >= 9:
+    if sys.version_info[0] + sys.version_info[1] >= 12:
         df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
         df["A"] = df["A"].str.removeprefix("str_")
         expected = DataFrame({"A": ["string1", "string2", "string3"]})
