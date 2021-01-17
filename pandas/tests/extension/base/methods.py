@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
@@ -394,9 +392,6 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.util.hash_pandas_object(data)
         self.assert_equal(a, b)
 
-    @pytest.mark.xfail(
-        is_numpy_dev, reason="GH#39089 Numpy changed dtype inference", strict=False
-    )
     def test_searchsorted(self, data_for_sorting, as_series):
         b, c, a = data_for_sorting
         arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
