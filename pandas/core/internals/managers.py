@@ -564,7 +564,7 @@ class BlockManager(DataManager):
     def setitem(self, indexer, value) -> BlockManager:
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+    def putmask(self, mask, new, align: bool = True):
 
         if align:
             align_keys = ["new", "mask"]
@@ -577,7 +577,6 @@ class BlockManager(DataManager):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            axis=axis,
         )
 
     def diff(self, n: int, axis: int) -> BlockManager:
