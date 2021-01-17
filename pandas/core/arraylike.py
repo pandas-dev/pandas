@@ -157,10 +157,61 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
     --------
     numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
     """
+    from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
     from pandas.core.internals import BlockManager
+    from pandas.core.series import Series
 
     cls = type(self)
+
+    is_ndframe = [isinstance(x, NDFrame) for x in inputs]
+    is_frame = [isinstance(x, DataFrame) for x in inputs]
+
+    if (len(inputs) == 2) and (sum(is_ndframe) == 2) and (sum(is_frame) >= 1):
+        # if there are 2 alignable inputs, of which at least 1 is a
+        # DataFrame -> we would have had no alignment before -> warn that this
+        # will align in the future
+
+        # check if the two objects are aligned or not
+        aligned = False
+        if sum(is_frame) == 2:
+            if inputs[0]._indexed_same(inputs[1]):
+                aligned = True
+        else:
+            # DataFrame / Series
+            if isinstance(inputs[0], DataFrame):
+                if inputs[0].columns.equals(inputs[1].index):
+                    aligned = True
+            else:
+                if inputs[1].columns.equals(inputs[0].index):
+                    aligned = True
+
+            # TODO need to check if Series index matches DataFrame columns
+            pass
+
+        # only warn and fallback to array behaviour if not aligned
+        if not aligned:
+            # TODO expand warning
+            warnings.warn("Will align in the future", FutureWarning, stacklevel=3)
+
+            # keep the first dataframe of the inputs, other DataFrame/Series is
+            # converted to array for fallback behaviour
+            new_inputs = []
+            frame_count = 0
+            for x in inputs:
+                if isinstance(x, DataFrame):
+                    if frame_count == 0:
+                        new_inputs.append(x)
+                    else:
+                        new_inputs.append(np.asarray(x))
+                    frame_count += 1
+                elif isinstance(x, Series):
+                    new_inputs.append(np.asarray(x))
+                else:
+                    new_inputs.append(x)
+
+            # call the ufunc on those transformed inputs
+            return getattr(ufunc, method)(*new_inputs, **kwargs)
 
     # for binary ops, use our custom dunder methods
     result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)

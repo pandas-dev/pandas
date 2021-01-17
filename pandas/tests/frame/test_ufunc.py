@@ -78,12 +78,19 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
         dtype_b["C"] = dtype_b.pop("B")
 
     df2 = pd.DataFrame({"A": [1, 2], "C": [3, 4]}).astype(dtype_b)
-    result = np.heaviside(df1, df2)
-    expected = np.heaviside(
-        np.array([[1, 3, np.nan], [2, 4, np.nan]]),
-        np.array([[1, np.nan, 3], [2, np.nan, 4]]),
-    )
-    expected = pd.DataFrame(expected, index=[0, 1], columns=["A", "B", "C"])
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.heaviside(df1, df2)
+    # Expected future behaviour:
+    # expected = np.heaviside(
+    #     np.array([[1, 3, np.nan], [2, 4, np.nan]]),
+    #     np.array([[1, np.nan, 3], [2, np.nan, 4]]),
+    # )
+    # expected = pd.DataFrame(expected, index=[0, 1], columns=["A", "B", "C"])
+    expected = pd.DataFrame([[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
+
+    # ensure the expected is the same when applying with numpy array
+    result = np.heaviside(df1, df2.values)
     tm.assert_frame_equal(result, expected)
 
 
@@ -97,27 +104,81 @@ def test_binary_input_aligns_index(request, dtype):
         )
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "b"]).astype(dtype)
     df2 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "c"]).astype(dtype)
-    result = np.heaviside(df1, df2)
-    expected = np.heaviside(
-        np.array([[1, 3], [3, 4], [np.nan, np.nan]]),
-        np.array([[1, 3], [np.nan, np.nan], [3, 4]]),
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.heaviside(df1, df2)
+    # Expected future behaviour:
+    # expected = np.heaviside(
+    #     np.array([[1, 3], [3, 4], [np.nan, np.nan]]),
+    #     np.array([[1, 3], [np.nan, np.nan], [3, 4]]),
+    # )
+    # # TODO(FloatArray): this will be Float64Dtype.
+    # expected = pd.DataFrame(expected, index=["a", "b", "c"], columns=["A", "B"])
+    expected = pd.DataFrame(
+        [[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"], index=["a", "b"]
     )
-    # TODO(FloatArray): this will be Float64Dtype.
-    expected = pd.DataFrame(expected, index=["a", "b", "c"], columns=["A", "B"])
+    tm.assert_frame_equal(result, expected)
+
+    # ensure the expected is the same when applying with numpy array
+    result = np.heaviside(df1, df2.values)
     tm.assert_frame_equal(result, expected)
 
 
 def test_binary_frame_series_raises():
     # We don't currently implement
     df = pd.DataFrame({"A": [1, 2]})
-    with pytest.raises(NotImplementedError, match="logaddexp"):
+    # with pytest.raises(NotImplementedError, match="logaddexp"):
+    with pytest.raises(ValueError, match=""):
         np.logaddexp(df, df["A"])
 
-    with pytest.raises(NotImplementedError, match="logaddexp"):
+    # with pytest.raises(NotImplementedError, match="logaddexp"):
+    with pytest.raises(ValueError, match=""):
         np.logaddexp(df["A"], df)
 
 
 def test_frame_outer_deprecated():
     df = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         np.subtract.outer(df, df)
+
+
+def test_alignment_deprecation():
+
+    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df2 = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
+    s1 = pd.Series([1, 2], index=["a", "b"])
+    s2 = pd.Series([1, 2], index=["b", "c"])
+
+    # binary
+    with tm.assert_produces_warning(None):
+        # aligned -> no warning!
+        result = np.add(df1, df1)
+    expected = pd.DataFrame({"a": [2, 4, 6], "b": [8, 10, 12]})
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.add(df1, df2)
+    tm.assert_frame_equal(result, expected)
+
+    result = np.add(df1, df2.values)
+    tm.assert_frame_equal(result, expected)
+
+    result = np.add(df1.values, df2)
+    expected = pd.DataFrame({"b": [2, 4, 6], "c": [8, 10, 12]})
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.add(df1, s2)
+    expected = pd.DataFrame({"a": [2, 3, 4], "b": [6, 7, 8]})
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        # aligned -> no warning!
+        result = np.add(df1, s1)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = np.add(s2, df1)
+    tm.assert_frame_equal(result, expected)
+
+    result = np.add(df1, s2.values)
+    tm.assert_frame_equal(result, expected)
