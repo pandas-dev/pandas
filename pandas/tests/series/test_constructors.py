@@ -272,8 +272,8 @@ class TestSeriesConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="H"))),
+            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -576,7 +576,7 @@ class TestSeriesConstructors:
         # GH 19342
         # test that construction of a Series with an index of different length
         # raises an error
-        msg = "Length of passed values is 3, index implies 4"
+        msg = r"Length of values \(3\) does not match length of index \(4\)"
         with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
@@ -592,7 +592,7 @@ class TestSeriesConstructors:
         # GH 19342
         # construction with single-element container and index
         # should raise
-        msg = "Length of passed values is 1, index implies 3"
+        msg = r"Length of values \(1\) does not match length of index \(3\)"
         with pytest.raises(ValueError, match=msg):
             Series(["foo"], index=["a", "b", "c"])
 
@@ -628,10 +628,10 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize(
         "index",
         [
-            pd.date_range("20170101", periods=3, tz="US/Eastern"),
-            pd.date_range("20170101", periods=3),
-            pd.timedelta_range("1 day", periods=3),
-            pd.period_range("2012Q1", periods=3, freq="Q"),
+            date_range("20170101", periods=3, tz="US/Eastern"),
+            date_range("20170101", periods=3),
+            timedelta_range("1 day", periods=3),
+            period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
             RangeIndex(0, 3),
@@ -1010,7 +1010,7 @@ class TestSeriesConstructors:
         # construction from interval & array of intervals
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
-        assert result.dtype == "interval[int64]"
+        assert result.dtype == "interval[int64, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -1021,7 +1021,7 @@ class TestSeriesConstructors:
         data = [Interval(0, 1), Interval(0, 2), None]
         result = Series(data_constructor(data))
         expected = Series(IntervalArray(data))
-        assert result.dtype == "interval[float64]"
+        assert result.dtype == "interval[float64, right]"
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1038,16 +1038,16 @@ class TestSeriesConstructors:
 
         # make sure that we are not re-localizing upon construction
         # GH 14928
-        s = Series(pd.date_range("20130101", periods=3, tz="US/Eastern"))
+        ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
 
-        result = Series(s, dtype=s.dtype)
-        tm.assert_series_equal(result, s)
+        result = Series(ser, dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
 
-        result = Series(s.dt.tz_convert("UTC"), dtype=s.dtype)
-        tm.assert_series_equal(result, s)
+        result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
 
-        result = Series(s.values, dtype=s.dtype)
-        tm.assert_series_equal(result, s)
+        result = Series(ser.values, dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
@@ -1374,7 +1374,7 @@ class TestSeriesConstructors:
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
         s = Series(arr)
-        expected = Series(pd.timedelta_range("00:00:01", periods=3, freq="s"))
+        expected = Series(timedelta_range("00:00:01", periods=3, freq="s"))
         tm.assert_series_equal(s, expected)
 
         # convert from a numpy array of non-ns datetime64

@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Label, final
+from pandas._typing import FrameOrSeries, final
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -616,7 +616,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple["ops.BaseGrouper", Set[Label], FrameOrSeries]:
+) -> Tuple["ops.BaseGrouper", Set[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -741,7 +741,7 @@ def get_grouper(
         levels = [level] * len(keys)
 
     groupings: List[Grouping] = []
-    exclusions: Set[Label] = set()
+    exclusions: Set[Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:

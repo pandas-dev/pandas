@@ -215,7 +215,7 @@ def use_dynamic_x(ax: "Axes", data: FrameOrSeriesUnion) -> bool:
     if isinstance(data.index, ABCDatetimeIndex):
         base = to_offset(freq)._period_dtype_code
         x = data.index
-        if base <= FreqGroup.FR_DAY:
+        if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
         return Period(x[0], freq).to_timestamp().tz_localize(x.tz) == x[0]
     return True

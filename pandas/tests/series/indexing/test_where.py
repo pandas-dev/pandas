@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_numpy_dev
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -347,6 +349,7 @@ def test_where_dups():
     tm.assert_series_equal(comb, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 def test_where_numeric_with_string():
     # GH 9280
     s = Series([1, 2, 3])
@@ -489,10 +492,6 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_series_equal(res, Series(dr))
 
     # DataFrame.where
-    if tz is None:
-        res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
-    else:
-        with pytest.xfail(reason="frame._values loses tz"):
-            res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
+    res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))

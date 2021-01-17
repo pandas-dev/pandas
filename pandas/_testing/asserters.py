@@ -29,7 +29,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import take_1d
+from pandas.core.algorithms import safe_sort, take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -344,8 +344,8 @@ def assert_index_equal(
 
     # If order doesn't matter then sort the index entries
     if not check_order:
-        left = left.sort_values()
-        right = right.sort_values()
+        left = Index(safe_sort(left))
+        right = Index(safe_sort(right))
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -878,6 +878,8 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+
+        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
 

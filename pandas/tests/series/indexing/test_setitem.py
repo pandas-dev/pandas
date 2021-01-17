@@ -167,19 +167,19 @@ class TestSetitemBooleanMask:
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
 
-    def test_setitem_boolean_nullable_int_types(self, any_numeric_dtype):
+    def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
         # GH: 26468
-        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
-        ser[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
-        expected = Series([5, 6, 2, 3], dtype=any_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_nullable_numeric_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
-        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_numeric_dtype)
-        loc_ser = Series(range(4), dtype=any_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
+        loc_ser = Series(range(4), dtype=any_nullable_numeric_dtype)
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
 
@@ -328,13 +328,14 @@ class TestSetitemCastingEquivalents:
         tm.assert_series_equal(res, expected)
 
     def test_index_where(self, obj, key, expected, request):
-        if obj.dtype == bool:
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.xfail(reason=msg)
-            request.node.add_marker(mark)
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
+
+        if obj.dtype == bool and not mask.all():
+            # When mask is all True, casting behavior does not apply
+            msg = "Index/Series casting behavior inconsistent GH#38692"
+            mark = pytest.mark.xfail(reason=msg)
+            request.node.add_marker(mark)
 
         res = Index(obj).where(~mask, np.nan)
         tm.assert_index_equal(res, Index(expected))
@@ -394,3 +395,27 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
+
+
+@pytest.mark.parametrize(
+    "key", [0, slice(0, 1), [0], np.array([0]), range(1)], ids=type
+)
+@pytest.mark.parametrize("dtype", [complex, int, float])
+def test_setitem_td64_into_complex(key, dtype, indexer_sli):
+    # timedelta64 should not be treated as integers
+    arr = np.arange(5).astype(dtype)
+    ser = Series(arr)
+    td = np.timedelta64(4, "ns")
+
+    indexer_sli(ser)[key] = td
+    assert ser.dtype == object
+    assert arr[0] == 0  # original array is unchanged
+
+    if not isinstance(key, int) and not (
+        indexer_sli is tm.loc and isinstance(key, slice)
+    ):
+        # skip key/indexer_sli combinations that will have mismatched lengths
+        ser = Series(arr)
+        indexer_sli(ser)[key] = np.full((1,), td)
+        assert ser.dtype == object
+        assert arr[0] == 0  # original array is unchanged
