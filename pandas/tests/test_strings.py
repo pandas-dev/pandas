@@ -66,6 +66,7 @@ _any_string_method = [
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
     ("zfill", (10,), {}),
+    ("removeprefix", ("a ",), {}),
 ] + list(
     zip(
         [
@@ -97,7 +98,6 @@ _any_string_method = [
             "title",
             "upper",
             "casefold",
-            "removeprefix",
         ],
         [()] * 100,
         [{}] * 100,
