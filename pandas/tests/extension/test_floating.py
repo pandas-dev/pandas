@@ -22,6 +22,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
 from pandas.tests.extension import base
+from pandas.api.types import is_float_dtype
 
 
 def make_data():
@@ -101,7 +102,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             if (
                 hasattr(other, "dtype")
                 and not is_extension_array_dtype(other.dtype)
-                and pd.api.types.is_float_dtype(other.dtype)
+                and is_float_dtype(other.dtype)
             ):
                 # other is np.float64 and would therefore always result in
                 # upcasting, so keeping other as same numpy_dtype
