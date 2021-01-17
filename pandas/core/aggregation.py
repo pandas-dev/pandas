@@ -499,10 +499,10 @@ def transform_dict_like(
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
         except Exception as err:
-            if str(err) in [
+            if str(err) in {
                 "Function did not transform",
                 "No transform functions were provided",
-            ]:
+            }:
                 raise err
 
     # combine results
