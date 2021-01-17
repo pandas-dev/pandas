@@ -300,7 +300,7 @@ def test_ewm_domain_checks():
         s.ewm(alpha=1.1)
 
 
-@pytest.mark.parametrize("method", ["mean", "vol", "var"])
+@pytest.mark.parametrize("method", ["mean", "std", "var"])
 def test_ew_empty_series(method):
     vals = Series([], dtype=np.float64)
 
