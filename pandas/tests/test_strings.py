@@ -3682,13 +3682,13 @@ def test_str_accessor_in_apply_func():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(sum(sys.version_info[:3]) < 12, reason="Requires python 3.9 or greater")
 def test_str_removeprefix():
     # https://github.com/pandas-dev/pandas/issues/36944
 
-    if sys.version_info[0] + sys.version_info[1] >= 12:
-        df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
-        df["A"] = df["A"].str.removeprefix("str_")
-        expected = DataFrame({"A": ["string1", "string2", "string3"]})
+    df = DataFrame({"A": ["str_string1", "str_string2", "str_string3"]})
+    df["A"] = df["A"].str.removeprefix("str_")
+    expected = DataFrame({"A": ["string1", "string2", "string3"]})
 
-        # str.removeprefix only has to be tested on python >= 3.9
-        tm.assert_frame_equal(df, expected)
+    # str.removeprefix only has to be tested on python >= 3.9
+    tm.assert_frame_equal(df, expected)
