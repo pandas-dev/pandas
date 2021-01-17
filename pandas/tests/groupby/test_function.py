@@ -4,7 +4,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -1005,7 +1004,6 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(is_numpy_dev, reason="GH#39089 Numpy changed dtype inference")
 @pytest.mark.filterwarnings(
     "ignore:"
     "indexing past lexsort depth may impact performance:"
