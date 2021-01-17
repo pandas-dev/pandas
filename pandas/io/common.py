@@ -1,4 +1,5 @@
 """Common IO api utilities"""
+from __future__ import annotations
 
 import bz2
 from collections import abc
@@ -97,7 +98,7 @@ class IOHandles:
         self.created_handles = []
         self.is_wrapped = False
 
-    def __enter__(self) -> "IOHandles":
+    def __enter__(self) -> IOHandles:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -783,7 +784,7 @@ class _MMapWrapper(abc.Iterator):
             return lambda: self.attributes[name]
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> "_MMapWrapper":
+    def __iter__(self) -> _MMapWrapper:
         return self
 
     def __next__(self) -> str:
