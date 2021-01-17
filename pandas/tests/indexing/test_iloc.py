@@ -14,6 +14,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    array as pd_array,
     concat,
     date_range,
     isna,
@@ -61,8 +62,70 @@ class TestiLoc(Base):
         # the correct type
 
 
-class TestiLoc2:
-    # TODO: better name, just separating out things that dont rely on base class
+class TestiLocBaseIndependent:
+    """Tests Independent Of Base Class"""
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            slice(None),
+            slice(3),
+            range(3),
+            [0, 1, 2],
+            Index(range(3)),
+            np.asarray([0, 1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+        frame = DataFrame({0: range(3)}, dtype=object)
+
+        cat = Categorical(["alpha", "beta", "gamma"])
+        expected = DataFrame({0: cat})
+        # NB: pending GH#38896, the expected likely should become
+        #  expected= DataFrame({"A": cat.astype(object)})
+        # and should remain a view on the original values
+
+        assert frame._mgr.blocks[0]._can_hold_element(cat)
+
+        df = frame.copy()
+        orig_vals = df.values
+        indexer(df)[key, 0] = cat
+
+        overwrite = not isinstance(key, slice)
+
+        tm.assert_frame_equal(df, expected)
+
+        # TODO: this inconsistency is likely undesired GH#39986
+        if overwrite:
+            # check that we overwrote underlying
+            tm.assert_numpy_array_equal(orig_vals, df.values)
+
+        # but we don't have a view on orig_vals
+        orig_vals[0, 0] = 19
+        assert df.iloc[0, 0] != 19
+
+        # check we dont have a view on cat (may be undesired GH#39986)
+        df.iloc[0, 0] = "gamma"
+        assert cat[0] != "gamma"
+
+    @pytest.mark.parametrize("box", [pd_array, Series])
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
+        # GH#38952 Case with not setting a full column
+        #  IntegerArray without NAs
+        arr = pd_array([1, 2, 3, 4])
+        obj = frame_or_series(arr.to_numpy("i8"))
+        values = obj.values
+
+        obj.iloc[:2] = box(arr[2:])
+        expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
+        tm.assert_equal(obj, expected)
+
+        # Check that we are actually in-place
+        if frame_or_series is Series:
+            assert obj.values is values
+        else:
+            assert obj.values.base is values.base and values.base is not None
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
@@ -262,12 +325,42 @@ class TestiLoc2:
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_array(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}])
+        tm.assert_frame_equal(df.iloc[[0]], expected)
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        tm.assert_frame_equal(df.iloc[[0, 1]], expected)
+
+        expected = DataFrame([{"B": 2, "C": 3}, {"B": 2000, "C": 3000}], index=[0, 2])
+        result = df.iloc[[0, 2], [1, 2]]
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_bool(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        result = df.iloc[[True, True, False]]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(
+            [{"A": 1, "B": 2, "C": 3}, {"A": 1000, "B": 2000, "C": 3000}], index=[0, 2]
+        )
+        result = df.iloc[lambda x: x.index % 2 == 0]
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_iloc_getitem_bool_diff_len(self, index):
@@ -278,8 +371,27 @@ class TestiLoc2:
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
-        # TODO: test something here?
-        pass
+        df = DataFrame(
+            [
+                {"A": 1, "B": 2, "C": 3},
+                {"A": 100, "B": 200, "C": 300},
+                {"A": 1000, "B": 2000, "C": 3000},
+            ]
+        )
+
+        expected = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 100, "B": 200, "C": 300}])
+        result = df.iloc[:2]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([{"A": 100, "B": 200}], index=[1])
+        result = df.iloc[1:2, 0:2]
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(
+            [{"A": 1, "C": 3}, {"A": 100, "C": 300}, {"A": 1000, "C": 3000}]
+        )
+        result = df.iloc[:, lambda df: [0, 2]]
+        tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_slice_dups(self):
 

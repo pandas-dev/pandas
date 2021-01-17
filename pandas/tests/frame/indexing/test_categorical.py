@@ -7,6 +7,9 @@ import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series
 import pandas._testing as tm
 
+msg1 = "Cannot setitem on a Categorical with a new category, set the categories first"
+msg2 = "Cannot set a Categorical with another, without identical categories"
+
 
 class TestDataFrameIndexingCategorical:
     def test_assignment(self):
@@ -54,47 +57,44 @@ class TestDataFrameIndexingCategorical:
         cat = Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
         df = DataFrame(Series(cat))
 
-    def test_assigning_ops(self):
-        # systematically test the assigning operations:
-        # for all slicing ops:
-        #  for value in categories and value not in categories:
-
-        #   - assign a single value -> exp_single_cats_value
-
-        #   - assign a complete row (mixed values) -> exp_single_row
-
-        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
-
-        # assign a part of a column with dtype == categorical ->
-        # exp_parts_cats_col
-
-        # assign a part of a column with dtype != categorical ->
-        # exp_parts_cats_col
-
+    @pytest.fixture
+    def orig(self):
         cats = Categorical(["a", "a", "a", "a", "a", "a", "a"], categories=["a", "b"])
         idx = Index(["h", "i", "j", "k", "l", "m", "n"])
         values = [1, 1, 1, 1, 1, 1, 1]
         orig = DataFrame({"cats": cats, "values": values}, index=idx)
+        return orig
 
-        # the expected values
-        # changed single row
+    @pytest.fixture
+    def exp_single_row(self):
+        # The expected values if we change a single row
         cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
         idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
         values1 = [1, 1, 2, 1, 1, 1, 1]
         exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
+        return exp_single_row
 
+    @pytest.fixture
+    def exp_multi_row(self):
+        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
         # changed multiple rows
         cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
         idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
         values2 = [1, 1, 2, 2, 1, 1, 1]
         exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
+        return exp_multi_row
 
+    @pytest.fixture
+    def exp_parts_cats_col(self):
         # changed part of the cats column
         cats3 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
         idx3 = Index(["h", "i", "j", "k", "l", "m", "n"])
         values3 = [1, 1, 1, 1, 1, 1, 1]
         exp_parts_cats_col = DataFrame({"cats": cats3, "values": values3}, index=idx3)
+        return exp_parts_cats_col
 
+    @pytest.fixture
+    def exp_single_cats_value(self):
         # changed single value in cats col
         cats4 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
         idx4 = Index(["h", "i", "j", "k", "l", "m", "n"])
@@ -102,222 +102,129 @@ class TestDataFrameIndexingCategorical:
         exp_single_cats_value = DataFrame(
             {"cats": cats4, "values": values4}, index=idx4
         )
+        return exp_single_cats_value
 
-        #  iloc
-        # ###############
-        #   - assign a single value -> exp_single_cats_value
-        df = orig.copy()
-        df.iloc[2, 0] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        df = orig.copy()
-        df.iloc[df.index == "j", 0] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        #   - assign a single value not in the current categories set
-        msg1 = (
-            "Cannot setitem on a Categorical with a new category, "
-            "set the categories first"
-        )
-        msg2 = "Cannot set a Categorical with another, without identical categories"
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.iloc[2, 0] = "c"
-
-        #   - assign a complete row (mixed values) -> exp_single_row
-        df = orig.copy()
-        df.iloc[2, :] = ["b", 2]
-        tm.assert_frame_equal(df, exp_single_row)
-
-        #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.iloc[2, :] = ["c", 2]
-
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_loc_iloc_setitem_list_of_lists(self, orig, exp_multi_row, indexer):
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
-        df.iloc[2:4, :] = [["b", 2], ["b", 2]]
+
+        key = slice(2, 4)
+        if indexer is tm.loc:
+            key = slice("j", "k")
+
+        indexer(df)[key, :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
+        df = orig.copy()
         with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.iloc[2:4, :] = [["c", 2], ["c", 2]]
+            indexer(df)[key, :] = [["c", 2], ["c", 2]]
 
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc, tm.at, tm.iat])
+    def test_loc_iloc_at_iat_setitem_single_value_in_categories(
+        self, orig, exp_single_cats_value, indexer
+    ):
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+
+        key = (2, 0)
+        if indexer in [tm.loc, tm.at]:
+            key = (df.index[2], df.columns[0])
+
+        # "b" is among the categories for df["cat"}]
+        indexer(df)[key] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        # "c" is not among the categories for df["cat"]
+        with pytest.raises(ValueError, match=msg1):
+            indexer(df)[key] = "c"
+
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_loc_iloc_setitem_mask_single_value_in_categories(
+        self, orig, exp_single_cats_value, indexer
+    ):
+        # mask with single True
+        df = orig.copy()
+
+        mask = df.index == "j"
+        key = 0
+        if indexer is tm.loc:
+            key = df.columns[key]
+
+        indexer(df)[mask, key] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_iloc_setitem_full_row_non_categorical_rhs(
+        self, orig, exp_single_row, indexer
+    ):
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+
+        key = 2
+        if indexer is tm.loc:
+            key = df.index[2]
+
+        # not categorical dtype, but "b" _is_ among the categories for df["cat"]
+        indexer(df)[key, :] = ["b", 2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        # "c" is not among the categories for df["cat"]
+        with pytest.raises(ValueError, match=msg1):
+            indexer(df)[key, :] = ["c", 2]
+
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_loc_iloc_setitem_partial_col_categorical_rhs(
+        self, orig, exp_parts_cats_col, indexer
+    ):
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
         df = orig.copy()
-        df.iloc[2:4, 0] = Categorical(["b", "b"], categories=["a", "b"])
+
+        key = (slice(2, 4), 0)
+        if indexer is tm.loc:
+            key = (slice("j", "k"), df.columns[0])
+
+        # same categories as we currently have in df["cats"]
+        compat = Categorical(["b", "b"], categories=["a", "b"])
+        indexer(df)[key] = compat
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
+        # categories do not match df["cat"]'s, but "b" is among them
+        semi_compat = Categorical(list("bb"), categories=list("abc"))
         with pytest.raises(ValueError, match=msg2):
-            # different categories -> not sure if this should fail or pass
-            df = orig.copy()
-            df.iloc[2:4, 0] = Categorical(list("bb"), categories=list("abc"))
+            # different categories but holdable values
+            #  -> not sure if this should fail or pass
+            indexer(df)[key] = semi_compat
 
-        with pytest.raises(ValueError, match=msg2):
-            # different values
-            df = orig.copy()
-            df.iloc[2:4, 0] = Categorical(list("cc"), categories=list("abc"))
-
-        # assign a part of a column with dtype != categorical ->
-        # exp_parts_cats_col
-        df = orig.copy()
-        df.iloc[2:4, 0] = ["b", "b"]
-        tm.assert_frame_equal(df, exp_parts_cats_col)
-
-        with pytest.raises(ValueError, match=msg1):
-            df.iloc[2:4, 0] = ["c", "c"]
-
-        #  loc
-        # ##############
-        #   - assign a single value -> exp_single_cats_value
-        df = orig.copy()
-        df.loc["j", "cats"] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        df = orig.copy()
-        df.loc[df.index == "j", "cats"] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j", "cats"] = "c"
-
-        #   - assign a complete row (mixed values) -> exp_single_row
-        df = orig.copy()
-        df.loc["j", :] = ["b", 2]
-        tm.assert_frame_equal(df, exp_single_row)
-
-        #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j", :] = ["c", 2]
-
-        #   - assign multiple rows (mixed values) -> exp_multi_row
-        df = orig.copy()
-        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
-        tm.assert_frame_equal(df, exp_multi_row)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
-
-        # assign a part of a column with dtype == categorical ->
-        # exp_parts_cats_col
-        df = orig.copy()
-        df.loc["j":"k", "cats"] = Categorical(["b", "b"], categories=["a", "b"])
-        tm.assert_frame_equal(df, exp_parts_cats_col)
-
-        with pytest.raises(ValueError, match=msg2):
-            # different categories -> not sure if this should fail or pass
-            df = orig.copy()
-            df.loc["j":"k", "cats"] = Categorical(
-                ["b", "b"], categories=["a", "b", "c"]
-            )
-
+        # categories do not match df["cat"]'s, and "c" is not among them
+        incompat = Categorical(list("cc"), categories=list("abc"))
         with pytest.raises(ValueError, match=msg2):
             # different values
-            df = orig.copy()
-            df.loc["j":"k", "cats"] = Categorical(
-                ["c", "c"], categories=["a", "b", "c"]
-            )
+            indexer(df)[key] = incompat
 
-        # assign a part of a column with dtype != categorical ->
-        # exp_parts_cats_col
+    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
+    def test_loc_iloc_setitem_non_categorical_rhs(
+        self, orig, exp_parts_cats_col, indexer
+    ):
+        # assign a part of a column with dtype != categorical -> exp_parts_cats_col
         df = orig.copy()
-        df.loc["j":"k", "cats"] = ["b", "b"]
+
+        key = (slice(2, 4), 0)
+        if indexer is tm.loc:
+            key = (slice("j", "k"), df.columns[0])
+
+        # "b" is among the categories for df["cat"]
+        indexer(df)[key] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
+        # "c" not part of the categories
         with pytest.raises(ValueError, match=msg1):
-            df.loc["j":"k", "cats"] = ["c", "c"]
+            indexer(df)[key] = ["c", "c"]
 
-        #  loc
-        # ##############
-        #   - assign a single value -> exp_single_cats_value
-        df = orig.copy()
-        df.loc["j", df.columns[0]] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        df = orig.copy()
-        df.loc[df.index == "j", df.columns[0]] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j", df.columns[0]] = "c"
-
-        #   - assign a complete row (mixed values) -> exp_single_row
-        df = orig.copy()
-        df.loc["j", :] = ["b", 2]
-        tm.assert_frame_equal(df, exp_single_row)
-
-        #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j", :] = ["c", 2]
-
-        #   - assign multiple rows (mixed values) -> exp_multi_row
-        df = orig.copy()
-        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
-        tm.assert_frame_equal(df, exp_multi_row)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
-
-        # assign a part of a column with dtype == categorical ->
-        # exp_parts_cats_col
-        df = orig.copy()
-        df.loc["j":"k", df.columns[0]] = Categorical(["b", "b"], categories=["a", "b"])
-        tm.assert_frame_equal(df, exp_parts_cats_col)
-
-        with pytest.raises(ValueError, match=msg2):
-            # different categories -> not sure if this should fail or pass
-            df = orig.copy()
-            df.loc["j":"k", df.columns[0]] = Categorical(
-                ["b", "b"], categories=["a", "b", "c"]
-            )
-
-        with pytest.raises(ValueError, match=msg2):
-            # different values
-            df = orig.copy()
-            df.loc["j":"k", df.columns[0]] = Categorical(
-                ["c", "c"], categories=["a", "b", "c"]
-            )
-
-        # assign a part of a column with dtype != categorical ->
-        # exp_parts_cats_col
-        df = orig.copy()
-        df.loc["j":"k", df.columns[0]] = ["b", "b"]
-        tm.assert_frame_equal(df, exp_parts_cats_col)
-
-        with pytest.raises(ValueError, match=msg1):
-            df.loc["j":"k", df.columns[0]] = ["c", "c"]
-
-        # iat
-        df = orig.copy()
-        df.iat[2, 0] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.iat[2, 0] = "c"
-
-        # at
-        #   - assign a single value -> exp_single_cats_value
-        df = orig.copy()
-        df.at["j", "cats"] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.at["j", "cats"] = "c"
-
+    def test_setitem_mask_categorical(self, exp_multi_row):
         # fancy indexing
+
         catsf = Categorical(
             ["a", "a", "c", "c", "a", "a", "a"], categories=["a", "b", "c"]
         )
@@ -331,19 +238,12 @@ class TestDataFrameIndexingCategorical:
         )
         assert return_value is None
 
-        df[df["cats"] == "c"] = ["b", 2]
+        mask = df["cats"] == "c"
+        df[mask] = ["b", 2]
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
 
-        # set_value
-        df = orig.copy()
-        df.at["j", "cats"] = "b"
-        tm.assert_frame_equal(df, exp_single_cats_value)
-
-        with pytest.raises(ValueError, match=msg1):
-            df = orig.copy()
-            df.at["j", "cats"] = "c"
-
+    def test_loc_setitem_categorical_values_partial_column_slice(self):
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})

@@ -272,7 +272,9 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            ("to_json", {}, "os"),
+            pytest.param(
+                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
+            ),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -419,3 +421,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+
+
+def test_default_errors():
+    # GH 38989
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(b"\xe4\na\n1")
+        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))

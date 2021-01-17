@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Type, Union
@@ -27,7 +29,7 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import AnyArrayLike, Dtype
+from pandas._typing import AnyArrayLike, Dtype, NpDtype
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -160,7 +162,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype=None, freq=None, copy=False):
+    def __init__(self, values, dtype: Optional[Dtype] = None, freq=None, copy=False):
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
@@ -187,8 +189,11 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
-    ) -> "PeriodArray":
+        cls,
+        values: np.ndarray,
+        freq: Optional[BaseOffset] = None,
+        dtype: Optional[Dtype] = None,
+    ) -> PeriodArray:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
@@ -201,7 +206,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         *,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -221,12 +226,12 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype=None, copy=False
-    ) -> "PeriodArray":
+        cls, strings, *, dtype: Optional[Dtype] = None, copy=False
+    ) -> PeriodArray:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":
+    def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -269,7 +274,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     def _unbox_scalar(
         self, value: Union[Period, NaTType], setitem: bool = False
-    ) -> int:
+    ) -> np.int64:
         if value is NaT:
             return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
@@ -302,7 +307,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
         elif dtype == bool:
@@ -501,7 +506,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
-    def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
+    def asfreq(self, freq=None, how: str = "E") -> PeriodArray:
         """
         Convert the {klass} to the specified frequency `freq`.
 
@@ -672,7 +677,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     def _addsub_int_array(
         self, other: np.ndarray, op: Callable[[Any, Any], Any]
-    ) -> "PeriodArray":
+    ) -> PeriodArray:
         """
         Add or subtract array of integers; equivalent to applying
         `_time_shift` pointwise.
@@ -1065,11 +1070,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q")
-            base = FreqGroup.FR_QTR
+            base = FreqGroup.FR_QTR.value
         else:
             freq = to_offset(freq)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR:
+            if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
