@@ -12,6 +12,10 @@ including other versions of pandas.
 
 .. _whatsnew_121.regressions:
 
+We have reverted a commit that resulted in several plotting related regressions in pandas 1.2 (:issue:`38969`, :issue:`38736`, :issue:`38865`, :issue:`38947` and :issue:`39126`)
+
+As a result, bugs reported as fixed in pandas 1.2 are again present (:issue:`26186` and :issue:`11465`)
+
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
