@@ -712,7 +712,8 @@ class TestDataFramePlots(TestPlotBase):
             categories=categories,
         )
         ax = df.plot.scatter(x=0, y=1, c="species")
-        colorbar = ax.collections[0].colorbar
+        (colorbar_collection,) = ax.collections
+        colorbar = colorbar_collection.colorbar
 
         expected_ticks = np.array([0.5, 1.5, 2.5])
         result_ticks = colorbar.get_ticks()
